@@ -27,6 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (!resendApiKey) {
       console.error("RESEND_API_KEY is not configured");
+      console.error("Available env vars:", Object.keys(Deno.env.toObject()));
       return new Response(
         JSON.stringify({ 
           error: "Email service not configured", 

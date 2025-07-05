@@ -44,7 +44,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send email via Resend...");
     const emailResponse = await resend.emails.send({
-      from: "ProofLabAI <onboarding@resend.dev>",
+      from: "ProofLabAI <noreply@prooflabai.com>",
       to: [email],
       subject: "Verify your ProofLabAI account",
       html: `
@@ -75,6 +75,8 @@ const handler = async (req: Request): Promise<Response> => {
       let userFriendlyMessage = "Email sending failed";
       if (emailResponse.error.message?.includes("can only send testing emails")) {
         userFriendlyMessage = "Email verification is in testing mode. Please verify your domain at resend.com/domains or contact support.";
+      } else if (emailResponse.error.message?.includes("not verified")) {
+        userFriendlyMessage = "The sender email domain is not verified. Please verify your domain at resend.com/domains.";
       }
       
       return new Response(

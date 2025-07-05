@@ -46,22 +46,80 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "ProofLabAI <noreply@prooflabai.com>",
       to: [email],
-      subject: "Verify your ProofLabAI account",
+      subject: "ProofLabAI Account Verification Code",
+      text: `Welcome to ProofLabAI!
+
+Thank you for signing up for ProofLabAI - the Real Proof-of-Work Internship Platform for Engineering Students.
+
+Your verification code is: ${code}
+
+Please enter this code to complete your registration. This code will expire in 10 minutes.
+
+If you didn't create an account with ProofLabAI, please ignore this email.
+
+Best regards,
+The ProofLabAI Team
+
+--
+ProofLabAI
+Real Proof-of-Work Internship Platform
+https://prooflabai.com`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e40af;">Welcome to ProofLabAI! 👨‍💻</h2>
-          <p>Thank you for signing up! Please use the verification code below to complete your registration:</p>
-          <div style="background-color: #f3f4f6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-            <h1 style="color: #1e40af; font-size: 32px; margin: 0; letter-spacing: 4px;">${code}</h1>
-          </div>
-          <p>This code will expire in 10 minutes.</p>
-          <p>If you didn't create an account with ProofLabAI, please ignore this email.</p>
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; font-size: 14px;">
-            Best regards,<br>
-            The ProofLabAI Team
-          </p>
-        </div>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>ProofLabAI Account Verification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f9fafb;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 20px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <tr>
+                    <td style="padding: 40px 30px; text-align: center;">
+                      <h1 style="color: #1e40af; font-size: 28px; margin: 0 0 20px 0; font-weight: bold;">
+                        Welcome to ProofLabAI! 👨‍💻
+                      </h1>
+                      <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                        Thank you for signing up for ProofLabAI - the Real Proof-of-Work Internship Platform for Engineering Students.
+                      </p>
+                      <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                        Please use the verification code below to complete your registration:
+                      </p>
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td align="center" style="padding: 20px; background-color: #f3f4f6; border-radius: 8px; margin: 20px 0;">
+                            <span style="font-size: 32px; font-weight: bold; color: #1e40af; letter-spacing: 4px; font-family: 'Courier New', monospace;">
+                              ${code}
+                            </span>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 20px 0 0 0;">
+                        This code will expire in 10 minutes for security purposes.
+                      </p>
+                      <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 10px 0 0 0;">
+                        If you didn't create an account with ProofLabAI, please ignore this email.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 20px 30px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
+                      <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                        Best regards,<br>
+                        The ProofLabAI Team<br>
+                        <a href="https://prooflabai.com" style="color: #1e40af; text-decoration: none;">prooflabai.com</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `,
     });
 

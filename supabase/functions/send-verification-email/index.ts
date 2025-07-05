@@ -70,9 +70,16 @@ const handler = async (req: Request): Promise<Response> => {
     // Check if the email was actually sent successfully
     if (emailResponse.error) {
       console.error("Resend API error:", emailResponse.error);
+      
+      // Handle specific Resend errors
+      let userFriendlyMessage = "Email sending failed";
+      if (emailResponse.error.message?.includes("can only send testing emails")) {
+        userFriendlyMessage = "Email verification is in testing mode. Please verify your domain at resend.com/domains or contact support.";
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: "Email sending failed", 
+          error: userFriendlyMessage, 
           details: emailResponse.error 
         }),
         {

@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      email_verifications: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_verified: boolean | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_verified?: boolean | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_verified?: boolean | null
+        }
+        Relationships: []
+      }
+      student_otps: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_used: boolean
+          otp_code: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_used?: boolean
+          otp_code: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_used?: boolean
+          otp_code?: string
+        }
+        Relationships: []
+      }
       students_auth: {
         Row: {
           created_at: string | null

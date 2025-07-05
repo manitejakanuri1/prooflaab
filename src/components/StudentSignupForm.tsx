@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ export default function StudentSignupForm() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,6 +149,11 @@ export default function StudentSignupForm() {
       setEmail("");
       setOtp("");
       setShowOtpInput(false);
+      
+      // Redirect to student dashboard after 1 second delay
+      setTimeout(() => {
+        navigate("/student/dashboard");
+      }, 1000);
       
     } catch (error) {
       console.error("Unexpected error:", error);

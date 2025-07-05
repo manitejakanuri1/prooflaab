@@ -24,24 +24,45 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending verification email to: ${email}`);
 
+    // Validate required environment variables
+    const smtpHost = Deno.env.get("SMTP_HOST");
+    const smtpPort = Deno.env.get("SMTP_PORT");
+    const smtpUsername = Deno.env.get("SMTP_USERNAME");
+    const smtpPassword = Deno.env.get("SMTP_PASSWORD");
+    const smtpFromEmail = Deno.env.get("SMTP_FROM_EMAIL");
+
+    if (!smtpHost || !smtpUsername || !smtpPassword || !smtpFromEmail) {
+      console.error("Missing SMTP configuration");
+      return new Response(
+        JSON.stringify({ error: "SMTP configuration missing" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log(`SMTP Config - Host: ${smtpHost}, Port: ${smtpPort}, Username: ${smtpUsername}`);
+
     // Create SMTP client with Zoho configuration
     const client = new SMTPClient({
       connection: {
-        hostname: Deno.env.get("SMTP_HOST") || "smtp.zoho.com",
-        port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
+        hostname: smtpHost,
+        port: parseInt(smtpPort || "587"),
         tls: true,
         auth: {
-          username: Deno.env.get("SMTP_USERNAME")!,
-          password: Deno.env.get("SMTP_PASSWORD")!,
+          username: smtpUsername,
+          password: smtpPassword,
         },
       },
     });
 
-    const fromEmail = Deno.env.get("SMTP_FROM_EMAIL")!;
     const fromName = Deno.env.get("SMTP_FROM_NAME") || "ProofLabAI";
 
+    console.log(`Sending email from: ${fromName} <${smtpFromEmail}> to: ${email}`);
+
     await client.send({
-      from: `${fromName} <${fromEmail}>`,
+      from: `${fromName} <${smtpFromEmail}>`,
       to: email,
       subject: "Verify your ProofLabAI account",
       content: "auto",

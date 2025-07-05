@@ -44,12 +44,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`SMTP Config - Host: ${smtpHost}, Port: ${smtpPort}, Username: ${smtpUsername}`);
 
-    // Create SMTP client with more specific Zoho configuration
+    const port = parseInt(smtpPort || "465");
+    
+    // Create SMTP client with correct configuration for port 465 (SSL)
     const client = new SMTPClient({
       connection: {
         hostname: smtpHost,
-        port: parseInt(smtpPort || "587"),
-        tls: true,
+        port: port,
+        tls: port === 465, // Use SSL for port 465, TLS for others
         auth: {
           username: smtpUsername,
           password: smtpPassword,
@@ -59,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const fromName = Deno.env.get("SMTP_FROM_NAME") || "ProofLabAI";
 
-    console.log(`Attempting to send email from: ${fromName} <${smtpFromEmail}> to: ${email}`);
+    console.log(`Attempting to send email from: ${fromName} <${smtpFromEmail}> to: ${email} via port ${port} (${port === 465 ? 'SSL' : 'TLS'})`);
 
     try {
       await client.send({

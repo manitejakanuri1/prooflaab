@@ -1,8 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,10 +24,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending verification email to: ${email}`);
 
-    const emailResponse = await resend.emails.send({
-      from: "ProofLabAI <onboarding@resend.dev>",
-      to: [email],
+    // Create SMTP client with Zoho configuration
+    const client = new SMTPClient({
+      connection: {
+        hostname: Deno.env.get("SMTP_HOST") || "smtp.zoho.com",
+        port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
+        tls: true,
+        auth: {
+          username: Deno.env.get("SMTP_USERNAME")!,
+          password: Deno.env.get("SMTP_PASSWORD")!,
+        },
+      },
+    });
+
+    const fromEmail = Deno.env.get("SMTP_FROM_EMAIL")!;
+    const fromName = Deno.env.get("SMTP_FROM_NAME") || "ProofLabAI";
+
+    await client.send({
+      from: `${fromName} <${fromEmail}>`,
+      to: email,
       subject: "Verify your ProofLabAI account",
+      content: "auto",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1e40af;">Welcome to ProofLabAI! 👨‍💻</h2>
@@ -48,7 +63,9 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    await client.close();
+
+    console.log("Email sent successfully via SMTP");
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

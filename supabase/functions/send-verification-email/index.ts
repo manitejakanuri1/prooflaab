@@ -44,7 +44,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`SMTP Config - Host: ${smtpHost}, Port: ${smtpPort}, Username: ${smtpUsername}`);
 
-    // Create SMTP client with Zoho configuration
+    // Create SMTP client with more specific Zoho configuration
     const client = new SMTPClient({
       connection: {
         hostname: smtpHost,
@@ -59,46 +59,84 @@ const handler = async (req: Request): Promise<Response> => {
 
     const fromName = Deno.env.get("SMTP_FROM_NAME") || "ProofLabAI";
 
-    console.log(`Sending email from: ${fromName} <${smtpFromEmail}> to: ${email}`);
+    console.log(`Attempting to send email from: ${fromName} <${smtpFromEmail}> to: ${email}`);
 
-    await client.send({
-      from: `${fromName} <${smtpFromEmail}>`,
-      to: email,
-      subject: "Verify your ProofLabAI account",
-      content: "auto",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e40af;">Welcome to ProofLabAI! 👨‍💻</h2>
-          <p>Thank you for signing up! Please use the verification code below to complete your registration:</p>
-          <div style="background-color: #f3f4f6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-            <h1 style="color: #1e40af; font-size: 32px; margin: 0; letter-spacing: 4px;">${code}</h1>
+    try {
+      await client.send({
+        from: `${fromName} <${smtpFromEmail}>`,
+        to: email,
+        subject: "Verify your ProofLabAI account",
+        content: "auto",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1e40af;">Welcome to ProofLabAI! 👨‍💻</h2>
+            <p>Thank you for signing up! Please use the verification code below to complete your registration:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+              <h1 style="color: #1e40af; font-size: 32px; margin: 0; letter-spacing: 4px;">${code}</h1>
+            </div>
+            <p>This code will expire in 10 minutes.</p>
+            <p>If you didn't create an account with ProofLabAI, please ignore this email.</p>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px;">
+              Best regards,<br>
+              The ProofLabAI Team
+            </p>
           </div>
-          <p>This code will expire in 10 minutes.</p>
-          <p>If you didn't create an account with ProofLabAI, please ignore this email.</p>
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; font-size: 14px;">
-            Best regards,<br>
-            The ProofLabAI Team
-          </p>
-        </div>
-      `,
-    });
+        `,
+      });
 
-    await client.close();
+      console.log("Email sent successfully via SMTP");
 
-    console.log("Email sent successfully via SMTP");
+      await client.close();
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+
+    } catch (smtpError: any) {
+      console.error("SMTP Error details:", {
+        message: smtpError.message,
+        stack: smtpError.stack,
+        name: smtpError.name,
+        code: smtpError.code
+      });
+
+      // Try to close the client even if sending failed
+      try {
+        await client.close();
+      } catch (closeError) {
+        console.error("Error closing SMTP client:", closeError);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to send email", 
+          details: smtpError.message,
+          smtpError: true
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
   } catch (error: any) {
-    console.error("Error in send-verification-email function:", error);
+    console.error("General error in send-verification-email function:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: "Internal server error", 
+        details: error.message 
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

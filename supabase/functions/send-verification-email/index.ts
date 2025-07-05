@@ -39,8 +39,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log("Resend API key found, initializing Resend client");
     const resend = new Resend(resendApiKey);
 
+    console.log("Attempting to send email via Resend...");
     const emailResponse = await resend.emails.send({
       from: "ProofLabAI <onboarding@resend.dev>",
       to: [email],
@@ -63,12 +65,30 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email API response:", JSON.stringify(emailResponse, null, 2));
+
+    // Check if the email was actually sent successfully
+    if (emailResponse.error) {
+      console.error("Resend API error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: "Email sending failed", 
+          details: emailResponse.error 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("Email sent successfully with ID:", emailResponse.data?.id);
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: "Verification email sent successfully",
-      email: email 
+      email: email,
+      emailId: emailResponse.data?.id
     }), {
       status: 200,
       headers: {
@@ -78,7 +98,12 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error: any) {
-    console.error("Error in send-verification-email function:", error.message);
+    console.error("Error in send-verification-email function:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
 
     return new Response(
       JSON.stringify({ 

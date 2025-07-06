@@ -84,8 +84,8 @@ const Index = () => {
           {/* Join as a Startup - Left Card */}
           <div className="group bg-white/80 backdrop-blur-sm border-2 border-green-300 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-black rounded-2xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-xl text-white">🏢</span>
+              <div className="text-4xl mb-4">
+                🏢
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
                 Join as a Startup
@@ -105,8 +105,8 @@ const Index = () => {
           {/* Start as a Student - Center Card */}
           <div className="group bg-white/80 backdrop-blur-sm border-2 border-blue-300 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2 relative">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-black rounded-2xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-xl text-white">🚀</span>
+              <div className="text-4xl mb-4">
+                🚀
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
                 Start as a Student
@@ -126,8 +126,8 @@ const Index = () => {
           {/* Connect as a College - Right Card */}
           <div className="group bg-white/80 backdrop-blur-sm border-2 border-purple-300 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
             <div className="text-center">
-              <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mx-auto mb-4">
-                <span className="text-xl text-white">🎓</span>
+              <div className="text-4xl mb-4">
+                🎓
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
                 Connect as a College

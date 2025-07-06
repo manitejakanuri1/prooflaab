@@ -2,21 +2,29 @@
 import { useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import OverviewCards from "@/components/dashboard/OverviewCards";
-import AssignedTasks from "@/components/dashboard/AssignedTasks";
-import UploadedProofs from "@/components/dashboard/UploadedProofs";
-import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
-import PortfolioCard from "@/components/dashboard/PortfolioCard";
-import NotificationBox from "@/components/dashboard/NotificationBox";
+import TasksSection from "@/components/dashboard/TasksSection";
+import ProfileSection from "@/components/dashboard/ProfileSection";
+import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
+import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import Sidebar from "@/components/dashboard/Sidebar";
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Mock data - in real app this would come from API/database
-  const studentName = "Arjun";
-  
+  const studentData = {
+    name: "Arjun Kumar",
+    email: "arjun@example.com",
+    profilePhoto: null,
+    totalXp: 2450,
+    trustScore: 85,
+    rank: 17,
+    totalStudents: 2847
+  };
+
   const overviewData = {
     tasksCompleted: 12,
+    totalTasks: 18,
     xpPoints: 2450,
     trustScore: 85
   };
@@ -27,69 +35,48 @@ const StudentDashboard = () => {
       title: 'Build React Dashboard for E-commerce Platform',
       deadline: 'Dec 15, 2024',
       status: 'In Progress' as const,
-      progress: 65
+      progress: 65,
+      xpReward: 200
     },
     {
       id: '2', 
       title: 'API Integration for User Authentication',
       deadline: 'Dec 20, 2024',
       status: 'Pending' as const,
-      progress: 0
+      progress: 0,
+      xpReward: 150
     },
     {
       id: '3',
       title: 'Database Schema Design for CRM',
       deadline: 'Dec 10, 2024',
       status: 'Completed' as const,
-      progress: 100
+      progress: 100,
+      xpReward: 180
     }
   ];
-
-  const uploadedProofs = [
-    {
-      id: '1',
-      taskTitle: 'Mobile App UI/UX Design',
-      submissionDate: 'Dec 5, 2024',
-      status: 'Verified' as const
-    },
-    {
-      id: '2',
-      taskTitle: 'Python Data Analysis Script',
-      submissionDate: 'Dec 3, 2024', 
-      status: 'Under Review' as const
-    },
-    {
-      id: '3',
-      taskTitle: 'WordPress Plugin Development',
-      submissionDate: 'Nov 28, 2024',
-      status: 'Rejected' as const
-    }
-  ];
-
-  const leaderboardData = {
-    rank: 17,
-    badge: 'Top 10% Performer 🌟',
-    totalStudents: 2847
-  };
 
   const notifications = [
     {
       id: '1',
       message: 'New task assigned: "Social Media Dashboard Development"',
       type: 'task' as const,
-      time: '2 hours ago'
+      time: '2 hours ago',
+      isRead: false
     },
     {
       id: '2',
       message: 'Feedback received on your React project submission',
       type: 'feedback' as const,
-      time: '5 hours ago'
+      time: '5 hours ago',
+      isRead: false
     },
     {
       id: '3',
       message: 'Congratulations! You earned the "Consistent Performer" badge',
       type: 'achievement' as const,
-      time: '1 day ago'
+      time: '1 day ago',
+      isRead: true
     }
   ];
 
@@ -97,23 +84,25 @@ const StudentDashboard = () => {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-7xl mx-auto">
-          <DashboardHeader studentName={studentName} />
-          
-          <NotificationBox notifications={notifications} />
-          
-          <OverviewCards data={overviewData} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="lg:col-span-2">
-              <AssignedTasks tasks={assignedTasks} />
-              <UploadedProofs proofs={uploadedProofs} />
-            </div>
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto">
+          <div className="p-6 max-w-7xl mx-auto">
+            <DashboardHeader studentName={studentData.name} />
             
-            <div className="space-y-6">
-              <LeaderboardCard data={leaderboardData} />
-              <PortfolioCard />
+            {/* Main Dashboard Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Left Column - Main Content */}
+              <div className="lg:col-span-3 space-y-6">
+                <OverviewCards data={overviewData} />
+                <TasksSection tasks={assignedTasks} />
+              </div>
+              
+              {/* Right Column - Sidebar Content */}
+              <div className="space-y-6">
+                <ProfileSection student={studentData} />
+                <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+                <NotificationsSection notifications={notifications} />
+              </div>
             </div>
           </div>
         </div>

@@ -1,17 +1,27 @@
 
-import { useState } from "react";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import OverviewCards from "@/components/dashboard/OverviewCards";
-import TasksSection from "@/components/dashboard/TasksSection";
-import ProfileSection from "@/components/dashboard/ProfileSection";
-import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
-import NotificationsSection from "@/components/dashboard/NotificationsSection";
-import Sidebar from "@/components/dashboard/Sidebar";
+import { useState, useEffect } from "react";
+import { Bell, Settings, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import ProfileCard from "@/components/dashboard/ProfileCard";
+import ProgressChart from "@/components/dashboard/ProgressChart";
+import XPTracker from "@/components/dashboard/XPTracker";
+import TaskStats from "@/components/dashboard/TaskStats";
+import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
+import ProofTracker from "@/components/dashboard/ProofTracker";
+import NotificationsPopover from "@/components/dashboard/NotificationsPopover";
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  // Mock data - in real app this would come from API/database
+  // Mock data - in real app this would come from Supabase
   const studentData = {
     name: "Arjun Kumar",
     email: "arjun@example.com",
@@ -19,40 +29,39 @@ const StudentDashboard = () => {
     totalXp: 2450,
     trustScore: 85,
     rank: 17,
-    totalStudents: 2847
+    totalStudents: 2847,
+    monthlyXP: 650
   };
 
-  const overviewData = {
-    tasksCompleted: 12,
-    totalTasks: 18,
-    xpPoints: 2450,
-    trustScore: 85
-  };
+  const menuTabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'tasks', label: 'My Tasks' },
+    { id: 'upload', label: 'Upload Proof' },
+    { id: 'portfolio', label: 'Portfolio' },
+    { id: 'leaderboard', label: 'Leaderboard' }
+  ];
 
   const assignedTasks = [
     {
       id: '1',
-      title: 'Build React Dashboard for E-commerce Platform',
+      title: 'Build React Dashboard',
       deadline: 'Dec 15, 2024',
       status: 'In Progress' as const,
-      progress: 65,
-      xpReward: 200
+      progress: 65
     },
     {
       id: '2', 
-      title: 'API Integration for User Authentication',
+      title: 'API Integration',
       deadline: 'Dec 20, 2024',
       status: 'Pending' as const,
-      progress: 0,
-      xpReward: 150
+      progress: 0
     },
     {
       id: '3',
-      title: 'Database Schema Design for CRM',
+      title: 'Database Schema',
       deadline: 'Dec 10, 2024',
       status: 'Completed' as const,
-      progress: 100,
-      xpReward: 180
+      progress: 100
     }
   ];
 
@@ -70,43 +79,137 @@ const StudentDashboard = () => {
       type: 'feedback' as const,
       time: '5 hours ago',
       isRead: false
-    },
-    {
-      id: '3',
-      message: 'Congratulations! You earned the "Consistent Performer" badge',
-      type: 'achievement' as const,
-      time: '1 day ago',
-      isRead: true
     }
   ];
 
+  const unreadNotifications = notifications.filter(n => !n.isRead).length;
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto">
-          <div className="p-6 max-w-7xl mx-auto">
-            <DashboardHeader studentName={studentData.name} />
-            
-            {/* Main Dashboard Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Left Column - Main Content */}
-              <div className="lg:col-span-3 space-y-6">
-                <OverviewCards data={overviewData} />
-                <TasksSection tasks={assignedTasks} />
-              </div>
-              
-              {/* Right Column - Sidebar Content */}
-              <div className="space-y-6">
-                <ProfileSection student={studentData} />
-                <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
-                <NotificationsSection notifications={notifications} />
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-6 py-4">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          {/* Logo */}
+          <div className="flex items-center space-x-8">
+            <div className="bg-gray-900 text-white px-4 py-2 rounded-2xl font-bold text-lg">
+              ProofLabAI
             </div>
+            
+            {/* Navigation Tabs */}
+            <nav className="flex items-center space-x-1">
+              {menuTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Right Header Icons */}
+          <div className="flex items-center space-x-4">
+            {/* Notifications */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative p-2"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="h-5 w-5 text-gray-600" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </Button>
+              {showNotifications && (
+                <NotificationsPopover 
+                  notifications={notifications}
+                  onClose={() => setShowNotifications(false)}
+                />
+              )}
+            </div>
+
+            {/* Settings */}
+            <Button variant="ghost" size="sm" className="p-2">
+              <Settings className="h-5 w-5 text-gray-600" />
+            </Button>
+
+            {/* User Avatar with Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={studentData.profilePhoto || ""} alt={studentData.name} />
+                    <AvatarFallback className="bg-gray-900 text-white">
+                      {studentData.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end">
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-      </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto p-6">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Welcome back, {studentData.name} 👋
+          </h1>
+          <p className="text-gray-600">{today}</p>
+        </div>
+
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* Left Column - Profile Card */}
+          <div className="col-span-12 lg:col-span-3">
+            <ProfileCard student={studentData} />
+          </div>
+
+          {/* Middle Column - Charts */}
+          <div className="col-span-12 lg:col-span-6 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <ProgressChart />
+              <XPTracker monthlyXP={studentData.monthlyXP} />
+            </div>
+            <TaskStats tasks={assignedTasks} />
+            <ProofTracker />
+          </div>
+
+          {/* Right Column - Tasks */}
+          <div className="col-span-12 lg:col-span-3">
+            <AssignedTasksList tasks={assignedTasks} />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

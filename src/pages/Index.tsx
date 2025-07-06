@@ -50,8 +50,8 @@ const Index = () => {
       {/* Header */}
       <header className="px-6 py-4 flex justify-between items-center bg-white/50 backdrop-blur-sm border-b border-white/20">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-lg">P</span>
+          <div className="w-10 h-10 flex items-center justify-center">
+            <img src="/lovable-uploads/dba3a561-930a-4e90-84a7-09a19371deb3.png" alt="ProofLabAI Logo" className="w-10 h-10 object-contain" />
           </div>
           <span className="font-bold text-xl text-gray-800">ProofLabAI</span>
         </div>

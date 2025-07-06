@@ -1,5 +1,5 @@
 
-import { Calendar, Upload, Clock, CheckCircle2 } from "lucide-react";
+import { Calendar, Upload, Clock, CheckCircle2, Award } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";

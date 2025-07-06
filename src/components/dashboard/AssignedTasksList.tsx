@@ -34,12 +34,12 @@ export default function AssignedTasksList({ tasks }: AssignedTasksListProps) {
   };
 
   return (
-    <Card className="bg-gray-900 text-white border-0 shadow-lg rounded-3xl h-fit">
+    <Card className="bg-gray-900 text-white border-0 shadow-lg rounded-3xl h-full flex flex-col">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-white">Assigned Tasks</CardTitle>
         <div className="text-2xl font-bold text-white">{tasks.length}/8</div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-1 overflow-y-auto">
         {tasks.slice(0, 3).map((task) => (
           <div key={task.id} className="bg-white/10 rounded-2xl p-4 space-y-3">
             <div className="flex items-start justify-between">

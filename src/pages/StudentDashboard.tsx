@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
 import ProofTracker from "@/components/dashboard/ProofTracker";
 import NotificationsPopover from "@/components/dashboard/NotificationsPopover";
 import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
+import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -195,18 +195,35 @@ const StudentDashboard = () => {
             <ProfileCard student={studentData} />
           </div>
 
-          {/* Middle Column - Charts */}
-          <div className="col-span-12 lg:col-span-6 space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <ProgressChart />
-              <XPTracker monthlyXP={studentData.monthlyXP} />
-            </div>
-            <TaskStats tasks={assignedTasks} />
-            <ProofTracker />
+          {/* Top Row - Progress Chart and Leaderboard */}
+          <div className="col-span-12 lg:col-span-6">
+            <ProgressChart />
+          </div>
+          
+          <div className="col-span-12 lg:col-span-3">
+            <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
           </div>
 
-          {/* Right Column - Tasks */}
+          {/* Second Row - XP Tracker and Trust Score */}
           <div className="col-span-12 lg:col-span-3">
+            <XPTracker monthlyXP={studentData.monthlyXP} />
+          </div>
+
+          <div className="col-span-12 lg:col-span-3">
+            <TrustScorePanel trustScore={studentData.trustScore} />
+          </div>
+
+          {/* Task Stats - spans remaining width */}
+          <div className="col-span-12 lg:col-span-6">
+            <TaskStats tasks={assignedTasks} />
+          </div>
+
+          {/* Bottom Row - Proof Tracker and Assigned Tasks */}
+          <div className="col-span-12 lg:col-span-6">
+            <ProofTracker />
+          </div>
+          
+          <div className="col-span-12 lg:col-span-6">
             <AssignedTasksList tasks={assignedTasks} />
           </div>
         </div>

@@ -15,16 +15,16 @@ export default function XPTracker({ monthlyXP }: XPTrackerProps) {
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
+    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-gray-900">XP Tracker</CardTitle>
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col items-center space-y-4">
+      <CardContent className="flex flex-col items-center justify-center space-y-4 h-full">
         {/* Circular Progress */}
-        <div className="relative">
+        <div className="relative flex-1 flex items-center justify-center">
           <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
             {/* Background circle */}
             <circle

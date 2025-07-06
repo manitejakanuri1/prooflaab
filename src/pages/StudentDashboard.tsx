@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -194,19 +193,18 @@ const StudentDashboard = () => {
             <ProfileCard student={studentData} />
           </div>
 
-          {/* Top Row - Progress Chart */}
+          {/* Top Row - Progress Chart and XP Tracker */}
           <div className="col-span-12 lg:col-span-6">
             <ProgressChart />
           </div>
           
-          {/* Top Right - Assigned Tasks */}
-          <div className="col-span-12 lg:col-span-3">
-            <AssignedTasksList tasks={assignedTasks} />
-          </div>
-
-          {/* Second Row - XP Tracker */}
           <div className="col-span-12 lg:col-span-3">
             <XPTracker monthlyXP={studentData.monthlyXP} />
+          </div>
+
+          {/* Second Row - Assigned Tasks */}
+          <div className="col-span-12 lg:col-span-3">
+            <AssignedTasksList tasks={assignedTasks} />
           </div>
 
           {/* Task Stats - spans remaining width */}

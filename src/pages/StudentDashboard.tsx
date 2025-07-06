@@ -18,6 +18,7 @@ import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
 import ProofTracker from "@/components/dashboard/ProofTracker";
 import NotificationsPopover from "@/components/dashboard/NotificationsPopover";
 import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
+import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -188,36 +189,33 @@ const StudentDashboard = () => {
           <p className="text-gray-600">{today}</p>
         </div>
 
-       {/* Dashboard Grid */}
-<div className="grid grid-cols-12 gap-6">
-  {/* Left Column - Profile Card */}
-  <div className="col-span-12 lg:col-span-3">
-    <ProfileCard student={studentData} />
-  </div>
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* Left Column - Profile Card */}
+          <div className="col-span-12 lg:col-span-3">
+            <ProfileCard student={studentData} />
+          </div>
 
-  {/* Middle Column - Charts */}
-  <div className="col-span-12 lg:col-span-6 space-y-6">
-    {/* Top Row: Progress + Leaderboard */}
-    <div className="grid grid-cols-2 gap-6">
-      <ProgressChart />
-      <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
-    </div>
+          {/* Middle Column - Charts */}
+          <div className="col-span-12 lg:col-span-6 space-y-6">
+            {/* Top Row: Progress + XP Tracker */}
+            <div className="grid grid-cols-2 gap-6">
+              <ProgressChart />
+              <XPTracker monthlyXP={studentData.monthlyXP} />
+            </div>
 
-    {/* Middle Row: XP Tracker + Trust Score */}
-    <div className="grid grid-cols-2 gap-6">
-      <XPTracker monthlyXP={studentData.monthlyXP} />
-      <TrustScorePanel trustScore={studentData.trustScore} />
-    </div>
+            {/* Middle Row: Trust Score Panel */}
+            <TrustScorePanel trustScore={studentData.trustScore} />
 
-    <TaskStats tasks={assignedTasks} />
-    <ProofTracker />
-  </div>
+            <TaskStats tasks={assignedTasks} />
+            <ProofTracker />
+          </div>
 
-  {/* Right Column - Assigned Tasks moved to bottom right */}
-  <div className="col-span-12 lg:col-span-3">
-    <AssignedTasksList tasks={assignedTasks} />
-  </div>
-</div>
+          {/* Right Column - Assigned Tasks */}
+          <div className="col-span-12 lg:col-span-3">
+            <AssignedTasksList tasks={assignedTasks} />
+          </div>
+        </div>
       </main>
     </div>
   );

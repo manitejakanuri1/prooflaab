@@ -1,3 +1,4 @@
+// Imports
 import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 import ProfileCard from "@/components/dashboard/ProfileCard";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
@@ -15,12 +17,13 @@ import TaskStats from "@/components/dashboard/TaskStats";
 import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
 import ProofTracker from "@/components/dashboard/ProofTracker";
 import NotificationsPopover from "@/components/dashboard/NotificationsPopover";
+import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
+import TrustScorePanel from "@/components/TrustScorePanel"; // ✅ Already imported
 
 const StudentDashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Mock data - in real app this would come from Supabase
   const studentData = {
     name: "Arjun Kumar",
     email: "arjun@example.com",
@@ -29,65 +32,65 @@ const StudentDashboard = () => {
     trustScore: 85,
     rank: 17,
     totalStudents: 2847,
-    monthlyXP: 650
+    monthlyXP: 650,
   };
 
   const menuTabs = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'tasks', label: 'My Tasks' },
-    { id: 'upload', label: 'Upload Proof' },
-    { id: 'portfolio', label: 'Portfolio' },
-    { id: 'leaderboard', label: 'Leaderboard' }
+    { id: "dashboard", label: "Dashboard" },
+    { id: "tasks", label: "My Tasks" },
+    { id: "upload", label: "Upload Proof" },
+    { id: "portfolio", label: "Portfolio" },
+    { id: "leaderboard", label: "Leaderboard" },
   ];
 
   const assignedTasks = [
     {
-      id: '1',
-      title: 'Build React Dashboard',
-      deadline: 'Dec 15, 2024',
-      status: 'In Progress' as const,
-      progress: 65
+      id: "1",
+      title: "Build React Dashboard",
+      deadline: "Dec 15, 2024",
+      status: "In Progress" as const,
+      progress: 65,
     },
     {
-      id: '2', 
-      title: 'API Integration',
-      deadline: 'Dec 20, 2024',
-      status: 'Pending' as const,
-      progress: 0
+      id: "2",
+      title: "API Integration",
+      deadline: "Dec 20, 2024",
+      status: "Pending" as const,
+      progress: 0,
     },
     {
-      id: '3',
-      title: 'Database Schema',
-      deadline: 'Dec 10, 2024',
-      status: 'Completed' as const,
-      progress: 100
-    }
+      id: "3",
+      title: "Database Schema",
+      deadline: "Dec 10, 2024",
+      status: "Completed" as const,
+      progress: 100,
+    },
   ];
 
   const notifications = [
     {
-      id: '1',
+      id: "1",
       message: 'New task assigned: "Social Media Dashboard Development"',
-      type: 'task' as const,
-      time: '2 hours ago',
-      isRead: false
+      type: "task" as const,
+      time: "2 hours ago",
+      isRead: false,
     },
     {
-      id: '2',
-      message: 'Feedback received on your React project submission',
-      type: 'feedback' as const,
-      time: '5 hours ago',
-      isRead: false
-    }
+      id: "2",
+      message: "Feedback received on your React project submission",
+      type: "feedback" as const,
+      time: "5 hours ago",
+      isRead: false,
+    },
   ];
 
-  const unreadNotifications = notifications.filter(n => !n.isRead).length;
+  const unreadNotifications = notifications.filter((n) => !n.isRead).length;
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 
   return (
@@ -186,37 +189,36 @@ const StudentDashboard = () => {
           <p className="text-gray-600">{today}</p>
         </div>
 
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Column - Profile Card */}
-          <div className="col-span-12 lg:col-span-3">
-            <ProfileCard student={studentData} />
-          </div>
+       {/* Dashboard Grid */}
+<div className="grid grid-cols-12 gap-6">
+  {/* Left Column - Profile Card */}
+  <div className="col-span-12 lg:col-span-3">
+    <ProfileCard student={studentData} />
+  </div>
 
-          {/* Top Row - Progress Chart and XP Tracker */}
-          <div className="col-span-12 lg:col-span-6">
-            <ProgressChart />
-          </div>
-          
-          <div className="col-span-12 lg:col-span-3">
-            <XPTracker monthlyXP={studentData.monthlyXP} />
-          </div>
+  {/* Middle Column - Charts */}
+  <div className="col-span-12 lg:col-span-6 space-y-6">
+    {/* Top Row: Progress + Leaderboard */}
+    <div className="grid grid-cols-2 gap-6">
+      <ProgressChart />
+      <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+    </div>
 
-          {/* Second Row - Assigned Tasks */}
-          <div className="col-span-12 lg:col-span-3">
-            <AssignedTasksList tasks={assignedTasks} />
-          </div>
+    {/* Middle Row: XP Tracker + Trust Score */}
+    <div className="grid grid-cols-2 gap-6">
+      <XPTracker monthlyXP={studentData.monthlyXP} />
+      <TrustScorePanel trustScore={studentData.trustScore} />
+    </div>
 
-          {/* Task Stats - spans remaining width */}
-          <div className="col-span-12 lg:col-span-9">
-            <TaskStats tasks={assignedTasks} />
-          </div>
+    <TaskStats tasks={assignedTasks} />
+    <ProofTracker />
+  </div>
 
-          {/* Bottom Row - Proof Tracker */}
-          <div className="col-span-12">
-            <ProofTracker />
-          </div>
-        </div>
+  {/* Right Column - Assigned Tasks moved to bottom right */}
+  <div className="col-span-12 lg:col-span-3">
+    <AssignedTasksList tasks={assignedTasks} />
+  </div>
+</div>
       </main>
     </div>
   );

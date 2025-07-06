@@ -18,7 +18,6 @@ import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
 import ProofTracker from "@/components/dashboard/ProofTracker";
 import NotificationsPopover from "@/components/dashboard/NotificationsPopover";
 import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
-import TrustScorePanel from "@/components/TrustScorePanel"; // ✅ Already imported
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");

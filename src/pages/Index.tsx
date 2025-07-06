@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import StudentSignupForm from "@/components/StudentSignupForm";
 import StartupSignupForm from "@/components/StartupSignupForm";
@@ -95,7 +94,7 @@ const Index = () => {
               </p>
               <Button 
                 onClick={() => setSignupType('startup')}
-                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                className="w-full h-8 bg-black hover:bg-gray-800 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-xs"
               >
                 Get Started
               </Button>
@@ -116,7 +115,7 @@ const Index = () => {
               </p>
               <Button 
                 onClick={() => setSignupType('student')}
-                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                className="w-full h-8 bg-black hover:bg-gray-800 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-xs"
               >
                 Get Started
               </Button>
@@ -137,7 +136,7 @@ const Index = () => {
               </p>
               <Button 
                 onClick={() => setSignupType('college')}
-                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                className="w-full h-8 bg-black hover:bg-gray-800 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-xs"
               >
                 Get Started
               </Button>

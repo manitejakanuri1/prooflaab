@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import StudentSignupForm from "@/components/StudentSignupForm";
 import StartupSignupForm from "@/components/StartupSignupForm";
@@ -81,7 +82,7 @@ const Index = () => {
         {/* Three Cards Section */}
         <div className="grid md:grid-cols-3 gap-8 w-full max-w-6xl px-4">
           {/* Join as a Startup - Left Card */}
-          <div className="group bg-white/70 backdrop-blur-sm border border-white/30 rounded-3xl p-8 hover:shadow-2xl hover:bg-white/80 transition-all duration-500 hover:-translate-y-2">
+          <div className="group bg-white/80 backdrop-blur-sm border-2 border-green-200 rounded-3xl p-8 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl mx-auto mb-8 shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <span className="text-3xl">🏢</span>
@@ -123,7 +124,7 @@ const Index = () => {
           </div>
 
           {/* Connect as a College - Right Card */}
-          <div className="group bg-white/70 backdrop-blur-sm border border-white/30 rounded-3xl p-8 hover:shadow-2xl hover:bg-white/80 transition-all duration-500 hover:-translate-y-2">
+          <div className="group bg-white/80 backdrop-blur-sm border-2 border-purple-200 rounded-3xl p-8 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl mx-auto mb-8 shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <span className="text-3xl">🎓</span>

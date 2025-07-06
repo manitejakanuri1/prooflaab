@@ -195,48 +195,18 @@ const StudentDashboard = () => {
             <ProfileCard student={studentData} />
           </div>
 
-          {/* Middle Column - Top Row: Progress Chart */}
-          <div className="col-span-12 lg:col-span-6">
-            <ProgressChart />
-          </div>
-          
-          {/* Right Column - Leaderboard */}
-          <div className="col-span-12 lg:col-span-3">
-            <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
-          </div>
-
-          {/* Second Row - XP Tracker and Trust Score */}
-          <div className="col-span-12 lg:col-span-3">
-            <XPTracker monthlyXP={studentData.monthlyXP} />
-          </div>
-
-          <div className="col-span-12 lg:col-span-3">
-            <div className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl p-6">
-              <div className="text-center space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Trust Score</h3>
-                <div className="text-4xl font-bold text-gray-900">{studentData.trustScore}/100</div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all" 
-                    style={{ width: `${studentData.trustScore}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-600">Excellent performance</p>
-              </div>
+          {/* Middle Column - Charts */}
+          <div className="col-span-12 lg:col-span-6 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <ProgressChart />
+              <XPTracker monthlyXP={studentData.monthlyXP} />
             </div>
-          </div>
-
-          {/* Task Stats - spans remaining width */}
-          <div className="col-span-12 lg:col-span-6">
             <TaskStats tasks={assignedTasks} />
-          </div>
-
-          {/* Bottom Row - Proof Tracker and Assigned Tasks */}
-          <div className="col-span-12 lg:col-span-6">
             <ProofTracker />
           </div>
-          
-          <div className="col-span-12 lg:col-span-6">
+
+          {/* Right Column - Tasks */}
+          <div className="col-span-12 lg:col-span-3">
             <AssignedTasksList tasks={assignedTasks} />
           </div>
         </div>

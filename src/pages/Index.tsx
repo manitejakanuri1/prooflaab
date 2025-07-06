@@ -84,8 +84,8 @@ const Index = () => {
           {/* Join as a Startup - Left Card */}
           <div className="group bg-white/80 backdrop-blur-sm border-2 border-green-300 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-xl">🏢</span>
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-black rounded-2xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <span className="text-xl text-white">🏢</span>
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
                 Join as a Startup
@@ -95,7 +95,7 @@ const Index = () => {
               </p>
               <Button 
                 onClick={() => setSignupType('startup')}
-                className="w-full h-10 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
               >
                 Get Started
               </Button>
@@ -105,8 +105,8 @@ const Index = () => {
           {/* Start as a Student - Center Card */}
           <div className="group bg-white/80 backdrop-blur-sm border-2 border-blue-300 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2 relative">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-xl">🚀</span>
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-black rounded-2xl mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <span className="text-xl text-white">🚀</span>
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
                 Start as a Student
@@ -116,7 +116,7 @@ const Index = () => {
               </p>
               <Button 
                 onClick={() => setSignupType('student')}
-                className="w-full h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
               >
                 Get Started
               </Button>
@@ -126,8 +126,8 @@ const Index = () => {
           {/* Connect as a College - Right Card */}
           <div className="group bg-white/80 backdrop-blur-sm border-2 border-purple-300 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
             <div className="text-center">
-              <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <span className="text-xl">🎓</span>
+              <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mx-auto mb-4">
+                <span className="text-xl text-white">🎓</span>
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
                 Connect as a College
@@ -137,7 +137,7 @@ const Index = () => {
               </p>
               <Button 
                 onClick={() => setSignupType('college')}
-                className="w-full h-10 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
               >
                 Get Started
               </Button>

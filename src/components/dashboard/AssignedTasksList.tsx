@@ -34,22 +34,22 @@ export default function AssignedTasksList({ tasks }: AssignedTasksListProps) {
   };
 
   return (
-    <Card className="bg-gray-900 text-white border-0 shadow-lg rounded-3xl h-full flex flex-col">
+    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full flex flex-col">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-white">Assigned Tasks</CardTitle>
-        <div className="text-2xl font-bold text-white">{tasks.length}/8</div>
+        <CardTitle className="text-lg font-semibold text-gray-900">Assigned Tasks</CardTitle>
+        <div className="text-2xl font-bold text-gray-900">{tasks.length}/8</div>
       </CardHeader>
       <CardContent className="space-y-4 flex-1 overflow-y-auto">
         {tasks.slice(0, 3).map((task) => (
-          <div key={task.id} className="bg-white/10 rounded-2xl p-4 space-y-3">
+          <div key={task.id} className="bg-gray-50 rounded-2xl p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
                   {getStatusIcon(task.status)}
                 </div>
                 <div>
-                  <h4 className="font-medium text-white text-sm">{task.title}</h4>
-                  <p className="text-xs text-gray-300">{task.deadline}</p>
+                  <h4 className="font-medium text-gray-900 text-sm">{task.title}</h4>
+                  <p className="text-xs text-gray-600">{task.deadline}</p>
                 </div>
               </div>
               
@@ -58,14 +58,14 @@ export default function AssignedTasksList({ tasks }: AssignedTasksListProps) {
                   <CheckCircle className="h-4 w-4 text-white" />
                 </div>
               ) : (
-                <div className="w-6 h-6 rounded-full bg-gray-600"></div>
+                <div className="w-6 h-6 rounded-full bg-gray-300"></div>
               )}
             </div>
             
             {task.status !== 'Completed' && (
               <Button 
                 size="sm" 
-                className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white"
               >
                 <Upload className="h-3 w-3 mr-2" />
                 Upload Proof
@@ -77,7 +77,7 @@ export default function AssignedTasksList({ tasks }: AssignedTasksListProps) {
         {/* Show more tasks indicator */}
         {tasks.length > 3 && (
           <div className="text-center pt-2">
-            <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
+            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
               View all {tasks.length} tasks
             </Button>
           </div>

@@ -101,13 +101,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Start as a Student - Center Card (Featured) */}
+          {/* Start as a Student - Center Card */}
           <div className="group bg-white/80 backdrop-blur-sm border-2 border-blue-200 rounded-3xl p-8 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2 relative">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                Most Popular
-              </span>
-            </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-8 shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <span className="text-3xl">🚀</span>

@@ -65,23 +65,24 @@ const StudentDashboard = () => {
       {/* Header Navigation */}
       <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Logo and Navigation */}
+          {/* Logo */}
+          <div className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-lg">
+            ProofLabAI
+          </div>
+          
+          {/* Navigation and Actions - moved to right */}
           <div className="flex items-center space-x-8">
-            <div className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-lg">
-              ProofLabAI
-            </div>
-            
             <DashboardNavigation 
               activeTab={activeTab} 
               onTabChange={setActiveTab} 
             />
+            
+            <DashboardHeaderActions 
+              studentName={studentData.name}
+              profilePhoto={studentData.profilePhoto}
+              notifications={notifications}
+            />
           </div>
-
-          <DashboardHeaderActions 
-            studentName={studentData.name}
-            profilePhoto={studentData.profilePhoto}
-            notifications={notifications}
-          />
         </div>
       </header>
 

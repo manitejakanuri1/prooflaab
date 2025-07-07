@@ -27,24 +27,24 @@ export default function AssignedTasksList({ tasks }: AssignedTasksListProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Completed': return 'bg-green-100 text-green-800';
-      case 'In Progress': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'In Progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   return (
-    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full flex flex-col">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full flex flex-col">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900">Assigned Tasks</CardTitle>
         <div className="text-2xl font-bold text-gray-900">{tasks.length}/8</div>
       </CardHeader>
       <CardContent className="space-y-4 flex-1 overflow-y-auto">
         {tasks.slice(0, 3).map((task) => (
-          <div key={task.id} className="bg-gray-50 rounded-2xl p-4 space-y-3">
+          <div key={task.id} className="bg-gray-50/80 rounded-2xl p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
                   {getStatusIcon(task.status)}
                 </div>
                 <div>
@@ -53,19 +53,15 @@ export default function AssignedTasksList({ tasks }: AssignedTasksListProps) {
                 </div>
               </div>
               
-              {task.status === 'Completed' ? (
-                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
-                </div>
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-gray-300"></div>
-              )}
+              <Badge className={`${getStatusColor(task.status)} text-xs font-medium border`}>
+                {task.status}
+              </Badge>
             </div>
             
             {task.status !== 'Completed' && (
               <Button 
                 size="sm" 
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm"
               >
                 <Upload className="h-3 w-3 mr-2" />
                 Upload Proof
@@ -77,7 +73,7 @@ export default function AssignedTasksList({ tasks }: AssignedTasksListProps) {
         {/* Show more tasks indicator */}
         {tasks.length > 3 && (
           <div className="text-center pt-2">
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-white/60 rounded-xl">
               View all {tasks.length} tasks
             </Button>
           </div>

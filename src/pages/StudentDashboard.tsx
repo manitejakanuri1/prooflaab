@@ -1,4 +1,4 @@
-// Imports
+
 import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -94,13 +94,13 @@ const StudentDashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
+      {/* Header Navigation */}
+      <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Logo */}
+          {/* Logo and Navigation */}
           <div className="flex items-center space-x-8">
-            <div className="bg-gray-900 text-white px-4 py-2 rounded-2xl font-bold text-lg">
+            <div className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-lg">
               ProofLabAI
             </div>
             
@@ -112,8 +112,8 @@ const StudentDashboard = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-gray-900 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      ? 'bg-gray-900 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                   }`}
                 >
                   {tab.label}
@@ -129,7 +129,7 @@ const StudentDashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="relative p-2"
+                className="relative p-3 hover:bg-white/60 rounded-xl"
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <Bell className="h-5 w-5 text-gray-600" />
@@ -148,14 +148,14 @@ const StudentDashboard = () => {
             </div>
 
             {/* Settings */}
-            <Button variant="ghost" size="sm" className="p-2">
+            <Button variant="ghost" size="sm" className="p-3 hover:bg-white/60 rounded-xl">
               <Settings className="h-5 w-5 text-gray-600" />
             </Button>
 
             {/* User Avatar with Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-xl hover:bg-white/60">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={studentData.profilePhoto || ""} alt={studentData.name} />
                     <AvatarFallback className="bg-gray-900 text-white">
@@ -164,13 +164,13 @@ const StudentDashboard = () => {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end">
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
+              <DropdownMenuContent className="w-56 bg-white shadow-xl border-0 rounded-2xl" align="end">
+                <DropdownMenuItem className="p-3 hover:bg-gray-50 rounded-xl m-1">
+                  <Settings className="mr-3 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <LogOut className="mr-2 h-4 w-4" />
+                <DropdownMenuItem className="p-3 hover:bg-gray-50 rounded-xl m-1">
+                  <LogOut className="mr-3 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -186,7 +186,7 @@ const StudentDashboard = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome back, {studentData.name} 👋
           </h1>
-          <p className="text-gray-600">{today}</p>
+          <p className="text-gray-500">{today}</p>
         </div>
 
         {/* Dashboard Grid */}
@@ -196,18 +196,22 @@ const StudentDashboard = () => {
             <ProfileCard student={studentData} />
           </div>
 
-          {/* Middle Column - Charts */}
+          {/* Center Column */}
           <div className="col-span-12 lg:col-span-6 space-y-6">
-            {/* Top Row: Progress + XP Tracker */}
-            <div className="grid grid-cols-2 gap-6">
+            {/* Top Row: Progress Chart + XP Tracker + Trust Score */}
+            <div className="grid grid-cols-3 gap-4">
               <ProgressChart />
               <XPTracker monthlyXP={studentData.monthlyXP} />
+              <TrustScorePanel trustScore={studentData.trustScore} />
             </div>
 
-            {/* Middle Row: Trust Score Panel */}
-            <TrustScorePanel trustScore={studentData.trustScore} />
+            {/* Middle Row: Task Stats + Leaderboard */}
+            <div className="grid grid-cols-2 gap-6">
+              <TaskStats tasks={assignedTasks} />
+              <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+            </div>
 
-            <TaskStats tasks={assignedTasks} />
+            {/* Bottom Row: Proof Tracker */}
             <ProofTracker />
           </div>
 

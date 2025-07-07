@@ -19,12 +19,18 @@ export default function TrustScorePanel({ trustScore }: TrustScorePanelProps) {
     return "stroke-red-500";
   };
 
+  const getStatus = (score: number) => {
+    if (score >= 80) return "Highly Trusted";
+    if (score >= 60) return "Trusted";
+    return "Building Trust";
+  };
+
   const circumference = 2 * Math.PI * 45;
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (trustScore / 100) * circumference;
 
   return (
-    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-gray-900">Trust Score</CardTitle>
@@ -66,9 +72,9 @@ export default function TrustScorePanel({ trustScore }: TrustScorePanelProps) {
         </div>
         
         <div className="text-center">
-          <div className="text-sm font-medium text-gray-900">Trust Rating</div>
-          <div className="text-xs text-gray-600">
-            {trustScore >= 80 ? "Excellent" : trustScore >= 60 ? "Good" : "Needs Improvement"}
+          <div className="text-sm font-medium text-gray-900">Trust Status</div>
+          <div className={`text-xs font-medium ${getScoreColor(trustScore)}`}>
+            {getStatus(trustScore)}
           </div>
         </div>
       </CardContent>

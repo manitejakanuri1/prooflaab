@@ -15,7 +15,7 @@ export default function XPTracker({ monthlyXP }: XPTrackerProps) {
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-gray-900">XP Tracker</CardTitle>
@@ -58,18 +58,18 @@ export default function XPTracker({ monthlyXP }: XPTrackerProps) {
         
         <div className="text-center">
           <div className="text-sm font-medium text-gray-900">This Month's XP</div>
-          <div className="text-xs text-gray-600">Work Time</div>
+          <div className="text-xs text-gray-600">Target: {maxXP} XP</div>
         </div>
 
         {/* Controls */}
         <div className="flex items-center space-x-3">
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-100">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-100 hover:bg-gray-200">
             <Play className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-100">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-100 hover:bg-gray-200">
             <Pause className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-900 text-white">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-900 text-white hover:bg-gray-800">
             <Square className="h-3 w-3" />
           </Button>
         </div>

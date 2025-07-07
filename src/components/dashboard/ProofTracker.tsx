@@ -3,14 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Clock, XCircle, Calendar } from "lucide-react";
 
 export default function ProofTracker() {
-  const currentMonth = "September 2024";
+  const currentMonth = "December 2024";
   const days = [
     { date: 22, day: 'Mon', status: null },
     { date: 23, day: 'Tue', status: 'verified' },
     { date: 24, day: 'Wed', status: 'review' },
     { date: 25, day: 'Thu', status: 'verified' },
     { date: 26, day: 'Fri', status: null },
-    { date: 27, day: 'Sat', status: 'rejected' }
+    { date: 27, day: 'Sat', status: 'rejected' },
+    { date: 28, day: 'Sun', status: 'verified' }
   ];
 
   const getStatusIcon = (status: string | null) => {
@@ -24,13 +25,13 @@ export default function ProofTracker() {
 
   const mockEvents = [
     {
-      time: '8:00 am',
+      time: '8:00 AM',
       title: 'Weekly Team Sync',
       subtitle: 'Discuss progress on projects',
       attendees: 3
     },
     {
-      time: '9:00 am',
+      time: '10:00 AM',
       title: 'Onboarding Session',
       subtitle: 'Introduction for new hires',
       attendees: 2
@@ -38,7 +39,7 @@ export default function ProofTracker() {
   ];
 
   return (
-    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
           <Calendar className="h-5 w-5" />
@@ -52,12 +53,12 @@ export default function ProofTracker() {
         </div>
 
         {/* Calendar Days */}
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-7 gap-3">
           {days.map((day, index) => (
             <div key={index} className="text-center">
               <div className="text-xs text-gray-500 mb-1">{day.day}</div>
               <div className="relative">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium ${
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-medium ${
                   day.status ? 'bg-gray-100' : 'bg-gray-50'
                 } hover:bg-gray-200 cursor-pointer transition-colors`}>
                   {day.date}

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,13 +41,13 @@ export default function AssignedTasksList({
     }
   };
 
-  return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full flex flex-col px-0">
+  return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit max-h-[400px] flex flex-col px-0">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 text-center">Assigned Tasks</CardTitle>
         <div className="text-2xl font-bold text-gray-900">{tasks.length}/8</div>
       </CardHeader>
       <CardContent className="space-y-4 flex-1 overflow-y-auto px-0">
-        {tasks.slice(0, 3).map(task => <div key={task.id} className="bg-gray-50/80 rounded-2xl p-4 space-y-3">
+        {tasks.slice(0, 2).map(task => <div key={task.id} className="bg-gray-50/80 rounded-2xl p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
@@ -70,7 +71,7 @@ export default function AssignedTasksList({
           </div>)}
         
         {/* Show more tasks indicator */}
-        {tasks.length > 3 && <div className="text-center pt-2">
+        {tasks.length > 2 && <div className="text-center pt-2">
             <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-white/60 rounded-xl">
               View all {tasks.length} tasks
             </Button>

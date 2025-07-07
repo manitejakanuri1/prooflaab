@@ -70,7 +70,7 @@ const StudentDashboard = () => {
             <img 
               src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
               alt="ProofLabAI Logo" 
-              className="h-6 w-6"
+              className="h-8 w-8"
             />
             <span>ProofLabAI</span>
           </div>

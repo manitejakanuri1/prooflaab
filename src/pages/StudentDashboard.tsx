@@ -1,28 +1,12 @@
 
-import { useState, useEffect } from "react";
-import { Bell, Settings, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import ProfileCard from "@/components/dashboard/ProfileCard";
-import ProgressChart from "@/components/dashboard/ProgressChart";
-import XPTracker from "@/components/dashboard/XPTracker";
-import TaskStats from "@/components/dashboard/TaskStats";
-import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
-import ProofTracker from "@/components/dashboard/ProofTracker";
-import NotificationsPopover from "@/components/dashboard/NotificationsPopover";
-import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
-import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
+import { useState } from "react";
+import DashboardNavigation from "@/components/dashboard/DashboardNavigation";
+import DashboardHeaderActions from "@/components/dashboard/DashboardHeaderActions";
+import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
+import DashboardGrid from "@/components/dashboard/DashboardGrid";
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [showNotifications, setShowNotifications] = useState(false);
 
   const studentData = {
     name: "Arjun Kumar",
@@ -34,14 +18,6 @@ const StudentDashboard = () => {
     totalStudents: 2847,
     monthlyXP: 650,
   };
-
-  const menuTabs = [
-    { id: "dashboard", label: "Dashboard" },
-    { id: "tasks", label: "My Tasks" },
-    { id: "upload", label: "Upload Proof" },
-    { id: "portfolio", label: "Portfolio" },
-    { id: "leaderboard", label: "Leaderboard" },
-  ];
 
   const assignedTasks = [
     {
@@ -84,15 +60,6 @@ const StudentDashboard = () => {
     },
   ];
 
-  const unreadNotifications = notifications.filter((n) => !n.isRead).length;
-
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
       {/* Header Navigation */}
@@ -104,122 +71,27 @@ const StudentDashboard = () => {
               ProofLabAI
             </div>
             
-            {/* Navigation Tabs */}
-            <nav className="flex items-center space-x-1">
-              {menuTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-gray-900 text-white shadow-lg'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
+            <DashboardNavigation 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+            />
           </div>
 
-          {/* Right Header Icons */}
-          <div className="flex items-center space-x-4">
-            {/* Notifications */}
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative p-3 hover:bg-white/60 rounded-xl"
-                onClick={() => setShowNotifications(!showNotifications)}
-              >
-                <Bell className="h-5 w-5 text-gray-600" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {unreadNotifications}
-                  </span>
-                )}
-              </Button>
-              {showNotifications && (
-                <NotificationsPopover 
-                  notifications={notifications}
-                  onClose={() => setShowNotifications(false)}
-                />
-              )}
-            </div>
-
-            {/* Settings */}
-            <Button variant="ghost" size="sm" className="p-3 hover:bg-white/60 rounded-xl">
-              <Settings className="h-5 w-5 text-gray-600" />
-            </Button>
-
-            {/* User Avatar with Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-xl hover:bg-white/60">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={studentData.profilePhoto || ""} alt={studentData.name} />
-                    <AvatarFallback className="bg-gray-900 text-white">
-                      {studentData.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-white shadow-xl border-0 rounded-2xl" align="end">
-                <DropdownMenuItem className="p-3 hover:bg-gray-50 rounded-xl m-1">
-                  <Settings className="mr-3 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="p-3 hover:bg-gray-50 rounded-xl m-1">
-                  <LogOut className="mr-3 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DashboardHeaderActions 
+            studentName={studentData.name}
+            profilePhoto={studentData.profilePhoto}
+            notifications={notifications}
+          />
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome back, {studentData.name} 👋
-          </h1>
-          <p className="text-gray-500">{today}</p>
-        </div>
-
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Column - Profile Card */}
-          <div className="col-span-12 lg:col-span-3">
-            <ProfileCard student={studentData} />
-          </div>
-
-          {/* Center Column */}
-          <div className="col-span-12 lg:col-span-6 space-y-6">
-            {/* Top Row: Progress Chart + XP Tracker + Trust Score */}
-            <div className="grid grid-cols-3 gap-4">
-              <ProgressChart />
-              <XPTracker monthlyXP={studentData.monthlyXP} />
-              <TrustScorePanel trustScore={studentData.trustScore} />
-            </div>
-
-            {/* Middle Row: Task Stats + Leaderboard */}
-            <div className="grid grid-cols-2 gap-6">
-              <TaskStats tasks={assignedTasks} />
-              <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
-            </div>
-
-            {/* Bottom Row: Proof Tracker */}
-            <ProofTracker />
-          </div>
-
-          {/* Right Column - Assigned Tasks */}
-          <div className="col-span-12 lg:col-span-3">
-            <AssignedTasksList tasks={assignedTasks} />
-          </div>
-        </div>
+        <DashboardWelcome studentName={studentData.name} />
+        <DashboardGrid 
+          studentData={studentData} 
+          assignedTasks={assignedTasks} 
+        />
       </main>
     </div>
   );

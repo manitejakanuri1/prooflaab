@@ -1,0 +1,68 @@
+
+import ProfileCard from "@/components/dashboard/ProfileCard";
+import ProgressChart from "@/components/dashboard/ProgressChart";
+import XPTracker from "@/components/dashboard/XPTracker";
+import TaskStats from "@/components/dashboard/TaskStats";
+import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
+import ProofTracker from "@/components/dashboard/ProofTracker";
+import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
+import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
+
+interface Student {
+  name: string;
+  email: string;
+  profilePhoto: string | null;
+  totalXp: number;
+  trustScore: number;
+  rank: number;
+  totalStudents: number;
+  monthlyXP: number;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  deadline: string;
+  status: 'Pending' | 'In Progress' | 'Completed';
+  progress: number;
+}
+
+interface DashboardGridProps {
+  studentData: Student;
+  assignedTasks: Task[];
+}
+
+export default function DashboardGrid({ studentData, assignedTasks }: DashboardGridProps) {
+  return (
+    <div className="grid grid-cols-12 gap-6">
+      {/* Left Column - Profile Card */}
+      <div className="col-span-12 lg:col-span-3">
+        <ProfileCard student={studentData} />
+      </div>
+
+      {/* Center Column */}
+      <div className="col-span-12 lg:col-span-6 space-y-6">
+        {/* Top Row: Progress Chart + XP Tracker + Trust Score */}
+        <div className="grid grid-cols-3 gap-4">
+          <ProgressChart />
+          <XPTracker monthlyXP={studentData.monthlyXP} />
+          <TrustScorePanel trustScore={studentData.trustScore} />
+        </div>
+
+        {/* Middle Row: Task Stats + Leaderboard */}
+        <div className="grid grid-cols-2 gap-6">
+          <TaskStats tasks={assignedTasks} />
+          <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+        </div>
+
+        {/* Bottom Row: Proof Tracker */}
+        <ProofTracker />
+      </div>
+
+      {/* Right Column - Assigned Tasks */}
+      <div className="col-span-12 lg:col-span-3">
+        <AssignedTasksList tasks={assignedTasks} />
+      </div>
+    </div>
+  );
+}

@@ -40,7 +40,7 @@ export default function AssignedTasksList({
     }
   };
 
-  return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit min-h-[500px] flex flex-col px-0">
+  return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full flex flex-col px-0">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 text-center">Assigned Tasks</CardTitle>
         <div className="text-2xl font-bold text-gray-900">{tasks.length}/8</div>

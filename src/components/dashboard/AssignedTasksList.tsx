@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ export default function AssignedTasksList({
   return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit max-h-[550px] flex flex-col px-0">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 text-center">Assigned Tasks</CardTitle>
-        <div className="text-2xl font-bold text-gray-900">{tasks.length}/8</div>
+        <div className="text-2xl font-bold text-white">{tasks.length}/8</div>
       </CardHeader>
       <CardContent className="space-y-4 flex-1 overflow-y-auto px-0">
         {tasks.slice(0, 3).map(task => <div key={task.id} className="bg-gray-50/80 rounded-2xl p-4 space-y-3">

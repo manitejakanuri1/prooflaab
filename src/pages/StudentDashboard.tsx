@@ -66,7 +66,7 @@ const StudentDashboard = () => {
       <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           {/* Logo */}
-          <div className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-lg flex items-center space-x-3">
+          <div className="text-gray-900 px-6 py-3 rounded-2xl font-bold text-lg flex items-center space-x-3">
             <img 
               src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
               alt="ProofLabAI Logo" 

@@ -28,7 +28,7 @@ export default function TaskStats({ tasks }: TaskStatsProps) {
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-900">Task Stats</CardTitle>
+        <CardTitle className="text-lg font-semibold text-gray-900 text-center">Task Stats</CardTitle>
         <div className="text-3xl font-bold text-gray-900">{completionPercentage}%</div>
       </CardHeader>
       <CardContent className="space-y-4">

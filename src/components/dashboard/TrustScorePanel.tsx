@@ -72,7 +72,6 @@ export default function TrustScorePanel({ trustScore }: TrustScorePanelProps) {
         </div>
         
         <div className="text-center">
-          <div className="text-sm font-medium text-gray-900">Trust Status</div>
           <div className={`text-xs font-medium ${getScoreColor(trustScore)}`}>
             {getStatus(trustScore)}
           </div>

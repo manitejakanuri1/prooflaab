@@ -78,7 +78,10 @@ export const usePortfolio = (slug?: string) => {
         // Transform the data to match our interface
         const portfolioData: PortfolioWithProfile = {
           ...data,
-          trust_scores: data.trust_scores && typeof data.trust_scores === 'object' && 'score' in data.trust_scores 
+          trust_scores: data.trust_scores && 
+                       typeof data.trust_scores === 'object' && 
+                       data.trust_scores !== null &&
+                       'score' in data.trust_scores 
             ? data.trust_scores 
             : null
         };

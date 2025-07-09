@@ -37,7 +37,7 @@ export default function DashboardGrid({ studentData }: DashboardGridProps) {
         <div className="grid grid-cols-3 gap-4">
           <ProgressChart />
           <XPTracker />
-          <TrustScorePanel trustScore={studentData.trustScore} />
+          <TrustScorePanel />
         </div>
 
         {/* Middle Row: Assigned Tasks + Task Stats */}

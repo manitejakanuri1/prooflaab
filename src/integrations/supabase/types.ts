@@ -279,6 +279,45 @@ export type Database = {
           },
         ]
       }
+      trust_scores: {
+        Row: {
+          created_at: string
+          id: string
+          last_updated: string
+          score: number
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          score?: number
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          score?: number
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trust_scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trust_scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       xp_logs: {
         Row: {
           created_at: string

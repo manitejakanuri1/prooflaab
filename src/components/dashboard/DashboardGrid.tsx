@@ -1,4 +1,3 @@
-
 import ProfileCard from "@/components/dashboard/ProfileCard";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
@@ -7,6 +6,7 @@ import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
 import ProofTracker from "@/components/dashboard/ProofTracker";
 import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
 import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
+import ActivityCard from "@/components/dashboard/ActivityCard";
 
 interface Student {
   name: string;
@@ -49,10 +49,11 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
           <TrustScorePanel trustScore={studentData.trustScore} />
         </div>
 
-        {/* Middle Row: Assigned Tasks + Task Stats (swapped positions) */}
-        <div className="grid grid-cols-2 gap-6">
+        {/* Middle Row: Assigned Tasks + Task Stats + Activity Card */}
+        <div className="grid grid-cols-3 gap-4">
           <AssignedTasksList tasks={assignedTasks} />
           <TaskStats tasks={assignedTasks} />
+          <ActivityCard />
         </div>
 
         {/* Bottom Row: Proof Tracker */}

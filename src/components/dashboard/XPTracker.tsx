@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface XPTrackerProps {
   monthlyXP: number;
@@ -36,7 +37,6 @@ export default function XPTracker({
         <div className="text-center">
           <div className="text-sm font-medium text-gray-900">
         </div>
-          <div className="text-xs text-gray-600">Target: {maxXP} XP</div>
         </div>
       </CardContent>
     </Card>;

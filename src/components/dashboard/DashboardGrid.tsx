@@ -55,13 +55,16 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
           <AssignedTasksList tasks={assignedTasks} />
         </div>
 
-        {/* Bottom Row: Proof Tracker */}
-        <ProofTracker />
+        {/* Bottom Row: Proof Tracker + Leaderboard */}
+        <div className="grid grid-cols-2 gap-6">
+          <ProofTracker />
+          <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+        </div>
       </div>
 
-      {/* Right Column - Leaderboard */}
+      {/* Right Column - Empty for now */}
       <div className="col-span-12 lg:col-span-3">
-        <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+        {/* Empty space */}
       </div>
     </div>
   );

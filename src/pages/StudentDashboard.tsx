@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardNavigation from "@/components/dashboard/DashboardNavigation";
 import DashboardHeaderActions from "@/components/dashboard/DashboardHeaderActions";
@@ -16,7 +15,6 @@ const StudentDashboard = () => {
     trustScore: 85,
     rank: 17,
     totalStudents: 2847,
-    monthlyXP: 650,
   };
 
   const assignedTasks = [

@@ -46,7 +46,7 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
         {/* Top Row: Progress Chart + XP Tracker + Trust Score */}
         <div className="grid grid-cols-3 gap-4">
           <ProgressChart />
-          <XPTracker monthlyXP={studentData.monthlyXP} />
+          <XPTracker />
           <TrustScorePanel trustScore={studentData.trustScore} />
         </div>
 

@@ -273,6 +273,45 @@ export type Database = {
           },
         ]
       }
+      xp_logs: {
+        Row: {
+          created_at: string
+          id: string
+          source: string | null
+          student_id: string
+          xp_points: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source?: string | null
+          student_id: string
+          xp_points: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source?: string | null
+          student_id?: string
+          xp_points?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xp_logs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xp_logs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       leaderboard: {

@@ -49,19 +49,19 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
           <TrustScorePanel trustScore={studentData.trustScore} />
         </div>
 
-        {/* Middle Row: Task Stats + Leaderboard */}
+        {/* Middle Row: Task Stats + Assigned Tasks */}
         <div className="grid grid-cols-2 gap-6">
           <TaskStats tasks={assignedTasks} />
-          <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+          <AssignedTasksList tasks={assignedTasks} />
         </div>
 
         {/* Bottom Row: Proof Tracker */}
         <ProofTracker />
       </div>
 
-      {/* Right Column - Assigned Tasks */}
+      {/* Right Column - Leaderboard */}
       <div className="col-span-12 lg:col-span-3">
-        <AssignedTasksList tasks={assignedTasks} />
+        <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
       </div>
     </div>
   );

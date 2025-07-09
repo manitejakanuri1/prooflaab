@@ -29,6 +29,24 @@ export default function Auth() {
     checkUser();
   }, [navigate]);
 
+  const createStudentProfile = async (user: any) => {
+    const { error } = await supabase
+      .from('student_profiles')
+      .insert([
+        {
+          user_id: user.id,
+          full_name: user.user_metadata.full_name || fullName,
+          email: user.email,
+          total_xp: 0,
+          trust_score: 0,
+        }
+      ]);
+    
+    if (error) {
+      console.error('Error creating student profile:', error);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -45,7 +63,7 @@ export default function Auth() {
         if (error) throw error;
         navigate("/student/dashboard");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -57,7 +75,14 @@ export default function Auth() {
         });
         
         if (error) throw error;
-        setMessage("Check your email for the confirmation link!");
+        
+        // Create student profile if user was created
+        if (data.user && !data.user.email_confirmed_at) {
+          setMessage("Check your email for the confirmation link!");
+        } else if (data.user) {
+          await createStudentProfile(data.user);
+          navigate("/student/dashboard");
+        }
       }
     } catch (error: any) {
       setError(error.message);

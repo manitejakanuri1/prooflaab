@@ -1,161 +1,68 @@
-
-import { useState } from "react";
-import StudentSignupForm from "@/components/StudentSignupForm";
-import StartupSignupForm from "@/components/StartupSignupForm";
-import CollegeSignupForm from "@/components/CollegeSignupForm";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Index = () => {
-  const [signupType, setSignupType] = useState<'student' | 'startup' | 'college' | null>(null);
-
-  const getSignupTitle = () => {
-    switch (signupType) {
-      case 'student': return 'Student Registration';
-      case 'startup': return 'Startup Registration';
-      case 'college': return 'College Registration';
-      default: return 'ProofLabAI';
-    }
-  };
-
-  const renderSignupForm = () => {
-    switch (signupType) {
-      case 'student': return <StudentSignupForm />;
-      case 'startup': return <StartupSignupForm />;
-      case 'college': return <CollegeSignupForm />;
-      default: return null;
-    }
-  };
-
-  if (signupType) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <button 
-              onClick={() => setSignupType(null)}
-              className="text-gray-600 hover:text-gray-800 mb-4 inline-flex items-center text-sm font-medium transition-colors"
-            >
-              ← Back to home
-            </button>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{getSignupTitle()}</h1>
-          </div>
-          {renderSignupForm()}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="px-6 py-4 flex justify-between items-center bg-white/50 backdrop-blur-sm border-b border-white/20">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 flex items-center justify-center">
-            <img src="/lovable-uploads/dba3a561-930a-4e90-84a7-09a19371deb3.png" alt="ProofLabAI Logo" className="w-10 h-10 object-contain" />
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
+      <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="text-gray-900 px-6 py-3 rounded-2xl font-bold text-lg flex items-center space-x-3">
+            <img 
+              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
+              alt="ProofLabAI Logo" 
+              className="h-12 w-12"
+            />
+            <span>ProofLabAI</span>
           </div>
-          <span className="font-bold text-xl text-gray-800">ProofLabAI</span>
+          <nav className="space-x-6">
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              Features
+            </a>
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              Pricing
+            </a>
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              About
+            </a>
+            <a href="#" className="text-gray-700 hover:text-gray-900">
+              Contact
+            </a>
+          </nav>
         </div>
-        <nav className="hidden md:flex space-x-8 text-gray-600">
-          <a href="#" className="hover:text-blue-600 transition-colors font-medium">About</a>
-          <a href="#" className="hover:text-blue-600 transition-colors font-medium">For business</a>
-          <a href="#" className="hover:text-blue-600 transition-colors font-medium">Media</a>
-          <a href="#" className="hover:text-blue-600 transition-colors font-medium">Blog</a>
-        </nav>
-        <Button variant="outline" className="text-gray-600 border-gray-300 hover:bg-blue-50 hover:border-blue-300 font-medium">
-          Sign in
-        </Button>
       </header>
-
-      {/* Main Content */}
-      <div className="flex flex-col items-center justify-center px-4 py-16">
-        {/* Hero Section */}
-        <div className="text-center mb-20 max-w-4xl">
-          <h1 className="text-6xl md:text-7xl font-bold text-gray-800 mb-8 leading-tight">
-            Connect. Learn. Earn
+      
+      <main className="container mx-auto px-4 py-16">
+        <div className="text-center max-w-4xl mx-auto">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            Unlock Your Potential with ProofLabAI
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            A Real Proof-of-Work Internship Platform for Engineering Students. 
-            Gain experience, build your portfolio, and impress recruiters with actual work — not just certificates.
+          <p className="text-lg text-gray-700 mb-8">
+            Revolutionize your learning experience with AI-powered tools and personalized feedback.
           </p>
-        </div>
-
-        {/* Three Cards Section */}
-        <div className="grid md:grid-cols-3 gap-8 w-full max-w-6xl px-4">
-          {/* Join as a Startup - Left Card */}
-          <div className="group bg-white/80 backdrop-blur-sm border border-gray-200 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
-            <div className="text-center">
-              <div className="text-4xl mb-4">
-                🏢
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Join as a Startup
-              </h3>
-              <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                Connect with talented engineering students and get real work done while providing valuable learning experiences.
-              </p>
-              <Button 
-                onClick={() => setSignupType('startup')}
-                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
-              >
-                Get Started
-              </Button>
-            </div>
-          </div>
-
-          {/* Start as a Student - Center Card */}
-          <div className="group bg-white/80 backdrop-blur-sm border border-gray-200 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2 relative">
-            <div className="text-center">
-              <div className="text-4xl mb-4">
-                🚀
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Start as a Student
-              </h3>
-              <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                Begin your journey with real-world projects, build your portfolio, and earn while you learn from industry experts.
-              </p>
-              <Button 
-                onClick={() => setSignupType('student')}
-                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
-              >
-                Get Started
-              </Button>
-            </div>
-          </div>
-
-          {/* Connect as a College - Right Card */}
-          <div className="group bg-white/80 backdrop-blur-sm border border-gray-200 rounded-3xl p-4 hover:shadow-2xl hover:bg-white/90 transition-all duration-500 hover:-translate-y-2">
-            <div className="text-center">
-              <div className="text-4xl mb-4">
-                🎓
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Connect as a College
-              </h3>
-              <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                Partner with us to provide your students with real industry experience and improve their employability.
-              </p>
-              <Button 
-                onClick={() => setSignupType('college')}
-                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
-              >
-                Get Started
-              </Button>
-            </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
+            <Button size="lg" className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-3 rounded-full">
+              Get Started
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white px-8 py-3 rounded-full"
+              asChild
+            >
+              <Link to="/auth">Student Login</Link>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white px-8 py-3 rounded-full"
+              asChild
+            >
+              <Link to="/student/dashboard">Dashboard</Link>
+            </Button>
           </div>
         </div>
-
-        {/* Additional Info Section */}
-        <div className="mt-20 text-center">
-          <div className="flex items-center justify-center space-x-2 text-gray-400">
-            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

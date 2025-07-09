@@ -52,7 +52,7 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
         {/* Middle Row: Assigned Tasks + Task Stats (swapped positions) */}
         <div className="grid grid-cols-2 gap-6">
           <AssignedTasksList tasks={assignedTasks} />
-          <TaskStats tasks={assignedTasks} />
+          <TaskStats />
         </div>
 
         {/* Bottom Row: Proof Tracker */}

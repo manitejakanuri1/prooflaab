@@ -1,4 +1,3 @@
-
 import ProfileCard from "@/components/dashboard/ProfileCard";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
@@ -7,6 +6,7 @@ import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
 import ProofTracker from "@/components/dashboard/ProofTracker";
 import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
 import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
+import TasksWaitingForYou from "@/components/dashboard/TasksWaitingForYou";
 
 interface Student {
   name: string;
@@ -59,9 +59,10 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
         <ProofTracker />
       </div>
 
-      {/* Right Column - Leaderboard */}
-      <div className="col-span-12 lg:col-span-3">
+      {/* Right Column - Leaderboard + Tasks Waiting */}
+      <div className="col-span-12 lg:col-span-3 space-y-6">
         <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+        <TasksWaitingForYou />
       </div>
     </div>
   );

@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .from('student_profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!existingProfile) {
         // Create profile if it doesn't exist
@@ -50,6 +50,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (error) {
           console.error('Error creating student profile:', error);
+        } else {
+          console.log('Student profile created successfully');
         }
       }
     } catch (error) {
@@ -60,13 +62,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         // Create student profile if user exists and profile doesn't exist
+        // Use setTimeout to prevent deadlocks with Supabase auth
         if (session?.user && event === 'SIGNED_IN') {
-          await createStudentProfileIfNeeded(session.user);
+          setTimeout(() => {
+            createStudentProfileIfNeeded(session.user);
+          }, 0);
         }
         
         setLoading(false);
@@ -80,7 +85,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Create student profile if user exists and profile doesn't exist
       if (session?.user) {
-        await createStudentProfileIfNeeded(session.user);
+        setTimeout(() => {
+          createStudentProfileIfNeeded(session.user);
+        }, 0);
       }
       
       setLoading(false);

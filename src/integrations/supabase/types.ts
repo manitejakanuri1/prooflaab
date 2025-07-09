@@ -162,6 +162,57 @@ export type Database = {
         }
         Relationships: []
       }
+      student_portfolios: {
+        Row: {
+          achievements: string | null
+          bio: string | null
+          created_at: string
+          id: string
+          is_public: boolean
+          public_url_slug: string
+          skills: string[] | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          achievements?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          public_url_slug: string
+          skills?: string[] | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          achievements?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          public_url_slug?: string
+          skills?: string[] | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_portfolios_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_portfolios_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_profiles: {
         Row: {
           created_at: string | null
@@ -371,7 +422,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      generate_url_slug: {
+        Args: { student_name: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import StudentDashboard from "./pages/StudentDashboard";
+import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/portfolio/:slug" element={<Portfolio />} />
             <Route 
               path="/student/dashboard" 
               element={

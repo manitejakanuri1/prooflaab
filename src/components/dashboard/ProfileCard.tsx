@@ -1,8 +1,10 @@
 
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Award, Trophy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
   name: string;

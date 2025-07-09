@@ -1,4 +1,5 @@
-import ProfileCard from "@/components/dashboard/ProfileCard";
+
+import ProfileCardContainer from "@/components/dashboard/ProfileCardContainer";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
 import TaskStats from "@/components/dashboard/TaskStats";
@@ -37,7 +38,7 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
     <div className="grid grid-cols-12 gap-6">
       {/* Left Column - Profile Card */}
       <div className="col-span-12 lg:col-span-3">
-        <ProfileCard student={studentData} />
+        <ProfileCardContainer />
       </div>
 
       {/* Center Column */}

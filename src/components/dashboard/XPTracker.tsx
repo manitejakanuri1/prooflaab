@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Play, Pause, Square } from "lucide-react";
+import { Pause, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface XPTrackerProps {
@@ -63,9 +63,6 @@ export default function XPTracker({ monthlyXP }: XPTrackerProps) {
 
         {/* Controls */}
         <div className="flex items-center space-x-3">
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-100 hover:bg-gray-200">
-            <Play className="h-4 w-4" />
-          </Button>
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-100 hover:bg-gray-200">
             <Pause className="h-4 w-4" />
           </Button>

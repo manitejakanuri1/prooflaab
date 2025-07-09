@@ -30,17 +30,17 @@ export default function TrustScorePanel({ trustScore }: TrustScorePanelProps) {
   const strokeDashoffset = circumference - (trustScore / 100) * circumference;
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-gray-900">Trust Score</CardTitle>
           <Shield className="h-5 w-5 text-gray-600" />
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center space-y-4 h-full">
+      <CardContent className="flex flex-col items-center justify-center space-y-6 flex-1">
         {/* Circular Progress */}
-        <div className="relative flex-1 flex items-center justify-center">
-          <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+        <div className="relative">
+          <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
             {/* Background circle */}
             <circle
               cx="50"
@@ -66,14 +66,17 @@ export default function TrustScorePanel({ trustScore }: TrustScorePanelProps) {
           </svg>
           {/* Center text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className={`text-xl font-bold ${getScoreColor(trustScore)}`}>{trustScore}</div>
-            <div className="text-xs text-gray-600">Score</div>
+            <div className={`text-2xl font-bold ${getScoreColor(trustScore)}`}>{trustScore}</div>
+            <div className="text-sm text-gray-600">Score</div>
           </div>
         </div>
         
-        <div className="text-center">
-          <div className={`text-xs font-medium ${getScoreColor(trustScore)}`}>
+        <div className="text-center space-y-2">
+          <div className={`text-sm font-medium ${getScoreColor(trustScore)}`}>
             {getStatus(trustScore)}
+          </div>
+          <div className="text-xs text-gray-500">
+            Trust level based on completed tasks
           </div>
         </div>
       </CardContent>

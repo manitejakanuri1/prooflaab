@@ -43,16 +43,16 @@ export default function TasksWaitingForYou() {
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 text-center">
           Tasks waiting for you
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {waitingTasks.map((task) => (
-          <div key={task.id} className="bg-gray-50/80 rounded-2xl p-4 space-y-3">
-            <div className="space-y-2">
+          <div key={task.id} className="bg-gray-50/80 rounded-2xl p-3 space-y-2">
+            <div className="space-y-1">
               <h4 className="font-medium text-gray-900 text-sm leading-tight">
                 {task.title}
               </h4>

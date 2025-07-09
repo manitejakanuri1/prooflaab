@@ -1,17 +1,44 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Clock, XCircle, Calendar } from "lucide-react";
+import { CheckCircle, Clock, XCircle, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
 
 export default function ProofTracker() {
-  const currentMonth = "December 2024";
+  const [currentMonth, setCurrentMonth] = useState("December 2024");
+  
+  // Expanded calendar with more days for the full month view
   const days = [
-    { date: 22, day: 'Mon', status: null },
-    { date: 23, day: 'Tue', status: 'verified' },
-    { date: 24, day: 'Wed', status: 'review' },
-    { date: 25, day: 'Thu', status: 'verified' },
-    { date: 26, day: 'Fri', status: null },
-    { date: 27, day: 'Sat', status: 'rejected' },
-    { date: 28, day: 'Sun', status: 'verified' }
+    { date: 1, day: 'Sun', status: null },
+    { date: 2, day: 'Mon', status: 'verified' },
+    { date: 3, day: 'Tue', status: null },
+    { date: 4, day: 'Wed', status: 'review' },
+    { date: 5, day: 'Thu', status: null },
+    { date: 6, day: 'Fri', status: 'verified' },
+    { date: 7, day: 'Sat', status: null },
+    { date: 8, day: 'Sun', status: null },
+    { date: 9, day: 'Mon', status: 'rejected' },
+    { date: 10, day: 'Tue', status: null },
+    { date: 11, day: 'Wed', status: 'verified' },
+    { date: 12, day: 'Thu', status: null },
+    { date: 13, day: 'Fri', status: 'review' },
+    { date: 14, day: 'Sat', status: null },
+    { date: 15, day: 'Sun', status: 'verified' },
+    { date: 16, day: 'Mon', status: null },
+    { date: 17, day: 'Tue', status: null },
+    { date: 18, day: 'Wed', status: 'verified' },
+    { date: 19, day: 'Thu', status: null },
+    { date: 20, day: 'Fri', status: 'review' },
+    { date: 21, day: 'Sat', status: null },
+    { date: 22, day: 'Sun', status: null },
+    { date: 23, day: 'Mon', status: 'verified' },
+    { date: 24, day: 'Tue', status: 'review' },
+    { date: 25, day: 'Wed', status: 'verified' },
+    { date: 26, day: 'Thu', status: null },
+    { date: 27, day: 'Fri', status: 'rejected' },
+    { date: 28, day: 'Sat', status: 'verified' },
+    { date: 29, day: 'Sun', status: null },
+    { date: 30, day: 'Mon', status: null },
+    { date: 31, day: 'Tue', status: 'verified' }
   ];
 
   const getStatusIcon = (status: string | null) => {
@@ -23,21 +50,6 @@ export default function ProofTracker() {
     }
   };
 
-  const mockEvents = [
-    {
-      time: '8:00 AM',
-      title: 'Weekly Team Sync',
-      subtitle: 'Discuss progress on projects',
-      attendees: 3
-    },
-    {
-      time: '10:00 AM',
-      title: 'Onboarding Session',
-      subtitle: 'Introduction for new hires',
-      attendees: 2
-    }
-  ];
-
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
       <CardHeader className="pb-4">
@@ -48,12 +60,18 @@ export default function ProofTracker() {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Month Navigation */}
-        <div className="text-center">
+        <div className="flex items-center justify-between">
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ChevronLeft className="h-4 w-4 text-gray-600" />
+          </button>
           <h3 className="font-semibold text-gray-900">{currentMonth}</h3>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ChevronRight className="h-4 w-4 text-gray-600" />
+          </button>
         </div>
 
-        {/* Calendar Days */}
-        <div className="grid grid-cols-7 gap-3">
+        {/* Full Calendar Grid */}
+        <div className="grid grid-cols-7 gap-2">
           {days.map((day, index) => (
             <div key={index} className="text-center">
               <div className="text-xs text-gray-500 mb-1">{day.day}</div>
@@ -68,24 +86,6 @@ export default function ProofTracker() {
                     {getStatusIcon(day.status)}
                   </div>
                 )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Events/Submissions */}
-        <div className="space-y-3">
-          {mockEvents.map((event, index) => (
-            <div key={index} className="flex items-center space-x-3 p-3 bg-gray-900 rounded-2xl text-white">
-              <div className="text-xs font-medium text-gray-300">{event.time}</div>
-              <div className="flex-1">
-                <div className="text-sm font-medium">{event.title}</div>
-                <div className="text-xs text-gray-300">{event.subtitle}</div>
-              </div>
-              <div className="flex -space-x-1">
-                {Array.from({ length: event.attendees }).map((_, i) => (
-                  <div key={i} className="w-6 h-6 bg-gray-600 rounded-full border-2 border-gray-900"></div>
-                ))}
               </div>
             </div>
           ))}

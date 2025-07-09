@@ -77,11 +77,11 @@ export const usePortfolio = (slug?: string) => {
 
         // Transform the trust_scores data safely
         const trustScoresData = data.trust_scores;
-        const validTrustScores = trustScoresData && 
+        const validTrustScores = trustScoresData !== null && 
                                 typeof trustScoresData === 'object' && 
-                                trustScoresData !== null &&
-                                'score' in trustScoresData 
-          ? trustScoresData as { score: number }
+                                trustScoresData !== undefined &&
+                                typeof trustScoresData.score === 'number'
+          ? { score: trustScoresData.score }
           : null;
 
         // Transform the data to match our interface

@@ -2,23 +2,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useAssignedTasks } from "@/hooks/useAssignedTasks";
+import { useToast } from "@/hooks/use-toast";
 
-interface Task {
-  id: string;
-  title: string;
-  deadline: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
-  progress: number;
-}
+export default function AssignedTasksList() {
+  const { tasks, loading, error } = useAssignedTasks();
+  const { toast } = useToast();
 
-interface AssignedTasksListProps {
-  tasks: Task[];
-}
-
-export default function AssignedTasksList({
-  tasks
-}: AssignedTasksListProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Completed':
@@ -41,41 +32,97 @@ export default function AssignedTasksList({
     }
   };
 
-  return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit max-h-[550px] flex flex-col px-0">
+  const handleUploadProof = (taskId: string, taskTitle: string) => {
+    toast({
+      title: "Upload Proof",
+      description: `Upload proof functionality for "${taskTitle}" will be implemented next.`,
+    });
+  };
+
+  if (loading) {
+    return (
+      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit max-h-[550px] flex flex-col px-0">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold text-gray-900 text-center">Assigned Tasks</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit max-h-[550px] flex flex-col px-0">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold text-gray-900 text-center">Assigned Tasks</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <p className="text-red-600 text-sm">Error loading tasks: {error}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const completedTasks = tasks.filter(task => task.status === 'Completed').length;
+  const totalTasks = tasks.length;
+
+  return (
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-fit max-h-[550px] flex flex-col px-0">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 text-center">Assigned Tasks</CardTitle>
-        <div className="text-2xl font-bold text-center">3/8</div>
+        <div className="text-2xl font-bold text-center">{completedTasks}/{totalTasks}</div>
       </CardHeader>
       <CardContent className="space-y-4 flex-1 overflow-y-auto px-0">
-        {tasks.slice(0, 3).map(task => <div key={task.id} className="bg-gray-50/80 rounded-2xl p-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
-                  {getStatusIcon(task.status)}
+        {tasks.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600">🎉 You have no pending tasks. Enjoy your day!</p>
+          </div>
+        ) : (
+          <>
+            {tasks.slice(0, 3).map(task => (
+              <div key={task.id} className="bg-gray-50/80 rounded-2xl p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
+                      {getStatusIcon(task.status)}
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 text-sm">{task.title}</h4>
+                      <p className="text-xs text-gray-600">{task.deadline}</p>
+                    </div>
+                  </div>
+                  
+                  <Badge className={`${getStatusColor(task.status)} text-xs font-medium border`}>
+                    {task.status}
+                  </Badge>
                 </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 text-sm">{task.title}</h4>
-                  <p className="text-xs text-gray-600">{task.deadline}</p>
-                </div>
+                
+                {task.status !== 'Completed' && (
+                  <Button 
+                    size="sm" 
+                    className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm"
+                    onClick={() => handleUploadProof(task.id, task.title)}
+                  >
+                    <Upload className="h-3 w-3 mr-2" />
+                    Upload Proof
+                  </Button>
+                )}
               </div>
-              
-              <Badge className={`${getStatusColor(task.status)} text-xs font-medium border`}>
-                {task.status}
-              </Badge>
-            </div>
+            ))}
             
-            {task.status !== 'Completed' && <Button size="sm" className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm">
-                <Upload className="h-3 w-3 mr-2" />
-                Upload Proof
-              </Button>}
-          </div>)}
-        
-        {/* Show more tasks indicator */}
-        {tasks.length > 3 && <div className="text-center pt-2">
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-white/60 rounded-xl">
-              View all {tasks.length} tasks
-            </Button>
-          </div>}
+            {/* Show more tasks indicator */}
+            {tasks.length > 3 && (
+              <div className="text-center pt-2">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-white/60 rounded-xl">
+                  View all {tasks.length} tasks
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
-    </Card>;
+    </Card>
+  );
 }

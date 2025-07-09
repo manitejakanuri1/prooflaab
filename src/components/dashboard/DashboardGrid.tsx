@@ -1,4 +1,3 @@
-
 import ProfileCardContainer from "@/components/dashboard/ProfileCardContainer";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
@@ -19,20 +18,11 @@ interface Student {
   totalStudents: number;
 }
 
-interface Task {
-  id: string;
-  title: string;
-  deadline: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
-  progress: number;
-}
-
 interface DashboardGridProps {
   studentData: Student;
-  assignedTasks: Task[];
 }
 
-export default function DashboardGrid({ studentData, assignedTasks }: DashboardGridProps) {
+export default function DashboardGrid({ studentData }: DashboardGridProps) {
   return (
     <div className="grid grid-cols-12 gap-6">
       {/* Left Column - Profile Card */}
@@ -49,9 +39,9 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
           <TrustScorePanel trustScore={studentData.trustScore} />
         </div>
 
-        {/* Middle Row: Assigned Tasks + Task Stats (swapped positions) */}
+        {/* Middle Row: Assigned Tasks + Task Stats */}
         <div className="grid grid-cols-2 gap-6">
-          <AssignedTasksList tasks={assignedTasks} />
+          <AssignedTasksList />
           <TaskStats />
         </div>
 

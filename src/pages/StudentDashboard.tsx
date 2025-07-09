@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardNavigation from "@/components/dashboard/DashboardNavigation";
 import DashboardHeaderActions from "@/components/dashboard/DashboardHeaderActions";
@@ -17,30 +16,6 @@ const StudentDashboard = () => {
     rank: 17,
     totalStudents: 2847,
   };
-
-  const assignedTasks = [
-    {
-      id: "1",
-      title: "Build React Dashboard",
-      deadline: "Dec 15, 2024",
-      status: "In Progress" as const,
-      progress: 65,
-    },
-    {
-      id: "2",
-      title: "API Integration",
-      deadline: "Dec 20, 2024",
-      status: "Pending" as const,
-      progress: 0,
-    },
-    {
-      id: "3",
-      title: "Database Schema",
-      deadline: "Dec 10, 2024",
-      status: "Completed" as const,
-      progress: 100,
-    },
-  ];
 
   const notifications = [
     {
@@ -93,10 +68,7 @@ const StudentDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
         <DashboardWelcome studentName={studentData.name} />
-        <DashboardGrid 
-          studentData={studentData} 
-          assignedTasks={assignedTasks} 
-        />
+        <DashboardGrid studentData={studentData} />
       </main>
     </div>
   );

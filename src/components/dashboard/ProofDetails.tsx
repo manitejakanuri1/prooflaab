@@ -33,7 +33,7 @@ export default function ProofDetails({ proof }: ProofDetailsProps) {
         <div className="flex items-center space-x-2">
           <FileText className="h-4 w-4 text-gray-600" />
           <h3 className="font-semibold text-gray-900 truncate">
-            {proof.tasks?.title || 'Task'}
+            {proof.task?.title || 'Task'}
           </h3>
         </div>
         

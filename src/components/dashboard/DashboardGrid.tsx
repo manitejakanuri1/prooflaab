@@ -1,4 +1,3 @@
-
 import ProfileCard from "@/components/dashboard/ProfileCard";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
@@ -42,11 +41,12 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
 
       {/* Center Column */}
       <div className="col-span-12 lg:col-span-6 space-y-6">
-        {/* Top Row: Progress Chart + XP Tracker + Trust Score */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* Top Row: Progress Chart + XP Tracker + Trust Score + Leaderboard */}
+        <div className="grid grid-cols-4 gap-4">
           <ProgressChart />
           <XPTracker monthlyXP={studentData.monthlyXP} />
           <TrustScorePanel trustScore={studentData.trustScore} />
+          <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
         </div>
 
         {/* Middle Row: Task Stats + Assigned Tasks */}
@@ -55,11 +55,8 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
           <AssignedTasksList tasks={assignedTasks} />
         </div>
 
-        {/* Bottom Row: Proof Tracker + Leaderboard */}
-        <div className="grid grid-cols-2 gap-6">
-          <ProofTracker />
-          <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
-        </div>
+        {/* Bottom Row: Proof Tracker */}
+        <ProofTracker />
       </div>
 
       {/* Right Column - Empty for now */}

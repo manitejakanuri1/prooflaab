@@ -20,7 +20,7 @@ export default function LeaderboardSection({ rank, totalStudents }: LeaderboardS
   const badge = getPerformanceBadge(rank, totalStudents);
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl h-full">
       <CardHeader className="text-center pb-4">
         <CardTitle className="text-lg font-semibold text-gray-800 flex items-center justify-center gap-2">
           🏆 Leaderboard

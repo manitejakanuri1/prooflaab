@@ -1,7 +1,5 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Square } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface XPTrackerProps {
   monthlyXP: number;
@@ -59,13 +57,6 @@ export default function XPTracker({ monthlyXP }: XPTrackerProps) {
         <div className="text-center">
           <div className="text-sm font-medium text-gray-900">This Month's XP</div>
           <div className="text-xs text-gray-600">Target: {maxXP} XP</div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center space-x-3">
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full bg-gray-900 text-white hover:bg-gray-800">
-            <Square className="h-3 w-3" />
-          </Button>
         </div>
       </CardContent>
     </Card>

@@ -17,7 +17,6 @@ interface Student {
   trustScore: number;
   rank: number;
   totalStudents: number;
-  monthlyXP: number;
 }
 
 interface Task {

@@ -79,7 +79,7 @@ export const usePortfolio = (slug?: string) => {
         const trustScoresData = data.trust_scores;
         const validTrustScores = trustScoresData !== null && 
                                 typeof trustScoresData === 'object' && 
-                                trustScoresData !== undefined &&
+                                'score' in trustScoresData &&
                                 typeof trustScoresData.score === 'number'
           ? { score: trustScoresData.score }
           : null;

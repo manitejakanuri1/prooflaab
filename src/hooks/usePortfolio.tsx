@@ -75,7 +75,15 @@ export const usePortfolio = (slug?: string) => {
           return;
         }
 
-        setPortfolio(data);
+        // Transform the data to match our interface
+        const portfolioData: PortfolioWithProfile = {
+          ...data,
+          trust_scores: data.trust_scores && typeof data.trust_scores === 'object' && 'score' in data.trust_scores 
+            ? data.trust_scores 
+            : null
+        };
+
+        setPortfolio(portfolioData);
       } catch (err) {
         console.error('Error fetching portfolio:', err);
         setError(err instanceof Error ? err.message : 'Failed to load portfolio');

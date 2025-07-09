@@ -4,6 +4,7 @@ import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
 import TaskStats from "@/components/dashboard/TaskStats";
 import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
+import RecentTasks from "@/components/dashboard/RecentTasks";
 import ProofTracker from "@/components/dashboard/ProofTracker";
 import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
 import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
@@ -49,10 +50,11 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
           <TrustScorePanel trustScore={studentData.trustScore} />
         </div>
 
-        {/* Middle Row: Assigned Tasks + Task Stats (swapped positions) */}
-        <div className="grid grid-cols-2 gap-6">
+        {/* Middle Row: Assigned Tasks + Task Stats + Recent Tasks */}
+        <div className="grid grid-cols-3 gap-4">
           <AssignedTasksList tasks={assignedTasks} />
           <TaskStats tasks={assignedTasks} />
+          <RecentTasks tasks={assignedTasks} />
         </div>
 
         {/* Bottom Row: Proof Tracker */}

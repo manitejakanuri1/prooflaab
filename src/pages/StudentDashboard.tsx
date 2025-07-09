@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import DashboardNavigation from "@/components/dashboard/DashboardNavigation";
 import DashboardHeaderActions from "@/components/dashboard/DashboardHeaderActions";
@@ -16,23 +17,6 @@ const StudentDashboard = () => {
     rank: 17,
     totalStudents: 2847,
   };
-
-  const notifications = [
-    {
-      id: "1",
-      message: 'New task assigned: "Social Media Dashboard Development"',
-      type: "task" as const,
-      time: "2 hours ago",
-      isRead: false,
-    },
-    {
-      id: "2",
-      message: "Feedback received on your React project submission",
-      type: "feedback" as const,
-      time: "5 hours ago",
-      isRead: false,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
@@ -59,7 +43,6 @@ const StudentDashboard = () => {
             <DashboardHeaderActions 
               studentName={studentData.name}
               profilePhoto={studentData.profilePhoto}
-              notifications={notifications}
             />
           </div>
         </div>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,29 +22,23 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-
-interface Notification {
-  id: string;
-  message: string;
-  type: "task" | "feedback";
-  time: string;
-  isRead: boolean;
-}
+import { useNotifications } from "@/hooks/useNotifications";
+import NotificationItem from "./NotificationItem";
 
 interface DashboardHeaderActionsProps {
   studentName: string;
   profilePhoto: string | null;
-  notifications: Notification[];
 }
 
 export default function DashboardHeaderActions({ 
   studentName, 
-  profilePhoto, 
-  notifications 
+  profilePhoto
 }: DashboardHeaderActionsProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { signOut } = useAuth();
+  const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
 
   const handleSignOut = async () => {
     try {
@@ -51,6 +46,10 @@ export default function DashboardHeaderActions({
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleNotificationClick = (notificationId: string) => {
+    markAsRead(notificationId);
   };
 
   return (
@@ -64,8 +63,16 @@ export default function DashboardHeaderActions({
       {/* Notification Popover */}
       <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="relative">
             <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {unreadCount}
+              </Badge>
+            )}
             <span className="sr-only">Toggle notifications</span>
           </Button>
         </PopoverTrigger>
@@ -75,43 +82,52 @@ export default function DashboardHeaderActions({
           alignOffset={-10}
           forceMount
         >
-          <div className="p-2">
-            <h4 className="font-medium text-sm text-gray-500 px-2 mb-1">
-              Notifications
-            </h4>
-            <ScrollArea className="h-[300px] pr-2">
-              {notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className="flex items-start space-x-3 py-3 px-2 rounded-md hover:bg-gray-100 transition-colors duration-200"
-                  >
-                    {notification.type === "task" ? (
-                      <Briefcase className="h-4 w-4 text-gray-500 mt-0.5" />
-                    ) : (
-                      <MessageSquare className="h-4 w-4 text-gray-500 mt-0.5" />
-                    )}
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none text-gray-800">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-500">{notification.time}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-4 px-2 text-center text-sm text-gray-500">
-                  No notifications yet
-                </div>
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm text-gray-900">
+                Notifications
+              </h4>
+              {unreadCount > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {unreadCount} new
+                </Badge>
               )}
-            </ScrollArea>
-            <Separator />
-            <div className="p-2">
-              <Button variant="link" className="w-full justify-start">
-                <Settings className="h-4 w-4 mr-2" />
-                Notification Settings
-              </Button>
             </div>
+          </div>
+          
+          <ScrollArea className="max-h-[400px]">
+            {isLoading ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                Loading notifications...
+              </div>
+            ) : notifications.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {notifications.map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    id={notification.id}
+                    type={notification.type}
+                    message={notification.message}
+                    isRead={notification.is_read}
+                    createdAt={notification.created_at}
+                    onClick={handleNotificationClick}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-sm text-gray-500">
+                <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                <p>No notifications yet</p>
+              </div>
+            )}
+          </ScrollArea>
+          
+          <Separator />
+          <div className="p-2">
+            <Button variant="ghost" className="w-full justify-start text-sm">
+              <Settings className="h-4 w-4 mr-2" />
+              Notification Settings
+            </Button>
           </div>
         </PopoverContent>
       </Popover>

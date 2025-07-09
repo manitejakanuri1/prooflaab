@@ -224,6 +224,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          completed_at: string | null
           created_at: string | null
           description: string | null
           due_date: string
@@ -232,9 +233,11 @@ export type Database = {
           student_id: string
           title: string
           updated_at: string | null
+          xp: number | null
           xp_reward: number | null
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string | null
           description?: string | null
           due_date: string
@@ -243,9 +246,11 @@ export type Database = {
           student_id: string
           title: string
           updated_at?: string | null
+          xp?: number | null
           xp_reward?: number | null
         }
         Update: {
+          completed_at?: string | null
           created_at?: string | null
           description?: string | null
           due_date?: string
@@ -254,6 +259,7 @@ export type Database = {
           student_id?: string
           title?: string
           updated_at?: string | null
+          xp?: number | null
           xp_reward?: number | null
         }
         Relationships: [

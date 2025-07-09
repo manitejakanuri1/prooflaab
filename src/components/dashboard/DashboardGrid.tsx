@@ -1,3 +1,4 @@
+
 import ProfileCardContainer from "@/components/dashboard/ProfileCardContainer";
 import ProgressChart from "@/components/dashboard/ProgressChart";
 import XPTracker from "@/components/dashboard/XPTracker";
@@ -51,7 +52,7 @@ export default function DashboardGrid({ studentData }: DashboardGridProps) {
 
       {/* Right Column - Leaderboard + Tasks Waiting */}
       <div className="col-span-12 lg:col-span-3 space-y-6">
-        <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
+        <LeaderboardSection />
         <TasksWaitingForYou />
       </div>
     </div>

@@ -60,7 +60,7 @@ export default function DashboardGrid({ studentData, assignedTasks }: DashboardG
       </div>
 
       {/* Right Column - Leaderboard */}
-      <div className="col-span-12 lg:col-span-3">
+      <div className="col-span-3 lg:col-span-3">
         <LeaderboardSection rank={studentData.rank} totalStudents={studentData.totalStudents} />
       </div>
     </div>

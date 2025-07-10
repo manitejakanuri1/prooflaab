@@ -63,6 +63,33 @@ export default function DashboardHeaderActions({
     }
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleMyProfile = () => {
+    // Scroll to the profile card section
+    scrollToSection('profile-section');
+  };
+
+  const handleMyTasks = () => {
+    // Scroll to the assigned tasks section
+    scrollToSection('tasks-section');
+  };
+
+  const handleMyUploads = () => {
+    // For now, scroll to tasks section as uploads are related to tasks
+    // In the future, this could navigate to a dedicated uploads page
+    scrollToSection('tasks-section');
+  };
+
+  const handleSettings = () => {
+    setIsSettingsOpen(true);
+  };
+
   return (
     <div className="flex items-center space-x-4">
       {/* Add Task Button */}
@@ -170,15 +197,15 @@ export default function DashboardHeaderActions({
         </PopoverTrigger>
         <PopoverContent className="w-60" align="end" alignOffset={-10} forceMount>
           <div className="grid gap-2 px-2">
-            <Button variant="ghost" className="justify-start">
+            <Button variant="ghost" className="justify-start" onClick={handleMyProfile}>
               <User className="h-4 w-4 mr-2" />
               My Profile
             </Button>
-            <Button variant="ghost" className="justify-start">
+            <Button variant="ghost" className="justify-start" onClick={handleMyTasks}>
               <Calendar className="h-4 w-4 mr-2" />
               My Tasks
             </Button>
-            <Button variant="ghost" className="justify-start">
+            <Button variant="ghost" className="justify-start" onClick={handleMyUploads}>
               <File className="h-4 w-4 mr-2" />
               My Uploads
             </Button>
@@ -193,7 +220,7 @@ export default function DashboardHeaderActions({
           </div>
           <Separator />
           <div className="grid gap-2 px-2">
-            <Button variant="ghost" className="justify-start">
+            <Button variant="ghost" className="justify-start" onClick={handleSettings}>
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>

@@ -9,17 +9,12 @@ import {
 } from "@/components/ui/popover";
 import {
   Bell,
-  Briefcase,
   Calendar,
-  CheckCircle2,
-  ChevronDown,
   File,
-  MessageSquare,
   Plus,
   Settings,
   User,
   X,
-  ExternalLink,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import NotificationItem from "./NotificationItem";
+import SettingsModal from "./SettingsModal";
 
 interface DashboardHeaderActionsProps {
   studentName: string;
@@ -39,6 +35,7 @@ export default function DashboardHeaderActions({
   profilePhoto
 }: DashboardHeaderActionsProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { signOut } = useAuth();
   const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
   const { profile } = useStudentProfile();
@@ -59,6 +56,10 @@ export default function DashboardHeaderActions({
     if (profile?.slug) {
       window.open(`/portfolio/${profile.slug}`, '_blank');
     }
+  };
+
+  const handleSettingsClick = () => {
+    setIsSettingsOpen(true);
   };
 
   return (
@@ -133,7 +134,11 @@ export default function DashboardHeaderActions({
           
           <Separator />
           <div className="p-2">
-            <Button variant="ghost" className="w-full justify-start text-sm">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-sm"
+              onClick={handleSettingsClick}
+            >
               <Settings className="h-4 w-4 mr-2" />
               Notification Settings
             </Button>
@@ -181,7 +186,11 @@ export default function DashboardHeaderActions({
           </div>
           <Separator />
           <div className="grid gap-2 px-2">
-            <Button variant="ghost" className="justify-start">
+            <Button 
+              variant="ghost" 
+              className="justify-start"
+              onClick={handleSettingsClick}
+            >
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
@@ -192,6 +201,12 @@ export default function DashboardHeaderActions({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     </div>
   );
 }

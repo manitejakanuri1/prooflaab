@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,17 +17,18 @@ export default function Auth() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Only auto-redirect if coming from root path, not if user intentionally navigated to /auth
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      if (session && (location.state?.from === '/' || !location.state)) {
         navigate("/student/dashboard");
       }
     };
     checkUser();
-  }, [navigate]);
+  }, [navigate, location.state]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

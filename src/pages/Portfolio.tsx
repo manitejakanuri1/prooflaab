@@ -84,7 +84,7 @@ const Portfolio = () => {
     return 'Building Trust';
   };
 
-  const trustScore = portfolio.trust_scores?.score || portfolio.student_profiles.trust_score || 0;
+  const trustScore = portfolio.student_profiles.trust_score || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">

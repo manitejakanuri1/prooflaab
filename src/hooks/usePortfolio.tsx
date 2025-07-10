@@ -23,9 +23,6 @@ interface PortfolioWithProfile extends Portfolio {
     total_xp: number;
     trust_score: number;
   };
-  trust_scores: {
-    score: number;
-  } | null;
 }
 
 export const usePortfolio = (slug?: string) => {
@@ -50,8 +47,7 @@ export const usePortfolio = (slug?: string) => {
               profile_photo_url,
               total_xp,
               trust_score
-            ),
-            trust_scores(score)
+            )
           `);
 
         if (slug) {
@@ -75,22 +71,9 @@ export const usePortfolio = (slug?: string) => {
           return;
         }
 
-        // Transform the trust_scores data safely
-        const trustScoresData = data.trust_scores;
-        let validTrustScores: { score: number } | null = null;
-        
-        if (trustScoresData !== null && 
-            trustScoresData !== undefined &&
-            typeof trustScoresData === 'object' && 
-            'score' in trustScoresData &&
-            typeof trustScoresData.score === 'number') {
-          validTrustScores = { score: trustScoresData.score };
-        }
-
         // Transform the data to match our interface
         const portfolioData: PortfolioWithProfile = {
-          ...data,
-          trust_scores: validTrustScores
+          ...data
         };
 
         setPortfolio(portfolioData);

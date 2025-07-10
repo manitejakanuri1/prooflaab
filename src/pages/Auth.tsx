@@ -20,15 +20,23 @@ export default function Auth() {
   const location = useLocation();
 
   useEffect(() => {
-    // Only auto-redirect if coming from root path, not if user intentionally navigated to /auth
+    // Only redirect if user came from root path or was automatically redirected here
+    // Don't redirect if user manually navigated to /auth
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session && (location.state?.from === '/' || !location.state)) {
+      const isFromRoot = location.pathname === '/auth' && document.referrer.endsWith('/');
+      const hasLocationState = location.state?.from === '/';
+      
+      if (session && (isFromRoot || hasLocationState)) {
         navigate("/student/dashboard");
       }
     };
-    checkUser();
-  }, [navigate, location.state]);
+    
+    // Only check on initial load, not when user deliberately navigates to auth
+    if (!location.key || location.key === 'default') {
+      checkUser();
+    }
+  }, [navigate, location]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

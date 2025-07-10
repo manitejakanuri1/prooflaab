@@ -20,10 +20,15 @@ import { format } from "date-fns";
 
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
+  
+  console.log("Portfolio component loaded with slug:", slug);
+  
   const { portfolio, loading, error } = usePortfolio(slug);
   const { projects, loading: projectsLoading } = usePortfolioProjects(
     portfolio?.student_id || ""
   );
+
+  console.log("Portfolio data:", { portfolio, loading, error });
 
   if (loading) {
     return (
@@ -37,6 +42,7 @@ const Portfolio = () => {
   }
 
   if (error || !portfolio) {
+    console.log("Portfolio error or not found:", { error, portfolio });
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
         <Card className="max-w-md mx-auto">

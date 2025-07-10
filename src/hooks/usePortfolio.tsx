@@ -80,10 +80,11 @@ export const usePortfolio = (slug?: string) => {
         let validTrustScores: { score: number } | null = null;
         
         if (trustScoresData !== null && 
+            trustScoresData !== undefined &&
             typeof trustScoresData === 'object' && 
             'score' in trustScoresData &&
-            typeof (trustScoresData as { score: unknown }).score === 'number') {
-          validTrustScores = { score: (trustScoresData as { score: number }).score };
+            typeof trustScoresData.score === 'number') {
+          validTrustScores = { score: trustScoresData.score };
         }
 
         // Transform the data to match our interface

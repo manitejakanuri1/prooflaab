@@ -22,7 +22,16 @@ interface DashboardGridProps {
 }
 
 export default function DashboardGrid({ studentData }: DashboardGridProps) {
-  const { notifications = [] } = useNotifications();
+  const { notifications: rawNotifications = [] } = useNotifications();
+
+  // Transform notifications to match NotificationsSection interface
+  const notifications = rawNotifications.map(notification => ({
+    id: notification.id,
+    message: notification.message,
+    type: notification.type as 'task' | 'feedback' | 'achievement' | 'general',
+    time: new Date(notification.created_at).toLocaleString(),
+    isRead: notification.is_read
+  }));
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6">

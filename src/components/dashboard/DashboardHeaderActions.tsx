@@ -28,7 +28,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import NotificationItem from "./NotificationItem";
-import SettingsModal from "./SettingsModal";
 
 interface DashboardHeaderActionsProps {
   studentName: string;
@@ -40,7 +39,6 @@ export default function DashboardHeaderActions({
   profilePhoto
 }: DashboardHeaderActionsProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { signOut } = useAuth();
   const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
   const { profile } = useStudentProfile();
@@ -63,49 +61,12 @@ export default function DashboardHeaderActions({
     }
   };
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
-  const handleMyProfile = () => {
-    // Scroll to the profile card section
-    scrollToSection('profile-section');
-  };
-
-  const handleMyTasks = () => {
-    // Scroll to the assigned tasks section
-    scrollToSection('tasks-section');
-  };
-
-  const handleMyUploads = () => {
-    // For now, scroll to tasks section as uploads are related to tasks
-    // In the future, this could navigate to a dedicated uploads page
-    scrollToSection('tasks-section');
-  };
-
-  const handleSettings = () => {
-    setIsSettingsOpen(true);
-  };
-
   return (
     <div className="flex items-center space-x-4">
       {/* Add Task Button */}
       <Button variant="secondary" size="sm">
         <Plus className="h-4 w-4 mr-2" />
         Add Task
-      </Button>
-
-      {/* Settings Button */}
-      <Button 
-        variant="ghost" 
-        size="icon"
-        onClick={() => setIsSettingsOpen(true)}
-      >
-        <Settings className="h-5 w-5" />
-        <span className="sr-only">Settings</span>
       </Button>
 
       {/* Notification Popover */}
@@ -197,15 +158,15 @@ export default function DashboardHeaderActions({
         </PopoverTrigger>
         <PopoverContent className="w-60" align="end" alignOffset={-10} forceMount>
           <div className="grid gap-2 px-2">
-            <Button variant="ghost" className="justify-start" onClick={handleMyProfile}>
+            <Button variant="ghost" className="justify-start">
               <User className="h-4 w-4 mr-2" />
               My Profile
             </Button>
-            <Button variant="ghost" className="justify-start" onClick={handleMyTasks}>
+            <Button variant="ghost" className="justify-start">
               <Calendar className="h-4 w-4 mr-2" />
               My Tasks
             </Button>
-            <Button variant="ghost" className="justify-start" onClick={handleMyUploads}>
+            <Button variant="ghost" className="justify-start">
               <File className="h-4 w-4 mr-2" />
               My Uploads
             </Button>
@@ -220,7 +181,7 @@ export default function DashboardHeaderActions({
           </div>
           <Separator />
           <div className="grid gap-2 px-2">
-            <Button variant="ghost" className="justify-start" onClick={handleSettings}>
+            <Button variant="ghost" className="justify-start">
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
@@ -231,12 +192,6 @@ export default function DashboardHeaderActions({
           </div>
         </PopoverContent>
       </Popover>
-
-      {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-      />
     </div>
   );
 }

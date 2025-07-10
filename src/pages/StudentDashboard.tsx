@@ -51,9 +51,7 @@ const StudentDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
         <DashboardWelcome studentName={studentData.name} />
-        <div id="dashboard-content">
-          <DashboardGrid studentData={studentData} />
-        </div>
+        <DashboardGrid studentData={studentData} />
       </main>
     </div>
   );

@@ -1,13 +1,15 @@
 
-import ProfileCardContainer from "./ProfileCardContainer";
-import AssignedTasksList from "./AssignedTasksList";
-import LeaderboardSection from "./LeaderboardSection";
-import NotificationsSection from "./NotificationsSection";
-import XPTracker from "./XPTracker";
-import TrustScorePanel from "./TrustScorePanel";
-import { useNotifications } from "@/hooks/useNotifications";
+import ProfileCardContainer from "@/components/dashboard/ProfileCardContainer";
+import ProgressChart from "@/components/dashboard/ProgressChart";
+import XPTracker from "@/components/dashboard/XPTracker";
+import TaskStats from "@/components/dashboard/TaskStats";
+import AssignedTasksList from "@/components/dashboard/AssignedTasksList";
+import ProofTracker from "@/components/dashboard/ProofTracker";
+import LeaderboardSection from "@/components/dashboard/LeaderboardSection";
+import TrustScorePanel from "@/components/dashboard/TrustScorePanel";
+import TasksWaitingForYou from "@/components/dashboard/TasksWaitingForYou";
 
-interface StudentData {
+interface Student {
   name: string;
   email: string;
   profilePhoto: string | null;
@@ -18,35 +20,40 @@ interface StudentData {
 }
 
 interface DashboardGridProps {
-  studentData: StudentData;
+  studentData: Student;
 }
 
 export default function DashboardGrid({ studentData }: DashboardGridProps) {
-  const { notifications = [] } = useNotifications();
-
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6">
-      {/* Left Column - Profile & Stats */}
-      <div className="xl:col-span-4 space-y-6">
-        <div id="profile-section">
-          <ProfileCardContainer />
-        </div>
-        
-        <XPTracker />
-        <TrustScorePanel />
+    <div className="grid grid-cols-12 gap-6">
+      {/* Left Column - Profile Card */}
+      <div className="col-span-12 lg:col-span-3">
+        <ProfileCardContainer />
       </div>
 
-      {/* Center Column - Tasks & Activities */}
-      <div className="xl:col-span-5 space-y-6">
-        <div id="tasks-section">
+      {/* Center Column */}
+      <div className="col-span-12 lg:col-span-6 space-y-6">
+        {/* Top Row: Progress Chart + XP Tracker + Trust Score */}
+        <div className="grid grid-cols-3 gap-4">
+          <ProgressChart />
+          <XPTracker />
+          <TrustScorePanel />
+        </div>
+
+        {/* Middle Row: Assigned Tasks + Task Stats */}
+        <div className="grid grid-cols-2 gap-6">
           <AssignedTasksList />
+          <TaskStats />
         </div>
+
+        {/* Bottom Row: Proof Tracker */}
+        <ProofTracker />
       </div>
 
-      {/* Right Column - Leaderboard & Notifications */}
-      <div className="xl:col-span-3 space-y-6">
+      {/* Right Column - Leaderboard + Tasks Waiting */}
+      <div className="col-span-12 lg:col-span-3 space-y-6">
         <LeaderboardSection />
-        <NotificationsSection notifications={notifications} />
+        <TasksWaitingForYou />
       </div>
     </div>
   );

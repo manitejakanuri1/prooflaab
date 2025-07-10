@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,26 +17,17 @@ export default function Auth() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    // Only redirect if user came from root path or was automatically redirected here
-    // Don't redirect if user manually navigated to /auth
+    // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      const isFromRoot = location.pathname === '/auth' && document.referrer.endsWith('/');
-      const hasLocationState = location.state?.from === '/';
-      
-      if (session && (isFromRoot || hasLocationState)) {
+      if (session) {
         navigate("/student/dashboard");
       }
     };
-    
-    // Only check on initial load, not when user deliberately navigates to auth
-    if (!location.key || location.key === 'default') {
-      checkUser();
-    }
-  }, [navigate, location]);
+    checkUser();
+  }, [navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

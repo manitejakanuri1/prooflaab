@@ -1,19 +1,28 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 export default function ProgressChart() {
-  const {
-    weeklyData,
-    totalWeeklyMinutes,
-    todayMinutes,
-    loading,
+  const { 
+    weeklyData, 
+    totalWeeklyMinutes, 
+    todayMinutes, 
+    loading, 
     error,
     formatMinutesToHours,
     formatMinutesToDecimalHours
   } = useActivityLogs();
+
   if (loading) {
-    return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
+    return (
+      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-gray-900">Progress</CardTitle>
@@ -25,10 +34,13 @@ export default function ProgressChart() {
             <div className="text-sm text-gray-600">Loading activity data...</div>
           </div>
         </CardContent>
-      </Card>;
+      </Card>
+    );
   }
+
   if (error) {
-    return <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
+    return (
+      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-gray-900">Progress</CardTitle>
@@ -40,12 +52,15 @@ export default function ProgressChart() {
             <div className="text-sm text-red-600">Error loading activity data</div>
           </div>
         </CardContent>
-      </Card>;
+      </Card>
+    );
   }
 
   // Calculate the maximum value for scaling the bars
   const maxMinutes = Math.max(...weeklyData.map(day => day.active_minutes), 1);
-  return <TooltipProvider>
+
+  return (
+    <TooltipProvider>
       <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -65,24 +80,33 @@ export default function ProgressChart() {
         </CardHeader>
         <CardContent className="pt-0">
           {/* Bar Chart */}
-          <div className="flex items-end justify-between h-24 mb-6">
+          <div className="flex items-end justify-between h-20 mb-4 px-1">
             {weeklyData.map((dayData, index) => {
-            const height = dayData.active_minutes > 0 ? Math.max(dayData.active_minutes / maxMinutes * 100, 5) : 5;
-            const isToday = dayData.date === new Date().toISOString().split('T')[0];
-            return <div key={dayData.date} className="flex flex-col items-center space-y-3 flex-1 group relative">
+              const height = dayData.active_minutes > 0 
+                ? Math.max((dayData.active_minutes / maxMinutes) * 100, 5)
+                : 5;
+              
+              const isToday = dayData.date === new Date().toISOString().split('T')[0];
+              
+              return (
+                <div key={dayData.date} className="flex flex-col items-center flex-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`w-6 rounded-t-lg transition-all hover:opacity-80 cursor-pointer ${isToday ? 'bg-yellow-400' : 'bg-gray-300'}`} style={{
-                    height: `${height}%`
-                  }} />
+                      <div 
+                        className={`w-4 rounded-t-lg transition-all hover:opacity-80 cursor-pointer mb-2 ${
+                          isToday ? 'bg-yellow-400' : 'bg-gray-300'
+                        }`}
+                        style={{ height: `${height}%` }}
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{dayData.dayName}: {formatMinutesToHours(dayData.active_minutes)}</p>
                     </TooltipContent>
                   </Tooltip>
                   <span className="text-xs text-gray-500 font-medium text-center">{dayData.dayName}</span>
-                </div>;
-          })}
+                </div>
+              );
+            })}
           </div>
           
           {/* Active indicator */}
@@ -94,5 +118,6 @@ export default function ProgressChart() {
           </div>
         </CardContent>
       </Card>
-    </TooltipProvider>;
+    </TooltipProvider>
+  );
 }

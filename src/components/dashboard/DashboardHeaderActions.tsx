@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import NotificationItem from "./NotificationItem";
+import SettingsModal from "./SettingsModal";
 
 interface DashboardHeaderActionsProps {
   studentName: string;
@@ -39,6 +40,7 @@ export default function DashboardHeaderActions({
   profilePhoto
 }: DashboardHeaderActionsProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { signOut } = useAuth();
   const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
   const { profile } = useStudentProfile();
@@ -67,6 +69,16 @@ export default function DashboardHeaderActions({
       <Button variant="secondary" size="sm">
         <Plus className="h-4 w-4 mr-2" />
         Add Task
+      </Button>
+
+      {/* Settings Button */}
+      <Button 
+        variant="ghost" 
+        size="icon"
+        onClick={() => setIsSettingsOpen(true)}
+      >
+        <Settings className="h-5 w-5" />
+        <span className="sr-only">Settings</span>
       </Button>
 
       {/* Notification Popover */}
@@ -192,6 +204,12 @@ export default function DashboardHeaderActions({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     </div>
   );
 }

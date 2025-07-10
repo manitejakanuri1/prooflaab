@@ -84,12 +84,6 @@ export default function XPTracker() {
             <div className="text-xs text-gray-600">XP</div>
           </div>
         </div>
-        
-        <div className="text-center">
-          <div className="text-sm font-medium text-gray-900">
-            {percentage.toFixed(0)}% of monthly goal
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

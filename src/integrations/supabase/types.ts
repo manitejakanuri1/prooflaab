@@ -220,6 +220,7 @@ export type Database = {
           full_name: string
           id: string
           profile_photo_url: string | null
+          slug: string | null
           total_xp: number | null
           trust_score: number | null
           updated_at: string | null
@@ -231,6 +232,7 @@ export type Database = {
           full_name: string
           id?: string
           profile_photo_url?: string | null
+          slug?: string | null
           total_xp?: number | null
           trust_score?: number | null
           updated_at?: string | null
@@ -242,6 +244,7 @@ export type Database = {
           full_name?: string
           id?: string
           profile_photo_url?: string | null
+          slug?: string | null
           total_xp?: number | null
           trust_score?: number | null
           updated_at?: string | null
@@ -422,6 +425,10 @@ export type Database = {
       }
     }
     Functions: {
+      generate_unique_slug: {
+        Args: { base_name: string }
+        Returns: string
+      }
       generate_url_slug: {
         Args: { student_name: string }
         Returns: string

@@ -1,10 +1,11 @@
 
 import ProfileCardContainer from "./ProfileCardContainer";
-import AssignedTasks from "./AssignedTasks";
+import AssignedTasksList from "./AssignedTasksList";
 import LeaderboardSection from "./LeaderboardSection";
 import NotificationsSection from "./NotificationsSection";
 import XPTracker from "./XPTracker";
 import TrustScorePanel from "./TrustScorePanel";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface StudentData {
   name: string;
@@ -21,6 +22,8 @@ interface DashboardGridProps {
 }
 
 export default function DashboardGrid({ studentData }: DashboardGridProps) {
+  const { notifications = [] } = useNotifications();
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6">
       {/* Left Column - Profile & Stats */}
@@ -36,14 +39,14 @@ export default function DashboardGrid({ studentData }: DashboardGridProps) {
       {/* Center Column - Tasks & Activities */}
       <div className="xl:col-span-5 space-y-6">
         <div id="tasks-section">
-          <AssignedTasks />
+          <AssignedTasksList />
         </div>
       </div>
 
       {/* Right Column - Leaderboard & Notifications */}
       <div className="xl:col-span-3 space-y-6">
         <LeaderboardSection />
-        <NotificationsSection />
+        <NotificationsSection notifications={notifications} />
       </div>
     </div>
   );

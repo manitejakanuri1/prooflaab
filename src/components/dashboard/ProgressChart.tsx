@@ -80,7 +80,7 @@ export default function ProgressChart() {
         </CardHeader>
         <CardContent className="pt-0">
           {/* Bar Chart */}
-          <div className="flex items-end justify-between h-20 mb-4">
+          <div className="flex items-end justify-between h-24 mb-6">
             {weeklyData.map((dayData, index) => {
               const height = dayData.active_minutes > 0 
                 ? Math.max((dayData.active_minutes / maxMinutes) * 100, 5)
@@ -89,7 +89,7 @@ export default function ProgressChart() {
               const isToday = dayData.date === new Date().toISOString().split('T')[0];
               
               return (
-                <div key={dayData.date} className="flex flex-col items-center space-y-2 flex-1 group relative">
+                <div key={dayData.date} className="flex flex-col items-center space-y-3 flex-1 group relative">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div 

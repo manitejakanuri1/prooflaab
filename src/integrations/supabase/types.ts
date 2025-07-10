@@ -169,8 +169,9 @@ export type Database = {
           created_at: string
           id: string
           is_public: boolean
-          public_url_slug: string
+          projects: Json | null
           skills: string[] | null
+          slug: string | null
           student_id: string
           updated_at: string
         }
@@ -180,8 +181,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_public?: boolean
-          public_url_slug: string
+          projects?: Json | null
           skills?: string[] | null
+          slug?: string | null
           student_id: string
           updated_at?: string
         }
@@ -191,8 +193,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_public?: boolean
-          public_url_slug?: string
+          projects?: Json | null
           skills?: string[] | null
+          slug?: string | null
           student_id?: string
           updated_at?: string
         }

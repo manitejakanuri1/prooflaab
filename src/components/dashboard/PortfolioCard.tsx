@@ -28,8 +28,8 @@ export default function PortfolioCard() {
   };
 
   const handleViewPortfolio = () => {
-    if (portfolio?.public_url_slug) {
-      window.open(`/portfolio/${portfolio.public_url_slug}`, '_blank');
+    if (portfolio?.slug) {
+      window.open(`/portfolio/${portfolio.slug}`, '_blank');
     }
   };
 
@@ -90,7 +90,7 @@ export default function PortfolioCard() {
 
         {portfolio && (
           <div className="text-xs text-gray-500 space-y-1">
-            <p>URL: /portfolio/{portfolio.public_url_slug}</p>
+            <p>URL: /portfolio/{portfolio.slug}</p>
             <p>Last updated: {new Date(portfolio.updated_at).toLocaleDateString()}</p>
           </div>
         )}

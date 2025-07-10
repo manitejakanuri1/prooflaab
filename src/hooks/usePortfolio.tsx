@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface Portfolio {
   id: string;
   student_id: string;
-  public_url_slug: string;
+  slug: string;
   bio: string | null;
   skills: string[] | null;
   achievements: string | null;
@@ -56,7 +56,7 @@ export const usePortfolio = (slug?: string) => {
 
         if (slug) {
           // Public portfolio access by slug
-          query = query.eq('public_url_slug', slug).eq('is_public', true);
+          query = query.eq('slug', slug).eq('is_public', true);
         } else if (user) {
           // Current user's portfolio
           query = query.eq('student_profiles.user_id', user.id);
@@ -82,8 +82,8 @@ export const usePortfolio = (slug?: string) => {
         if (trustScoresData !== null && 
             typeof trustScoresData === 'object' && 
             'score' in trustScoresData &&
-            typeof trustScoresData.score === 'number') {
-          validTrustScores = { score: trustScoresData.score };
+            typeof (trustScoresData as any).score === 'number') {
+          validTrustScores = { score: (trustScoresData as any).score };
         }
 
         // Transform the data to match our interface

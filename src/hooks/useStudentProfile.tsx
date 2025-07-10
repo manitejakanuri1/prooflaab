@@ -9,6 +9,7 @@ interface StudentProfile {
   profile_photo_url: string | null;
   total_xp: number;
   trust_score: number;
+  slug: string | null;
 }
 
 interface LeaderboardEntry {

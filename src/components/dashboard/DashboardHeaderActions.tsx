@@ -19,12 +19,14 @@ import {
   Settings,
   User,
   X,
+  ExternalLink,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
 import NotificationItem from "./NotificationItem";
 
 interface DashboardHeaderActionsProps {
@@ -39,6 +41,7 @@ export default function DashboardHeaderActions({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { signOut } = useAuth();
   const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
+  const { profile } = useStudentProfile();
 
   const handleSignOut = async () => {
     try {
@@ -50,6 +53,12 @@ export default function DashboardHeaderActions({
 
   const handleNotificationClick = (notificationId: string) => {
     markAsRead(notificationId);
+  };
+
+  const handleViewPortfolio = () => {
+    if (profile?.slug) {
+      window.open(`/portfolio/${profile.slug}`, '_blank');
+    }
   };
 
   return (
@@ -160,6 +169,14 @@ export default function DashboardHeaderActions({
             <Button variant="ghost" className="justify-start">
               <File className="h-4 w-4 mr-2" />
               My Uploads
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="justify-start" 
+              onClick={handleViewPortfolio}
+              disabled={!profile?.slug}
+            >
+              📂 View My Portfolio
             </Button>
           </div>
           <Separator />

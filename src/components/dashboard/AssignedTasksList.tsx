@@ -5,10 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useAssignedTasks } from "@/hooks/useAssignedTasks";
 import { useToast } from "@/hooks/use-toast";
+import UploadProofModal from "./UploadProofModal";
+import { useState } from "react";
 
 export default function AssignedTasksList() {
-  const { tasks, loading, error, startTask } = useAssignedTasks();
+  const { tasks, loading, error, startTask, refetch } = useAssignedTasks();
   const { toast } = useToast();
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<{ id: string; title: string } | null>(null);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -33,10 +37,12 @@ export default function AssignedTasksList() {
   };
 
   const handleUploadProof = (taskId: string, taskTitle: string) => {
-    toast({
-      title: "Upload Proof",
-      description: `Upload proof functionality for "${taskTitle}" will be implemented next.`,
-    });
+    setSelectedTask({ id: taskId, title: taskTitle });
+    setUploadModalOpen(true);
+  };
+
+  const handleUploadSuccess = () => {
+    refetch();
   };
 
   const handleStartTask = async (taskId: string, taskTitle: string) => {
@@ -161,6 +167,19 @@ export default function AssignedTasksList() {
           </>
         )}
       </CardContent>
+
+      {selectedTask && (
+        <UploadProofModal
+          isOpen={uploadModalOpen}
+          onClose={() => {
+            setUploadModalOpen(false);
+            setSelectedTask(null);
+          }}
+          taskId={selectedTask.id}
+          taskTitle={selectedTask.title}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
     </Card>
   );
 }

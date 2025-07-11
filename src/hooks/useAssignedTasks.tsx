@@ -1,6 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AssignedTask {
   id: string;
@@ -17,98 +18,73 @@ interface AssignedTask {
 }
 
 export const useAssignedTasks = () => {
-  const [tasks, setTasks] = useState<AssignedTask[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+  const query = useQuery({
+    queryKey: ['assigned-tasks', user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error("No authenticated user");
+
+      // Get student profile to get student_id
+      const { data: profile, error: profileError } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Fetch tasks for this student
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('student_id', profile.id)
+        .order('due_date', { ascending: true });
+
+      if (tasksError) throw tasksError;
+
+      // Transform data to match our interface
+      const transformedTasks: AssignedTask[] = (tasksData || []).map(task => {
+        const now = new Date();
+        const dueDate = new Date(task.due_date);
+        const uploadDeadline = task.upload_deadline ? new Date(task.upload_deadline) : null;
         
-        if (!user) {
-          setError("No authenticated user");
-          setLoading(false);
-          return;
+        // Check if task should revert to pending due to missed deadline
+        let currentStatus = task.status;
+        if (task.started_at && uploadDeadline && now > uploadDeadline && task.status === 'In Progress') {
+          currentStatus = 'Pending';
         }
+        
+        return {
+          id: task.id,
+          title: task.title,
+          deadline: dueDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          status: currentStatus as 'Pending' | 'In Progress' | 'Completed',
+          progress: calculateProgress(currentStatus),
+          description: task.description,
+          xp_reward: task.xp_reward,
+          started_at: task.started_at,
+          duration_days: task.duration_days,
+          upload_deadline: uploadDeadline?.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          can_start: !task.started_at && currentStatus === 'Pending'
+        };
+      });
 
-        // Get student profile to get student_id
-        const { data: profile, error: profileError } = await supabase
-          .from('student_profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
+      return transformedTasks;
+    },
+    enabled: !!user,
+  });
 
-        if (profileError) {
-          setError(profileError.message);
-          setLoading(false);
-          return;
-        }
-
-        console.log('Found student profile:', profile.id);
-
-        // Fetch tasks for this student
-        const { data: tasksData, error: tasksError } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('student_id', profile.id)
-          .order('due_date', { ascending: true });
-
-        if (tasksError) {
-          setError(tasksError.message);
-          setLoading(false);
-          return;
-        }
-
-        console.log('Found tasks:', tasksData);
-
-        // Transform data to match our interface
-        const transformedTasks: AssignedTask[] = (tasksData || []).map(task => {
-          const now = new Date();
-          const dueDate = new Date(task.due_date);
-          const uploadDeadline = task.upload_deadline ? new Date(task.upload_deadline) : null;
-          
-          // Check if task should revert to pending due to missed deadline
-          let currentStatus = task.status;
-          if (task.started_at && uploadDeadline && now > uploadDeadline && task.status === 'In Progress') {
-            currentStatus = 'Pending';
-          }
-          
-          return {
-            id: task.id,
-            title: task.title,
-            deadline: dueDate.toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
-            }),
-            status: currentStatus as 'Pending' | 'In Progress' | 'Completed',
-            progress: calculateProgress(currentStatus),
-            description: task.description,
-            xp_reward: task.xp_reward,
-            started_at: task.started_at,
-            duration_days: task.duration_days,
-            upload_deadline: uploadDeadline?.toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
-            }),
-            can_start: !task.started_at && currentStatus === 'Pending'
-          };
-        });
-
-        setTasks(transformedTasks);
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, []);
+  const { data, isLoading: loading, error } = query;
 
   // Calculate progress based on status since we don't have a progress field in tasks table
   const calculateProgress = (status: string): number => {
@@ -123,28 +99,24 @@ export const useAssignedTasks = () => {
   };
 
   const startTask = async (taskId: string) => {
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ 
-          started_at: new Date().toISOString()
-        })
-        .eq('id', taskId);
+    const { error } = await supabase
+      .from('tasks')
+      .update({ 
+        started_at: new Date().toISOString()
+      })
+      .eq('id', taskId);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Refresh tasks after starting
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId 
-            ? { ...task, status: 'In Progress' as const, can_start: false, started_at: new Date().toISOString() }
-            : task
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start task");
-    }
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
   };
 
-  return { tasks, loading, error, startTask };
+  return { 
+    tasks: data || [], 
+    loading, 
+    error: error?.message || '', 
+    startTask,
+    refetch: query.refetch
+  };
 };

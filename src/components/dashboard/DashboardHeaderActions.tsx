@@ -1,44 +1,32 @@
 
-import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Bell, Settings, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Bell,
-  Calendar,
-  File,
-  Plus,
-  Settings,
-  User,
-  X,
-} from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNotifications } from "@/hooks/useNotifications";
-import { useStudentProfile } from "@/hooks/useStudentProfile";
-import NotificationItem from "./NotificationItem";
+import NotificationsPopover from "./NotificationsPopover";
 import SettingsModal from "./SettingsModal";
+import CreateTaskButton from "./CreateTaskButton";
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardHeaderActionsProps {
   studentName: string;
-  profilePhoto: string | null;
+  profilePhoto?: string | null;
 }
 
 export default function DashboardHeaderActions({ 
   studentName, 
-  profilePhoto
+  profilePhoto 
 }: DashboardHeaderActionsProps) {
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { signOut } = useAuth();
-  const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
-  const { profile } = useStudentProfile();
 
   const handleSignOut = async () => {
     try {
@@ -48,164 +36,52 @@ export default function DashboardHeaderActions({
     }
   };
 
-  const handleNotificationClick = (notificationId: string) => {
-    markAsRead(notificationId);
-  };
-
-  const handleViewPortfolio = () => {
-    if (profile?.slug) {
-      window.open(`/portfolio/${profile.slug}`, '_blank');
-    }
-  };
-
-  const handleSettingsClick = () => {
-    setIsSettingsOpen(true);
-  };
-
   return (
     <div className="flex items-center space-x-4">
-      {/* Add Task Button */}
-      <Button variant="secondary" size="sm">
-        <Plus className="h-4 w-4 mr-2" />
-        Add Task
-      </Button>
-
-      {/* Notification Popover */}
-      <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-              >
-                {unreadCount}
-              </Badge>
-            )}
-            <span className="sr-only">Toggle notifications</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-80 p-0"
-          align="end"
-          alignOffset={-10}
-          forceMount
-        >
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm text-gray-900">
-                Notifications
-              </h4>
-              {unreadCount > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {unreadCount} new
-                </Badge>
-              )}
-            </div>
-          </div>
-          
-          <ScrollArea className="max-h-[400px]">
-            {isLoading ? (
-              <div className="p-4 text-center text-sm text-gray-500">
-                Loading notifications...
-              </div>
-            ) : notifications.length > 0 ? (
-              <div className="divide-y divide-gray-100">
-                {notifications.map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    id={notification.id}
-                    type={notification.type}
-                    message={notification.message}
-                    isRead={notification.is_read}
-                    createdAt={notification.created_at}
-                    onClick={handleNotificationClick}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 text-center text-sm text-gray-500">
-                <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                <p>No notifications yet</p>
-              </div>
-            )}
-          </ScrollArea>
-          
-          <Separator />
-          <div className="p-2">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-sm"
-              onClick={handleSettingsClick}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Notification Settings
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-
+      {/* Add Sample Task Button */}
+      <CreateTaskButton />
+      
+      {/* Notifications */}
+      <NotificationsPopover />
+      
       {/* Profile Dropdown */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" className="pl-3 pr-0 h-8">
-            <div className="flex items-center space-x-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={profilePhoto || ""} alt={studentName} />
-                <AvatarFallback>
-                  {studentName.split(" ").map((n) => n[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium leading-none">{studentName}</span>
-            </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={profilePhoto || ""} alt={studentName} />
+              <AvatarFallback className="bg-orange-100 text-orange-800">
+                {studentName.split(' ').map(name => name[0]).join('').toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-60" align="end" alignOffset={-10} forceMount>
-          <div className="grid gap-2 px-2">
-            <Button variant="ghost" className="justify-start">
-              <User className="h-4 w-4 mr-2" />
-              My Profile
-            </Button>
-            <Button variant="ghost" className="justify-start">
-              <Calendar className="h-4 w-4 mr-2" />
-              My Tasks
-            </Button>
-            <Button variant="ghost" className="justify-start">
-              <File className="h-4 w-4 mr-2" />
-              My Uploads
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="justify-start" 
-              onClick={handleViewPortfolio}
-              disabled={!profile?.slug}
-            >
-              📂 View My Portfolio
-            </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+          <div className="flex items-center justify-start gap-2 p-2">
+            <div className="flex flex-col space-y-1 leading-none">
+              <p className="font-medium">{studentName}</p>
+              <p className="w-[200px] truncate text-sm text-muted-foreground">
+                Student Dashboard
+              </p>
+            </div>
           </div>
-          <Separator />
-          <div className="grid gap-2 px-2">
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={handleSettingsClick}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-            <Button variant="ghost" className="justify-start" onClick={handleSignOut}>
-              <X className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setShowSettings(true)}>
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Settings Modal */}
       <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)} 
       />
     </div>
   );

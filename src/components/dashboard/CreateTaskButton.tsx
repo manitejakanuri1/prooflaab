@@ -11,7 +11,7 @@ export default function CreateTaskButton() {
       title: "Build React Dashboard",
       description: "Design and build a functional student dashboard using React.js and Tailwind.",
       due_date: "2025-12-15T23:59:59.000Z",
-      status: "Assigned",
+      status: "Pending",
       xp_reward: 150,
       xp: 150
     };

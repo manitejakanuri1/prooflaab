@@ -15,6 +15,7 @@ import SettingsModal from "./SettingsModal";
 import CreateTaskButton from "./CreateTaskButton";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface DashboardHeaderActionsProps {
   studentName: string;
@@ -26,7 +27,9 @@ export default function DashboardHeaderActions({
   profilePhoto 
 }: DashboardHeaderActionsProps) {
   const [showSettings, setShowSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const { signOut } = useAuth();
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   const handleSignOut = async () => {
     try {
@@ -36,13 +39,43 @@ export default function DashboardHeaderActions({
     }
   };
 
+  // Transform notifications to match the expected interface
+  const transformedNotifications = notifications.map(notification => ({
+    id: notification.id,
+    message: notification.message,
+    type: notification.type as 'task' | 'feedback' | 'achievement' | 'general',
+    time: new Date(notification.created_at).toLocaleDateString(),
+    isRead: notification.is_read
+  }));
+
   return (
     <div className="flex items-center space-x-4">
       {/* Add Sample Task Button */}
       <CreateTaskButton />
       
       {/* Notifications */}
-      <NotificationsPopover />
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowNotifications(!showNotifications)}
+          className="relative"
+        >
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+              {unreadCount}
+            </Badge>
+          )}
+        </Button>
+        
+        {showNotifications && (
+          <NotificationsPopover 
+            notifications={transformedNotifications}
+            onClose={() => setShowNotifications(false)}
+          />
+        )}
+      </div>
       
       {/* Profile Dropdown */}
       <DropdownMenu>

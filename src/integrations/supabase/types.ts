@@ -312,11 +312,14 @@ export type Database = {
           created_at: string | null
           description: string | null
           due_date: string
+          duration_days: number | null
           id: string
+          started_at: string | null
           status: string | null
           student_id: string
           title: string
           updated_at: string | null
+          upload_deadline: string | null
           xp: number | null
           xp_reward: number | null
         }
@@ -325,11 +328,14 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date: string
+          duration_days?: number | null
           id?: string
+          started_at?: string | null
           status?: string | null
           student_id: string
           title: string
           updated_at?: string | null
+          upload_deadline?: string | null
           xp?: number | null
           xp_reward?: number | null
         }
@@ -338,11 +344,14 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string
+          duration_days?: number | null
           id?: string
+          started_at?: string | null
           status?: string | null
           student_id?: string
           title?: string
           updated_at?: string | null
+          upload_deadline?: string | null
           xp?: number | null
           xp_reward?: number | null
         }

@@ -7,7 +7,7 @@ import { useAssignedTasks } from "@/hooks/useAssignedTasks";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AssignedTasksList() {
-  const { tasks, loading, error } = useAssignedTasks();
+  const { tasks, loading, error, startTask } = useAssignedTasks();
   const { toast } = useToast();
 
   const getStatusIcon = (status: string) => {
@@ -37,6 +37,22 @@ export default function AssignedTasksList() {
       title: "Upload Proof",
       description: `Upload proof functionality for "${taskTitle}" will be implemented next.`,
     });
+  };
+
+  const handleStartTask = async (taskId: string, taskTitle: string) => {
+    try {
+      await startTask(taskId);
+      toast({
+        title: "Task Started",
+        description: `You have started working on "${taskTitle}". Good luck!`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -90,7 +106,17 @@ export default function AssignedTasksList() {
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 text-sm">{task.title}</h4>
-                      <p className="text-xs text-gray-600">{task.deadline}</p>
+                      <div className="flex items-center space-x-2 text-xs text-gray-600">
+                        <span>Due: {task.deadline}</span>
+                        {task.duration_days && (
+                          <Badge variant="outline" className="text-xs">
+                            {task.duration_days} days
+                          </Badge>
+                        )}
+                      </div>
+                      {task.upload_deadline && task.started_at && (
+                        <p className="text-xs text-orange-600 mt-1">Upload by: {task.upload_deadline}</p>
+                      )}
                     </div>
                   </div>
                   
@@ -99,16 +125,28 @@ export default function AssignedTasksList() {
                   </Badge>
                 </div>
                 
-                {task.status !== 'Completed' && (
-                  <Button 
-                    size="sm" 
-                    className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm"
-                    onClick={() => handleUploadProof(task.id, task.title)}
-                  >
-                    <Upload className="h-3 w-3 mr-2" />
-                    Upload Proof
-                  </Button>
-                )}
+                <div className="flex space-x-2">
+                  {task.can_start && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="flex-1 rounded-xl"
+                      onClick={() => handleStartTask(task.id, task.title)}
+                    >
+                      Start Task
+                    </Button>
+                  )}
+                  {task.status === 'In Progress' && (
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm"
+                      onClick={() => handleUploadProof(task.id, task.title)}
+                    >
+                      <Upload className="h-3 w-3 mr-2" />
+                      Upload Proof
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
             

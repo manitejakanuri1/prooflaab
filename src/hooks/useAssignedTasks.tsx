@@ -10,6 +10,10 @@ interface AssignedTask {
   progress: number;
   description?: string;
   xp_reward?: number;
+  started_at?: string;
+  duration_days?: number;
+  upload_deadline?: string;
+  can_start?: boolean;
 }
 
 export const useAssignedTasks = () => {
@@ -60,19 +64,39 @@ export const useAssignedTasks = () => {
         console.log('Found tasks:', tasksData);
 
         // Transform data to match our interface
-        const transformedTasks: AssignedTask[] = (tasksData || []).map(task => ({
-          id: task.id,
-          title: task.title,
-          deadline: new Date(task.due_date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
-          status: task.status as 'Pending' | 'In Progress' | 'Completed',
-          progress: calculateProgress(task.status),
-          description: task.description,
-          xp_reward: task.xp_reward
-        }));
+        const transformedTasks: AssignedTask[] = (tasksData || []).map(task => {
+          const now = new Date();
+          const dueDate = new Date(task.due_date);
+          const uploadDeadline = task.upload_deadline ? new Date(task.upload_deadline) : null;
+          
+          // Check if task should revert to pending due to missed deadline
+          let currentStatus = task.status;
+          if (task.started_at && uploadDeadline && now > uploadDeadline && task.status === 'In Progress') {
+            currentStatus = 'Pending';
+          }
+          
+          return {
+            id: task.id,
+            title: task.title,
+            deadline: dueDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            }),
+            status: currentStatus as 'Pending' | 'In Progress' | 'Completed',
+            progress: calculateProgress(currentStatus),
+            description: task.description,
+            xp_reward: task.xp_reward,
+            started_at: task.started_at,
+            duration_days: task.duration_days,
+            upload_deadline: uploadDeadline?.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            }),
+            can_start: !task.started_at && currentStatus === 'Pending'
+          };
+        });
 
         setTasks(transformedTasks);
 
@@ -98,5 +122,29 @@ export const useAssignedTasks = () => {
     }
   };
 
-  return { tasks, loading, error };
+  const startTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          started_at: new Date().toISOString()
+        })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      // Refresh tasks after starting
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: 'In Progress' as const, can_start: false, started_at: new Date().toISOString() }
+            : task
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start task");
+    }
+  };
+
+  return { tasks, loading, error, startTask };
 };

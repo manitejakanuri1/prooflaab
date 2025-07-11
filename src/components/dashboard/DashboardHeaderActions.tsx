@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import NotificationsPopover from "./NotificationsPopover";
 import SettingsModal from "./SettingsModal";
-import CreateTaskButton from "./CreateTaskButton";
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -49,10 +49,7 @@ export default function DashboardHeaderActions({
   }));
 
   return (
-    <div className="flex items-center space-x-4">
-      {/* Add Sample Task Button */}
-      <CreateTaskButton />
-      
+    <div className="flex items-center space-x-4">      
       {/* Notifications */}
       <div className="relative">
         <Button

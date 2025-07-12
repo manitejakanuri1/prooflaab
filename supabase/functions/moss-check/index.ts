@@ -147,13 +147,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let submissionId: string | undefined;
+
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { submissionId } = await req.json();
+    const requestBody = await req.json();
+    submissionId = requestBody.submissionId;
 
     console.log(`Processing MOSS check for submission: ${submissionId}`);
 
@@ -321,22 +324,21 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in moss-check function:', error);
     
-    // Update submission to show error
-    try {
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      );
-      
-      const { submissionId } = await req.json();
-      if (submissionId) {
+    // Update submission to show error if we have the submissionId
+    if (submissionId) {
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        );
+        
         await supabaseClient
           .from('proof_uploads')
           .update({ moss_status: 'Error' })
           .eq('id', submissionId);
+      } catch (updateError) {
+        console.error('Error updating submission status to error:', updateError);
       }
-    } catch (updateError) {
-      console.error('Error updating submission status to error:', updateError);
     }
 
     return new Response(JSON.stringify({ error: error.message }), {

@@ -114,7 +114,12 @@ export type Database = {
         Row: {
           file_url: string | null
           id: string
+          moss_score: number | null
+          moss_status: string | null
+          moss_url: string | null
+          review_comment: string | null
           reviewed_at: string | null
+          reviewed_by: string | null
           status: string | null
           student_id: string
           submission_notes: string | null
@@ -124,7 +129,12 @@ export type Database = {
         Insert: {
           file_url?: string | null
           id?: string
+          moss_score?: number | null
+          moss_status?: string | null
+          moss_url?: string | null
+          review_comment?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string | null
           student_id: string
           submission_notes?: string | null
@@ -134,7 +144,12 @@ export type Database = {
         Update: {
           file_url?: string | null
           id?: string
+          moss_score?: number | null
+          moss_status?: string | null
+          moss_url?: string | null
+          review_comment?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string | null
           student_id?: string
           submission_notes?: string | null

@@ -11,6 +11,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import ReviewProofs from "./pages/ReviewProofs";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <StudentDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/review-proofs" 
+              element={
+                <ProtectedRoute>
+                  <ReviewProofs />
                 </ProtectedRoute>
               } 
             />

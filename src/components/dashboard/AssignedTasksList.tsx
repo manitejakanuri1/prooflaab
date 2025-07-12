@@ -91,7 +91,9 @@ export default function AssignedTasksList() {
     );
   }
 
-  const completedTasks = tasks.filter(task => task.status === 'Completed').length;
+  const completedTasks = tasks.filter(task => 
+    task.status === 'Completed' || task.proof_submitted
+  ).length;
   const totalTasks = tasks.length;
 
   return (

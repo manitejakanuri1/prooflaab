@@ -117,7 +117,7 @@ export default function AssignedTasksList() {
                     <div>
                       <h4 className="font-medium text-gray-900 text-sm">{task.title}</h4>
                       <div className="flex items-center space-x-2 text-xs text-gray-600">
-                        <span>Due: {task.deadline}</span>
+                        {!task.proof_submitted && <span>{task.deadline}</span>}
                         {task.duration_days && (
                           <Badge variant="outline" className="text-xs">
                             {task.duration_days} days

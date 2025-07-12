@@ -75,14 +75,26 @@ export const useAssignedTasks = () => {
           currentStatus = 'Pending';
         }
         
+        // Calculate relative time for due date
+        const getRelativeTime = (date: Date) => {
+          const diffMs = date.getTime() - now.getTime();
+          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          
+          if (diffDays < 0) {
+            return `${Math.abs(diffDays)} days overdue`;
+          } else if (diffDays === 0) {
+            return 'Due today';
+          } else if (diffDays === 1) {
+            return 'Due tomorrow';
+          } else {
+            return `Due in ${diffDays} days`;
+          }
+        };
+        
         return {
           id: task.id,
           title: task.title,
-          deadline: dueDate.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
+          deadline: getRelativeTime(dueDate),
           status: currentStatus as 'Pending' | 'In Progress' | 'Completed' | 'Under Review',
           progress: calculateProgress(currentStatus),
           description: task.description,

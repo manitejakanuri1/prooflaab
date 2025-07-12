@@ -12,7 +12,7 @@ const MOSS_SERVER = 'moss.stanford.edu';
 const MOSS_PORT = 7690;
 const MOSS_USER_ID = 426805902; // From the provided Perl script
 
-async function submitToMoss(fileContent: string, fileName: string, language: string = 'java'): Promise<{ url: string; score: number; status: string }> {
+async function submitToMoss(allSubmissions: Array<{content: string, fileName: string, studentId: string}>, language: string = 'java'): Promise<{ url: string; scores: Record<string, number>; status: string }> {
   try {
     // Connect to MOSS server
     const conn = await Deno.connect({
@@ -42,15 +42,18 @@ async function submitToMoss(fileContent: string, fileName: string, language: str
       throw new Error(`Unsupported language: ${language}`);
     }
 
-    // Upload file
-    const fileSize = new TextEncoder().encode(fileContent).length;
-    const cleanFileName = fileName.replace(/\s/g, '_');
-    
-    await conn.write(encoder.encode(`file 1 ${language} ${fileSize} ${cleanFileName}\n`));
-    await conn.write(encoder.encode(fileContent));
+    // Upload all files for comparison
+    for (let i = 0; i < allSubmissions.length; i++) {
+      const submission = allSubmissions[i];
+      const fileSize = new TextEncoder().encode(submission.content).length;
+      const cleanFileName = `${submission.studentId}_${submission.fileName}`.replace(/\s/g, '_');
+      
+      await conn.write(encoder.encode(`file ${i + 1} ${language} ${fileSize} ${cleanFileName}\n`));
+      await conn.write(encoder.encode(submission.content));
+    }
 
     // Submit query
-    await conn.write(encoder.encode(`query 0 Lovable MOSS Check\n`));
+    await conn.write(encoder.encode(`query 0 Lovable MOSS Plagiarism Check\n`));
 
     // Read response URL
     const resultBuffer = new Uint8Array(1024);
@@ -65,13 +68,31 @@ async function submitToMoss(fileContent: string, fileName: string, language: str
     const urlMatch = resultResponse.match(/http:\/\/moss\.stanford\.edu\/results\/\d+/);
     const mossUrl = urlMatch ? urlMatch[0] : '';
 
-    // Simulate score calculation (MOSS doesn't return a direct score)
-    const score = Math.floor(Math.random() * 100);
-    const status = score > 70 ? 'Suspicious' : score > 30 ? 'Similar' : 'Unique';
+    // Calculate similarity scores based on file content comparison
+    const scores: Record<string, number> = {};
+    
+    for (let i = 0; i < allSubmissions.length; i++) {
+      const currentSubmission = allSubmissions[i];
+      let maxSimilarity = 0;
+      
+      // Compare with all other submissions
+      for (let j = 0; j < allSubmissions.length; j++) {
+        if (i !== j) {
+          const otherSubmission = allSubmissions[j];
+          const similarity = calculateSimilarity(currentSubmission.content, otherSubmission.content);
+          maxSimilarity = Math.max(maxSimilarity, similarity);
+        }
+      }
+      
+      scores[currentSubmission.studentId] = Math.round(maxSimilarity);
+    }
+
+    const maxScore = Math.max(...Object.values(scores));
+    const status = maxScore > 70 ? 'Suspicious' : maxScore > 30 ? 'Similar' : 'Unique';
 
     return {
       url: mossUrl,
-      score,
+      scores,
       status
     };
 
@@ -79,6 +100,37 @@ async function submitToMoss(fileContent: string, fileName: string, language: str
     console.error('MOSS submission error:', error);
     throw new Error(`MOSS check failed: ${error.message}`);
   }
+}
+
+// Simple similarity calculation based on Levenshtein distance
+function calculateSimilarity(str1: string, str2: string): number {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 100;
+  
+  const distance = levenshteinDistance(longer, shorter);
+  return ((longer.length - distance) / longer.length) * 100;
+}
+
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+  
+  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+  
+  for (let j = 1; j <= str2.length; j++) {
+    for (let i = 1; i <= str1.length; i++) {
+      const substitutionCost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      matrix[j][i] = Math.min(
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i] + 1,
+        matrix[j - 1][i - 1] + substitutionCost
+      );
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
 }
 
 async function downloadFile(url: string): Promise<string> {
@@ -122,17 +174,59 @@ serve(async (req) => {
       .update({ moss_status: 'Pending' })
       .eq('id', submissionId);
 
+    // Get the task ID to fetch all submissions for this task
+    const taskId = submission.task_id;
+    
+    // Fetch all submissions for the same task to compare for plagiarism
+    const { data: allTaskSubmissions, error: allSubmissionsError } = await supabaseClient
+      .from('proof_uploads')
+      .select(`
+        *,
+        student_profiles!inner (
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('task_id', taskId)
+      .not('file_url', 'is', null);
+
+    if (allSubmissionsError) {
+      throw new Error('Error fetching task submissions for comparison');
+    }
+
+    console.log(`Found ${allTaskSubmissions.length} submissions for task ${taskId}`);
+
     let mossResult;
     
-    if (submission.file_url) {
-      // Handle file submission - download and check with MOSS
-      console.log('Processing file submission for MOSS');
+    if (submission.file_url && allTaskSubmissions.length > 1) {
+      // Handle file submissions with multiple submissions to compare
+      console.log('Processing multiple file submissions for MOSS comparison');
       
       try {
-        const fileContent = await downloadFile(submission.file_url);
-        const fileName = submission.file_url.split('/').pop() || 'submission.txt';
+        // Download all files for comparison
+        const submissionsData = [];
+        
+        for (const sub of allTaskSubmissions) {
+          try {
+            const fileContent = await downloadFile(sub.file_url);
+            const fileName = sub.file_url.split('/').pop() || 'submission.txt';
+            submissionsData.push({
+              content: fileContent,
+              fileName: fileName,
+              studentId: sub.student_id
+            });
+          } catch (downloadError) {
+            console.error(`Error downloading file for submission ${sub.id}:`, downloadError);
+          }
+        }
+        
+        if (submissionsData.length < 2) {
+          throw new Error('Need at least 2 valid submissions for comparison');
+        }
         
         // Determine language from file extension
+        const fileName = submission.file_url.split('/').pop() || 'submission.txt';
         const ext = fileName.split('.').pop()?.toLowerCase() || '';
         const languageMap: Record<string, string> = {
           'java': 'java',
@@ -145,10 +239,37 @@ serve(async (req) => {
         };
         const language = languageMap[ext] || 'java';
 
-        mossResult = await submitToMoss(fileContent, fileName, language);
+        const mossComparisonResult = await submitToMoss(submissionsData, language);
+        
+        // Get the score for this specific submission
+        const submissionScore = mossComparisonResult.scores[submission.student_id] || 0;
+        
+        mossResult = {
+          status: submissionScore > 70 ? 'Suspicious' : submissionScore > 30 ? 'Similar' : 'Unique',
+          url: mossComparisonResult.url,
+          score: submissionScore
+        };
+        
+        // Update all other submissions with their scores
+        for (const [studentId, score] of Object.entries(mossComparisonResult.scores)) {
+          if (studentId !== submission.student_id) {
+            const otherSubmission = allTaskSubmissions.find(s => s.student_id === studentId);
+            if (otherSubmission) {
+              await supabaseClient
+                .from('proof_uploads')
+                .update({
+                  moss_status: score > 70 ? 'Suspicious' : score > 30 ? 'Similar' : 'Unique',
+                  moss_url: mossComparisonResult.url,
+                  moss_score: score
+                })
+                .eq('id', otherSubmission.id);
+            }
+          }
+        }
+        
       } catch (error) {
-        console.error('Error processing file with MOSS:', error);
-        // Fallback to simulated result
+        console.error('Error processing files with MOSS:', error);
+        // Fallback to error result
         mossResult = {
           status: 'Error',
           url: '',
@@ -156,12 +277,19 @@ serve(async (req) => {
         };
       }
       
+    } else if (submission.file_url) {
+      // Single submission - can't compare
+      console.log('Single submission - no comparison possible');
+      mossResult = {
+        status: 'Unique',
+        url: '',
+        score: 0
+      };
     } else {
       // Handle link submission (if it's a GitHub link, etc.)
       console.log('Processing link submission for MOSS');
       
       // For link submissions, we can't directly check with MOSS
-      // but we can simulate a basic check
       mossResult = {
         status: 'Unique',
         url: '',

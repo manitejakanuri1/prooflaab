@@ -7,7 +7,7 @@ interface AssignedTask {
   id: string;
   title: string;
   deadline: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Under Review';
   progress: number;
   description?: string;
   xp_reward?: number;
@@ -15,6 +15,7 @@ interface AssignedTask {
   duration_days?: number;
   upload_deadline?: string;
   can_start?: boolean;
+  proof_submitted?: boolean;
 }
 
 export const useAssignedTasks = () => {
@@ -35,10 +36,17 @@ export const useAssignedTasks = () => {
 
       if (profileError) throw profileError;
 
-      // Fetch tasks for this student
+      // Fetch tasks with proof upload status
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('*')
+        .select(`
+          *,
+          proof_uploads (
+            id,
+            status,
+            submitted_at
+          )
+        `)
         .eq('student_id', profile.id)
         .order('due_date', { ascending: true });
 
@@ -50,9 +58,20 @@ export const useAssignedTasks = () => {
         const dueDate = new Date(task.due_date);
         const uploadDeadline = task.upload_deadline ? new Date(task.upload_deadline) : null;
         
-        // Check if task should revert to pending due to missed deadline
+        // Determine actual status based on proof uploads
         let currentStatus = task.status;
-        if (task.started_at && uploadDeadline && now > uploadDeadline && task.status === 'In Progress') {
+        const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
+        
+        if (proofUploads.length > 0) {
+          // If proof is uploaded, status should be based on proof status
+          const latestProof = proofUploads[proofUploads.length - 1];
+          if (latestProof.status === 'Verified') {
+            currentStatus = 'Completed';
+          } else if (latestProof.status === 'Under Review') {
+            currentStatus = 'Under Review';
+          }
+        } else if (task.started_at && uploadDeadline && now > uploadDeadline && task.status === 'In Progress') {
+          // Check if task should revert to pending due to missed deadline
           currentStatus = 'Pending';
         }
         
@@ -64,7 +83,7 @@ export const useAssignedTasks = () => {
             day: 'numeric',
             year: 'numeric'
           }),
-          status: currentStatus as 'Pending' | 'In Progress' | 'Completed',
+          status: currentStatus as 'Pending' | 'In Progress' | 'Completed' | 'Under Review',
           progress: calculateProgress(currentStatus),
           description: task.description,
           xp_reward: task.xp_reward,
@@ -75,7 +94,8 @@ export const useAssignedTasks = () => {
             day: 'numeric',
             year: 'numeric'
           }),
-          can_start: !task.started_at && currentStatus === 'Pending'
+          can_start: !task.started_at && currentStatus === 'Pending',
+          proof_submitted: proofUploads.length > 0
         };
       });
 
@@ -91,6 +111,8 @@ export const useAssignedTasks = () => {
     switch (status) {
       case 'Completed':
         return 100;
+      case 'Under Review':
+        return 75;
       case 'In Progress':
         return 50;
       default:

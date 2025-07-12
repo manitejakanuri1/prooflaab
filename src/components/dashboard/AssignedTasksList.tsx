@@ -18,6 +18,8 @@ export default function AssignedTasksList() {
     switch (status) {
       case 'Completed':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'Under Review':
+        return <Upload className="h-4 w-4 text-blue-600" />;
       case 'In Progress':
         return <Clock className="h-4 w-4 text-yellow-600" />;
       default:
@@ -29,6 +31,8 @@ export default function AssignedTasksList() {
     switch (status) {
       case 'Completed':
         return 'bg-green-100 text-green-800 border-green-200';
+      case 'Under Review':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'In Progress':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
@@ -120,8 +124,8 @@ export default function AssignedTasksList() {
                           </Badge>
                         )}
                       </div>
-                      {task.upload_deadline && task.started_at && (
-                        <p className="text-xs text-orange-600 mt-1">Upload by: {task.upload_deadline}</p>
+                      {task.upload_deadline && task.started_at && !task.proof_submitted && (
+                        <p className="text-xs text-red-600 mt-1 font-medium">Upload by: {task.upload_deadline}</p>
                       )}
                     </div>
                   </div>
@@ -142,7 +146,7 @@ export default function AssignedTasksList() {
                       Start Task
                     </Button>
                   )}
-                  {task.status === 'In Progress' && (
+                  {task.status === 'In Progress' && !task.proof_submitted && (
                     <Button 
                       size="sm" 
                       className="flex-1 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm"
@@ -151,6 +155,11 @@ export default function AssignedTasksList() {
                       <Upload className="h-3 w-3 mr-2" />
                       Upload Proof
                     </Button>
+                  )}
+                  {task.status === 'Under Review' && (
+                    <div className="flex-1 text-center text-sm text-blue-600 font-medium py-2">
+                      Proof submitted - Under review
+                    </div>
                   )}
                 </div>
               </div>

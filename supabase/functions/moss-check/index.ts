@@ -91,7 +91,7 @@ async function downloadFile(url: string): Promise<string> {
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'Options') {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 

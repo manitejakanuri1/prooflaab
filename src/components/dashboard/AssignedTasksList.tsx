@@ -139,8 +139,7 @@ export default function AssignedTasksList() {
                   {task.can_start && (
                     <Button 
                       size="sm" 
-                      variant="outline"
-                      className="flex-1 rounded-xl"
+                      className="flex-1 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm"
                       onClick={() => handleStartTask(task.id, task.title)}
                     >
                       Start Task

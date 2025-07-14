@@ -27,8 +27,8 @@ export default function NotificationsPopover({ notifications, onClose }: Notific
   };
 
   return (
-    <div className="absolute right-0 top-12 z-50">
-      <Card className="w-80 bg-white border shadow-xl rounded-2xl">
+    <div className="fixed right-4 top-16 z-[9999]">
+      <Card className="w-80 bg-white border shadow-2xl rounded-2xl">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
             <Bell className="h-5 w-5" />

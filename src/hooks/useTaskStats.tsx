@@ -68,6 +68,14 @@ export const useTaskStats = () => {
         const completedTasks = tasksData?.filter(task => task.status === 'Completed').length || 0;
         const inProgressTasks = tasksData?.filter(task => task.status === 'In Progress').length || 0;
         const pendingTasks = tasksData?.filter(task => task.status === 'Pending').length || 0;
+        
+        console.log('Task stats calculation:', {
+          totalTasks,
+          completedTasks,
+          inProgressTasks,
+          pendingTasks,
+          tasks: tasksData
+        });
         const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
         setTaskStats({

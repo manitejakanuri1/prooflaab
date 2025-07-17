@@ -162,15 +162,19 @@ const CollegeDashboardOverview = () => {
 
           // Create student profile directly (without auth user for now)
           // Students will create their auth accounts later when they first log in
-          const { data: profileData, error: profileError } = await supabase
+          const profileData = {
+            user_id: crypto.randomUUID(), // Temporary UUID until they create auth account
+            email: record.email.toLowerCase(),
+            full_name: record.name,
+            branch: record.branch || '',
+            batch: record.batch || ''
+          };
+          
+          console.log('Inserting profile data:', profileData);
+          
+          const { data: insertedProfile, error: profileError } = await supabase
             .from('student_profiles')
-            .insert({
-              user_id: crypto.randomUUID(), // Temporary UUID until they create auth account
-              email: record.email.toLowerCase(),
-              full_name: record.name,
-              branch: record.branch,
-              batch: record.batch
-            })
+            .insert(profileData)
             .select()
             .single();
 
@@ -184,7 +188,7 @@ const CollegeDashboardOverview = () => {
             continue;
           }
 
-          console.log('Student profile created:', profileData);
+          console.log('Student profile created:', insertedProfile);
           
           processResults.push({
             record,

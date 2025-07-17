@@ -163,14 +163,14 @@ const CollegeDashboardOverview = () => {
             continue;
           }
 
-          // Create student profile directly (without auth user for now)
-          // Students will create their auth accounts later when they first log in
+          // Create student profile without auth user (they'll link it later when they sign up)
           const profileData = {
-            user_id: crypto.randomUUID(), // Temporary UUID until they create auth account
+            user_id: null, // Will be filled when they create auth account
             email: record.email.toLowerCase(),
             full_name: record.name,
             branch: record.branch || '',
-            batch: record.batch || ''
+            batch: record.batch || '',
+            temporary_user_id: crypto.randomUUID() // For tracking before auth creation
           };
           
           console.log('Inserting profile data:', profileData);

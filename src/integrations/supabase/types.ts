@@ -268,10 +268,11 @@ export type Database = {
           id: string
           profile_photo_url: string | null
           slug: string | null
+          temporary_user_id: string | null
           total_xp: number | null
           trust_score: number | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           batch?: string | null
@@ -282,10 +283,11 @@ export type Database = {
           id?: string
           profile_photo_url?: string | null
           slug?: string | null
+          temporary_user_id?: string | null
           total_xp?: number | null
           trust_score?: number | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           batch?: string | null
@@ -296,10 +298,11 @@ export type Database = {
           id?: string
           profile_photo_url?: string | null
           slug?: string | null
+          temporary_user_id?: string | null
           total_xp?: number | null
           trust_score?: number | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

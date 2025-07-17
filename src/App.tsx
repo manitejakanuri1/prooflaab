@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import StudentDashboard from "./pages/StudentDashboard";
+import CollegeDashboard from "./pages/CollegeDashboard";
 import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -31,6 +32,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <StudentDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/college" 
+              element={
+                <ProtectedRoute>
+                  <CollegeDashboard />
                 </ProtectedRoute>
               } 
             />

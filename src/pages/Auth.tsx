@@ -29,6 +29,11 @@ export default function Auth() {
     checkUser();
   }, [navigate]);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -142,16 +147,23 @@ export default function Auth() {
             </Button>
           </form>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm text-blue-600 hover:underline block w-full"
             >
               {isLogin 
                 ? "Don't have an account? Sign up" 
                 : "Already have an account? Sign in"
               }
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-sm text-red-600 hover:underline"
+            >
+              Sign out current user
             </button>
           </div>
         </CardContent>

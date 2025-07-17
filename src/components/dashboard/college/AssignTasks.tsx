@@ -40,6 +40,10 @@ const AssignTasks = () => {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [topicArea, setTopicArea] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [generatedTitle, setGeneratedTitle] = useState("");
+  const [generatedDescription, setGeneratedDescription] = useState("");
+  const [generatedXP, setGeneratedXP] = useState("");
 
   useEffect(() => {
     fetchStudents();
@@ -80,30 +84,51 @@ const AssignTasks = () => {
     }
   };
 
-  const generateAITask = async () => {
+  const handleGenerateTask = async () => {
     if (!selectedBranch) {
       toast({
         title: "Error",
         description: "Please select a branch",
         variant: "destructive",
       });
-      return null;
+      return;
+    }
+
+    if (!dueDate) {
+      toast({
+        title: "Error", 
+        description: "Please select a due date",
+        variant: "destructive",
+      });
+      return;
     }
 
     setAiGenerating(true);
     try {
       // Mock AI generation for now - you can replace with actual AI API call
-      const aiPrompt = `Generate a programming task for ${selectedBranch} students${topicArea ? ` focusing on ${topicArea}` : ''}`;
-      
-      // For now, return a mock task - replace with actual AI API call
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API delay
+      
+      // Generate difficulty-based XP reward
+      const difficultyLevels = ['Beginner', 'Intermediate', 'Advanced'];
+      const randomDifficulty = difficultyLevels[Math.floor(Math.random() * difficultyLevels.length)];
+      const xpMapping = { 'Beginner': 50, 'Intermediate': 100, 'Advanced': 150 };
       
       const generatedTask = {
         title: `${selectedBranch} Programming Challenge: ${topicArea || 'Algorithm Design'}`,
-        description: `Create a comprehensive solution that demonstrates your understanding of ${topicArea || 'fundamental programming concepts'}. Your solution should include proper documentation, error handling, and efficient algorithms. This task is designed specifically for ${selectedBranch} students to enhance their problem-solving skills.`,
+        description: `Create a comprehensive solution that demonstrates your understanding of ${topicArea || 'fundamental programming concepts'}. Your solution should include proper documentation, error handling, and efficient algorithms. This task is designed specifically for ${selectedBranch} students to enhance their problem-solving skills.\n\nRequirements:\n- Implement clean, readable code\n- Include appropriate comments\n- Handle edge cases\n- Write test cases\n\nDifficulty Level: ${randomDifficulty}`,
+        xp: xpMapping[randomDifficulty as keyof typeof xpMapping].toString()
       };
 
-      return generatedTask;
+      setGeneratedTitle(generatedTask.title);
+      setGeneratedDescription(generatedTask.description);
+      setGeneratedXP(generatedTask.xp);
+      setAiGenerated(true);
+
+      toast({
+        title: "Success",
+        description: "AI task generated successfully! Review and edit before assigning.",
+      });
+
     } catch (error) {
       console.error('Error generating AI task:', error);
       toast({
@@ -111,7 +136,6 @@ const AssignTasks = () => {
         description: "Failed to generate AI task",
         variant: "destructive",
       });
-      return null;
     } finally {
       setAiGenerating(false);
     }
@@ -141,12 +165,16 @@ const AssignTasks = () => {
       let taskData = { title: "", description: "" };
 
       if (useAI) {
-        const aiTask = await generateAITask();
-        if (!aiTask) {
+        if (!aiGenerated || !generatedTitle || !generatedDescription || !generatedXP) {
+          toast({
+            title: "Error",
+            description: "Please generate a task first using the 'Generate Task' button",
+            variant: "destructive",
+          });
           setLoading(false);
           return;
         }
-        taskData = aiTask;
+        taskData = { title: generatedTitle, description: generatedDescription };
       } else {
         if (!title || !description || !xpReward) {
           toast({
@@ -166,7 +194,7 @@ const AssignTasks = () => {
         title: taskData.title,
         description: taskData.description,
         due_date: dueDate.toISOString(),
-        xp_reward: useAI ? 100 : parseInt(xpReward), // Default 100 XP for AI tasks
+        xp_reward: useAI ? parseInt(generatedXP) : parseInt(xpReward),
         status: 'Pending'
       }));
 
@@ -190,6 +218,10 @@ const AssignTasks = () => {
       setSelectedStudents([]);
       setDueDate(undefined);
       setUseAI(false);
+      setAiGenerated(false);
+      setGeneratedTitle("");
+      setGeneratedDescription("");
+      setGeneratedXP("");
 
     } catch (error) {
       console.error('Error assigning tasks:', error);
@@ -255,6 +287,78 @@ const AssignTasks = () => {
                     onChange={(e) => setTopicArea(e.target.value)}
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label>Due Date *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dueDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dueDate ? format(dueDate, "PPP") : "Select due date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={setDueDate}
+                        initialFocus
+                        disabled={(date) => date < new Date()}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <Button 
+                  onClick={handleGenerateTask} 
+                  disabled={aiGenerating || !selectedBranch || !dueDate}
+                  className="w-full"
+                  variant="default"
+                >
+                  {aiGenerating ? "Generating Task..." : "Generate Task"}
+                </Button>
+
+                {aiGenerated && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <h4 className="font-semibold text-sm">Review & Edit Generated Task</h4>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="generated-title">Task Title</Label>
+                      <Input
+                        id="generated-title"
+                        value={generatedTitle}
+                        onChange={(e) => setGeneratedTitle(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="generated-description">Description</Label>
+                      <Textarea
+                        id="generated-description"
+                        value={generatedDescription}
+                        onChange={(e) => setGeneratedDescription(e.target.value)}
+                        rows={6}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="generated-xp">XP Reward</Label>
+                      <Input
+                        id="generated-xp"
+                        type="number"
+                        value={generatedXP}
+                        onChange={(e) => setGeneratedXP(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -287,36 +391,36 @@ const AssignTasks = () => {
                     onChange={(e) => setXpReward(e.target.value)}
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label>Due Date *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dueDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dueDate ? format(dueDate, "PPP") : "Select due date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={setDueDate}
+                        initialFocus
+                        disabled={(date) => date < new Date()}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </>
             )}
-
-            <div className="space-y-2">
-              <Label>Due Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : "Select due date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                    disabled={(date) => date < new Date()}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
           </CardContent>
         </Card>
 

@@ -80,10 +80,13 @@ const CollegeDashboardOverview = () => {
   };
 
   const validateRecord = (record: StudentRecord): string | null => {
+    console.log('Validating record:', record);
+    
     if (!record.name.trim()) return "Name is required";
     if (!record.email.trim()) return "Email is required";
-    if (!record.branch.trim()) return "Branch is required";
-    if (!record.batch.trim()) return "Batch is required";
+    // Make branch and batch optional since they can be filled later
+    // if (!record.branch.trim()) return "Branch is required";
+    // if (!record.batch.trim()) return "Batch is required";
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(record.email)) return "Invalid email format";

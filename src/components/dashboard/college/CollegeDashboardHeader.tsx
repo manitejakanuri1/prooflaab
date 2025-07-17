@@ -1,4 +1,4 @@
-import { Bell, User, Settings, LogOut } from "lucide-react";
+import { Bell, User, Settings, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,43 +12,57 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 interface CollegeDashboardHeaderProps {
   collegeName: string;
   profilePhoto?: string | null;
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
 }
 
-const CollegeDashboardHeader = ({ collegeName, profilePhoto }: CollegeDashboardHeaderProps) => {
+const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMenuButton }: CollegeDashboardHeaderProps) => {
   return (
-    <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
+    <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-3 md:px-6 py-4">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo and Title */}
-        <div className="flex items-center space-x-6">
-          <div className="text-gray-900 px-6 py-3 rounded-2xl font-bold text-lg flex items-center space-x-3">
+        <div className="flex items-center space-x-2 md:space-x-6">
+          {/* Mobile menu button */}
+          {showMenuButton && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onMenuClick}
+              className="md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+          
+          <div className="text-gray-900 px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
             <img 
               src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
               alt="ProofLabAI Logo" 
-              className="h-12 w-12"
+              className="h-8 w-8 md:h-12 md:w-12"
             />
-            <span>ProofLabAI</span>
+            <span className="hidden sm:inline">ProofLabAI</span>
           </div>
           
-          <h1 className="text-2xl font-semibold text-gray-800">College Dashboard</h1>
+          <h1 className="text-lg md:text-2xl font-semibold text-gray-800 hidden sm:block">College Dashboard</h1>
         </div>
         
         {/* Profile Actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 md:space-x-4">
           <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+            <Bell className="h-4 w-4 md:h-5 md:w-5" />
+            <span className="absolute -top-1 -right-1 h-2 w-2 md:h-3 md:w-3 bg-red-500 rounded-full"></span>
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 h-auto p-2">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="flex items-center space-x-1 md:space-x-2 h-auto p-1 md:p-2">
+                <Avatar className="h-6 w-6 md:h-8 md:w-8">
                   <AvatarImage src={profilePhoto || ""} />
-                  <AvatarFallback className="bg-orange-200 text-orange-800">
+                  <AvatarFallback className="bg-orange-200 text-orange-800 text-xs md:text-sm">
                     {collegeName.split(' ').map(word => word[0]).join('').slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">{collegeName}</span>
+                <span className="text-xs md:text-sm font-medium hidden sm:inline">{collegeName}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

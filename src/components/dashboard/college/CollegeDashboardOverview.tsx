@@ -316,23 +316,23 @@ const CollegeDashboardOverview = () => {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <Card key={index} className="border border-gray-200/50 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs md:text-sm font-medium text-gray-600 mb-1 truncate">
                       {stat.title}
                     </p>
-                    <p className="text-3xl font-bold text-gray-900">
+                    <p className="text-xl md:text-3xl font-bold text-gray-900">
                       {stat.value}
                     </p>
                   </div>
-                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  <div className={`p-2 md:p-3 rounded-lg ${stat.bgColor} flex-shrink-0`}>
+                    <Icon className={`h-4 w-4 md:h-6 md:w-6 ${stat.color}`} />
                   </div>
                 </div>
               </CardContent>
@@ -350,21 +350,21 @@ const CollegeDashboardOverview = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-medium text-blue-900 mb-2">CSV Format Requirements:</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
+            <h3 className="font-medium text-blue-900 mb-2 text-sm md:text-base">CSV Format Requirements:</h3>
+            <ul className="text-xs md:text-sm text-blue-800 space-y-1">
               <li>• Column headers: Name, Email, Branch, Batch</li>
-              <li>• Example: John Doe, john@email.com, Computer Science, 2024</li>
+              <li className="hidden sm:list-item">• Example: John Doe, john@email.com, Computer Science, 2024</li>
               <li>• Make sure all email addresses are unique</li>
             </ul>
           </div>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-8 text-center">
+            <Upload className="mx-auto h-8 w-8 md:h-12 md:w-12 text-gray-400 mb-2 md:mb-4" />
+            <h3 className="text-base md:text-lg font-medium text-gray-900 mb-1 md:mb-2">
               Upload Student Records
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">
               Select a CSV file containing student information
             </p>
             

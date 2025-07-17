@@ -165,7 +165,7 @@ const StudentsManagement = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 md:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -177,7 +177,7 @@ const StudentsManagement = () => {
             </div>
             
             <Select value={branchFilter} onValueChange={setBranchFilter}>
-              <SelectTrigger className="w-full md:w-48">
+              <SelectTrigger className="w-full sm:w-40 md:w-48">
                 <SelectValue placeholder="Filter by Branch" />
               </SelectTrigger>
               <SelectContent>
@@ -189,7 +189,7 @@ const StudentsManagement = () => {
             </Select>
 
             <Select value={batchFilter} onValueChange={setBatchFilter}>
-              <SelectTrigger className="w-full md:w-48">
+              <SelectTrigger className="w-full sm:w-40 md:w-48">
                 <SelectValue placeholder="Filter by Batch" />
               </SelectTrigger>
               <SelectContent>
@@ -202,20 +202,21 @@ const StudentsManagement = () => {
           </div>
 
           {/* Students Table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Batch</TableHead>
-                  <TableHead>Trust Score</TableHead>
-                  <TableHead>Tasks Assigned</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+          <div className="rounded-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[120px]">Name</TableHead>
+                    <TableHead className="min-w-[200px]">Email</TableHead>
+                    <TableHead className="min-w-[100px]">Branch</TableHead>
+                    <TableHead className="min-w-[80px]">Batch</TableHead>
+                    <TableHead className="min-w-[120px]">Trust Score</TableHead>
+                    <TableHead className="min-w-[120px]">Tasks Assigned</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="min-w-[80px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredStudents.length === 0 ? (
                   <TableRow>
@@ -249,7 +250,8 @@ const StudentsManagement = () => {
                   ))
                 )}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

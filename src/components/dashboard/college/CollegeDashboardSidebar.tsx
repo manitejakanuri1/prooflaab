@@ -25,7 +25,7 @@ const menuItems = [
 
 const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSidebarProps) => {
   return (
-    <aside className="w-64 bg-white/80 backdrop-blur-sm border-r border-orange-200/30 h-[calc(100vh-80px)]">
+    <aside className="w-64 bg-white/80 backdrop-blur-sm border-r border-orange-200/30 h-[calc(100vh-64px)] md:h-[calc(100vh-80px)]">
       <nav className="p-4">
         <div className="space-y-2">
           {menuItems.map((item) => {
@@ -36,14 +36,14 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
                 variant="ghost"
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "w-full justify-start space-x-3 h-12 text-left",
+                  "w-full justify-start space-x-3 h-12 text-left text-sm md:text-base",
                   activeTab === item.id 
                     ? "bg-orange-100 text-orange-700 font-medium" 
                     : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <Icon className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+                <span className="truncate">{item.label}</span>
               </Button>
             );
           })}

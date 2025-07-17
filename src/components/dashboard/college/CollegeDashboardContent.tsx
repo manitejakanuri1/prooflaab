@@ -1,0 +1,34 @@
+import CollegeDashboardOverview from "./CollegeDashboardOverview";
+
+interface CollegeDashboardContentProps {
+  activeTab: string;
+}
+
+const CollegeDashboardContent = ({ activeTab }: CollegeDashboardContentProps) => {
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <CollegeDashboardOverview />;
+      case "students":
+        return <div className="p-6 bg-white rounded-lg">Students Management (Coming Soon)</div>;
+      case "assign-tasks":
+        return <div className="p-6 bg-white rounded-lg">Assign Tasks (Coming Soon)</div>;
+      case "uploaded-proofs":
+        return <div className="p-6 bg-white rounded-lg">Uploaded Proofs (Coming Soon)</div>;
+      case "trust-scores":
+        return <div className="p-6 bg-white rounded-lg">Trust Scores (Coming Soon)</div>;
+      case "notifications":
+        return <div className="p-6 bg-white rounded-lg">Notifications (Coming Soon)</div>;
+      default:
+        return <CollegeDashboardOverview />;
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      {renderContent()}
+    </div>
+  );
+};
+
+export default CollegeDashboardContent;

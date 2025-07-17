@@ -1,0 +1,169 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export interface ProofReview {
+  id: string;
+  student_id: string;
+  task_id: string;
+  file_url: string | null;
+  submission_notes: string | null;
+  status: 'Under Review' | 'Verified' | 'Rejected';
+  submitted_at: string;
+  review_comment: string | null;
+  moss_status: string | null;
+  moss_score: number | null;
+  moss_url: string | null;
+  student: {
+    full_name: string;
+    email: string;
+  };
+  task: {
+    title: string;
+    xp_reward: number;
+  };
+}
+
+export const useProofReviews = () => {
+  return useQuery({
+    queryKey: ['proof-reviews'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proof_uploads')
+        .select(`
+          *,
+          student_profiles!inner (
+            full_name,
+            email
+          ),
+          tasks!inner (
+            title,
+            xp_reward
+          )
+        `)
+        .order('submitted_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching proof reviews:', error);
+        throw error;
+      }
+
+      return data?.map(item => ({
+        ...item,
+        student: item.student_profiles,
+        task: item.tasks
+      })) as ProofReview[] || [];
+    },
+  });
+};
+
+export const useUpdateProofStatus = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ 
+      proofId, 
+      status, 
+      comment,
+      studentId,
+      xpReward 
+    }: { 
+      proofId: string; 
+      status: string; 
+      comment?: string;
+      studentId: string;
+      xpReward: number;
+    }) => {
+      // Update proof status
+      const { error: proofError } = await supabase
+        .from('proof_uploads')
+        .update({
+          status,
+          review_comment: comment,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', proofId);
+
+      if (proofError) throw proofError;
+
+      // If verified, award XP
+      if (status === 'Verified' && xpReward > 0) {
+        // Add XP log
+        const { error: xpError } = await supabase
+          .from('xp_logs')
+          .insert({
+            student_id: studentId,
+            xp_points: xpReward,
+            source: 'Task Verification'
+          });
+
+        if (xpError) throw xpError;
+
+        // Update student total XP
+        const { data: currentProfile } = await supabase
+          .from('student_profiles')
+          .select('total_xp')
+          .eq('id', studentId)
+          .single();
+
+        if (currentProfile) {
+          await supabase
+            .from('student_profiles')
+            .update({
+              total_xp: (currentProfile.total_xp || 0) + xpReward
+            })
+            .eq('id', studentId);
+        }
+      }
+
+      return { proofId, status };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['proof-reviews'] });
+      toast({
+        title: "Status Updated",
+        description: `Proof has been ${data.status.toLowerCase()}.`,
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating proof status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update proof status.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useMossCheck = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (proofId: string) => {
+      const { data, error } = await supabase.functions.invoke('moss-check', {
+        body: { proof_id: proofId }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proof-reviews'] });
+      toast({
+        title: "MOSS Check Started",
+        description: "Plagiarism check is in progress.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error running MOSS check:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start MOSS check.",
+        variant: "destructive",
+      });
+    },
+  });
+};

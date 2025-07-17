@@ -1,5 +1,6 @@
 import CollegeDashboardOverview from "./CollegeDashboardOverview";
 import StudentsManagement from "./StudentsManagement";
+import AssignTasks from "./AssignTasks";
 
 interface CollegeDashboardContentProps {
   activeTab: string;
@@ -13,7 +14,7 @@ const CollegeDashboardContent = ({ activeTab }: CollegeDashboardContentProps) =>
       case "students":
         return <StudentsManagement />;
       case "assign-tasks":
-        return <div className="p-6 bg-white rounded-lg">Assign Tasks (Coming Soon)</div>;
+        return <AssignTasks />;
       case "uploaded-proofs":
         return <div className="p-6 bg-white rounded-lg">Uploaded Proofs (Coming Soon)</div>;
       case "trust-scores":

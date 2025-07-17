@@ -105,8 +105,11 @@ const CollegeDashboardOverview = () => {
     setResults([]);
 
     try {
+      console.log('Starting CSV processing...');
       const text = await csvFile.text();
+      console.log('CSV text:', text);
       const records = parseCSV(text);
+      console.log('Parsed records:', records);
       
       if (records.length === 0) {
         throw new Error("No valid records found in CSV");

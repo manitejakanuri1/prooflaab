@@ -1,25 +1,245 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Users, ClipboardList, FileCheck, Shield } from "lucide-react";
+import { 
+  Upload, 
+  Users, 
+  ClipboardList, 
+  FileCheck, 
+  AlertCircle,
+  Loader2,
+  CheckCircle,
+  XCircle
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+interface StudentRecord {
+  name: string;
+  email: string;
+  branch: string;
+  batch: string;
+}
+
+interface ProcessResult {
+  record: StudentRecord;
+  status: 'success' | 'duplicate' | 'error';
+  message: string;
+}
 
 const CollegeDashboardOverview = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [results, setResults] = useState<ProcessResult[]>([]);
+  const { toast } = useToast();
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type === "text/csv") {
       setCsvFile(file);
       setUploadStatus("File selected: " + file.name);
+      setResults([]); // Clear previous results
     } else {
       setUploadStatus("Please select a valid CSV file");
     }
   };
 
-  const processCSV = () => {
-    if (csvFile) {
-      setUploadStatus("Processing CSV... (Feature coming soon)");
+  const parseCSV = (text: string): StudentRecord[] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length === 0) throw new Error("CSV file is empty");
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    // Validate headers
+    const requiredHeaders = ['name', 'email', 'branch', 'batch'];
+    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+    if (missingHeaders.length > 0) {
+      throw new Error(`Missing required columns: ${missingHeaders.join(', ')}`);
+    }
+
+    const records: StudentRecord[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      if (values.length >= 4) {
+        const nameIndex = headers.indexOf('name');
+        const emailIndex = headers.indexOf('email');
+        const branchIndex = headers.indexOf('branch');
+        const batchIndex = headers.indexOf('batch');
+
+        records.push({
+          name: values[nameIndex] || '',
+          email: values[emailIndex] || '',
+          branch: values[branchIndex] || '',
+          batch: values[batchIndex] || ''
+        });
+      }
+    }
+    return records;
+  };
+
+  const validateRecord = (record: StudentRecord): string | null => {
+    if (!record.name.trim()) return "Name is required";
+    if (!record.email.trim()) return "Email is required";
+    if (!record.branch.trim()) return "Branch is required";
+    if (!record.batch.trim()) return "Batch is required";
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(record.email)) return "Invalid email format";
+    
+    return null;
+  };
+
+  const processCSV = async () => {
+    if (!csvFile) {
+      toast({
+        title: "Error",
+        description: "Please select a CSV file first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    setResults([]);
+
+    try {
+      const text = await csvFile.text();
+      const records = parseCSV(text);
+      
+      if (records.length === 0) {
+        throw new Error("No valid records found in CSV");
+      }
+
+      const processResults: ProcessResult[] = [];
+      const processedEmails = new Set<string>();
+
+      for (const record of records) {
+        // Validate record
+        const validationError = validateRecord(record);
+        if (validationError) {
+          processResults.push({
+            record,
+            status: 'error',
+            message: validationError
+          });
+          continue;
+        }
+
+        // Check for duplicates within the CSV
+        if (processedEmails.has(record.email.toLowerCase())) {
+          processResults.push({
+            record,
+            status: 'duplicate',
+            message: 'Duplicate email in CSV'
+          });
+          continue;
+        }
+
+        try {
+          // Check if user already exists in database
+          const { data: existingProfile } = await supabase
+            .from('student_profiles')
+            .select('email')
+            .eq('email', record.email.toLowerCase())
+            .maybeSingle();
+
+          if (existingProfile) {
+            processResults.push({
+              record,
+              status: 'duplicate',
+              message: 'Email already exists in database'
+            });
+            continue;
+          }
+
+          // Create auth user
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: record.email.toLowerCase(),
+            password: `temp_${Math.random().toString(36).slice(-8)}`, // Temporary password
+            options: {
+              emailRedirectTo: `${window.location.origin}/`,
+              data: {
+                full_name: record.name
+              }
+            }
+          });
+
+          if (authError) {
+            processResults.push({
+              record,
+              status: 'error',
+              message: `Auth error: ${authError.message}`
+            });
+            continue;
+          }
+
+          if (!authData.user) {
+            processResults.push({
+              record,
+              status: 'error',
+              message: 'Failed to create user'
+            });
+            continue;
+          }
+
+          // Create student profile
+          const { error: profileError } = await supabase
+            .from('student_profiles')
+            .insert({
+              user_id: authData.user.id,
+              email: record.email.toLowerCase(),
+              full_name: record.name,
+              branch: record.branch,
+              batch: record.batch
+            });
+
+          if (profileError) {
+            processResults.push({
+              record,
+              status: 'error',
+              message: `Profile error: ${profileError.message}`
+            });
+            continue;
+          }
+
+          processResults.push({
+            record,
+            status: 'success',
+            message: 'Student created successfully'
+          });
+
+          processedEmails.add(record.email.toLowerCase());
+
+        } catch (error) {
+          processResults.push({
+            record,
+            status: 'error',
+            message: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          });
+        }
+      }
+
+      setResults(processResults);
+      
+      const successCount = processResults.filter(r => r.status === 'success').length;
+      const errorCount = processResults.filter(r => r.status === 'error').length;
+      const duplicateCount = processResults.filter(r => r.status === 'duplicate').length;
+
+      toast({
+        title: "CSV Processing Complete",
+        description: `${successCount} created, ${duplicateCount} duplicates, ${errorCount} errors`,
+      });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process CSV",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -53,6 +273,45 @@ const CollegeDashboardOverview = () => {
       bgColor: "bg-purple-100",
     },
   ];
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'duplicate':
+        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'Success';
+      case 'duplicate':
+        return 'Duplicate';
+      case 'error':
+        return 'Error';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'text-green-600';
+      case 'duplicate':
+        return 'text-yellow-600';
+      case 'error':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -125,9 +384,10 @@ const CollegeDashboardOverview = () => {
               onChange={handleFileUpload}
               className="hidden"
               id="csv-upload"
+              disabled={isProcessing}
             />
             <label htmlFor="csv-upload">
-              <Button variant="outline" className="cursor-pointer" asChild>
+              <Button variant="outline" className="cursor-pointer" asChild disabled={isProcessing}>
                 <span>Choose CSV File</span>
               </Button>
             </label>
@@ -139,34 +399,91 @@ const CollegeDashboardOverview = () => {
 
           {csvFile && (
             <div className="flex justify-center">
-              <Button onClick={processCSV} className="bg-orange-600 hover:bg-orange-700">
-                Process CSV & Create Student Accounts
+              <Button 
+                onClick={processCSV} 
+                className="bg-orange-600 hover:bg-orange-700"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing CSV...
+                  </>
+                ) : (
+                  'Process CSV & Create Student Accounts'
+                )}
               </Button>
             </div>
           )}
 
-          {/* Sample Data Table */}
-          <div className="mt-6">
-            <h4 className="font-medium text-gray-900 mb-3">Upload Status (Sample)</h4>
-            <div className="overflow-x-auto">
-              <table className="w-full border border-gray-200 rounded-lg">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Name</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Email</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Branch</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Batch</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  <tr className="text-sm text-gray-500">
-                    <td className="px-4 py-3" colSpan={5}>No data uploaded yet</td>
-                  </tr>
-                </tbody>
-              </table>
+          {/* Results Table */}
+          {results.length > 0 && (
+            <div className="mt-6">
+              <h4 className="font-medium text-gray-900 mb-3">Upload Results</h4>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Branch</TableHead>
+                      <TableHead>Batch</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Message</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {results.map((result, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{result.record.name}</TableCell>
+                        <TableCell>{result.record.email}</TableCell>
+                        <TableCell>{result.record.branch}</TableCell>
+                        <TableCell>{result.record.batch}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            {getStatusIcon(result.status)}
+                            <span className={getStatusColor(result.status)}>
+                              {getStatusText(result.status)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {result.message}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Sample Data Table - Show when no results */}
+          {results.length === 0 && (
+            <div className="mt-6">
+              <h4 className="font-medium text-gray-900 mb-3">Upload Status</h4>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Branch</TableHead>
+                      <TableHead>Batch</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-gray-500">
+                        No data uploaded yet
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

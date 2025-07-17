@@ -260,6 +260,8 @@ export type Database = {
       }
       student_profiles: {
         Row: {
+          batch: string | null
+          branch: string | null
           created_at: string | null
           email: string
           full_name: string
@@ -272,6 +274,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          batch?: string | null
+          branch?: string | null
           created_at?: string | null
           email: string
           full_name: string
@@ -284,6 +288,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          batch?: string | null
+          branch?: string | null
           created_at?: string | null
           email?: string
           full_name?: string

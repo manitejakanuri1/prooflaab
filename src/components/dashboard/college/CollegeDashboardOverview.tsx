@@ -141,6 +141,8 @@ const CollegeDashboardOverview = () => {
         }
 
         try {
+          console.log('Processing record:', record);
+          
           // Check if user already exists in database
           const { data: existingProfile } = await supabase
             .from('student_profiles')
@@ -149,6 +151,7 @@ const CollegeDashboardOverview = () => {
             .maybeSingle();
 
           if (existingProfile) {
+            console.log('Email already exists:', record.email);
             processResults.push({
               record,
               status: 'duplicate',
@@ -157,65 +160,42 @@ const CollegeDashboardOverview = () => {
             continue;
           }
 
-          // Create auth user
-          const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: record.email.toLowerCase(),
-            password: `temp_${Math.random().toString(36).slice(-8)}`, // Temporary password
-            options: {
-              emailRedirectTo: `${window.location.origin}/`,
-              data: {
-                full_name: record.name
-              }
-            }
-          });
-
-          if (authError) {
-            processResults.push({
-              record,
-              status: 'error',
-              message: `Auth error: ${authError.message}`
-            });
-            continue;
-          }
-
-          if (!authData.user) {
-            processResults.push({
-              record,
-              status: 'error',
-              message: 'Failed to create user'
-            });
-            continue;
-          }
-
-          // Create student profile
-          const { error: profileError } = await supabase
+          // Create student profile directly (without auth user for now)
+          // Students will create their auth accounts later when they first log in
+          const { data: profileData, error: profileError } = await supabase
             .from('student_profiles')
             .insert({
-              user_id: authData.user.id,
+              user_id: crypto.randomUUID(), // Temporary UUID until they create auth account
               email: record.email.toLowerCase(),
               full_name: record.name,
               branch: record.branch,
               batch: record.batch
-            });
+            })
+            .select()
+            .single();
 
           if (profileError) {
+            console.log('Profile creation error:', profileError);
             processResults.push({
               record,
               status: 'error',
-              message: `Profile error: ${profileError.message}`
+              message: `Database error: ${profileError.message}`
             });
             continue;
           }
 
+          console.log('Student profile created:', profileData);
+          
           processResults.push({
             record,
             status: 'success',
-            message: 'Student created successfully'
+            message: 'Student record created successfully'
           });
 
           processedEmails.add(record.email.toLowerCase());
 
         } catch (error) {
+          console.log('Unexpected error:', error);
           processResults.push({
             record,
             status: 'error',

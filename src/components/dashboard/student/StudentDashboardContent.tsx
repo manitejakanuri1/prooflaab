@@ -1,6 +1,10 @@
 import StudentDashboardOverview from "./StudentDashboardOverview";
 import StudentTasksPage from "./StudentTasksPage";
 import StudentUploadsPage from "./StudentUploadsPage";
+import StudentPortfolioPage from "./StudentPortfolioPage";
+import StudentProgressPage from "./StudentProgressPage";
+import StudentNotificationsPage from "./StudentNotificationsPage";
+import StudentSettingsPage from "./StudentSettingsPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -16,13 +20,13 @@ const StudentDashboardContent = ({ activeTab }: StudentDashboardContentProps) =>
       case "uploads":
         return <StudentUploadsPage />;
       case "portfolio":
-        return <div className="p-6 bg-white rounded-lg">My Portfolio (Coming Soon)</div>;
+        return <StudentPortfolioPage />;
       case "progress":
-        return <div className="p-6 bg-white rounded-lg">Progress & XP (Coming Soon)</div>;
+        return <StudentProgressPage />;
       case "notifications":
-        return <div className="p-6 bg-white rounded-lg">Notifications (Coming Soon)</div>;
+        return <StudentNotificationsPage />;
       case "settings":
-        return <div className="p-6 bg-white rounded-lg">Settings (Coming Soon)</div>;
+        return <StudentSettingsPage />;
       default:
         return <StudentDashboardOverview />;
     }

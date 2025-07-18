@@ -15,6 +15,7 @@ const StudentHeader = ({
   onMenuClick, 
   showMenuButton 
 }: StudentHeaderProps) => {
+  console.log("StudentHeader - Profile photo prop:", profilePhoto);
   const getInitials = (name: string) => {
     return name
       .split(' ')

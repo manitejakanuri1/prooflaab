@@ -48,6 +48,8 @@ export const useStudentProfile = () => {
           return;
         }
 
+        console.log("Student profile data:", profileData);
+        console.log("Profile photo URL:", profileData?.profile_photo_url);
         setProfile(profileData);
 
         // Fetch leaderboard rank

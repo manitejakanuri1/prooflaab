@@ -8,9 +8,10 @@ import StudentSettingsPage from "./StudentSettingsPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
+  refreshProfile?: () => void;
 }
 
-const StudentDashboardContent = ({ activeTab }: StudentDashboardContentProps) => {
+const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboardContentProps) => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
@@ -26,7 +27,7 @@ const StudentDashboardContent = ({ activeTab }: StudentDashboardContentProps) =>
       case "notifications":
         return <StudentNotificationsPage />;
       case "settings":
-        return <StudentSettingsPage />;
+        return <StudentSettingsPage refreshProfile={refreshProfile} />;
       default:
         return <StudentDashboardOverview />;
     }

@@ -63,23 +63,34 @@ const ProfilePhotoModal = ({
 
     setUploading(true);
     try {
-      // Upload to Supabase storage (you'll need to create a storage bucket first)
+      // Upload to Supabase storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Math.random()}.${fileExt}`;
+      const fileName = `${userId}/${Math.random()}.${fileExt}`;
       
-      // For now, we'll use a placeholder URL since storage isn't set up
-      // In a real implementation, you would upload to Supabase storage
-      const photoUrl = URL.createObjectURL(file);
+      // Upload file to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(fileName);
       
       // Update the profile in the database
       const { error } = await supabase
         .from('student_profiles')
-        .update({ profile_photo_url: photoUrl })
+        .update({ profile_photo_url: publicUrl })
         .eq('id', userId);
 
       if (error) throw error;
 
-      onPhotoUpdate(photoUrl);
+      onPhotoUpdate(publicUrl);
       
       toast({
         title: "Photo updated successfully",

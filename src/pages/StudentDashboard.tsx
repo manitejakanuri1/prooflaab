@@ -10,7 +10,7 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { profile, loading } = useStudentProfile();
+  const { profile, loading, refreshProfile } = useStudentProfile();
 
   if (loading) {
     return (
@@ -55,7 +55,7 @@ const StudentDashboard = () => {
         </div>
         
         <main className="flex-1 p-3 md:p-6 w-full min-w-0">
-          <StudentDashboardContent activeTab={activeTab} />
+          <StudentDashboardContent activeTab={activeTab} refreshProfile={refreshProfile} />
         </main>
       </div>
     </div>

@@ -13,7 +13,11 @@ import { User, Lock, Bell, Eye, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ProfilePhotoModal from "../ProfilePhotoModal";
 
-const StudentSettingsPage = () => {
+interface StudentSettingsPageProps {
+  refreshProfile?: () => void;
+}
+
+const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
   const { profile, loading } = useStudentProfile();
   const { toast } = useToast();
   
@@ -367,7 +371,13 @@ const StudentSettingsPage = () => {
         currentPhotoUrl={currentPhotoUrl}
         userName={profile?.full_name || 'Student'}
         userId={profile?.id || ''}
-        onPhotoUpdate={(newUrl) => setCurrentPhotoUrl(newUrl)}
+        onPhotoUpdate={(newUrl) => {
+          setCurrentPhotoUrl(newUrl);
+          // Refresh the profile data in the parent component to update the header
+          if (refreshProfile) {
+            refreshProfile();
+          }
+        }}
       />
     </div>
   );

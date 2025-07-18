@@ -23,58 +23,62 @@ export const useStudentProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setError("No authenticated user");
-          setLoading(false);
-          return;
-        }
-
-        // Fetch student profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('student_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (profileError) {
-          setError(profileError.message);
-          setLoading(false);
-          return;
-        }
-
-        console.log("Student profile data:", profileData);
-        console.log("Profile photo URL:", profileData?.profile_photo_url);
-        setProfile(profileData);
-
-        // Fetch leaderboard rank
-        const { data: leaderboardData, error: leaderboardError } = await supabase
-          .from('leaderboard')
-          .select('id, rank')
-          .eq('id', profileData.id)
-          .single();
-
-        if (leaderboardError) {
-          console.warn("Could not fetch rank:", leaderboardError.message);
-          setRank(0);
-        } else {
-          setRank(leaderboardData.rank || 0);
-        }
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
+  const fetchProfile = async () => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setError("No authenticated user");
         setLoading(false);
+        return;
       }
-    };
 
+      // Fetch student profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('student_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) {
+        setError(profileError.message);
+        setLoading(false);
+        return;
+      }
+
+      setProfile(profileData);
+
+      // Fetch leaderboard rank
+      const { data: leaderboardData, error: leaderboardError } = await supabase
+        .from('leaderboard')
+        .select('id, rank')
+        .eq('id', profileData.id)
+        .single();
+
+      if (leaderboardError) {
+        console.warn("Could not fetch rank:", leaderboardError.message);
+        setRank(0);
+      } else {
+        setRank(leaderboardData.rank || 0);
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProfile();
   }, []);
 
-  return { profile, rank, loading, error };
+  // Function to refresh profile data
+  const refreshProfile = () => {
+    setLoading(true);
+    fetchProfile();
+  };
+
+  return { profile, rank, loading, error, refreshProfile };
 };

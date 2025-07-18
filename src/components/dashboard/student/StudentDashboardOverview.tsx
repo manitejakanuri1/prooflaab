@@ -5,14 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useAssignedTasks } from "@/hooks/useAssignedTasks";
 import { useMonthlyXP } from "@/hooks/useMonthlyXP";
+import { useWeeklyWorkTime } from "@/hooks/useWeeklyWorkTime";
+import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { formatDistanceToNow } from "date-fns";
 
 const StudentDashboardOverview = () => {
   const { profile, rank, loading: profileLoading } = useStudentProfile();
   const { tasks, loading: tasksLoading, startTask } = useAssignedTasks();
   const { monthlyXP, loading: xpLoading } = useMonthlyXP();
+  const { workTime, loading: workTimeLoading } = useWeeklyWorkTime();
+  
+  // Track user activity for work time calculation
+  useActivityTracking();
 
-  if (profileLoading || tasksLoading || xpLoading) {
+  if (profileLoading || tasksLoading || xpLoading || workTimeLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -38,7 +44,7 @@ const StudentDashboardOverview = () => {
   const summaryCards = [
     {
       title: "Work Time This Week",
-      value: "6.1 hours",
+      value: workTime,
       icon: Clock,
       color: "text-blue-600",
       bgColor: "bg-blue-50",

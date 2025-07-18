@@ -99,12 +99,25 @@ const StudentTasksPage = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">
-                          {format(new Date(task.deadline), "MMM dd, yyyy")}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {format(new Date(task.deadline), "h:mm a")}
-                        </div>
+                        {task.deadline ? (
+                          (() => {
+                            const deadlineDate = new Date(task.deadline);
+                            return !isNaN(deadlineDate.getTime()) ? (
+                              <>
+                                <div className="text-sm">
+                                  {format(deadlineDate, "MMM dd, yyyy")}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {format(deadlineDate, "h:mm a")}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-sm text-red-500">Invalid date</div>
+                            );
+                          })()
+                        ) : (
+                          <div className="text-sm text-gray-500">No due date</div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(task.status)}>

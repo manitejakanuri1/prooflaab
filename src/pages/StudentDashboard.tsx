@@ -1,58 +1,63 @@
 
 import { useState } from "react";
-import DashboardNavigation from "@/components/dashboard/DashboardNavigation";
-import DashboardHeaderActions from "@/components/dashboard/DashboardHeaderActions";
-import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
-import DashboardGrid from "@/components/dashboard/DashboardGrid";
+import StudentHeader from "@/components/dashboard/student/StudentHeader";
+import StudentSidebar from "@/components/dashboard/student/StudentSidebar";
+import StudentDashboardContent from "@/components/dashboard/student/StudentDashboardContent";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const { profile, loading } = useStudentProfile();
 
-  const studentData = {
-    name: "Arjun Kumar",
-    email: "arjun@example.com",
-    profilePhoto: null,
-    totalXp: 2450,
-    trustScore: 85,
-    rank: 17,
-    totalStudents: 2847,
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
-      {/* Header Navigation */}
-      <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Logo */}
-          <div className="text-gray-900 px-6 py-3 rounded-2xl font-bold text-lg flex items-center space-x-3">
-            <img 
-              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-              alt="ProofLabAI Logo" 
-              className="h-12 w-12"
-            />
-            <span>ProofLabAI</span>
-          </div>
-          
-          {/* Navigation and Actions - moved to right */}
-          <div className="flex items-center space-x-8">
-            <DashboardNavigation 
-              activeTab={activeTab} 
-              onTabChange={setActiveTab} 
-            />
-            
-            <DashboardHeaderActions 
-              studentName={studentData.name}
-              profilePhoto={studentData.profilePhoto}
-            />
-          </div>
+      <StudentHeader 
+        studentName={profile?.full_name || "Student"}
+        profilePhoto={profile?.profile_photo_url}
+        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        showMenuButton={isMobile}
+      />
+      
+      <div className="flex relative">
+        {/* Mobile overlay */}
+        {isMobile && sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
+        {/* Sidebar */}
+        <div className={`
+          ${isMobile ? 'fixed' : 'relative'} 
+          ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+          ${isMobile ? 'z-50' : ''}
+          transition-transform duration-300 ease-in-out
+        `}>
+          <StudentSidebar 
+            activeTab={activeTab} 
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              if (isMobile) setSidebarOpen(false);
+            }}
+          />
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-6">
-        <DashboardWelcome studentName={studentData.name} />
-        <DashboardGrid studentData={studentData} />
-      </main>
+        
+        <main className="flex-1 p-3 md:p-6 w-full min-w-0">
+          <StudentDashboardContent activeTab={activeTab} />
+        </main>
+      </div>
     </div>
   );
 };

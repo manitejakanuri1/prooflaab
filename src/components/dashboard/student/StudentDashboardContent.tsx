@@ -33,7 +33,7 @@ const StudentDashboardContent = ({ activeTab }: StudentDashboardContentProps) =>
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className={activeTab === "portfolio" ? "w-full" : "max-w-7xl mx-auto"}>
       {renderContent()}
     </div>
   );

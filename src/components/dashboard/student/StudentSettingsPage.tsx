@@ -70,15 +70,25 @@ const StudentSettingsPage = () => {
   const handleProfileUpdate = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
+      // Update full_name in student_profiles
+      const { error: profileError } = await supabase
         .from('student_profiles')
         .update({
           full_name: formData.full_name,
-          bio: formData.bio,
         })
         .eq('id', profile?.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update bio in student_portfolios
+      const { error: portfolioError } = await supabase
+        .from('student_portfolios')
+        .update({
+          bio: formData.bio,
+        })
+        .eq('student_id', profile?.id);
+
+      if (portfolioError) throw portfolioError;
 
       toast({
         title: "Profile updated successfully",

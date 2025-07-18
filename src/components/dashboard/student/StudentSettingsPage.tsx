@@ -9,8 +9,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Lock, Bell, Eye, Save, Upload } from "lucide-react";
+import { User, Lock, Bell, Eye, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import ProfilePhotoModal from "../ProfilePhotoModal";
 
 const StudentSettingsPage = () => {
   const { profile, loading } = useStudentProfile();
@@ -37,6 +38,8 @@ const StudentSettingsPage = () => {
   });
 
   const [saving, setSaving] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState(profile?.profile_photo_url || null);
 
   if (loading) {
     return (
@@ -143,15 +146,21 @@ const StudentSettingsPage = () => {
         <CardContent className="space-y-6">
           {/* Profile Photo */}
           <div className="flex items-center space-x-6">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={profile?.profile_photo_url || undefined} alt={profile?.full_name} />
+            <Avatar 
+              className="h-20 w-20 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setIsPhotoModalOpen(true)}
+            >
+              <AvatarImage src={currentPhotoUrl || undefined} alt={profile?.full_name} />
               <AvatarFallback className="bg-orange-100 text-orange-700 text-xl">
                 {getInitials(profile?.full_name || 'Student')}
               </AvatarFallback>
             </Avatar>
             <div>
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Upload className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                className="flex items-center space-x-2"
+                onClick={() => setIsPhotoModalOpen(true)}
+              >
                 <span>Change Photo</span>
               </Button>
               <p className="text-sm text-gray-500 mt-1">JPG, PNG or GIF. Max size 2MB.</p>
@@ -340,6 +349,16 @@ const StudentSettingsPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Profile Photo Modal */}
+      <ProfilePhotoModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentPhotoUrl={currentPhotoUrl}
+        userName={profile?.full_name || 'Student'}
+        userId={profile?.id || ''}
+        onPhotoUpdate={(newUrl) => setCurrentPhotoUrl(newUrl)}
+      />
     </div>
   );
 };

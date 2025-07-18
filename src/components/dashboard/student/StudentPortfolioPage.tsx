@@ -35,7 +35,6 @@ const StudentPortfolioPage = () => {
   }
 
   const verifiedUploads = uploads?.filter(upload => upload.status === 'Verified') || [];
-  const totalXP = verifiedUploads.reduce((sum, upload) => sum + 50, 0); // 50 XP per verified task
 
   const getInitials = (name: string) => {
     return name
@@ -155,7 +154,9 @@ const StudentPortfolioPage = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <Award className="h-4 w-4 text-orange-500" />
-                      <span className="text-sm font-medium">50 XP</span>
+                      <span className="text-sm font-medium">
+                        {upload.tasks?.xp_reward || upload.tasks?.xp || 0} XP
+                      </span>
                     </div>
                     
                     {upload.file_url && (

@@ -12,8 +12,10 @@ export interface ProofUpload {
   submission_notes: string | null;
   status: 'Under Review' | 'Verified' | 'Rejected';
   submitted_at: string;
-  task?: {
+  tasks?: {
     title: string;
+    xp_reward?: number;
+    xp?: number;
   };
 }
 
@@ -42,7 +44,9 @@ export const useProofUploads = (currentDate: Date) => {
         .select(`
           *,
           tasks:task_id (
-            title
+            title,
+            xp_reward,
+            xp
           )
         `)
         .eq('student_id', profile.id)

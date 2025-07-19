@@ -2,6 +2,8 @@ import { useState } from "react";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import ProofSubmissionsContent from "@/components/dashboard/admin/ProofSubmissionsContent";
+import ManageResourcesPage from "@/components/dashboard/admin/ManageResourcesPage";
+import ManageJobsPage from "@/components/dashboard/admin/ManageJobsPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
@@ -18,9 +20,9 @@ const ReviewProofs = () => {
       case "dashboard":
         return <div className="p-6">Dashboard content coming soon...</div>;
       case "manage-jobs":
-        return <div className="p-6">Manage Jobs content coming soon...</div>;
+        return <ManageJobsPage />;
       case "manage-resources":
-        return <div className="p-6">Manage Resources content coming soon...</div>;
+        return <ManageResourcesPage />;
       case "settings":
         return <div className="p-6">Settings content coming soon...</div>;
       default:

@@ -65,6 +65,81 @@ export type Database = {
         }
         Relationships: []
       }
+      job_opportunities: {
+        Row: {
+          apply_link: string
+          company_name: string
+          created_at: string
+          deadline: string
+          eligible_branch: string
+          id: string
+          job_type: string
+          location: string
+          logo_url: string | null
+          role: string
+        }
+        Insert: {
+          apply_link: string
+          company_name: string
+          created_at?: string
+          deadline: string
+          eligible_branch?: string
+          id?: string
+          job_type: string
+          location: string
+          logo_url?: string | null
+          role: string
+        }
+        Update: {
+          apply_link?: string
+          company_name?: string
+          created_at?: string
+          deadline?: string
+          eligible_branch?: string
+          id?: string
+          job_type?: string
+          location?: string
+          logo_url?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
+      learning_resources: {
+        Row: {
+          branch: string
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_premium: boolean
+          platform: string
+          title: string
+          url: string
+        }
+        Insert: {
+          branch?: string
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          platform: string
+          title: string
+          url: string
+        }
+        Update: {
+          branch?: string
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          platform?: string
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null

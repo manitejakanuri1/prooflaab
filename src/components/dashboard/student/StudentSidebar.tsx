@@ -4,6 +4,8 @@ import {
   Upload, 
   User, 
   TrendingUp, 
+  BookOpen,
+  Briefcase,
   Bell, 
   Settings, 
   LogOut 
@@ -24,6 +26,8 @@ const menuItems = [
   { id: "uploads", label: "My Uploads", icon: Upload },
   { id: "portfolio", label: "My Portfolio", icon: User },
   { id: "progress", label: "Progress & XP", icon: TrendingUp },
+  { id: "learning", label: "Learning Resources", icon: BookOpen },
+  { id: "jobs", label: "Job Opportunities", icon: Briefcase },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "settings", label: "Settings", icon: Settings },
 ];

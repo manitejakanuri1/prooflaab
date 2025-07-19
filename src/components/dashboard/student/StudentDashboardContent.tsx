@@ -3,6 +3,8 @@ import StudentTasksPage from "./StudentTasksPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 import StudentPortfolioPage from "./StudentPortfolioPage";
 import StudentProgressPage from "./StudentProgressPage";
+import StudentLearningResourcesPage from "./StudentLearningResourcesPage";
+import StudentJobOpportunitiesPage from "./StudentJobOpportunitiesPage";
 import StudentNotificationsPage from "./StudentNotificationsPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 
@@ -24,6 +26,10 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
         return <StudentPortfolioPage />;
       case "progress":
         return <StudentProgressPage />;
+      case "learning":
+        return <StudentLearningResourcesPage />;
+      case "jobs":
+        return <StudentJobOpportunitiesPage />;
       case "notifications":
         return <StudentNotificationsPage />;
       case "settings":

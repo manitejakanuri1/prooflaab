@@ -4,7 +4,6 @@ import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import ProofSubmissionsContent from "@/components/dashboard/admin/ProofSubmissionsContent";
 import ManageResourcesPage from "@/components/dashboard/admin/ManageResourcesPage";
 import ManageJobsPage from "@/components/dashboard/admin/ManageJobsPage";
-import AdminDashboardContent from "@/components/dashboard/admin/AdminDashboardContent";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
@@ -19,7 +18,7 @@ const ReviewProofs = () => {
       case "proof-submissions":
         return <ProofSubmissionsContent />;
       case "dashboard":
-        return <AdminDashboardContent onTabChange={setActiveTab} />;
+        return <div className="p-6">Dashboard content coming soon...</div>;
       case "manage-jobs":
         return <ManageJobsPage />;
       case "manage-resources":
@@ -27,7 +26,7 @@ const ReviewProofs = () => {
       case "settings":
         return <div className="p-6">Settings content coming soon...</div>;
       default:
-        return <AdminDashboardContent onTabChange={setActiveTab} />;
+        return <ProofSubmissionsContent />;
     }
   };
 

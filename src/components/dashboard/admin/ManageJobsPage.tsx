@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ExternalLink, Calendar, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,18 +56,11 @@ const branches = ["ALL", "CSE", "ECE", "ME", "EE", "CE"];
 
 const ManageJobsPage = () => {
   const [jobs, setJobs] = useState<JobOpportunity[]>([]);
-  const [filteredJobs, setFilteredJobs] = useState<JobOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobOpportunity | null>(null);
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
-  const [filters, setFilters] = useState({
-    jobType: "",
-    location: "",
-    branch: "",
-    status: ""
-  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,7 +76,6 @@ const ManageJobsPage = () => {
 
       if (error) throw error;
       setJobs(data || []);
-      setFilteredJobs(data || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
       toast({
@@ -208,37 +200,6 @@ const ManageJobsPage = () => {
     return new Date(deadline) < new Date();
   };
 
-  const applyFilters = () => {
-    let filtered = jobs;
-
-    if (filters.jobType) {
-      filtered = filtered.filter(job => job.job_type === filters.jobType);
-    }
-    if (filters.location) {
-      filtered = filtered.filter(job => job.location === filters.location);
-    }
-    if (filters.branch) {
-      filtered = filtered.filter(job => job.eligible_branch === filters.branch);
-    }
-    if (filters.status) {
-      if (filters.status === "active") {
-        filtered = filtered.filter(job => !isDeadlinePassed(job.deadline));
-      } else if (filters.status === "expired") {
-        filtered = filtered.filter(job => isDeadlinePassed(job.deadline));
-      }
-    }
-
-    setFilteredJobs(filtered);
-  };
-
-  useEffect(() => {
-    applyFilters();
-  }, [filters, jobs]);
-
-  const clearFilters = () => {
-    setFilters({ jobType: "", location: "", branch: "", status: "" });
-  };
-
   if (loading) {
     return (
       <div className="p-6">
@@ -252,16 +213,15 @@ const ManageJobsPage = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Manage Job Opportunities</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Job
-              </Button>
-            </DialogTrigger>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Manage Job Opportunities</h1>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Job
+            </Button>
+          </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -398,70 +358,6 @@ const ManageJobsPage = () => {
             </form>
           </DialogContent>
         </Dialog>
-        </div>
-        
-        {/* Filters */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                <span className="text-sm font-medium">Filters:</span>
-              </div>
-              
-              <Select value={filters.jobType} onValueChange={(value) => setFilters({...filters, jobType: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Job Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
-                  {jobTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.location} onValueChange={(value) => setFilters({...filters, location: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Locations</SelectItem>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>{location}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.branch} onValueChange={(value) => setFilters({...filters, branch: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Branches</SelectItem>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch} value={branch}>{branch}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                Clear All
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -479,14 +375,14 @@ const ManageJobsPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredJobs.length === 0 ? (
+                {jobs.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                      {jobs.length === 0 ? "No job opportunities found. Add your first job!" : "No jobs match the current filters."}
+                      No job opportunities found. Add your first job!
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredJobs.map((job) => (
+                  jobs.map((job) => (
                     <TableRow key={job.id}>
                       <TableCell>
                         <div>

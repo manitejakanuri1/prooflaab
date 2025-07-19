@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ExternalLink, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,17 +50,11 @@ const branches = ["ALL", "CSE", "ECE", "ME", "EE", "CE"];
 
 const ManageResourcesPage = () => {
   const [resources, setResources] = useState<LearningResource[]>([]);
-  const [filteredResources, setFilteredResources] = useState<LearningResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<LearningResource | null>(null);
   const [formData, setFormData] = useState<ResourceFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
-  const [filters, setFilters] = useState({
-    platform: "",
-    branch: "",
-    type: ""
-  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,7 +70,6 @@ const ManageResourcesPage = () => {
 
       if (error) throw error;
       setResources(data || []);
-      setFilteredResources(data || []);
     } catch (error) {
       console.error("Error fetching resources:", error);
       toast({
@@ -180,34 +173,6 @@ const ManageResourcesPage = () => {
     setIsDialogOpen(true);
   };
 
-  const applyFilters = () => {
-    let filtered = resources;
-
-    if (filters.platform) {
-      filtered = filtered.filter(resource => resource.platform === filters.platform);
-    }
-    if (filters.branch) {
-      filtered = filtered.filter(resource => resource.branch === filters.branch);
-    }
-    if (filters.type) {
-      if (filters.type === "free") {
-        filtered = filtered.filter(resource => !resource.is_premium);
-      } else if (filters.type === "premium") {
-        filtered = filtered.filter(resource => resource.is_premium);
-      }
-    }
-
-    setFilteredResources(filtered);
-  };
-
-  useEffect(() => {
-    applyFilters();
-  }, [filters, resources]);
-
-  const clearFilters = () => {
-    setFilters({ platform: "", branch: "", type: "" });
-  };
-
   if (loading) {
     return (
       <div className="p-6">
@@ -221,16 +186,15 @@ const ManageResourcesPage = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Manage Learning Resources</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Resource
-              </Button>
-            </DialogTrigger>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Manage Learning Resources</h1>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Resource
+            </Button>
+          </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -331,58 +295,6 @@ const ManageResourcesPage = () => {
             </form>
           </DialogContent>
         </Dialog>
-        </div>
-        
-        {/* Filters */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                <span className="text-sm font-medium">Filters:</span>
-              </div>
-              
-              <Select value={filters.platform} onValueChange={(value) => setFilters({...filters, platform: value})}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Platforms</SelectItem>
-                  {platforms.map((platform) => (
-                    <SelectItem key={platform} value={platform}>{platform}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.branch} onValueChange={(value) => setFilters({...filters, branch: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Branches</SelectItem>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch} value={branch}>{branch}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.type} onValueChange={(value) => setFilters({...filters, type: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                Clear All
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -400,14 +312,14 @@ const ManageResourcesPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredResources.length === 0 ? (
+                {resources.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                      {resources.length === 0 ? "No learning resources found. Add your first resource!" : "No resources match the current filters."}
+                      No learning resources found. Add your first resource!
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredResources.map((resource) => (
+                  resources.map((resource) => (
                     <TableRow key={resource.id}>
                       <TableCell>
                         <div>

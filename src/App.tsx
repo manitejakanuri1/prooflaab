@@ -13,6 +13,7 @@ import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ReviewProofs from "./pages/ReviewProofs";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/portfolio/:slug" element={<Portfolio />} />
             <Route 
               path="/student/dashboard" 

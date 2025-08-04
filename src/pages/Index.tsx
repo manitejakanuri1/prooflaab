@@ -8,6 +8,7 @@ import { useState } from "react";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("students");
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -20,6 +21,132 @@ const Index = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setMobileMenuOpen(false);
+  };
+
+  // Dynamic pricing content based on active tab
+  const getPricingContent = () => {
+    switch (activeTab) {
+      case "students":
+        return {
+          title: "What You Get — Free vs Premium",
+          plans: [
+            {
+              name: "Free Plan",
+              price: "₹0",
+              period: "/month",
+              description: "Perfect for getting started",
+              emoji: "🎓",
+              features: [
+                "AI Tasks ✅",
+                "Proof Uploads ✅",
+                "Proof Reviews (Slow)",
+                "XP & Trust Panel ✅",
+                "Jobs & Resources (Manual)",
+                "Public Portfolio ✅"
+              ],
+              ctaText: "Get Started Free",
+              variant: "outline" as const
+            },
+            {
+              name: "Premium Plan",
+              price: "₹99",
+              period: "/month",
+              description: "For serious learners",
+              emoji: "🚀",
+              features: [
+                "AI Tasks ✅",
+                "Proof Uploads ✅",
+                "Proof Reviews (Fast ⚡)",
+                "Resume Feedback ✅",
+                "AI-Personalized Jobs ✅",
+                "Early Access to Startups ✅"
+              ],
+              ctaText: "Upgrade to Premium",
+              variant: "default" as const,
+              highlighted: true
+            }
+          ]
+        };
+      case "colleges":
+        return {
+          title: "College Plans — Basic vs Advanced",
+          plans: [
+            {
+              name: "Basic Plan",
+              price: "₹999",
+              period: "/month",
+              description: "Essential tools for student tracking",
+              emoji: "🏫",
+              features: [
+                "Student Onboarding (CSV Upload) ✅",
+                "Task Assignments ✅",
+                "Proof Reviews (Manual) ✅",
+                "Basic Analytics ✅",
+                "Student Portfolio Access ✅"
+              ],
+              ctaText: "Start Basic Plan",
+              variant: "outline" as const
+            },
+            {
+              name: "Advanced Plan",
+              price: "₹2499",
+              period: "/month",
+              description: "Complete college management solution",
+              emoji: "🏆",
+              features: [
+                "Everything in Basic ✅",
+                "Auto Verification (AI) ✅",
+                "Analytics & Performance Reports ✅",
+                "Dedicated College Portal ✅",
+                "Priority Support ✅"
+              ],
+              ctaText: "Upgrade to Advanced",
+              variant: "default" as const,
+              highlighted: true
+            }
+          ]
+        };
+      case "startups":
+        return {
+          title: "Startup Plans — Free Trial vs Subscription",
+          plans: [
+            {
+              name: "Free Trial",
+              price: "₹0",
+              period: "/month",
+              description: "Try our platform risk-free",
+              emoji: "🚀",
+              features: [
+                "Post Tasks (Limited to 5) ✅",
+                "Discover Talent ✅",
+                "Review Submissions ✅",
+                "Basic Search Filters ✅"
+              ],
+              ctaText: "Start Free Trial",
+              variant: "outline" as const
+            },
+            {
+              name: "Subscription",
+              price: "₹1999",
+              period: "/month",
+              description: "Full access to our talent pool",
+              emoji: "💼",
+              features: [
+                "Unlimited Task Posting ✅",
+                "Advanced Talent Search ✅",
+                "Trust Score Access ✅",
+                "Startup Branding on Portal ✅",
+                "Early Applicant Access ✅"
+              ],
+              ctaText: "Upgrade to Full Access",
+              variant: "default" as const,
+              highlighted: true
+            }
+          ]
+        };
+      default:
+        return getPricingContent(); // fallback to students
+    }
   };
 
   return (
@@ -151,7 +278,7 @@ const Index = () => {
             </p>
           </div>
           
-          <Tabs defaultValue="students" className="max-w-6xl mx-auto">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-6xl mx-auto">
             <TabsList className="grid w-full grid-cols-3 mb-12 h-14">
               <TabsTrigger value="students" className="flex items-center gap-2 text-base">
                 <GraduationCap className="w-5 h-5" />
@@ -287,61 +414,44 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Comparison */}
+      {/* Dynamic Pricing Based on Active Tab */}
       <section id="features" className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-5xl font-bold text-foreground mb-6">
-              What You Get — Free vs Premium
+              {getPricingContent().title}
             </h2>
           </div>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <Card className="rounded-2xl border-2">
-              <CardHeader className="p-8">
-                <CardTitle className="text-2xl text-center">Free Plan</CardTitle>
-                <CardDescription className="text-center text-lg">Perfect for getting started</CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 pt-0 space-y-4">
-                {[
-                  "AI Tasks ✅",
-                  "Upload Proofs ✅", 
-                  "Proof Reviews (Slow)",
-                  "XP & Trust Panel ✅",
-                  "Jobs & Resources (Manual)",
-                  "Public Portfolio ✅"
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>{feature}</span>
+            {getPricingContent().plans.map((plan, index) => (
+              <Card key={index} className={`rounded-2xl border-2 ${plan.highlighted ? 'border-primary shadow-lg' : ''} transition-all duration-300`}>
+                <CardHeader className="p-8 text-center">
+                  <div className="text-4xl mb-4">{plan.emoji}</div>
+                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <div className="text-3xl font-bold">
+                    {plan.price}<span className="text-base font-normal">{plan.period}</span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-2 border-primary shadow-lg">
-              <CardHeader className="p-8">
-                <CardTitle className="text-2xl text-center">Premium Plan</CardTitle>
-                <CardDescription className="text-center text-lg">For serious learners</CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 pt-0 space-y-4">
-                {[
-                  "AI Tasks ✅",
-                  "Upload Proofs ✅",
-                  "Proof Reviews (Fast 🚀)",
-                  "Resume Feedback ✅",
-                  "XP & Trust Panel ✅",
-                  "AI-Personalised Jobs 🔥",
-                  "Public Portfolio ✅",
-                  "Early Access to Startups ✅"
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>{feature}</span>
+                  <CardDescription className="text-lg">{plan.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="p-8 pt-0">
+                  <div className="space-y-4 mb-6">
+                    {plan.features.map((feature, featureIndex) => (
+                      <div key={featureIndex} className="flex items-center space-x-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                        <span className="text-sm">{feature}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <Button 
+                    className="w-full rounded-2xl" 
+                    variant={plan.variant}
+                  >
+                    {plan.ctaText}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -465,42 +575,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-20 bg-muted/30">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-5xl font-bold text-foreground mb-6">
-              Simple Pricing for Serious Learners
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <Card className="rounded-2xl border-2 p-8">
-              <CardHeader className="text-center">
-                <div className="text-4xl mb-4">🎓</div>
-                <CardTitle className="text-2xl">Free Plan</CardTitle>
-                <div className="text-3xl font-bold">₹0<span className="text-base font-normal">/month</span></div>
-                <CardDescription>Always free for every student</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full rounded-2xl" variant="outline">Get Started Free</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-2 border-primary shadow-lg p-8">
-              <CardHeader className="text-center">
-                <div className="text-4xl mb-4">🚀</div>
-                <CardTitle className="text-2xl">Premium Plan</CardTitle>
-                <div className="text-3xl font-bold">₹99<span className="text-base font-normal">/month</span></div>
-                <CardDescription>Faster reviews, resume feedback, AI job matches</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full rounded-2xl">Upgrade to Premium</Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
 
       {/* About Section */}
       <section id="about" className="py-20">

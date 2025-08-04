@@ -9,9 +9,20 @@ interface StickyCtaBarProps {
 }
 
 const StickyCtaBar = ({ activeTab }: StickyCtaBarProps) => {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const location = useLocation();
+
+  // Show CTA bar after scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 200;
+      setIsVisible(scrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Hide on specific routes
   const hiddenRoutes = ['/pricing', '/dashboard', '/login', '/auth'];
@@ -22,8 +33,8 @@ const StickyCtaBar = ({ activeTab }: StickyCtaBarProps) => {
     setIsDismissed(false);
   }, [activeTab]);
 
-  // Don't render if dismissed, hidden route, or not on landing page
-  if (isDismissed || shouldHide || location.pathname !== '/') {
+  // Don't render if dismissed, hidden route, not visible from scroll, or not on landing page
+  if (isDismissed || shouldHide || !isVisible || location.pathname !== '/') {
     return null;
   }
 

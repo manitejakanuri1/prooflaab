@@ -45,7 +45,7 @@ const StickyCtaBar = ({ activeTab }: StickyCtaBarProps) => {
         return {
           text: "🎓 Onboard your students to India's first AI-powered proof-of-work platform.",
           buttons: [
-            { text: "Book a Demo", href: "/auth", variant: "default" as const },
+            { text: "Book a Demo", href: "/signup-college", variant: "default" as const },
             { text: "See College Plans", href: "/pricing#colleges", variant: "outline" as const }
           ]
         };
@@ -53,7 +53,7 @@ const StickyCtaBar = ({ activeTab }: StickyCtaBarProps) => {
         return {
           text: "💼 Want proof-driven interns for your startup? No fake certificates. Only real work.",
           buttons: [
-            { text: "Hire Interns", href: "/auth", variant: "default" as const },
+            { text: "Hire Interns", href: "/signup-startup", variant: "default" as const },
             { text: "See Startup Plans", href: "/pricing#startups", variant: "outline" as const }
           ]
         };

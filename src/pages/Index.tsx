@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight, Menu, X, Building, Briefcase, GraduationCap, Upload, Clock, Trophy } from "lucide-react";
 import { useState } from "react";
+import StickyCtaBar from "@/components/StickyCtaBar";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -527,6 +528,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Sticky CTA Bar */}
+      <StickyCtaBar activeTab={activeTab} />
     </div>
   );
 };

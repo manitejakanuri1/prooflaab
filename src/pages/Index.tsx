@@ -1,17 +1,34 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
-import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight } from "lucide-react";
+import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight, Menu, X, Building, Briefcase, GraduationCap, Upload, Clock, Trophy } from "lucide-react";
+import { useState } from "react";
 
 const Index = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setMobileMenuOpen(false);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-background font-sans">
+    <div className="min-h-screen bg-background font-sans scroll-smooth">
       {/* Top Navigation - Sticky */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={scrollToTop}>
               <img 
                 src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
                 alt="ProofLabAI Logo" 
@@ -20,24 +37,52 @@ const Index = () => {
               <span className="text-xl font-bold text-foreground">ProofLabAI</span>
             </div>
             
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a>
-              <a href="#students" className="text-muted-foreground hover:text-foreground transition-colors">For Students</a>
-              <a href="#colleges" className="text-muted-foreground hover:text-foreground transition-colors">For Colleges</a>
-              <a href="#startups" className="text-muted-foreground hover:text-foreground transition-colors">For Startups</a>
-              <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
-              <a href="#faq" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
+              <button onClick={() => scrollToSection('features')} className="text-muted-foreground hover:text-foreground transition-colors">Features</button>
+              <button onClick={() => scrollToSection('workflow')} className="text-muted-foreground hover:text-foreground transition-colors">How It Works</button>
+              <button onClick={() => scrollToSection('colleges')} className="text-muted-foreground hover:text-foreground transition-colors">For Colleges</button>
+              <button onClick={() => scrollToSection('startups')} className="text-muted-foreground hover:text-foreground transition-colors">For Startups</button>
+              <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
             </nav>
 
-            <div className="flex items-center space-x-4">
-              <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
-                🔐 Login
+            {/* Desktop Auth Buttons */}
+            <div className="hidden md:flex items-center space-x-4">
+              <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">
+                Login
               </Link>
               <Button asChild size="sm" className="rounded-2xl">
-                <Link to="/auth">🔵 Get Started</Link>
+                <Link to="/login">Get Started</Link>
               </Button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button 
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 pb-4 border-t border-border">
+              <div className="flex flex-col space-y-4 pt-4">
+                <button onClick={() => scrollToSection('features')} className="text-left text-muted-foreground hover:text-foreground transition-colors">Features</button>
+                <button onClick={() => scrollToSection('workflow')} className="text-left text-muted-foreground hover:text-foreground transition-colors">How It Works</button>
+                <button onClick={() => scrollToSection('colleges')} className="text-left text-muted-foreground hover:text-foreground transition-colors">For Colleges</button>
+                <button onClick={() => scrollToSection('startups')} className="text-left text-muted-foreground hover:text-foreground transition-colors">For Startups</button>
+                <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+                <div className="flex flex-col space-y-2 pt-4 border-t border-border">
+                  <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                  <Button asChild size="sm" className="rounded-2xl w-fit">
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -94,63 +139,156 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="features" className="py-20">
+      {/* How ProofLab Works - 3-Tab Section */}
+      <section id="workflow" className="py-20">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-5xl font-bold text-foreground mb-6">
               How ProofLab Works
             </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Choose your path: Student building proof, College tracking progress, or Startup hiring talent
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                step: "1",
-                icon: Target,
-                title: "Get a Task",
-                description: "Receive tasks from AI, your college, or platform admins"
-              },
-              {
-                step: "2",
-                icon: TrendingUp,
-                title: "Complete in 7 Days",
-                description: "Work on real-world projects within the deadline"
-              },
-              {
-                step: "3",
-                icon: CheckCircle,
-                title: "Upload Your Proof",
-                description: "Submit files, links, or documentation of your work"
-              },
-              {
-                step: "4",
-                icon: Award,
-                title: "Get Verified",
-                description: "Earn XP, Trust Score, and build your public portfolio"
-              }
-            ].map((item, index) => (
-              <Card key={index} className="rounded-2xl border-2 hover:shadow-lg transition-all duration-300">
-                <CardHeader className="text-center p-6">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <item.icon className="w-8 h-8 text-primary-foreground" />
-                  </div>
-                  <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">
-                    {item.step}
-                  </div>
-                  <CardTitle className="text-xl">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center p-6 pt-0">
-                  <CardDescription className="text-base">{item.description}</CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Tabs defaultValue="students" className="max-w-6xl mx-auto">
+            <TabsList className="grid w-full grid-cols-3 mb-12 h-14">
+              <TabsTrigger value="students" className="flex items-center gap-2 text-base">
+                <GraduationCap className="w-5 h-5" />
+                For Students
+              </TabsTrigger>
+              <TabsTrigger value="colleges" className="flex items-center gap-2 text-base">
+                <Building className="w-5 h-5" />
+                For Colleges
+              </TabsTrigger>
+              <TabsTrigger value="startups" className="flex items-center gap-2 text-base">
+                <Briefcase className="w-5 h-5" />
+                For Startups
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="students">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {[
+                  {
+                    icon: Target,
+                    title: "Discover Real Tasks",
+                    description: "Get tasks designed by real startups and verified by AI"
+                  },
+                  {
+                    icon: Clock,
+                    title: "Build in 7 Days",
+                    description: "Work on meaningful projects with clear deadlines"
+                  },
+                  {
+                    icon: Upload,
+                    title: "Upload Your Work",
+                    description: "Submit files, links, or documentation as proof"
+                  },
+                  {
+                    icon: Trophy,
+                    title: "Get Verified & Rewarded",
+                    description: "Earn XP, Trust Score, and unlock internship opportunities"
+                  }
+                ].map((item, index) => (
+                  <Card key={index} className="rounded-2xl border-2 hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="text-center p-6">
+                      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <item.icon className="w-8 h-8 text-primary-foreground" />
+                      </div>
+                      <CardTitle className="text-xl">{item.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center p-6 pt-0">
+                      <CardDescription className="text-base">{item.description}</CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="colleges">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {[
+                  {
+                    icon: Users,
+                    title: "Upload Students",
+                    description: "Add your students and track their real-world progress"
+                  },
+                  {
+                    icon: Target,
+                    title: "Assign Tasks",
+                    description: "Create custom tasks or use AI-generated assignments"
+                  },
+                  {
+                    icon: TrendingUp,
+                    title: "Monitor Progress",
+                    description: "View portfolio, trust scores, and proof reviews in real-time"
+                  },
+                  {
+                    icon: Shield,
+                    title: "Verified Skills",
+                    description: "No fake internships. Only documented skill development"
+                  }
+                ].map((item, index) => (
+                  <Card key={index} className="rounded-2xl border-2 hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="text-center p-6">
+                      <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                        <item.icon className="w-8 h-8 text-accent-foreground" />
+                      </div>
+                      <CardTitle className="text-xl">{item.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center p-6 pt-0">
+                      <CardDescription className="text-base">{item.description}</CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="startups">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {[
+                  {
+                    icon: Zap,
+                    title: "Post Tasks Fast",
+                    description: "Create real-world microtasks in under 2 minutes"
+                  },
+                  {
+                    icon: Users,
+                    title: "Discover Talent",
+                    description: "Find skilled students from top engineering colleges across India"
+                  },
+                  {
+                    icon: CheckCircle,
+                    title: "Review Work",
+                    description: "Manually review submissions or use our auto-review system"
+                  },
+                  {
+                    icon: Award,
+                    title: "Hire with Confidence",
+                    description: "Make hiring decisions based on actual proof, not certificates"
+                  }
+                ].map((item, index) => (
+                  <Card key={index} className="rounded-2xl border-2 hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="text-center p-6">
+                      <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <item.icon className="w-8 h-8 text-secondary-foreground" />
+                      </div>
+                      <CardTitle className="text-xl">{item.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center p-6 pt-0">
+                      <CardDescription className="text-base">{item.description}</CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
 
       {/* Features Comparison */}
-      <section className="py-20 bg-muted/30">
+      <section id="features" className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-5xl font-bold text-foreground mb-6">
@@ -202,6 +340,86 @@ const Index = () => {
                     <span>{feature}</span>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Colleges Section */}
+      <section id="colleges" className="py-20">
+        <div className="container mx-auto px-6 text-center">
+          <div className="max-w-4xl mx-auto space-y-6 mb-16">
+            <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
+              For Colleges & Universities
+            </h2>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              Track your students' real-world skill development. No more fake internships or unverifiable certificates.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="rounded-2xl p-8">
+              <CardContent className="space-y-4">
+                <Building className="w-12 h-12 text-primary mx-auto" />
+                <h3 className="text-xl font-bold">Student Management</h3>
+                <p>Upload and track students across departments</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="rounded-2xl p-8">
+              <CardContent className="space-y-4">
+                <Target className="w-12 h-12 text-accent mx-auto" />
+                <h3 className="text-xl font-bold">Custom Tasks</h3>
+                <p>Create assignments or use AI-generated tasks</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="rounded-2xl p-8">
+              <CardContent className="space-y-4">
+                <TrendingUp className="w-12 h-12 text-secondary mx-auto" />
+                <h3 className="text-xl font-bold">Progress Analytics</h3>
+                <p>View portfolios, trust scores, and skill growth</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Startups Section */}
+      <section id="startups" className="py-20 bg-muted/30">
+        <div className="container mx-auto px-6 text-center">
+          <div className="max-w-4xl mx-auto space-y-6 mb-16">
+            <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
+              For Startups & Companies
+            </h2>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              Discover talented engineering students through verified proof of work. Hire with confidence.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="rounded-2xl p-8">
+              <CardContent className="space-y-4">
+                <Zap className="w-12 h-12 text-primary mx-auto" />
+                <h3 className="text-xl font-bold">Quick Task Creation</h3>
+                <p>Post real-world tasks in under 2 minutes</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="rounded-2xl p-8">
+              <CardContent className="space-y-4">
+                <Users className="w-12 h-12 text-accent mx-auto" />
+                <h3 className="text-xl font-bold">Talent Discovery</h3>
+                <p>Find skilled students from top colleges</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="rounded-2xl p-8">
+              <CardContent className="space-y-4">
+                <Award className="w-12 h-12 text-secondary mx-auto" />
+                <h3 className="text-xl font-bold">Proof-Based Hiring</h3>
+                <p>Make decisions based on actual work, not certificates</p>
               </CardContent>
             </Card>
           </div>
@@ -284,8 +502,29 @@ const Index = () => {
         </div>
       </section>
 
+      {/* About Section */}
+      <section id="about" className="py-20">
+        <div className="container mx-auto px-6 text-center">
+          <div className="max-w-4xl mx-auto space-y-8">
+            <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
+              About ProofLab
+            </h2>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              ProofLab is India's first AI-powered proof-of-work platform designed to bridge the gap between 
+              academic learning and real-world application. We're on a mission to eliminate fake internships 
+              and unverifiable certificates by providing a transparent, skill-based verification system.
+            </p>
+            <p className="text-lg text-muted-foreground">
+              Our platform connects engineering students with real tasks from startups, enables colleges to 
+              track meaningful progress, and helps companies hire based on actual proof of work rather than 
+              questionable certificates.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA & Email Capture */}
-      <section className="py-20">
+      <section id="contact" className="py-20 bg-muted/30">
         <div className="container mx-auto px-6 text-center">
           <div className="max-w-2xl mx-auto space-y-8">
             <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
@@ -330,29 +569,29 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="font-semibold">Product</h4>
               <div className="space-y-2">
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Features</a>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">For Students</a>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">For Colleges</a>
+                <button onClick={() => scrollToSection('features')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">Features</button>
+                <Link to="/pricing" className="block text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+                <button onClick={() => scrollToSection('workflow')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">For Students</button>
+                <button onClick={() => scrollToSection('colleges')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">For Colleges</button>
               </div>
             </div>
             
             <div className="space-y-4">
               <h4 className="font-semibold">Company</h4>
               <div className="space-y-2">
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">About</a>
+                <button onClick={() => scrollToSection('about')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">About ProofLab</button>
                 <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Blog</a>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Contact</a>
+                <button onClick={() => scrollToSection('contact')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">Contact</button>
               </div>
             </div>
             
             <div className="space-y-4">
-              <h4 className="font-semibold">Legal</h4>
+              <h4 className="font-semibold">Legal & Social</h4>
               <div className="space-y-2">
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Terms</a>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">LinkedIn</a>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Instagram</a>
+                <Link to="/terms" className="block text-muted-foreground hover:text-foreground transition-colors">Terms & Conditions</Link>
+                <Link to="/privacy-policy" className="block text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
+                <a href="https://linkedin.com/company/prooflabai" target="_blank" rel="noopener noreferrer" className="block text-muted-foreground hover:text-foreground transition-colors">LinkedIn</a>
+                <a href="https://instagram.com/prooflabai" target="_blank" rel="noopener noreferrer" className="block text-muted-foreground hover:text-foreground transition-colors">Instagram</a>
               </div>
             </div>
           </div>

@@ -16,7 +16,7 @@ const StickyCtaBar = ({ activeTab }: StickyCtaBarProps) => {
   // Show CTA bar after scrolling
   useEffect(() => {
     const handleScroll = () => {
-      const scrolled = window.scrollY > 200;
+      const scrolled = window.scrollY > 400;
       setIsVisible(scrolled);
     };
 

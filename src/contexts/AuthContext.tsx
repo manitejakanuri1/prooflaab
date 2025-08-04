@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import OnboardingModal from "@/components/OnboardingModal";
 
 interface AuthContextType {
   user: User | null;
@@ -110,6 +111,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      {/* Show onboarding modal for authenticated users */}
+      {user && !loading && (
+        <OnboardingModal 
+          user={user} 
+          onComplete={() => {
+            // Modal handles its own completion logic
+          }} 
+        />
+      )}
     </AuthContext.Provider>
   );
 };

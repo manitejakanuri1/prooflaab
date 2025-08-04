@@ -68,6 +68,25 @@ const OnboardingModal = ({ user, onComplete }: OnboardingModalProps) => {
 
       if (error) throw error;
 
+      // Send onboarding email
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-onboarding-email', {
+          body: {
+            userType: userType,
+            email: user.email,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+          }
+        });
+
+        if (emailError) {
+          console.error('Error sending onboarding email:', emailError);
+          // Don't block the flow if email fails
+        }
+      } catch (emailError) {
+        console.error('Failed to send onboarding email:', emailError);
+        // Don't block the flow if email fails
+      }
+
       setIsOpen(false);
       onComplete();
 

@@ -23,131 +23,6 @@ const Index = () => {
     setMobileMenuOpen(false);
   };
 
-  // Dynamic pricing content based on active tab
-  const getPricingContent = () => {
-    switch (activeTab) {
-      case "students":
-        return {
-          title: "What You Get — Free vs Premium",
-          plans: [
-            {
-              name: "Free Plan",
-              price: "₹0",
-              period: "/month",
-              description: "Perfect for getting started",
-              emoji: "🎓",
-              features: [
-                "AI Tasks ✅",
-                "Proof Uploads ✅",
-                "Proof Reviews (Slow)",
-                "XP & Trust Panel ✅",
-                "Jobs & Resources (Manual)",
-                "Public Portfolio ✅"
-              ],
-              ctaText: "Get Started Free",
-              variant: "outline" as const
-            },
-            {
-              name: "Premium Plan",
-              price: "₹99",
-              period: "/month",
-              description: "For serious learners",
-              emoji: "🚀",
-              features: [
-                "AI Tasks ✅",
-                "Proof Uploads ✅",
-                "Proof Reviews (Fast ⚡)",
-                "Resume Feedback ✅",
-                "AI-Personalized Jobs ✅",
-                "Early Access to Startups ✅"
-              ],
-              ctaText: "Upgrade to Premium",
-              variant: "default" as const,
-              highlighted: true
-            }
-          ]
-        };
-      case "colleges":
-        return {
-          title: "College Plans — Basic vs Advanced",
-          plans: [
-            {
-              name: "Basic Plan",
-              price: "₹999",
-              period: "/month",
-              description: "Essential tools for student tracking",
-              emoji: "🏫",
-              features: [
-                "Student Onboarding (CSV Upload) ✅",
-                "Task Assignments ✅",
-                "Proof Reviews (Manual) ✅",
-                "Basic Analytics ✅",
-                "Student Portfolio Access ✅"
-              ],
-              ctaText: "Start Basic Plan",
-              variant: "outline" as const
-            },
-            {
-              name: "Advanced Plan",
-              price: "₹2499",
-              period: "/month",
-              description: "Complete college management solution",
-              emoji: "🏆",
-              features: [
-                "Everything in Basic ✅",
-                "Auto Verification (AI) ✅",
-                "Analytics & Performance Reports ✅",
-                "Dedicated College Portal ✅",
-                "Priority Support ✅"
-              ],
-              ctaText: "Upgrade to Advanced",
-              variant: "default" as const,
-              highlighted: true
-            }
-          ]
-        };
-      case "startups":
-        return {
-          title: "Startup Plans — Free Trial vs Subscription",
-          plans: [
-            {
-              name: "Free Trial",
-              price: "₹0",
-              period: "/month",
-              description: "Try our platform risk-free",
-              emoji: "🚀",
-              features: [
-                "Post Tasks (Limited to 5) ✅",
-                "Discover Talent ✅",
-                "Review Submissions ✅",
-                "Basic Search Filters ✅"
-              ],
-              ctaText: "Start Free Trial",
-              variant: "outline" as const
-            },
-            {
-              name: "Subscription",
-              price: "₹1999",
-              period: "/month",
-              description: "Full access to our talent pool",
-              emoji: "💼",
-              features: [
-                "Unlimited Task Posting ✅",
-                "Advanced Talent Search ✅",
-                "Trust Score Access ✅",
-                "Startup Branding on Portal ✅",
-                "Early Applicant Access ✅"
-              ],
-              ctaText: "Upgrade to Full Access",
-              variant: "default" as const,
-              highlighted: true
-            }
-          ]
-        };
-      default:
-        return getPricingContent(); // fallback to students
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background font-sans scroll-smooth">
@@ -166,7 +41,6 @@ const Index = () => {
             
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <button onClick={() => scrollToSection('features')} className="text-muted-foreground hover:text-foreground transition-colors">Features</button>
               <button onClick={() => scrollToSection('workflow')} className="text-muted-foreground hover:text-foreground transition-colors">How It Works</button>
               <button onClick={() => scrollToSection('colleges')} className="text-muted-foreground hover:text-foreground transition-colors">For Colleges</button>
               <button onClick={() => scrollToSection('startups')} className="text-muted-foreground hover:text-foreground transition-colors">For Startups</button>
@@ -196,7 +70,6 @@ const Index = () => {
           {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 border-t border-border">
               <div className="flex flex-col space-y-4 pt-4">
-                <button onClick={() => scrollToSection('features')} className="text-left text-muted-foreground hover:text-foreground transition-colors">Features</button>
                 <button onClick={() => scrollToSection('workflow')} className="text-left text-muted-foreground hover:text-foreground transition-colors">How It Works</button>
                 <button onClick={() => scrollToSection('colleges')} className="text-left text-muted-foreground hover:text-foreground transition-colors">For Colleges</button>
                 <button onClick={() => scrollToSection('startups')} className="text-left text-muted-foreground hover:text-foreground transition-colors">For Startups</button>
@@ -295,7 +168,7 @@ const Index = () => {
             </TabsList>
 
             <TabsContent value="students">
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                 {[
                   {
                     icon: Target,
@@ -331,10 +204,17 @@ const Index = () => {
                   </Card>
                 ))}
               </div>
+              <div className="text-center">
+                <Button asChild size="lg" className="rounded-2xl px-8 py-4">
+                  <Link to="/pricing">
+                    See full pricing plans <ChevronRight className="w-5 h-5 ml-2" />
+                  </Link>
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="colleges">
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                 {[
                   {
                     icon: Users,
@@ -370,10 +250,17 @@ const Index = () => {
                   </Card>
                 ))}
               </div>
+              <div className="text-center">
+                <Button asChild size="lg" className="rounded-2xl px-8 py-4">
+                  <Link to="/pricing">
+                    See full pricing plans <ChevronRight className="w-5 h-5 ml-2" />
+                  </Link>
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="startups">
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                 {[
                   {
                     icon: Zap,
@@ -409,52 +296,18 @@ const Index = () => {
                   </Card>
                 ))}
               </div>
+              <div className="text-center">
+                <Button asChild size="lg" className="rounded-2xl px-8 py-4">
+                  <Link to="/pricing">
+                    See full pricing plans <ChevronRight className="w-5 h-5 ml-2" />
+                  </Link>
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
       </section>
 
-      {/* Dynamic Pricing Based on Active Tab */}
-      <section id="features" className="py-20 bg-muted/30">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-5xl font-bold text-foreground mb-6">
-              {getPricingContent().title}
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {getPricingContent().plans.map((plan, index) => (
-              <Card key={index} className={`rounded-2xl border-2 ${plan.highlighted ? 'border-primary shadow-lg' : ''} transition-all duration-300`}>
-                <CardHeader className="p-8 text-center">
-                  <div className="text-4xl mb-4">{plan.emoji}</div>
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <div className="text-3xl font-bold">
-                    {plan.price}<span className="text-base font-normal">{plan.period}</span>
-                  </div>
-                  <CardDescription className="text-lg">{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <div className="space-y-4 mb-6">
-                    {plan.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center space-x-3">
-                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Button 
-                    className="w-full rounded-2xl" 
-                    variant={plan.variant}
-                  >
-                    {plan.ctaText}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Colleges Section */}
       <section id="colleges" className="py-20">
@@ -643,7 +496,6 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="font-semibold">Product</h4>
               <div className="space-y-2">
-                <button onClick={() => scrollToSection('features')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">Features</button>
                 <Link to="/pricing" className="block text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
                 <button onClick={() => scrollToSection('workflow')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">For Students</button>
                 <button onClick={() => scrollToSection('colleges')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">For Colleges</button>

@@ -6,7 +6,11 @@ import { Calendar, Clock, Users, Edit, Trash2 } from "lucide-react";
 import { useStartupTasks } from "@/hooks/useStartupTasks";
 import { format } from "date-fns";
 
-export function StartupViewTasksPage() {
+interface StartupViewTasksPageProps {
+  onNavigateToPostTask: () => void;
+}
+
+export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksPageProps) {
   const { tasks, loading, error } = useStartupTasks();
 
   const getDescriptionSnippet = (description: string) => {
@@ -52,7 +56,7 @@ export function StartupViewTasksPage() {
           <h2 className="text-2xl font-bold">Posted Tasks</h2>
           <p className="text-muted-foreground">Manage your internship tasks</p>
         </div>
-        <Button>Post New Task</Button>
+        <Button onClick={onNavigateToPostTask}>Post New Task</Button>
       </div>
 
       <div className="flex gap-4 mb-6">

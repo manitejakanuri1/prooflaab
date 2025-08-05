@@ -6,14 +6,15 @@ import { StartupSettingsPage } from "./StartupSettingsPage";
 
 interface StartupDashboardContentProps {
   activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
-export function StartupDashboardContent({ activeTab }: StartupDashboardContentProps) {
+export function StartupDashboardContent({ activeTab, onTabChange }: StartupDashboardContentProps) {
   switch (activeTab) {
     case "post-task":
       return <StartupPostTaskPage />;
     case "view-tasks":
-      return <StartupViewTasksPage />;
+      return <StartupViewTasksPage onNavigateToPostTask={() => onTabChange("post-task")} />;
     case "submissions":
       return <StartupSubmissionsPage />;
     case "settings":

@@ -31,7 +31,7 @@ const StartupDashboard = () => {
           <StartupDashboardHeader />
           
           <main className="flex-1 p-6">
-            <StartupDashboardContent activeTab={activeTab} />
+            <StartupDashboardContent activeTab={activeTab} onTabChange={setActiveTab} />
           </main>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface StartupTask {
   id: string;
   title: string;
+  description?: string;
   deadline: string;
   status: string;
   created_at: string;
@@ -30,6 +31,7 @@ export function useStartupTasks() {
         .select(`
           id,
           title,
+          description,
           due_date,
           status,
           created_at
@@ -44,8 +46,9 @@ export function useStartupTasks() {
         const transformedTasks = data?.map(task => ({
           id: task.id,
           title: task.title,
+          description: task.description,
           deadline: task.due_date,
-          status: task.status || 'Open',
+          status: task.status || 'Pending',
           created_at: task.created_at,
           applicant_count: 0 // TODO: Count actual applicants when applications table is implemented
         })) || [];

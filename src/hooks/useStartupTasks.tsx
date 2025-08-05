@@ -1,0 +1,72 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface StartupTask {
+  id: string;
+  title: string;
+  deadline: string;
+  status: string;
+  created_at: string;
+  applicant_count?: number;
+}
+
+export function useStartupTasks() {
+  const [tasks, setTasks] = useState<StartupTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setError("User not authenticated");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("tasks")
+        .select(`
+          id,
+          title,
+          due_date,
+          status,
+          created_at
+        `)
+        .eq("created_by_startup_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        // Transform the data to match our interface
+        const transformedTasks = data?.map(task => ({
+          id: task.id,
+          title: task.title,
+          deadline: task.due_date,
+          status: task.status || 'Open',
+          created_at: task.created_at,
+          applicant_count: 0 // TODO: Count actual applicants when applications table is implemented
+        })) || [];
+        
+        setTasks(transformedTasks);
+      }
+    } catch (err) {
+      setError("Failed to fetch tasks");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  return {
+    tasks,
+    loading,
+    error,
+    refetch: fetchTasks
+  };
+}

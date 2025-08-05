@@ -18,6 +18,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useStartupTasks } from "@/hooks/useStartupTasks";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Eye } from "lucide-react";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Task title is required"),
@@ -36,6 +39,7 @@ export function StartupPostTaskPage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { tasks, loading, error, refetch } = useStartupTasks();
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -91,6 +95,7 @@ export function StartupPostTaskPage() {
         toast.success("Task posted successfully!");
         form.reset();
         setSkills([]);
+        refetch(); // Refresh the tasks list
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -273,6 +278,63 @@ export function StartupPostTaskPage() {
               </div>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      {/* Posted Tasks Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Posted Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-4">Loading tasks...</div>
+          ) : error ? (
+            <div className="text-center py-4 text-destructive">Error: {error}</div>
+          ) : tasks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No tasks posted yet. Create your first task above!
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Task Title</TableHead>
+                  <TableHead>No. of Applicants</TableHead>
+                  <TableHead>Deadline</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell className="font-medium">{task.title}</TableCell>
+                    <TableCell>{task.applicant_count || 0}</TableCell>
+                    <TableCell>{format(new Date(task.deadline), "MMM dd, yyyy")}</TableCell>
+                    <TableCell>
+                      <Badge variant={task.status === 'Open' ? 'default' : 'secondary'}>
+                        {task.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // TODO: Navigate to applicants view or open modal
+                          toast.info("Applicants view coming soon!");
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Applicants
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

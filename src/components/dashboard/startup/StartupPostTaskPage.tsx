@@ -86,7 +86,7 @@ export function StartupPostTaskPage() {
           is_paid: data.isPaid,
           required_skills: data.requiredSkills,
           created_by_startup_id: user.id,
-          status: 'Open',
+          status: 'Pending',
         });
 
       if (error) {

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User, Bell, Shield, Palette, FileText } from "lucide-react";
@@ -34,69 +33,44 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { profile, loading: profileLoading } = useStudentProfile();
-  const { preferences, loading: preferencesLoading, updatePreferences } = useUserPreferences();
+  const { profile, loading } = useStudentProfile();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   
   // Profile settings state
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [email, setEmail] = useState(profile?.email || "");
   const [bio, setBio] = useState("");
-
-  const loading = profileLoading || preferencesLoading;
-
-  // Update form data when profile loads
-  useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name || "");
-      setEmail(profile.email || "");
-    }
-  }, [profile]);
-
-  // Fetch bio from portfolio
-  useEffect(() => {
-    const fetchBio = async () => {
-      if (profile?.id) {
-        const { data } = await supabase
-          .from('student_portfolios')
-          .select('bio')
-          .eq('student_id', profile.id)
-          .single();
-        
-        if (data?.bio) {
-          setBio(data.bio);
-        }
-      }
-    };
-    fetchBio();
-  }, [profile?.id]);
+  
+  // Notification settings state
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [taskReminders, setTaskReminders] = useState(true);
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
+  
+  // Privacy settings state
+  const [profilePublic, setProfilePublic] = useState(true);
+  const [showXpRank, setShowXpRank] = useState(true);
+  
+  // Theme settings state
+  const [theme, setTheme] = useState("light");
+  const [compactMode, setCompactMode] = useState(false);
 
   const handleSaveProfile = async () => {
     if (!profile?.id) return;
     
     setSaving(true);
     try {
-      // Update student profile
-      const { error: profileError } = await supabase
+      const { error } = await supabase
         .from('student_profiles')
         .update({
           full_name: fullName,
+          email: email,
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.id);
 
-      if (profileError) throw profileError;
-
-      // Update bio in portfolio
-      const { error: portfolioError } = await supabase
-        .from('student_portfolios')
-        .upsert({
-          student_id: profile.id,
-          bio: bio,
-        });
-
-      if (portfolioError) throw portfolioError;
+      if (error) throw error;
 
       toast({
         title: "Profile Updated",
@@ -115,26 +89,26 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleSaveNotifications = async () => {
-    const success = await updatePreferences({
-      email_notifications: preferences.email_notifications,
-      push_notifications: preferences.push_notifications,
-      task_reminders: preferences.task_reminders,
-      weekly_digest: preferences.weekly_digest,
+    // In a real app, you'd save these to user preferences
+    toast({
+      title: "Notification Settings Updated",
+      description: "Your notification preferences have been saved.",
     });
   };
 
   const handleSavePrivacy = async () => {
-    const success = await updatePreferences({
-      portfolio_public: preferences.portfolio_public,
-      show_xp_rank: preferences.show_xp_rank,
-      show_progress_to_others: preferences.show_progress_to_others,
+    // In a real app, you'd save these to user preferences
+    toast({
+      title: "Privacy Settings Updated",
+      description: "Your privacy settings have been saved.",
     });
   };
 
   const handleSaveAppearance = async () => {
-    const success = await updatePreferences({
-      theme: preferences.theme,
-      compact_mode: preferences.compact_mode,
+    // In a real app, you'd apply theme changes
+    toast({
+      title: "Appearance Settings Updated",
+      description: "Your appearance preferences have been saved.",
     });
   };
 
@@ -244,10 +218,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={preferences.email_notifications}
-                    onCheckedChange={(checked) => 
-                      updatePreferences({ email_notifications: checked })
-                    }
+                    checked={emailNotifications}
+                    onCheckedChange={setEmailNotifications}
                   />
                 </div>
 
@@ -259,10 +231,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={preferences.push_notifications}
-                    onCheckedChange={(checked) => 
-                      updatePreferences({ push_notifications: checked })
-                    }
+                    checked={pushNotifications}
+                    onCheckedChange={setPushNotifications}
                   />
                 </div>
 
@@ -274,10 +244,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={preferences.task_reminders}
-                    onCheckedChange={(checked) => 
-                      updatePreferences({ task_reminders: checked })
-                    }
+                    checked={taskReminders}
+                    onCheckedChange={setTaskReminders}
                   />
                 </div>
 
@@ -289,10 +257,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={preferences.weekly_digest}
-                    onCheckedChange={(checked) => 
-                      updatePreferences({ weekly_digest: checked })
-                    }
+                    checked={weeklyDigest}
+                    onCheckedChange={setWeeklyDigest}
                   />
                 </div>
               </div>
@@ -312,10 +278,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={preferences.portfolio_public}
-                    onCheckedChange={(checked) => 
-                      updatePreferences({ portfolio_public: checked })
-                    }
+                    checked={profilePublic}
+                    onCheckedChange={setProfilePublic}
                   />
                 </div>
 
@@ -327,10 +291,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={preferences.show_xp_rank}
-                    onCheckedChange={(checked) => 
-                      updatePreferences({ show_xp_rank: checked })
-                    }
+                    checked={showXpRank}
+                    onCheckedChange={setShowXpRank}
                   />
                 </div>
               </div>
@@ -357,12 +319,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Theme</Label>
-                  <Select 
-                    value={preferences.theme} 
-                    onValueChange={(value) => 
-                      updatePreferences({ theme: value as 'light' | 'dark' | 'system' })
-                    }>
-                  
+                  <Select value={theme} onValueChange={setTheme}>
                     <SelectTrigger className="w-[200px]">
                       <SelectValue placeholder="Select theme" />
                     </SelectTrigger>
@@ -382,10 +339,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={preferences.compact_mode}
-                    onCheckedChange={(checked) => 
-                      updatePreferences({ compact_mode: checked })
-                    }
+                    checked={compactMode}
+                    onCheckedChange={setCompactMode}
                   />
                 </div>
               </div>

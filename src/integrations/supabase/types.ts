@@ -522,54 +522,6 @@ export type Database = {
           },
         ]
       }
-      user_preferences: {
-        Row: {
-          compact_mode: boolean | null
-          created_at: string
-          email_notifications: boolean | null
-          id: string
-          portfolio_public: boolean | null
-          push_notifications: boolean | null
-          show_progress_to_others: boolean | null
-          show_xp_rank: boolean | null
-          task_reminders: boolean | null
-          theme: string | null
-          updated_at: string
-          user_id: string
-          weekly_digest: boolean | null
-        }
-        Insert: {
-          compact_mode?: boolean | null
-          created_at?: string
-          email_notifications?: boolean | null
-          id?: string
-          portfolio_public?: boolean | null
-          push_notifications?: boolean | null
-          show_progress_to_others?: boolean | null
-          show_xp_rank?: boolean | null
-          task_reminders?: boolean | null
-          theme?: string | null
-          updated_at?: string
-          user_id: string
-          weekly_digest?: boolean | null
-        }
-        Update: {
-          compact_mode?: boolean | null
-          created_at?: string
-          email_notifications?: boolean | null
-          id?: string
-          portfolio_public?: boolean | null
-          push_notifications?: boolean | null
-          show_progress_to_others?: boolean | null
-          show_xp_rank?: boolean | null
-          task_reminders?: boolean | null
-          theme?: string | null
-          updated_at?: string
-          user_id?: string
-          weekly_digest?: boolean | null
-        }
-        Relationships: []
-      }
       xp_logs: {
         Row: {
           created_at: string

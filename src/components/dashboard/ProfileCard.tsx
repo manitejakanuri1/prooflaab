@@ -1,11 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Mail, Award, Trophy, Camera } from "lucide-react";
-import ProfilePhotoModal from "./ProfilePhotoModal";
+import { Mail, Award, Trophy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
   name: string;
@@ -18,39 +17,20 @@ interface Student {
 
 interface ProfileCardProps {
   student: Student;
-  profileId: string;
-  onPhotoUpdate?: (newUrl: string | null) => void;
 }
 
-export default function ProfileCard({ student, profileId, onPhotoUpdate }: ProfileCardProps) {
-  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
-  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(student.profilePhoto);
-
-  const handlePhotoUpdate = (newUrl: string | null) => {
-    setCurrentPhotoUrl(newUrl);
-    onPhotoUpdate?.(newUrl);
-  };
+export default function ProfileCard({ student }: ProfileCardProps) {
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl overflow-hidden">
       <CardContent className="p-0">
         {/* Profile Image Section */}
         <div className="relative h-48 bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
-          <div className="relative group">
-            <Avatar className="h-24 w-24 border-4 border-white shadow-lg cursor-pointer" onClick={() => setIsPhotoModalOpen(true)}>
-              <AvatarImage src={currentPhotoUrl || ""} alt={student.name} />
-              <AvatarFallback className="bg-gray-900 text-white text-2xl font-bold">
-                {student.name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => setIsPhotoModalOpen(true)}
-            >
-              <Camera className="h-4 w-4" />
-            </Button>
-          </div>
+          <Avatar className="h-24 w-24 border-4 border-white shadow-lg">
+            <AvatarImage src={student.profilePhoto || ""} alt={student.name} />
+            <AvatarFallback className="bg-gray-900 text-white text-2xl font-bold">
+              {student.name.split(' ').map(n => n[0]).join('')}
+            </AvatarFallback>
+          </Avatar>
         </div>
 
         {/* Profile Info */}
@@ -101,16 +81,6 @@ export default function ProfileCard({ student, profileId, onPhotoUpdate }: Profi
           </div>
         </div>
       </CardContent>
-
-      {/* Profile Photo Modal */}
-      <ProfilePhotoModal
-        isOpen={isPhotoModalOpen}
-        onClose={() => setIsPhotoModalOpen(false)}
-        currentPhotoUrl={currentPhotoUrl}
-        userName={student.name}
-        userId={profileId}
-        onPhotoUpdate={handlePhotoUpdate}
-      />
     </Card>
   );
 }

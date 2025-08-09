@@ -45,7 +45,6 @@ export const usePortfolioProjects = (studentId: string) => {
             )
           `)
           .eq('student_id', studentId)
-          .eq('status', 'Verified')
           .order('submitted_at', { ascending: false });
 
         if (fetchError) throw fetchError;

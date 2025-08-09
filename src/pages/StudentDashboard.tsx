@@ -27,7 +27,6 @@ const StudentDashboard = () => {
         profilePhoto={profile?.profile_photo_url}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         showMenuButton={isMobile}
-        onPhotoUpdate={() => refreshProfile()}
       />
       
       <div className="flex relative">

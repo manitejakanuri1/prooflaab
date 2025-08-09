@@ -12,7 +12,7 @@ interface Student {
 }
 
 export default function ProfileCardContainer() {
-  const { profile, rank, loading, error, refreshProfile } = useStudentProfile();
+  const { profile, rank, loading, error } = useStudentProfile();
 
   if (loading) {
     return (
@@ -39,18 +39,5 @@ export default function ProfileCardContainer() {
     rank: rank
   };
 
-  const handlePhotoUpdate = (newUrl: string | null) => {
-    // Refresh profile data to get the updated photo everywhere
-    if (refreshProfile) {
-      refreshProfile();
-    }
-  };
-
-  return (
-    <ProfileCard 
-      student={studentData} 
-      profileId={profile.id}
-      onPhotoUpdate={handlePhotoUpdate}
-    />
-  );
+  return <ProfileCard student={studentData} />;
 }

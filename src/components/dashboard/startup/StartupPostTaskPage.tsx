@@ -31,6 +31,9 @@ const taskSchema = z.object({
     message: "Deadline is required",
   }),
   requiredSkills: z.array(z.string()).min(1, "At least one skill is required"),
+  xpReward: z.number().min(10, "XP reward must be at least 10").max(1000, "XP reward cannot exceed 1000"),
+  category: z.string().min(1, "Category is required"),
+  visibility: z.enum(["public", "restricted"]),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -49,6 +52,9 @@ export function StartupPostTaskPage() {
       duration: 1,
       isPaid: false,
       requiredSkills: [],
+      xpReward: 50,
+      category: "General",
+      visibility: "public" as const,
     },
   });
 
@@ -87,6 +93,9 @@ export function StartupPostTaskPage() {
           required_skills: data.requiredSkills,
           created_by_startup_id: user.id,
           status: 'Pending',
+          xp_reward: data.xpReward,
+          category: data.category,
+          visibility: data.visibility,
         });
 
       if (error) {
@@ -236,6 +245,77 @@ export function StartupPostTaskPage() {
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="xpReward"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>XP Reward</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="50" 
+                          min="10"
+                          max="1000"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 50)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="General">General</SelectItem>
+                          <SelectItem value="Frontend">Frontend</SelectItem>
+                          <SelectItem value="Backend">Backend</SelectItem>
+                          <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Mobile">Mobile</SelectItem>
+                          <SelectItem value="Data Science">Data Science</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="visibility"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Visibility</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select visibility" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="public">Public</SelectItem>
+                          <SelectItem value="restricted">Restricted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="space-y-2">
                 <Label>Required Skills</Label>

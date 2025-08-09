@@ -255,6 +255,36 @@ export type Database = {
           },
         ]
       }
+      startup_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          startup_user_id: string
+          title: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          startup_user_id: string
+          title: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          startup_user_id?: string
+          title?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
       student_otps: {
         Row: {
           created_at: string

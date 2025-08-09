@@ -1,5 +1,6 @@
 
 import { useParams } from "react-router-dom";
+import { useEffect } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { usePortfolioProjects } from "@/hooks/usePortfolioProjects";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,9 +23,22 @@ const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
   
   const { portfolio, loading, error } = usePortfolio(slug);
-  const { projects, loading: projectsLoading } = usePortfolioProjects(
+  const { projects, loading: projectsLoading, error: projectsError } = usePortfolioProjects(
     portfolio?.student_id || ""
   );
+
+  // Debug logging for API responses
+  useEffect(() => {
+    console.log('Portfolio API Response:', { portfolio, loading, error });
+  }, [portfolio, loading, error]);
+
+  useEffect(() => {
+    console.log('Projects API Response:', { projects, loading: projectsLoading, error: projectsError });
+  }, [projects, projectsLoading, projectsError]);
+
+  const handleRetry = () => {
+    window.location.reload();
+  };
 
   if (loading) {
     return (
@@ -38,17 +52,28 @@ const Portfolio = () => {
   }
 
   if (error || !portfolio) {
+    const isInvalidSlug = error === 'Portfolio not found' || !portfolio;
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Portfolio Not Found</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              {isInvalidSlug ? 'Portfolio Not Found' : 'Something Went Wrong'}
+            </h1>
             <p className="text-gray-600 mb-4">
-              This portfolio doesn't exist or is set to private.
+              {isInvalidSlug 
+                ? 'This portfolio link is invalid or has been removed.'
+                : 'We encountered an error loading this portfolio.'
+              }
             </p>
-            <Button onClick={() => window.location.href = '/'}>
-              Go to ProofLabAI
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={handleRetry}>
+                Try Again
+              </Button>
+              <Button onClick={() => window.location.href = '/'}>
+                Go to ProofLabAI
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -182,6 +207,14 @@ const Portfolio = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading projects...</p>
               </div>
+            ) : projectsError ? (
+              <div className="text-center py-12">
+                <XCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Failed to load projects</p>
+                <Button variant="outline" onClick={handleRetry}>
+                  Try Again
+                </Button>
+              </div>
             ) : projects.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {projects.map((project) => (
@@ -236,7 +269,8 @@ const Portfolio = () => {
             ) : (
               <div className="text-center py-12">
                 <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No projects uploaded yet</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Public Projects Yet</h3>
+                <p className="text-gray-500">Complete tasks and mark them public to showcase here.</p>
               </div>
             )}
           </CardContent>

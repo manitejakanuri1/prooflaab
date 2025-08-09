@@ -57,9 +57,9 @@ const ManageResourcesPage = () => {
   const [formData, setFormData] = useState<ResourceFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useState({
-    platform: "",
-    branch: "",
-    type: ""
+    platform: "all",
+    branch: "all",
+    type: "all"
   });
   const { toast } = useToast();
 
@@ -183,13 +183,13 @@ const ManageResourcesPage = () => {
   const applyFilters = () => {
     let filtered = resources;
 
-    if (filters.platform) {
+    if (filters.platform && filters.platform !== "all") {
       filtered = filtered.filter(resource => resource.platform === filters.platform);
     }
-    if (filters.branch) {
+    if (filters.branch && filters.branch !== "all") {
       filtered = filtered.filter(resource => resource.branch === filters.branch);
     }
-    if (filters.type) {
+    if (filters.type && filters.type !== "all") {
       if (filters.type === "free") {
         filtered = filtered.filter(resource => !resource.is_premium);
       } else if (filters.type === "premium") {
@@ -205,7 +205,7 @@ const ManageResourcesPage = () => {
   }, [filters, resources]);
 
   const clearFilters = () => {
-    setFilters({ platform: "", branch: "", type: "" });
+    setFilters({ platform: "all", branch: "all", type: "all" });
   };
 
   if (loading) {
@@ -347,7 +347,7 @@ const ManageResourcesPage = () => {
                   <SelectValue placeholder="Platform" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Platforms</SelectItem>
+                  <SelectItem value="all">All Platforms</SelectItem>
                   {platforms.map((platform) => (
                     <SelectItem key={platform} value={platform}>{platform}</SelectItem>
                   ))}
@@ -359,7 +359,7 @@ const ManageResourcesPage = () => {
                   <SelectValue placeholder="Branch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Branches</SelectItem>
+                  <SelectItem value="all">All Branches</SelectItem>
                   {branches.map((branch) => (
                     <SelectItem key={branch} value={branch}>{branch}</SelectItem>
                   ))}
@@ -371,7 +371,7 @@ const ManageResourcesPage = () => {
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="free">Free</SelectItem>
                   <SelectItem value="premium">Premium</SelectItem>
                 </SelectContent>

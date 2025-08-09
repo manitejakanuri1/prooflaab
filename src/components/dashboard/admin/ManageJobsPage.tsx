@@ -63,10 +63,10 @@ const ManageJobsPage = () => {
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useState({
-    jobType: "",
-    location: "",
-    branch: "",
-    status: ""
+    jobType: "all",
+    location: "all",
+    branch: "all",
+    status: "all"
   });
   const { toast } = useToast();
 
@@ -211,16 +211,16 @@ const ManageJobsPage = () => {
   const applyFilters = () => {
     let filtered = jobs;
 
-    if (filters.jobType) {
+    if (filters.jobType && filters.jobType !== "all") {
       filtered = filtered.filter(job => job.job_type === filters.jobType);
     }
-    if (filters.location) {
+    if (filters.location && filters.location !== "all") {
       filtered = filtered.filter(job => job.location === filters.location);
     }
-    if (filters.branch) {
+    if (filters.branch && filters.branch !== "all") {
       filtered = filtered.filter(job => job.eligible_branch === filters.branch);
     }
-    if (filters.status) {
+    if (filters.status && filters.status !== "all") {
       if (filters.status === "active") {
         filtered = filtered.filter(job => !isDeadlinePassed(job.deadline));
       } else if (filters.status === "expired") {
@@ -236,7 +236,7 @@ const ManageJobsPage = () => {
   }, [filters, jobs]);
 
   const clearFilters = () => {
-    setFilters({ jobType: "", location: "", branch: "", status: "" });
+    setFilters({ jobType: "all", location: "all", branch: "all", status: "all" });
   };
 
   if (loading) {
@@ -414,7 +414,7 @@ const ManageJobsPage = () => {
                   <SelectValue placeholder="Job Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   {jobTypes.map((type) => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -426,7 +426,7 @@ const ManageJobsPage = () => {
                   <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Locations</SelectItem>
+                  <SelectItem value="all">All Locations</SelectItem>
                   {locations.map((location) => (
                     <SelectItem key={location} value={location}>{location}</SelectItem>
                   ))}
@@ -438,7 +438,7 @@ const ManageJobsPage = () => {
                   <SelectValue placeholder="Branch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Branches</SelectItem>
+                  <SelectItem value="all">All Branches</SelectItem>
                   {branches.map((branch) => (
                     <SelectItem key={branch} value={branch}>{branch}</SelectItem>
                   ))}
@@ -450,7 +450,7 @@ const ManageJobsPage = () => {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>

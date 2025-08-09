@@ -39,5 +39,16 @@ export default function ProfileCardContainer() {
     rank: rank
   };
 
-  return <ProfileCard student={studentData} />;
+  const handlePhotoUpdate = (newUrl: string | null) => {
+    // This will trigger a refresh of the profile data
+    window.location.reload();
+  };
+
+  return (
+    <ProfileCard 
+      student={studentData} 
+      profileId={profile.id}
+      onPhotoUpdate={handlePhotoUpdate}
+    />
+  );
 }

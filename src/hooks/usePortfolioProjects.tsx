@@ -23,7 +23,11 @@ export const usePortfolioProjects = (studentId: string) => {
 
   useEffect(() => {
     const fetchProjects = async () => {
-      if (!studentId) return;
+      if (!studentId) {
+        setLoading(false);
+        setProjects([]);
+        return;
+      }
 
       try {
         setLoading(true);

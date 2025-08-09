@@ -33,16 +33,31 @@ export const useAvailableTasks = () => {
   return useQuery({
     queryKey: ['available-tasks', user?.id],
     queryFn: async () => {
-      if (!user) return [];
+      console.log('useAvailableTasks called with user:', user?.id);
+      
+      if (!user?.id) {
+        console.log('No user ID available');
+        return [];
+      }
 
       // Get student profile ID
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('student_profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!profile) return [];
+      console.log('Student profile lookup:', { profile, profileError, userId: user.id });
+
+      if (profileError) {
+        console.error('Error fetching student profile:', profileError);
+        throw profileError;
+      }
+
+      if (!profile) {
+        console.log('No student profile found for user:', user.id);
+        return [];
+      }
 
       // Get available tasks (public visibility, not assigned to anyone, not expired)
       const { data: tasks, error: tasksError } = await supabase

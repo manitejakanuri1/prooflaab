@@ -20,10 +20,10 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
     switch (activeTab) {
       case "dashboard":
         return <StudentDashboardOverview />;
-      case "tasks":
-        return <StudentTasksPage />;
       case "available-tasks":
         return <StudentAvailableTasksPage />;
+      case "tasks":
+        return <StudentTasksPage />;
       case "applications":
         return <StudentApplicationsPage />;
       case "uploads":

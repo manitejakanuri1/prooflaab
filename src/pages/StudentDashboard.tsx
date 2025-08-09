@@ -20,6 +20,9 @@ const StudentDashboard = () => {
     );
   }
 
+  console.log("Student Dashboard - Profile data:", profile);
+  console.log("Student Dashboard - Profile full_name:", profile?.full_name);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
       <StudentHeader 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Lock, Bell, Eye, Save } from "lucide-react";
@@ -18,21 +19,15 @@ interface StudentSettingsPageProps {
 }
 
 const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
-  const { profile, loading } = useStudentProfile();
+  const { profile, loading: profileLoading } = useStudentProfile();
+  const { preferences, loading: preferencesLoading, updatePreferences } = useUserPreferences();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || '',
-    email: profile?.email || '',
+    full_name: '',
+    email: '',
     bio: '',
     skills: [] as string[],
-  });
-  
-  const [preferences, setPreferences] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    portfolioPublic: true,
-    showProgressToOthers: false,
   });
   
   const [passwordData, setPasswordData] = useState({
@@ -44,6 +39,39 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
   const [saving, setSaving] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState(profile?.profile_photo_url || null);
+
+  // Update form data when profile loads
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+        bio: '',
+        skills: [],
+      });
+      setCurrentPhotoUrl(profile.profile_photo_url || null);
+    }
+  }, [profile]);
+
+  // Fetch bio from portfolio
+  useEffect(() => {
+    const fetchBio = async () => {
+      if (profile?.id) {
+        const { data } = await supabase
+          .from('student_portfolios')
+          .select('bio')
+          .eq('student_id', profile.id)
+          .single();
+        
+        if (data?.bio) {
+          setFormData(prev => ({ ...prev, bio: data.bio }));
+        }
+      }
+    };
+    fetchBio();
+  }, [profile?.id]);
+
+  const loading = profileLoading || preferencesLoading;
 
   if (loading) {
     return (
@@ -87,10 +115,10 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
       // Update bio in student_portfolios
       const { error: portfolioError } = await supabase
         .from('student_portfolios')
-        .update({
+        .upsert({
+          student_id: profile?.id,
           bio: formData.bio,
-        })
-        .eq('student_id', profile?.id);
+        });
 
       if (portfolioError) throw portfolioError;
 
@@ -283,9 +311,9 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               <p className="text-sm text-gray-600">Receive notifications via email</p>
             </div>
             <Switch
-              checked={preferences.emailNotifications}
+              checked={preferences.email_notifications}
               onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, emailNotifications: checked })
+                updatePreferences({ email_notifications: checked })
               }
             />
           </div>
@@ -298,9 +326,9 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               <p className="text-sm text-gray-600">Receive push notifications in browser</p>
             </div>
             <Switch
-              checked={preferences.pushNotifications}
+              checked={preferences.push_notifications}
               onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, pushNotifications: checked })
+                updatePreferences({ push_notifications: checked })
               }
             />
           </div>
@@ -322,9 +350,9 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               <p className="text-sm text-gray-600">Make your portfolio visible to others</p>
             </div>
             <Switch
-              checked={preferences.portfolioPublic}
+              checked={preferences.portfolio_public}
               onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, portfolioPublic: checked })
+                updatePreferences({ portfolio_public: checked })
               }
             />
           </div>
@@ -337,9 +365,9 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               <p className="text-sm text-gray-600">Allow others to see your progress and stats</p>
             </div>
             <Switch
-              checked={preferences.showProgressToOthers}
+              checked={preferences.show_progress_to_others}
               onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, showProgressToOthers: checked })
+                updatePreferences({ show_progress_to_others: checked })
               }
             />
           </div>

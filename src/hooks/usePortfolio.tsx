@@ -60,7 +60,7 @@ export const usePortfolio = (slug?: string) => {
           throw new Error('No user or slug provided');
         }
 
-        const { data, error: fetchError } = await query.single();
+        const { data, error: fetchError } = await query.maybeSingle();
 
         if (fetchError) {
           if (fetchError.code === 'PGRST116') {

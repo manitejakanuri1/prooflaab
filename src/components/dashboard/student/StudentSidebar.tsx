@@ -22,7 +22,9 @@ interface StudentSidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "available-tasks", label: "Available Tasks", icon: Briefcase },
   { id: "tasks", label: "My Tasks", icon: ClipboardList },
+  { id: "applications", label: "My Applications", icon: Upload },
   { id: "uploads", label: "My Uploads", icon: Upload },
   { id: "portfolio", label: "My Portfolio", icon: User },
   { id: "progress", label: "Progress & XP", icon: TrendingUp },

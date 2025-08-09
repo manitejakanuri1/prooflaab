@@ -16,7 +16,7 @@ export function StartupDashboardContent({ activeTab, onTabChange }: StartupDashb
       return <StartupPostTaskPage />;
     case "view-tasks":
       return <StartupViewTasksPage onNavigateToPostTask={() => onTabChange("post-task")} />;
-    case "applications":
+    case "view-applications":
       return <StartupViewApplicationsPage />;
     case "submissions":
       return <StartupSubmissionsPage />;

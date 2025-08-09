@@ -51,7 +51,7 @@ export const useAvailableTasks = () => {
         .eq('visibility', 'public')
         .is('student_id', null) // Not assigned to any student yet
         .gte('due_date', new Date().toISOString()) // Not expired
-        .in('status', ['Pending', 'Active'])
+        .in('status', ['Pending'])
         .order('created_at', { ascending: false });
 
       if (tasksError) throw tasksError;

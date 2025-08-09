@@ -21,6 +21,7 @@ const sidebarItems = [
   { id: "dashboard", title: "Dashboard Home", icon: Home },
   { id: "post-task", title: "Post Task", icon: Plus },
   { id: "view-tasks", title: "View Posted Tasks", icon: List },
+  { id: "view-applications", title: "View Applications", icon: FileText },
   { id: "submissions", title: "Student Submissions", icon: FileText },
   { id: "settings", title: "Settings", icon: Settings },
 ];

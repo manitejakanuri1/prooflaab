@@ -21,14 +21,10 @@ import { format } from "date-fns";
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
   
-  console.log("Portfolio component loaded with slug:", slug);
-  
   const { portfolio, loading, error } = usePortfolio(slug);
   const { projects, loading: projectsLoading } = usePortfolioProjects(
     portfolio?.student_id || ""
   );
-
-  console.log("Portfolio data:", { portfolio, loading, error });
 
   if (loading) {
     return (
@@ -42,7 +38,6 @@ const Portfolio = () => {
   }
 
   if (error || !portfolio) {
-    console.log("Portfolio error or not found:", { error, portfolio });
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -90,7 +85,7 @@ const Portfolio = () => {
     return 'Building Trust';
   };
 
-  const trustScore = portfolio.student_profiles.trust_score || 0;
+  const trustScore = portfolio?.student_profiles?.trust_score || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
@@ -119,24 +114,24 @@ const Portfolio = () => {
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <Avatar className="h-24 w-24">
                 <AvatarImage 
-                  src={portfolio.student_profiles.profile_photo_url || ""} 
-                  alt={portfolio.student_profiles.full_name} 
+                  src={portfolio?.student_profiles?.profile_photo_url || ""} 
+                  alt={portfolio?.student_profiles?.full_name || "Student"} 
                 />
                 <AvatarFallback className="text-2xl">
-                  {portfolio.student_profiles.full_name.split(" ").map(n => n[0]).join("")}
+                  {portfolio?.student_profiles?.full_name?.split(" ").map(n => n[0]).join("") || "S"}
                 </AvatarFallback>
               </Avatar>
               
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {portfolio.student_profiles.full_name}
+                  {portfolio?.student_profiles?.full_name || "Student"}
                 </h1>
                 <p className="text-gray-600 mb-4">
-                  {portfolio.bio || "Passionate student building skills through hands-on projects."}
+                  {portfolio?.bio || "Passionate student building skills through hands-on projects."}
                 </p>
                 
                 {/* Skills */}
-                {portfolio.skills && portfolio.skills.length > 0 && (
+                {portfolio?.skills && portfolio.skills.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
                     {portfolio.skills.map((skill, index) => (
                       <Badge key={index} variant="secondary">
@@ -150,7 +145,7 @@ const Portfolio = () => {
                 <div className="flex flex-wrap gap-6 text-sm">
                   <div className="flex items-center gap-2">
                     <Star className="h-4 w-4 text-yellow-500" />
-                    <span className="font-medium">{portfolio.student_profiles.total_xp || 0} XP</span>
+                    <span className="font-medium">{portfolio?.student_profiles?.total_xp || 0} XP</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Trophy className={`h-4 w-4 ${getTrustScoreColor(trustScore)}`} />
@@ -161,7 +156,7 @@ const Portfolio = () => {
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-gray-500" />
                     <a 
-                      href={`mailto:${portfolio.student_profiles.email}`}
+                      href={`mailto:${portfolio?.student_profiles?.email || ''}`}
                       className="text-blue-600 hover:text-blue-800"
                     >
                       Connect with me

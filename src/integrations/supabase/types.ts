@@ -405,8 +405,73 @@ export type Database = {
         }
         Relationships: []
       }
+      task_applications: {
+        Row: {
+          application_note: string | null
+          created_at: string
+          id: string
+          portfolio_link: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          application_note?: string | null
+          created_at?: string
+          id?: string
+          portfolio_link?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          application_note?: string | null
+          created_at?: string
+          id?: string
+          portfolio_link?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_applications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_applications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_applications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
+          category: string | null
           completed_at: string | null
           created_at: string | null
           created_by_startup_id: string | null
@@ -423,10 +488,12 @@ export type Database = {
           title: string
           updated_at: string | null
           upload_deadline: string | null
+          visibility: string | null
           xp: number | null
           xp_reward: number | null
         }
         Insert: {
+          category?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by_startup_id?: string | null
@@ -443,10 +510,12 @@ export type Database = {
           title: string
           updated_at?: string | null
           upload_deadline?: string | null
+          visibility?: string | null
           xp?: number | null
           xp_reward?: number | null
         }
         Update: {
+          category?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by_startup_id?: string | null
@@ -463,6 +532,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
           upload_deadline?: string | null
+          visibility?: string | null
           xp?: number | null
           xp_reward?: number | null
         }

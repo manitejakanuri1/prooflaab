@@ -8,6 +8,8 @@ import { useMonthlyXP } from "@/hooks/useMonthlyXP";
 import { useWeeklyWorkTime } from "@/hooks/useWeeklyWorkTime";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { formatDistanceToNow } from "date-fns";
+import ProfileCardContainer from "../ProfileCardContainer";
+import PortfolioCard from "../PortfolioCard";
 
 const StudentDashboardOverview = () => {
   const { profile, rank, loading: profileLoading } = useStudentProfile();
@@ -87,8 +89,15 @@ const StudentDashboardOverview = () => {
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Profile and Summary Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Profile Card */}
+        <div className="lg:col-span-1">
+          <ProfileCardContainer />
+        </div>
+        
+        {/* Summary Cards */}
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {summaryCards.map((card, index) => {
           const Icon = card.icon;
           return (
@@ -107,6 +116,7 @@ const StudentDashboardOverview = () => {
             </Card>
           );
         })}
+        </div>
       </div>
 
       {/* Ongoing Tasks */}
@@ -171,6 +181,9 @@ const StudentDashboardOverview = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Portfolio Section */}
+      <PortfolioCard />
 
       {/* Recent Activity Feed */}
       <Card>

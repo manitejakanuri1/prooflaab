@@ -11,7 +11,7 @@ interface ProfilePhotoModalProps {
   onClose: () => void;
   currentPhotoUrl?: string | null;
   userName: string;
-  userId: string;
+  userId: string; // This should be the student profile ID
   onPhotoUpdate: (newUrl: string | null) => void;
 }
 
@@ -63,9 +63,13 @@ const ProfilePhotoModal = ({
 
     setUploading(true);
     try {
-      // Upload to Supabase storage
+      // Get current user for the folder name
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Upload to Supabase storage using auth user ID for folder name
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${Math.random()}.${fileExt}`;
+      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
       
       // Upload file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -82,7 +86,7 @@ const ProfilePhotoModal = ({
         .from('profile-photos')
         .getPublicUrl(fileName);
       
-      // Update the profile in the database
+      // Update the profile in the database using student profile ID
       const { error } = await supabase
         .from('student_profiles')
         .update({ profile_photo_url: publicUrl })

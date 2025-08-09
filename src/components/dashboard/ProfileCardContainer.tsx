@@ -12,7 +12,7 @@ interface Student {
 }
 
 export default function ProfileCardContainer() {
-  const { profile, rank, loading, error } = useStudentProfile();
+  const { profile, rank, loading, error, refreshProfile } = useStudentProfile();
 
   if (loading) {
     return (
@@ -40,8 +40,10 @@ export default function ProfileCardContainer() {
   };
 
   const handlePhotoUpdate = (newUrl: string | null) => {
-    // This will trigger a refresh of the profile data
-    window.location.reload();
+    // Refresh profile data to get the updated photo everywhere
+    if (refreshProfile) {
+      refreshProfile();
+    }
   };
 
   return (

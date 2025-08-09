@@ -1,20 +1,28 @@
+import { useState } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ProfilePhotoModal from "../ProfilePhotoModal";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
 
 interface StudentHeaderProps {
   studentName: string;
   profilePhoto?: string | null;
   onMenuClick: () => void;
   showMenuButton: boolean;
+  onPhotoUpdate?: () => void;
 }
 
 const StudentHeader = ({ 
   studentName, 
   profilePhoto, 
   onMenuClick, 
-  showMenuButton 
+  showMenuButton,
+  onPhotoUpdate 
 }: StudentHeaderProps) => {
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const { profile } = useStudentProfile();
+  
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -22,6 +30,10 @@ const StudentHeader = ({
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handlePhotoUpdate = (newUrl: string | null) => {
+    onPhotoUpdate?.();
   };
 
   return (
@@ -55,7 +67,7 @@ const StudentHeader = ({
           <span className="text-sm text-gray-600 hidden sm:block">
             Welcome, {studentName}
           </span>
-          <Avatar className="h-10 w-10">
+          <Avatar className="h-10 w-10 cursor-pointer" onClick={() => setIsPhotoModalOpen(true)}>
             <AvatarImage src={profilePhoto || undefined} alt={studentName} />
             <AvatarFallback className="bg-orange-100 text-orange-700">
               {getInitials(studentName)}
@@ -63,6 +75,18 @@ const StudentHeader = ({
           </Avatar>
         </div>
       </div>
+
+      {/* Profile Photo Modal */}
+      {profile && (
+        <ProfilePhotoModal
+          isOpen={isPhotoModalOpen}
+          onClose={() => setIsPhotoModalOpen(false)}
+          currentPhotoUrl={profilePhoto}
+          userName={studentName}
+          userId={profile.id}
+          onPhotoUpdate={handlePhotoUpdate}
+        />
+      )}
     </header>
   );
 };

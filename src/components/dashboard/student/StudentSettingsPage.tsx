@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,53 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
     bio: '',
     skills: [] as string[],
   });
+
+  // Load portfolio data including bio and user preferences
+  useEffect(() => {
+    const loadData = async () => {
+      if (profile?.id) {
+        // Load portfolio data
+        const { data: portfolioData } = await supabase
+          .from('student_portfolios')
+          .select('bio, skills, is_public')
+          .eq('student_id', profile.id)
+          .maybeSingle();
+
+        if (portfolioData) {
+          setFormData(prev => ({
+            ...prev,
+            bio: portfolioData.bio || '',
+            skills: portfolioData.skills || [],
+          }));
+          setPreferences(prev => ({
+            ...prev,
+            portfolioPublic: portfolioData.is_public ?? true,
+          }));
+        }
+
+        // Load user preferences
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: userPrefs } = await supabase
+            .from('user_preferences')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (userPrefs) {
+            setPreferences({
+              emailNotifications: userPrefs.email_notifications ?? true,
+              pushNotifications: userPrefs.push_notifications ?? true,
+              portfolioPublic: portfolioData?.is_public ?? userPrefs.portfolio_public ?? true,
+              showProgressToOthers: userPrefs.show_progress_to_others ?? false,
+            });
+          }
+        }
+      }
+    };
+
+    loadData();
+  }, [profile?.id]);
   
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
@@ -74,25 +121,48 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
   const handleProfileUpdate = async () => {
     setSaving(true);
     try {
-      // Update full_name in student_profiles
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Update full_name in student_profiles using user_id
       const { error: profileError } = await supabase
         .from('student_profiles')
         .update({
           full_name: formData.full_name,
         })
-        .eq('id', profile?.id);
+        .eq('user_id', user.id);
 
       if (profileError) throw profileError;
 
-      // Update bio in student_portfolios
-      const { error: portfolioError } = await supabase
+      // Check if portfolio exists, if not create it
+      const { data: existingPortfolio } = await supabase
         .from('student_portfolios')
-        .update({
-          bio: formData.bio,
-        })
-        .eq('student_id', profile?.id);
+        .select('id')
+        .eq('student_id', profile?.id)
+        .maybeSingle();
 
-      if (portfolioError) throw portfolioError;
+      if (existingPortfolio) {
+        // Update existing portfolio
+        const { error: portfolioError } = await supabase
+          .from('student_portfolios')
+          .update({
+            bio: formData.bio,
+          })
+          .eq('student_id', profile?.id);
+
+        if (portfolioError) throw portfolioError;
+      } else {
+        // Create new portfolio
+        const { error: portfolioError } = await supabase
+          .from('student_portfolios')
+          .insert({
+            student_id: profile?.id,
+            bio: formData.bio,
+          });
+
+        if (portfolioError) throw portfolioError;
+      }
 
       toast({
         title: "Profile updated successfully",
@@ -141,6 +211,85 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
       console.error('Error updating password:', error);
       toast({
         title: "Error updating password",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSavePreferences = async (newPreferences: typeof preferences) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if preferences exist
+      const { data: existingPrefs } = await supabase
+        .from('user_preferences')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingPrefs) {
+        // Update existing preferences
+        const { error } = await supabase
+          .from('user_preferences')
+          .update({
+            email_notifications: newPreferences.emailNotifications,
+            push_notifications: newPreferences.pushNotifications,
+            show_progress_to_others: newPreferences.showProgressToOthers,
+            portfolio_public: newPreferences.portfolioPublic,
+          })
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } else {
+        // Create new preferences
+        const { error } = await supabase
+          .from('user_preferences')
+          .insert({
+            user_id: user.id,
+            email_notifications: newPreferences.emailNotifications,
+            push_notifications: newPreferences.pushNotifications,
+            show_progress_to_others: newPreferences.showProgressToOthers,
+            portfolio_public: newPreferences.portfolioPublic,
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Preferences updated",
+        description: "Your settings have been saved.",
+      });
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      toast({
+        title: "Error saving preferences",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSavePortfolioPrivacy = async (isPublic: boolean) => {
+    try {
+      // Also update the portfolio's is_public field
+      const { error } = await supabase
+        .from('student_portfolios')
+        .update({ is_public: isPublic })
+        .eq('student_id', profile?.id);
+
+      if (error) throw error;
+
+      // Save to user preferences as well
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await handleSavePreferences({ ...preferences, portfolioPublic: isPublic });
+      }
+    } catch (error) {
+      console.error('Error updating portfolio privacy:', error);
+      toast({
+        title: "Error updating privacy settings",
         description: "Please try again later.",
         variant: "destructive",
       });
@@ -284,9 +433,10 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
             </div>
             <Switch
               checked={preferences.emailNotifications}
-              onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, emailNotifications: checked })
-              }
+              onCheckedChange={(checked) => {
+                setPreferences({ ...preferences, emailNotifications: checked });
+                handleSavePreferences({ ...preferences, emailNotifications: checked });
+              }}
             />
           </div>
           
@@ -299,9 +449,10 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
             </div>
             <Switch
               checked={preferences.pushNotifications}
-              onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, pushNotifications: checked })
-              }
+              onCheckedChange={(checked) => {
+                setPreferences({ ...preferences, pushNotifications: checked });
+                handleSavePreferences({ ...preferences, pushNotifications: checked });
+              }}
             />
           </div>
         </CardContent>
@@ -323,9 +474,10 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
             </div>
             <Switch
               checked={preferences.portfolioPublic}
-              onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, portfolioPublic: checked })
-              }
+              onCheckedChange={(checked) => {
+                setPreferences({ ...preferences, portfolioPublic: checked });
+                handleSavePortfolioPrivacy(checked);
+              }}
             />
           </div>
           
@@ -338,9 +490,10 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
             </div>
             <Switch
               checked={preferences.showProgressToOthers}
-              onCheckedChange={(checked) => 
-                setPreferences({ ...preferences, showProgressToOthers: checked })
-              }
+              onCheckedChange={(checked) => {
+                setPreferences({ ...preferences, showProgressToOthers: checked });
+                handleSavePreferences({ ...preferences, showProgressToOthers: checked });
+              }}
             />
           </div>
         </CardContent>

@@ -63,10 +63,14 @@ const ProfilePhotoModal = ({
 
     setUploading(true);
     try {
+      // Get current user to find student profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       // Upload to Supabase storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${Math.random()}.${fileExt}`;
-      
+      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+
       // Upload file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('profile-photos')
@@ -82,11 +86,11 @@ const ProfilePhotoModal = ({
         .from('profile-photos')
         .getPublicUrl(fileName);
       
-      // Update the profile in the database
+      // Update the profile in the database using user_id to find the profile
       const { error } = await supabase
         .from('student_profiles')
         .update({ profile_photo_url: publicUrl })
-        .eq('id', userId);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -111,10 +115,14 @@ const ProfilePhotoModal = ({
   const handleDeletePhoto = async () => {
     setDeleting(true);
     try {
+      // Get current user to find student profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { error } = await supabase
         .from('student_profiles')
         .update({ profile_photo_url: null })
-        .eq('id', userId);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 

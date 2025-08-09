@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useProofUploads } from "@/hooks/useProofUploads";
+import { usePortfolio } from "@/hooks/usePortfolio";
 import { Award, Eye, EyeOff, ExternalLink, Share } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -14,10 +14,10 @@ const StudentPortfolioPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
   const currentDate = new Date();
   const { data: uploads, isLoading: uploadsLoading } = useProofUploads(currentDate);
-  const [isPublic, setIsPublic] = useState(true);
+  const { portfolio, loading: portfolioLoading, updatePortfolioVisibility } = usePortfolio();
   const { toast } = useToast();
 
-  if (profileLoading || uploadsLoading) {
+  if (profileLoading || uploadsLoading || portfolioLoading) {
     return (
       <Card>
         <CardHeader>
@@ -46,7 +46,16 @@ const StudentPortfolioPage = () => {
   };
 
   const handleShare = () => {
-    const portfolioUrl = `${window.location.origin}/portfolio/${profile?.slug}`;
+    if (!portfolio?.slug) {
+      toast({
+        title: "Portfolio not ready",
+        description: "Your portfolio is being set up. Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const portfolioUrl = `${window.location.origin}/portfolio/${portfolio.slug}`;
     navigator.clipboard.writeText(portfolioUrl);
     toast({
       title: "Portfolio link copied!",
@@ -54,14 +63,24 @@ const StudentPortfolioPage = () => {
     });
   };
 
-  const toggleVisibility = () => {
-    setIsPublic(!isPublic);
-    toast({
-      title: isPublic ? "Portfolio made private" : "Portfolio made public",
-      description: isPublic 
-        ? "Your portfolio is now hidden from public view." 
-        : "Your portfolio is now visible to everyone.",
-    });
+  const toggleVisibility = async () => {
+    if (!portfolio) return;
+    
+    try {
+      await updatePortfolioVisibility(!portfolio.is_public);
+      toast({
+        title: portfolio.is_public ? "Portfolio made private" : "Portfolio made public",
+        description: portfolio.is_public 
+          ? "Your portfolio is now hidden from public view." 
+          : "Your portfolio is now visible to everyone.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update portfolio visibility",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -73,9 +92,9 @@ const StudentPortfolioPage = () => {
             <CardTitle className="text-xl font-semibold">My Portfolio</CardTitle>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                {isPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                <span className="text-sm">{isPublic ? 'Public' : 'Private'}</span>
-                <Switch checked={isPublic} onCheckedChange={toggleVisibility} />
+                {portfolio?.is_public ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                <span className="text-sm">{portfolio?.is_public ? 'Public' : 'Private'}</span>
+                <Switch checked={portfolio?.is_public || false} onCheckedChange={toggleVisibility} />
               </div>
               <Button onClick={handleShare} className="bg-orange-600 hover:bg-orange-700">
                 <Share className="h-4 w-4 mr-2" />
@@ -187,22 +206,22 @@ const StudentPortfolioPage = () => {
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Bio</h4>
               <p className="text-gray-600">
-                No bio added yet. Share something about yourself!
+                {portfolio?.bio || "No bio added yet. Update your portfolio in Settings to add a bio!"}
               </p>
             </div>
             
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Skills</h4>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                  React
-                </Badge>
-                <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                  JavaScript
-                </Badge>
-                <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                  Python
-                </Badge>
+                {portfolio?.skills && portfolio.skills.length > 0 ? (
+                  portfolio.skills.map((skill, index) => (
+                    <Badge key={index} variant="outline" className="bg-orange-50 text-orange-700">
+                      {skill}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm">No skills added yet. Update your portfolio in Settings to add skills!</p>
+                )}
               </div>
             </div>
           </div>

@@ -24,8 +24,6 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
         return <StudentAvailableTasksPage />;
       case "tasks":
         return <StudentTasksPage />;
-      case "applications":
-        return <StudentApplicationsPage />;
       case "uploads":
         return <StudentUploadsPage />;
       case "portfolio":

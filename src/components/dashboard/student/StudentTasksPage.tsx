@@ -12,13 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAssignedTasks } from "@/hooks/useAssignedTasks";
+import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
 import { format } from "date-fns";
 import { Clock, Award, Play, Upload, Search, Filter, Eye, CheckCircle, FileText } from "lucide-react";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
 
 const StudentTasksPage = () => {
-  const { tasks, loading, startTask } = useAssignedTasks();
+  const { tasks, loading, startTask } = useAllStudentTasks();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -45,12 +45,12 @@ const StudentTasksPage = () => {
     const sortedTasks = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "Status Priority":
-          // Group by status: In Progress > Pending > Under Review > Completed
-          const statusPriority = { "In Progress": 1, "Pending": 2, "Under Review": 3, "Completed": 4 };
+          // Group by status: In Progress > Applied > Under Review > Completed
+          const statusPriority = { "In Progress": 1, "Applied": 2, "Under Review": 3, "Completed": 4 };
           const priorityDiff = (statusPriority[a.status] || 5) - (statusPriority[b.status] || 5);
           if (priorityDiff !== 0) return priorityDiff;
           // Secondary sort by creation date (newest first)
-          return new Date(b.started_at || b.deadline).getTime() - new Date(a.started_at || a.deadline).getTime();
+          return new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
           
         case "Due Date (ASC)":
           const aDate = a.deadline ? new Date(a.deadline) : new Date("9999-12-31");
@@ -68,8 +68,8 @@ const StudentTasksPage = () => {
         case "XP (DESC)":
           return (b.xp_reward || 0) - (a.xp_reward || 0);
           
-        case "Newest First":
-          return new Date(b.started_at || b.deadline).getTime() - new Date(a.started_at || a.deadline).getTime();
+          case "Newest First":
+            return new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
           
         default:
           return 0;
@@ -98,7 +98,7 @@ const StudentTasksPage = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Pending':
+      case 'Applied':
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'In Progress':
         return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -115,7 +115,7 @@ const StudentTasksPage = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Pending':
+      case 'Applied':
         return <Clock className="h-3 w-3" />;
       case 'In Progress':
         return <Play className="h-3 w-3" />;
@@ -177,7 +177,7 @@ const StudentTasksPage = () => {
                 <SelectContent>
                   <SelectItem value="All">All Status</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Applied">Applied</SelectItem>
                   <SelectItem value="Under Review">Under Review</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>
@@ -218,6 +218,7 @@ const StudentTasksPage = () => {
                 <TableHeader>
                   <TableRow className="border-b">
                     <TableHead className="font-semibold">Task Details</TableHead>
+                    <TableHead className="font-semibold">Source</TableHead>
                     <TableHead className="font-semibold">Due Date</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold">XP Reward</TableHead>
@@ -244,8 +245,17 @@ const StudentTasksPage = () => {
                         </div>
                       </TableCell>
                       <TableCell className="py-4">
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          {task.source}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4">
                         <div className="text-sm text-foreground">
-                          {formatDueDate(task.deadline)}
+                          {new Date(task.deadline).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          })}
                         </div>
                       </TableCell>
                       <TableCell className="py-4">
@@ -265,15 +275,21 @@ const StudentTasksPage = () => {
                       </TableCell>
                       <TableCell className="text-right py-4">
                         <div className="flex justify-end gap-2">
-                          {task.status === 'Pending' && (
+                          {task.status === 'Applied' && task.can_start && (
                             <Button
                               size="sm"
                               onClick={() => handleStartTask(task.id)}
                               className="bg-orange-600 hover:bg-orange-700 text-white"
                             >
                               <Play className="h-4 w-4 mr-1" />
-                              Start
+                              Start Now
                             </Button>
+                          )}
+                          {task.status === 'Applied' && !task.can_start && (
+                            <Badge variant="secondary" className="px-3 py-1">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Pending Approval
+                            </Badge>
                           )}
                           {task.status === 'In Progress' && (
                             <Button

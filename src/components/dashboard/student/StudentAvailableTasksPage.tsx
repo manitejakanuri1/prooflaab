@@ -180,16 +180,19 @@ const StudentAvailableTasksPage = () => {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
-                          <Badge variant="outline">{task.category || 'General'}</Badge>
-                          {task.is_paid && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              <DollarSign className="h-3 w-3 mr-1" />
-                              Paid
-                            </Badge>
-                          )}
-                        </div>
+                         <div className="flex items-center gap-2 mb-2">
+                           <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
+                           <Badge variant="outline">{task.category || 'General'}</Badge>
+                           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                             From {task.created_by_startup_id ? 'Startup' : 'Admin'}
+                           </Badge>
+                           {task.is_paid && (
+                             <Badge variant="secondary" className="bg-green-100 text-green-800">
+                               <DollarSign className="h-3 w-3 mr-1" />
+                               Paid
+                             </Badge>
+                           )}
+                         </div>
                         {task.description && (
                           <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
                             {task.description}

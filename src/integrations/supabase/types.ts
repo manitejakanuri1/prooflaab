@@ -74,6 +74,33 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_rate_limits: {
+        Row: {
+          attempt_count: number | null
+          blocked_until: string | null
+          created_at: string
+          id: string
+          identifier: string
+          window_start: string
+        }
+        Insert: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier: string
+          window_start?: string
+        }
+        Update: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       email_verifications: {
         Row: {
           code: string | null
@@ -206,13 +233,6 @@ export type Database = {
             foreignKeyName: "notifications_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "student_profiles"
             referencedColumns: ["id"]
           },
@@ -265,13 +285,6 @@ export type Database = {
           task_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "proof_uploads_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "leaderboard"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "proof_uploads_student_id_fkey"
             columns: ["student_id"]
@@ -380,13 +393,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "student_portfolios_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: true
-            referencedRelation: "leaderboard"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "student_portfolios_student_id_fkey"
             columns: ["student_id"]
@@ -513,13 +519,6 @@ export type Database = {
             foreignKeyName: "task_applications_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "task_applications_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "student_profiles"
             referencedColumns: ["id"]
           },
@@ -604,13 +603,6 @@ export type Database = {
             foreignKeyName: "tasks_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "student_profiles"
             referencedColumns: ["id"]
           },
@@ -639,13 +631,6 @@ export type Database = {
           student_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "trust_scores_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: true
-            referencedRelation: "leaderboard"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "trust_scores_student_id_fkey"
             columns: ["student_id"]
@@ -754,13 +739,6 @@ export type Database = {
             foreignKeyName: "xp_logs_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "xp_logs_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "student_profiles"
             referencedColumns: ["id"]
           },
@@ -768,18 +746,17 @@ export type Database = {
       }
     }
     Views: {
-      leaderboard: {
-        Row: {
-          full_name: string | null
-          id: string | null
-          rank: number | null
-          total_xp: number | null
-          trust_score: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          _identifier: string
+          _max_attempts?: number
+          _window_minutes?: number
+        }
+        Returns: boolean
+      }
       generate_unique_slug: {
         Args: { base_name: string }
         Returns: string
@@ -792,6 +769,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_leaderboard: {
+        Args: { _limit?: number }
+        Returns: {
+          id: string
+          full_name: string
+          total_xp: number
+          trust_score: number
+          rank: number
+        }[]
+      }
       get_leaderboard_data: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -802,11 +789,23 @@ export type Database = {
           rank: number
         }[]
       }
+      get_user_role: {
+        Args: { _user_id?: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      validate_email: {
+        Args: { _email: string }
+        Returns: boolean
+      }
+      validate_task_title: {
+        Args: { _title: string }
         Returns: boolean
       }
     }

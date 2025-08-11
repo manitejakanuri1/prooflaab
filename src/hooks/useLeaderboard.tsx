@@ -34,12 +34,9 @@ export const useLeaderboard = (): LeaderboardData => {
         setLoading(true);
         setError(null);
 
-        // Fetch top 10 students from leaderboard view
+        // Fetch top 10 students from secure leaderboard function
         const { data: topStudentsData, error: topStudentsError } = await supabase
-          .from('leaderboard')
-          .select('*')
-          .order('rank', { ascending: true })
-          .limit(10);
+          .rpc('get_leaderboard', { _limit: 10 });
 
         if (topStudentsError) {
           throw topStudentsError;
@@ -71,18 +68,17 @@ export const useLeaderboard = (): LeaderboardData => {
           } else {
             setCurrentUserXP(currentUserProfile.total_xp || 0);
 
-            // Get current user's rank from leaderboard view
-            const { data: currentUserRankData, error: rankError } = await supabase
-              .from('leaderboard')
-              .select('rank')
-              .eq('id', currentUserProfile.id)
-              .single();
-
-            if (rankError) {
-              console.warn("Could not fetch current user rank:", rankError.message);
+            // Get current user's rank from leaderboard function
+            const { data: leaderboardData, error: rankError } = await supabase
+              .rpc('get_leaderboard', { _limit: 1000 }); // Get more data to find user rank
+            
+            if (!rankError && leaderboardData) {
+              const userRankData = leaderboardData.find(entry => entry.id === currentUserProfile.id);
+              setCurrentUserRank(userRankData?.rank || null);
             } else {
-              setCurrentUserRank(currentUserRankData?.rank || null);
+              console.warn("Could not fetch current user rank:", rankError?.message);
             }
+
           }
         }
 

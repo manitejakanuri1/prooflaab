@@ -49,18 +49,18 @@ export const useStudentProfile = () => {
 
       setProfile(profileData);
 
-      // Fetch leaderboard rank
+      // Fetch leaderboard rank using secure function
       const { data: leaderboardData, error: leaderboardError } = await supabase
-        .from('leaderboard')
-        .select('id, rank')
-        .eq('id', profileData.id)
-        .single();
+        .rpc('get_leaderboard', { _limit: 1000 });
 
       if (leaderboardError) {
         console.warn("Could not fetch rank:", leaderboardError.message);
         setRank(0);
+      } else if (leaderboardData) {
+        const userRankData = leaderboardData.find(entry => entry.id === profileData.id);
+        setRank(userRankData?.rank || 0);
       } else {
-        setRank(leaderboardData.rank || 0);
+        setRank(0);
       }
 
     } catch (err) {

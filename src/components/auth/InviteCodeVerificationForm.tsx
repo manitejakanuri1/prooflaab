@@ -35,10 +35,10 @@ export default function InviteCodeVerificationForm({
         .eq('role', accountType)
         .eq('is_used', false)
         .gte('expires_at', new Date().toISOString())
-        .single();
+        .maybeSingle();
 
       if (inviteError || !inviteData) {
-        throw new Error('Invalid or expired invite code');
+        throw new Error('Invalid invite code. Please contact admin.');
       }
 
       // Mark invite code as used

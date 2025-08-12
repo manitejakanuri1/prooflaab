@@ -49,6 +49,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     setFullName('');
     setError(null);
     setMessage(null);
+    setAuthStep('form'); // Reset auth step when switching modes
   }, [mode]);
 
   const cleanupAuthState = () => {
@@ -71,6 +72,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       cleanupAuthState();
       await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
 
+      // Enhanced OAuth call with better error handling
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -81,7 +83,12 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('Unsupported provider') || error.message?.includes('not enabled')) {
+          throw new Error(`${provider === 'google' ? 'Google' : 'GitHub'} sign-in is not enabled. Please contact support or use email/password authentication.`);
+        }
+        throw error;
+      }
     } catch (error: any) {
       console.error(`${provider} auth error:`, error);
       setError(error.message);
@@ -206,6 +213,9 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             if (emailError) {
               console.error('Error sending invite code email:', emailError);
               // Don't throw error here - code was created successfully
+              setMessage(`Account created! Please check your email for confirmation and your invite code: ${inviteCode}`);
+            } else {
+              setMessage('Account created! Please check your email for confirmation and your invite code.');
             }
           }
 

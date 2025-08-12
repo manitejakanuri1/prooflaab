@@ -134,12 +134,12 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
         
         // Handle role assignment after signup
         if (data.user && data.user.email_confirmed_at) {
-          // Assign role
+          // Assign role immediately for confirmed users
           const { error: roleError } = await supabase
             .from('user_roles')
             .insert({ user_id: data.user.id, role });
           
-          if (roleError) {
+          if (roleError && !roleError.message.includes('duplicate')) {
             console.error('Role assignment error:', roleError);
           }
           
@@ -147,7 +147,7 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
             onSuccess(role);
           }
         } else if (data.user && !data.user.email_confirmed_at) {
-          setMessage("Check your email for the confirmation link!");
+          setMessage("Please check your email and click the confirmation link to complete your registration!");
         }
       }
     } catch (error: any) {

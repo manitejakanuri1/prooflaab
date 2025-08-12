@@ -50,11 +50,11 @@ const Index = () => {
 
             {/* Desktop Auth Buttons */}
             <div className="hidden md:flex items-center space-x-4">
-              <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
                 Login
               </Link>
               <Button asChild size="sm" className="rounded-2xl">
-                <Link to="/login">Get Started</Link>
+                <Link to="/auth">Get Started</Link>
               </Button>
             </div>
 
@@ -76,9 +76,9 @@ const Index = () => {
                 <button onClick={() => scrollToSection('startups')} className="text-left text-muted-foreground hover:text-foreground transition-colors">For Startups</button>
                 <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
                 <div className="flex flex-col space-y-2 pt-4 border-t border-border">
-                  <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                  <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Login</Link>
                   <Button asChild size="sm" className="rounded-2xl w-fit">
-                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                    <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
                   </Button>
                 </div>
               </div>
@@ -103,11 +103,11 @@ const Index = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="rounded-2xl px-8 py-6 text-lg">
-                  Start Your Proof
+                <Button asChild size="lg" className="rounded-2xl px-8 py-6 text-lg">
+                  <Link to="/auth">Start Your Proof</Link>
                 </Button>
-                <Button variant="outline" size="lg" className="rounded-2xl px-8 py-6 text-lg">
-                  Try as College
+                <Button asChild variant="outline" size="lg" className="rounded-2xl px-8 py-6 text-lg">
+                  <Link to="/auth">Try as College</Link>
                 </Button>
               </div>
             </div>

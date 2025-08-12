@@ -29,11 +29,20 @@ export default function AuthCallback() {
 
         // Handle role assignment for social auth or email confirmation
         const signupData = user.user_metadata;
-        if (signupData?.role && signupData?.role !== 'student') {
-          // Assign role
+        if (signupData?.role) {
+          // Assign role for any user (including students)
           const { error: roleError } = await supabase
             .from('user_roles')
             .insert({ user_id: user.id, role: signupData.role });
+          
+          if (roleError && !roleError.message.includes('duplicate')) {
+            console.error('Role assignment error:', roleError);
+          }
+        } else {
+          // Default to student role if no role specified
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({ user_id: user.id, role: 'student' });
           
           if (roleError && !roleError.message.includes('duplicate')) {
             console.error('Role assignment error:', roleError);

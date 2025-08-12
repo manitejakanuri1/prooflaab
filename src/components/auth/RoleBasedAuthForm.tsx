@@ -83,6 +83,10 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
     }
   };
 
+  const generateInviteCode = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  };
+
   const handleEmailPasswordAuth = async () => {
     setLoading(true);
     setError(null);
@@ -112,7 +116,7 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
           }
         }
       } else {
-        // Signup - just create account, no invite code validation here
+        // Signup - create account and generate invite code for college/startup
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -129,6 +133,43 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
         
         // Handle successful signup
         if (data.user) {
+          // For College and Startup users, generate and send invite code
+          if (role === 'college_admin' || role === 'startup') {
+            const inviteCode = generateInviteCode();
+            
+            // Store invite code in database with expiration
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiration
+            
+            const { error: inviteError } = await supabase
+              .from('invite_codes')
+              .insert({
+                code: inviteCode,
+                role: role,
+                is_used: false,
+                created_by: 'system',
+                expires_at: expiresAt.toISOString()
+              });
+
+            if (inviteError) {
+              console.error('Error creating invite code:', inviteError);
+            } else {
+              // Send invite code via email
+              const { error: emailError } = await supabase.functions.invoke('send-invite-code-email', {
+                body: { 
+                  email, 
+                  inviteCode, 
+                  accountType: role === 'college_admin' ? 'college' : 'startup',
+                  name: fullName 
+                }
+              });
+
+              if (emailError) {
+                console.error('Error sending invite code email:', emailError);
+              }
+            }
+          }
+
           if (data.user.email_confirmed_at) {
             // User is immediately confirmed, handle redirect
             if (role === 'student') {
@@ -149,7 +190,10 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
               window.location.href = `/invite-verification?type=${role}`;
             }
           } else {
-            setMessage("Please check your email and click the confirmation link to complete your registration!");
+            const messageText = role === 'student' 
+              ? "Please check your email and click the confirmation link to complete your registration!"
+              : "Please check your email for confirmation link and your invite code!";
+            setMessage(messageText);
           }
         }
       }

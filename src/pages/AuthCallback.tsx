@@ -26,53 +26,49 @@ export default function AuthCallback() {
         }
 
         const user = data.session.user;
+        const accountType = searchParams.get('type') || user.user_metadata?.account_type;
 
         // Handle role assignment for social auth or email confirmation
-        const signupData = user.user_metadata;
-        if (signupData?.role) {
-          // Assign role for any user (including students)
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert({ user_id: user.id, role: signupData.role });
-          
-          if (roleError && !roleError.message.includes('duplicate')) {
-            console.error('Role assignment error:', roleError);
-          }
-        } else {
-          // Default to student role if no role specified
+        if (accountType === 'student') {
+          // Assign student role immediately
           const { error: roleError } = await supabase
             .from('user_roles')
             .insert({ user_id: user.id, role: 'student' });
           
           if (roleError && !roleError.message.includes('duplicate')) {
-            console.error('Role assignment error:', roleError);
+            console.error('Student role assignment error:', roleError);
           }
-        }
+          
+          navigate('/student/dashboard', { replace: true });
+        } else if (accountType && ['startup', 'college_admin', 'admin'].includes(accountType)) {
+          // Redirect to invite code verification for restricted roles
+          navigate(`/invite-verification?type=${accountType}`, { replace: true });
+        } else {
+          // Check existing role and redirect accordingly
+          const { data: userRole } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        // Get user role and redirect to appropriate dashboard
-        const { data: userRole } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-
-        const role = userRole?.role || 'student';
-        
-        // Redirect based on role
-        switch (role) {
-          case 'admin':
-            navigate('/admin/dashboard', { replace: true });
-            break;
-          case 'college_admin':
-            navigate('/college/dashboard', { replace: true });
-            break;
-          case 'startup':
-            navigate('/startup/dashboard', { replace: true });
-            break;
-          case 'student':
-          default:
-            navigate('/student/dashboard', { replace: true });
-            break;
+          const role = userRole?.role || 'student';
+          
+          // Redirect based on role
+          switch (role) {
+            case 'admin':
+              navigate('/admin/dashboard', { replace: true });
+              break;
+            case 'college_admin':
+              navigate('/college/dashboard', { replace: true });
+              break;
+            case 'startup':
+              navigate('/startup/dashboard', { replace: true });
+              break;
+            case 'student':
+            default:
+              navigate('/student/dashboard', { replace: true });
+              break;
+          }
         }
       } catch (error: any) {
         console.error('Auth callback error:', error);

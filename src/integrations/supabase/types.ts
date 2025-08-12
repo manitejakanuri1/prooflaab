@@ -125,6 +125,39 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          is_used: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          is_used?: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          is_used?: boolean | null
+          role?: Database["public"]["Enums"]["app_role"]
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       job_opportunities: {
         Row: {
           apply_link: string
@@ -757,6 +790,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_user_with_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _invite_code?: string
+        }
+        Returns: boolean
+      }
       generate_unique_slug: {
         Args: { base_name: string }
         Returns: string
@@ -800,8 +841,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      use_invite_code: {
+        Args: { _code: string; _user_id: string }
+        Returns: boolean
+      }
+      validate_and_use_invite_code: {
+        Args: {
+          _code: string
+          _account_type: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       validate_email: {
         Args: { _email: string }
+        Returns: boolean
+      }
+      validate_invite_code: {
+        Args: { _code: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
       validate_task_title: {

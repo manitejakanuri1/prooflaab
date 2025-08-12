@@ -33,18 +33,41 @@ export default function InviteCodeVerification() {
         throw new Error('No authenticated user found');
       }
 
-      // Validate and use invite code
-      const { data, error: rpcError } = await supabase.rpc('validate_and_use_invite_code', {
-        _code: inviteCode.trim(),
-        _account_type: accountType,
-        _user_id: user.id
-      });
+      // Validate invite code - using existing database schema
+      const { data: inviteData, error: inviteError } = await supabase
+        .from('invite_codes')
+        .select('id, code, role, used_by, expires_at, is_used')
+        .eq('code', inviteCode.trim())
+        .eq('role', accountType)
+        .eq('is_used', false)
+        .is('used_by', null)
+        .maybeSingle();
 
-      if (rpcError) throw rpcError;
-      
-      if (!data) {
+      if (inviteError || !inviteData) {
         setError('Invite code is incorrect or expired');
         return;
+      }
+
+      // Mark code as used and assign role
+      const { error: updateError } = await supabase
+        .from('invite_codes')
+        .update({ 
+          used_by: user.id, 
+          is_used: true 
+        })
+        .eq('id', inviteData.id);
+
+      if (updateError) throw updateError;
+
+      // Assign role to user
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: user.id, role: accountType })
+        .select()
+        .single();
+
+      if (roleError && !roleError.message.includes('duplicate')) {
+        throw roleError;
       }
 
       // Redirect to appropriate dashboard

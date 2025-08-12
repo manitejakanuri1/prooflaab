@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import InviteCodeVerification from "./pages/InviteCodeVerification";
 import NotFound from "./pages/NotFound";
 import ReviewProofs from "./pages/ReviewProofs";
 import Pricing from "./pages/Pricing";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/invite-verification" element={<InviteCodeVerification />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/portfolio/:slug" element={<Portfolio />} />
             

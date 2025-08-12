@@ -166,6 +166,8 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean | null
+          used_at: string | null
+          used_by: string | null
         }
         Insert: {
           account_type: Database["public"]["Enums"]["app_role"]
@@ -174,6 +176,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          used_at?: string | null
+          used_by?: string | null
         }
         Update: {
           account_type?: Database["public"]["Enums"]["app_role"]
@@ -182,6 +186,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          used_at?: string | null
+          used_by?: string | null
         }
         Relationships: []
       }

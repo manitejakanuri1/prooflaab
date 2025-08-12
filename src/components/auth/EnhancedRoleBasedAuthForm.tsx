@@ -160,7 +160,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
           }
         }
       } else {
-        // Signup - create account and generate invite code for college/startup
+        // Signup - create account and send confirmation email
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -240,6 +240,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             }
           } else {
             // Show email verification screen
+            setMessage('Account created successfully! Please check your email to confirm your account.');
             setAuthStep('email-verification');
           }
         }

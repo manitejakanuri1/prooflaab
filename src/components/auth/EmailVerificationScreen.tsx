@@ -36,13 +36,13 @@ export default function EmailVerificationScreen({
 
       if (error) throw error;
       
-      setMessage('Confirmation email sent! Please check your inbox.');
+      setMessage('Confirmation email resent! Please check your inbox.');
       if (onResendSuccess) {
         onResendSuccess();
       }
     } catch (error: any) {
       console.error('Resend email error:', error);
-      setError(error.message);
+      setError(error.message || 'Failed to resend email. Please try again.');
     } finally {
       setIsResending(false);
     }

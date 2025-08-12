@@ -124,7 +124,7 @@ export default function InviteCodeVerificationForm({
         )}
 
         <div className="text-xs text-muted-foreground text-center">
-          <p>Didn't receive your invite code? Check your email or contact support.</p>
+          <p>Didn't receive your invite code? Please contact support.</p>
         </div>
       </CardContent>
     </Card>

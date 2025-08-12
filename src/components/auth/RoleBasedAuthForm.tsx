@@ -103,9 +103,8 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
           }
         }
       } else {
-        // Validate invite code for restricted roles before signup
+        // Simple invite code validation for restricted roles
         if (requiresInviteCode) {
-          // Simple validation - in production, this should be done server-side
           const validCodes = {
             'startup': ['STARTUP2024'],
             'college_admin': ['COLLEGE2024'], 
@@ -132,22 +131,16 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
         
         if (error) throw error;
         
-        // Handle role assignment after signup
-        if (data.user && data.user.email_confirmed_at) {
-          // Assign role immediately for confirmed users
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert({ user_id: data.user.id, role });
-          
-          if (roleError && !roleError.message.includes('duplicate')) {
-            console.error('Role assignment error:', roleError);
+        // Handle successful signup
+        if (data.user) {
+          // Role assignment will be handled in the auth callback
+          if (data.user.email_confirmed_at) {
+            if (onSuccess) {
+              onSuccess(role);
+            }
+          } else {
+            setMessage("Please check your email and click the confirmation link to complete your registration!");
           }
-          
-          if (onSuccess) {
-            onSuccess(role);
-          }
-        } else if (data.user && !data.user.email_confirmed_at) {
-          setMessage("Please check your email and click the confirmation link to complete your registration!");
         }
       }
     } catch (error: any) {

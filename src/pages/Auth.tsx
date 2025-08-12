@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import RoleBasedAuthForm from "@/components/auth/RoleBasedAuthForm";
+import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthForm";
 import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
 
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
@@ -84,7 +84,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <RoleBasedAuthForm onSuccess={handleAuthSuccess} />
+        <EnhancedRoleBasedAuthForm onSuccess={handleAuthSuccess} />
         
         {/* Emergency Sign Out */}
         <div className="mt-4 text-center">

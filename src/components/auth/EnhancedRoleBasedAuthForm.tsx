@@ -15,14 +15,13 @@ import InviteCodeVerificationForm from './InviteCodeVerificationForm';
 
 type AuthMode = 'login' | 'signup' | 'magic-link';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
+type AuthStep = 'form' | 'email-verification' | 'invite-code';
 
-interface RoleBasedAuthFormProps {
+interface EnhancedRoleBasedAuthFormProps {
   onSuccess?: (role: UserRole) => void;
 }
 
-type AuthStep = 'form' | 'email-verification' | 'invite-code';
-
-export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps) {
+export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBasedAuthFormProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,6 +51,14 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
     setMessage(null);
   }, [mode]);
 
+  const cleanupAuthState = () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+  };
+
   const handleSocialAuth = async (provider: 'google' | 'github') => {
     if (provider === 'google') {
       setIsGoogleLoading(true);
@@ -61,6 +68,9 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
     setError(null);
 
     try {
+      cleanupAuthState();
+      await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -118,6 +128,9 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
 
     try {
       if (mode === 'login') {
+        cleanupAuthState();
+        await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -251,12 +264,6 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
     }
   };
 
-  const handleBackToForm = () => {
-    setAuthStep('form');
-    setError(null);
-    setMessage(null);
-  };
-
   // Render different screens based on auth step
   if (authStep === 'email-verification') {
     return (
@@ -381,11 +388,21 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
                 onChange={setPassword}
                 placeholder="Password"
                 required
+                showStrengthMeter
               />
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading || !isPasswordValid(password)}
+              >
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Create Account
               </Button>
+              {password && !isPasswordValid(password) && (
+                <p className="text-sm text-destructive text-center">
+                  Password too weak
+                </p>
+              )}
             </form>
           </TabsContent>
 

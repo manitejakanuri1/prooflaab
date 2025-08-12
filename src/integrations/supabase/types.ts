@@ -158,6 +158,33 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_codes_validation: {
+        Row: {
+          account_type: Database["public"]["Enums"]["app_role"]
+          code: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          account_type: Database["public"]["Enums"]["app_role"]
+          code: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          account_type?: Database["public"]["Enums"]["app_role"]
+          code?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       job_opportunities: {
         Row: {
           apply_link: string
@@ -333,6 +360,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      signup_rate_limits: {
+        Row: {
+          attempt_count: number | null
+          blocked_until: string | null
+          id: string
+          ip_address: unknown
+          window_start: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          id?: string
+          ip_address: unknown
+          window_start?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          id?: string
+          ip_address?: unknown
+          window_start?: string | null
+        }
+        Relationships: []
       }
       startup_notifications: {
         Row: {

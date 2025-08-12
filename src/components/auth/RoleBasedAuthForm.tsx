@@ -147,7 +147,7 @@ export default function RoleBasedAuthForm({ onSuccess }: RoleBasedAuthFormProps)
                 code: inviteCode,
                 role: role,
                 is_used: false,
-                created_by: 'system',
+                created_by: data.user.id, // Use the actual user ID instead of "system"
                 expires_at: expiresAt.toISOString()
               });
 

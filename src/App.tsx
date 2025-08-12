@@ -6,12 +6,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleBasedProtectedRoute from "@/components/RoleBasedProtectedRoute";
 import Index from "./pages/Index";
 import StudentDashboard from "./pages/StudentDashboard";
 import CollegeDashboard from "./pages/CollegeDashboard";
 import StartupDashboard from "./pages/StartupDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 import ReviewProofs from "./pages/ReviewProofs";
 import Pricing from "./pages/Pricing";
@@ -28,40 +31,70 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/portfolio/:slug" element={<Portfolio />} />
+            
+            {/* Student Routes */}
             <Route 
               path="/student/dashboard" 
               element={
-                <ProtectedRoute>
+                <RoleBasedProtectedRoute allowedRoles={['student']}>
                   <StudentDashboard />
-                </ProtectedRoute>
+                </RoleBasedProtectedRoute>
               } 
             />
+            
+            {/* College Admin Routes */}
             <Route 
-              path="/college" 
+              path="/college/dashboard" 
               element={
-                <ProtectedRoute>
+                <RoleBasedProtectedRoute allowedRoles={['college_admin']}>
                   <CollegeDashboard />
-                </ProtectedRoute>
+                </RoleBasedProtectedRoute>
               } 
             />
+            
+            {/* Startup Routes */}
             <Route 
               path="/startup/dashboard" 
               element={
-                <ProtectedRoute>
+                <RoleBasedProtectedRoute allowedRoles={['startup']}>
                   <StartupDashboard />
-                </ProtectedRoute>
+                </RoleBasedProtectedRoute>
               } 
             />
+            
+            {/* Admin Routes */}
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            
+            {/* Legacy Routes - redirect to proper paths */}
+            <Route 
+              path="/college" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['college_admin']} fallbackRoute="/college/dashboard">
+                  <CollegeDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            
+            {/* Review Proofs - Accessible by admins and college admins */}
             <Route 
               path="/review-proofs" 
               element={
-                <ProtectedRoute>
+                <RoleBasedProtectedRoute allowedRoles={['admin', 'college_admin']}>
                   <ReviewProofs />
-                </ProtectedRoute>
+                </RoleBasedProtectedRoute>
               } 
             />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

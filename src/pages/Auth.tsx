@@ -1,21 +1,15 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import RoleBasedAuthForm from "@/components/auth/RoleBasedAuthForm";
+import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
+
+type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,151 +17,86 @@ export default function Auth() {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/student/dashboard");
+        // Get user role and redirect accordingly
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        const role = roleData?.role || 'student';
+        redirectToDashboard(role);
       }
     };
     checkUser();
   }, [navigate]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
-  };
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) throw error;
-        navigate("/student/dashboard");
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/student/dashboard`,
-            data: {
-              full_name: fullName,
-            }
-          }
-        });
-        
-        if (error) throw error;
-        
-        // Handle different signup scenarios
-        if (data.user && !data.user.email_confirmed_at) {
-          setMessage("Check your email for the confirmation link!");
-        } else if (data.user) {
-          // User was created and confirmed immediately
-          navigate("/student/dashboard");
-        }
-      }
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
+  const redirectToDashboard = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        navigate('/admin/dashboard', { replace: true });
+        break;
+      case 'college_admin':
+        navigate('/college/dashboard', { replace: true });
+        break;
+      case 'startup':
+        navigate('/startup/dashboard', { replace: true });
+        break;
+      case 'student':
+      default:
+        navigate('/student/dashboard', { replace: true });
+        break;
     }
   };
 
+  const handleAuthSuccess = (role: UserRole) => {
+    redirectToDashboard(role);
+  };
+
+  const handleSignOutAll = async () => {
+    // Clean up auth state
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (err) {
+      // Continue even if this fails
+    }
+    
+    window.location.reload();
+  };
+
+  if (showVerificationPrompt) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
+        <EmailVerificationPrompt 
+          email={userEmail}
+          onVerified={() => setShowVerificationPrompt(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <img 
-              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-              alt="ProofLabAI Logo" 
-              className="h-16 w-16"
-            />
-          </div>
-          <CardTitle className="text-2xl font-bold">
-            {isLogin ? "Welcome Back" : "Create Account"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {message && (
-            <Alert>
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : (isLogin ? "Sign In" : "Sign Up")}
-            </Button>
-          </form>
-
-          <div className="text-center space-y-2">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-blue-600 hover:underline block w-full"
-            >
-              {isLogin 
-                ? "Don't have an account? Sign up" 
-                : "Already have an account? Sign in"
-              }
-            </button>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-sm text-red-600 hover:underline"
-            >
-              Sign out current user
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-md">
+        <RoleBasedAuthForm onSuccess={handleAuthSuccess} />
+        
+        {/* Emergency Sign Out */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={handleSignOutAll}
+            className="text-sm text-destructive hover:underline"
+          >
+            Sign out all users
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -60,18 +60,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const getUserRole = async (userId: string) => {
+    try {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      return roleData?.role || 'student';
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+      return 'student';
+    }
+  };
+
+  const redirectToDashboard = (role: string) => {
+    switch (role) {
+      case 'admin':
+        window.location.href = '/admin/dashboard';
+        break;
+      case 'college_admin':
+        window.location.href = '/college/dashboard';
+        break;
+      case 'startup':
+        window.location.href = '/startup/dashboard';
+        break;
+      case 'student':
+      default:
+        window.location.href = '/student/dashboard';
+        break;
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Create student profile if user exists and profile doesn't exist
-        // Use setTimeout to prevent deadlocks with Supabase auth
+        // Handle successful authentication
         if (session?.user && event === 'SIGNED_IN') {
-          setTimeout(() => {
-            createStudentProfileIfNeeded(session.user);
+          setTimeout(async () => {
+            await createStudentProfileIfNeeded(session.user);
+            
+            // Only redirect if we're on the auth page
+            if (window.location.pathname === '/auth' || 
+                window.location.pathname === '/auth/callback') {
+              const role = await getUserRole(session.user.id);
+              redirectToDashboard(role);
+            }
           }, 0);
         }
         

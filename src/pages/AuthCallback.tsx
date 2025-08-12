@@ -13,20 +13,30 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      console.log('AuthCallback: Starting auth callback handling');
+      console.log('AuthCallback: Search params:', Object.fromEntries(searchParams.entries()));
+      
       try {
         // Handle the auth callback
         const { data, error } = await supabase.auth.getSession();
         
+        console.log('AuthCallback: Session data:', data);
+        
         if (error) {
+          console.error('AuthCallback: Session error:', error);
           throw error;
         }
 
         if (!data.session) {
-          throw new Error('No session found');
+          console.error('AuthCallback: No session found');
+          throw new Error('No session found after OAuth callback');
         }
 
         const user = data.session.user;
         const accountType = searchParams.get('type') || user.user_metadata?.account_type;
+        
+        console.log('AuthCallback: User:', user);
+        console.log('AuthCallback: Account type:', accountType);
 
         // Handle role assignment for social auth or email confirmation
         if (accountType === 'student') {

@@ -72,6 +72,9 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       cleanupAuthState();
       await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
 
+      console.log(`Attempting ${provider} OAuth with role: ${role}`);
+      console.log(`Redirect URL: ${window.location.origin}/auth/callback?type=${role}`);
+
       // Enhanced OAuth call with better error handling
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -84,14 +87,26 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       });
 
       if (error) {
+        console.error(`OAuth error for ${provider}:`, error);
         if (error.message?.includes('Unsupported provider') || error.message?.includes('not enabled')) {
           throw new Error(`${provider === 'google' ? 'Google' : 'GitHub'} sign-in is not enabled. Please contact support or use email/password authentication.`);
+        }
+        if (error.message?.includes('Invalid login credentials') || error.message?.includes('OAuth')) {
+          throw new Error(`${provider === 'google' ? 'Google' : 'GitHub'} OAuth is not properly configured. Please check the credentials in Supabase settings.`);
         }
         throw error;
       }
     } catch (error: any) {
       console.error(`${provider} auth error:`, error);
-      setError(error.message);
+      
+      // Provide specific error messages for common OAuth issues
+      if (error.message?.includes('redirect_uri_mismatch')) {
+        setError(`OAuth redirect URL mismatch. Please ensure ${window.location.origin}/auth/callback is added to your ${provider === 'google' ? 'Google Cloud Console' : 'GitHub OAuth App'} authorized redirect URIs.`);
+      } else if (error.message?.includes('invalid_client')) {
+        setError(`Invalid OAuth credentials. Please check your ${provider === 'google' ? 'Google' : 'GitHub'} Client ID and Secret in Supabase settings.`);
+      } else {
+        setError(error.message || `Failed to authenticate with ${provider === 'google' ? 'Google' : 'GitHub'}`);
+      }
     } finally {
       setIsGoogleLoading(false);
       setLoading(false);

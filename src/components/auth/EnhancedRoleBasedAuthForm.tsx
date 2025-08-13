@@ -52,6 +52,24 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     setAuthStep('form'); // Reset auth step when switching modes
   }, [mode]);
 
+  // Dynamic redirect URL helper
+  const getRedirectUrl = () => {
+    const currentOrigin = window.location.origin;
+    
+    // For Lovable preview environments, use the current origin
+    if (currentOrigin.includes('lovable.app') || currentOrigin.includes('lovableproject.com')) {
+      return `${currentOrigin}/auth/callback`;
+    }
+    
+    // For localhost development
+    if (currentOrigin.includes('localhost')) {
+      return `${currentOrigin}/auth/callback`;
+    }
+    
+    // For production or staging environments
+    return `${currentOrigin}/auth/callback`;
+  };
+
   const cleanupAuthState = () => {
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
@@ -72,14 +90,15 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       cleanupAuthState();
       await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
 
+      const redirectUrl = `${getRedirectUrl()}?type=${role}`;
       console.log(`Attempting ${provider} OAuth with role: ${role}`);
-      console.log(`Redirect URL: ${window.location.origin}/auth/callback?type=${role}`);
+      console.log(`Redirect URL: ${redirectUrl}`);
 
       // Enhanced OAuth call with better error handling
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?type=${role}`,
+          redirectTo: redirectUrl,
           queryParams: {
             account_type: role
           }
@@ -119,10 +138,11 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     setMessage(null);
 
     try {
+      const redirectUrl = `${getRedirectUrl()}?type=${role}`;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?type=${role}`,
+          emailRedirectTo: redirectUrl,
           data: {
             account_type: role
           }
@@ -145,8 +165,9 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     setMessage(null);
 
     try {
+      const resetUrl = `${window.location.origin}/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: resetUrl
       });
 
       if (error) throw error;
@@ -196,11 +217,12 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         }
       } else {
         // Signup - create account and send confirmation email
+        const redirectUrl = `${getRedirectUrl()}?type=${role}`;
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?type=${role}`,
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName,
               account_type: role

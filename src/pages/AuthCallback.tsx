@@ -14,10 +14,31 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       console.log('AuthCallback: Starting auth callback handling');
+      console.log('AuthCallback: Current URL:', window.location.href);
       console.log('AuthCallback: Search params:', Object.fromEntries(searchParams.entries()));
       
       try {
-        // Handle the auth callback
+        // Handle auth callback from URL fragments for OAuth
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
+        if (accessToken) {
+          // OAuth callback - exchange for session
+          const { data, error } = await supabase.auth.getSession();
+          console.log('AuthCallback: OAuth session data:', data);
+          
+          if (error) {
+            console.error('AuthCallback: OAuth session error:', error);
+            throw error;
+          }
+          
+          if (data.session) {
+            await handleSuccessfulAuth(data.session);
+            return;
+          }
+        }
+        
+        // Handle regular email confirmation callback
         const { data, error } = await supabase.auth.getSession();
         
         console.log('AuthCallback: Session data:', data);
@@ -29,61 +50,113 @@ export default function AuthCallback() {
 
         if (!data.session) {
           console.error('AuthCallback: No session found');
-          throw new Error('No session found after OAuth callback');
+          throw new Error('No session found after callback');
         }
 
-        const user = data.session.user;
-        const accountType = searchParams.get('type') || user.user_metadata?.account_type;
-        
-        console.log('AuthCallback: User:', user);
-        console.log('AuthCallback: Account type:', accountType);
-
-        // Handle role assignment for social auth or email confirmation
-        if (accountType === 'student') {
-          // Assign student role immediately
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert({ user_id: user.id, role: 'student' });
-          
-          if (roleError && !roleError.message.includes('duplicate')) {
-            console.error('Student role assignment error:', roleError);
-          }
-          
-          navigate('/student/dashboard', { replace: true });
-        } else if (accountType && ['startup', 'college_admin', 'admin'].includes(accountType)) {
-          // Redirect to invite code verification for restricted roles
-          navigate(`/invite-verification?type=${accountType}`, { replace: true });
-        } else {
-          // Check existing role and redirect accordingly
-          const { data: userRole } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          const role = userRole?.role || 'student';
-          
-          // Redirect based on role
-          switch (role) {
-            case 'admin':
-              navigate('/admin/dashboard', { replace: true });
-              break;
-            case 'college_admin':
-              navigate('/college/dashboard', { replace: true });
-              break;
-            case 'startup':
-              navigate('/startup/dashboard', { replace: true });
-              break;
-            case 'student':
-            default:
-              navigate('/student/dashboard', { replace: true });
-              break;
-          }
-        }
+        await handleSuccessfulAuth(data.session);
       } catch (error: any) {
         console.error('Auth callback error:', error);
         setError(error.message);
         setLoading(false);
+      }
+    };
+
+    const handleSuccessfulAuth = async (session: any) => {
+      const user = session.user;
+      const accountType = searchParams.get('type') || user.user_metadata?.account_type;
+      
+      console.log('AuthCallback: User:', user);
+      console.log('AuthCallback: Account type:', accountType);
+
+      // Handle role assignment for social auth or email confirmation
+      if (accountType === 'student') {
+        // Assign student role immediately
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: user.id, role: 'student' });
+        
+        if (roleError && !roleError.message.includes('duplicate')) {
+          console.error('Student role assignment error:', roleError);
+        }
+        
+        // Create student profile if needed
+        try {
+          await supabase.from('student_profiles').insert({
+            user_id: user.id,
+            full_name: user.user_metadata?.full_name || '',
+            email: user.email || ''
+          });
+        } catch (profileError: any) {
+          if (!profileError.message?.includes('duplicate')) {
+            console.error('Student profile creation error:', profileError);
+          }
+        }
+        
+        navigate('/student/dashboard', { replace: true });
+      } else if (accountType && ['startup', 'college_admin'].includes(accountType)) {
+        // Assign role and create profile for non-student roles
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: user.id, role: accountType });
+        
+        if (roleError && !roleError.message.includes('duplicate')) {
+          console.error('Role assignment error:', roleError);
+        }
+
+        // Create role-specific profile
+        try {
+          if (accountType === 'college_admin') {
+            await supabase.from('colleges').insert({
+              user_id: user.id,
+              college_name: user.user_metadata?.full_name || '',
+              email: user.email || ''
+            });
+            navigate('/college/dashboard', { replace: true });
+          } else if (accountType === 'startup') {
+            await supabase.from('startups').insert({
+              user_id: user.id,
+              company_name: user.user_metadata?.full_name || '',
+              email: user.email || ''
+            });
+            navigate('/startup/dashboard', { replace: true });
+          }
+        } catch (profileError: any) {
+          if (!profileError.message?.includes('duplicate')) {
+            console.error('Profile creation error:', profileError);
+          }
+          // Still redirect even if profile creation fails
+          if (accountType === 'college_admin') {
+            navigate('/college/dashboard', { replace: true });
+          } else if (accountType === 'startup') {
+            navigate('/startup/dashboard', { replace: true });
+          }
+        }
+      } else {
+        // Check existing role and redirect accordingly
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const role = userRole?.role || 'student';
+        
+        // Redirect based on role
+        switch (role) {
+          case 'admin':
+            navigate('/admin/dashboard', { replace: true });
+            break;
+          case 'college_admin':
+            navigate('/college/dashboard', { replace: true });
+            break;
+          case 'startup':
+            navigate('/startup/dashboard', { replace: true });
+            break;
+          case 'student':
+          default:
+            navigate('/student/dashboard', { replace: true });
+            break;
+        }
       }
     };
 

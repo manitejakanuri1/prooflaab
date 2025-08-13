@@ -13,7 +13,7 @@ import PasswordInput, { isPasswordValid } from './PasswordInput';
 import EmailVerificationScreen from './EmailVerificationScreen';
 import InviteCodeVerificationForm from './InviteCodeVerificationForm';
 
-type AuthMode = 'login' | 'signup' | 'magic-link';
+type AuthMode = 'login' | 'signup' | 'magic-link' | 'forgot-password';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
 type AuthStep = 'form' | 'email-verification' | 'invite-code';
 
@@ -139,6 +139,26 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     }
   };
 
+  const handleForgotPassword = async () => {
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) throw error;
+      setMessage('Password reset email sent! Check your inbox for the reset link.');
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateInviteCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
@@ -258,6 +278,8 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     
     if (mode === 'magic-link') {
       handleMagicLink();
+    } else if (mode === 'forgot-password') {
+      handleForgotPassword();
     } else {
       handleEmailPasswordAuth();
     }
@@ -278,7 +300,10 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">
-          {mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Create Account' : 'Magic Link'}
+          {mode === 'login' ? 'Welcome Back' : 
+           mode === 'signup' ? 'Create Account' : 
+           mode === 'forgot-password' ? 'Reset Password' : 
+           'Magic Link'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -343,6 +368,15 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
                 Sign In
               </Button>
             </form>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setMode('forgot-password')}
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
           </TabsContent>
 
           <TabsContent value="signup" className="space-y-4">
@@ -424,6 +458,36 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
                 Send Magic Link
               </Button>
             </form>
+          </TabsContent>
+
+          <TabsContent value="forgot-password" className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-sm text-muted-foreground">
+                Enter your email address and we'll send you a link to reset your password.
+              </p>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Send Reset Link
+              </Button>
+            </form>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className="text-sm text-primary hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
           </TabsContent>
         </Tabs>
 

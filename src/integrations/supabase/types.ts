@@ -101,6 +101,33 @@ export type Database = {
         }
         Relationships: []
       }
+      colleges: {
+        Row: {
+          college_name: string
+          created_at: string | null
+          email: string
+          id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          college_name: string
+          created_at?: string | null
+          email: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          college_name?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       email_verifications: {
         Row: {
           code: string | null
@@ -418,6 +445,33 @@ export type Database = {
           startup_user_id?: string
           title?: string
           type?: string | null
+        }
+        Relationships: []
+      }
+      startups: {
+        Row: {
+          company_name: string
+          created_at: string | null
+          email: string
+          id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string | null
+          email: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

@@ -192,66 +192,45 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         
         // Handle successful signup
         if (data.user) {
-          // For College and Startup users, generate and send invite code
-          if (role === 'college_admin' || role === 'startup') {
-            const inviteCode = generateInviteCode();
-            
-            // Store invite code in database with expiration
-            const expiresAt = new Date();
-            expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiration
-            
-            const { error: inviteError } = await supabase
-              .from('invite_codes')
-              .insert({
-                code: inviteCode,
-                role: role,
-                is_used: false,
-                created_by: data.user.id,
-                expires_at: expiresAt.toISOString()
+          // Create user role record
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({ user_id: data.user.id, role: role });
+          
+          if (roleError && !roleError.message.includes('duplicate')) {
+            console.error('Role assignment error:', roleError);
+          }
+
+          // Create role-specific profile record
+          try {
+            if (role === 'student') {
+              await supabase.from('student_profiles').insert({
+                user_id: data.user.id,
+                full_name: fullName,
+                email: email
               });
-
-            if (inviteError) {
-              console.error('Error creating invite code:', inviteError);
-              throw new Error('Failed to create invite code. Please try again.');
+            } else if (role === 'college_admin') {
+              await supabase.from('colleges').insert({
+                user_id: data.user.id,
+                college_name: fullName,
+                email: email
+              });
+            } else if (role === 'startup') {
+              await supabase.from('startups').insert({
+                user_id: data.user.id,
+                company_name: fullName,
+                email: email
+              });
             }
-
-            // Send invite code via email
-            const { error: emailError } = await supabase.functions.invoke('send-invite-code-email', {
-              body: { 
-                email, 
-                inviteCode, 
-                accountType: role === 'college_admin' ? 'college' : 'startup',
-                name: fullName 
-              }
-            });
-
-            if (emailError) {
-              console.error('Error sending invite code email:', emailError);
-              // Don't throw error here - code was created successfully
-              setMessage(`Account created! Please check your email for confirmation and your invite code: ${inviteCode}`);
-            } else {
-              setMessage('Account created! Please check your email for confirmation and your invite code.');
-            }
+          } catch (profileError: any) {
+            console.error('Profile creation error:', profileError);
+            // Don't block signup for profile creation errors
           }
 
           if (data.user.email_confirmed_at) {
-            // User is immediately confirmed, handle redirect
-            if (role === 'student') {
-              // Assign student role immediately
-              const { error: roleError } = await supabase
-                .from('user_roles')
-                .insert({ user_id: data.user.id, role: 'student' });
-              
-              if (roleError && !roleError.message.includes('duplicate')) {
-                console.error('Student role assignment error:', roleError);
-              }
-              
-              if (onSuccess) {
-                onSuccess('student');
-              }
-            } else {
-              // Show invite code form
-              setAuthStep('invite-code');
+            // User is immediately confirmed, redirect to dashboard
+            if (onSuccess) {
+              onSuccess(role);
             }
           } else {
             // Show email verification screen
@@ -284,12 +263,6 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     }
   };
 
-  const handleInviteCodeSuccess = (role: 'college_admin' | 'startup') => {
-    if (onSuccess) {
-      onSuccess(role);
-    }
-  };
-
   // Render different screens based on auth step
   if (authStep === 'email-verification') {
     return (
@@ -297,16 +270,6 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         email={email}
         userRole={role}
         onResendSuccess={() => setMessage('Confirmation email resent!')}
-      />
-    );
-  }
-
-  if (authStep === 'invite-code') {
-    return (
-      <InviteCodeVerificationForm
-        email={email}
-        accountType={role as 'college_admin' | 'startup'}
-        onSuccess={handleInviteCodeSuccess}
       />
     );
   }
@@ -397,7 +360,11 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
 
               <Input
                 type="text"
-                placeholder="Full Name"
+                placeholder={
+                  role === 'student' ? 'Full Name' : 
+                  role === 'college_admin' ? 'College Name' : 
+                  'Company Name'
+                }
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required

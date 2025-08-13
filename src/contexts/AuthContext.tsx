@@ -78,17 +78,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const redirectToDashboard = (role: string) => {
     switch (role) {
       case 'admin':
-        window.location.href = '/admin/dashboard';
+        window.location.href = '/admin-dashboard';
         break;
       case 'college_admin':
-        window.location.href = '/college/dashboard';
+        window.location.href = '/college-dashboard';
         break;
       case 'startup':
-        window.location.href = '/startup/dashboard';
+        window.location.href = '/startup-dashboard';
         break;
       case 'student':
       default:
-        window.location.href = '/student/dashboard';
+        window.location.href = '/student-dashboard';
         break;
     }
   };

@@ -60,14 +60,14 @@ export default function RoleBasedProtectedRoute({
     // Redirect to appropriate dashboard based on user's actual role
     switch (userRole) {
       case 'admin':
-        return <Navigate to="/admin/dashboard" replace />;
+        return <Navigate to="/admin-dashboard" replace />;
       case 'college_admin':
-        return <Navigate to="/college/dashboard" replace />;
+        return <Navigate to="/college-dashboard" replace />;
       case 'startup':
-        return <Navigate to="/startup/dashboard" replace />;
+        return <Navigate to="/startup-dashboard" replace />;
       case 'student':
       default:
-        return <Navigate to="/student/dashboard" replace />;
+        return <Navigate to="/student-dashboard" replace />;
     }
   }
 

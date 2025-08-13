@@ -92,7 +92,7 @@ export default function AuthCallback() {
           }
         }
         
-        navigate('/student/dashboard', { replace: true });
+        navigate('/student-dashboard', { replace: true });
       } else if (accountType && ['startup', 'college_admin'].includes(accountType)) {
         // Assign role and create profile for non-student roles
         const { error: roleError } = await supabase
@@ -111,14 +111,14 @@ export default function AuthCallback() {
               college_name: user.user_metadata?.full_name || '',
               email: user.email || ''
             });
-            navigate('/college/dashboard', { replace: true });
+            navigate('/college-dashboard', { replace: true });
           } else if (accountType === 'startup') {
             await supabase.from('startups').insert({
               user_id: user.id,
               company_name: user.user_metadata?.full_name || '',
               email: user.email || ''
             });
-            navigate('/startup/dashboard', { replace: true });
+            navigate('/startup-dashboard', { replace: true });
           }
         } catch (profileError: any) {
           if (!profileError.message?.includes('duplicate')) {
@@ -126,9 +126,9 @@ export default function AuthCallback() {
           }
           // Still redirect even if profile creation fails
           if (accountType === 'college_admin') {
-            navigate('/college/dashboard', { replace: true });
+            navigate('/college-dashboard', { replace: true });
           } else if (accountType === 'startup') {
-            navigate('/startup/dashboard', { replace: true });
+            navigate('/startup-dashboard', { replace: true });
           }
         }
       } else {
@@ -144,17 +144,17 @@ export default function AuthCallback() {
         // Redirect based on role
         switch (role) {
           case 'admin':
-            navigate('/admin/dashboard', { replace: true });
+            navigate('/admin-dashboard', { replace: true });
             break;
           case 'college_admin':
-            navigate('/college/dashboard', { replace: true });
+            navigate('/college-dashboard', { replace: true });
             break;
           case 'startup':
-            navigate('/startup/dashboard', { replace: true });
+            navigate('/startup-dashboard', { replace: true });
             break;
           case 'student':
           default:
-            navigate('/student/dashboard', { replace: true });
+            navigate('/student-dashboard', { replace: true });
             break;
         }
       }

@@ -976,6 +976,10 @@ export type Database = {
         Args: { _code: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      validate_invite_code_secure: {
+        Args: { _code: string; _role: Database["public"]["Enums"]["app_role"] }
+        Returns: Json
+      }
       validate_task_title: {
         Args: { _title: string }
         Returns: boolean

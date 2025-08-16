@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -901,11 +901,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_expired_otps: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_user_with_role: {
         Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["app_role"]
           _invite_code?: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -924,21 +928,21 @@ export type Database = {
       get_leaderboard: {
         Args: { _limit?: number }
         Returns: {
-          id: string
           full_name: string
+          id: string
+          rank: number
           total_xp: number
           trust_score: number
-          rank: number
         }[]
       }
       get_leaderboard_data: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
           full_name: string
+          id: string
+          rank: number
           total_xp: number
           trust_score: number
-          rank: number
         }[]
       }
       get_user_role: {
@@ -947,8 +951,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -958,8 +962,8 @@ export type Database = {
       }
       validate_and_use_invite_code: {
         Args: {
-          _code: string
           _account_type: Database["public"]["Enums"]["app_role"]
+          _code: string
           _user_id: string
         }
         Returns: boolean

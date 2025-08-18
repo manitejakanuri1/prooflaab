@@ -19,6 +19,8 @@ import NotFound from "./pages/NotFound";
 import ReviewProofs from "./pages/ReviewProofs";
 import Pricing from "./pages/Pricing";
 import ResetPassword from "./pages/ResetPassword";
+import OnboardingCollege from "./pages/OnboardingCollege";
+import OnboardingStartup from "./pages/OnboardingStartup";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,8 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/invite-verification" element={<InviteCodeVerification />} />
+            <Route path="/onboarding/college" element={<OnboardingCollege />} />
+            <Route path="/onboarding/startup" element={<OnboardingStartup />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/portfolio/:slug" element={<Portfolio />} />
             

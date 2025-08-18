@@ -57,16 +57,31 @@ export default function InviteCodeVerificationForm({
         throw new Error('Not authenticated');
       }
 
-      // Assign role to user
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({ 
-          user_id: user.id, 
-          role: accountType 
-        });
+      // Create appropriate profile record
+      if (accountType === 'college_admin') {
+        const { error: profileError } = await supabase
+          .from('colleges')
+          .insert({
+            user_id: user.id,
+            college_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'College',
+            email: user.email!
+          });
 
-      if (roleError && !roleError.message.includes('duplicate')) {
-        throw new Error('Failed to assign user role');
+        if (profileError && !profileError.message.includes('duplicate')) {
+          throw new Error('Failed to create college profile');
+        }
+      } else if (accountType === 'startup') {
+        const { error: profileError } = await supabase
+          .from('startups')
+          .insert({
+            user_id: user.id,
+            company_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Company',
+            email: user.email!
+          });
+
+        if (profileError && !profileError.message.includes('duplicate')) {
+          throw new Error('Failed to create startup profile');
+        }
       }
 
       onSuccess(accountType);

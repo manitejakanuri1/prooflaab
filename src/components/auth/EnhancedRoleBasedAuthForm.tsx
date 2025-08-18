@@ -243,30 +243,42 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             console.error('Role assignment error:', roleError);
           }
 
-          // Create role-specific profile record
-          try {
-            if (role === 'student') {
+          // For non-students, generate invite code and send email
+          if (role === 'college_admin' || role === 'startup') {
+            const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            // Store invite code
+            await supabase.from('invite_codes').insert({
+              code: inviteCode,
+              role: role,
+              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+              created_by: data.user.id
+            });
+
+            // Send onboarding email with invite code
+            try {
+              await supabase.functions.invoke('send-onboarding-email', {
+                body: {
+                  email: email,
+                  name: fullName,
+                  accountType: role,
+                  inviteCode: inviteCode
+                }
+              });
+            } catch (emailError) {
+              console.error('Failed to send onboarding email:', emailError);
+            }
+          } else {
+            // For students, create profile immediately
+            try {
               await supabase.from('student_profiles').insert({
                 user_id: data.user.id,
                 full_name: fullName,
                 email: email
               });
-            } else if (role === 'college_admin') {
-              await supabase.from('colleges').insert({
-                user_id: data.user.id,
-                college_name: fullName,
-                email: email
-              });
-            } else if (role === 'startup') {
-              await supabase.from('startups').insert({
-                user_id: data.user.id,
-                company_name: fullName,
-                email: email
-              });
+            } catch (profileError: any) {
+              console.error('Student profile creation error:', profileError);
             }
-          } catch (profileError: any) {
-            console.error('Profile creation error:', profileError);
-            // Don't block signup for profile creation errors
           }
 
           if (data.user.email_confirmed_at) {

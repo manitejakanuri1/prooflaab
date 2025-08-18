@@ -92,9 +92,9 @@ export default function AuthCallback() {
           }
         }
         
-        navigate('/student-dashboard', { replace: true });
+        navigate('/student/dashboard', { replace: true });
       } else if (accountType && ['startup', 'college_admin'].includes(accountType)) {
-        // Assign role and create profile for non-student roles
+        // Assign role
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({ user_id: user.id, role: accountType });
@@ -103,32 +103,32 @@ export default function AuthCallback() {
           console.error('Role assignment error:', roleError);
         }
 
-        // Create role-specific profile
-        try {
-          if (accountType === 'college_admin') {
-            await supabase.from('colleges').insert({
-              user_id: user.id,
-              college_name: user.user_metadata?.full_name || '',
-              email: user.email || ''
-            });
-            navigate('/college-dashboard', { replace: true });
-          } else if (accountType === 'startup') {
-            await supabase.from('startups').insert({
-              user_id: user.id,
-              company_name: user.user_metadata?.full_name || '',
-              email: user.email || ''
-            });
-            navigate('/startup-dashboard', { replace: true });
+        // Check if user already has profile record
+        if (accountType === 'college_admin') {
+          const { data: collegeRecord } = await supabase
+            .from('colleges')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!collegeRecord) {
+            // No college record exists, redirect to onboarding
+            navigate('/onboarding/college', { replace: true });
+          } else {
+            navigate('/college/dashboard', { replace: true });
           }
-        } catch (profileError: any) {
-          if (!profileError.message?.includes('duplicate')) {
-            console.error('Profile creation error:', profileError);
-          }
-          // Still redirect even if profile creation fails
-          if (accountType === 'college_admin') {
-            navigate('/college-dashboard', { replace: true });
-          } else if (accountType === 'startup') {
-            navigate('/startup-dashboard', { replace: true });
+        } else if (accountType === 'startup') {
+          const { data: startupRecord } = await supabase
+            .from('startups')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!startupRecord) {
+            // No startup record exists, redirect to onboarding
+            navigate('/onboarding/startup', { replace: true });
+          } else {
+            navigate('/startup/dashboard', { replace: true });
           }
         }
       } else {
@@ -144,17 +144,39 @@ export default function AuthCallback() {
         // Redirect based on role
         switch (role) {
           case 'admin':
-            navigate('/admin-dashboard', { replace: true });
+            navigate('/admin/dashboard', { replace: true });
             break;
           case 'college_admin':
-            navigate('/college-dashboard', { replace: true });
+            // Check if college record exists
+            const { data: collegeRecord } = await supabase
+              .from('colleges')
+              .select('id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (!collegeRecord) {
+              navigate('/onboarding/college', { replace: true });
+            } else {
+              navigate('/college/dashboard', { replace: true });
+            }
             break;
           case 'startup':
-            navigate('/startup-dashboard', { replace: true });
+            // Check if startup record exists
+            const { data: startupRecord } = await supabase
+              .from('startups')
+              .select('id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (!startupRecord) {
+              navigate('/onboarding/startup', { replace: true });
+            } else {
+              navigate('/startup/dashboard', { replace: true });
+            }
             break;
           case 'student':
           default:
-            navigate('/student-dashboard', { replace: true });
+            navigate('/student/dashboard', { replace: true });
             break;
         }
       }

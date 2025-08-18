@@ -14,51 +14,59 @@ interface OnboardingEmailRequest {
   email: string;
   name?: string;
   user_id?: string;
+  origin?: string;
 }
 
-const getEmailContent = (userType: string, name: string) => {
-  const baseUrl = "https://prooflabai.com";
+const getEmailContent = (userType: string, name: string, origin?: string) => {
+  const baseUrl = origin || "https://lovable.app";
   
   switch (userType) {
     case 'student':
       return {
-        subject: "Welcome to ProofLabAI 👋",
+        subject: "Welcome! Your Account is Ready 🎉",
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Hey there 👋</h1>
+            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Welcome ${name}! 👋</h1>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Welcome to ProofLabAI! Start your first task now 👉 
-              <a href="${baseUrl}/dashboard/student/tasks" style="color: #4F46E5; font-weight: 600;">
-                https://prooflabai.com/dashboard/student/tasks
+              Your student account has been successfully created! You can now start exploring tasks and building your portfolio.
+            </p>
+            
+            <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              <a href="${baseUrl}/student-dashboard" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Access Your Dashboard
               </a>
             </p>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-              —<br>
-              Team ProofLabAI
+              Best regards,<br>
+              Your Learning Platform Team
             </p>
           </div>
         `
       };
       
     case 'college':
+    case 'college_admin':
       return {
-        subject: "Welcome to ProofLabAI 👋",
+        subject: "Welcome! College Admin Account Created 🎓",
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Welcome College Partner 👩‍🏫</h1>
+            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Welcome ${name}! 👩‍🏫</h1>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Upload your students here 👉 
-              <a href="${baseUrl}/dashboard/college/upload" style="color: #4F46E5; font-weight: 600;">
-                https://prooflabai.com/dashboard/college/upload
+              Your college administrator account has been created successfully! You can now manage students and assign tasks.
+            </p>
+            
+            <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              <a href="${baseUrl}/college-dashboard" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Access College Dashboard
               </a>
             </p>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-              —<br>
-              Team ProofLabAI
+              Best regards,<br>
+              Your Learning Platform Team
             </p>
           </div>
         `
@@ -66,21 +74,24 @@ const getEmailContent = (userType: string, name: string) => {
       
     case 'startup':
       return {
-        subject: "Welcome to ProofLabAI 👋",
+        subject: "Welcome! Startup Account Ready 🚀",
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Hi Founder 🚀</h1>
+            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Welcome ${name}! 🚀</h1>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Start posting tasks here 👉 
-              <a href="${baseUrl}/dashboard/startup/tasks" style="color: #4F46E5; font-weight: 600;">
-                https://prooflabai.com/dashboard/startup/tasks
+              Your startup account has been created successfully! You can now post tasks and connect with talented students.
+            </p>
+            
+            <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              <a href="${baseUrl}/startup-dashboard" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Access Startup Dashboard
               </a>
             </p>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-              —<br>
-              Team ProofLabAI
+              Best regards,<br>
+              Your Learning Platform Team
             </p>
           </div>
         `
@@ -89,21 +100,24 @@ const getEmailContent = (userType: string, name: string) => {
     case 'general':
     default:
       return {
-        subject: "Welcome to ProofLabAI 👋",
+        subject: "Welcome! Account Created Successfully 🎉",
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Welcome to ProofLabAI!</h1>
+            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Welcome ${name}!</h1>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Explore now 👉 
-              <a href="${baseUrl}" style="color: #4F46E5; font-weight: 600;">
-                https://prooflabai.com
+              Your account has been created successfully! You can now access the platform and explore all features.
+            </p>
+            
+            <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              <a href="${baseUrl}" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Get Started
               </a>
             </p>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-              —<br>
-              Team ProofLabAI
+              Best regards,<br>
+              Your Learning Platform Team
             </p>
           </div>
         `
@@ -118,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { userType, user_type, email, name, user_id }: OnboardingEmailRequest = await req.json();
+    const { userType, user_type, email, name, user_id, origin }: OnboardingEmailRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -131,10 +145,10 @@ const handler = async (req: Request): Promise<Response> => {
     const finalUserType = userType || user_type || 'general';
     const finalName = name || email.split('@')[0];
 
-    const emailContent = getEmailContent(finalUserType, finalName);
+    const emailContent = getEmailContent(finalUserType, finalName, origin);
 
     const emailResponse = await resend.emails.send({
-      from: "ProofLabAI <welcome@prooflabai.com>",
+      from: "Learning Platform <onboarding@resend.dev>",
       to: [email],
       subject: emailContent.subject,
       html: emailContent.html,

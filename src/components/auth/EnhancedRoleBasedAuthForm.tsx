@@ -255,26 +255,36 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
               created_by: data.user.id
             });
 
-            // Send onboarding email with invite code
-            try {
-              await supabase.functions.invoke('send-onboarding-email', {
-                body: {
-                  email: email,
-                  name: fullName,
-                  accountType: role,
-                  inviteCode: inviteCode
-                }
-              });
-            } catch (emailError) {
-              console.error('Failed to send onboarding email:', emailError);
-            }
+          // Send onboarding email
+          try {
+            await supabase.functions.invoke('send-onboarding-email', {
+              body: {
+                email: email,
+                name: fullName,
+                userType: role === 'college_admin' ? 'college' : role,
+                origin: window.location.origin
+              }
+            });
+          } catch (emailError) {
+            console.error('Failed to send onboarding email:', emailError);
+          }
           } else {
-            // For students, create profile immediately
+            // For students, create profile immediately and send welcome email
             try {
               await supabase.from('student_profiles').insert({
                 user_id: data.user.id,
                 full_name: fullName,
                 email: email
+              });
+
+              // Send welcome email for students too
+              await supabase.functions.invoke('send-onboarding-email', {
+                body: {
+                  email: email,
+                  name: fullName,
+                  userType: 'student',
+                  origin: window.location.origin
+                }
               });
             } catch (profileError: any) {
               console.error('Student profile creation error:', profileError);

@@ -103,28 +103,34 @@ export type Database = {
       }
       colleges: {
         Row: {
-          college_name: string
           created_at: string | null
           email: string
           id: string
+          invite_code: string | null
+          name: string
+          status: string | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
-          college_name: string
           created_at?: string | null
           email: string
           id?: string
+          invite_code?: string | null
+          name: string
+          status?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
-          college_name?: string
           created_at?: string | null
           email?: string
           id?: string
+          invite_code?: string | null
+          name?: string
+          status?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -450,28 +456,34 @@ export type Database = {
       }
       startups: {
         Row: {
-          company_name: string
           created_at: string | null
           email: string
           id: string
+          invite_code: string | null
+          name: string
+          status: string | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
-          company_name: string
           created_at?: string | null
           email: string
           id?: string
+          invite_code?: string | null
+          name: string
+          status?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
-          company_name?: string
           created_at?: string | null
           email?: string
           id?: string
+          invite_code?: string | null
+          name?: string
+          status?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -591,6 +603,39 @@ export type Database = {
           trust_score?: number | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          batch: string | null
+          branch: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          batch?: string | null
+          branch?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          batch?: string | null
+          branch?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

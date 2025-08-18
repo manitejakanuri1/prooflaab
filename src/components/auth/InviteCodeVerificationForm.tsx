@@ -57,30 +57,30 @@ export default function InviteCodeVerificationForm({
         throw new Error('Not authenticated');
       }
 
-      // Create appropriate profile record
+      // Update existing record status to active
       if (accountType === 'college_admin') {
         const { error: profileError } = await supabase
           .from('colleges')
-          .insert({
-            user_id: user.id,
-            college_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'College',
-            email: user.email!
-          });
+          .update({ 
+            status: 'active', 
+            invite_code: inviteCode 
+          })
+          .eq('user_id', user.id);
 
-        if (profileError && !profileError.message.includes('duplicate')) {
-          throw new Error('Failed to create college profile');
+        if (profileError) {
+          throw new Error('Failed to activate college profile');
         }
       } else if (accountType === 'startup') {
         const { error: profileError } = await supabase
           .from('startups')
-          .insert({
-            user_id: user.id,
-            company_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Company',
-            email: user.email!
-          });
+          .update({ 
+            status: 'active', 
+            invite_code: inviteCode 
+          })
+          .eq('user_id', user.id);
 
-        if (profileError && !profileError.message.includes('duplicate')) {
-          throw new Error('Failed to create startup profile');
+        if (profileError) {
+          throw new Error('Failed to activate startup profile');
         }
       }
 

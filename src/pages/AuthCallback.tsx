@@ -79,11 +79,11 @@ export default function AuthCallback() {
           console.error('Student role assignment error:', roleError);
         }
         
-        // Create student profile if needed
+        // Create student record if needed
         try {
-          await supabase.from('student_profiles').insert({
+          await supabase.from('students').insert({
             user_id: user.id,
-            full_name: user.user_metadata?.full_name || '',
+            name: user.user_metadata?.full_name || '',
             email: user.email || ''
           });
         } catch (profileError: any) {

@@ -12,6 +12,7 @@ import { FaGoogle, FaGithub } from 'react-icons/fa';
 import PasswordInput, { isPasswordValid } from './PasswordInput';
 import EmailVerificationScreen from './EmailVerificationScreen';
 import InviteCodeVerificationForm from './InviteCodeVerificationForm';
+import EmailConfirmationRequired from './EmailConfirmationRequired';
 
 type AuthMode = 'login' | 'signup' | 'magic-link' | 'forgot-password';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
@@ -202,6 +203,13 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         if (error) throw error;
 
         if (data.user) {
+          // Check if email is confirmed
+          if (!data.user.email_confirmed_at) {
+            setError('Please confirm your email address before logging in. Check your inbox for the confirmation email.');
+            await supabase.auth.signOut();
+            return;
+          }
+
           // Get user role after login
           const { data: userRole } = await supabase
             .from('user_roles')
@@ -234,7 +242,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         
         // Handle successful signup
         if (data.user) {
-          // Create user role record
+          // Create user role record immediately
           const { error: roleError } = await supabase
             .from('user_roles')
             .insert({ user_id: data.user.id, role: role });
@@ -243,17 +251,31 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             console.error('Role assignment error:', roleError);
           }
 
-          // For non-students, generate invite code and send email
-          if (role === 'college_admin' || role === 'startup') {
-            const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            
-            // Store invite code
-            await supabase.from('invite_codes').insert({
-              code: inviteCode,
-              role: role,
-              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-              created_by: data.user.id
+          // Create role-specific records based on user type
+          if (role === 'student') {
+            // Create student record
+            await supabase.from('students').insert({
+              user_id: data.user.id,
+              name: fullName,
+              email: email
             });
+          } else if (role === 'college_admin') {
+            // Create college record with pending status
+            await supabase.from('colleges').insert({
+              user_id: data.user.id,
+              name: fullName,
+              email: email,
+              status: 'pending'
+            });
+          } else if (role === 'startup') {
+            // Create startup record with pending status
+            await supabase.from('startups').insert({
+              user_id: data.user.id,
+              name: fullName,
+              email: email,
+              status: 'pending'
+            });
+          }
 
           // Send onboarding email
           try {
@@ -268,39 +290,10 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
           } catch (emailError) {
             console.error('Failed to send onboarding email:', emailError);
           }
-          } else {
-            // For students, create profile immediately and send welcome email
-            try {
-              await supabase.from('student_profiles').insert({
-                user_id: data.user.id,
-                full_name: fullName,
-                email: email
-              });
 
-              // Send welcome email for students too
-              await supabase.functions.invoke('send-onboarding-email', {
-                body: {
-                  email: email,
-                  name: fullName,
-                  userType: 'student',
-                  origin: window.location.origin
-                }
-              });
-            } catch (profileError: any) {
-              console.error('Student profile creation error:', profileError);
-            }
-          }
-
-          if (data.user.email_confirmed_at) {
-            // User is immediately confirmed, redirect to dashboard
-            if (onSuccess) {
-              onSuccess(role);
-            }
-          } else {
-            // Show email verification screen
-            setMessage('Account created successfully! Please check your email to confirm your account.');
-            setAuthStep('email-verification');
-          }
+          // Always show email verification screen for new signups
+          setMessage('Account created successfully! Please check your email to confirm your account before you can log in.');
+          setAuthStep('email-verification');
         }
       }
     } catch (error: any) {
@@ -332,10 +325,17 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
   // Render different screens based on auth step
   if (authStep === 'email-verification') {
     return (
-      <EmailVerificationScreen
+      <EmailConfirmationRequired
         email={email}
-        userRole={role}
-        onResendSuccess={() => setMessage('Confirmation email resent!')}
+        userRole={role === 'admin' ? 'student' : role}
+        onBackToLogin={() => {
+          setAuthStep('form');
+          setMode('login');
+          setEmail('');
+          setPassword('');
+          setError(null);
+          setMessage(null);
+        }}
       />
     );
   }

@@ -19,6 +19,7 @@ export default function RoleBasedProtectedRoute({
   const [roleLoading, setRoleLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Fetch user role
   useEffect(() => {
     const fetchUserRole = async () => {
       if (!user) {
@@ -45,22 +46,10 @@ export default function RoleBasedProtectedRoute({
     fetchUserRole();
   }, [user]);
 
-  if (loading || roleLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to={fallbackRoute} replace />;
-  }
-
   // Check if user needs onboarding before proceeding
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (!user || !userRole) return;
+      if (!user || !userRole || loading || roleLoading) return;
 
       // Check onboarding for college_admin
       if (userRole === 'college_admin') {
@@ -92,7 +81,19 @@ export default function RoleBasedProtectedRoute({
     };
 
     checkOnboardingStatus();
-  }, [user, userRole, navigate]);
+  }, [user, userRole, navigate, loading, roleLoading]);
+
+  if (loading || roleLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to={fallbackRoute} replace />;
+  }
 
   if (userRole && !allowedRoles.includes(userRole)) {
     // Redirect to appropriate dashboard based on user's actual role

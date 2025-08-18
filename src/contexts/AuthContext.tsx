@@ -28,6 +28,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createStudentProfileIfNeeded = async (user: User) => {
     try {
+      // Only create profile if email is confirmed
+      if (!user.email_confirmed_at) {
+        console.log('Email not confirmed, skipping profile creation');
+        return;
+      }
+
       // Check if profile already exists
       const { data: existingProfile } = await supabase
         .from('student_profiles')
@@ -36,23 +42,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle();
 
       if (!existingProfile) {
-        // Create profile if it doesn't exist
-        const { error } = await supabase
-          .from('student_profiles')
-          .insert([
-            {
-              user_id: user.id,
-              full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'Student',
-              email: user.email || '',
-              total_xp: 0,
-              trust_score: 0,
-            }
-          ]);
-        
-        if (error) {
-          console.error('Error creating student profile:', error);
-        } else {
-          console.log('Student profile created successfully');
+        // Get user role to determine if this is a student
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        // Only create student profile for students
+        if (roleData?.role === 'student') {
+          const { error } = await supabase
+            .from('student_profiles')
+            .insert([
+              {
+                user_id: user.id,
+                full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'Student',
+                email: user.email || '',
+                total_xp: 0,
+                trust_score: 0,
+              }
+            ]);
+          
+          if (error) {
+            console.error('Error creating student profile:', error);
+          } else {
+            console.log('Student profile created successfully');
+          }
         }
       }
     } catch (error) {
@@ -100,12 +115,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Handle successful authentication
+        // Handle successful authentication - only redirect if email is confirmed
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
+            // Check if email is confirmed before proceeding
+            if (!session.user.email_confirmed_at) {
+              console.log('Email not confirmed, not redirecting');
+              return;
+            }
+            
             await createStudentProfileIfNeeded(session.user);
             
-            // Only redirect if we're on the auth page
+            // Only redirect if we're on the auth page and email is confirmed
             if (window.location.pathname === '/auth' || 
                 window.location.pathname === '/auth/callback') {
               const role = await getUserRole(session.user.id);

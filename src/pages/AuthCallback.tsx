@@ -67,108 +67,54 @@ export default function AuthCallback() {
       
       console.log('AuthCallback: User:', user);
       console.log('AuthCallback: Account type:', accountType);
+      console.log('AuthCallback: Email confirmed:', user.email_confirmed_at);
 
-      // Handle role assignment for social auth or email confirmation
-      if (accountType === 'student') {
-        // Assign student role immediately
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: user.id, role: 'student' });
-        
-        if (roleError && !roleError.message.includes('duplicate')) {
-          console.error('Student role assignment error:', roleError);
-        }
-        
-        // Create student record if needed
-        try {
-          await supabase.from('students').insert({
-            user_id: user.id,
-            name: user.user_metadata?.full_name || '',
-            email: user.email || ''
-          });
-        } catch (profileError: any) {
-          if (!profileError.message?.includes('duplicate')) {
-            console.error('Student profile creation error:', profileError);
-          }
-        }
-        
-        navigate('/student/dashboard', { replace: true });
-      } else if (accountType && ['startup', 'college_admin'].includes(accountType)) {
-        // Assign role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: user.id, role: accountType });
-        
-        if (roleError && !roleError.message.includes('duplicate')) {
-          console.error('Role assignment error:', roleError);
-        }
+      // Check if email is confirmed - if not, redirect to auth with message
+      if (!user.email_confirmed_at) {
+        console.log('Email not confirmed, redirecting to auth');
+        navigate('/auth?message=Please confirm your email address to continue', { replace: true });
+        return;
+      }
 
-        // Check if user already has profile record
-        if (accountType === 'college_admin') {
-          const { data: collegeRecord } = await supabase
-            .from('colleges')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
+      // Get existing role first
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-          if (!collegeRecord) {
-            // No college record exists, redirect to onboarding
-            navigate('/onboarding/college', { replace: true });
-          } else {
-            navigate('/college/dashboard', { replace: true });
-          }
-        } else if (accountType === 'startup') {
-          const { data: startupRecord } = await supabase
-            .from('startups')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
+      const currentRole = existingRole?.role;
 
-          if (!startupRecord) {
-            // No startup record exists, redirect to onboarding
-            navigate('/onboarding/startup', { replace: true });
-          } else {
-            navigate('/startup/dashboard', { replace: true });
-          }
-        }
-      } else {
-        // Check existing role and redirect accordingly
-        const { data: userRole } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        const role = userRole?.role || 'student';
-        
-        // Redirect based on role
-        switch (role) {
+      // If role exists, redirect based on that role (ignore accountType from URL)
+      if (currentRole) {
+        console.log('Existing role found:', currentRole);
+        switch (currentRole) {
           case 'admin':
             navigate('/admin/dashboard', { replace: true });
             break;
           case 'college_admin':
-            // Check if college record exists
+            // Check if college record exists and status
             const { data: collegeRecord } = await supabase
               .from('colleges')
-              .select('id')
+              .select('id, status')
               .eq('user_id', user.id)
               .maybeSingle();
 
-            if (!collegeRecord) {
+            if (!collegeRecord || collegeRecord.status === 'pending') {
               navigate('/onboarding/college', { replace: true });
             } else {
               navigate('/college/dashboard', { replace: true });
             }
             break;
           case 'startup':
-            // Check if startup record exists
+            // Check if startup record exists and status
             const { data: startupRecord } = await supabase
               .from('startups')
-              .select('id')
+              .select('id, status')
               .eq('user_id', user.id)
               .maybeSingle();
 
-            if (!startupRecord) {
+            if (!startupRecord || startupRecord.status === 'pending') {
               navigate('/onboarding/startup', { replace: true });
             } else {
               navigate('/startup/dashboard', { replace: true });
@@ -179,7 +125,23 @@ export default function AuthCallback() {
             navigate('/student/dashboard', { replace: true });
             break;
         }
+        return;
       }
+
+      // No existing role - this shouldn't happen with proper signup flow
+      console.log('No existing role found, defaulting to student');
+      // Create student role as fallback
+      await supabase
+        .from('user_roles')
+        .insert({ user_id: user.id, role: 'student' });
+      
+      await supabase.from('students').insert({
+        user_id: user.id,
+        name: user.user_metadata?.full_name || '',
+        email: user.email || ''
+      });
+      
+      navigate('/student/dashboard', { replace: true });
     };
 
     handleAuthCallback();

@@ -27,67 +27,29 @@ export default function InviteCodeVerificationForm({
     setError(null);
 
     try {
-      // Validate invite code
-      const { data: inviteData, error: inviteError } = await supabase
-        .from('invite_codes')
-        .select('*')
-        .eq('code', inviteCode.toUpperCase())
-        .eq('role', accountType)
-        .eq('is_used', false)
-        .gte('expires_at', new Date().toISOString())
-        .maybeSingle();
-
-      if (inviteError || !inviteData) {
-        throw new Error('Invalid invite code. Please contact admin.');
-      }
-
-      // Mark invite code as used
-      const { error: updateError } = await supabase
-        .from('invite_codes')
-        .update({ is_used: true })
-        .eq('id', inviteData.id);
-
-      if (updateError) {
-        throw new Error('Failed to validate invite code');
-      }
-
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('Not authenticated');
       }
 
-      // Update existing record status to active
-      if (accountType === 'college_admin') {
-        const { error: profileError } = await supabase
-          .from('colleges')
-          .update({ 
-            status: 'active', 
-            invite_code: inviteCode 
-          })
-          .eq('user_id', user.id);
+      // Use the new verification function
+      const { data, error } = await supabase.rpc('verify_invite_code_and_activate', {
+        _code: inviteCode.trim().toUpperCase(),
+        _user_id: user.id,
+        _role: accountType
+      });
 
-        if (profileError) {
-          throw new Error('Failed to activate college profile');
-        }
-      } else if (accountType === 'startup') {
-        const { error: profileError } = await supabase
-          .from('startups')
-          .update({ 
-            status: 'active', 
-            invite_code: inviteCode 
-          })
-          .eq('user_id', user.id);
+      if (error) throw error;
 
-        if (profileError) {
-          throw new Error('Failed to activate startup profile');
-        }
+      if (data?.success) {
+        onSuccess(accountType);
+      } else {
+        setError(data?.message || 'Invalid or expired invite code');
       }
-
-      onSuccess(accountType);
     } catch (error: any) {
       console.error('Invite code verification error:', error);
-      setError(error.message);
+      setError(error.message || 'Failed to verify invite code');
     } finally {
       setLoading(false);
     }

@@ -914,7 +914,7 @@ export type Database = {
         Returns: boolean
       }
       generate_unique_slug: {
-        Args: { base_name: string }
+        Args: { input_text: string }
         Returns: string
       }
       generate_url_slug: {

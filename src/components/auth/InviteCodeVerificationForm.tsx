@@ -42,10 +42,11 @@ export default function InviteCodeVerificationForm({
 
       if (error) throw error;
 
-      if (data?.success) {
+      const result = data as { success: boolean; message: string } | null;
+      if (result?.success) {
         onSuccess(accountType);
       } else {
-        setError(data?.message || 'Invalid or expired invite code');
+        setError(result?.message || 'Invalid or expired invite code');
       }
     } catch (error: any) {
       console.error('Invite code verification error:', error);

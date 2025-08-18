@@ -45,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send email via Resend...");
     const emailResponse = await resend.emails.send({
-      from: "ProofLabAI <noreply@prooflabai.com>",
+      from: "ProofLabAI <onboarding@resend.dev>",
       to: [email],
       subject: "ProofLabAI Account Verification Code",
       text: `Welcome to ProofLabAI!

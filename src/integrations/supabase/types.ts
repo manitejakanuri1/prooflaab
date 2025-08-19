@@ -41,6 +41,66 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          password_hash: string | null
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          password_hash?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          password_hash?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          created_at: string
+          created_by_admin: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_admin: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_admin?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -107,30 +167,36 @@ export type Database = {
           email: string
           id: string
           invite_code: string | null
+          invitecode: string | null
           name: string
           status: string | null
           updated_at: string | null
           user_id: string
+          verification_status: string | null
         }
         Insert: {
           created_at?: string | null
           email: string
           id?: string
           invite_code?: string | null
+          invitecode?: string | null
           name: string
           status?: string | null
           updated_at?: string | null
           user_id: string
+          verification_status?: string | null
         }
         Update: {
           created_at?: string | null
           email?: string
           id?: string
           invite_code?: string | null
+          invitecode?: string | null
           name?: string
           status?: string | null
           updated_at?: string | null
           user_id?: string
+          verification_status?: string | null
         }
         Relationships: []
       }
@@ -236,6 +302,8 @@ export type Database = {
           location: string
           logo_url: string | null
           role: string
+          source: string | null
+          status: string | null
         }
         Insert: {
           apply_link: string
@@ -248,6 +316,8 @@ export type Database = {
           location: string
           logo_url?: string | null
           role: string
+          source?: string | null
+          status?: string | null
         }
         Update: {
           apply_link?: string
@@ -260,6 +330,8 @@ export type Database = {
           location?: string
           logo_url?: string | null
           role?: string
+          source?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -272,6 +344,8 @@ export type Database = {
           id: string
           is_premium: boolean
           platform: string
+          source: string | null
+          status: string | null
           title: string
           url: string
         }
@@ -283,6 +357,8 @@ export type Database = {
           id?: string
           is_premium?: boolean
           platform: string
+          source?: string | null
+          status?: string | null
           title: string
           url: string
         }
@@ -294,8 +370,40 @@ export type Database = {
           id?: string
           is_premium?: boolean
           platform?: string
+          source?: string | null
+          status?: string | null
           title?: string
           url?: string
+        }
+        Relationships: []
+      }
+      manual_adjustment_log: {
+        Row: {
+          adjustment_type: string
+          admin_id: string
+          amount: number
+          created_at: string
+          id: string
+          reason: string | null
+          student_id: string
+        }
+        Insert: {
+          adjustment_type: string
+          admin_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          reason?: string | null
+          student_id: string
+        }
+        Update: {
+          adjustment_type?: string
+          admin_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          reason?: string | null
+          student_id?: string
         }
         Relationships: []
       }
@@ -339,6 +447,7 @@ export type Database = {
       }
       proof_uploads: {
         Row: {
+          admin_review_status: string | null
           file_url: string | null
           id: string
           moss_score: number | null
@@ -354,6 +463,7 @@ export type Database = {
           task_id: string
         }
         Insert: {
+          admin_review_status?: string | null
           file_url?: string | null
           id?: string
           moss_score?: number | null
@@ -369,6 +479,7 @@ export type Database = {
           task_id: string
         }
         Update: {
+          admin_review_status?: string | null
           file_url?: string | null
           id?: string
           moss_score?: number | null
@@ -464,6 +575,7 @@ export type Database = {
           status: string | null
           updated_at: string | null
           user_id: string
+          verification_status: string | null
         }
         Insert: {
           created_at?: string | null
@@ -474,6 +586,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id: string
+          verification_status?: string | null
         }
         Update: {
           created_at?: string | null
@@ -484,6 +597,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id?: string
+          verification_status?: string | null
         }
         Relationships: []
       }
@@ -568,6 +682,7 @@ export type Database = {
           id: string
           profile_photo_url: string | null
           slug: string | null
+          status: string | null
           temporary_user_id: string | null
           total_xp: number | null
           trust_score: number | null
@@ -583,6 +698,7 @@ export type Database = {
           id?: string
           profile_photo_url?: string | null
           slug?: string | null
+          status?: string | null
           temporary_user_id?: string | null
           total_xp?: number | null
           trust_score?: number | null
@@ -598,6 +714,7 @@ export type Database = {
           id?: string
           profile_photo_url?: string | null
           slug?: string | null
+          status?: string | null
           temporary_user_id?: string | null
           total_xp?: number | null
           trust_score?: number | null
@@ -722,6 +839,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          approved_by_admin: boolean | null
           category: string | null
           completed_at: string | null
           created_at: string | null
@@ -744,6 +862,7 @@ export type Database = {
           xp_reward: number | null
         }
         Insert: {
+          approved_by_admin?: boolean | null
           category?: string | null
           completed_at?: string | null
           created_at?: string | null
@@ -766,6 +885,7 @@ export type Database = {
           xp_reward?: number | null
         }
         Update: {
+          approved_by_admin?: boolean | null
           category?: string | null
           completed_at?: string | null
           created_at?: string | null

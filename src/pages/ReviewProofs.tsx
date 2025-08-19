@@ -1,73 +1,60 @@
 import { useState } from "react";
-import AdminHeader from "@/components/dashboard/admin/AdminHeader";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
+import AdminDashboardOverview from "@/components/dashboard/admin/AdminDashboardOverview";
 import ProofSubmissionsContent from "@/components/dashboard/admin/ProofSubmissionsContent";
-import ManageResourcesPage from "@/components/dashboard/admin/ManageResourcesPage";
-import ManageJobsPage from "@/components/dashboard/admin/ManageJobsPage";
-import AdminDashboardContent from "@/components/dashboard/admin/AdminDashboardContent";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import UserManagement from "@/components/dashboard/admin/UserManagement";
+import TaskOversight from "@/components/dashboard/admin/TaskOversight";
+import ContentManagement from "@/components/dashboard/admin/ContentManagement";
+import AdminAnalytics from "@/components/dashboard/admin/AdminAnalytics";
+import XPModeration from "@/components/dashboard/admin/XPModeration";
+import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 
 const ReviewProofs = () => {
-  const [activeTab, setActiveTab] = useState("proof-submissions");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const renderContent = () => {
     switch (activeTab) {
+      case "dashboard":
+        return <AdminDashboardOverview />;
       case "proof-submissions":
         return <ProofSubmissionsContent />;
-      case "dashboard":
-        return <AdminDashboardContent onTabChange={setActiveTab} />;
-      case "manage-jobs":
-        return <ManageJobsPage />;
-      case "manage-resources":
-        return <ManageResourcesPage />;
+      case "students":
+        return <UserManagement type="students" />;
+      case "startups":
+        return <UserManagement type="startups" />;
+      case "colleges":
+        return <UserManagement type="colleges" />;
+      case "task-oversight":
+        return <TaskOversight />;
+      case "jobs":
+      case "resources":
+      case "announcements":
+        return <ContentManagement type={activeTab as 'jobs' | 'resources' | 'announcements'} />;
+      case "analytics":
+        return <AdminAnalytics />;
+      case "xp-moderation":
+      case "college-oversight":
+      case "startup-oversight":
+        return <XPModeration type={activeTab as 'xp-moderation' | 'college-oversight' | 'startup-oversight'} />;
       case "settings":
-        return <div className="p-6">Settings content coming soon...</div>;
+        return <SystemSettings />;
       default:
-        return <AdminDashboardContent onTabChange={setActiveTab} />;
+        return <AdminDashboardOverview />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
-      <AdminHeader 
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-        showMenuButton={isMobile}
-      />
-      
-      <div className="flex relative">
-        {/* Mobile overlay */}
-        {isMobile && sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        
-        {/* Sidebar */}
-        <div className={`
-          ${isMobile ? 'fixed' : 'relative'} 
-          ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-          ${isMobile ? 'z-50' : ''}
-          transition-transform duration-300 ease-in-out
-        `}>
-          <AdminSidebar 
-            activeTab={activeTab} 
-            onTabChange={(tab) => {
-              setActiveTab(tab);
-              if (isMobile) setSidebarOpen(false);
-            }}
-          />
-        </div>
-        
-        <main className="flex-1 p-3 md:p-6 w-full min-w-0">
-          {renderContent()}
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            {renderContent()}
+          </div>
         </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

@@ -10,7 +10,7 @@ import Index from "./pages/Index";
 import StudentDashboard from "./pages/StudentDashboard";
 import CollegeDashboard from "./pages/CollegeDashboard";
 import StartupDashboard from "./pages/StartupDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
+
 import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -88,14 +88,6 @@ const App = () => (
             />
             
             {/* Admin Routes */}
-            <Route 
-              path="/admin/dashboard" 
-              element={
-                <RoleBasedProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </RoleBasedProtectedRoute>
-              } 
-            />
             
             {/* Legacy Routes - redirect to proper paths */}
             <Route 

@@ -119,6 +119,15 @@ const ContentManagement = ({ type }: ContentManagementProps) => {
   const confirmAction = () => {
     if (!selectedItem) return;
 
+    // Announcements don't have status updates, only delete
+    if (type === 'announcements' && actionType === 'delete') {
+      updateItemMutation.mutate({
+        itemId: selectedItem.id,
+        updates: { deleted: true } // or however you want to handle deletion
+      });
+      return;
+    }
+
     let updates: any = {};
     
     if (actionType === 'approve') {
@@ -136,6 +145,11 @@ const ContentManagement = ({ type }: ContentManagementProps) => {
   };
 
   const getStatusBadge = (item: any) => {
+    // Announcements don't have status, so return a default badge
+    if (type === 'announcements') {
+      return <Badge variant="default">Published</Badge>;
+    }
+    
     const status = (item as any).status || 'approved';
     return (
       <Badge variant={
@@ -238,13 +252,13 @@ const ContentManagement = ({ type }: ContentManagementProps) => {
                       <TableCell>{(item as any).platform}</TableCell>
                     </>
                   )}
-                  <TableCell>{getStatusBadge(item)}</TableCell>
+                  <TableCell>{type === 'announcements' ? 'Published' : getStatusBadge(item)}</TableCell>
                   <TableCell>
                     {new Date(item.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
-                      {item.status !== 'approved' && (
+                      {type !== 'announcements' && (item as any).status !== 'approved' && (
                         <Button
                           size="sm"
                           variant="default"
@@ -253,7 +267,7 @@ const ContentManagement = ({ type }: ContentManagementProps) => {
                           <CheckCircle className="h-4 w-4" />
                         </Button>
                       )}
-                      {item.status !== 'rejected' && (
+                      {type !== 'announcements' && (item as any).status !== 'rejected' && (
                         <Button
                           size="sm"
                           variant="outline"

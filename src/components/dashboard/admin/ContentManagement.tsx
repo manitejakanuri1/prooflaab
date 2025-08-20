@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -23,7 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Plus, Briefcase, BookOpen, Megaphone, Edit, Trash2, CheckCircle, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Plus, Briefcase, BookOpen, Megaphone, MoreVertical, Eye, CheckCircle, XCircle, Trash2, Youtube, FileText, Globe } from "lucide-react";
 
 interface ContentManagementProps {
   type: 'jobs' | 'resources' | 'announcements';
@@ -145,18 +152,35 @@ const ContentManagement = ({ type }: ContentManagementProps) => {
   };
 
   const getStatusBadge = (item: any) => {
-    // Announcements don't have status, so return a default badge
     if (type === 'announcements') {
-      return <Badge variant="default">Published</Badge>;
+      const status = item.status || 'published';
+      return (
+        <Badge 
+          className={
+            status === 'published' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
+            status === 'draft' ? 'bg-gray-100 text-gray-800 hover:bg-gray-100' :
+            status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' : 
+            'bg-gray-100 text-gray-800 hover:bg-gray-100'
+          }
+        >
+          ✅ {status === 'published' ? 'Published' : status === 'draft' ? '⚪ Draft' : status === 'scheduled' ? '⚠️ Scheduled' : status}
+        </Badge>
+      );
     }
     
     const status = (item as any).status || 'approved';
     return (
-      <Badge variant={
-        status === 'approved' ? 'default' :
-        status === 'rejected' ? 'destructive' : 'secondary'
-      }>
-        {status}
+      <Badge 
+        className={
+          status === 'approved' || status === 'active' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
+          status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
+          status === 'rejected' || status === 'closed' ? 'bg-red-100 text-red-800 hover:bg-red-100' : 
+          'bg-gray-100 text-gray-800 hover:bg-gray-100'
+        }
+      >
+        {status === 'approved' || status === 'active' ? '✅' : 
+         status === 'pending' ? '⚠️' : 
+         status === 'rejected' || status === 'closed' ? '🔴' : '⚪'} {status}
       </Badge>
     );
   };
@@ -169,7 +193,39 @@ const ContentManagement = ({ type }: ContentManagementProps) => {
     }
   };
 
+  const getHeaderInfo = () => {
+    switch (type) {
+      case 'jobs':
+        return {
+          title: '📂 Jobs Management',
+          subtitle: 'Manage all job postings from startups and colleges.',
+          emptyMessage: '💼 No jobs posted yet. Encourage startups to add opportunities.'
+        };
+      case 'resources':
+        return {
+          title: '📚 Resources Management',
+          subtitle: 'Curate learning resources for students.',
+          emptyMessage: '📖 No resources available. Start adding content to help students learn.'
+        };
+      case 'announcements':
+        return {
+          title: '📢 Announcements Management',
+          subtitle: 'Post and manage announcements for the entire platform.',
+          emptyMessage: '📢 No announcements yet. Keep your community updated!'
+        };
+    }
+  };
+
+  const getPlatformIcon = (platform: string) => {
+    switch (platform?.toLowerCase()) {
+      case 'youtube': return Youtube;
+      case 'pdf': return FileText;
+      default: return Globe;
+    }
+  };
+
   const Icon = getIcon();
+  const headerInfo = getHeaderInfo();
 
   if (isLoading) {
     return (
@@ -189,106 +245,239 @@ const ContentManagement = ({ type }: ContentManagementProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Icon className="h-6 w-6" />
-          <h2 className="text-2xl font-bold capitalize">{type} Management</h2>
+      {/* Header Section */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{headerInfo.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{headerInfo.subtitle}</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 rounded-lg shadow-sm"
+        >
           <Plus className="h-4 w-4 mr-2" />
-          Add {type.slice(0, -1)}
+          Add New
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder={`Search ${type}...`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder={`Search ${type}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 rounded-lg border-muted-foreground/20 shadow-sm"
+            />
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                {type === 'jobs' && (
-                  <>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Location</TableHead>
-                  </>
-                )}
-                {type === 'resources' && (
-                  <>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Platform</TableHead>
-                  </>
-                )}
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items?.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{(item as any).title || (item as any).role}</TableCell>
+        <CardContent className="p-0">
+          {!items || items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="text-6xl mb-4">
+                {type === 'jobs' ? '💼' : type === 'resources' ? '📖' : '📢'}
+              </div>
+              <p className="text-muted-foreground text-lg">{headerInfo.emptyMessage}</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-muted-foreground/10">
                   {type === 'jobs' && (
                     <>
-                      <TableCell>{(item as any).company_name}</TableCell>
-                      <TableCell>{(item as any).location}</TableCell>
+                      <TableHead className="font-semibold">Job Title</TableHead>
+                      <TableHead className="font-semibold">Company</TableHead>
+                      <TableHead className="font-semibold">Location</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold">Created</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
                     </>
                   )}
                   {type === 'resources' && (
                     <>
-                      <TableCell>{(item as any).category}</TableCell>
-                      <TableCell>{(item as any).platform}</TableCell>
+                      <TableHead className="font-semibold">Title</TableHead>
+                      <TableHead className="font-semibold">Category</TableHead>
+                      <TableHead className="font-semibold">Platform</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold">Created</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
                     </>
                   )}
-                  <TableCell>{type === 'announcements' ? 'Published' : getStatusBadge(item)}</TableCell>
-                  <TableCell>
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      {type !== 'announcements' && (item as any).status !== 'approved' && (
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => handleItemAction(item, 'approve')}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {type !== 'announcements' && (item as any).status !== 'rejected' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleItemAction(item, 'reject')}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleItemAction(item, 'delete')}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {type === 'announcements' && (
+                    <>
+                      <TableHead className="font-semibold">Title</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold">Created</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </>
+                  )}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items?.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-muted/30 border-muted-foreground/10">
+                    {type === 'jobs' && (
+                      <>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {(item as any).logo_url && (
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={(item as any).logo_url} alt="Company logo" />
+                                <AvatarFallback>{((item as any).company_name || '').charAt(0)}</AvatarFallback>
+                              </Avatar>
+                            )}
+                            <div>
+                              <div className="font-semibold text-foreground cursor-pointer hover:text-primary">
+                                {(item as any).role}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {(item as any).logo_url && (
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={(item as any).logo_url} alt="Company logo" />
+                                <AvatarFallback className="text-xs">{((item as any).company_name || '').charAt(0)}</AvatarFallback>
+                              </Avatar>
+                            )}
+                            <span>{(item as any).company_name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{(item as any).location}</TableCell>
+                        <TableCell>{getStatusBadge(item)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => window.open((item as any).apply_link, "_blank")}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleItemAction(item, 'approve')}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Approve Job
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleItemAction(item, 'reject')}>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject Job
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleItemAction(item, 'delete')}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </>
+                    )}
+                    {type === 'resources' && (
+                      <>
+                        <TableCell>
+                          <div className="font-semibold text-foreground cursor-pointer hover:text-primary">
+                            {(item as any).title}
+                          </div>
+                        </TableCell>
+                        <TableCell>{(item as any).category || 'General'}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {React.createElement(getPlatformIcon((item as any).platform), { className: "h-4 w-4" })}
+                            <span>{(item as any).platform}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(item)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => window.open((item as any).url, "_blank")}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Resource
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleItemAction(item, 'approve')}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleItemAction(item, 'reject')}>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleItemAction(item, 'delete')}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </>
+                    )}
+                    {type === 'announcements' && (
+                      <>
+                        <TableCell>
+                          <div className="font-semibold text-foreground">{(item as any).title}</div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(item)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Announcement
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Publish
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Unpublish
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleItemAction(item, 'delete')}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

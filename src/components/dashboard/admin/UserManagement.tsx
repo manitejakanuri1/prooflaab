@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -22,7 +24,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { 
+  Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle, 
+  Eye, Download, MoreHorizontal, Shield, Trash2, UserX, UserCheck
+} from "lucide-react";
 
 interface UserManagementProps {
   type: 'students' | 'startups' | 'colleges';

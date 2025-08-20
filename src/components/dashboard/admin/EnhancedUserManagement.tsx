@@ -1,0 +1,492 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle, 
+  Eye, Download, MoreHorizontal, Shield, Trash2, UserX, UserCheck, Filter
+} from "lucide-react";
+
+interface UserData {
+  id: string;
+  email: string;
+  created_at: string;
+  status?: string;
+  verification_status?: string;
+  full_name?: string;
+  name?: string;
+  trust_score?: number;
+  total_xp?: number;
+}
+
+const EnhancedUserManagement = () => {
+  const [activeTab, setActiveTab] = useState("students");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [viewUserSheet, setViewUserSheet] = useState<UserData | null>(null);
+  const [actionType, setActionType] = useState<'block' | 'unblock' | 'approve' | 'suspend' | 'delete'>('block');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: users, isLoading } = useQuery({
+    queryKey: [`admin-users-${activeTab}`, searchTerm, statusFilter],
+    queryFn: async () => {
+      let query;
+      
+      if (activeTab === 'students') {
+        query = supabase.from('student_profiles').select('*');
+      } else if (activeTab === 'startups') {
+        query = supabase.from('startups').select('*');
+      } else {
+        query = supabase.from('colleges').select('*');
+      }
+
+      if (searchTerm) {
+        if (activeTab === 'students') {
+          query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        } else {
+          query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        }
+      }
+
+      if (statusFilter !== 'all') {
+        if (activeTab === 'students') {
+          query = query.eq('status', statusFilter);
+        } else {
+          query = query.eq('verification_status', statusFilter);
+        }
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as UserData[];
+    }
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, updates }: { userId: string; updates: any }) => {
+      let error;
+      
+      if (activeTab === 'students') {
+        const result = await supabase
+          .from('student_profiles')
+          .update(updates)
+          .eq('id', userId);
+        error = result.error;
+      } else if (activeTab === 'startups') {
+        const result = await supabase
+          .from('startups')
+          .update(updates)
+          .eq('id', userId);
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from('colleges')
+          .update(updates)
+          .eq('id', userId);
+        error = result.error;
+      }
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`admin-users-${activeTab}`] });
+      toast({
+        title: "Success",
+        description: `User ${actionType}ed successfully.`,
+      });
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${actionType} user: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleUserAction = (user: UserData, action: typeof actionType) => {
+    setSelectedUser(user);
+    setActionType(action);
+  };
+
+  const confirmAction = () => {
+    if (!selectedUser) return;
+
+    let updates: any = {};
+    
+    if (activeTab === 'students') {
+      if (actionType === 'block') updates.status = 'blocked';
+      if (actionType === 'unblock') updates.status = 'active';
+      if (actionType === 'delete') updates.status = 'deleted';
+    } else {
+      if (actionType === 'approve') updates.verification_status = 'approved';
+      if (actionType === 'suspend') updates.verification_status = 'suspended';
+      if (actionType === 'delete') updates.verification_status = 'deleted';
+    }
+
+    updateUserMutation.mutate({
+      userId: selectedUser.id,
+      updates
+    });
+  };
+
+  const getStatusBadge = (user: UserData) => {
+    if (activeTab === 'students') {
+      const status = user.status || 'active';
+      return (
+        <Badge variant={
+          status === 'active' ? 'default' : 
+          status === 'blocked' ? 'destructive' : 'secondary'
+        }>
+          {status}
+        </Badge>
+      );
+    } else {
+      const status = user.verification_status || 'pending';
+      return (
+        <Badge variant={
+          status === 'approved' ? 'default' : 
+          status === 'suspended' ? 'destructive' : 'secondary'
+        }>
+          {status}
+        </Badge>
+      );
+    }
+  };
+
+  const exportToCSV = () => {
+    if (!users) return;
+    
+    const headers = activeTab === 'students' 
+      ? ['Name', 'Email', 'Trust Score', 'XP', 'Status', 'Created']
+      : ['Name', 'Email', 'Status', 'Created'];
+    
+    const csvContent = [
+      headers.join(','),
+      ...users.map(user => [
+        activeTab === 'students' ? user.full_name : user.name,
+        user.email,
+        ...(activeTab === 'students' ? [user.trust_score || 0, user.total_xp || 0] : []),
+        activeTab === 'students' ? user.status : user.verification_status,
+        new Date(user.created_at).toLocaleDateString()
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `${activeTab}-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const getTabIcon = (tab: string) => {
+    switch (tab) {
+      case 'students': return <Users className="h-4 w-4" />;
+      case 'startups': return <Rocket className="h-4 w-4" />;
+      case 'colleges': return <Building2 className="h-4 w-4" />;
+      default: return null;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/4 mb-4"></div>
+          <div className="h-10 bg-muted rounded mb-4"></div>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-12 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <p className="text-muted-foreground">Manage students, startups, and colleges</p>
+        </div>
+        <Button onClick={exportToCSV} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="students" className="flex items-center gap-2">
+            {getTabIcon('students')}
+            Students
+          </TabsTrigger>
+          <TabsTrigger value="startups" className="flex items-center gap-2">
+            {getTabIcon('startups')}
+            Startups
+          </TabsTrigger>
+          <TabsTrigger value="colleges" className="flex items-center gap-2">
+            {getTabIcon('colleges')}
+            Colleges
+          </TabsTrigger>
+        </TabsList>
+
+        {['students', 'startups', 'colleges'].map((tab) => (
+          <TabsContent key={tab} value={tab}>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    {getTabIcon(tab)}
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)} Management
+                  </CardTitle>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder={`Search ${tab}...`}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-64"
+                      />
+                    </div>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-32">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        {tab === 'students' ? (
+                          <>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="blocked">Blocked</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      {tab === 'students' && (
+                        <>
+                          <TableHead>Trust Score</TableHead>
+                          <TableHead>XP</TableHead>
+                        </>
+                      )}
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users?.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">
+                          {tab === 'students' ? user.full_name : user.name}
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        {tab === 'students' && (
+                          <>
+                            <TableCell>{user.trust_score || 0}</TableCell>
+                            <TableCell>{user.total_xp || 0}</TableCell>
+                          </>
+                        )}
+                        <TableCell>{getStatusBadge(user)}</TableCell>
+                        <TableCell>
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setViewUserSheet(user)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              {tab === 'students' ? (
+                                <>
+                                  {user.status !== 'blocked' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleUserAction(user, 'block')}
+                                      className="text-red-600"
+                                    >
+                                      <Ban className="h-4 w-4 mr-2" />
+                                      Block User
+                                    </DropdownMenuItem>
+                                  )}
+                                  {user.status === 'blocked' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleUserAction(user, 'unblock')}
+                                      className="text-green-600"
+                                    >
+                                      <UserCheck className="h-4 w-4 mr-2" />
+                                      Unblock User
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {user.verification_status !== 'approved' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleUserAction(user, 'approve')}
+                                      className="text-green-600"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Approve
+                                    </DropdownMenuItem>
+                                  )}
+                                  {user.verification_status !== 'suspended' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleUserAction(user, 'suspend')}
+                                      className="text-yellow-600"
+                                    >
+                                      <AlertTriangle className="h-4 w-4 mr-2" />
+                                      Suspend
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleUserAction(user, 'delete')}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      {/* User Details Sheet */}
+      <Sheet open={!!viewUserSheet} onOpenChange={() => setViewUserSheet(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>User Details</SheetTitle>
+            <SheetDescription>
+              View comprehensive information about this {activeTab.slice(0, -1)}
+            </SheetDescription>
+          </SheetHeader>
+          {viewUserSheet && (
+            <div className="space-y-4 mt-6">
+              <div>
+                <h4 className="font-semibold">Basic Information</h4>
+                <div className="space-y-2 mt-2">
+                  <p><strong>Name:</strong> {activeTab === 'students' ? viewUserSheet.full_name : viewUserSheet.name}</p>
+                  <p><strong>Email:</strong> {viewUserSheet.email}</p>
+                  <p><strong>Status:</strong> {getStatusBadge(viewUserSheet)}</p>
+                  <p><strong>Created:</strong> {new Date(viewUserSheet.created_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+              {activeTab === 'students' && (
+                <div>
+                  <h4 className="font-semibold">Performance Metrics</h4>
+                  <div className="space-y-2 mt-2">
+                    <p><strong>Trust Score:</strong> {viewUserSheet.trust_score || 0}</p>
+                    <p><strong>Total XP:</strong> {viewUserSheet.total_xp || 0}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Action</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to {actionType} this {activeTab.slice(0, -1)}? 
+              {actionType === 'delete' && ' This action cannot be undone.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedUser(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={actionType === 'block' || actionType === 'suspend' || actionType === 'delete' ? 'destructive' : 'default'}
+              onClick={confirmAction}
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending ? 'Processing...' : `${actionType} User`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default EnhancedUserManagement;

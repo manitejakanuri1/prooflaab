@@ -1,10 +1,19 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building2, Rocket, ClipboardCheck, Eye, TrendingUp } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users, Building2, Rocket, ClipboardCheck, Eye, TrendingUp, Calendar, Filter } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ComposedChart } from "recharts";
 
-const AdminDashboardOverview = () => {
+interface AdminDashboardOverviewProps {
+  onNavigate?: (section: string) => void;
+}
+
+const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => {
+  const [dateFilter, setDateFilter] = useState("7");
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-overview-stats'],
     queryFn: async () => {
@@ -31,43 +40,80 @@ const AdminDashboardOverview = () => {
     }
   });
 
-  const { data: weeklyData } = useQuery({
-    queryKey: ['admin-weekly-data'],
+  const { data: analyticsData } = useQuery({
+    queryKey: ['admin-analytics-data', dateFilter],
     queryFn: async () => {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
+      const daysBack = parseInt(dateFilter);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysBack);
 
-      const [signupsRes, proofsRes] = await Promise.all([
+      const [signupsRes, proofsRes, collegeSignupsRes, tasksRes] = await Promise.all([
         supabase
           .from('student_profiles')
           .select('created_at')
-          .gte('created_at', weekAgo.toISOString()),
+          .gte('created_at', startDate.toISOString()),
         supabase
           .from('proof_uploads')
           .select('submitted_at')
-          .gte('submitted_at', weekAgo.toISOString())
+          .gte('submitted_at', startDate.toISOString()),
+        supabase
+          .from('colleges')
+          .select('created_at')
+          .gte('created_at', startDate.toISOString()),
+        supabase
+          .from('tasks')
+          .select('created_at, completed_at')
+          .gte('created_at', startDate.toISOString())
       ]);
 
-      // Group by day
-      const days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return date.toISOString().split('T')[0];
-      });
-
-      return days.map(day => {
-        const signups = signupsRes.data?.filter(s => 
-          s.created_at?.startsWith(day)
-        ).length || 0;
+      // Group by day/week based on filter
+      const groupSize = daysBack <= 7 ? 1 : 7;
+      const periods = Math.ceil(daysBack / groupSize);
+      
+      return Array.from({ length: periods }, (_, i) => {
+        const periodStart = new Date();
+        periodStart.setDate(periodStart.getDate() - (periods - i) * groupSize);
+        const periodEnd = new Date();
+        periodEnd.setDate(periodEnd.getDate() - (periods - i - 1) * groupSize);
         
-        const proofs = proofsRes.data?.filter(p => 
-          p.submitted_at?.startsWith(day)
-        ).length || 0;
+        const periodKey = periodStart.toISOString().split('T')[0];
+        
+        const studentSignups = signupsRes.data?.filter(s => {
+          const date = new Date(s.created_at);
+          return date >= periodStart && date < periodEnd;
+        }).length || 0;
+        
+        const collegeSignups = collegeSignupsRes.data?.filter(c => {
+          const date = new Date(c.created_at);
+          return date >= periodStart && date < periodEnd;
+        }).length || 0;
+        
+        const proofs = proofsRes.data?.filter(p => {
+          const date = new Date(p.submitted_at);
+          return date >= periodStart && date < periodEnd;
+        }).length || 0;
+        
+        const tasksCreated = tasksRes.data?.filter(t => {
+          const date = new Date(t.created_at);
+          return date >= periodStart && date < periodEnd;
+        }).length || 0;
+        
+        const tasksCompleted = tasksRes.data?.filter(t => {
+          if (!t.completed_at) return false;
+          const date = new Date(t.completed_at);
+          return date >= periodStart && date < periodEnd;
+        }).length || 0;
 
         return {
-          date: new Date(day).toLocaleDateString('en-US', { weekday: 'short' }),
-          signups,
-          proofs
+          date: daysBack <= 7 
+            ? periodStart.toLocaleDateString('en-US', { weekday: 'short' })
+            : `Week ${i + 1}`,
+          studentSignups,
+          collegeSignups,
+          totalSignups: studentSignups + collegeSignups,
+          proofs,
+          tasksCreated,
+          tasksCompleted
         };
       });
     }
@@ -79,35 +125,40 @@ const AdminDashboardOverview = () => {
       value: stats?.totalStudents || 0,
       subtitle: `${stats?.activeStudents || 0} active`,
       icon: Users,
-      color: "text-blue-600"
+      color: "text-blue-600",
+      onClick: () => onNavigate?.("students")
     },
     {
       title: "Active Colleges",
       value: stats?.activeColleges || 0,
       subtitle: `${stats?.totalColleges || 0} total`,
       icon: Building2,
-      color: "text-green-600"
+      color: "text-green-600",
+      onClick: () => onNavigate?.("colleges")
     },
     {
       title: "Active Startups",
       value: stats?.activeStartups || 0,
       subtitle: `${stats?.totalStartups || 0} total`,
       icon: Rocket,
-      color: "text-purple-600"
+      color: "text-purple-600",
+      onClick: () => onNavigate?.("startups")
     },
     {
       title: "Pending Proofs",
       value: stats?.pendingProofs || 0,
       subtitle: `${stats?.totalProofs || 0} total submitted`,
       icon: ClipboardCheck,
-      color: "text-orange-600"
+      color: "text-orange-600",
+      onClick: () => onNavigate?.("proof-submissions")
     },
     {
       title: "Active Tasks",
       value: stats?.activeTasks || 0,
       subtitle: `${stats?.totalTasks || 0} total posted`,
       icon: Eye,
-      color: "text-teal-600"
+      color: "text-teal-600",
+      onClick: () => onNavigate?.("task-oversight")
     }
   ];
 
@@ -140,7 +191,11 @@ const AdminDashboardOverview = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {kpiCards.map((kpi, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
+          <Card 
+            key={index} 
+            className="hover:shadow-lg transition-all cursor-pointer hover:scale-105"
+            onClick={kpi.onClick}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -155,25 +210,44 @@ const AdminDashboardOverview = () => {
         ))}
       </div>
 
+      {/* Filter Controls */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4" />
+          <span className="text-sm font-medium">Time Range:</span>
+        </div>
+        <Select value={dateFilter} onValueChange={setDateFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select period" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+            <SelectItem value="90">Last 3 months</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Weekly Signups
+              Signups Trend
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyData}>
+                <ComposedChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="signups" fill="hsl(var(--primary))" radius={4} />
-                </BarChart>
+                  <Bar dataKey="studentSignups" fill="hsl(var(--primary))" name="Students" radius={4} />
+                  <Bar dataKey="collegeSignups" fill="hsl(var(--secondary))" name="Colleges" radius={4} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -183,13 +257,13 @@ const AdminDashboardOverview = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              Weekly Proof Submissions
+              Proof Submissions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weeklyData}>
+                <LineChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
@@ -202,6 +276,29 @@ const AdminDashboardOverview = () => {
                     dot={{ fill: "hsl(var(--primary))" }}
                   />
                 </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Task Lifecycle
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={analyticsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="tasksCreated" fill="hsl(var(--chart-1))" name="Created" radius={4} />
+                  <Bar dataKey="tasksCompleted" fill="hsl(var(--chart-2))" name="Completed" radius={4} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>

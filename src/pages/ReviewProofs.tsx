@@ -4,6 +4,7 @@ import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import AdminDashboardOverview from "@/components/dashboard/admin/AdminDashboardOverview";
 import ProofSubmissionsContent from "@/components/dashboard/admin/ProofSubmissionsContent";
 import UserManagement from "@/components/dashboard/admin/UserManagement";
+import EnhancedUserManagement from "@/components/dashboard/admin/EnhancedUserManagement";
 import TaskOversight from "@/components/dashboard/admin/TaskOversight";
 import ContentManagement from "@/components/dashboard/admin/ContentManagement";
 import AdminAnalytics from "@/components/dashboard/admin/AdminAnalytics";
@@ -16,15 +17,13 @@ const ReviewProofs = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <AdminDashboardOverview />;
+        return <AdminDashboardOverview onNavigate={setActiveTab} />;
       case "proof-submissions":
         return <ProofSubmissionsContent />;
       case "students":
-        return <UserManagement type="students" />;
       case "startups":
-        return <UserManagement type="startups" />;
       case "colleges":
-        return <UserManagement type="colleges" />;
+        return <EnhancedUserManagement />;
       case "task-oversight":
         return <TaskOversight />;
       case "jobs":
@@ -40,7 +39,7 @@ const ReviewProofs = () => {
       case "settings":
         return <SystemSettings />;
       default:
-        return <AdminDashboardOverview />;
+        return <AdminDashboardOverview onNavigate={setActiveTab} />;
     }
   };
 

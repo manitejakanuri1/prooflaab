@@ -255,13 +255,13 @@ const ProofSubmissionsContent = () => {
       <Card className="shadow-sm">
         <CardContent className="p-0">
           {submissions.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                <FileIcon className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">No submissions found</h3>
-              <p className="text-muted-foreground">Encourage students to upload their proofs.</p>
+          <div className="py-16">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <FileIcon className="h-8 w-8 text-muted-foreground" />
             </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">No submissions found</h3>
+            <p className="text-muted-foreground">Encourage students to upload their proofs.</p>
+          </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>

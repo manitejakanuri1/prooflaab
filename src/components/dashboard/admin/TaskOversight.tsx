@@ -226,13 +226,13 @@ const TaskOversight = () => {
       {/* Task List */}
       <div className="space-y-3">
         {!tasks || tasks.length === 0 ? (
-          <Card className="p-16 text-center">
-            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <Trophy className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">🎉 No tasks assigned yet!</h3>
-            <p className="text-muted-foreground">New challenges coming soon.</p>
-          </Card>
+        <Card className="p-16">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Trophy className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium text-foreground mb-2">🎉 No tasks assigned yet!</h3>
+          <p className="text-muted-foreground">New challenges coming soon.</p>
+        </Card>
         ) : (
           tasks.map((task) => (
             <Card key={task.id} className="p-4 hover:shadow-md transition-shadow border border-border">

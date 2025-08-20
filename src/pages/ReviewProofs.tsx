@@ -8,7 +8,10 @@ import EnhancedUserManagement from "@/components/dashboard/admin/EnhancedUserMan
 import TaskOversight from "@/components/dashboard/admin/TaskOversight";
 import ContentManagement from "@/components/dashboard/admin/ContentManagement";
 import AdminAnalytics from "@/components/dashboard/admin/AdminAnalytics";
-import XPModeration from "@/components/dashboard/admin/XPModeration";
+import TrustXPModeration from "@/components/dashboard/admin/TrustXPModeration";
+import CollegeOversight from "@/components/dashboard/admin/CollegeOversight";
+import StartupOversight from "@/components/dashboard/admin/StartupOversight";
+import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 
 const ReviewProofs = () => {
@@ -33,9 +36,13 @@ const ReviewProofs = () => {
       case "analytics":
         return <AdminAnalytics />;
       case "xp-moderation":
+        return <TrustXPModeration />;
       case "college-oversight":
+        return <CollegeOversight />;
       case "startup-oversight":
-        return <XPModeration type={activeTab as 'xp-moderation' | 'college-oversight' | 'startup-oversight'} />;
+        return <StartupOversight />;
+      case "student-oversight":
+        return <StudentOversight />;
       case "settings":
         return <SystemSettings />;
       default:

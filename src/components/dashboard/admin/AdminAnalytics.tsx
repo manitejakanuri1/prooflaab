@@ -301,13 +301,20 @@ const AdminAnalytics = () => {
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={studentGrowth}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.7} />
                   <XAxis 
                     dataKey="month" 
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="#6b7280"
                     fontSize={12}
+                    axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
+                    tickLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
                   />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis 
+                    stroke="#6b7280" 
+                    fontSize={12}
+                    axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
+                    tickLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
+                  />
                   <Tooltip 
                     contentStyle={{
                       backgroundColor: 'hsl(var(--background))',

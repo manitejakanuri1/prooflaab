@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ExternalLink, Calendar, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, Calendar, Filter, MoreVertical, Eye, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -27,15 +28,14 @@ interface JobOpportunity {
   apply_link: string;
   deadline: string;
   created_at: string;
+  status: string;
 }
 
 interface JobFormData {
   role: string;
   company_name: string;
-  logo_url: string;
   location: string;
   job_type: string;
-  eligible_branch: string;
   apply_link: string;
   deadline: Date | undefined;
   description?: string;
@@ -43,34 +43,23 @@ interface JobFormData {
 
 const initialFormData: JobFormData = {
   role: "",
-  company_name: "",
-  logo_url: "",
+  company_name: "",  
   location: "",
   job_type: "",
-  eligible_branch: "",
   apply_link: "",
   deadline: undefined,
   description: "",
 };
 
-const jobTypes = ["Internship", "Full-time", "Part-time", "Contract"];
-const locations = ["Remote", "Onsite", "Hybrid"];
-const branches = ["ALL", "CSE", "ECE", "ME", "EE", "CE"];
+const jobTypes = ["Internship", "Full-time", "Part-time"];
 
 const ManageJobsPage = () => {
   const [jobs, setJobs] = useState<JobOpportunity[]>([]);
-  const [filteredJobs, setFilteredJobs] = useState<JobOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobOpportunity | null>(null);
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
-  const [filters, setFilters] = useState({
-    jobType: "all",
-    location: "all",
-    branch: "all",
-    status: "all"
-  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,7 +75,6 @@ const ManageJobsPage = () => {
 
       if (error) throw error;
       setJobs(data || []);
-      setFilteredJobs(data || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
       toast({
@@ -115,9 +103,14 @@ const ManageJobsPage = () => {
 
     try {
       const submitData = {
-        ...formData,
+        role: formData.role,
+        company_name: formData.company_name,
+        location: formData.location,
+        job_type: formData.job_type,
+        apply_link: formData.apply_link,
         deadline: format(formData.deadline, 'yyyy-MM-dd'),
-        logo_url: formData.logo_url || null,
+        eligible_branch: 'ALL',
+        status: 'approved'
       };
 
       if (editingJob) {
@@ -139,7 +132,7 @@ const ManageJobsPage = () => {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Job opportunity added successfully",
+          description: "Job opportunity created successfully",
         });
       }
 
@@ -188,17 +181,15 @@ const ManageJobsPage = () => {
 
   const openEditDialog = (job: JobOpportunity) => {
     setEditingJob(job);
-      setFormData({
-        role: job.role,
-        company_name: job.company_name,
-        logo_url: job.logo_url || "",
-        location: job.location,
-        job_type: job.job_type,
-        eligible_branch: job.eligible_branch,
-        apply_link: job.apply_link,
-        deadline: new Date(job.deadline),
-        description: (job as any).description || "",
-      });
+    setFormData({
+      role: job.role,
+      company_name: job.company_name,
+      location: job.location,
+      job_type: job.job_type,
+      apply_link: job.apply_link,
+      deadline: new Date(job.deadline),
+      description: "",
+    });
     setIsDialogOpen(true);
   };
 
@@ -208,354 +199,255 @@ const ManageJobsPage = () => {
     setIsDialogOpen(true);
   };
 
-  const isDeadlinePassed = (deadline: string) => {
-    return new Date(deadline) < new Date();
-  };
-
-  const applyFilters = () => {
-    let filtered = jobs;
-
-    if (filters.jobType && filters.jobType !== "all") {
-      filtered = filtered.filter(job => job.job_type === filters.jobType);
-    }
-    if (filters.location && filters.location !== "all") {
-      filtered = filtered.filter(job => job.location === filters.location);
-    }
-    if (filters.branch && filters.branch !== "all") {
-      filtered = filtered.filter(job => job.eligible_branch === filters.branch);
-    }
-    if (filters.status && filters.status !== "all") {
-      if (filters.status === "active") {
-        filtered = filtered.filter(job => !isDeadlinePassed(job.deadline));
-      } else if (filters.status === "expired") {
-        filtered = filtered.filter(job => isDeadlinePassed(job.deadline));
-      }
-    }
-
-    setFilteredJobs(filtered);
-  };
-
-  useEffect(() => {
-    applyFilters();
-  }, [filters, jobs]);
-
-  const clearFilters = () => {
-    setFilters({ jobType: "all", location: "all", branch: "all", status: "all" });
+  const getStatusBadge = (status: string) => {
+    return (
+      <Badge 
+        className={
+          status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
+          status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
+          status === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-100' : 
+          'bg-gray-100 text-gray-800 hover:bg-gray-100'
+        }
+      >
+        {status === 'approved' ? '✅ Approved' : 
+         status === 'pending' ? '⚠️ Pending' : 
+         status === 'rejected' ? '🔴 Rejected' : status}
+      </Badge>
+    );
   };
 
   if (loading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-32 bg-muted rounded"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Manage Job Opportunities</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Job
-              </Button>
-            </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-0 bg-background">
-            <DialogHeader className="border-b border-border/50 pb-4">
-              <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
-                💼 {editingJob ? "Edit Job Opportunity" : "Create New Job"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="role" className="text-sm font-medium text-foreground">Job Title</Label>
-                  <Input
-                    id="role"
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    placeholder="e.g., Frontend Developer"
-                    className="rounded-lg border-border/50 focus:border-primary transition-colors"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="company_name" className="text-sm font-medium text-foreground">Company Name</Label>
-                  <Input
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                    placeholder="e.g., Tech Corp"
-                    className="rounded-lg border-border/50 focus:border-primary transition-colors"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="text-sm font-medium text-foreground">Location</Label>
-                  <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
-                    <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
-                      <SelectValue placeholder="Select location type" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-lg">
-                      {locations.map((location) => (
-                        <SelectItem key={location} value={location}>
-                          {location}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="job_type" className="text-sm font-medium text-foreground">Role Type</Label>
-                  <Select value={formData.job_type} onValueChange={(value) => setFormData({ ...formData, job_type: value })}>
-                    <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
-                      <SelectValue placeholder="Select job type" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-lg">
-                      {jobTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">📂 Jobs Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage all job postings from startups and colleges.</p>
+        </div>
+        <Button 
+          onClick={openAddDialog}
+          className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 rounded-lg shadow-sm"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add New
+        </Button>
+      </div>
 
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-6">
+          {/* Table */}
+          {jobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="text-6xl mb-4">💼</div>
+              <p className="text-muted-foreground text-lg">No jobs posted yet. Encourage startups to add opportunities.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-muted-foreground/10">
+                  <TableHead className="font-semibold">Job Title</TableHead>
+                  <TableHead className="font-semibold">Company</TableHead>
+                  <TableHead className="font-semibold">Location</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Created</TableHead>
+                  <TableHead className="font-semibold text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {jobs.map((job) => (
+                  <TableRow key={job.id} className="hover:bg-muted/30 border-muted-foreground/10">
+                    <TableCell>
+                      <div className="font-semibold text-foreground cursor-pointer hover:text-primary">
+                        {job.role}
+                      </div>
+                    </TableCell>
+                    <TableCell>{job.company_name}</TableCell>
+                    <TableCell>{job.location}</TableCell>
+                    <TableCell>{getStatusBadge(job.status || 'approved')}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(job.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => window.open(job.apply_link, "_blank")}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditDialog(job)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(job.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-0 bg-background">
+          <DialogHeader className="border-b border-border/50 pb-4">
+            <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+              💼 {editingJob ? "Edit Job Opportunity" : "Create New Job"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-6 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="apply_link" className="text-sm font-medium text-foreground">Apply Link</Label>
+                <Label htmlFor="role" className="text-sm font-medium text-foreground">Job Title</Label>
                 <Input
-                  id="apply_link"
-                  type="url"
-                  value={formData.apply_link}
-                  onChange={(e) => setFormData({ ...formData, apply_link: e.target.value })}
-                  placeholder="https://company.com/careers/apply"
+                  id="role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  placeholder="e.g., Frontend Developer"
                   className="rounded-lg border-border/50 focus:border-primary transition-colors"
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Deadline</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal rounded-lg border-border/50 hover:border-primary transition-colors",
-                        !formData.deadline && "text-muted-foreground"
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {formData.deadline ? format(formData.deadline, "PPP") : "Pick a deadline"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-lg shadow-lg" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={formData.deadline}
-                      onSelect={(date) => setFormData({ ...formData, deadline: date })}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                      className="p-3 pointer-events-auto rounded-lg"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description || ""}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe the job role, requirements, and benefits..."
-                  className="rounded-lg border-border/50 focus:border-primary transition-colors min-h-[100px]"
-                  rows={4}
+                <Label htmlFor="company_name" className="text-sm font-medium text-foreground">Company Name</Label>
+                <Input
+                  id="company_name"
+                  value={formData.company_name}
+                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                  placeholder="e.g., Tech Corp"
+                  className="rounded-lg border-border/50 focus:border-primary transition-colors"
+                  required
                 />
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4 border-t border-border/50">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsDialogOpen(false)}
-                  className="rounded-lg px-6"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={submitting}
-                  className="rounded-lg px-6 bg-primary hover:bg-primary/90 transition-colors"
-                >
-                  {submitting ? "Creating..." : editingJob ? "Update Job" : "Create Job"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-        </div>
-        
-        {/* Filters */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                <span className="text-sm font-medium">Filters:</span>
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-sm font-medium text-foreground">Location</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="e.g., New York, Remote"
+                  className="rounded-lg border-border/50 focus:border-primary transition-colors"
+                  required
+                />
               </div>
               
-              <Select value={filters.jobType} onValueChange={(value) => setFilters({...filters, jobType: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Job Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {jobTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="job_type" className="text-sm font-medium text-foreground">Role Type</Label>
+                <Select value={formData.job_type} onValueChange={(value) => setFormData({ ...formData, job_type: value })}>
+                  <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
+                    <SelectValue placeholder="Select job type" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-lg">
+                    {jobTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-              <Select value={filters.location} onValueChange={(value) => setFilters({...filters, location: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>{location}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label htmlFor="apply_link" className="text-sm font-medium text-foreground">Apply Link</Label>
+              <Input
+                id="apply_link"
+                type="url"
+                value={formData.apply_link}
+                onChange={(e) => setFormData({ ...formData, apply_link: e.target.value })}
+                placeholder="https://company.com/careers/apply"
+                className="rounded-lg border-border/50 focus:border-primary transition-colors"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Deadline</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal rounded-lg border-border/50 hover:border-primary transition-colors",
+                      !formData.deadline && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {formData.deadline ? format(formData.deadline, "PPP") : "Pick a deadline"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-lg shadow-lg" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formData.deadline}
+                    onSelect={(date) => setFormData({ ...formData, deadline: date })}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                    className="p-3 pointer-events-auto rounded-lg"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-              <Select value={filters.branch} onValueChange={(value) => setFilters({...filters, branch: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Branches</SelectItem>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch} value={branch}>{branch}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                Clear All
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description || ""}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe the job role, requirements, and benefits..."
+                className="rounded-lg border-border/50 focus:border-primary transition-colors min-h-[100px]"
+                rows={4}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4 border-t border-border/50">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+                className="rounded-lg px-6"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={submitting}
+                className="rounded-lg px-6 bg-primary hover:bg-primary/90 transition-colors"
+              >
+                {submitting ? "Creating..." : editingJob ? "Update Job" : "Create"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Role & Company</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Deadline</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredJobs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                      {jobs.length === 0 ? "No job opportunities found. Add your first job!" : "No jobs match the current filters."}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredJobs.map((job) => (
-                    <TableRow key={job.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{job.role}</div>
-                          <div className="text-sm text-gray-500">{job.company_name}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{job.job_type}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{job.location}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{job.eligible_branch}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className={cn(
-                          "text-sm",
-                          isDeadlinePassed(job.deadline) && "text-red-600"
-                        )}>
-                          {format(new Date(job.deadline), "MMM dd, yyyy")}
-                          {isDeadlinePassed(job.deadline) && (
-                            <Badge variant="destructive" className="ml-2 text-xs">
-                              Expired
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => window.open(job.apply_link, "_blank")}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openEditDialog(job)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(job.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

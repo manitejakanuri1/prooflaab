@@ -66,6 +66,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: "xp-moderation", label: "Trust & XP Moderation", icon: Shield },
     { id: "college-oversight", label: "College Oversight", icon: School },
     { id: "startup-oversight", label: "Startup Oversight", icon: Building2 },
+    { id: "student-oversight", label: "Student Oversight", icon: Users },
     { id: "settings", label: "System Settings & Roles", icon: Settings }
   ];
 

@@ -61,10 +61,7 @@ const StartupOversight = () => {
     queryFn: async () => {
       let query = supabase
         .from('startups')
-        .select(`
-          *,
-          tasks:tasks!tasks_created_by_startup_id_fkey(count)
-        `);
+        .select('*');
 
       if (searchTerm) {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
@@ -72,7 +69,20 @@ const StartupOversight = () => {
 
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      
+      // Fetch task counts separately for each startup
+      const startupsWithTaskCount = await Promise.all(
+        (data || []).map(async (startup) => {
+          const { count } = await supabase
+            .from('tasks')
+            .select('id', { count: 'exact' })
+            .eq('created_by_startup_id', startup.user_id);
+          
+          return { ...startup, tasks: [{ count: count || 0 }] };
+        })
+      );
+      
+      return startupsWithTaskCount;
     }
   });
 
@@ -291,7 +301,7 @@ const StartupOversight = () => {
                   <TableCell>{getStatusBadge(startup.status)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {(startup as any).tasks?.length || 0}
+                      {(startup as any).tasks?.[0]?.count || 0}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">

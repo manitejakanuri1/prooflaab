@@ -57,10 +57,7 @@ const CollegeOversight = () => {
     queryFn: async () => {
       let query = supabase
         .from('colleges')
-        .select(`
-          *,
-          tasks:tasks!tasks_created_by_startup_id_fkey(count)
-        `);
+        .select('*');
 
       if (searchTerm) {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
@@ -68,7 +65,12 @@ const CollegeOversight = () => {
 
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      
+      // For colleges, we don't have direct task creation, so just return 0 tasks
+      return (data || []).map(college => ({
+        ...college,
+        tasks: [{ count: 0 }]
+      }));
     }
   });
 
@@ -280,7 +282,7 @@ const CollegeOversight = () => {
                   <TableCell>{getStatusBadge(college.status)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {(college as any).tasks?.length || 0}
+                      {(college as any).tasks?.[0]?.count || 0}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">

@@ -106,11 +106,11 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-3 px-3 py-2 h-auto transition-all duration-200",
+            "w-full justify-start gap-3 px-3 py-2.5 h-auto transition-all duration-200 text-left",
             isActive 
               ? "bg-primary text-primary-foreground hover:bg-primary/90" 
               : "hover:bg-muted text-muted-foreground hover:text-foreground",
-            level > 0 ? "ml-4 text-sm" : "",
+            level > 0 ? "ml-6 text-sm" : "",
             isCollapsed ? "justify-center px-2" : ""
           )}
           onClick={() => {
@@ -124,16 +124,18 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
           <item.icon className={cn("flex-shrink-0", isCollapsed ? "h-5 w-5" : "h-4 w-4")} />
           {!isCollapsed && (
             <>
-              <span className="truncate flex-1">{item.label}</span>
+              <span className="truncate flex-1 text-left">{item.label}</span>
               {hasChildren && (
-                isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                <div className="ml-auto">
+                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </div>
               )}
             </>
           )}
         </Button>
         
         {hasChildren && !isCollapsed && isExpanded && (
-          <div className="mt-1 space-y-1">
+          <div className="mt-1 space-y-1 ml-2">
             {item.children.map((child: any) => renderMenuItem(child, level + 1))}
           </div>
         )}
@@ -167,7 +169,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {menuItems.map((item) => renderMenuItem(item))}
       </nav>
 

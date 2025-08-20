@@ -231,101 +231,101 @@ const ManageResourcesPage = () => {
                 Add New Resource
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingResource ? "Edit Resource" : "Add New Resource"}
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-0 bg-background">
+            <DialogHeader className="border-b border-border/50 pb-4">
+              <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                📚 {editingResource ? "Edit Resource" : "Add New Resource"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
+            <form onSubmit={handleSubmit} className="space-y-6 p-6">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium text-foreground">Resource Title</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g., Complete React Course"
+                  className="rounded-lg border-border/50 focus:border-primary transition-colors"
                   required
                 />
               </div>
               
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-sm font-medium text-foreground">Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg">
+                      <SelectItem value="Roadmaps">Roadmaps</SelectItem>
+                      <SelectItem value="Courses">Courses</SelectItem>
+                      <SelectItem value="Articles">Articles</SelectItem>
+                      <SelectItem value="Videos">Videos</SelectItem>
+                      <SelectItem value="GitHub Repos">GitHub Repos</SelectItem>
+                      <SelectItem value="Tutorials">Tutorials</SelectItem>
+                      <SelectItem value="Documentation">Documentation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="platform" className="text-sm font-medium text-foreground">Platform</Label>
+                  <Select value={formData.platform} onValueChange={(value) => setFormData({ ...formData, platform: value })}>
+                    <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg">
+                      {platforms.map((platform) => (
+                        <SelectItem key={platform} value={platform}>
+                          {platform}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
-              <div>
-                <Label htmlFor="url">URL</Label>
+              <div className="space-y-2">
+                <Label htmlFor="url" className="text-sm font-medium text-foreground">Link</Label>
                 <Input
                   id="url"
                   type="url"
                   value={formData.url}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="https://example.com/course"
+                  className="rounded-lg border-border/50 focus:border-primary transition-colors"
                   required
                 />
               </div>
               
-              <div>
-                <Label htmlFor="platform">Platform</Label>
-                <Select value={formData.platform} onValueChange={(value) => setFormData({ ...formData, platform: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {platforms.map((platform) => (
-                      <SelectItem key={platform} value={platform}>
-                        {platform}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="branch">Branch</Label>
-                <Select value={formData.branch} onValueChange={(value) => setFormData({ ...formData, branch: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch} value={branch}>
-                        {branch}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="category">Category/Tags</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="e.g., Web Dev, AI, DSA"
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe what students will learn from this resource..."
+                  className="rounded-lg border-border/50 focus:border-primary transition-colors min-h-[100px]"
+                  rows={4}
                 />
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_premium"
-                  checked={formData.is_premium}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_premium: checked })}
-                />
-                <Label htmlFor="is_premium">Premium Resource</Label>
-              </div>
-              
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <div className="flex justify-end space-x-3 pt-4 border-t border-border/50">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                  className="rounded-lg px-6"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? "Saving..." : editingResource ? "Update" : "Add Resource"}
+                <Button 
+                  type="submit" 
+                  disabled={submitting}
+                  className="rounded-lg px-6 bg-primary hover:bg-primary/90 transition-colors"
+                >
+                  {submitting ? "Adding..." : editingResource ? "Update Resource" : "Add Resource"}
                 </Button>
               </div>
             </form>

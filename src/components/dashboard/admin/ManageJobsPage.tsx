@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -37,6 +38,7 @@ interface JobFormData {
   eligible_branch: string;
   apply_link: string;
   deadline: Date | undefined;
+  description?: string;
 }
 
 const initialFormData: JobFormData = {
@@ -48,6 +50,7 @@ const initialFormData: JobFormData = {
   eligible_branch: "",
   apply_link: "",
   deadline: undefined,
+  description: "",
 };
 
 const jobTypes = ["Internship", "Full-time", "Part-time", "Contract"];
@@ -185,16 +188,17 @@ const ManageJobsPage = () => {
 
   const openEditDialog = (job: JobOpportunity) => {
     setEditingJob(job);
-    setFormData({
-      role: job.role,
-      company_name: job.company_name,
-      logo_url: job.logo_url || "",
-      location: job.location,
-      job_type: job.job_type,
-      eligible_branch: job.eligible_branch,
-      apply_link: job.apply_link,
-      deadline: new Date(job.deadline),
-    });
+      setFormData({
+        role: job.role,
+        company_name: job.company_name,
+        logo_url: job.logo_url || "",
+        location: job.location,
+        job_type: job.job_type,
+        eligible_branch: job.eligible_branch,
+        apply_link: job.apply_link,
+        deadline: new Date(job.deadline),
+        description: (job as any).description || "",
+      });
     setIsDialogOpen(true);
   };
 
@@ -262,137 +266,139 @@ const ManageJobsPage = () => {
                 Add Job
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingJob ? "Edit Job Opportunity" : "Add New Job"}
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-0 bg-background">
+            <DialogHeader className="border-b border-border/50 pb-4">
+              <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                💼 {editingJob ? "Edit Job Opportunity" : "Create New Job"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="role">Role Title</Label>
-                <Input
-                  id="role"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  required
-                />
+            <form onSubmit={handleSubmit} className="space-y-6 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-sm font-medium text-foreground">Job Title</Label>
+                  <Input
+                    id="role"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    placeholder="e.g., Frontend Developer"
+                    className="rounded-lg border-border/50 focus:border-primary transition-colors"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company_name" className="text-sm font-medium text-foreground">Company Name</Label>
+                  <Input
+                    id="company_name"
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    placeholder="e.g., Tech Corp"
+                    className="rounded-lg border-border/50 focus:border-primary transition-colors"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="location" className="text-sm font-medium text-foreground">Location</Label>
+                  <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
+                    <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
+                      <SelectValue placeholder="Select location type" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg">
+                      {locations.map((location) => (
+                        <SelectItem key={location} value={location}>
+                          {location}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="job_type" className="text-sm font-medium text-foreground">Role Type</Label>
+                  <Select value={formData.job_type} onValueChange={(value) => setFormData({ ...formData, job_type: value })}>
+                    <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
+                      <SelectValue placeholder="Select job type" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg">
+                      {jobTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              
-              <div>
-                <Label htmlFor="company_name">Company Name</Label>
-                <Input
-                  id="company_name"
-                  value={formData.company_name}
-                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="logo_url">Logo URL (Optional)</Label>
-                <Input
-                  id="logo_url"
-                  type="url"
-                  value={formData.logo_url}
-                  onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                  placeholder="https://company.com/logo.png"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location} value={location}>
-                        {location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="job_type">Job Type</Label>
-                <Select value={formData.job_type} onValueChange={(value) => setFormData({ ...formData, job_type: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select job type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {jobTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="eligible_branch">Eligible Branch</Label>
-                <Select value={formData.eligible_branch} onValueChange={(value) => setFormData({ ...formData, eligible_branch: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select eligible branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch} value={branch}>
-                        {branch}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="apply_link">Application Link</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="apply_link" className="text-sm font-medium text-foreground">Apply Link</Label>
                 <Input
                   id="apply_link"
                   type="url"
                   value={formData.apply_link}
                   onChange={(e) => setFormData({ ...formData, apply_link: e.target.value })}
+                  placeholder="https://company.com/careers/apply"
+                  className="rounded-lg border-border/50 focus:border-primary transition-colors"
                   required
                 />
               </div>
               
-              <div>
-                <Label>Deadline</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Deadline</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal rounded-lg border-border/50 hover:border-primary transition-colors",
                         !formData.deadline && "text-muted-foreground"
                       )}
                     >
                       <Calendar className="mr-2 h-4 w-4" />
-                      {formData.deadline ? format(formData.deadline, "PPP") : "Pick a date"}
+                      {formData.deadline ? format(formData.deadline, "PPP") : "Pick a deadline"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 rounded-lg shadow-lg" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={formData.deadline}
                       onSelect={(date) => setFormData({ ...formData, deadline: date })}
                       disabled={(date) => date < new Date()}
                       initialFocus
-                      className="p-3 pointer-events-auto"
+                      className="p-3 pointer-events-auto rounded-lg"
                     />
                   </PopoverContent>
                 </Popover>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description || ""}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe the job role, requirements, and benefits..."
+                  className="rounded-lg border-border/50 focus:border-primary transition-colors min-h-[100px]"
+                  rows={4}
+                />
+              </div>
               
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <div className="flex justify-end space-x-3 pt-4 border-t border-border/50">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                  className="rounded-lg px-6"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? "Saving..." : editingJob ? "Update" : "Add Job"}
+                <Button 
+                  type="submit" 
+                  disabled={submitting}
+                  className="rounded-lg px-6 bg-primary hover:bg-primary/90 transition-colors"
+                >
+                  {submitting ? "Creating..." : editingJob ? "Update Job" : "Create Job"}
                 </Button>
               </div>
             </form>

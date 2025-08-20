@@ -7,7 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,12 +36,14 @@ interface AnnouncementFormData {
   title: string;
   description: string;
   status: 'draft' | 'published' | 'scheduled';
+  expiry_date?: Date;
 }
 
 const initialFormData: AnnouncementFormData = {
   title: "",
   description: "",
   status: 'draft',
+  expiry_date: undefined,
 };
 
 const ManageAnnouncementsPage = () => {
@@ -178,6 +184,7 @@ const ManageAnnouncementsPage = () => {
       title: announcement.title,
       description: announcement.description || "",
       status: 'published', // Default since no status in DB
+      expiry_date: (announcement as any).expiry_date ? new Date((announcement as any).expiry_date) : undefined,
     });
     setIsDialogOpen(true);
   };
@@ -329,40 +336,81 @@ const ManageAnnouncementsPage = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingAnnouncement ? "Edit Announcement" : "Create New Announcement"}
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-0 bg-background">
+          <DialogHeader className="border-b border-border/50 pb-4">
+            <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+              📢 {editingAnnouncement ? "Edit Announcement" : "Create New Announcement"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="title">Title</Label>
+          <form onSubmit={handleSubmit} className="space-y-6 p-6">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-sm font-medium text-foreground">Announcement Title</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="e.g., Important System Maintenance Notice"
+                className="rounded-lg border-border/50 focus:border-primary transition-colors"
                 required
               />
             </div>
             
-            <div>
-              <Label htmlFor="description">Description</Label>
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
+                placeholder="Write your announcement message here..."
+                className="rounded-lg border-border/50 focus:border-primary transition-colors min-h-[120px]"
+                rows={5}
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Expiry Date (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal rounded-lg border-border/50 hover:border-primary transition-colors",
+                      !formData.expiry_date && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {formData.expiry_date ? format(formData.expiry_date, "PPP") : "Pick an expiry date (optional)"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-lg shadow-lg" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formData.expiry_date}
+                    onSelect={(date) => setFormData({ ...formData, expiry_date: date })}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                    className="p-3 pointer-events-auto rounded-lg"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <div className="flex justify-end space-x-3 pt-4 border-t border-border/50">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+                className="rounded-lg px-6"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Saving..." : editingAnnouncement ? "Update" : "Create"}
+              <Button 
+                type="submit" 
+                disabled={submitting}
+                className="rounded-lg px-6 bg-primary hover:bg-primary/90 transition-colors"
+              >
+                {submitting ? "Posting..." : editingAnnouncement ? "Update Announcement" : "Post Announcement"}
               </Button>
             </div>
           </form>

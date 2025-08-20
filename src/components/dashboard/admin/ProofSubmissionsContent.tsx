@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Shield, Search } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Search, FileIcon, Shield } from 'lucide-react';
 
 interface ProofSubmission {
   id: string;
@@ -161,12 +162,12 @@ const ProofSubmissionsContent = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'Under Review': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Verified': 'bg-green-100 text-green-800 border-green-200',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200',
+      'Under Review': 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      'Verified': 'bg-green-50 text-green-700 border-green-200', 
+      'Rejected': 'bg-red-50 text-red-700 border-red-200',
     };
     
-    return statusConfig[status as keyof typeof statusConfig] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return statusConfig[status as keyof typeof statusConfig] || 'bg-muted text-muted-foreground border-border';
   };
 
   const getMossStatusBadge = (status: string | null, score: number | null) => {
@@ -212,98 +213,96 @@ const ProofSubmissionsContent = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Proof Submissions</h2>
-        <p className="text-gray-600">Review and verify student task submissions</p>
+      {/* Header Row */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground">Proof Submissions</h2>
+        </div>
+        <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by student name/email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 w-full md:w-64"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full md:w-40">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Under Review">Under Review</SelectItem>
+              <SelectItem value="Verified">Verified</SelectItem>
+              <SelectItem value="Rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full md:w-40">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="submitted_at">Latest First</SelectItem>
+              <SelectItem value="created_at">Oldest First</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by student email or task..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Submissions</SelectItem>
-                <SelectItem value="Under Review">Under Review</SelectItem>
-                <SelectItem value="Verified">Verified</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="submitted_at">Submission Date</SelectItem>
-                <SelectItem value="moss_score">MOSS Score</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="text-sm text-gray-500 flex items-center">
-              Total: {submissions.length} submissions
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Submissions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Submissions</span>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {submissions.length} found
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
           {submissions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No submissions found matching your criteria.
+            <div className="text-center py-16">
+              <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                <FileIcon className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium text-foreground mb-2">No submissions found</h3>
+              <p className="text-muted-foreground">Encourage students to upload their proofs.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>MOSS Result</TableHead>
-                    <TableHead>Actions</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="font-semibold">Student Name + Email</TableHead>
+                    <TableHead className="font-semibold">Task Title</TableHead>
+                    <TableHead className="font-semibold">Submission Type</TableHead>
+                    <TableHead className="font-semibold">Submission Date</TableHead>
+                    <TableHead className="font-semibold">Status Badge</TableHead>
+                    <TableHead className="font-semibold">Action Buttons</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {submissions.map((submission) => (
-                    <TableRow key={submission.id} className="hover:bg-gray-50">
+                    <TableRow key={submission.id} className="hover:bg-muted/30">
                       <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900">{submission.student_profiles?.full_name}</div>
-                          <div className="text-sm text-gray-500">{submission.student_profiles?.email}</div>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src="" />
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {submission.student_profiles?.full_name?.charAt(0)?.toUpperCase() || 'S'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium text-foreground">{submission.student_profiles?.full_name}</div>
+                            <div className="text-sm text-muted-foreground">{submission.student_profiles?.email}</div>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium text-gray-900 max-w-xs truncate">
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto font-medium text-primary hover:text-primary/80 justify-start"
+                          onClick={() => handleReview(submission)}
+                        >
                           {submission.tasks?.title}
-                        </div>
+                        </Button>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center gap-2">
                           {submission.file_url ? (
                             <FileText className="h-4 w-4 text-blue-600" />
                           ) : (
@@ -313,7 +312,7 @@ const ProofSubmissionsContent = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                           {format(new Date(submission.submitted_at), 'MMM dd, yyyy')}
                         </div>
                       </TableCell>
@@ -323,26 +322,39 @@ const ProofSubmissionsContent = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {getMossStatusBadge(submission.moss_status, submission.moss_score)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
+                        <div className="flex gap-1">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleReview(submission)}
-                            className="h-8 w-8 p-0"
+                            className="h-8 px-2 text-xs"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
-                            onClick={() => handleMossCheck(submission.id)}
-                            disabled={mossMutation.isPending}
-                            className="h-8 w-8 p-0"
+                            variant="default"
+                            onClick={() => {
+                              setSelectedSubmission(submission);
+                              handleStatusUpdate('Verified');
+                            }}
+                            className="h-8 px-2 text-xs bg-green-600 hover:bg-green-700"
                           >
-                            <Shield className="h-4 w-4" />
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Verify
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setSelectedSubmission(submission);
+                              handleStatusUpdate('Rejected');
+                            }}
+                            className="h-8 px-2 text-xs"
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Reject
                           </Button>
                         </div>
                       </TableCell>

@@ -39,8 +39,6 @@ const TaskOversight = () => {
         .from('tasks')
         .select(`
           *,
-          startups(name),
-          colleges(name),
           student_profiles!tasks_student_id_fkey(full_name)
         `);
 
@@ -250,7 +248,7 @@ const TaskOversight = () => {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      <span>Created by: {(task as any).startups?.name || (task as any).colleges?.name || (task as any).student_profiles?.full_name || 'Admin'}</span>
+                      <span>Created by: {(task as any).student_profiles?.full_name || 'Admin'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />

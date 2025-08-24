@@ -7,7 +7,15 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  // 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily
+  const BYPASS_AUTH = true;
+  
   const { user, loading } = useAuth();
+
+  // If bypassing auth, render children directly
+  if (BYPASS_AUTH) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (

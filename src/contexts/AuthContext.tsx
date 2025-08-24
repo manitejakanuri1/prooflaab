@@ -22,9 +22,33 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily  
+  const BYPASS_AUTH = true;
+  
+  // Mock user for development
+  const MOCK_USER: User = {
+    id: "mock-user-id", 
+    email: "test@example.com",
+    email_confirmed_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    app_metadata: {},
+    user_metadata: { full_name: "Test User" },
+    aud: "authenticated",
+    role: "authenticated"
+  } as User;
+
+  const [user, setUser] = useState<User | null>(BYPASS_AUTH ? MOCK_USER : null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!BYPASS_AUTH);
+
+  // If bypassing auth, set loading to false immediately
+  useEffect(() => {
+    if (BYPASS_AUTH) {
+      setLoading(false);
+      return;
+    }
+  }, []);
 
   const createStudentProfileIfNeeded = async (user: User) => {
     try {

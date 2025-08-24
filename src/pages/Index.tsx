@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +13,59 @@ import StickyCtaBar from "@/components/StickyCtaBar";
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("students");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if this is an auth callback with tokens in the hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    
+    if (accessToken && refreshToken) {
+      console.log('Index: Auth tokens found in hash, redirecting to callback handler');
+      // Redirect to auth callback with the hash intact
+      navigate(`/auth/callback${window.location.hash}`, { replace: true });
+      return;
+    }
+
+    // Check if user is already logged in
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Get user role and redirect accordingly  
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role, has_completed_wizard')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        if (roleData) {
+          if (!roleData.has_completed_wizard) {
+            navigate('/onboarding-wizard', { replace: true });
+          } else {
+            // Redirect to appropriate dashboard
+            const role = roleData.role;
+            switch (role) {
+              case 'admin':
+                navigate('/admin/dashboard', { replace: true });
+                break;
+              case 'college_admin':
+                navigate('/college/dashboard', { replace: true });
+                break;
+              case 'startup':
+                navigate('/startup/dashboard', { replace: true });
+                break;
+              case 'student':
+              default:
+                navigate('/student/dashboard', { replace: true });
+                break;
+            }
+          }
+        }
+      }
+    };
+    checkUser();
+  }, [navigate]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);

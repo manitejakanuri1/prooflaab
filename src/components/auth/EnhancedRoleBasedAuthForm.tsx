@@ -238,7 +238,17 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
           }
         });
         
-        if (error) throw error;
+        if (error) {
+          // Handle specific signup errors
+          if (error.message?.includes('User already registered')) {
+            throw new Error('Email already registered. Please login instead.');
+          } else if (error.message?.includes('already exists')) {
+            throw new Error('An account with this email already exists. Please login.');
+          } else if (error.message?.includes('email not confirmed')) {
+            throw new Error('Please check your email and confirm your account first.');
+          }
+          throw error;
+        }
         
         // Handle successful signup
         if (data.user) {
@@ -319,7 +329,18 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      setError(error.message);
+      
+      // Provide better error messages for common issues
+      if (error.message?.includes('Email already registered') || 
+          error.message?.includes('already exists')) {
+        setError('This email is already registered. Please login instead or use a different email.');
+      } else if (error.message?.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (error.message?.includes('email not confirmed')) {
+        setError('Please confirm your email address before logging in. Check your inbox for the confirmation email.');
+      } else {
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }

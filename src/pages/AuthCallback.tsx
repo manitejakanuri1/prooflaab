@@ -88,17 +88,16 @@ export default function AuthCallback() {
       console.log('AuthCallback: Email confirmed:', user.email_confirmed_at);
 
       // Email should be confirmed at this point since we're in the callback
-      // But let's check anyway
       if (!user.email_confirmed_at) {
         console.log('Email not confirmed after callback, this is unusual');
         navigate('/auth?message=Please confirm your email address to continue', { replace: true });
         return;
       }
 
-      // Get existing role first
-      const { data: existingRole, error: roleError } = await supabase
+      // Get existing role and wizard completion status
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, has_completed_wizard')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -106,11 +105,21 @@ export default function AuthCallback() {
         console.error('Error fetching user role:', roleError);
       }
 
-      const currentRole = existingRole?.role;
+      const currentRole = roleData?.role;
+      const hasCompletedWizard = roleData?.has_completed_wizard;
 
-      // If role exists, redirect based on that role (ignore accountType from URL)
+      // If role exists, check wizard completion first
       if (currentRole) {
         console.log('Existing role found:', currentRole);
+        console.log('Wizard completed:', hasCompletedWizard);
+        
+        // If wizard not completed, redirect to onboarding wizard
+        if (!hasCompletedWizard) {
+          navigate('/onboarding-wizard', { replace: true });
+          return;
+        }
+        
+        // Wizard completed, redirect to appropriate dashboard
         switch (currentRole) {
           case 'admin':
             navigate('/admin/dashboard', { replace: true });
@@ -167,25 +176,25 @@ export default function AuthCallback() {
           // Still continue with navigation even if role creation fails
         }
 
-        // Create appropriate profile record
+        // Create appropriate profile record and redirect to wizard
         if (roleToCreate === 'student') {
           await supabase.from('students').insert({
             user_id: user.id,
             name: user.user_metadata?.full_name || '',
             email: user.email || ''
           });
-          navigate('/student/dashboard', { replace: true });
         } else if (roleToCreate === 'college_admin') {
-          navigate('/onboarding/college', { replace: true });
+          // College record will be created in onboarding
         } else if (roleToCreate === 'startup') {
-          navigate('/onboarding/startup', { replace: true });
-        } else {
-          navigate('/student/dashboard', { replace: true });
+          // Startup record will be created in onboarding
         }
+        
+        // All new users go to onboarding wizard first
+        navigate('/onboarding-wizard', { replace: true });
       } catch (error) {
         console.error('Error in role creation:', error);
-        // Fallback to student dashboard
-        navigate('/student/dashboard', { replace: true });
+        // Fallback to onboarding wizard
+        navigate('/onboarding-wizard', { replace: true });
       }
     };
 

@@ -18,34 +18,51 @@ export default function AuthCallback() {
       console.log('AuthCallback: Search params:', Object.fromEntries(searchParams.entries()));
       
       try {
-        // First, try to handle any auth state changes from URL params
-        const { error: authError } = await supabase.auth.getSession();
+        // Handle the auth callback from email confirmation
+        const { data: authData, error: authError } = await supabase.auth.getSession();
         
         if (authError) {
-          console.error('AuthCallback: Auth error:', authError);
+          console.error('AuthCallback: Initial auth error:', authError);
           throw authError;
         }
-        
-        // Wait a moment for auth to process
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Get the session after auth callback
-        const { data, error } = await supabase.auth.getSession();
-        console.log('AuthCallback: Session data:', data);
-        
-        if (error) {
-          console.error('AuthCallback: Session error:', error);
-          throw error;
+
+        console.log('AuthCallback: Initial session check:', authData);
+
+        // If we already have a session, process it
+        if (authData.session?.user) {
+          console.log('AuthCallback: User session found, processing...');
+          await handleSuccessfulAuth(authData.session);
+          return;
         }
 
-        if (data.session?.user) {
-          console.log('AuthCallback: User found, processing...');
-          await handleSuccessfulAuth(data.session);
-        } else {
-          console.log('AuthCallback: No session found, redirecting to auth...');
-          // If no session, redirect to auth page - this might be an email confirmation
-          navigate('/auth?message=Email confirmed! Please log in to continue.', { replace: true });
+        // Check if this is an email confirmation callback by looking for hash params
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        console.log('AuthCallback: Hash params:', Object.fromEntries(hashParams.entries()));
+
+        if (hashParams.get('access_token')) {
+          console.log('AuthCallback: Access token found in hash, waiting for session...');
+          // Wait a bit for Supabase to process the hash params
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Check session again
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('AuthCallback: Session error after hash processing:', sessionError);
+            throw sessionError;
+          }
+
+          if (sessionData.session?.user) {
+            console.log('AuthCallback: User session found after processing hash');
+            await handleSuccessfulAuth(sessionData.session);
+            return;
+          }
         }
+
+        // If no session and no hash params, this might be a stale callback
+        console.log('AuthCallback: No session or hash params found, redirecting to auth');
+        navigate('/auth?message=Please sign in to continue.', { replace: true });
+
       } catch (error: any) {
         console.error('Auth callback error:', error);
         
@@ -70,19 +87,24 @@ export default function AuthCallback() {
       console.log('AuthCallback: Account type:', accountType);
       console.log('AuthCallback: Email confirmed:', user.email_confirmed_at);
 
-      // Check if email is confirmed - if not, redirect to auth with message
+      // Email should be confirmed at this point since we're in the callback
+      // But let's check anyway
       if (!user.email_confirmed_at) {
-        console.log('Email not confirmed, redirecting to auth');
+        console.log('Email not confirmed after callback, this is unusual');
         navigate('/auth?message=Please confirm your email address to continue', { replace: true });
         return;
       }
 
       // Get existing role first
-      const { data: existingRole } = await supabase
+      const { data: existingRole, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      if (roleError) {
+        console.error('Error fetching user role:', roleError);
+      }
 
       const currentRole = existingRole?.role;
 
@@ -129,20 +151,42 @@ export default function AuthCallback() {
         return;
       }
 
-      // No existing role - this shouldn't happen with proper signup flow
-      console.log('No existing role found, defaulting to student');
-      // Create student role as fallback
-      await supabase
-        .from('user_roles')
-        .insert({ user_id: user.id, role: 'student' });
+      // No existing role - create one based on account type from user metadata
+      console.log('No existing role found, creating role based on account type:', accountType);
       
-      await supabase.from('students').insert({
-        user_id: user.id,
-        name: user.user_metadata?.full_name || '',
-        email: user.email || ''
-      });
+      const roleToCreate = accountType || 'student';
       
-      navigate('/student/dashboard', { replace: true });
+      try {
+        // Create role
+        const { error: roleInsertError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: user.id, role: roleToCreate });
+        
+        if (roleInsertError) {
+          console.error('Error creating role:', roleInsertError);
+          // Still continue with navigation even if role creation fails
+        }
+
+        // Create appropriate profile record
+        if (roleToCreate === 'student') {
+          await supabase.from('students').insert({
+            user_id: user.id,
+            name: user.user_metadata?.full_name || '',
+            email: user.email || ''
+          });
+          navigate('/student/dashboard', { replace: true });
+        } else if (roleToCreate === 'college_admin') {
+          navigate('/onboarding/college', { replace: true });
+        } else if (roleToCreate === 'startup') {
+          navigate('/onboarding/startup', { replace: true });
+        } else {
+          navigate('/student/dashboard', { replace: true });
+        }
+      } catch (error) {
+        console.error('Error in role creation:', error);
+        // Fallback to student dashboard
+        navigate('/student/dashboard', { replace: true });
+      }
     };
 
     handleAuthCallback();

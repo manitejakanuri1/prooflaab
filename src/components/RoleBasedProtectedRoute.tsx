@@ -14,12 +14,22 @@ export default function RoleBasedProtectedRoute({
   allowedRoles, 
   fallbackRoute = "/auth" 
 }: RoleBasedProtectedRouteProps) {
+  // 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily
+  const BYPASS_AUTH = true;
+  
   const { user, loading } = useAuth();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [roleLoading, setRoleLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(BYPASS_AUTH ? 'student' : null);
+  const [roleLoading, setRoleLoading] = useState(!BYPASS_AUTH);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (BYPASS_AUTH) {
+      // When bypassing auth, skip all database checks and allow access
+      setUserRole('student');
+      setRoleLoading(false);
+      return;
+    }
+
     const fetchUserRole = async () => {
       if (!user) {
         setRoleLoading(false);
@@ -61,6 +71,11 @@ export default function RoleBasedProtectedRoute({
 
     fetchUserRole();
   }, [user, navigate]);
+
+  // If bypassing auth, always allow access
+  if (BYPASS_AUTH) {
+    return <>{children}</>;
+  }
 
   if (loading || roleLoading) {
     return (

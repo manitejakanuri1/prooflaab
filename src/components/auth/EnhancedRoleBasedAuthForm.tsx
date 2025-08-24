@@ -224,12 +224,13 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
           }
         }
       } else {
-        // Signup - create account without email confirmation
+        // Signup - create account with proper email confirmation
+        const redirectUrl = `${getRedirectUrl()}?type=${role}`;
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: 'https://example.com', // Dummy URL since we handle verification ourselves
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName,
               account_type: role

@@ -23,6 +23,7 @@ import OnboardingCollege from "./pages/OnboardingCollege";
 import OnboardingStartup from "./pages/OnboardingStartup";
 import OnboardingStudent from "./pages/OnboardingStudent";
 import OnboardingWizard from "./pages/OnboardingWizard";
+import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -94,6 +95,14 @@ const App = () => (
             />
             
             {/* Admin Routes */}
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
             
             {/* Legacy Routes - redirect to proper paths */}
             <Route 

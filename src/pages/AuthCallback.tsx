@@ -18,29 +18,8 @@ export default function AuthCallback() {
       console.log('AuthCallback: Search params:', Object.fromEntries(searchParams.entries()));
       
       try {
-        // Handle auth callback from URL fragments for OAuth
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        
-        if (accessToken) {
-          // OAuth callback - exchange for session
-          const { data, error } = await supabase.auth.getSession();
-          console.log('AuthCallback: OAuth session data:', data);
-          
-          if (error) {
-            console.error('AuthCallback: OAuth session error:', error);
-            throw error;
-          }
-          
-          if (data.session) {
-            await handleSuccessfulAuth(data.session);
-            return;
-          }
-        }
-        
-        // Handle regular email confirmation callback
+        // Get the session after auth callback
         const { data, error } = await supabase.auth.getSession();
-        
         console.log('AuthCallback: Session data:', data);
         
         if (error) {

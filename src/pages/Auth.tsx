@@ -4,15 +4,24 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthForm";
 import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
 
 export default function Auth() {
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check URL for messages (e.g., from email confirmation)
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    if (message) {
+      setErrorMessage(message);
+    }
+
     // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -104,6 +113,12 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {errorMessage && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        
         <EnhancedRoleBasedAuthForm onSuccess={handleAuthSuccess} />
         
         {/* Emergency Sign Out */}

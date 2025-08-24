@@ -9,12 +9,22 @@ import StartupWizard from "@/components/onboarding/StartupWizard";
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
 
 export default function OnboardingWizard() {
+  // 🚨 DEVELOPMENT BYPASS - Skip database calls when auth is bypassed
+  const BYPASS_AUTH = true;
+  
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [roleLoading, setRoleLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>('student'); // Default to student when bypassed
+  const [roleLoading, setRoleLoading] = useState(!BYPASS_AUTH);
 
   useEffect(() => {
+    if (BYPASS_AUTH) {
+      // When bypassing auth, set default values and skip database calls
+      setUserRole('student');
+      setRoleLoading(false);
+      return;
+    }
+
     const fetchUserRole = async () => {
       if (!user) {
         navigate('/auth', { replace: true });

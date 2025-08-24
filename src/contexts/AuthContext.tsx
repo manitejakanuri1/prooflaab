@@ -1,8 +1,10 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import OnboardingModal from "@/components/OnboardingModal";
+
+// 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily  
+const BYPASS_AUTH = true;
 
 interface AuthContextType {
   user: User | null;
@@ -22,12 +24,9 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily  
-  const BYPASS_AUTH = true;
-  
-  // Mock user for development
+  // Mock user for development (using valid UUID format)
   const MOCK_USER: User = {
-    id: "mock-user-id", 
+    id: "00000000-0000-0000-0000-000000000001", 
     email: "test@example.com",
     email_confirmed_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
@@ -41,14 +40,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(BYPASS_AUTH ? MOCK_USER : null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(!BYPASS_AUTH);
-
-  // If bypassing auth, set loading to false immediately
-  useEffect(() => {
-    if (BYPASS_AUTH) {
-      setLoading(false);
-      return;
-    }
-  }, []);
 
   const createStudentProfileIfNeeded = async (user: User) => {
     try {
@@ -133,7 +124,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener
+    if (BYPASS_AUTH) {
+      setLoading(false);
+      return;
+    }
+
+    // Set up auth state listener only when not bypassing
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
@@ -182,6 +178,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
+    if (BYPASS_AUTH) {
+      console.log('Auth bypassed - signOut disabled');
+      return;
+    }
     await supabase.auth.signOut();
   };
 
@@ -195,8 +195,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      {/* Show onboarding modal for authenticated users */}
-      {user && !loading && (
+      {/* Show onboarding modal for authenticated users (disabled during bypass) */}
+      {user && !loading && !BYPASS_AUTH && (
         <OnboardingModal 
           user={user} 
           onComplete={() => {

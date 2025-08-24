@@ -39,9 +39,31 @@ export default function AuthCallback() {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         console.log('AuthCallback: Hash params:', Object.fromEntries(hashParams.entries()));
 
-        if (hashParams.get('access_token')) {
-          console.log('AuthCallback: Access token found in hash, waiting for session...');
-          // Wait a bit for Supabase to process the hash params
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          console.log('AuthCallback: Setting session with tokens from hash');
+          
+          // Set the session using access token and refresh token
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            console.error('AuthCallback: Error setting session:', sessionError);
+            throw sessionError;
+          }
+
+          if (sessionData.session?.user) {
+            console.log('AuthCallback: Session successfully restored');
+            await handleSuccessfulAuth(sessionData.session);
+            return;
+          }
+        } else if (hashParams.get('access_token')) {
+          console.log('AuthCallback: Access token found but no refresh token, trying alternative approach...');
+          // Wait a bit for Supabase to process the hash params automatically
           await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Check session again

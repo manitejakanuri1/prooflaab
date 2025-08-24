@@ -255,6 +255,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
           console.log('User created successfully:', data.user.id);
           
           try {
+            console.log('Attempting to create user role:', { user_id: data.user.id, role: role });
             // Create user role record immediately
             const { error: roleError } = await supabase
               .from('user_roles')
@@ -262,9 +263,13 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             
             if (roleError) {
               console.error('Role assignment error:', roleError);
+              console.log('User ID:', data.user.id, 'Role:', role);
+              console.log('Auth user state:', data.user);
               if (!roleError.message.includes('duplicate')) {
                 throw new Error('Failed to assign user role. Please try again.');
               }
+            } else {
+              console.log('Role successfully assigned:', role);
             }
 
             // Create role-specific records based on user type

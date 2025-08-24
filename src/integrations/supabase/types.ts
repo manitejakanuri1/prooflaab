@@ -161,6 +161,39 @@ export type Database = {
         }
         Relationships: []
       }
+      college_profiles: {
+        Row: {
+          branches_offered: string[] | null
+          college_name: string
+          created_at: string
+          id: string
+          location: string | null
+          student_strength: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branches_offered?: string[] | null
+          college_name: string
+          created_at?: string
+          id?: string
+          location?: string | null
+          student_strength?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branches_offered?: string[] | null
+          college_name?: string
+          created_at?: string
+          id?: string
+          location?: string | null
+          student_strength?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       colleges: {
         Row: {
           created_at: string | null
@@ -565,6 +598,36 @@ export type Database = {
         }
         Relationships: []
       }
+      startup_profiles: {
+        Row: {
+          created_at: string
+          domain_industry: string | null
+          id: string
+          startup_name: string
+          talent_needs: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain_industry?: string | null
+          id?: string
+          startup_name: string
+          talent_needs?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain_industry?: string | null
+          id?: string
+          startup_name?: string
+          talent_needs?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       startups: {
         Row: {
           created_at: string | null
@@ -676,10 +739,13 @@ export type Database = {
         Row: {
           batch: string | null
           branch: string | null
+          career_goals: string | null
           created_at: string | null
           email: string
           full_name: string
           id: string
+          key_interests: string[] | null
+          preferred_skills: string[] | null
           profile_photo_url: string | null
           slug: string | null
           status: string | null
@@ -688,14 +754,18 @@ export type Database = {
           trust_score: number | null
           updated_at: string | null
           user_id: string | null
+          year_of_study: string | null
         }
         Insert: {
           batch?: string | null
           branch?: string | null
+          career_goals?: string | null
           created_at?: string | null
           email: string
           full_name: string
           id?: string
+          key_interests?: string[] | null
+          preferred_skills?: string[] | null
           profile_photo_url?: string | null
           slug?: string | null
           status?: string | null
@@ -704,14 +774,18 @@ export type Database = {
           trust_score?: number | null
           updated_at?: string | null
           user_id?: string | null
+          year_of_study?: string | null
         }
         Update: {
           batch?: string | null
           branch?: string | null
+          career_goals?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
           id?: string
+          key_interests?: string[] | null
+          preferred_skills?: string[] | null
           profile_photo_url?: string | null
           slug?: string | null
           status?: string | null
@@ -720,6 +794,7 @@ export type Database = {
           trust_score?: number | null
           updated_at?: string | null
           user_id?: string | null
+          year_of_study?: string | null
         }
         Relationships: []
       }
@@ -1001,6 +1076,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          has_completed_wizard: boolean
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
@@ -1008,6 +1084,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          has_completed_wizard?: boolean
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
@@ -1015,6 +1092,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          has_completed_wizard?: boolean
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string

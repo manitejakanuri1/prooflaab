@@ -22,6 +22,7 @@ import ResetPassword from "./pages/ResetPassword";
 import OnboardingCollege from "./pages/OnboardingCollege";
 import OnboardingStartup from "./pages/OnboardingStartup";
 import OnboardingStudent from "./pages/OnboardingStudent";
+import OnboardingWizard from "./pages/OnboardingWizard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,11 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/invite-verification" element={<InviteCodeVerification />} />
+            <Route path="/onboarding-wizard" element={
+              <ProtectedRoute>
+                <OnboardingWizard />
+              </ProtectedRoute>
+            } />
             <Route path="/onboarding/college" element={
               <ProtectedRoute>
                 <OnboardingCollege />

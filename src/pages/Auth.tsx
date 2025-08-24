@@ -49,8 +49,28 @@ export default function Auth() {
     }
   };
 
-  const handleAuthSuccess = (role: UserRole) => {
-    redirectToDashboard(role);
+  const handleAuthSuccess = async (role: UserRole) => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if wizard needs to be completed
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('has_completed_wizard')
+        .eq('user_id', user.id)
+        .single();
+
+      if (roleData && !roleData.has_completed_wizard) {
+        navigate('/onboarding-wizard', { replace: true });
+      } else {
+        redirectToDashboard(role);
+      }
+    } catch (error) {
+      // If no record or error, go to wizard
+      navigate('/onboarding-wizard', { replace: true });
+    }
   };
 
   const handleSignOutAll = async () => {

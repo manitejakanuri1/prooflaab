@@ -242,58 +242,79 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         
         // Handle successful signup
         if (data.user) {
-          // Create user role record immediately
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert({ user_id: data.user.id, role: role });
+          console.log('User created successfully:', data.user.id);
           
-          if (roleError && !roleError.message.includes('duplicate')) {
-            console.error('Role assignment error:', roleError);
-          }
-
-          // Create role-specific records based on user type
-          if (role === 'student') {
-            // Create student record
-            await supabase.from('students').insert({
-              user_id: data.user.id,
-              name: fullName,
-              email: email
-            });
-          } else if (role === 'college_admin') {
-            // Create college record with pending status
-            await supabase.from('colleges').insert({
-              user_id: data.user.id,
-              name: fullName,
-              email: email,
-              status: 'pending'
-            });
-          } else if (role === 'startup') {
-            // Create startup record with pending status
-            await supabase.from('startups').insert({
-              user_id: data.user.id,
-              name: fullName,
-              email: email,
-              status: 'pending'
-            });
-          }
-
-          // Send onboarding email
           try {
-            await supabase.functions.invoke('send-onboarding-email', {
-              body: {
-                email: email,
-                name: fullName,
-                userType: role === 'college_admin' ? 'college' : role,
-                origin: window.location.origin
+            // Create user role record immediately
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .insert({ user_id: data.user.id, role: role });
+            
+            if (roleError) {
+              console.error('Role assignment error:', roleError);
+              if (!roleError.message.includes('duplicate')) {
+                throw new Error('Failed to assign user role. Please try again.');
               }
-            });
-          } catch (emailError) {
-            console.error('Failed to send onboarding email:', emailError);
-          }
+            }
 
-          // Always show email verification screen for new signups
-          setMessage('Account created successfully! Please check your email to confirm your account before you can log in.');
-          setAuthStep('email-verification');
+            // Create role-specific records based on user type
+            try {
+              if (role === 'student') {
+                // Create student record
+                const { error: studentError } = await supabase.from('students').insert({
+                  user_id: data.user.id,
+                  name: fullName,
+                  email: email
+                });
+                if (studentError) throw studentError;
+              } else if (role === 'college_admin') {
+                // Create college record with pending status
+                const { error: collegeError } = await supabase.from('colleges').insert({
+                  user_id: data.user.id,
+                  name: fullName,
+                  email: email,
+                  status: 'pending'
+                });
+                if (collegeError) throw collegeError;
+              } else if (role === 'startup') {
+                // Create startup record with pending status
+                const { error: startupError } = await supabase.from('startups').insert({
+                  user_id: data.user.id,
+                  name: fullName,
+                  email: email,
+                  status: 'pending'
+                });
+                if (startupError) throw startupError;
+              }
+            } catch (recordError: any) {
+              console.error('Failed to create user record:', recordError);
+              // Don't throw here - the user account is created, just log the error
+            }
+
+            // Send onboarding email (don't let this fail the signup)
+            try {
+              await supabase.functions.invoke('send-onboarding-email', {
+                body: {
+                  email: email,
+                  name: fullName,
+                  userType: role === 'college_admin' ? 'college' : role,
+                  origin: window.location.origin
+                }
+              });
+            } catch (emailError) {
+              console.error('Failed to send onboarding email:', emailError);
+            }
+
+            // Always show email verification screen for new signups
+            setMessage('Account created successfully! Please check your email to confirm your account before you can log in.');
+            setAuthStep('email-verification');
+
+          } catch (setupError: any) {
+            console.error('User setup error:', setupError);
+            // If role assignment fails, still show verification but with a warning
+            setMessage('Account created! Please check your email to confirm. Some account setup may need to be completed after login.');
+            setAuthStep('email-verification');
+          }
         }
       }
     } catch (error: any) {

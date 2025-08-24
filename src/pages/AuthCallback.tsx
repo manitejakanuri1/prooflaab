@@ -18,6 +18,17 @@ export default function AuthCallback() {
       console.log('AuthCallback: Search params:', Object.fromEntries(searchParams.entries()));
       
       try {
+        // First, try to handle any auth state changes from URL params
+        const { error: authError } = await supabase.auth.getSession();
+        
+        if (authError) {
+          console.error('AuthCallback: Auth error:', authError);
+          throw authError;
+        }
+        
+        // Wait a moment for auth to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Get the session after auth callback
         const { data, error } = await supabase.auth.getSession();
         console.log('AuthCallback: Session data:', data);
@@ -27,15 +38,26 @@ export default function AuthCallback() {
           throw error;
         }
 
-        if (!data.session) {
-          console.error('AuthCallback: No session found');
-          throw new Error('No session found after callback');
+        if (data.session?.user) {
+          console.log('AuthCallback: User found, processing...');
+          await handleSuccessfulAuth(data.session);
+        } else {
+          console.log('AuthCallback: No session found, redirecting to auth...');
+          // If no session, redirect to auth page - this might be an email confirmation
+          navigate('/auth?message=Email confirmed! Please log in to continue.', { replace: true });
         }
-
-        await handleSuccessfulAuth(data.session);
       } catch (error: any) {
         console.error('Auth callback error:', error);
-        setError(error.message);
+        
+        // Handle specific error cases
+        if (error.message?.includes('Email link is invalid') || error.message?.includes('expired')) {
+          setError('This email confirmation link has expired or is invalid. Please request a new one.');
+        } else if (error.message?.includes('already confirmed')) {
+          navigate('/auth?message=Email already confirmed! Please log in.', { replace: true });
+          return;
+        } else {
+          setError(error.message || 'Authentication failed. Please try again.');
+        }
         setLoading(false);
       }
     };

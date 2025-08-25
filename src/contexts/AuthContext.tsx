@@ -3,8 +3,8 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import OnboardingModal from "@/components/OnboardingModal";
 
-// 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily  
-const BYPASS_AUTH = true;
+// 🚨 DEVELOPMENT BYPASS - Set to false to enable auth
+const BYPASS_AUTH = false;
 
 interface AuthContextType {
   user: User | null;
@@ -43,11 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createStudentProfileIfNeeded = async (user: User) => {
     try {
-      // Only create profile if email is confirmed
-      if (!user.email_confirmed_at) {
-        console.log('Email not confirmed, skipping profile creation');
-        return;
-      }
+      // Email verification is disabled, so proceed without confirmation check
 
       // Check if profile already exists
       const { data: existingProfile } = await supabase
@@ -135,18 +131,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Handle successful authentication - only redirect if email is confirmed
+        // Handle successful authentication - no email verification needed
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
-            // Check if email is confirmed before proceeding
-            if (!session.user.email_confirmed_at) {
-              console.log('Email not confirmed, not redirecting');
-              return;
-            }
-            
             await createStudentProfileIfNeeded(session.user);
             
-            // Only redirect if we're on the auth page and email is confirmed
+            // Only redirect if we're on the auth page
             if (window.location.pathname === '/auth' || 
                 window.location.pathname === '/auth/callback') {
               const role = await getUserRole(session.user.id);

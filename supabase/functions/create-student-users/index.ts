@@ -44,20 +44,30 @@ serve(async (req) => {
       const { name, email, branch, batch } = studentData
 
       try {
-        // Check if user already exists
-        const { data: existingProfile } = await supabaseAdmin
-          .from('student_profiles')
-          .select('email')
-          .eq('email', email.toLowerCase())
-          .maybeSingle()
-
-        if (existingProfile) {
+        // Check if auth user already exists
+        const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
+        const existingAuthUser = authUsers.users?.find(user => user.email?.toLowerCase() === email.toLowerCase())
+        
+        if (existingAuthUser) {
           results.push({
             email,
             status: 'duplicate',
-            message: 'Email already exists in database'
+            message: 'Auth user already exists'
           })
           continue
+        }
+
+        // Check if student profile exists
+        const { data: existingProfile } = await supabaseAdmin
+          .from('student_profiles')
+          .select('id, user_id')
+          .eq('email', email.toLowerCase())
+          .maybeSingle()
+
+        let profileNeedsAuth = false
+        if (existingProfile && !existingProfile.user_id) {
+          // Profile exists but has no auth user - we'll create auth and link it
+          profileNeedsAuth = true
         }
 
         // Generate temporary password
@@ -96,28 +106,53 @@ serve(async (req) => {
           console.error('Role error:', roleError)
         }
 
-        // Create student profile
-        const { error: profileError } = await supabaseAdmin
-          .from('student_profiles')
-          .insert({
-            user_id: authData.user.id,
-            email: email.toLowerCase(),
-            full_name: name,
-            branch: branch || '',
-            batch: batch || '',
-            total_xp: 0,
-            trust_score: 0,
-            status: 'active'
-          })
+        // Create or update student profile
+        if (profileNeedsAuth && existingProfile) {
+          // Update existing profile with new auth user
+          const { error: updateError } = await supabaseAdmin
+            .from('student_profiles')
+            .update({
+              user_id: authData.user.id,
+              full_name: name,
+              branch: branch || '',
+              batch: batch || '',
+              status: 'active'
+            })
+            .eq('id', existingProfile.id)
 
-        if (profileError) {
-          console.error('Profile error:', profileError)
-          results.push({
-            email,
-            status: 'error',
-            message: `Profile creation failed: ${profileError.message}`
-          })
-          continue
+          if (updateError) {
+            console.error('Profile update error:', updateError)
+            results.push({
+              email,
+              status: 'error',
+              message: `Profile update failed: ${updateError.message}`
+            })
+            continue
+          }
+        } else if (!existingProfile) {
+          // Create new student profile
+          const { error: profileError } = await supabaseAdmin
+            .from('student_profiles')
+            .insert({
+              user_id: authData.user.id,
+              email: email.toLowerCase(),
+              full_name: name,
+              branch: branch || '',
+              batch: batch || '',
+              total_xp: 0,
+              trust_score: 0,
+              status: 'active'
+            })
+
+          if (profileError) {
+            console.error('Profile error:', profileError)
+            results.push({
+              email,
+              status: 'error',
+              message: `Profile creation failed: ${profileError.message}`
+            })
+            continue
+          }
         }
 
         results.push({

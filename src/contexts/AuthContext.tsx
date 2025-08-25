@@ -107,14 +107,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         window.location.href = '/admin-dashboard';
         break;
       case 'college_admin':
-        window.location.href = '/college-dashboard';
+        window.location.href = '/college/dashboard';
         break;
       case 'startup':
-        window.location.href = '/startup-dashboard';
+        window.location.href = '/startup/dashboard';
         break;
       case 'student':
       default:
-        window.location.href = '/student-dashboard';
+        window.location.href = '/student/dashboard';
         break;
     }
   };

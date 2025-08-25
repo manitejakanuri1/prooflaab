@@ -118,95 +118,56 @@ const CollegeDashboardOverview = () => {
         throw new Error("No valid records found in CSV");
       }
 
-      const processResults: ProcessResult[] = [];
-      const processedEmails = new Set<string>();
+      // Process all valid records through Edge Function
+      const studentsToProcess = records.filter(record => !validateRecord(record));
+      
+      if (studentsToProcess.length === 0) {
+        setResults([{ record: { name: '', email: '', branch: '', batch: '' }, status: 'error', message: 'No valid records to process' }]);
+        return;
+      }
 
+      console.log('Calling Edge Function to create student users...');
+      
+      const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-student-users', {
+        body: {
+          students: studentsToProcess.map(record => ({
+            name: record.name,
+            email: record.email,
+            branch: record.branch,
+            batch: record.batch
+          }))
+        }
+      });
+
+      if (functionError) {
+        console.error('Edge Function error:', functionError);
+        toast({
+          title: "Error",
+          description: `Failed to process students: ${functionError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Convert Edge Function results to our format
+      const functionResults = functionResult?.results || [];
+      const processResults: ProcessResult[] = functionResults.map((result: any) => {
+        const originalRecord = records.find(r => r.email === result.email);
+        return {
+          record: originalRecord || { name: '', email: result.email, branch: '', batch: '' },
+          status: result.status,
+          message: result.message
+        };
+      });
+
+      // Add any records that weren't processed due to validation errors
       for (const record of records) {
-        // Validate record
         const validationError = validateRecord(record);
         if (validationError) {
           processResults.push({
             record,
             status: 'error',
             message: validationError
-          });
-          continue;
-        }
-
-        // Check for duplicates within the CSV
-        if (processedEmails.has(record.email.toLowerCase())) {
-          processResults.push({
-            record,
-            status: 'duplicate',
-            message: 'Duplicate email in CSV'
-          });
-          continue;
-        }
-
-        try {
-          console.log('Processing record:', record);
-          
-          // Check if user already exists in database
-          const { data: existingProfile } = await supabase
-            .from('student_profiles')
-            .select('email')
-            .eq('email', record.email.toLowerCase())
-            .maybeSingle();
-
-          if (existingProfile) {
-            console.log('Email already exists:', record.email);
-            processResults.push({
-              record,
-              status: 'duplicate',
-              message: 'Email already exists in database'
-            });
-            continue;
-          }
-
-          // Create student profile without auth user (they'll link it later when they sign up)
-          const profileData = {
-            user_id: null, // Will be filled when they create auth account
-            email: record.email.toLowerCase(),
-            full_name: record.name,
-            branch: record.branch || '',
-            batch: record.batch || '',
-            temporary_user_id: crypto.randomUUID() // For tracking before auth creation
-          };
-          
-          console.log('Inserting profile data:', profileData);
-          
-          const { data: insertedProfile, error: profileError } = await supabase
-            .from('student_profiles')
-            .insert(profileData)
-            .select()
-            .single();
-
-          if (profileError) {
-            console.log('Profile creation error:', profileError);
-            processResults.push({
-              record,
-              status: 'error',
-              message: `Database error: ${profileError.message}`
-            });
-            continue;
-          }
-
-          console.log('Student profile created:', insertedProfile);
-          
-          processResults.push({
-            record,
-            status: 'success',
-            message: 'Student record created successfully'
-          });
-
-          processedEmails.add(record.email.toLowerCase());
-
-        } catch (error) {
-          console.log('Unexpected error:', error);
-          processResults.push({
-            record,
-            status: 'error',
-            message: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`
           });
         }
       }

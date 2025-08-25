@@ -27,12 +27,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Mock user for development (using valid UUID format)
   const MOCK_USER: User = {
     id: "00000000-0000-0000-0000-000000000001", 
-    email: "test@example.com",
+    email: "college@example.com",
     email_confirmed_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     app_metadata: {},
-    user_metadata: { full_name: "Test User" },
+    user_metadata: { full_name: "College Admin" },
     aud: "authenticated",
     role: "authenticated"
   } as User;

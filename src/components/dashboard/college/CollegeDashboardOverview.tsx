@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -233,31 +233,73 @@ const CollegeDashboardOverview = () => {
     }
   };
 
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    tasksAssigned: 0,
+    proofsReceived: 0,
+    verifiedProofs: 0,
+  });
+
+  // Fetch real stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch total students
+        const { data: students } = await supabase
+          .from('student_profiles')
+          .select('id');
+        
+        // Fetch total tasks
+        const { data: tasks } = await supabase
+          .from('tasks')
+          .select('id');
+        
+        // Fetch proof submissions
+        const { data: proofs } = await supabase
+          .from('proof_uploads')
+          .select('id, status');
+        
+        const verifiedCount = proofs?.filter(p => p.status === 'Verified').length || 0;
+        
+        setStats({
+          totalStudents: students?.length || 0,
+          tasksAssigned: tasks?.length || 0,
+          proofsReceived: proofs?.length || 0,
+          verifiedProofs: verifiedCount,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [results]); // Refetch when CSV processing results change
+
   const quickStats = [
     {
       title: "Total Students Onboarded",
-      value: "0",
+      value: stats.totalStudents.toString(),
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       title: "Tasks Assigned",
-      value: "0",
+      value: stats.tasksAssigned.toString(),
       icon: ClipboardList,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
     {
       title: "Proofs Received",
-      value: "0",
+      value: stats.proofsReceived.toString(),
       icon: Upload,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
     },
     {
       title: "Verified Proofs",
-      value: "0",
+      value: stats.verifiedProofs.toString(),
       icon: FileCheck,
       color: "text-purple-600",
       bgColor: "bg-purple-100",

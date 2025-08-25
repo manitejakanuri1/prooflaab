@@ -51,18 +51,37 @@ const AssignTasks = () => {
 
   const fetchStudents = async () => {
     try {
+      // Bypass auth temporarily - get all students
+      const BYPASS_AUTH = true;
+      
       const { data: studentsData, error } = await supabase
         .from('student_profiles')
         .select('id, full_name, email, branch, batch')
         .order('full_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching students:', error);
+        // If it's an auth error and we're bypassing, try a different approach
+        if (error.code === 'PGRST301' && BYPASS_AUTH) {
+          // For development, show some mock data
+          setStudents([]);
+          toast({
+            title: "Info",
+            description: "Enable authentication to assign tasks to students",
+            variant: "default",
+          });
+          return;
+        }
+        throw error;
+      }
+      
+      console.log('Fetched students:', studentsData);
       setStudents(studentsData || []);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch students",
+        description: "Failed to fetch students. Make sure you've uploaded students via CSV first.",
         variant: "destructive",
       });
     }

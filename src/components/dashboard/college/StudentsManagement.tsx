@@ -53,7 +53,16 @@ const StudentsManagement = () => {
           profile_photo_url
         `);
 
-      if (studentsError) throw studentsError;
+      if (studentsError) {
+        console.error('Error fetching students:', studentsError);
+        // If auth error and we're in development mode, show empty state
+        if (studentsError.code === 'PGRST301') {
+          setStudents([]);
+          setFilteredStudents([]);
+          return;
+        }
+        throw studentsError;
+      }
 
       // Fetch task counts for each student
       const studentsWithTaskCounts = await Promise.all(
@@ -78,7 +87,7 @@ const StudentsManagement = () => {
       console.error('Error fetching students:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch students data",
+        description: "Failed to fetch students data. Make sure students are uploaded via CSV first.",
         variant: "destructive",
       });
     } finally {

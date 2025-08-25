@@ -31,15 +31,15 @@ const StudentProgressPage = () => {
     );
   }
 
-  // Mock data for charts - in real implementation, this would come from your data hooks
+  // Generate monthly XP data with current month's actual data
   const monthlyXPData = [
-    { month: 'Jan', xp: 150 },
-    { month: 'Feb', xp: 280 },
-    { month: 'Mar', xp: 220 },
-    { month: 'Apr', xp: 350 },
-    { month: 'May', xp: 180 },
-    { month: 'Jun', xp: 420 },
-    { month: 'Jul', xp: monthlyXP },
+    { month: 'Jan', xp: 0 },
+    { month: 'Feb', xp: 0 },
+    { month: 'Mar', xp: 0 },
+    { month: 'Apr', xp: 0 },
+    { month: 'May', xp: 0 },
+    { month: 'Jun', xp: 0 },
+    { month: new Date().toLocaleDateString('en-US', { month: 'short' }), xp: monthlyXP },
   ];
 
   const trustScoreData = [

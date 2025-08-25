@@ -7,6 +7,7 @@ import { useAssignedTasks } from "@/hooks/useAssignedTasks";
 import { useMonthlyXP } from "@/hooks/useMonthlyXP";
 import { useWeeklyWorkTime } from "@/hooks/useWeeklyWorkTime";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { formatDistanceToNow } from "date-fns";
 
 const StudentDashboardOverview = () => {
@@ -14,11 +15,12 @@ const StudentDashboardOverview = () => {
   const { tasks, loading: tasksLoading, startTask } = useAssignedTasks();
   const { monthlyXP, loading: xpLoading } = useMonthlyXP();
   const { workTime, loading: workTimeLoading } = useWeeklyWorkTime();
+  const { activities, loading: activityLoading } = useRecentActivity();
   
   // Track user activity for work time calculation
   useActivityTracking();
 
-  if (profileLoading || tasksLoading || xpLoading || workTimeLoading) {
+  if (profileLoading || tasksLoading || xpLoading || workTimeLoading || activityLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -178,29 +180,25 @@ const StudentDashboardOverview = () => {
           <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start space-x-3 text-sm">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-              <div>
-                <span className="text-gray-900">You submitted proof for 'Build API' on July 16</span>
-                <div className="text-gray-500 text-xs">2 days ago</div>
-              </div>
+          {activities.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">
+              No recent activity yet. Start working on some tasks! 💪
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {activities.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3 text-sm">
+                  <div className={`w-2 h-2 ${activity.color} rounded-full mt-2 flex-shrink-0`}></div>
+                  <div>
+                    <span className="text-gray-900">{activity.message}</span>
+                    <div className="text-gray-500 text-xs">
+                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex items-start space-x-3 text-sm">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-              <div>
-                <span className="text-gray-900">Started new task 'Database Design'</span>
-                <div className="text-gray-500 text-xs">3 days ago</div>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3 text-sm">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-              <div>
-                <span className="text-gray-900">Earned 50 XP for completing 'React Components'</span>
-                <div className="text-gray-500 text-xs">1 week ago</div>
-              </div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

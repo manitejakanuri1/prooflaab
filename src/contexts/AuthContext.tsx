@@ -135,13 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
             await createStudentProfileIfNeeded(session.user);
-            
-            // Only redirect if we're on the auth page
-            if (window.location.pathname === '/auth' || 
-                window.location.pathname === '/auth/callback') {
-              const role = await getUserRole(session.user.id);
-              redirectToDashboard(role);
-            }
+            // Removed auto-redirect logic - let individual pages handle their own redirects
           }, 0);
         }
         

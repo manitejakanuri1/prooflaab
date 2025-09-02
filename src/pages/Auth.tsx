@@ -22,7 +22,16 @@ export default function Auth() {
       setErrorMessage(message);
     }
 
-    // Clear any stale sessions to prevent auto-redirect issues
+    // Check if user explicitly wants to sign up/login (clear sessions)
+    const clearSession = urlParams.get('clear');
+    if (clearSession === 'true') {
+      supabase.auth.signOut();
+      // Remove the clear parameter from URL
+      window.history.replaceState({}, document.title, '/auth');
+      return;
+    }
+
+    // Only check for existing sessions if user isn't explicitly trying to auth
     const clearStaleSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -35,7 +44,7 @@ export default function Auth() {
               .from('user_roles')
               .select('role, has_completed_wizard')
               .eq('user_id', user.id)
-              .single();
+              .maybeSingle();
             
             if (roleData) {
               if (roleData.has_completed_wizard) {
@@ -164,8 +173,19 @@ export default function Auth() {
         
         <EnhancedRoleBasedAuthForm onSuccess={handleAuthSuccess} />
         
-        {/* Emergency Sign Out */}
+        {/* Clear Session Option */}
         <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => window.location.href = '/auth?clear=true'}
+            className="text-sm text-gray-600 hover:underline mr-4"
+          >
+            Clear session & start fresh
+          </button>
+        </div>
+        
+        {/* Emergency Sign Out */}
+        <div className="mt-2 text-center">
           <button
             type="button"
             onClick={handleSignOutAll}

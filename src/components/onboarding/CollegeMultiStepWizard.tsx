@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+// Lucide React icons for College Multi-Step Wizard
 import { ArrowLeft, ArrowRight, Upload, SkipForward } from "lucide-react";
 
 interface CollegeMultiStepWizardProps {

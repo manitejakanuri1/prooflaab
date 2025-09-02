@@ -261,9 +261,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
               .from('user_roles')
               .insert({ 
                 user_id: data.user.id, 
-                role: role,
-                // For college admins and startups, mark wizard as completed for testing
-                has_completed_wizard: role === 'college_admin' || role === 'startup' ? true : false
+                role: role
               });
             
             if (roleError) {

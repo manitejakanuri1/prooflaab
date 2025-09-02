@@ -323,9 +323,17 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
               console.error('Failed to send onboarding email:', emailError);
             }
 
-            // Always show email verification screen for new signups
-            setMessage('Account created successfully! Please check your email to confirm your account before you can log in.');
-            setAuthStep('email-verification');
+            // For roles that need onboarding, redirect directly to onboarding
+            if (role === 'college_admin' || role === 'startup' || role === 'student') {
+              console.log('Redirecting to onboarding for role:', role);
+              if (onSuccess) {
+                onSuccess(role);
+              }
+            } else {
+              // For other roles, show email verification
+              setMessage('Account created successfully! Please check your email to confirm your account before you can log in.');
+              setAuthStep('email-verification');
+            }
 
           } catch (setupError: any) {
             console.error('User setup error:', setupError);

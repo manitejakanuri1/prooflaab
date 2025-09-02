@@ -22,22 +22,48 @@ export default function Auth() {
       setErrorMessage(message);
     }
 
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Get user role and redirect accordingly
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        const role = roleData?.role || 'student';
-        redirectToDashboard(role);
+    // Clear any stale sessions to prevent auto-redirect issues
+    const clearStaleSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Check if this is a valid authenticated session
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user && user.email_confirmed_at) {
+            // Valid session - check wizard completion and redirect
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role, has_completed_wizard')
+              .eq('user_id', user.id)
+              .single();
+            
+            if (roleData) {
+              if (roleData.has_completed_wizard) {
+                redirectToDashboard(roleData.role);
+              } else {
+                // Redirect to role-specific onboarding
+                const role = roleData.role;
+                if (role === 'student') {
+                  navigate('/onboarding/student', { replace: true });
+                } else if (role === 'college_admin') {
+                  navigate('/onboarding/college', { replace: true });
+                } else if (role === 'startup') {
+                  navigate('/onboarding/startup', { replace: true });
+                } else {
+                  navigate('/onboarding-wizard', { replace: true });
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        // If session check fails, clear it
+        console.log('Clearing invalid session');
+        await supabase.auth.signOut();
       }
     };
-    checkUser();
+    
+    clearStaleSession();
   }, [navigate]);
 
   const redirectToDashboard = (role: UserRole) => {
@@ -72,13 +98,30 @@ export default function Auth() {
         .single();
 
       if (roleData && !roleData.has_completed_wizard) {
-        navigate('/onboarding-wizard', { replace: true });
+        // Redirect to role-specific onboarding
+        if (role === 'student') {
+          navigate('/onboarding/student', { replace: true });
+        } else if (role === 'college_admin') {
+          navigate('/onboarding/college', { replace: true });
+        } else if (role === 'startup') {
+          navigate('/onboarding/startup', { replace: true });
+        } else {
+          navigate('/onboarding-wizard', { replace: true });
+        }
       } else {
         redirectToDashboard(role);
       }
     } catch (error) {
-      // If no record or error, go to wizard
-      navigate('/onboarding-wizard', { replace: true });
+      // If no record or error, go to role-specific onboarding
+      if (role === 'student') {
+        navigate('/onboarding/student', { replace: true });
+      } else if (role === 'college_admin') {
+        navigate('/onboarding/college', { replace: true });
+      } else if (role === 'startup') {
+        navigate('/onboarding/startup', { replace: true });
+      } else {
+        navigate('/onboarding-wizard', { replace: true });
+      }
     }
   };
 

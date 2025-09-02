@@ -15,7 +15,7 @@ export default function RoleBasedProtectedRoute({
   fallbackRoute = "/auth" 
 }: RoleBasedProtectedRouteProps) {
   // 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily
-  const BYPASS_AUTH = true;
+  const BYPASS_AUTH = false;
   
   const { user, loading } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(BYPASS_AUTH ? 'student' : null);

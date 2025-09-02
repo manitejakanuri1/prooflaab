@@ -10,7 +10,7 @@ type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
 
 export default function OnboardingWizard() {
   // 🚨 DEVELOPMENT BYPASS - Skip database calls when auth is bypassed
-  const BYPASS_AUTH = true;
+  const BYPASS_AUTH = false;
   
   const { user, loading } = useAuth();
   const navigate = useNavigate();

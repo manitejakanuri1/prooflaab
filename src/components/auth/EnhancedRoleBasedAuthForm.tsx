@@ -259,7 +259,12 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             // Create user role record immediately
             const { error: roleError } = await supabase
               .from('user_roles')
-              .insert({ user_id: data.user.id, role: role });
+              .insert({ 
+                user_id: data.user.id, 
+                role: role,
+                // For college admins and startups, mark wizard as completed for testing
+                has_completed_wizard: role === 'college_admin' || role === 'startup' ? true : false
+              });
             
             if (roleError) {
               console.error('Role assignment error:', roleError);

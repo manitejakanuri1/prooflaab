@@ -4,6 +4,8 @@ import AssignTasks from "./AssignTasks";
 import UploadedProofs from "./UploadedProofs";
 import TrustScoresSection from "./TrustScoresSection";
 import NotificationsSection from "./NotificationsSection";
+import CollegeProfilePage from "./CollegeProfilePage";
+import CollegeSettingsPage from "./CollegeSettingsPage";
 
 interface CollegeDashboardContentProps {
   activeTab: string;
@@ -24,6 +26,10 @@ const CollegeDashboardContent = ({ activeTab }: CollegeDashboardContentProps) =>
         return <TrustScoresSection />;
       case "notifications":
         return <NotificationsSection />;
+      case "profile":
+        return <CollegeProfilePage />;
+      case "settings":
+        return <CollegeSettingsPage />;
       default:
         return <CollegeDashboardOverview />;
     }

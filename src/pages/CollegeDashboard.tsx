@@ -3,6 +3,7 @@ import CollegeDashboardHeader from "@/components/dashboard/college/CollegeDashbo
 import CollegeDashboardSidebar from "@/components/dashboard/college/CollegeDashboardSidebar";
 import CollegeDashboardContent from "@/components/dashboard/college/CollegeDashboardContent";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCollegeProfile } from "@/hooks/useCollegeProfile";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 
@@ -10,11 +11,13 @@ const CollegeDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { profile, loading } = useCollegeProfile();
 
+  // Show loading state or use fallback data
   const collegeData = {
-    name: "Indian Institute of Technology",
-    email: "admin@iit.edu",
-    profilePhoto: null,
+    name: profile?.college_name || profile?.name || "Loading...",
+    email: profile?.email || "",
+    profilePhoto: profile?.profile_photo_url || null,
   };
 
   return (

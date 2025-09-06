@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Save, Building } from "lucide-react";
-import ProfilePhotoModal from "../ProfilePhotoModal";
+import ProfilePhotoModalUniversal from "../ProfilePhotoModalUniversal";
 
 const CollegeProfilePage = () => {
   const { toast } = useToast();
@@ -48,6 +48,7 @@ const CollegeProfilePage = () => {
             student_strength: collegeProfile.student_strength?.toString() || '',
             branches_offered: collegeProfile.branches_offered || [],
           });
+          setCurrentPhotoUrl(collegeProfile.profile_photo_url);
         }
 
         // Load college basic info from colleges table
@@ -251,12 +252,13 @@ const CollegeProfilePage = () => {
         </CardContent>
       </Card>
 
-      <ProfilePhotoModal
+      <ProfilePhotoModalUniversal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
         currentPhotoUrl={currentPhotoUrl}
         userName={formData.college_name || 'College'}
         userId={currentUserId}
+        userType="college"
         onPhotoUpdate={(url) => {
           setCurrentPhotoUrl(url);
           setIsPhotoModalOpen(false);

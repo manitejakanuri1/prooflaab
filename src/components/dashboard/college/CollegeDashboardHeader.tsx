@@ -8,6 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface CollegeDashboardHeaderProps {
   collegeName: string;
@@ -17,6 +19,28 @@ interface CollegeDashboardHeaderProps {
 }
 
 const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMenuButton }: CollegeDashboardHeaderProps) => {
+  const { signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Success",
+        description: "Successfully logged out",
+      });
+      // Redirect to auth page
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-3 md:px-6 py-4">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -75,7 +99,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out
               </DropdownMenuItem>

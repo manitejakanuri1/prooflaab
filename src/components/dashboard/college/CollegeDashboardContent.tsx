@@ -2,6 +2,8 @@ import CollegeDashboardOverview from "./CollegeDashboardOverview";
 import StudentsManagement from "./StudentsManagement";
 import AssignTasks from "./AssignTasks";
 import UploadedProofs from "./UploadedProofs";
+import TrustScoresSection from "./TrustScoresSection";
+import NotificationsSection from "./NotificationsSection";
 
 interface CollegeDashboardContentProps {
   activeTab: string;
@@ -19,9 +21,9 @@ const CollegeDashboardContent = ({ activeTab }: CollegeDashboardContentProps) =>
       case "uploaded-proofs":
         return <UploadedProofs />;
       case "trust-scores":
-        return <div className="p-6 bg-white rounded-lg">Trust Scores (Coming Soon)</div>;
+        return <TrustScoresSection />;
       case "notifications":
-        return <div className="p-6 bg-white rounded-lg">Notifications (Coming Soon)</div>;
+        return <NotificationsSection />;
       default:
         return <CollegeDashboardOverview />;
     }

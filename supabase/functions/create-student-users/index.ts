@@ -106,6 +106,25 @@ serve(async (req) => {
           console.error('Role error:', roleError)
         }
 
+        // Create student entry in students table
+        const { error: studentError } = await supabaseAdmin
+          .from('students')
+          .insert({
+            user_id: authData.user.id,
+            name: name,
+            email: email.toLowerCase()
+          })
+
+        if (studentError) {
+          console.error('Students table error:', studentError)
+          results.push({
+            email,
+            status: 'error',
+            message: `Students table creation failed: ${studentError.message}`
+          })
+          continue
+        }
+
         // Create or update student profile
         if (profileNeedsAuth && existingProfile) {
           // Update existing profile with new auth user

@@ -296,8 +296,8 @@ const Index = () => {
                 ].map((item, index) => (
                   <Card key={index} className="rounded-2xl border-2 hover:shadow-lg transition-all duration-300">
                     <CardHeader className="text-center p-6">
-                      <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
-                        <item.icon className="w-8 h-8 text-accent-foreground" />
+                      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <item.icon className="w-8 h-8 text-primary-foreground" />
                       </div>
                       <CardTitle className="text-xl">{item.title}</CardTitle>
                     </CardHeader>
@@ -342,8 +342,8 @@ const Index = () => {
                 ].map((item, index) => (
                   <Card key={index} className="rounded-2xl border-2 hover:shadow-lg transition-all duration-300">
                     <CardHeader className="text-center p-6">
-                      <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                        <item.icon className="w-8 h-8 text-secondary-foreground" />
+                      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <item.icon className="w-8 h-8 text-primary-foreground" />
                       </div>
                       <CardTitle className="text-xl">{item.title}</CardTitle>
                     </CardHeader>

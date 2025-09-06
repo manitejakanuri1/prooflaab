@@ -389,7 +389,7 @@ const Index = () => {
             
             <Card className="rounded-2xl p-8">
               <CardContent className="space-y-4">
-                <Target className="w-12 h-12 text-accent mx-auto" />
+                <Target className="w-12 h-12 text-primary mx-auto" />
                 <h3 className="text-xl font-bold">Custom Tasks</h3>
                 <p>Create assignments or use AI-generated tasks</p>
               </CardContent>
@@ -397,7 +397,7 @@ const Index = () => {
             
             <Card className="rounded-2xl p-8">
               <CardContent className="space-y-4">
-                <TrendingUp className="w-12 h-12 text-secondary mx-auto" />
+                <TrendingUp className="w-12 h-12 text-primary mx-auto" />
                 <h3 className="text-xl font-bold">Progress Analytics</h3>
                 <p>View portfolios, trust scores, and skill growth</p>
               </CardContent>
@@ -429,7 +429,7 @@ const Index = () => {
             
             <Card className="rounded-2xl p-8">
               <CardContent className="space-y-4">
-                <Users className="w-12 h-12 text-accent mx-auto" />
+                <Users className="w-12 h-12 text-primary mx-auto" />
                 <h3 className="text-xl font-bold">Talent Discovery</h3>
                 <p>Find skilled students from top colleges</p>
               </CardContent>
@@ -437,7 +437,7 @@ const Index = () => {
             
             <Card className="rounded-2xl p-8">
               <CardContent className="space-y-4">
-                <Award className="w-12 h-12 text-secondary mx-auto" />
+                <Award className="w-12 h-12 text-primary mx-auto" />
                 <h3 className="text-xl font-bold">Proof-Based Hiring</h3>
                 <p>Make decisions based on actual work, not certificates</p>
               </CardContent>

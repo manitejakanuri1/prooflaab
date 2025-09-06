@@ -66,7 +66,7 @@ export const useCollegeProfile = () => {
         location: profileData?.location,
         student_strength: profileData?.student_strength,
         branches_offered: profileData?.branches_offered,
-        profile_photo_url: profileData?.profile_photo_url,
+        profile_photo_url: profileData?.profile_photo_url || null,
       };
 
       setProfile(combinedProfile);

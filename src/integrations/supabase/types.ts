@@ -168,6 +168,7 @@ export type Database = {
           created_at: string
           id: string
           location: string | null
+          profile_photo_url: string | null
           student_strength: number | null
           updated_at: string
           user_id: string
@@ -178,6 +179,7 @@ export type Database = {
           created_at?: string
           id?: string
           location?: string | null
+          profile_photo_url?: string | null
           student_strength?: number | null
           updated_at?: string
           user_id: string
@@ -188,6 +190,7 @@ export type Database = {
           created_at?: string
           id?: string
           location?: string | null
+          profile_photo_url?: string | null
           student_strength?: number | null
           updated_at?: string
           user_id?: string
@@ -800,8 +803,6 @@ export type Database = {
       }
       students: {
         Row: {
-          batch: string | null
-          branch: string | null
           created_at: string | null
           email: string
           id: string
@@ -810,8 +811,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          batch?: string | null
-          branch?: string | null
           created_at?: string | null
           email: string
           id?: string
@@ -820,8 +819,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          batch?: string | null
-          branch?: string | null
           created_at?: string | null
           email?: string
           id?: string

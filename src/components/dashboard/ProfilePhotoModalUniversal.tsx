@@ -39,14 +39,6 @@ const ProfilePhotoModalUniversal = ({
       .slice(0, 2);
   };
 
-  const getTableAndColumn = (type: 'student' | 'college') => {
-    if (type === 'student') {
-      return { table: 'student_profiles', column: 'profile_photo_url' };
-    } else {
-      return { table: 'college_profiles', column: 'profile_photo_url' };
-    }
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -95,12 +87,10 @@ const ProfilePhotoModalUniversal = ({
         .getPublicUrl(fileName);
       
       // Update the appropriate profile table
-      const { table, column } = getTableAndColumn(userType);
-      
       if (userType === 'college') {
         // For college profiles, we need to check if the profile exists first
         const { data: existingProfile } = await supabase
-          .from(table)
+          .from('college_profiles')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
@@ -108,26 +98,26 @@ const ProfilePhotoModalUniversal = ({
         if (existingProfile) {
           // Update existing profile
           const { error } = await supabase
-            .from(table)
-            .update({ [column]: publicUrl })
+            .from('college_profiles')
+            .update({ profile_photo_url: publicUrl })
             .eq('user_id', user.id);
           if (error) throw error;
         } else {
           // Create new profile
           const { error } = await supabase
-            .from(table)
+            .from('college_profiles')
             .insert({ 
               user_id: user.id, 
               college_name: userName,
-              [column]: publicUrl 
+              profile_photo_url: publicUrl 
             });
           if (error) throw error;
         }
       } else {
         // For students, just update
         const { error } = await supabase
-          .from(table)
-          .update({ [column]: publicUrl })
+          .from('student_profiles')
+          .update({ profile_photo_url: publicUrl })
           .eq('user_id', user.id);
         if (error) throw error;
       }
@@ -156,14 +146,19 @@ const ProfilePhotoModalUniversal = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { table, column } = getTableAndColumn(userType);
-
-      const { error } = await supabase
-        .from(table)
-        .update({ [column]: null })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      if (userType === 'college') {
+        const { error } = await supabase
+          .from('college_profiles')
+          .update({ profile_photo_url: null })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('student_profiles')
+          .update({ profile_photo_url: null })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      }
 
       onPhotoUpdate(null);
       

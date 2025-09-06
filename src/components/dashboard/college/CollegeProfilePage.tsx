@@ -48,7 +48,7 @@ const CollegeProfilePage = () => {
             student_strength: collegeProfile.student_strength?.toString() || '',
             branches_offered: collegeProfile.branches_offered || [],
           });
-          setCurrentPhotoUrl(collegeProfile.profile_photo_url);
+          setCurrentPhotoUrl(collegeProfile.profile_photo_url || null);
         }
 
         // Load college basic info from colleges table

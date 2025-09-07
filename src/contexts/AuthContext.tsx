@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (roleData?.role === 'student') {
           const { error } = await supabase
             .from('student_profiles')
-            .insert([
+            .upsert([
               {
                 user_id: user.id,
                 full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'Student',
@@ -72,7 +72,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 total_xp: 0,
                 trust_score: 0,
               }
-            ]);
+            ], {
+              onConflict: 'user_id'
+            });
           
           if (error) {
             console.error('Error creating student profile:', error);

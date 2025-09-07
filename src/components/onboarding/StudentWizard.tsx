@@ -103,19 +103,13 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
           key_interests: formData.keyInterests,
           preferred_skills: formData.preferredSkills,
           career_goals: formData.careerGoals
+        }, {
+          onConflict: 'user_id'
         });
 
       if (profileError) throw profileError;
 
-      // Mark wizard as completed
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .update({ has_completed_wizard: true })
-        .eq('user_id', user?.id);
-
-      if (roleError) throw roleError;
-
-      toast.success("Welcome to ProofLabAI! 🎓");
+      toast.success("Profile updated successfully! 🎓");
       onComplete();
     } catch (error) {
       console.error('Error completing wizard:', error);

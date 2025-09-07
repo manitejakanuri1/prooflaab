@@ -86,8 +86,22 @@ export default function OnboardingWizard() {
     }
   };
 
-  const handleWizardComplete = () => {
+  const handleWizardComplete = async () => {
     if (userRole) {
+      // Mark wizard as completed in the database
+      try {
+        const { error } = await supabase
+          .from('user_roles')
+          .update({ has_completed_wizard: true })
+          .eq('user_id', user?.id);
+
+        if (error) {
+          console.error('Error updating wizard completion status:', error);
+        }
+      } catch (error) {
+        console.error('Error marking wizard as complete:', error);
+      }
+      
       redirectToDashboard(userRole);
     }
   };

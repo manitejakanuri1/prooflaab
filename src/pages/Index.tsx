@@ -150,7 +150,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 lg:py-32">
+      <section className="py-12 lg:py-20">
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">

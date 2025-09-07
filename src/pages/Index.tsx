@@ -91,15 +91,15 @@ const Index = () => {
     <div className="min-h-screen bg-background font-sans scroll-smooth">
       {/* Top Navigation - Sticky */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-6 py-2">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={scrollToTop}>
               <img 
                 src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
                 alt="ProofLabAI Logo" 
-                className="h-8 w-8"
+                className="h-10 w-10"
               />
-              <span className="text-lg font-bold text-foreground">ProofLabAI</span>
+              <span className="text-xl font-bold text-foreground">ProofLabAI</span>
             </div>
             
             {/* Desktop Navigation */}
@@ -150,7 +150,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-8 lg:py-12">
+      <section className="py-12 lg:py-20">
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">

@@ -28,42 +28,48 @@ const Index = () => {
       return;
     }
 
-    // Check if user is already logged in
+    // Only redirect authenticated users, don't interfere with public access
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Get user role and redirect accordingly  
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role, has_completed_wizard')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        
-        if (roleData) {
-          if (!roleData.has_completed_wizard) {
-            navigate('/onboarding-wizard', { replace: true });
-          } else {
-            // Redirect to appropriate dashboard
-            const role = roleData.role;
-            switch (role) {
-              case 'admin':
-                navigate('/admin/dashboard', { replace: true });
-                break;
-              case 'college_admin':
-                navigate('/college/dashboard', { replace: true });
-                break;
-              case 'startup':
-                navigate('/startup/dashboard', { replace: true });
-                break;
-              case 'student':
-              default:
-                navigate('/student/dashboard', { replace: true });
-                break;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Get user role and redirect accordingly  
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role, has_completed_wizard')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          
+          if (roleData) {
+            if (!roleData.has_completed_wizard && roleData.role !== 'admin') {
+              navigate('/onboarding-wizard', { replace: true });
+            } else {
+              // Redirect to appropriate dashboard
+              const role = roleData.role;
+              switch (role) {
+                case 'admin':
+                  navigate('/admin/dashboard', { replace: true });
+                  break;
+                case 'college_admin':
+                  navigate('/college/dashboard', { replace: true });
+                  break;
+                case 'startup':
+                  navigate('/startup/dashboard', { replace: true });
+                  break;
+                case 'student':
+                default:
+                  navigate('/student/dashboard', { replace: true });
+                  break;
+              }
             }
           }
         }
+      } catch (error) {
+        console.error('Error checking user session:', error);
+        // Don't redirect on error, let them access the landing page
       }
     };
+    
     checkUser();
   }, [navigate]);
 

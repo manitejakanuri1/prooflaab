@@ -46,12 +46,26 @@ export default function RoleBasedProtectedRoute({
         if (roleData) {
           setUserRole(roleData.role);
           
-          // Check if wizard needs to be completed
-          if (!roleData.has_completed_wizard) {
+          // Skip wizard completion check for admin users
+          if (!roleData.has_completed_wizard && roleData.role !== 'admin') {
             navigate('/onboarding-wizard', { replace: true });
             return;
           }
         } else {
+          // Special handling for mohan.padavala@gmail.com - make them admin
+          if (user.email === 'mohan.padavala@gmail.com') {
+            const { error } = await supabase.from('user_roles').insert({
+              user_id: user.id,
+              role: 'admin',
+              has_completed_wizard: true
+            });
+            if (!error) {
+              setUserRole('admin');
+              setRoleLoading(false);
+              return;
+            }
+          }
+          
           // Default to student if no role found
           await supabase.from('user_roles').insert({
             user_id: user.id,

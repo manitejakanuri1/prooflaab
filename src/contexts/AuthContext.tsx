@@ -136,7 +136,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Handle successful authentication - no email verification needed
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
-            await createStudentProfileIfNeeded(session.user);
+            // Only create student profile for non-admin users
+            if (session.user.email !== 'mohan.padavala@gmail.com') {
+              await createStudentProfileIfNeeded(session.user);
+            }
             // Removed auto-redirect logic - let individual pages handle their own redirects
           }, 0);
         }

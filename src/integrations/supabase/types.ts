@@ -832,21 +832,21 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string | null
-          id: string | null
+          id: string
           is_verified: boolean | null
           verification_code: string | null
         }
         Insert: {
           created_at?: string | null
           email?: string | null
-          id?: string | null
+          id?: string
           is_verified?: boolean | null
           verification_code?: string | null
         }
         Update: {
           created_at?: string | null
           email?: string | null
-          id?: string | null
+          id?: string
           is_verified?: boolean | null
           verification_code?: string | null
         }

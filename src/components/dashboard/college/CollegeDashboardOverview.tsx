@@ -128,8 +128,21 @@ const CollegeDashboardOverview = () => {
 
       console.log('Calling Edge Function to create student users...');
       
+      // Get current college ID to pass to the edge function
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: collegeData } = await supabase
+        .from('colleges')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!collegeData) {
+        throw new Error('College not found for current user');
+      }
+      
       const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-student-users', {
         body: {
+          college_id: collegeData.id,
           students: studentsToProcess.map(record => ({
             name: record.name,
             email: record.email,
@@ -205,27 +218,50 @@ const CollegeDashboardOverview = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch total students
+        // Get current college ID first
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: collegeData } = await supabase
+          .from('colleges')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!collegeData) return;
+
+        // Fetch students belonging to this college only
         const { data: students } = await supabase
           .from('student_profiles')
-          .select('id');
+          .select('id')
+          .eq('college_id', collegeData.id);
         
-        // Fetch total tasks
-        const { data: tasks } = await supabase
-          .from('tasks')
-          .select('id');
-        
-        // Fetch proof submissions
-        const { data: proofs } = await supabase
-          .from('proof_uploads')
-          .select('id, status');
-        
-        const verifiedCount = proofs?.filter(p => p.status === 'Verified').length || 0;
+        // Fetch total tasks assigned to college students
+        const studentIds = students?.map(s => s.id) || [];
+        let taskCount = 0;
+        let proofCount = 0;
+        let verifiedCount = 0;
+
+        if (studentIds.length > 0) {
+          const { data: tasks } = await supabase
+            .from('tasks')
+            .select('id')
+            .in('student_id', studentIds);
+          
+          const { data: proofs } = await supabase
+            .from('proof_uploads')
+            .select('id, status')
+            .in('student_id', studentIds);
+          
+          taskCount = tasks?.length || 0;
+          proofCount = proofs?.length || 0;
+          verifiedCount = proofs?.filter(p => p.status === 'Verified').length || 0;
+        }
         
         setStats({
           totalStudents: students?.length || 0,
-          tasksAssigned: tasks?.length || 0,
-          proofsReceived: proofs?.length || 0,
+          tasksAssigned: taskCount,
+          proofsReceived: proofCount,
           verifiedProofs: verifiedCount,
         });
       } catch (error) {

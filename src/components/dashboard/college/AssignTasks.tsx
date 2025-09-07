@@ -51,28 +51,40 @@ const AssignTasks = () => {
 
   const fetchStudents = async () => {
     try {
-      // Bypass auth temporarily - get all students
-      const BYPASS_AUTH = true;
-      
+      // Get current college ID first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setStudents([]);
+        return;
+      }
+
+      const { data: collegeData } = await supabase
+        .from('colleges')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!collegeData) {
+        setStudents([]);
+        return;
+      }
+
+      // Fetch students belonging to this college only
       const { data: studentsData, error } = await supabase
         .from('student_profiles')
-        .select('id, full_name, email, branch, batch')
+        .select('id, full_name, email, branch, batch, college_id')
+        .eq('college_id', collegeData.id)
         .order('full_name');
 
       if (error) {
         console.error('Error fetching students:', error);
-        // If it's an auth error and we're bypassing, try a different approach
-        if (error.code === 'PGRST301' && BYPASS_AUTH) {
-          // For development, show some mock data
-          setStudents([]);
-          toast({
-            title: "Info",
-            description: "Enable authentication to assign tasks to students",
-            variant: "default",
-          });
-          return;
-        }
-        throw error;
+        setStudents([]);
+        toast({
+          title: "Error",
+          description: "Failed to fetch students for your college",
+          variant: "destructive",
+        });
+        return;
       }
       
       console.log('Fetched students:', studentsData);
@@ -81,7 +93,7 @@ const AssignTasks = () => {
       console.error('Error fetching students:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch students. Make sure you've uploaded students via CSV first.",
+        description: "Failed to fetch students for your college",
         variant: "destructive",
       });
     }

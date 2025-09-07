@@ -743,6 +743,7 @@ export type Database = {
           batch: string | null
           branch: string | null
           career_goals: string | null
+          college_id: string | null
           created_at: string | null
           email: string
           full_name: string
@@ -763,6 +764,7 @@ export type Database = {
           batch?: string | null
           branch?: string | null
           career_goals?: string | null
+          college_id?: string | null
           created_at?: string | null
           email: string
           full_name: string
@@ -783,6 +785,7 @@ export type Database = {
           batch?: string | null
           branch?: string | null
           career_goals?: string | null
+          college_id?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
@@ -799,10 +802,19 @@ export type Database = {
           user_id?: string | null
           year_of_study?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "student_profiles_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       students: {
         Row: {
+          college_id: string | null
           created_at: string | null
           email: string
           id: string
@@ -811,6 +823,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          college_id?: string | null
           created_at?: string | null
           email: string
           id?: string
@@ -819,6 +832,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          college_id?: string | null
           created_at?: string | null
           email?: string
           id?: string

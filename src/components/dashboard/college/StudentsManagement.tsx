@@ -38,7 +38,27 @@ const StudentsManagement = () => {
     try {
       setLoading(true);
       
-      // Fetch students with task counts
+      // Get current college ID first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setStudents([]);
+        setFilteredStudents([]);
+        return;
+      }
+
+      const { data: collegeData } = await supabase
+        .from('colleges')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!collegeData) {
+        setStudents([]);
+        setFilteredStudents([]);
+        return;
+      }
+      
+      // Fetch students belonging to this college only
       const { data: studentsData, error: studentsError } = await supabase
         .from('student_profiles')
         .select(`
@@ -50,8 +70,10 @@ const StudentsManagement = () => {
           trust_score,
           total_xp,
           created_at,
-          profile_photo_url
-        `);
+          profile_photo_url,
+          college_id
+        `)
+        .eq('college_id', collegeData.id);
 
       if (studentsError) {
         console.error('Error fetching students:', studentsError);

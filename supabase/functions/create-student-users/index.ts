@@ -26,11 +26,21 @@ serve(async (req) => {
     )
 
     // Get request body
-    const { students } = await req.json()
+    const { students, college_id } = await req.json()
     
     if (!students || !Array.isArray(students)) {
       return new Response(
         JSON.stringify({ error: 'Students array is required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (!college_id) {
+      return new Response(
+        JSON.stringify({ error: 'College ID is required' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -112,7 +122,8 @@ serve(async (req) => {
           .insert({
             user_id: authData.user.id,
             name: name,
-            email: email.toLowerCase()
+            email: email.toLowerCase(),
+            college_id: college_id
           })
 
         if (studentError) {
@@ -135,7 +146,8 @@ serve(async (req) => {
               full_name: name,
               branch: branch || '',
               batch: batch || '',
-              status: 'active'
+              status: 'active',
+              college_id: college_id
             })
             .eq('id', existingProfile.id)
 
@@ -160,7 +172,8 @@ serve(async (req) => {
               batch: batch || '',
               total_xp: 0,
               trust_score: 0,
-              status: 'active'
+              status: 'active',
+              college_id: college_id
             })
 
           if (profileError) {

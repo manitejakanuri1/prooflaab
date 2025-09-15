@@ -157,13 +157,13 @@ export default function Auth() {
         <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-5">
-          <Link to="/" className="inline-flex items-center justify-center space-x-3">
+          <Link to="/" className="inline-flex items-center justify-center space-x-2">
             <img 
               src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
               alt="ProofLabAI Logo" 
-              className="h-10 w-10"
+              className="h-6 w-6"
             />
-            <span className="text-xl font-bold text-foreground">ProofLabAI</span>
+            <span className="text-2xl font-bold text-foreground">ProofLabAI</span>
           </Link>
         </div>
           
@@ -181,13 +181,13 @@ export default function Auth() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-5">
-          <Link to="/" className="inline-flex items-center justify-center space-x-3">
+          <Link to="/" className="inline-flex items-center justify-center space-x-2">
             <img 
               src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
               alt="ProofLabAI Logo" 
-              className="h-10 w-10"
+              className="h-6 w-6"
             />
-            <span className="text-xl font-bold text-foreground">ProofLabAI</span>
+            <span className="text-2xl font-bold text-foreground">ProofLabAI</span>
           </Link>
         </div>
 

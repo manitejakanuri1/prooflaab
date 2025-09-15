@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthForm";
 import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
@@ -154,10 +154,19 @@ export default function Auth() {
   if (showVerificationPrompt) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
-        <EmailVerificationPrompt 
-          email={userEmail}
-          onVerified={() => setShowVerificationPrompt(false)}
-        />
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-block">
+              <h1 className="text-3xl font-bold text-primary">SkillBridge</h1>
+            </Link>
+          </div>
+          
+          <EmailVerificationPrompt 
+            email={userEmail}
+            onVerified={() => setShowVerificationPrompt(false)}
+          />
+        </div>
       </div>
     );
   }
@@ -165,6 +174,13 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block">
+            <h1 className="text-3xl font-bold text-primary">SkillBridge</h1>
+          </Link>
+        </div>
+
         {errorMessage && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>{errorMessage}</AlertDescription>

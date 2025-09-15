@@ -399,7 +399,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto rounded-3xl shadow-xl border-0 bg-card/95 backdrop-blur-sm">
+    <Card className="w-full max-w-md mx-auto rounded-3xl shadow-lg border border-border/20 bg-card/95 backdrop-blur-sm">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">
           {mode === 'login' ? 'Welcome Back' : 

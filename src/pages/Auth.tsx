@@ -161,7 +161,7 @@ export default function Auth() {
             <img 
               src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
               alt="ProofLabAI Logo" 
-              className="h-10 w-auto"
+              className="h-10 w-10"
             />
             <span className="text-xl font-bold text-foreground">ProofLabAI</span>
           </Link>
@@ -185,7 +185,7 @@ export default function Auth() {
             <img 
               src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
               alt="ProofLabAI Logo" 
-              className="h-10 w-auto"
+              className="h-10 w-10"
             />
             <span className="text-xl font-bold text-foreground">ProofLabAI</span>
           </Link>

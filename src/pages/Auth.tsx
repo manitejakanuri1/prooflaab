@@ -155,12 +155,17 @@ export default function Auth() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-block">
-              <h1 className="text-3xl font-bold text-primary">SkillBridge</h1>
-            </Link>
-          </div>
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center space-x-3">
+            <img 
+              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
+              alt="ProofLabAI Logo" 
+              className="h-10 w-10"
+            />
+            <span className="text-xl font-bold text-foreground">ProofLabAI</span>
+          </Link>
+        </div>
           
           <EmailVerificationPrompt 
             email={userEmail}
@@ -176,8 +181,13 @@ export default function Auth() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-primary">SkillBridge</h1>
+          <Link to="/" className="inline-flex items-center space-x-3">
+            <img 
+              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
+              alt="ProofLabAI Logo" 
+              className="h-10 w-10"
+            />
+            <span className="text-xl font-bold text-foreground">ProofLabAI</span>
           </Link>
         </div>
 

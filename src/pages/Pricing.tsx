@@ -295,14 +295,14 @@ const Pricing = () => {
             Join thousands of students, colleges, and startups building verified proof-of-work.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="rounded-xl">
-              Create Student Account
+            <Button asChild size="lg" className="rounded-xl">
+              <Link to="/auth?role=student">Create Student Account</Link>
             </Button>
-            <Button variant="outline" size="lg" className="rounded-xl">
-              Join as College
+            <Button asChild size="lg" className="rounded-xl">
+              <Link to="/auth?role=college">Join as College</Link>
             </Button>
-            <Button variant="outline" size="lg" className="rounded-xl">
-              Hire via Startup Account
+            <Button asChild size="lg" className="rounded-xl">
+              <Link to="/auth?role=startup">Hire via Startup Account</Link>
             </Button>
           </div>
         </div>

@@ -105,7 +105,6 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             isCollapsed ? "justify-center px-2" : ""
           )}
           onClick={() => {
-            console.log('Clicked item:', item.id, 'hasChildren:', hasChildren);
             if (hasChildren) {
               toggleGroup(item.id);
             } else {

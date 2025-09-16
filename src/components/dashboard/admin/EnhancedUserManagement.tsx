@@ -259,8 +259,12 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">Manage students, startups, and colleges</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage {activeTab === 'students' ? 'students' : activeTab === 'startups' ? 'startups' : 'colleges'} accounts and settings
+          </p>
         </div>
         <Button onClick={exportToCSV} variant="outline">
           <Download className="h-4 w-4 mr-2" />

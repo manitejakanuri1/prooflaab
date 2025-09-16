@@ -8,6 +8,7 @@ interface Notification {
   id: string;
   student_id: string;
   type: string;
+  title: string;
   message: string;
   is_read: boolean;
   created_at: string;
@@ -71,8 +72,58 @@ export const useNotifications = () => {
     },
   });
 
+  // Delete notification
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
+  // Mark all as read
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return;
+
+      // Get student profile
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) return;
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('student_id', profile.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
   const markAsRead = (notificationId: string) => {
     markAsReadMutation.mutate(notificationId);
+  };
+
+  const deleteNotification = (notificationId: string) => {
+    deleteNotificationMutation.mutate(notificationId);
+  };
+
+  const markAllAsRead = () => {
+    markAllAsReadMutation.mutate();
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -82,5 +133,7 @@ export const useNotifications = () => {
     isLoading,
     unreadCount,
     markAsRead,
+    deleteNotification,
+    markAllAsRead,
   };
 };

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNotifications } from "@/hooks/useNotifications";
 import { format, formatDistanceToNow } from "date-fns";
 import { Bell, Check, CheckCheck, Trash2, Filter } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +14,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const StudentNotificationsPage = () => {
-  const { notifications, isLoading, markAsRead } = useNotifications();
+  const { notifications, isLoading, markAsRead, deleteNotification, markAllAsRead } = useNotifications();
   const [filter, setFilter] = useState<string[]>(['all']);
+  const { toast } = useToast();
+
+  const handleDelete = (notificationId: string) => {
+    deleteNotification(notificationId);
+    toast({
+      title: "Notification deleted",
+      description: "The notification has been removed.",
+    });
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
+    toast({
+      title: "All notifications marked as read",
+      description: "All unread notifications have been marked as read.",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -146,10 +164,7 @@ const StudentNotificationsPage = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => {
-                    // Mark all as read functionality
-                    notifications?.forEach(n => !n.is_read && markAsRead(n.id));
-                  }}
+                  onClick={handleMarkAllAsRead}
                 >
                   <CheckCheck className="h-4 w-4 mr-2" />
                   Mark All Read
@@ -187,7 +202,7 @@ const StudentNotificationsPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="text-sm font-medium text-gray-900">
-                            {(notification as any).title || 'Notification'}
+                            {notification.title || 'Notification'}
                           </h4>
                           <Badge className={getNotificationColor(notification.type)}>
                             {notification.type}
@@ -231,6 +246,7 @@ const StudentNotificationsPage = () => {
                         variant="ghost"
                         size="sm"
                         className="text-gray-400 hover:text-red-600"
+                        onClick={() => handleDelete(notification.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

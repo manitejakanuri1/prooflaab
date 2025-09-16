@@ -19,12 +19,11 @@ export interface ProofUpload {
   };
 }
 
-export const useProofUploads = (currentDate?: Date) => {
+export const useProofUploads = (currentDate: Date) => {
   const { user } = useAuth();
-  const safeCurrentDate = currentDate || new Date();
 
   return useQuery({
-    queryKey: ['proof-uploads', user?.id, safeCurrentDate.getMonth(), safeCurrentDate.getFullYear()],
+    queryKey: ['proof-uploads', user?.id, currentDate.getMonth(), currentDate.getFullYear()],
     queryFn: async () => {
       if (!user) return [];
 
@@ -37,8 +36,8 @@ export const useProofUploads = (currentDate?: Date) => {
 
       if (!profile) return [];
 
-      const monthStart = startOfMonth(safeCurrentDate);
-      const monthEnd = endOfMonth(safeCurrentDate);
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
 
       const { data, error } = await supabase
         .from('proof_uploads')

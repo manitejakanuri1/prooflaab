@@ -71,12 +71,6 @@ export const usePortfolio = (slug?: string) => {
           return;
         }
 
-        // If no portfolio exists and we have a user, create one
-        if (!data && user && !slug) {
-          await createPortfolioForUser();
-          return;
-        }
-
         // Transform the data to match our interface
         const portfolioData: PortfolioWithProfile = {
           ...data
@@ -91,63 +85,11 @@ export const usePortfolio = (slug?: string) => {
       }
     };
 
-    const createPortfolioForUser = async () => {
-      if (!user) return;
-
-      try {
-        // First get the student profile
-        const { data: studentProfile, error: profileError } = await supabase
-          .from('student_profiles')
-          .select('id, slug, full_name')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (profileError) throw profileError;
-
-        if (!studentProfile) {
-          setError('Student profile not found. Please complete your profile first.');
-          return;
-        }
-
-        // Create portfolio
-        const { data: newPortfolio, error: createError } = await supabase
-          .from('student_portfolios')
-          .insert({
-            student_id: studentProfile.id,
-            slug: studentProfile.slug,
-            is_public: true,
-            bio: null,
-            skills: null,
-            achievements: null
-          })
-          .select(`
-            *,
-            student_profiles!inner(
-              full_name,
-              email,
-              profile_photo_url,
-              total_xp,
-              trust_score
-            )
-          `)
-          .single();
-
-        if (createError) throw createError;
-
-        setPortfolio(newPortfolio);
-      } catch (err) {
-        console.error('Error creating portfolio:', err);
-        setError('Failed to create portfolio');
-      }
-    };
-
     fetchPortfolio();
   }, [slug, user]);
 
   const updatePortfolioVisibility = async (isPublic: boolean) => {
-    if (!portfolio || !portfolio.id) {
-      throw new Error('Portfolio not found');
-    }
+    if (!portfolio) return;
 
     try {
       const { error } = await supabase
@@ -164,34 +106,10 @@ export const usePortfolio = (slug?: string) => {
     }
   };
 
-  const updatePortfolio = async (updates: { bio?: string; skills?: string[]; achievements?: string }) => {
-    if (!portfolio || !portfolio.id) {
-      throw new Error('Portfolio not found');
-    }
-
-    try {
-      const { error } = await supabase
-        .from('student_portfolios')
-        .update({ 
-          ...updates,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', portfolio.id);
-
-      if (error) throw error;
-
-      setPortfolio(prev => prev ? { ...prev, ...updates } : null);
-    } catch (err) {
-      console.error('Error updating portfolio:', err);
-      throw err;
-    }
-  };
-
   return {
     portfolio,
     loading,
     error,
-    updatePortfolioVisibility,
-    updatePortfolio
+    updatePortfolioVisibility
   };
 };

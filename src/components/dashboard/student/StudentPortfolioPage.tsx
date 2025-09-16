@@ -26,7 +26,7 @@ import { format } from "date-fns";
 
 const StudentPortfolioPage = () => {
   const { profile: studentProfile, loading: profileLoading } = useStudentProfile();
-  const { data: proofUploads, isLoading: proofsLoading } = useProofUploads();
+  const { data: proofUploads, isLoading: proofsLoading } = useProofUploads(new Date());
   const { portfolio, loading: portfolioLoading, updatePortfolioVisibility, updatePortfolio } = usePortfolio();
   const { toast } = useToast();
   const [editingBio, setEditingBio] = useState(false);

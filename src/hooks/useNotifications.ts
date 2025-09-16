@@ -45,7 +45,13 @@ export const useNotifications = () => {
         return [];
       }
 
-      return data as Notification[];
+      // Remove duplicates based on ID
+      const uniqueNotifications = data ? 
+        data.filter((notification, index, self) => 
+          index === self.findIndex(n => n.id === notification.id)
+        ) : [];
+
+      return uniqueNotifications as Notification[];
     },
     enabled: !!user?.id,
   });

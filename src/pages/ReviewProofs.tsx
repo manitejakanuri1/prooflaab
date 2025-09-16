@@ -23,9 +23,7 @@ const ReviewProofs = () => {
         return <AdminDashboardOverview onNavigate={setActiveTab} />;
       case "proof-submissions":
         return <ProofSubmissionsContent />;
-      case "students":
-      case "startups":
-      case "colleges":
+      case "user-management":
         return <EnhancedUserManagement />;
       case "task-oversight":
         return <TaskOversight />;

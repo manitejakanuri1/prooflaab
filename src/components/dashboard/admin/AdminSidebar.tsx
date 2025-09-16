@@ -40,16 +40,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard Home", icon: LayoutDashboard },
-    { 
-      id: "user-management", 
-      label: "User Management", 
-      icon: Users,
-      children: [
-        { id: "students", label: "Students", icon: GraduationCap },
-        { id: "startups", label: "Startups", icon: Rocket },
-        { id: "colleges", label: "Colleges", icon: Building2 }
-      ]
-    },
+    { id: "user-management", label: "User Management", icon: Users },
     { id: "proof-submissions", label: "Proof Review & Verification", icon: ClipboardCheck },
     { id: "task-oversight", label: "Task Oversight", icon: Eye },
     { 

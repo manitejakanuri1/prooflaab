@@ -18,6 +18,7 @@ const ReviewProofs = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const renderContent = () => {
+    console.log('Current activeTab:', activeTab);
     switch (activeTab) {
       case "dashboard":
         return <AdminDashboardOverview onNavigate={setActiveTab} />;

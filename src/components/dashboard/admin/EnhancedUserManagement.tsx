@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,8 +54,12 @@ interface UserData {
   total_xp?: number;
 }
 
-const EnhancedUserManagement = () => {
-  const [activeTab, setActiveTab] = useState("students");
+interface EnhancedUserManagementProps {
+  initialTab?: string;
+}
+
+const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagementProps) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
@@ -63,6 +67,11 @@ const EnhancedUserManagement = () => {
   const [actionType, setActionType] = useState<'block' | 'unblock' | 'approve' | 'suspend' | 'delete'>('block');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Update activeTab when initialTab changes
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const { data: users, isLoading } = useQuery({
     queryKey: [`admin-users-${activeTab}`, searchTerm, statusFilter],

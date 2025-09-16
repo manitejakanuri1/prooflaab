@@ -26,7 +26,7 @@ const ReviewProofs = () => {
       case "students":
       case "startups":
       case "colleges":
-        return <EnhancedUserManagement />;
+        return <EnhancedUserManagement initialTab={activeTab} />;
       case "task-oversight":
         return <TaskOversight />;
       case "jobs":

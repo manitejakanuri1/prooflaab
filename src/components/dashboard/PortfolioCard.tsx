@@ -10,7 +10,14 @@ export default function PortfolioCard() {
   const { toast } = useToast();
 
   const handleVisibilityToggle = async () => {
-    if (!portfolio) return;
+    if (!portfolio || !portfolio.id) {
+      toast({
+        title: "Error",
+        description: "Portfolio not found. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       await updatePortfolioVisibility(!portfolio.is_public);
@@ -30,6 +37,12 @@ export default function PortfolioCard() {
   const handleViewPortfolio = () => {
     if (portfolio?.slug) {
       window.open(`/portfolio/${portfolio.slug}`, '_blank');
+    } else {
+      toast({
+        title: "Error",
+        description: "Portfolio URL not available",
+        variant: "destructive",
+      });
     }
   };
 

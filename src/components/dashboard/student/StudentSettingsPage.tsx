@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +19,25 @@ interface StudentSettingsPageProps {
   refreshProfile?: () => void;
 }
 
+// Options from signup wizard
+const BRANCHES = [
+  "Computer Science", "Information Technology", "Electronics", "Mechanical", 
+  "Civil", "Electrical", "Chemical", "Biotechnology", "Other"
+];
+
+const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Graduate"];
+
+const INTERESTS = [
+  "Web Development", "Mobile Development", "Data Science", "Machine Learning", 
+  "Cybersecurity", "Cloud Computing", "DevOps", "UI/UX Design", "Game Development", 
+  "Blockchain", "IoT", "Robotics"
+];
+
+const SKILLS = [
+  "JavaScript", "Python", "Java", "React", "Node.js", "SQL", "HTML/CSS", 
+  "Git", "Docker", "AWS", "MongoDB", "TypeScript", "C++", "PHP", "Angular", "Vue.js"
+];
+
 const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
   const { profile, loading } = useStudentProfile();
   const { toast } = useToast();
@@ -25,6 +46,11 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
     full_name: profile?.full_name || '',
     email: profile?.email || '',
     bio: '',
+    branch: profile?.branch || '',
+    year_of_study: profile?.year_of_study || '',
+    key_interests: profile?.key_interests || [] as string[],
+    preferred_skills: profile?.preferred_skills || [] as string[],
+    career_goals: profile?.career_goals || '',
     skills: [] as string[],
   });
 
@@ -74,6 +100,22 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
 
     loadData();
   }, [profile?.id]);
+
+  // Update form data when profile changes
+  useEffect(() => {
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+        branch: profile.branch || '',
+        year_of_study: profile.year_of_study || '',
+        key_interests: profile.key_interests || [],
+        preferred_skills: profile.preferred_skills || [],
+        career_goals: profile.career_goals || '',
+      }));
+    }
+  }, [profile]);
   
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
@@ -125,11 +167,17 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Update full_name in student_profiles using user_id
+      // Update student profile with all fields
       const { error: profileError } = await supabase
         .from('student_profiles')
         .update({
           full_name: formData.full_name,
+          branch: formData.branch,
+          year_of_study: formData.year_of_study,
+          key_interests: formData.key_interests,
+          preferred_skills: formData.preferred_skills,
+          career_goals: formData.career_goals,
+          profile_completed: true,
         })
         .eq('user_id', user.id);
 
@@ -168,6 +216,11 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
         title: "Profile updated successfully",
         description: "Your changes have been saved.",
       });
+
+      // Refresh profile if callback provided
+      if (refreshProfile) {
+        refreshProfile();
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -351,6 +404,94 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
                 placeholder="Email cannot be changed"
               />
             </div>
+          </div>
+
+          {/* Branch */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="branch">Branch</Label>
+              <Select value={formData.branch} onValueChange={(value) => setFormData({ ...formData, branch: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BRANCHES.map(branch => (
+                    <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="year_of_study">Year of Study</Label>
+              <Select value={formData.year_of_study} onValueChange={(value) => setFormData({ ...formData, year_of_study: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEARS.map(year => (
+                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Key Interests */}
+          <div>
+            <Label>Key Interests</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+              {INTERESTS.map(interest => (
+                <div key={interest} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={interest}
+                    checked={formData.key_interests.includes(interest)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setFormData({ ...formData, key_interests: [...formData.key_interests, interest] });
+                      } else {
+                        setFormData({ ...formData, key_interests: formData.key_interests.filter(i => i !== interest) });
+                      }
+                    }}
+                  />
+                  <Label htmlFor={interest} className="text-sm">{interest}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Preferred Skills */}
+          <div>
+            <Label>Preferred Skills</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              {SKILLS.map(skill => (
+                <div key={skill} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={skill}
+                    checked={formData.preferred_skills.includes(skill)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setFormData({ ...formData, preferred_skills: [...formData.preferred_skills, skill] });
+                      } else {
+                        setFormData({ ...formData, preferred_skills: formData.preferred_skills.filter(s => s !== skill) });
+                      }
+                    }}
+                  />
+                  <Label htmlFor={skill} className="text-sm">{skill}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Career Goals */}
+          <div>
+            <Label htmlFor="career_goals">Career Goals</Label>
+            <Textarea
+              id="career_goals"
+              value={formData.career_goals}
+              onChange={(e) => setFormData({ ...formData, career_goals: e.target.value })}
+              placeholder="Tell us about your career aspirations..."
+              className="min-h-[100px]"
+            />
           </div>
 
           {/* Bio */}

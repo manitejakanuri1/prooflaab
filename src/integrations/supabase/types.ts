@@ -750,6 +750,7 @@ export type Database = {
           id: string
           key_interests: string[] | null
           preferred_skills: string[] | null
+          profile_completed: boolean
           profile_photo_url: string | null
           slug: string | null
           status: string | null
@@ -771,6 +772,7 @@ export type Database = {
           id?: string
           key_interests?: string[] | null
           preferred_skills?: string[] | null
+          profile_completed?: boolean
           profile_photo_url?: string | null
           slug?: string | null
           status?: string | null
@@ -792,6 +794,7 @@ export type Database = {
           id?: string
           key_interests?: string[] | null
           preferred_skills?: string[] | null
+          profile_completed?: boolean
           profile_photo_url?: string | null
           slug?: string | null
           status?: string | null

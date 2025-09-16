@@ -102,7 +102,8 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
           year_of_study: formData.yearOfStudy,
           key_interests: formData.keyInterests,
           preferred_skills: formData.preferredSkills,
-          career_goals: formData.careerGoals
+          career_goals: formData.careerGoals,
+          profile_completed: true
         }, {
           onConflict: 'user_id'
         });

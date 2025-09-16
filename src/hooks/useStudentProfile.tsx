@@ -10,6 +10,12 @@ interface StudentProfile {
   total_xp: number;
   trust_score: number;
   slug: string | null;
+  branch: string | null;
+  year_of_study: string | null;
+  key_interests: string[] | null;
+  preferred_skills: string[] | null;
+  career_goals: string | null;
+  profile_completed: boolean;
 }
 
 interface LeaderboardEntry {

@@ -40,11 +40,17 @@ const OnboardingModal = ({ user, onComplete }: OnboardingModalProps) => {
         // Determine user type - check student_profiles first
         const { data: studentProfile } = await supabase
           .from('student_profiles')
-          .select('id')
+          .select('id, profile_completed')
           .eq('user_id', user.id)
           .single();
 
         if (studentProfile) {
+          // If student profile exists and is completed, skip wizard
+          if (studentProfile.profile_completed) {
+            setIsLoading(false);
+            return;
+          }
+          
           setUserType('student');
           setIsOpen(true);
         } else {

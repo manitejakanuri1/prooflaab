@@ -1,0 +1,5 @@
+<svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="22" cy="20" r="12" fill="none" stroke="currentColor" stroke-width="2"/>
+  <circle cx="22" cy="20" r="6" fill="currentColor"/>
+  <text x="42" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="currentColor">StartupX</text>
+</svg>

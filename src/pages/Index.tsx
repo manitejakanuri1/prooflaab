@@ -188,27 +188,27 @@ const Index = () => {
       </section>
 
       {/* Trusted Companies Section */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl lg:text-3xl font-semibold text-foreground mb-8">
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-6 text-center">
+          <div className="max-w-4xl mx-auto space-y-12">
+            <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
               Trusted by Startups Hiring Through ProofLabAI
             </h2>
-            <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-12 opacity-60 hover:opacity-80 transition-opacity duration-300">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 lg:gap-16 items-center justify-items-center max-w-3xl mx-auto">
               <img 
                 src="/logos/company1.svg" 
                 alt="TechCorp" 
-                className="h-10 w-auto text-muted-foreground grayscale hover:grayscale-0 transition-all duration-300"
+                className="w-24 md:w-32 lg:w-36 h-auto text-muted-foreground grayscale hover:grayscale-0 transition-all duration-300 hover:scale-105"
               />
               <img 
                 src="/logos/company2.svg" 
                 alt="StartupX" 
-                className="h-10 w-auto text-muted-foreground grayscale hover:grayscale-0 transition-all duration-300"
+                className="w-24 md:w-32 lg:w-36 h-auto text-muted-foreground grayscale hover:grayscale-0 transition-all duration-300 hover:scale-105"
               />
               <img 
                 src="/logos/company3.svg" 
                 alt="InnovateLab" 
-                className="h-10 w-auto text-muted-foreground grayscale hover:grayscale-0 transition-all duration-300"
+                className="w-24 md:w-32 lg:w-36 h-auto text-muted-foreground grayscale hover:grayscale-0 transition-all duration-300 hover:scale-105 md:col-span-1 col-span-2 md:mx-0 mx-auto"
               />
             </div>
           </div>

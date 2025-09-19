@@ -59,6 +59,7 @@ interface UserData {
   college_name?: string;
   proofs_submitted?: number;
   student_count?: number;
+  tasks_assigned?: number;
 }
 
 interface EnhancedUserManagementProps {
@@ -139,7 +140,12 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
         if (activeTab === 'startups') {
           query = supabase.from('startups').select('*');
         } else {
-          query = supabase.from('colleges').select('*');
+          // For colleges, get college data with student counts and task counts
+          query = supabase.from('colleges').select(`
+            *,
+            student_profiles!college_id(count),
+            tasks!created_by_college_id(count)
+          `);
         }
 
         if (searchTerm) {
@@ -152,6 +158,16 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
 
         const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw error;
+        
+        if (activeTab === 'colleges') {
+          // Transform colleges data to include student and task counts
+          return (data as any[])?.map(college => ({
+            ...college,
+            student_count: college.student_profiles?.[0]?.count || 0,
+            tasks_assigned: college.tasks?.[0]?.count || 0
+          })) as UserData[];
+        }
+        
         return data as UserData[];
       }
     }
@@ -454,6 +470,18 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                           <TableHead>Last Active</TableHead>
                         </>
                       )}
+                      {tab === 'startups' && (
+                        <>
+                          <TableHead className="hidden md:table-cell">Last Active</TableHead>
+                        </>
+                      )}
+                      {tab === 'colleges' && (
+                        <>
+                          <TableHead className="hidden md:table-cell">Last Active</TableHead>
+                          <TableHead className="hidden md:table-cell">Students Count</TableHead>
+                          <TableHead className="hidden lg:table-cell">Tasks Assigned</TableHead>
+                        </>
+                      )}
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -506,13 +534,6 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                           {tab === 'startups' && (
                             <>
                               <TableCell className="text-muted-foreground hidden md:table-cell">
-                                {new Date(user.created_at).toLocaleDateString('en-US', {
-                                  month: 'numeric',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground hidden md:table-cell">
                                 {user.last_active 
                                   ? new Date(user.last_active).toLocaleDateString('en-US', {
                                     month: 'numeric',
@@ -526,15 +547,21 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                           )}
                           {tab === 'colleges' && (
                             <>
+                              <TableCell className="text-muted-foreground hidden md:table-cell">
+                                {user.last_active 
+                                  ? new Date(user.last_active).toLocaleDateString('en-US', {
+                                    month: 'numeric',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })
+                                  : '—'
+                                }
+                              </TableCell>
                               <TableCell className="text-center hidden md:table-cell">
                                 <Badge variant="secondary">{user.student_count || 0}</Badge>
                               </TableCell>
-                              <TableCell className="text-muted-foreground hidden md:table-cell">
-                                {new Date(user.created_at).toLocaleDateString('en-US', {
-                                  month: 'numeric',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
+                              <TableCell className="text-center hidden lg:table-cell">
+                                <Badge variant="outline">{user.tasks_assigned || 0}</Badge>
                               </TableCell>
                             </>
                           )}

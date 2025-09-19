@@ -749,10 +749,12 @@ export type Database = {
           full_name: string
           id: string
           key_interests: string[] | null
+          last_active: string | null
           preferred_skills: string[] | null
           profile_completed: boolean
           profile_photo_url: string | null
           slug: string | null
+          source: string | null
           status: string | null
           temporary_user_id: string | null
           total_xp: number | null
@@ -771,10 +773,12 @@ export type Database = {
           full_name: string
           id?: string
           key_interests?: string[] | null
+          last_active?: string | null
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
           slug?: string | null
+          source?: string | null
           status?: string | null
           temporary_user_id?: string | null
           total_xp?: number | null
@@ -793,10 +797,12 @@ export type Database = {
           full_name?: string
           id?: string
           key_interests?: string[] | null
+          last_active?: string | null
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
           slug?: string | null
+          source?: string | null
           status?: string | null
           temporary_user_id?: string | null
           total_xp?: number | null

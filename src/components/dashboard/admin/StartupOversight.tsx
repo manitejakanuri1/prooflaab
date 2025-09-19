@@ -334,10 +334,10 @@ const StartupOversight = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="font-semibold">Startup Name</TableHead>
-                  <TableHead className="font-semibold">Email</TableHead>
+                  <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold hidden sm:table-cell">Created</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Last Active</TableHead>
+                  <TableHead className="font-semibold hidden sm:table-cell">Last Active</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -352,7 +352,7 @@ const StartupOversight = () => {
                         <span className="truncate">{(startup as any).startup_name || startup.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground hidden sm:table-cell">
                       <span className="truncate block max-w-48">{startup.email}</span>
                     </TableCell>
                     <TableCell>{getStatusBadge(startup.status)}</TableCell>
@@ -363,8 +363,8 @@ const StartupOversight = () => {
                         year: 'numeric'
                       })}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden md:table-cell">
-                      {startup.last_active ? new Date(startup.last_active).toLocaleDateString('en-US', {
+                    <TableCell className="text-muted-foreground hidden sm:table-cell">
+                      {(startup as any).last_active ? new Date((startup as any).last_active).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'

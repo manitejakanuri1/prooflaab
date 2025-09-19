@@ -53,6 +53,11 @@ interface UserData {
   name?: string;
   trust_score?: number;
   total_xp?: number;
+  source?: string;
+  college_id?: string;
+  last_active?: string;
+  college_name?: string;
+  proofs_submitted?: number;
 }
 
 interface EnhancedUserManagementProps {
@@ -65,6 +70,8 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [collegeFilter, setCollegeFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [viewUserSheet, setViewUserSheet] = useState<UserData | null>(null);
   const [actionType, setActionType] = useState<'block' | 'unblock' | 'approve' | 'suspend' | 'delete'>('block');
@@ -87,38 +94,80 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
   };
 
   const { data: users, isLoading } = useQuery({
-    queryKey: [`admin-users-${activeTab}`, searchTerm, statusFilter],
+    queryKey: [`admin-users-${activeTab}`, searchTerm, statusFilter, sourceFilter, collegeFilter],
     queryFn: async () => {
-      let query;
-      
       if (activeTab === 'students') {
-        query = supabase.from('student_profiles').select('*');
-      } else if (activeTab === 'startups') {
-        query = supabase.from('startups').select('*');
-      } else {
-        query = supabase.from('colleges').select('*');
-      }
+        // For students, we need to join with colleges and count proofs
+        let query = supabase
+          .from('student_profiles')
+          .select(`
+            *,
+            colleges!student_profiles_college_id_fkey(name),
+            proof_uploads(count)
+          `);
 
-      if (searchTerm) {
-        if (activeTab === 'students') {
+        if (searchTerm) {
           query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        }
+
+        if (statusFilter !== 'all') {
+          query = query.eq('status', statusFilter);
+        }
+
+        if (sourceFilter !== 'all') {
+          query = query.eq('source', sourceFilter);
+        }
+
+        if (collegeFilter !== 'all') {
+          query = query.eq('college_id', collegeFilter);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+        if (error) throw error;
+
+        // Transform data to include college name and proofs count
+        return (data as any[])?.map(student => ({
+          ...student,
+          college_name: student.colleges?.name || null,
+          proofs_submitted: student.proof_uploads?.length || 0
+        })) as UserData[];
+      } else {
+        // For startups and colleges
+        let query;
+        
+        if (activeTab === 'startups') {
+          query = supabase.from('startups').select('*');
         } else {
+          query = supabase.from('colleges').select('*');
+        }
+
+        if (searchTerm) {
           query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
         }
-      }
 
-      if (statusFilter !== 'all') {
-        if (activeTab === 'students') {
-          query = query.eq('status', statusFilter);
-        } else {
+        if (statusFilter !== 'all') {
           query = query.eq('verification_status', statusFilter);
         }
-      }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as UserData[];
+        const { data, error } = await query.order('created_at', { ascending: false });
+        if (error) throw error;
+        return data as UserData[];
+      }
     }
+  });
+
+  // Fetch colleges for the college filter dropdown
+  const { data: colleges } = useQuery({
+    queryKey: ['colleges-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('colleges')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: activeTab === 'students'
   });
 
   const updateUserMutation = useMutation({
@@ -218,7 +267,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
     if (!users) return;
     
     const headers = activeTab === 'students' 
-      ? ['Name', 'Email', 'Trust Score', 'XP', 'Status', 'Created']
+      ? ['Name', 'Email', 'Source', 'College', 'Trust Score', 'XP', 'Proofs Submitted', 'Last Active', 'Status', 'Created']
       : ['Name', 'Email', 'Status', 'Created'];
     
     const csvContent = [
@@ -226,7 +275,14 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
       ...users.map(user => [
         activeTab === 'students' ? user.full_name : user.name,
         user.email,
-        ...(activeTab === 'students' ? [user.trust_score || 0, user.total_xp || 0] : []),
+        ...(activeTab === 'students' ? [
+          user.source || 'Website',
+          user.college_name || 'N/A',
+          user.trust_score || 0, 
+          user.total_xp || 0,
+          user.proofs_submitted || 0,
+          user.last_active ? new Date(user.last_active).toLocaleDateString() : 'Never'
+        ] : []),
         activeTab === 'students' ? user.status : user.verification_status,
         new Date(user.created_at).toLocaleDateString()
       ].join(','))
@@ -310,7 +366,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                     {getTabIcon(tab)}
                     {tab.charAt(0).toUpperCase() + tab.slice(1)} Management
                   </CardTitle>
-                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                       <Input
@@ -325,7 +381,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-background border shadow-md z-50">
                         <SelectItem value="all">All Status</SelectItem>
                         {tab === 'students' ? (
                           <>
@@ -341,6 +397,39 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                         )}
                       </SelectContent>
                     </Select>
+                    
+                    {tab === 'students' && (
+                      <>
+                        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                          <SelectTrigger className="w-32">
+                            <Filter className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Source" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border shadow-md z-50">
+                            <SelectItem value="all">All Sources</SelectItem>
+                            <SelectItem value="Website">Website</SelectItem>
+                            <SelectItem value="College">College</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        {sourceFilter === 'College' && colleges && colleges.length > 0 && (
+                          <Select value={collegeFilter} onValueChange={setCollegeFilter}>
+                            <SelectTrigger className="w-40">
+                              <Filter className="h-4 w-4 mr-2" />
+                              <SelectValue placeholder="College" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-md z-50">
+                              <SelectItem value="all">All Colleges</SelectItem>
+                              {colleges.map((college) => (
+                                <SelectItem key={college.id} value={college.id}>
+                                  {college.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -352,8 +441,11 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                       <TableHead>Email</TableHead>
                       {tab === 'students' && (
                         <>
+                          <TableHead>Source</TableHead>
                           <TableHead>Trust Score</TableHead>
                           <TableHead>XP</TableHead>
+                          <TableHead>Proofs</TableHead>
+                          <TableHead>Last Active</TableHead>
                         </>
                       )}
                       <TableHead>Status</TableHead>
@@ -370,8 +462,27 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                         <TableCell>{user.email}</TableCell>
                         {tab === 'students' && (
                           <>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {user.source || 'Website'}
+                                </span>
+                                {user.source === 'College' && user.college_name && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {user.college_name}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{user.trust_score || 0}</TableCell>
                             <TableCell>{user.total_xp || 0}</TableCell>
+                            <TableCell>{user.proofs_submitted || 0}</TableCell>
+                            <TableCell className="text-sm">
+                              {user.last_active 
+                                ? new Date(user.last_active).toLocaleDateString()
+                                : 'Never'
+                              }
+                            </TableCell>
                           </>
                         )}
                         <TableCell>{getStatusBadge(user)}</TableCell>
@@ -385,7 +496,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="bg-background border shadow-md z-50">
                               <DropdownMenuItem onClick={() => setViewUserSheet(user)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
@@ -474,13 +585,31 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                 </div>
               </div>
               {activeTab === 'students' && (
-                <div>
-                  <h4 className="font-semibold">Performance Metrics</h4>
-                  <div className="space-y-2 mt-2">
-                    <p><strong>Trust Score:</strong> {viewUserSheet.trust_score || 0}</p>
-                    <p><strong>Total XP:</strong> {viewUserSheet.total_xp || 0}</p>
+                <>
+                  <div>
+                    <h4 className="font-semibold">Registration Information</h4>
+                    <div className="space-y-2 mt-2">
+                      <p><strong>Source:</strong> {viewUserSheet.source || 'Website'}</p>
+                      {viewUserSheet.source === 'College' && viewUserSheet.college_name && (
+                        <p><strong>College:</strong> {viewUserSheet.college_name}</p>
+                      )}
+                      <p><strong>Last Active:</strong> {
+                        viewUserSheet.last_active 
+                          ? new Date(viewUserSheet.last_active).toLocaleString()
+                          : 'Never'
+                      }</p>
+                    </div>
                   </div>
-                </div>
+                  
+                  <div>
+                    <h4 className="font-semibold">Performance Metrics</h4>
+                    <div className="space-y-2 mt-2">
+                      <p><strong>Trust Score:</strong> {viewUserSheet.trust_score || 0}</p>
+                      <p><strong>Total XP:</strong> {viewUserSheet.total_xp || 0}</p>
+                      <p><strong>Proofs Submitted:</strong> {viewUserSheet.proofs_submitted || 0}</p>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}

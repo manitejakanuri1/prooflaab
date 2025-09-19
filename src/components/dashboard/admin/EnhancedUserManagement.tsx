@@ -58,6 +58,7 @@ interface UserData {
   last_active?: string;
   college_name?: string;
   proofs_submitted?: number;
+  student_count?: number;
 }
 
 interface EnhancedUserManagementProps {
@@ -343,17 +344,20 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="students" className="flex items-center gap-2">
+          <TabsTrigger value="students" className="flex items-center gap-2 text-sm">
             {getTabIcon('students')}
-            Students
+            <span className="hidden sm:inline">Students</span>
+            <span className="sm:hidden">Students</span>
           </TabsTrigger>
-          <TabsTrigger value="startups" className="flex items-center gap-2">
+          <TabsTrigger value="startups" className="flex items-center gap-2 text-sm">
             {getTabIcon('startups')}
-            Startups
+            <span className="hidden sm:inline">Startups</span>
+            <span className="sm:hidden">Startups</span>
           </TabsTrigger>
-          <TabsTrigger value="colleges" className="flex items-center gap-2">
+          <TabsTrigger value="colleges" className="flex items-center gap-2 text-sm">
             {getTabIcon('colleges')}
-            Colleges
+            <span className="hidden sm:inline">Colleges</span>
+            <span className="sm:hidden">Colleges</span>
           </TabsTrigger>
         </TabsList>
 
@@ -361,75 +365,77 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
           <TabsContent key={tab} value={tab}>
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <CardTitle className="flex items-center gap-2">
                     {getTabIcon(tab)}
                     {tab.charAt(0).toUpperCase() + tab.slice(1)} Management
                   </CardTitle>
-                    <div className="flex items-center gap-4 flex-wrap">
-                    <div className="relative">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                       <Input
                         placeholder={`Search ${tab}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-64"
+                        className="pl-10 w-full sm:w-64"
                       />
                     </div>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-32">
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border shadow-md z-50">
-                        <SelectItem value="all">All Status</SelectItem>
-                        {tab === 'students' ? (
-                          <>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="blocked">Blocked</SelectItem>
-                          </>
-                        ) : (
-                          <>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="suspended">Suspended</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    
-                    {tab === 'students' && (
-                      <>
-                        <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                          <SelectTrigger className="w-32">
-                            <Filter className="h-4 w-4 mr-2" />
-                            <SelectValue placeholder="Source" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border shadow-md z-50">
-                            <SelectItem value="all">All Sources</SelectItem>
-                            <SelectItem value="Website">Website</SelectItem>
-                            <SelectItem value="College">College</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        
-                        {sourceFilter === 'College' && colleges && colleges.length > 0 && (
-                          <Select value={collegeFilter} onValueChange={setCollegeFilter}>
-                            <SelectTrigger className="w-40">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-32">
+                          <Filter className="h-4 w-4 mr-2" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border shadow-md z-50">
+                          <SelectItem value="all">All Status</SelectItem>
+                          {tab === 'students' ? (
+                            <>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="blocked">Blocked</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="approved">Approved</SelectItem>
+                              <SelectItem value="suspended">Suspended</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      
+                      {tab === 'students' && (
+                        <>
+                          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                            <SelectTrigger className="w-32">
                               <Filter className="h-4 w-4 mr-2" />
-                              <SelectValue placeholder="College" />
+                              <SelectValue placeholder="Source" />
                             </SelectTrigger>
                             <SelectContent className="bg-background border shadow-md z-50">
-                              <SelectItem value="all">All Colleges</SelectItem>
-                              {colleges.map((college) => (
-                                <SelectItem key={college.id} value={college.id}>
-                                  {college.name}
-                                </SelectItem>
-                              ))}
+                              <SelectItem value="all">All Sources</SelectItem>
+                              <SelectItem value="Website">Website</SelectItem>
+                              <SelectItem value="College">College</SelectItem>
                             </SelectContent>
                           </Select>
-                        )}
-                      </>
-                    )}
+                          
+                          {sourceFilter === 'College' && colleges && colleges.length > 0 && (
+                            <Select value={collegeFilter} onValueChange={setCollegeFilter}>
+                              <SelectTrigger className="w-40">
+                                <Filter className="h-4 w-4 mr-2" />
+                                <SelectValue placeholder="College" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border shadow-md z-50">
+                                <SelectItem value="all">All Colleges</SelectItem>
+                                {colleges.map((college) => (
+                                  <SelectItem key={college.id} value={college.id}>
+                                    {college.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -453,43 +459,87 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {users?.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          {tab === 'students' ? user.full_name : user.name}
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        {tab === 'students' && (
-                          <>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium">
-                                  {user.source || 'Website'}
-                                </span>
-                                {user.source === 'College' && user.college_name && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {user.college_name}
+                    <TableBody>
+                      {users?.map((user) => (
+                        <TableRow key={user.id} className="hover:bg-muted/30">
+                          <TableCell className="font-medium">
+                            {tab === 'students' ? user.full_name : user.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground hidden sm:table-cell">
+                            <span className="truncate block max-w-48">{user.email}</span>
+                          </TableCell>
+                          {tab === 'students' && (
+                            <>
+                              <TableCell className="hidden md:table-cell">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">
+                                    {user.source || 'Website'}
                                   </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{user.trust_score || 0}</TableCell>
-                            <TableCell>{user.total_xp || 0}</TableCell>
-                            <TableCell>{user.proofs_submitted || 0}</TableCell>
-                            <TableCell className="text-sm">
-                              {user.last_active 
-                                ? new Date(user.last_active).toLocaleDateString()
-                                : 'Never'
-                              }
-                            </TableCell>
-                          </>
-                        )}
-                        <TableCell>{getStatusBadge(user)}</TableCell>
-                        <TableCell>
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
+                                  {user.source === 'College' && user.college_name && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {user.college_name}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center hidden lg:table-cell">
+                                <Badge variant="outline">{user.trust_score || 0}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center hidden lg:table-cell">
+                                <Badge variant="secondary">{user.total_xp || 0}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center hidden xl:table-cell">
+                                <Badge variant="outline">{user.proofs_submitted || 0}</Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
+                                {user.last_active 
+                                  ? new Date(user.last_active).toLocaleDateString('en-US', {
+                                    month: 'numeric',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })
+                                  : '—'
+                                }
+                              </TableCell>
+                            </>
+                          )}
+                          {tab === 'startups' && (
+                            <>
+                              <TableCell className="text-muted-foreground hidden md:table-cell">
+                                {new Date(user.created_at).toLocaleDateString('en-US', {
+                                  month: 'numeric',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground hidden md:table-cell">
+                                {user.last_active 
+                                  ? new Date(user.last_active).toLocaleDateString('en-US', {
+                                    month: 'numeric',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })
+                                  : '—'
+                                }
+                              </TableCell>
+                            </>
+                          )}
+                          {tab === 'colleges' && (
+                            <>
+                              <TableCell className="text-center hidden md:table-cell">
+                                <Badge variant="secondary">{user.student_count || 0}</Badge>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground hidden md:table-cell">
+                                {new Date(user.created_at).toLocaleDateString('en-US', {
+                                  month: 'numeric',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </TableCell>
+                            </>
+                          )}
+                          <TableCell>{getStatusBadge(user)}</TableCell>
+                          <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">

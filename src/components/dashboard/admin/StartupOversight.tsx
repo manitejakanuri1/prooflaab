@@ -303,20 +303,20 @@ const StartupOversight = () => {
             <Building2 className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Startup Management</h1>
-            <p className="text-muted-foreground">Manage startup accounts and monitor their activity</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Startup Management</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Manage startup accounts and monitor their activity</p>
           </div>
         </div>
       </div>
 
       <Card className="border-0 shadow-lg">
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-4 px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative">
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-none">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-40 pl-10">
+                  <SelectTrigger className="w-full sm:w-40 pl-10">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -328,7 +328,7 @@ const StartupOversight = () => {
                 </Select>
               </div>
             </div>
-            <div className="flex items-center gap-4 sm:ml-auto">
+            <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto">
               <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -339,7 +339,7 @@ const StartupOversight = () => {
                 />
               </div>
               <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-                <SelectTrigger className="w-20">
+                <SelectTrigger className="w-20 flex-shrink-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -351,24 +351,24 @@ const StartupOversight = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="px-4 sm:px-6">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold pl-4 sm:pl-4">Name</TableHead>
                   <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold hidden sm:table-cell">Created</TableHead>
-                  <TableHead className="font-semibold">Last Active</TableHead>
-                  <TableHead className="font-semibold text-right">Actions</TableHead>
+                  <TableHead className="font-semibold hidden md:table-cell">Created</TableHead>
+                  <TableHead className="font-semibold hidden md:table-cell">Last Active</TableHead>
+                  <TableHead className="font-semibold text-right pr-4 sm:pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedStartups?.map((startup) => (
                   <TableRow key={startup.id} className="hover:bg-muted/30">
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
+                    <TableCell className="font-medium pl-4 sm:pl-4">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <Building2 className="h-4 w-4 text-primary" />
                         </div>
@@ -379,17 +379,17 @@ const StartupOversight = () => {
                       <span className="truncate block max-w-48">{startup.email}</span>
                     </TableCell>
                     <TableCell>{getStatusBadge(startup.status)}</TableCell>
-                    <TableCell className="text-muted-foreground hidden sm:table-cell">
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
                       {new Date(startup.created_at).toLocaleDateString('en-US', { 
                         month: 'numeric', 
                         day: 'numeric',
                         year: 'numeric'
                       })}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
                       {formatLastActive((startup as any).last_active)}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-4 sm:pr-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">

@@ -461,15 +461,15 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
-                      {tab === 'students' && (
-                        <>
-                          <TableHead>Source</TableHead>
-                          <TableHead>Trust Score</TableHead>
-                          <TableHead>XP</TableHead>
-                          <TableHead>Proofs</TableHead>
-                          <TableHead>Last Active</TableHead>
-                        </>
-                      )}
+                       {tab === 'students' && (
+                         <>
+                           <TableHead className="hidden md:table-cell">Source</TableHead>
+                           <TableHead className="hidden lg:table-cell">Trust Score</TableHead>
+                           <TableHead className="hidden lg:table-cell">XP</TableHead>
+                           <TableHead className="hidden xl:table-cell">Proofs</TableHead>
+                           <TableHead className="hidden md:table-cell">Last Active</TableHead>
+                         </>
+                       )}
                       {tab === 'startups' && (
                         <>
                           <TableHead className="hidden md:table-cell">Last Active</TableHead>

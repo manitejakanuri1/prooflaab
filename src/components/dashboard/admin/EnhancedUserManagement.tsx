@@ -565,9 +565,16 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                               </TableCell>
                             </>
                           )}
-                          <TableCell>{getStatusBadge(user)}</TableCell>
-                          <TableCell className="text-right">
-                          <DropdownMenu>
+                           <TableCell>{getStatusBadge(user)}</TableCell>
+                           <TableCell className="text-sm text-muted-foreground">
+                             {new Date(user.created_at).toLocaleDateString('en-US', {
+                               month: 'numeric',
+                               day: 'numeric',
+                               year: 'numeric'
+                             })}
+                           </TableCell>
+                           <TableCell className="text-right">
+                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
                                 <MoreHorizontal className="h-4 w-4" />

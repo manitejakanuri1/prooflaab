@@ -66,65 +66,117 @@ const CollegeOversight = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: colleges, isLoading } = useQuery({
+  const { data: colleges, isLoading, error: queryError } = useQuery({
     queryKey: ['college-oversight', searchTerm, statusFilter, sortBy, sortOrder],
     queryFn: async () => {
-      // Get college data with student counts and tasks assigned
-      let query = supabase
-        .from('colleges')
-        .select(`
-          *,
-          student_profiles!college_id(count),
-          tasks!created_by_college_id(count)
-        `);
+      console.log('Fetching college data...');
+      
+      try {
+        // First, get basic college data
+        let baseQuery = supabase
+          .from('colleges')
+          .select('*');
 
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-      }
+        if (searchTerm) {
+          baseQuery = baseQuery.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        }
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
+        if (statusFilter !== 'all') {
+          baseQuery = baseQuery.eq('status', statusFilter);
+        }
 
-      const { data: collegeData, error } = await query;
-      if (error) throw error;
-
-      // Process and combine data
-      const processedColleges = (collegeData || []).map(college => {
-        const studentsCount = college.student_profiles?.[0]?.count || 0;
-        const tasksCount = college.tasks?.[0]?.count || 0;
-        
-        return {
-          ...college,
-          students_count: studentsCount,
-          tasks_assigned: tasksCount
-        };
-      });
-
-      // Sort data
-      processedColleges.sort((a, b) => {
-        let aValue, bValue;
-        
-        switch (sortBy) {
-          case 'students_count':
-            aValue = a.students_count;
-            bValue = b.students_count;
-            break;
-          case 'last_active':
-            aValue = a.last_active ? new Date(a.last_active).getTime() : 0;
-            bValue = b.last_active ? new Date(b.last_active).getTime() : 0;
-            break;
-          default:
-            aValue = new Date(a.created_at).getTime();
-            bValue = new Date(b.created_at).getTime();
+        const { data: collegeData, error: collegeError } = await baseQuery;
+        if (collegeError) {
+          console.error('College query error:', collegeError);
+          throw collegeError;
         }
         
-        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-      });
+        console.log('College data:', collegeData);
 
-      return processedColleges;
+        if (!collegeData || collegeData.length === 0) {
+          return [];
+        }
+
+        // Get student counts for each college
+        const collegeIds = collegeData.map(c => c.id);
+        const { data: studentCounts, error: studentError } = await supabase
+          .from('student_profiles')
+          .select('college_id')
+          .in('college_id', collegeIds);
+        
+        if (studentError) {
+          console.error('Student count error:', studentError);
+        }
+        
+        console.log('Student counts data:', studentCounts);
+
+        // Get task counts assigned by colleges
+        const { data: taskCounts, error: taskError } = await supabase
+          .from('tasks')
+          .select('created_by_college_id')
+          .in('created_by_college_id', collegeIds);
+          
+        if (taskError) {
+          console.error('Task count error:', taskError);
+        }
+        
+        console.log('Task counts data:', taskCounts);
+
+        // Process and combine data
+        const processedColleges = collegeData.map(college => {
+          const studentsCount = studentCounts?.filter(s => s.college_id === college.id).length || 0;
+          const tasksCount = taskCounts?.filter(t => t.created_by_college_id === college.id).length || 0;
+          
+          const result = {
+            ...college,
+            students_count: studentsCount,
+            tasks_assigned: tasksCount
+          };
+          
+          console.log(`College ${college.name}:`, {
+            studentsCount,
+            tasksCount,
+            last_active: college.last_active
+          });
+          
+          return result;
+        });
+
+        // Sort data
+        processedColleges.sort((a, b) => {
+          let aValue, bValue;
+          
+          switch (sortBy) {
+            case 'students_count':
+              aValue = a.students_count;
+              bValue = b.students_count;
+              break;
+            case 'last_active':
+              aValue = a.last_active ? new Date(a.last_active).getTime() : 0;
+              bValue = b.last_active ? new Date(b.last_active).getTime() : 0;
+              break;
+            default:
+              aValue = new Date(a.created_at).getTime();
+              bValue = new Date(b.created_at).getTime();
+          }
+          
+          return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+        });
+
+        console.log('Final processed colleges:', processedColleges);
+        return processedColleges;
+        
+      } catch (error) {
+        console.error('Query function error:', error);
+        throw error;
+      }
     }
   });
+
+  // Log any query errors
+  if (queryError) {
+    console.error('Query error:', queryError);
+  }
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {

@@ -69,13 +69,13 @@ const CollegeOversight = () => {
   const { data: colleges, isLoading } = useQuery({
     queryKey: ['college-oversight', searchTerm, statusFilter, sortBy, sortOrder],
     queryFn: async () => {
-      // Get college data with student counts and last active info
+      // Get college data with student counts and tasks assigned
       let query = supabase
         .from('colleges')
         .select(`
           *,
           student_profiles!college_id(count),
-          college_profiles(user_id)
+          tasks!created_by_college_id(count)
         `);
 
       if (searchTerm) {
@@ -89,37 +89,15 @@ const CollegeOversight = () => {
       const { data: collegeData, error } = await query;
       if (error) throw error;
 
-      // Get last active data for college admins
-      const collegeIds = collegeData?.map(c => c.user_id).filter(Boolean) || [];
-      let lastActiveData: any[] = [];
-      
-      if (collegeIds.length > 0) {
-        const { data: activityData } = await supabase
-          .from('activity_logs')
-          .select('user_id, date')
-          .in('user_id', collegeIds)
-          .order('date', { ascending: false });
-        
-        lastActiveData = activityData || [];
-      }
-
-      // Get task counts assigned by college admins
-      const { data: taskData } = await supabase
-        .from('tasks')
-        .select('created_by_startup_id')
-        .in('created_by_startup_id', collegeIds);
-
       // Process and combine data
       const processedColleges = (collegeData || []).map(college => {
         const studentsCount = college.student_profiles?.[0]?.count || 0;
-        const lastActiveLog = lastActiveData.find(log => log.user_id === college.user_id);
-        const tasksCount = taskData?.filter(task => task.created_by_startup_id === college.user_id).length || 0;
+        const tasksCount = college.tasks?.[0]?.count || 0;
         
         return {
           ...college,
           students_count: studentsCount,
-          tasks_assigned: tasksCount,
-          last_active: lastActiveLog?.date || null
+          tasks_assigned: tasksCount
         };
       });
 

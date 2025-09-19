@@ -204,6 +204,7 @@ export type Database = {
           id: string
           invite_code: string | null
           invitecode: string | null
+          last_active: string | null
           name: string
           status: string | null
           updated_at: string | null
@@ -216,6 +217,7 @@ export type Database = {
           id?: string
           invite_code?: string | null
           invitecode?: string | null
+          last_active?: string | null
           name: string
           status?: string | null
           updated_at?: string | null
@@ -228,6 +230,7 @@ export type Database = {
           id?: string
           invite_code?: string | null
           invitecode?: string | null
+          last_active?: string | null
           name?: string
           status?: string | null
           updated_at?: string | null
@@ -938,6 +941,7 @@ export type Database = {
           category: string | null
           completed_at: string | null
           created_at: string | null
+          created_by_college_id: string | null
           created_by_startup_id: string | null
           description: string | null
           due_date: string
@@ -961,6 +965,7 @@ export type Database = {
           category?: string | null
           completed_at?: string | null
           created_at?: string | null
+          created_by_college_id?: string | null
           created_by_startup_id?: string | null
           description?: string | null
           due_date: string
@@ -984,6 +989,7 @@ export type Database = {
           category?: string | null
           completed_at?: string | null
           created_at?: string | null
+          created_by_college_id?: string | null
           created_by_startup_id?: string | null
           description?: string | null
           due_date?: string
@@ -1003,6 +1009,13 @@ export type Database = {
           xp_reward?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_tasks_created_by_college"
+            columns: ["created_by_college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_student_id_fkey"
             columns: ["student_id"]

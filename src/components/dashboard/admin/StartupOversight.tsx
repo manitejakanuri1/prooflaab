@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,92 +35,87 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Building2, Plus, Eye, Edit, Pause, MoreHorizontal } from "lucide-react";
+import { Search, Building2, Eye, Edit, CheckCircle, Ban, Trash2, MoreHorizontal, Filter } from "lucide-react";
+
+interface StartupData {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  created_at: string;
+  user_id: string;
+  verification_status?: string;
+  last_active?: string;
+  tasks_posted?: number;
+}
 
 const StartupOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStartup, setSelectedStartup] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'view' | 'edit' | 'add' | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    industry: 'IT',
-    status: 'pending',
-    verification_status: 'pending'
-  });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedStartup, setSelectedStartup] = useState<StartupData | null>(null);
+  const [viewMode, setViewMode] = useState<'view' | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const industries = ['IT', 'EdTech', 'FinTech', 'HealthTech', 'E-commerce', 'Manufacturing', 'Other'];
-
   const { data: startups, isLoading } = useQuery({
-    queryKey: ['startup-oversight', searchTerm],
+    queryKey: ['startup-oversight', searchTerm, statusFilter],
     queryFn: async () => {
       let query = supabase
         .from('startups')
-        .select('*');
+        .select(`
+          *,
+          startup_profiles(startup_name),
+          activity_logs(date)
+        `);
 
       if (searchTerm) {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
+      if (statusFilter !== "all") {
+        query = query.eq('status', statusFilter);
+      }
+
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
       
-      // Fetch task counts separately for each startup
-      const startupsWithTaskCount = await Promise.all(
-        (data || []).map(async (startup) => {
-          const { count } = await supabase
+      // Fetch additional data for each startup
+      const startupsWithMetadata = await Promise.all(
+        (data || []).map(async (startup: any) => {
+          // Get tasks count
+          const { count: tasksPosted } = await supabase
             .from('tasks')
             .select('id', { count: 'exact' })
             .eq('created_by_startup_id', startup.user_id);
           
-          return { ...startup, tasks: [{ count: count || 0 }] };
+          // Get last active from activity logs or created_at as fallback
+          const lastActive = Array.isArray(startup.activity_logs) && startup.activity_logs[0]?.date 
+            ? startup.activity_logs[0].date 
+            : startup.created_at;
+          
+          return { 
+            ...startup, 
+            tasks_posted: tasksPosted || 0,
+            last_active: lastActive,
+            startup_name: Array.isArray(startup.startup_profiles) && startup.startup_profiles[0]?.startup_name 
+              ? startup.startup_profiles[0].startup_name 
+              : startup.name
+          };
         })
       );
       
-      return startupsWithTaskCount;
+      return startupsWithMetadata;
     }
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('startups')
-        .insert([{
-          name: data.name,
-          email: data.email,
-          status: data.status,
-          verification_status: data.verification_status,
-          user_id: 'temp-user-id' // Replace with actual user creation logic
-        }]);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['startup-oversight'] });
-      toast({
-        title: "Success",
-        description: "Startup added successfully.",
-      });
-      closeModal();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to add startup: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
-      const { error } = await supabase
-        .from('startups')
-        .update(data)
+        .update({ status: 'active' })
         .eq('id', id);
       if (error) throw error;
     },
@@ -128,14 +123,13 @@ const StartupOversight = () => {
       queryClient.invalidateQueries({ queryKey: ['startup-oversight'] });
       toast({
         title: "Success",
-        description: "Startup updated successfully.",
+        description: "Startup approved successfully.",
       });
-      closeModal();
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to update startup: ${error.message}`,
+        description: `Failed to approve startup: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -165,50 +159,71 @@ const StartupOversight = () => {
     }
   });
 
-  const openModal = (mode: 'view' | 'edit' | 'add', startup?: any) => {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('startups')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['startup-oversight'] });
+      toast({
+        title: "Success",
+        description: "Startup deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete startup: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const openModal = (mode: 'view', startup: StartupData) => {
     setViewMode(mode);
     setSelectedStartup(startup);
-    if (startup) {
-      setFormData({
-        name: startup.name || '',
-        email: startup.email || '',
-        industry: 'IT', // Add industry field to startups table if needed
-        status: startup.status || 'pending',
-        verification_status: startup.verification_status || 'pending'
-      });
-    } else {
-      setFormData({ name: '', email: '', industry: 'IT', status: 'pending', verification_status: 'pending' });
-    }
   };
 
   const closeModal = () => {
     setViewMode(null);
     setSelectedStartup(null);
-    setFormData({ name: '', email: '', industry: 'IT', status: 'pending', verification_status: 'pending' });
   };
 
-  const handleSave = () => {
-    if (viewMode === 'add') {
-      createMutation.mutate(formData);
-    } else if (viewMode === 'edit' && selectedStartup) {
-      updateMutation.mutate({ id: selectedStartup.id, data: formData });
+  const handleApprove = (startup: StartupData) => {
+    if (confirm(`Approve ${startup.name}? This will activate their account.`)) {
+      approveMutation.mutate(startup.id);
     }
   };
 
-  const handleSuspend = (startup: any) => {
+  const handleSuspend = (startup: StartupData) => {
     if (confirm(`Suspend ${startup.name}? This will prevent them from accessing the platform.`)) {
       suspendMutation.mutate(startup.id);
     }
   };
 
+  const handleDelete = (startup: StartupData) => {
+    if (confirm(`Delete ${startup.name}? This action cannot be undone.`)) {
+      deleteMutation.mutate(startup.id);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
-      active: 'default',
-      inactive: 'secondary',
-      pending: 'outline',
-      suspended: 'destructive'
+    const statusConfig = {
+      active: { variant: "default" as const, className: "bg-green-100 text-green-800 hover:bg-green-100" },
+      pending: { variant: "secondary" as const, className: "bg-orange-100 text-orange-800 hover:bg-orange-100" },
+      suspended: { variant: "destructive" as const, className: "bg-red-100 text-red-800 hover:bg-red-100" }
     };
-    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    return (
+      <Badge variant={config.variant} className={config.className}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   const paginatedStartups = startups?.slice(
@@ -242,101 +257,138 @@ const StartupOversight = () => {
             <Building2 className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Startup Oversight</h1>
-            <p className="text-muted-foreground">Manage startup accounts and activities</p>
+            <h1 className="text-3xl font-bold">Startup Management</h1>
+            <p className="text-muted-foreground">Manage startup accounts and monitor their activity</p>
           </div>
         </div>
-        <Button onClick={() => openModal('add')} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add New Startup
-        </Button>
       </div>
 
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search startup..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40 pl-10">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-4 sm:ml-auto">
+              <div className="relative flex-1 sm:flex-none">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search startups..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full sm:w-80"
+                />
+              </div>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-semibold">Name</TableHead>
-                <TableHead className="font-semibold">Email</TableHead>
-                <TableHead className="font-semibold">Industry</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="font-semibold">Posted Tasks</TableHead>
-                <TableHead className="font-semibold">Created</TableHead>
-                <TableHead className="font-semibold text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedStartups?.map((startup) => (
-                <TableRow key={startup.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium">{startup.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{startup.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">IT</Badge>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(startup.status)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {(startup as any).tasks?.[0]?.count || 0}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(startup.created_at).toLocaleDateString('en-GB')}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openModal('view', startup)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openModal('edit', startup)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleSuspend(startup)}
-                          className="text-destructive"
-                        >
-                          <Pause className="h-4 w-4 mr-2" />
-                          Suspend
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-semibold">Startup Name</TableHead>
+                  <TableHead className="font-semibold">Email</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold hidden sm:table-cell">Created</TableHead>
+                  <TableHead className="font-semibold hidden md:table-cell">Last Active</TableHead>
+                  <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedStartups?.map((startup) => (
+                  <TableRow key={startup.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="truncate">{(startup as any).startup_name || startup.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <span className="truncate block max-w-48">{startup.email}</span>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(startup.status)}</TableCell>
+                    <TableCell className="text-muted-foreground hidden sm:table-cell">
+                      {new Date(startup.created_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                      {startup.last_active ? new Date(startup.last_active).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }) : 'Never'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openModal('view', startup)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          {startup.status === 'pending' && (
+                            <DropdownMenuItem onClick={() => handleApprove(startup)} className="text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Approve
+                            </DropdownMenuItem>
+                          )}
+                          {startup.status === 'active' && (
+                            <DropdownMenuItem 
+                              onClick={() => handleSuspend(startup)}
+                              className="text-orange-600"
+                            >
+                              <Ban className="h-4 w-4 mr-2" />
+                              Suspend
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(startup)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           
           {/* Pagination */}
           {totalPages > 1 && (
@@ -370,107 +422,63 @@ const StartupOversight = () => {
         </CardContent>
       </Card>
 
-      {/* Modal */}
-      <Dialog open={!!viewMode} onOpenChange={closeModal}>
+      {/* View Details Modal */}
+      <Dialog open={viewMode === 'view'} onOpenChange={closeModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {viewMode === 'add' ? 'Add New Startup' : 
-               viewMode === 'edit' ? 'Edit Startup' : 'Startup Details'}
-            </DialogTitle>
+            <DialogTitle>Startup Details</DialogTitle>
             <DialogDescription>
-              {viewMode === 'view' ? 'View startup information' : 
-               viewMode === 'add' ? 'Add a new startup to the platform' : 
-               'Update startup information'}
+              View startup profile and account information
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Startup Name</label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={viewMode === 'view'}
-                placeholder="Startup name"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Email</label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                disabled={viewMode === 'view'}
-                placeholder="Primary contact email"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Industry</label>
-              <Select 
-                value={formData.industry} 
-                onValueChange={(value) => setFormData({ ...formData, industry: value })}
-                disabled={viewMode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {industries.map(industry => (
-                    <SelectItem key={industry} value={industry}>{industry}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {viewMode !== 'view' && (
-              <>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Status</label>
-                  <Select 
-                    value={formData.status} 
-                    onValueChange={(value) => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                    </SelectContent>
-                  </Select>
+          {selectedStartup && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Verification</label>
-                  <Select 
-                    value={formData.verification_status} 
-                    onValueChange={(value) => setFormData({ ...formData, verification_status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <h3 className="font-medium">{(selectedStartup as any).startup_name || selectedStartup.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedStartup.email}</p>
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <div className="mt-1">{getStatusBadge(selectedStartup.status)}</div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Created</label>
+                  <p className="text-sm mt-1">
+                    {new Date(selectedStartup.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Last Active</label>
+                  <p className="text-sm mt-1">
+                    {selectedStartup.last_active ? new Date(selectedStartup.last_active).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long', 
+                      day: 'numeric'
+                    }) : 'Never'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Tasks Posted</label>
+                  <p className="text-sm mt-1 font-mono">{(selectedStartup as any).tasks_posted || 0}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={closeModal}>
-              {viewMode === 'view' ? 'Close' : 'Cancel'}
+              Close
             </Button>
-            {viewMode !== 'view' && (
-              <Button
-                onClick={handleSave}
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
-              </Button>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

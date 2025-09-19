@@ -142,6 +142,7 @@ const StartupOversight = () => {
         })
       );
       
+      console.log('Startups with metadata:', startupsWithMetadata);
       return startupsWithMetadata;
     }
   });
@@ -359,7 +360,7 @@ const StartupOversight = () => {
                   <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold hidden sm:table-cell">Created</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Last Active</TableHead>
+                  <TableHead className="font-semibold">Last Active</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -385,7 +386,7 @@ const StartupOversight = () => {
                         year: 'numeric'
                       })}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                    <TableCell className="text-muted-foreground">
                       {formatLastActive((startup as any).last_active)}
                     </TableCell>
                     <TableCell className="text-right">

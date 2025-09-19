@@ -90,34 +90,46 @@ const StartupOversight = () => {
             .select('id', { count: 'exact' })
             .eq('created_by_startup_id', startup.user_id);
           
-          // Get last activity date from activity_logs
-          const { data: activityData } = await supabase
-            .from('activity_logs')
-            .select('date')
-            .eq('user_id', startup.user_id)
-            .order('date', { ascending: false })
-            .limit(1);
+          // Get last activity from multiple sources
+          const [activityLogs, taskActivity, proofActivity] = await Promise.all([
+            // Check activity_logs table for login activity
+            supabase
+              .from('activity_logs')
+              .select('date')
+              .eq('user_id', startup.user_id)
+              .order('date', { ascending: false })
+              .limit(1),
+            
+            // Check when they last posted a task
+            supabase
+              .from('tasks')
+              .select('created_at')
+              .eq('created_by_startup_id', startup.user_id)
+              .order('created_at', { ascending: false })
+              .limit(1),
+              
+            // Check when they last reviewed proofs
+            supabase
+              .from('proof_uploads')
+              .select('reviewed_at, tasks!inner(created_by_startup_id)')
+              .eq('tasks.created_by_startup_id', startup.user_id)
+              .not('reviewed_at', 'is', null)
+              .order('reviewed_at', { ascending: false })
+              .limit(1)
+          ]);
 
-          // Get last task posted date
-          const { data: taskData } = await supabase
-            .from('tasks')
-            .select('created_at')
-            .eq('created_by_startup_id', startup.user_id)
-            .order('created_at', { ascending: false })
-            .limit(1);
+          // Find the most recent activity date
+          const dates = [
+            activityLogs.data?.[0]?.date,
+            taskActivity.data?.[0]?.created_at,
+            proofActivity.data?.[0]?.reviewed_at
+          ].filter(Boolean);
 
-          // Determine last active date (most recent between login and task posting)
-          const lastLogin = activityData?.[0]?.date;
-          const lastTaskPosted = taskData?.[0]?.created_at;
-          
-          let lastActive = startup.created_at; // fallback to creation date
-          if (lastLogin && lastTaskPosted) {
-            lastActive = new Date(lastLogin) > new Date(lastTaskPosted) ? lastLogin : lastTaskPosted;
-          } else if (lastLogin) {
-            lastActive = lastLogin;
-          } else if (lastTaskPosted) {
-            lastActive = lastTaskPosted;
-          }
+          const lastActive = dates.length > 0 
+            ? dates.reduce((latest, current) => 
+                new Date(current) > new Date(latest) ? current : latest
+              )
+            : null;
           
           return { 
             ...startup, 
@@ -236,9 +248,9 @@ const StartupOversight = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { variant: "default" as const, className: "bg-green-100 text-green-800 hover:bg-green-100" },
-      pending: { variant: "secondary" as const, className: "bg-orange-100 text-orange-800 hover:bg-orange-100" },
-      suspended: { variant: "destructive" as const, className: "bg-red-100 text-red-800 hover:bg-red-100" }
+      active: { variant: "default" as const, className: "bg-green-500 text-white hover:bg-green-500" },
+      pending: { variant: "secondary" as const, className: "bg-orange-500 text-white hover:bg-orange-500" },
+      suspended: { variant: "destructive" as const, className: "bg-red-500 text-white hover:bg-red-500" }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -247,6 +259,16 @@ const StartupOversight = () => {
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
+  };
+
+  const formatLastActive = (lastActiveDate: string | null) => {
+    if (!lastActiveDate) return "—";
+    
+    return new Date(lastActiveDate).toLocaleDateString('en-US', {
+      month: 'numeric',
+      day: 'numeric', 
+      year: 'numeric'
+    });
   };
 
   const paginatedStartups = startups?.slice(
@@ -333,11 +355,11 @@ const StartupOversight = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="font-semibold">Startup Name</TableHead>
+                  <TableHead className="font-semibold">Name</TableHead>
                   <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold hidden sm:table-cell">Created</TableHead>
-                  <TableHead className="font-semibold hidden sm:table-cell">Last Active</TableHead>
+                  <TableHead className="font-semibold hidden md:table-cell">Created</TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell">Last Active</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -356,19 +378,15 @@ const StartupOversight = () => {
                       <span className="truncate block max-w-48">{startup.email}</span>
                     </TableCell>
                     <TableCell>{getStatusBadge(startup.status)}</TableCell>
-                    <TableCell className="text-muted-foreground hidden sm:table-cell">
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
                       {new Date(startup.created_at).toLocaleDateString('en-US', { 
-                        month: 'short', 
+                        month: 'numeric', 
                         day: 'numeric',
                         year: 'numeric'
                       })}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden sm:table-cell">
-                      {(startup as any).last_active ? new Date((startup as any).last_active).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      }) : 'Never'}
+                    <TableCell className="text-muted-foreground hidden lg:table-cell">
+                      {formatLastActive((startup as any).last_active)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -484,11 +502,7 @@ const StartupOversight = () => {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Last Active</label>
                   <p className="text-sm mt-1">
-                    {selectedStartup.last_active ? new Date(selectedStartup.last_active).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long', 
-                      day: 'numeric'
-                    }) : 'Never'}
+                    {formatLastActive((selectedStartup as any).last_active)}
                   </p>
                 </div>
                 <div>

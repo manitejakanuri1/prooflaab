@@ -19,7 +19,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
+  DialogHeader,  
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -35,10 +35,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, School, Plus, Eye, Edit, Pause, MoreHorizontal } from "lucide-react";
+import { 
+  Search, 
+  School, 
+  Plus, 
+  Eye, 
+  Edit, 
+  Pause, 
+  MoreHorizontal, 
+  CheckCircle, 
+  Trash2, 
+  ArrowUpDown 
+} from "lucide-react";
 
 const CollegeOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<'created_at' | 'students_count' | 'last_active'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedCollege, setSelectedCollege] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'view' | 'edit' | 'add' | null>(null);
   const [formData, setFormData] = useState({
@@ -53,24 +67,84 @@ const CollegeOversight = () => {
   const queryClient = useQueryClient();
 
   const { data: colleges, isLoading } = useQuery({
-    queryKey: ['college-oversight', searchTerm],
+    queryKey: ['college-oversight', searchTerm, statusFilter, sortBy, sortOrder],
     queryFn: async () => {
+      // Get college data with student counts and last active info
       let query = supabase
         .from('colleges')
-        .select('*');
+        .select(`
+          *,
+          student_profiles!college_id(count),
+          college_profiles(user_id)
+        `);
 
       if (searchTerm) {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data: collegeData, error } = await query;
       if (error) throw error;
+
+      // Get last active data for college admins
+      const collegeIds = collegeData?.map(c => c.user_id).filter(Boolean) || [];
+      let lastActiveData: any[] = [];
       
-      // For colleges, we don't have direct task creation, so just return 0 tasks
-      return (data || []).map(college => ({
-        ...college,
-        tasks: [{ count: 0 }]
-      }));
+      if (collegeIds.length > 0) {
+        const { data: activityData } = await supabase
+          .from('activity_logs')
+          .select('user_id, date')
+          .in('user_id', collegeIds)
+          .order('date', { ascending: false });
+        
+        lastActiveData = activityData || [];
+      }
+
+      // Get task counts assigned by college admins
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('created_by_startup_id')
+        .in('created_by_startup_id', collegeIds);
+
+      // Process and combine data
+      const processedColleges = (collegeData || []).map(college => {
+        const studentsCount = college.student_profiles?.[0]?.count || 0;
+        const lastActiveLog = lastActiveData.find(log => log.user_id === college.user_id);
+        const tasksCount = taskData?.filter(task => task.created_by_startup_id === college.user_id).length || 0;
+        
+        return {
+          ...college,
+          students_count: studentsCount,
+          tasks_assigned: tasksCount,
+          last_active: lastActiveLog?.date || null
+        };
+      });
+
+      // Sort data
+      processedColleges.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortBy) {
+          case 'students_count':
+            aValue = a.students_count;
+            bValue = b.students_count;
+            break;
+          case 'last_active':
+            aValue = a.last_active ? new Date(a.last_active).getTime() : 0;
+            bValue = b.last_active ? new Date(b.last_active).getTime() : 0;
+            break;
+          default:
+            aValue = new Date(a.created_at).getTime();
+            bValue = new Date(b.created_at).getTime();
+        }
+        
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      });
+
+      return processedColleges;
     }
   });
 
@@ -152,6 +226,54 @@ const CollegeOversight = () => {
     }
   });
 
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('colleges')
+        .update({ status: 'active' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
+      toast({
+        title: "Success",
+        description: "College approved successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to approve college: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('colleges')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
+      toast({
+        title: "Success",
+        description: "College deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete college: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
   const openModal = (mode: 'view' | 'edit' | 'add', college?: any) => {
     setViewMode(mode);
     setSelectedCollege(college);
@@ -186,14 +308,40 @@ const CollegeOversight = () => {
     }
   };
 
+  const handleApprove = (college: any) => {
+    if (confirm(`Approve ${college.name}? This will activate their account.`)) {
+      approveMutation.mutate(college.id);
+    }
+  };
+
+  const handleDelete = (college: any) => {
+    if (confirm(`Delete ${college.name}? This action cannot be undone.`)) {
+      deleteMutation.mutate(college.id);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
-      active: 'default',
-      inactive: 'secondary',
-      pending: 'outline',
-      suspended: 'destructive'
+    const statusConfig: Record<string, { variant: any; className: string }> = {
+      active: { variant: 'default', className: 'bg-green-100 text-green-800 border-green-200' },
+      pending: { variant: 'secondary', className: 'bg-orange-100 text-orange-800 border-orange-200' },
+      suspended: { variant: 'destructive', className: 'bg-red-100 text-red-800 border-red-200' }
     };
-    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
+    
+    const config = statusConfig[status] || statusConfig.pending;
+    return (
+      <Badge variant={config.variant} className={config.className}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
+  const handleSort = (column: 'created_at' | 'students_count' | 'last_active') => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('desc');
+    }
   };
 
   const paginatedColleges = colleges?.slice(
@@ -239,8 +387,8 @@ const CollegeOversight = () => {
 
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="relative flex-1 max-w-md w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search college..."
@@ -249,75 +397,142 @@ const CollegeOversight = () => {
                 className="pl-10"
               />
             </div>
-            <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                <SelectTrigger className="w-full sm:w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-semibold">Name</TableHead>
-                <TableHead className="font-semibold">Email</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="font-semibold">Tasks</TableHead>
-                <TableHead className="font-semibold">Created</TableHead>
-                <TableHead className="font-semibold text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedColleges?.map((college) => (
-                <TableRow key={college.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium">{college.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{college.email}</TableCell>
-                  <TableCell>{getStatusBadge(college.status)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {(college as any).tasks?.[0]?.count || 0}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(college.created_at).toLocaleDateString('en-GB')}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openModal('view', college)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openModal('edit', college)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleSuspend(college)}
-                          className="text-destructive"
-                        >
-                          <Pause className="h-4 w-4 mr-2" />
-                          Suspend
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead 
+                    className="font-semibold cursor-pointer hover:bg-muted/50 hidden lg:table-cell"
+                    onClick={() => handleSort('last_active')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Last Active
+                      <ArrowUpDown className="h-4 w-4" />
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="font-semibold cursor-pointer hover:bg-muted/50 hidden md:table-cell"
+                    onClick={() => handleSort('students_count')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Students Count
+                      <ArrowUpDown className="h-4 w-4" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold hidden xl:table-cell">Tasks Assigned</TableHead>
+                  <TableHead 
+                    className="font-semibold cursor-pointer hover:bg-muted/50 hidden lg:table-cell"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Created
+                      <ArrowUpDown className="h-4 w-4" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedColleges?.map((college) => (
+                  <TableRow key={college.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium">{college.name}</TableCell>
+                    <TableCell className="text-muted-foreground hidden sm:table-cell">{college.email}</TableCell>
+                    <TableCell>{getStatusBadge(college.status)}</TableCell>
+                    <TableCell className="text-muted-foreground hidden lg:table-cell">
+                      {college.last_active 
+                        ? new Date(college.last_active).toLocaleDateString('en-GB')
+                        : "—"
+                      }
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge variant="outline" className="font-mono">
+                        {college.students_count}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <Badge variant="outline" className="font-mono">
+                        {college.tasks_assigned}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden lg:table-cell">
+                      {new Date(college.created_at).toLocaleDateString('en-GB')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-background border shadow-lg">
+                          <DropdownMenuItem onClick={() => openModal('view', college)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          {college.status === 'pending' && (
+                            <DropdownMenuItem onClick={() => handleApprove(college)}>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Approve
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => openModal('edit', college)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          {college.status !== 'suspended' && (
+                            <DropdownMenuItem 
+                              onClick={() => handleSuspend(college)}
+                              className="text-orange-600"
+                            >
+                              <Pause className="h-4 w-4 mr-2" />
+                              Suspend
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(college)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           
           {/* Pagination */}
           {totalPages > 1 && (
@@ -351,16 +566,16 @@ const CollegeOversight = () => {
         </CardContent>
       </Card>
 
-      {/* Modal */}
+      {/* Enhanced Modal */}
       <Dialog open={!!viewMode} onOpenChange={closeModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {viewMode === 'add' ? 'Add New College' : 
-               viewMode === 'edit' ? 'Edit College' : 'College Details'}
+               viewMode === 'edit' ? 'Edit College' : 'College Profile'}
             </DialogTitle>
             <DialogDescription>
-              {viewMode === 'view' ? 'View college information' : 
+              {viewMode === 'view' ? 'Comprehensive college information and statistics' : 
                viewMode === 'add' ? 'Add a new college to the platform' : 
                'Update college information'}
             </DialogDescription>
@@ -385,6 +600,45 @@ const CollegeOversight = () => {
                 placeholder="College admin email"
               />
             </div>
+            {viewMode === 'view' && selectedCollege && (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Status</label>
+                  <div>{getStatusBadge(selectedCollege.status)}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Students Count</label>
+                    <Badge variant="outline" className="font-mono text-base">
+                      {selectedCollege.students_count || 0}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Tasks Assigned</label>
+                    <Badge variant="outline" className="font-mono text-base">
+                      {selectedCollege.tasks_assigned || 0}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Created Date</label>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(selectedCollege.created_at).toLocaleDateString('en-GB')}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Last Active</label>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedCollege.last_active 
+                        ? new Date(selectedCollege.last_active).toLocaleDateString('en-GB')
+                        : "—"
+                      }
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
             {viewMode !== 'view' && (
               <div>
                 <label className="text-sm font-medium mb-2 block">Status</label>
@@ -397,7 +651,6 @@ const CollegeOversight = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>
                   </SelectContent>

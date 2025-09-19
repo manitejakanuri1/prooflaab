@@ -67,8 +67,7 @@ const StartupOversight = () => {
         .from('startups')
         .select(`
           *,
-          startup_profiles(startup_name),
-          activity_logs(date)
+          startup_profiles(startup_name)
         `);
 
       if (searchTerm) {
@@ -91,10 +90,34 @@ const StartupOversight = () => {
             .select('id', { count: 'exact' })
             .eq('created_by_startup_id', startup.user_id);
           
-          // Get last active from activity logs or created_at as fallback
-          const lastActive = Array.isArray(startup.activity_logs) && startup.activity_logs[0]?.date 
-            ? startup.activity_logs[0].date 
-            : startup.created_at;
+          // Get last activity date from activity_logs
+          const { data: activityData } = await supabase
+            .from('activity_logs')
+            .select('date')
+            .eq('user_id', startup.user_id)
+            .order('date', { ascending: false })
+            .limit(1);
+
+          // Get last task posted date
+          const { data: taskData } = await supabase
+            .from('tasks')
+            .select('created_at')
+            .eq('created_by_startup_id', startup.user_id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          // Determine last active date (most recent between login and task posting)
+          const lastLogin = activityData?.[0]?.date;
+          const lastTaskPosted = taskData?.[0]?.created_at;
+          
+          let lastActive = startup.created_at; // fallback to creation date
+          if (lastLogin && lastTaskPosted) {
+            lastActive = new Date(lastLogin) > new Date(lastTaskPosted) ? lastLogin : lastTaskPosted;
+          } else if (lastLogin) {
+            lastActive = lastLogin;
+          } else if (lastTaskPosted) {
+            lastActive = lastTaskPosted;
+          }
           
           return { 
             ...startup, 

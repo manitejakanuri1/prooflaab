@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   LayoutDashboard, 
@@ -36,6 +36,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['user-management', 'content-management']);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const menuItems = [
@@ -97,7 +98,12 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   };
 
   const renderMenuItem = (item: any, level = 0) => {
-    const isActive = activeTab === item.id;
+    const isActive = activeTab === item.id || 
+      (item.id === 'user-management' && ['students', 'startups', 'colleges'].includes(activeTab));
+    
+    // For child items, check if they are directly active
+    const isChildActive = level > 0 && activeTab === item.id;
+    
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedGroups.includes(item.id);
 
@@ -107,7 +113,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
           variant="ghost"
           className={cn(
             "w-full justify-start gap-3 px-3 py-2.5 h-auto transition-all duration-200 text-left",
-            isActive 
+            (isActive || isChildActive)
               ? "bg-primary text-primary-foreground hover:bg-primary/90" 
               : "hover:bg-muted text-muted-foreground hover:text-foreground",
             level > 0 ? "ml-6 text-sm" : "",
@@ -117,7 +123,12 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             if (hasChildren) {
               toggleGroup(item.id);
             } else {
-              onTabChange(item.id);
+              // Handle child navigation for user management items
+              if (['students', 'startups', 'colleges'].includes(item.id)) {
+                onTabChange(item.id);
+              } else {
+                onTabChange(item.id);
+              }
             }
           }}
         >

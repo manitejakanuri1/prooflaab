@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import AdminDashboardOverview from "@/components/dashboard/admin/AdminDashboardOverview";
@@ -14,7 +15,34 @@ import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 
 const AdminDashboard = () => {
+  const { userType } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // Update activeTab based on URL
+  useEffect(() => {
+    if (location.pathname.includes('/user-management/')) {
+      if (userType === 'students') setActiveTab('students');
+      else if (userType === 'startups') setActiveTab('startups');
+      else if (userType === 'colleges') setActiveTab('colleges');
+      else setActiveTab('students'); // default fallback
+    } else if (location.pathname === '/admin/dashboard') {
+      setActiveTab('dashboard');
+    }
+  }, [location.pathname, userType]);
+
+  // Handle tab changes and update URL accordingly
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'students' || tab === 'startups' || tab === 'colleges') {
+      navigate(`/admin/dashboard/user-management/${tab}`);
+    } else if (tab === 'dashboard') {
+      navigate('/admin/dashboard');
+    }
+    // For other tabs, just update the state without navigation
+    // as they don't have dedicated URL routes
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -25,7 +53,7 @@ const AdminDashboard = () => {
       case "students":
       case "startups":
       case "colleges":
-        return <EnhancedUserManagement />;
+        return <EnhancedUserManagement initialTab={activeTab} />;
       case "task-oversight":
         return <TaskOversight />;
       case "jobs":
@@ -54,7 +82,7 @@ const AdminDashboard = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
         <main className="flex-1 p-6 overflow-auto">
           {renderContent()}
         </main>

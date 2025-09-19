@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +60,8 @@ interface EnhancedUserManagementProps {
 }
 
 const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagementProps) => {
+  const { userType } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -68,10 +71,20 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Update activeTab when initialTab changes
+  // Update activeTab based on URL params or initialTab
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
+    if (userType && ['students', 'startups', 'colleges'].includes(userType)) {
+      setActiveTab(userType);
+    } else {
+      setActiveTab(initialTab);
+    }
+  }, [userType, initialTab]);
+
+  // Handle tab changes and navigate to appropriate URL
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    navigate(`/admin/dashboard/user-management/${newTab}`);
+  };
 
   const { data: users, isLoading } = useQuery({
     queryKey: [`admin-users-${activeTab}`, searchTerm, statusFilter],
@@ -272,7 +285,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="students" className="flex items-center gap-2">
             {getTabIcon('students')}

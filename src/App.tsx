@@ -103,6 +103,14 @@ const App = () => (
                 </RoleBasedProtectedRoute>
               } 
             />
+            <Route 
+              path="/admin/dashboard/user-management/:userType" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
             
             {/* Legacy Routes - redirect to proper paths */}
             <Route 

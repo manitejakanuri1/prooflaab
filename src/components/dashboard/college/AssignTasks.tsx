@@ -147,10 +147,10 @@ const AssignTasks = () => {
   const filterStudents = () => {
     let filtered = [...students];
 
-    if (branchFilter) {
+    if (branchFilter && branchFilter !== "all-branches") {
       filtered = filtered.filter(s => s.branch === branchFilter);
     }
-    if (yearFilter) {
+    if (yearFilter && yearFilter !== "all-years") {
       filtered = filtered.filter(s => s.year_of_study === yearFilter);
     }
     if (trustScoreMin) {
@@ -690,7 +690,7 @@ const AssignTasks = () => {
                         <SelectValue placeholder="All branches" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All branches</SelectItem>
+                        <SelectItem value="all-branches">All branches</SelectItem>
                         {uniqueBranches.map(branch => (
                           <SelectItem key={branch} value={branch!}>
                             {branch}
@@ -707,7 +707,7 @@ const AssignTasks = () => {
                         <SelectValue placeholder="All years" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All years</SelectItem>
+                        <SelectItem value="all-years">All years</SelectItem>
                         {uniqueYears.map(year => (
                           <SelectItem key={year} value={year!}>
                             {year}
@@ -744,8 +744,8 @@ const AssignTasks = () => {
                     variant="outline" 
                     size="sm" 
                     onClick={() => {
-                      setBranchFilter("");
-                      setYearFilter("");
+                      setBranchFilter("all-branches");
+                      setYearFilter("all-years");
                       setTrustScoreMin("");
                       setTrustScoreMax("");
                       setSkillsFilter([]);

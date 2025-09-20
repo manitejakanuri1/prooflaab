@@ -10,9 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { CalendarIcon, Users, Wand2, Plus } from "lucide-react";
+import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Sliders } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Student {
@@ -21,42 +24,82 @@ interface Student {
   email: string;
   branch: string | null;
   batch: string | null;
+  year_of_study: string | null;
+  key_interests: string[] | null;
+  preferred_skills: string[] | null;
+  trust_score: number;
+}
+
+interface TaskTemplate {
+  id: string;
+  title: string;
+  description: string;
+  branch: string;
+  skills: string[];
+  difficulty: string;
+}
+
+interface ConfirmationData {
+  title: string;
+  description: string;
+  dueDate: Date;
+  xpReward: number;
+  selectedStudents: Student[];
+  category: string;
+  visibility: string;
 }
 
 const AssignTasks = () => {
+  // Core state
   const [students, setStudents] = useState<Student[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
-  const [useAI, setUseAI] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [dueDate, setDueDate] = useState<Date>();
+  const [activeTab, setActiveTab] = useState("manual");
   const { toast } = useToast();
 
-  // Manual form state
+  // Task form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [xpReward, setXpReward] = useState("");
+  const [dueDate, setDueDate] = useState<Date>();
+  const [category, setCategory] = useState("Coding");
+  const [visibility, setVisibility] = useState("Public");
 
   // AI form state
   const [selectedBranch, setSelectedBranch] = useState("");
   const [topicArea, setTopicArea] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiGenerated, setAiGenerated] = useState(false);
-  const [generatedTitle, setGeneratedTitle] = useState("");
-  const [generatedDescription, setGeneratedDescription] = useState("");
-  const [generatedXP, setGeneratedXP] = useState("");
+
+  // Template state
+  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+
+  // Filter state
+  const [branchFilter, setBranchFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
+  const [trustScoreMin, setTrustScoreMin] = useState("");
+  const [trustScoreMax, setTrustScoreMax] = useState("");
+  const [skillsFilter, setSkillsFilter] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Confirmation modal state
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<ConfirmationData | null>(null);
 
   useEffect(() => {
     fetchStudents();
+    fetchTemplates();
   }, []);
+
+  useEffect(() => {
+    filterStudents();
+  }, [students, branchFilter, yearFilter, trustScoreMin, trustScoreMax, skillsFilter]);
 
   const fetchStudents = async () => {
     try {
-      // Get current college ID first
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setStudents([]);
-        return;
-      }
+      if (!user) return;
 
       const { data: collegeData } = await supabase
         .from('colleges')
@@ -64,39 +107,71 @@ const AssignTasks = () => {
         .eq('user_id', user.id)
         .single();
 
-      if (!collegeData) {
-        setStudents([]);
-        return;
-      }
+      if (!collegeData) return;
 
-      // Fetch students belonging to this college only
       const { data: studentsData, error } = await supabase
         .from('student_profiles')
-        .select('id, full_name, email, branch, batch, college_id')
+        .select(`
+          id, full_name, email, branch, batch, year_of_study,
+          key_interests, preferred_skills, trust_score, college_id
+        `)
         .eq('college_id', collegeData.id)
         .order('full_name');
 
-      if (error) {
-        console.error('Error fetching students:', error);
-        setStudents([]);
-        toast({
-          title: "Error",
-          description: "Failed to fetch students for your college",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      console.log('Fetched students:', studentsData);
+      if (error) throw error;
       setStudents(studentsData || []);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch students for your college",
+        description: "Failed to fetch students",
         variant: "destructive",
       });
     }
+  };
+
+  const fetchTemplates = async () => {
+    // Placeholder for templates - can be implemented when task_templates table exists
+    setTemplates([
+      {
+        id: '1',
+        title: 'Basic Programming Challenge',
+        description: 'A fundamental programming task focusing on core concepts',
+        branch: 'CSE',
+        skills: ['Programming', 'Problem Solving'],
+        difficulty: 'Beginner'
+      }
+    ]);
+  };
+
+  const filterStudents = () => {
+    let filtered = [...students];
+
+    if (branchFilter) {
+      filtered = filtered.filter(s => s.branch === branchFilter);
+    }
+    if (yearFilter) {
+      filtered = filtered.filter(s => s.year_of_study === yearFilter);
+    }
+    if (trustScoreMin) {
+      filtered = filtered.filter(s => s.trust_score >= parseInt(trustScoreMin));
+    }
+    if (trustScoreMax) {
+      filtered = filtered.filter(s => s.trust_score <= parseInt(trustScoreMax));
+    }
+    if (skillsFilter.length > 0) {
+      filtered = filtered.filter(s => 
+        s.preferred_skills?.some(skill => 
+          skillsFilter.some(filter => skill.toLowerCase().includes(filter.toLowerCase()))
+        )
+      );
+    }
+
+    setFilteredStudents(filtered);
+    // Clear invalid selections
+    setSelectedStudents(prev => 
+      prev.filter(id => filtered.some(s => s.id === id))
+    );
   };
 
   const handleStudentSelect = (studentId: string, checked: boolean) => {
@@ -108,27 +183,54 @@ const AssignTasks = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedStudents.length === students.length) {
+    if (selectedStudents.length === filteredStudents.length) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(students.map(s => s.id));
+      setSelectedStudents(filteredStudents.map(s => s.id));
     }
   };
 
-  const handleGenerateTask = async () => {
-    if (!selectedBranch) {
+  const handleTemplateSelect = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setTitle(template.title);
+      setDescription(template.description);
+      setXpReward("100"); // Default XP for template tasks
+    }
+  };
+
+  const generatePersonalizedTasks = async () => {
+    if (selectedStudents.length === 0) {
       toast({
         title: "Error",
-        description: "Please select a branch",
+        description: "Please select students first",
         variant: "destructive",
       });
       return;
     }
 
-    if (!dueDate) {
+    // Generate tasks based on student interests
+    const selectedStudentData = filteredStudents.filter(s => selectedStudents.includes(s.id));
+    const commonInterests = selectedStudentData.reduce((acc, student) => {
+      student.key_interests?.forEach(interest => {
+        acc[interest] = (acc[interest] || 0) + 1;
+      });
+      return acc;
+    }, {} as Record<string, number>);
+
+    const topInterest = Object.entries(commonInterests)
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || "Programming";
+
+    setTitle(`Personalized ${topInterest} Challenge`);
+    setDescription(`A customized task focusing on ${topInterest} skills, designed based on the selected students' interests and skill levels.`);
+    setXpReward("120");
+  };
+
+  const generateAITask = async () => {
+    if (!selectedBranch || !dueDate) {
       toast({
-        title: "Error", 
-        description: "Please select a due date",
+        title: "Error",
+        description: "Please select branch and due date",
         variant: "destructive",
       });
       return;
@@ -136,32 +238,21 @@ const AssignTasks = () => {
 
     setAiGenerating(true);
     try {
-      // Mock AI generation for now - you can replace with actual AI API call
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Generate difficulty-based XP reward
-      const difficultyLevels = ['Beginner', 'Intermediate', 'Advanced'];
-      const randomDifficulty = difficultyLevels[Math.floor(Math.random() * difficultyLevels.length)];
+      const difficulties = ['Beginner', 'Intermediate', 'Advanced'];
+      const difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
       const xpMapping = { 'Beginner': 50, 'Intermediate': 100, 'Advanced': 150 };
       
-      const generatedTask = {
-        title: `${selectedBranch} Programming Challenge: ${topicArea || 'Algorithm Design'}`,
-        description: `Create a comprehensive solution that demonstrates your understanding of ${topicArea || 'fundamental programming concepts'}. Your solution should include proper documentation, error handling, and efficient algorithms. This task is designed specifically for ${selectedBranch} students to enhance their problem-solving skills.\n\nRequirements:\n- Implement clean, readable code\n- Include appropriate comments\n- Handle edge cases\n- Write test cases\n\nDifficulty Level: ${randomDifficulty}`,
-        xp: xpMapping[randomDifficulty as keyof typeof xpMapping].toString()
-      };
-
-      setGeneratedTitle(generatedTask.title);
-      setGeneratedDescription(generatedTask.description);
-      setGeneratedXP(generatedTask.xp);
-      setAiGenerated(true);
+      setTitle(`${selectedBranch} AI Challenge: ${topicArea || 'Advanced Problem Solving'}`);
+      setDescription(`An AI-generated task for ${selectedBranch} students focusing on ${topicArea || 'core concepts'}. This challenge includes practical implementation, testing, and documentation requirements.`);
+      setXpReward(xpMapping[difficulty as keyof typeof xpMapping].toString());
 
       toast({
         title: "Success",
-        description: "AI task generated successfully! Review and edit before assigning.",
+        description: "AI task generated successfully!",
       });
-
     } catch (error) {
-      console.error('Error generating AI task:', error);
       toast({
         title: "Error",
         description: "Failed to generate AI task",
@@ -172,60 +263,42 @@ const AssignTasks = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (selectedStudents.length === 0) {
+  const handlePreviewAssignment = () => {
+    if (!title || !description || !dueDate || selectedStudents.length === 0) {
       toast({
         title: "Error",
-        description: "Please select at least one student",
+        description: "Please fill all required fields and select students",
         variant: "destructive",
       });
       return;
     }
 
-    if (!dueDate) {
-      toast({
-        title: "Error",
-        description: "Please select a due date",
-        variant: "destructive",
-      });
-      return;
-    }
+    const selectedStudentData = filteredStudents.filter(s => selectedStudents.includes(s.id));
+    setConfirmationData({
+      title,
+      description,
+      dueDate,
+      xpReward: parseInt(xpReward) || 0,
+      selectedStudents: selectedStudentData,
+      category,
+      visibility
+    });
+    setShowConfirmation(true);
+  };
 
+  const handleConfirmAssignment = async () => {
+    if (!confirmationData) return;
+    
     setLoading(true);
     try {
-      let taskData = { title: "", description: "" };
-
-      if (useAI) {
-        if (!aiGenerated || !generatedTitle || !generatedDescription || !generatedXP) {
-          toast({
-            title: "Error",
-            description: "Please generate a task first using the 'Generate Task' button",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-        taskData = { title: generatedTitle, description: generatedDescription };
-      } else {
-        if (!title || !description || !xpReward) {
-          toast({
-            title: "Error",
-            description: "Please fill in all required fields",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-        taskData = { title, description };
-      }
-
-      // Create tasks for each selected student
       const tasksToInsert = selectedStudents.map(studentId => ({
         student_id: studentId,
-        title: taskData.title,
-        description: taskData.description,
-        due_date: dueDate.toISOString(),
-        xp_reward: useAI ? parseInt(generatedXP) : parseInt(xpReward),
+        title: confirmationData.title,
+        description: confirmationData.description,
+        due_date: confirmationData.dueDate.toISOString(),
+        xp_reward: confirmationData.xpReward,
+        category: confirmationData.category,
+        visibility: confirmationData.visibility.toLowerCase(),
         status: 'Pending'
       }));
 
@@ -237,27 +310,24 @@ const AssignTasks = () => {
 
       toast({
         title: "Success",
-        description: `Successfully assigned tasks to ${selectedStudents.length} student(s)`,
+        description: `Tasks assigned to ${selectedStudents.length} student(s)`,
       });
 
       // Reset form
       setTitle("");
       setDescription("");
       setXpReward("");
-      setSelectedBranch("");
-      setTopicArea("");
       setSelectedStudents([]);
       setDueDate(undefined);
-      setUseAI(false);
-      setAiGenerated(false);
-      setGeneratedTitle("");
-      setGeneratedDescription("");
-      setGeneratedXP("");
+      setSelectedBranch("");
+      setTopicArea("");
+      setSelectedTemplate("");
+      setShowConfirmation(false);
 
     } catch (error) {
       console.error('Error assigning tasks:', error);
       toast({
-        title: "Error",
+        title: "Error", 
         description: "Failed to assign tasks",
         variant: "destructive",
       });
@@ -267,162 +337,287 @@ const AssignTasks = () => {
   };
 
   const uniqueBranches = [...new Set(students.map(s => s.branch).filter(Boolean))];
+  const uniqueYears = [...new Set(students.map(s => s.year_of_study).filter(Boolean))];
+  const allSkills = [...new Set(students.flatMap(s => s.preferred_skills || []))];
+
+  const getTabIcon = (tab: string) => {
+    switch(tab) {
+      case 'manual': return <Plus className="h-4 w-4" />;
+      case 'ai': return <Wand2 className="h-4 w-4" />;
+      case 'template': return <FileText className="h-4 w-4" />;
+      case 'personalized': return <User className="h-4 w-4" />;
+      default: return <Plus className="h-4 w-4" />;
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-foreground">Assign Tasks</h2>
+        <Button
+          variant="outline"
+          onClick={handlePreviewAssignment}
+          className="flex items-center gap-2"
+          disabled={!title || !description || selectedStudents.length === 0}
+        >
+          <Eye className="h-4 w-4" />
+          Preview Assignment
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Task Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {useAI ? <Wand2 className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-              {useAI ? "AI Task Generator" : "Manual Task Entry"}
-            </CardTitle>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="use-ai"
-                checked={useAI}
-                onCheckedChange={setUseAI}
-              />
-              <Label htmlFor="use-ai">Use AI to generate task</Label>
-            </div>
+            <CardTitle>Task Configuration</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {useAI ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="branch">Student Branch *</Label>
-                  <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {uniqueBranches.map(branch => (
-                        <SelectItem key={branch} value={branch!}>
-                          {branch}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="topic">Topic Area (Optional)</Label>
-                  <Input
-                    id="topic"
-                    placeholder="e.g., Data Structures, Web Development"
-                    value={topicArea}
-                    onChange={(e) => setTopicArea(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Due Date *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !dueDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dueDate ? format(dueDate, "PPP") : "Select due date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dueDate}
-                        onSelect={setDueDate}
-                        initialFocus
-                        disabled={(date) => date < new Date()}
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  {getTabIcon('manual')}
+                  <span className="hidden sm:inline">Manual</span>
+                </TabsTrigger>
+                <TabsTrigger value="ai" className="flex items-center gap-2">
+                  {getTabIcon('ai')}
+                  <span className="hidden sm:inline">AI</span>
+                </TabsTrigger>
+                <TabsTrigger value="template" className="flex items-center gap-2">
+                  {getTabIcon('template')}
+                  <span className="hidden sm:inline">Template</span>
+                </TabsTrigger>
+                <TabsTrigger value="personalized" className="flex items-center gap-2">
+                  {getTabIcon('personalized')}
+                  <span className="hidden sm:inline">Personal</span>
+                </TabsTrigger>
+              </TabsList>
 
-                <Button 
-                  onClick={handleGenerateTask} 
-                  disabled={aiGenerating || !selectedBranch || !dueDate}
-                  className="w-full"
-                  variant="default"
-                >
-                  {aiGenerating ? "Generating Task..." : "Generate Task"}
-                </Button>
-
-                {aiGenerated && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                    <h4 className="font-semibold text-sm">Review & Edit Generated Task</h4>
-                    
+              <TabsContent value="manual" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Task Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder="Enter task title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Enter task description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="generated-title">Task Title</Label>
+                      <Label htmlFor="xp">XP Reward *</Label>
                       <Input
-                        id="generated-title"
-                        value={generatedTitle}
-                        onChange={(e) => setGeneratedTitle(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="generated-description">Description</Label>
-                      <Textarea
-                        id="generated-description"
-                        value={generatedDescription}
-                        onChange={(e) => setGeneratedDescription(e.target.value)}
-                        rows={6}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="generated-xp">XP Reward</Label>
-                      <Input
-                        id="generated-xp"
+                        id="xp"
                         type="number"
-                        value={generatedXP}
-                        onChange={(e) => setGeneratedXP(e.target.value)}
+                        placeholder="100"
+                        value={xpReward}
+                        onChange={(e) => setXpReward(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Coding">Coding</SelectItem>
+                          <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Research">Research</SelectItem>
+                          <SelectItem value="Writing">Writing</SelectItem>
+                          <SelectItem value="Analysis">Analysis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="ai" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="branch">Branch *</Label>
+                      <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {uniqueBranches.map(branch => (
+                            <SelectItem key={branch} value={branch!}>
+                              {branch}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="topic">Topic Keywords</Label>
+                      <Input
+                        id="topic"
+                        placeholder="e.g., algorithms, web dev"
+                        value={topicArea}
+                        onChange={(e) => setTopicArea(e.target.value)}
                       />
                     </div>
                   </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="title">Task Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Enter task title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
+                  
+                  <Button
+                    onClick={generateAITask}
+                    disabled={aiGenerating || !selectedBranch}
+                    className="w-full"
+                  >
+                    {aiGenerating ? "Generating..." : "Generate AI Task"}
+                  </Button>
+
+                  {title && (
+                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium">Generated Title</Label>
+                        <Input
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Generated Description</Label>
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">XP Reward</Label>
+                        <Input
+                          type="number"
+                          value={xpReward}
+                          onChange={(e) => setXpReward(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Enter task description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={4}
-                  />
+              </TabsContent>
+
+              <TabsContent value="template" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="template">Select Template</Label>
+                    <Select value={selectedTemplate} onValueChange={(value) => {
+                      setSelectedTemplate(value);
+                      handleTemplateSelect(value);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templates.map(template => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.title} ({template.difficulty})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedTemplate && (
+                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium">Title (Editable)</Label>
+                        <Input
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Description (Editable)</Label>
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">XP Reward</Label>
+                        <Input
+                          type="number"
+                          value={xpReward}
+                          onChange={(e) => setXpReward(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="xp">XP Reward *</Label>
-                  <Input
-                    id="xp"
-                    type="number"
-                    placeholder="Enter XP reward"
-                    value={xpReward}
-                    onChange={(e) => setXpReward(e.target.value)}
-                  />
+              </TabsContent>
+
+              <TabsContent value="personalized" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Select students first, then generate personalized tasks based on their interests and skills.
+                    </p>
+                  </div>
+                  
+                  <Button
+                    onClick={generatePersonalizedTasks}
+                    disabled={selectedStudents.length === 0}
+                    className="w-full"
+                  >
+                    Generate Personalized Task
+                  </Button>
+
+                  {title && (
+                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium">Personalized Title</Label>
+                        <Input
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Personalized Description</Label>
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">XP Reward</Label>
+                        <Input
+                          type="number"
+                          value={xpReward}
+                          onChange={(e) => setXpReward(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
+              </TabsContent>
+
+              {/* Common fields */}
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Due Date *</Label>
                   <Popover>
@@ -450,31 +645,131 @@ const AssignTasks = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-              </>
-            )}
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {visibility === "Public" ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                    <Label>Visibility</Label>
+                  </div>
+                  <Switch
+                    checked={visibility === "Public"}
+                    onCheckedChange={(checked) => setVisibility(checked ? "Public" : "Private")}
+                  />
+                </div>
+              </div>
+            </Tabs>
           </CardContent>
         </Card>
 
         {/* Student Selection */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Select Students ({selectedStudents.length}/{students.length})
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Select Students ({selectedStudents.length}/{filteredStudents.length})
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+              </Button>
+            </div>
+            
+            {showFilters && (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Branch</Label>
+                    <Select value={branchFilter} onValueChange={setBranchFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All branches" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All branches</SelectItem>
+                        {uniqueBranches.map(branch => (
+                          <SelectItem key={branch} value={branch!}>
+                            {branch}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Year of Study</Label>
+                    <Select value={yearFilter} onValueChange={setYearFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All years" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All years</SelectItem>
+                        {uniqueYears.map(year => (
+                          <SelectItem key={year} value={year!}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Trust Score Range</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Min"
+                      type="number"
+                      value={trustScoreMin}
+                      onChange={(e) => setTrustScoreMin(e.target.value)}
+                      className="w-24"
+                    />
+                    <span>to</span>
+                    <Input
+                      placeholder="Max"
+                      type="number"
+                      value={trustScoreMax}
+                      onChange={(e) => setTrustScoreMax(e.target.value)}
+                      className="w-24"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setBranchFilter("");
+                      setYearFilter("");
+                      setTrustScoreMin("");
+                      setTrustScoreMax("");
+                      setSkillsFilter([]);
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <Button
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
               className="w-fit"
             >
-              {selectedStudents.length === students.length ? "Deselect All" : "Select All"}
+              {selectedStudents.length === filteredStudents.length ? "Deselect All" : "Select All"}
             </Button>
           </CardHeader>
           <CardContent>
             <div className="max-h-96 overflow-y-auto space-y-2">
-              {students.map((student) => (
-                <div key={student.id} className="flex items-center space-x-2 p-2 rounded border">
+              {filteredStudents.map((student) => (
+                <div key={student.id} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent/50">
                   <Checkbox
                     id={student.id}
                     checked={selectedStudents.includes(student.id)}
@@ -483,30 +778,125 @@ const AssignTasks = () => {
                     }
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {student.full_name}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {student.full_name}
+                      </p>
+                      <Badge variant="secondary" className="ml-2">
+                        {student.trust_score}
+                      </Badge>
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      {student.email} • {student.branch} • {student.batch}
+                      {student.email}
                     </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {student.branch && (
+                        <Badge variant="outline" className="text-xs">
+                          {student.branch}
+                        </Badge>
+                      )}
+                      {student.year_of_study && (
+                        <Badge variant="outline" className="text-xs">
+                          Year {student.year_of_study}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
+              {filteredStudents.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2" />
+                  <p>No students match your filters</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Submit Button */}
-      <div className="flex justify-end">
-        <Button 
-          onClick={handleSubmit} 
-          disabled={loading || aiGenerating}
-          className="min-w-32"
-        >
-          {loading ? "Assigning..." : aiGenerating ? "Generating..." : "Assign Tasks"}
-        </Button>
-      </div>
+      {/* Confirmation Modal */}
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Confirm Task Assignment</DialogTitle>
+            <DialogDescription>
+              Please review the task details before assigning.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {confirmationData && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Task Title</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{confirmationData.title}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Due Date</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {format(confirmationData.dueDate, "PPP")}
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Description</Label>
+                <p className="text-sm text-muted-foreground mt-1 max-h-24 overflow-y-auto">
+                  {confirmationData.description}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">XP Reward</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{confirmationData.xpReward}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Category</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{confirmationData.category}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Visibility</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    {confirmationData.visibility === "Public" ? (
+                      <Globe className="h-3 w-3" />
+                    ) : (
+                      <Lock className="h-3 w-3" />
+                    )}
+                    <span className="text-sm text-muted-foreground">{confirmationData.visibility}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">
+                  Selected Students ({confirmationData.selectedStudents.length})
+                </Label>
+                <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                  {confirmationData.selectedStudents.map(student => (
+                    <div key={student.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-sm">{student.full_name}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {student.branch}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmAssignment} disabled={loading}>
+              {loading ? "Assigning..." : "Confirm Assignment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

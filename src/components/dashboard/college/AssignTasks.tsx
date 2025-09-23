@@ -931,7 +931,7 @@ const AssignTasks = () => {
                         variant="outline" 
                         size="sm" 
                         onClick={clearTemplate}
-                        className="mt-2 text-xs"
+                        className="mt-2 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                       >
                         Clear Template
                       </Button>

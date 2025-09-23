@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Sliders } from "lucide-react";
+import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Sliders, Upload, X, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Student {
@@ -47,6 +47,15 @@ interface ConfirmationData {
   selectedStudents: Student[];
   category: string;
   visibility: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+}
+
+interface FormErrors {
+  title?: string;
+  description?: string;
+  xpReward?: string;
+  dueDate?: string;
 }
 
 const AssignTasks = () => {
@@ -86,6 +95,15 @@ const AssignTasks = () => {
   // Confirmation modal state
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationData, setConfirmationData] = useState<ConfirmationData | null>(null);
+
+  // Form validation state
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+  // Attachment state
+  const [attachmentType, setAttachmentType] = useState<'url' | 'file'>('url');
+  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -263,25 +281,96 @@ const AssignTasks = () => {
     }
   };
 
-  const handlePreviewAssignment = () => {
-    if (!title || !description || !dueDate || selectedStudents.length === 0) {
+  const validateForm = () => {
+    const errors: FormErrors = {};
+    
+    if (!title.trim()) {
+      errors.title = "Task title is required";
+    }
+    
+    if (!description.trim()) {
+      errors.description = "Task description is required";
+    }
+    
+    const xpNum = parseInt(xpReward);
+    if (!xpReward || isNaN(xpNum) || xpNum <= 0) {
+      errors.xpReward = "XP Reward must be greater than 0";
+    }
+    
+    if (!dueDate) {
+      errors.dueDate = "Due date is required";
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAttachmentUpload = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `task-attachments/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
       toast({
         title: "Error",
-        description: "Please fill all required fields and select students",
+        description: "Failed to upload attachment",
         variant: "destructive",
       });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePreviewAssignment = async () => {
+    if (!validateForm() || selectedStudents.length === 0) {
+      if (selectedStudents.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one student",
+          variant: "destructive",
+        });
+      }
       return;
+    }
+
+    let finalAttachmentUrl = attachmentUrl;
+    let finalAttachmentName = "";
+
+    // Handle file upload if a file is selected
+    if (attachmentFile) {
+      const uploadedUrl = await handleAttachmentUpload(attachmentFile);
+      if (uploadedUrl) {
+        finalAttachmentUrl = uploadedUrl;
+        finalAttachmentName = attachmentFile.name;
+      }
     }
 
     const selectedStudentData = filteredStudents.filter(s => selectedStudents.includes(s.id));
     setConfirmationData({
       title,
       description,
-      dueDate,
-      xpReward: parseInt(xpReward) || 0,
+      dueDate: dueDate!,
+      xpReward: parseInt(xpReward),
       selectedStudents: selectedStudentData,
       category,
-      visibility
+      visibility,
+      attachmentUrl: finalAttachmentUrl || undefined,
+      attachmentName: finalAttachmentName || undefined
     });
     setShowConfirmation(true);
   };
@@ -302,11 +391,37 @@ const AssignTasks = () => {
         status: 'Pending'
       }));
 
-      const { error } = await supabase
+      const { data: insertedTasks, error } = await supabase
         .from('tasks')
-        .insert(tasksToInsert);
+        .insert(tasksToInsert)
+        .select('id');
 
       if (error) throw error;
+
+      // Create audit log entries for each task
+      if (insertedTasks && insertedTasks.length > 0) {
+        const currentUser = await supabase.auth.getUser();
+        const auditLogs = insertedTasks.map(task => ({
+          table_name: 'tasks',
+          action: 'Task Created',
+          record_id: task.id,
+          user_id: currentUser.data.user?.id,
+          new_values: {
+            title: confirmationData.title,
+            description: confirmationData.description,
+            xp_reward: confirmationData.xpReward,
+            category: confirmationData.category
+          }
+        }));
+
+        const { error: auditError } = await supabase
+          .from('audit_logs')
+          .insert(auditLogs);
+
+        if (auditError) {
+          console.error('Error creating audit logs:', auditError);
+        }
+      }
 
       toast({
         title: "Success",
@@ -322,6 +437,9 @@ const AssignTasks = () => {
       setSelectedBranch("");
       setTopicArea("");
       setSelectedTemplate("");
+      setAttachmentUrl("");
+      setAttachmentFile(null);
+      setFormErrors({});
       setShowConfirmation(false);
 
     } catch (error) {
@@ -358,7 +476,7 @@ const AssignTasks = () => {
           variant="outline"
           onClick={handlePreviewAssignment}
           className="flex items-center gap-2"
-          disabled={!title || !description || selectedStudents.length === 0}
+          disabled={!title.trim() || !description.trim() || !xpReward || parseInt(xpReward) <= 0 || !dueDate || selectedStudents.length === 0}
         >
           <Eye className="h-4 w-4" />
           Preview Assignment
@@ -400,8 +518,17 @@ const AssignTasks = () => {
                       id="title"
                       placeholder="Enter task title"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        if (formErrors.title) {
+                          setFormErrors({...formErrors, title: undefined});
+                        }
+                      }}
+                      className={formErrors.title ? "border-destructive" : ""}
                     />
+                    {formErrors.title && (
+                      <p className="text-sm text-destructive">{formErrors.title}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">Description *</Label>
@@ -409,10 +536,73 @@ const AssignTasks = () => {
                       id="description"
                       placeholder="Enter task description"
                       value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                      onChange={(e) => {
+                        setDescription(e.target.value);
+                        if (formErrors.description) {
+                          setFormErrors({...formErrors, description: undefined});
+                        }
+                      }}
                       rows={4}
+                      className={formErrors.description ? "border-destructive" : ""}
                     />
+                    {formErrors.description && (
+                      <p className="text-sm text-destructive">{formErrors.description}</p>
+                    )}
                   </div>
+
+                  {/* Attachments Section */}
+                  <div className="space-y-2">
+                    <Label>Attachments (optional)</Label>
+                    <div className="space-y-3">
+                      <Tabs value={attachmentType} onValueChange={(value) => setAttachmentType(value as 'url' | 'file')} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="url" className="flex items-center gap-2">
+                            <Link className="h-4 w-4" />
+                            URL
+                          </TabsTrigger>
+                          <TabsTrigger value="file" className="flex items-center gap-2">
+                            <Upload className="h-4 w-4" />
+                            File
+                          </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="url" className="mt-3">
+                          <Input
+                            placeholder="https://example.com/resource"
+                            value={attachmentUrl}
+                            onChange={(e) => setAttachmentUrl(e.target.value)}
+                          />
+                        </TabsContent>
+                        <TabsContent value="file" className="mt-3">
+                          <div className="space-y-2">
+                            <Input
+                              type="file"
+                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setAttachmentFile(file);
+                                }
+                              }}
+                            />
+                            {attachmentFile && (
+                              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-sm flex-1">{attachmentFile.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setAttachmentFile(null)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="xp">XP Reward *</Label>
@@ -421,8 +611,17 @@ const AssignTasks = () => {
                         type="number"
                         placeholder="100"
                         value={xpReward}
-                        onChange={(e) => setXpReward(e.target.value)}
+                        onChange={(e) => {
+                          setXpReward(e.target.value);
+                          if (formErrors.xpReward) {
+                            setFormErrors({...formErrors, xpReward: undefined});
+                          }
+                        }}
+                        className={formErrors.xpReward ? "border-destructive" : ""}
                       />
+                      {formErrors.xpReward && (
+                        <p className="text-sm text-destructive">{formErrors.xpReward}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="category">Category</Label>
@@ -626,7 +825,8 @@ const AssignTasks = () => {
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !dueDate && "text-muted-foreground"
+                          !dueDate && "text-muted-foreground",
+                          formErrors.dueDate && "border-destructive"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -637,13 +837,21 @@ const AssignTasks = () => {
                       <Calendar
                         mode="single"
                         selected={dueDate}
-                        onSelect={setDueDate}
+                        onSelect={(date) => {
+                          setDueDate(date);
+                          if (formErrors.dueDate) {
+                            setFormErrors({...formErrors, dueDate: undefined});
+                          }
+                        }}
                         initialFocus
                         disabled={(date) => date < new Date()}
                         className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
+                  {formErrors.dueDate && (
+                    <p className="text-sm text-destructive">{formErrors.dueDate}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -868,6 +1076,19 @@ const AssignTasks = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Attachment Display */}
+              {(confirmationData.attachmentUrl || confirmationData.attachmentName) && (
+                <div>
+                  <Label className="text-sm font-medium">Attachment</Label>
+                  <div className="flex items-center gap-2 mt-1 p-2 bg-muted/50 rounded">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-sm text-muted-foreground">
+                      {confirmationData.attachmentName || "Attachment URL"}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <Label className="text-sm font-medium">

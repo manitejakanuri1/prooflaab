@@ -335,6 +335,37 @@ const AssignTasks = () => {
     }));
   };
 
+  const clearManualTask = () => {
+    setManualForm(prev => ({
+      ...prev,
+      title: "",
+      description: "",
+      xpReward: ""
+      // Keep dueDate, visibility, attachments, and category unchanged
+    }));
+  };
+
+  const clearAITask = () => {
+    setAiForm(prev => ({
+      ...prev,
+      title: "",
+      description: "",
+      xpReward: "",
+      generated: false
+      // Keep selectedBranch, topicArea, dueDate, and visibility unchanged
+    }));
+  };
+
+  const clearPersonalTask = () => {
+    setPersonalForm(prev => ({
+      ...prev,
+      title: "",
+      description: "",
+      xpReward: ""
+      // Keep dueDate and visibility unchanged
+    }));
+  };
+
   const generateAITask = async () => {
     if (!aiForm.selectedBranch || !aiForm.dueDate) {
       toast({
@@ -616,19 +647,31 @@ const AssignTasks = () => {
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="manual" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="manual" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
                   {getTabIcon('manual')}
                   <span className="hidden sm:inline">Manual</span>
                 </TabsTrigger>
-                <TabsTrigger value="ai" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="ai" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
                   {getTabIcon('ai')}
                   <span className="hidden sm:inline">AI</span>
                 </TabsTrigger>
-                <TabsTrigger value="template" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="template" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
                   {getTabIcon('template')}
                   <span className="hidden sm:inline">Template</span>
                 </TabsTrigger>
-                <TabsTrigger value="personalized" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="personalized" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
                   {getTabIcon('personalized')}
                   <span className="hidden sm:inline">Personal</span>
                 </TabsTrigger>
@@ -763,6 +806,20 @@ const AssignTasks = () => {
                       </Select>
                     </div>
                   </div>
+                  
+                  {/* Clear Task Button - only show if fields have content */}
+                  {(title || description || xpReward) && (
+                    <div className="pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={clearManualTask}
+                        className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      >
+                        Clear Task
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -830,11 +887,25 @@ const AssignTasks = () => {
                            onChange={(e) => setAiForm(prev => ({ ...prev, xpReward: e.target.value }))}
                            className="mt-1"
                          />
-                       </div>
-                     </div>
-                   )}
-                </div>
-              </TabsContent>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Clear Task Button - only show if AI task was generated */}
+                    {aiForm.generated && title && (
+                      <div className="pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={clearAITask}
+                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        >
+                          Clear Task
+                        </Button>
+                      </div>
+                    )}
+                 </div>
+               </TabsContent>
 
               <TabsContent value="template" className="space-y-4">
                 <div className="space-y-4">
@@ -943,11 +1014,25 @@ const AssignTasks = () => {
                           onChange={(e) => setPersonalForm(prev => ({ ...prev, xpReward: e.target.value }))}
                           className="mt-1"
                         />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+                    )}
+                    
+                    {/* Clear Task Button - only show if personalized task was generated */}
+                    {title && (
+                      <div className="pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={clearPersonalTask}
+                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        >
+                          Clear Task
+                        </Button>
+                      </div>
+                    )}
+                 </div>
+               </TabsContent>
 
               {/* Common fields */}
               <div className="space-y-4">

@@ -67,22 +67,97 @@ const AssignTasks = () => {
   const [activeTab, setActiveTab] = useState("manual");
   const { toast } = useToast();
 
-  // Task form state
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [xpReward, setXpReward] = useState("");
-  const [dueDate, setDueDate] = useState<Date>();
-  const [category, setCategory] = useState("Coding");
-  const [visibility, setVisibility] = useState("Public");
+  // Separate form states for each tab
+  const [manualForm, setManualForm] = useState({
+    title: "",
+    description: "",
+    xpReward: "",
+    dueDate: undefined as Date | undefined,
+    category: "Coding",
+    visibility: "Public",
+    attachmentType: 'url' as 'url' | 'file',
+    attachmentUrl: "",
+    attachmentFile: null as File | null
+  });
 
-  // AI form state
-  const [selectedBranch, setSelectedBranch] = useState("");
-  const [topicArea, setTopicArea] = useState("");
-  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiForm, setAiForm] = useState({
+    selectedBranch: "",
+    topicArea: "",
+    dueDate: undefined as Date | undefined,
+    visibility: "Public",
+    title: "",
+    description: "",
+    xpReward: "",
+    generated: false
+  });
+
+  const [templateForm, setTemplateForm] = useState({
+    selectedTemplate: "",
+    title: "",
+    description: "",
+    xpReward: "",
+    dueDate: undefined as Date | undefined,
+    category: "Coding",
+    visibility: "Public"
+  });
+
+  const [personalForm, setPersonalForm] = useState({
+    title: "",
+    description: "",
+    xpReward: "",
+    dueDate: undefined as Date | undefined,
+    category: "Coding",
+    visibility: "Public"
+  });
 
   // Template state
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+
+  // Helper functions to get and update active form
+  const getActiveForm = () => {
+    switch (activeTab) {
+      case 'manual': return manualForm;
+      case 'ai': return aiForm;
+      case 'template': return templateForm;
+      case 'personalized': return personalForm;
+      default: return manualForm;
+    }
+  };
+
+  const updateActiveForm = (updates: Partial<any>) => {
+    switch (activeTab) {
+      case 'manual':
+        setManualForm(prev => ({ ...prev, ...updates }));
+        break;
+      case 'ai':
+        setAiForm(prev => ({ ...prev, ...updates }));
+        break;
+      case 'template':
+        setTemplateForm(prev => ({ ...prev, ...updates }));
+        break;
+      case 'personalized':
+        setPersonalForm(prev => ({ ...prev, ...updates }));
+        break;
+    }
+  };
+
+  // Get current form values - safely handle different form types
+  const currentForm = getActiveForm();
+  const title = currentForm.title || "";
+  const description = currentForm.description || "";
+  const xpReward = currentForm.xpReward || "";
+  const dueDate = currentForm.dueDate;
+  const visibility = currentForm.visibility || "Public";
+  const category = ('category' in currentForm) ? currentForm.category : "Coding";
+  
+  // Tab-specific accessors
+  const selectedBranch = aiForm.selectedBranch;
+  const topicArea = aiForm.topicArea;
+  const selectedTemplate = templateForm.selectedTemplate;
+  const attachmentType = manualForm.attachmentType;
+  const attachmentUrl = manualForm.attachmentUrl;
+  const attachmentFile = manualForm.attachmentFile;
 
   // Filter state
   const [branchFilter, setBranchFilter] = useState("");
@@ -100,9 +175,6 @@ const AssignTasks = () => {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   // Attachment state
-  const [attachmentType, setAttachmentType] = useState<'url' | 'file'>('url');
-  const [attachmentUrl, setAttachmentUrl] = useState("");
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -211,9 +283,13 @@ const AssignTasks = () => {
   const handleTemplateSelect = (templateId: string) => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      setTitle(template.title);
-      setDescription(template.description);
-      setXpReward("100"); // Default XP for template tasks
+      setTemplateForm(prev => ({
+        ...prev,
+        selectedTemplate: templateId,
+        title: template.title,
+        description: template.description,
+        xpReward: "100"
+      }));
     }
   };
 
@@ -239,13 +315,16 @@ const AssignTasks = () => {
     const topInterest = Object.entries(commonInterests)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || "Programming";
 
-    setTitle(`Personalized ${topInterest} Challenge`);
-    setDescription(`A customized task focusing on ${topInterest} skills, designed based on the selected students' interests and skill levels.`);
-    setXpReward("120");
+    setPersonalForm(prev => ({
+      ...prev,
+      title: `Personalized ${topInterest} Challenge`,
+      description: `A customized task focusing on ${topInterest} skills, designed based on the selected students' interests and skill levels.`,
+      xpReward: "120"
+    }));
   };
 
   const generateAITask = async () => {
-    if (!selectedBranch || !dueDate) {
+    if (!aiForm.selectedBranch || !aiForm.dueDate) {
       toast({
         title: "Error",
         description: "Please select branch and due date",
@@ -262,9 +341,13 @@ const AssignTasks = () => {
       const difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
       const xpMapping = { 'Beginner': 50, 'Intermediate': 100, 'Advanced': 150 };
       
-      setTitle(`${selectedBranch} AI Challenge: ${topicArea || 'Advanced Problem Solving'}`);
-      setDescription(`An AI-generated task for ${selectedBranch} students focusing on ${topicArea || 'core concepts'}. This challenge includes practical implementation, testing, and documentation requirements.`);
-      setXpReward(xpMapping[difficulty as keyof typeof xpMapping].toString());
+      setAiForm(prev => ({
+        ...prev,
+        title: `${aiForm.selectedBranch} AI Challenge: ${aiForm.topicArea || 'Advanced Problem Solving'}`,
+        description: `An AI-generated task for ${aiForm.selectedBranch} students focusing on ${aiForm.topicArea || 'core concepts'}. This challenge includes practical implementation, testing, and documentation requirements.`,
+        xpReward: xpMapping[difficulty as keyof typeof xpMapping].toString(),
+        generated: true
+      }));
 
       toast({
         title: "Success",
@@ -428,17 +511,46 @@ const AssignTasks = () => {
         description: `Tasks assigned to ${selectedStudents.length} student(s)`,
       });
 
-      // Reset form
-      setTitle("");
-      setDescription("");
-      setXpReward("");
+      // Reset all forms
+      setManualForm({
+        title: "",
+        description: "",
+        xpReward: "",
+        dueDate: undefined,
+        category: "Coding",
+        visibility: "Public",
+        attachmentType: 'url',
+        attachmentUrl: "",
+        attachmentFile: null
+      });
+      setAiForm({
+        selectedBranch: "",
+        topicArea: "",
+        dueDate: undefined,
+        visibility: "Public",
+        title: "",
+        description: "",
+        xpReward: "",
+        generated: false
+      });
+      setTemplateForm({
+        selectedTemplate: "",
+        title: "",
+        description: "",
+        xpReward: "",
+        dueDate: undefined,
+        category: "Coding",
+        visibility: "Public"
+      });
+      setPersonalForm({
+        title: "",
+        description: "",
+        xpReward: "",
+        dueDate: undefined,
+        category: "Coding",
+        visibility: "Public"
+      });
       setSelectedStudents([]);
-      setDueDate(undefined);
-      setSelectedBranch("");
-      setTopicArea("");
-      setSelectedTemplate("");
-      setAttachmentUrl("");
-      setAttachmentFile(null);
       setFormErrors({});
       setShowConfirmation(false);
 
@@ -519,7 +631,7 @@ const AssignTasks = () => {
                       placeholder="Enter task title"
                       value={title}
                       onChange={(e) => {
-                        setTitle(e.target.value);
+                        updateActiveForm({ title: e.target.value });
                         if (formErrors.title) {
                           setFormErrors({...formErrors, title: undefined});
                         }
@@ -537,7 +649,7 @@ const AssignTasks = () => {
                       placeholder="Enter task description"
                       value={description}
                       onChange={(e) => {
-                        setDescription(e.target.value);
+                        updateActiveForm({ description: e.target.value });
                         if (formErrors.description) {
                           setFormErrors({...formErrors, description: undefined});
                         }
@@ -554,7 +666,7 @@ const AssignTasks = () => {
                   <div className="space-y-2">
                     <Label>Attachments (optional)</Label>
                     <div className="space-y-3">
-                      <Tabs value={attachmentType} onValueChange={(value) => setAttachmentType(value as 'url' | 'file')} className="w-full">
+                      <Tabs value={attachmentType} onValueChange={(value) => setManualForm(prev => ({ ...prev, attachmentType: value as 'url' | 'file' }))} className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="url" className="flex items-center gap-2">
                             <Link className="h-4 w-4" />
@@ -566,11 +678,11 @@ const AssignTasks = () => {
                           </TabsTrigger>
                         </TabsList>
                         <TabsContent value="url" className="mt-3">
-                          <Input
-                            placeholder="https://example.com/resource"
-                            value={attachmentUrl}
-                            onChange={(e) => setAttachmentUrl(e.target.value)}
-                          />
+                            <Input
+                              placeholder="https://example.com/resource"
+                              value={attachmentUrl}
+                              onChange={(e) => setManualForm(prev => ({ ...prev, attachmentUrl: e.target.value }))}
+                            />
                         </TabsContent>
                         <TabsContent value="file" className="mt-3">
                           <div className="space-y-2">
@@ -580,7 +692,7 @@ const AssignTasks = () => {
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  setAttachmentFile(file);
+                                  setManualForm(prev => ({ ...prev, attachmentFile: file }));
                                 }
                               }}
                             />
@@ -591,7 +703,7 @@ const AssignTasks = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setAttachmentFile(null)}
+                                  onClick={() => setManualForm(prev => ({ ...prev, attachmentFile: null }))}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -612,7 +724,7 @@ const AssignTasks = () => {
                         placeholder="100"
                         value={xpReward}
                         onChange={(e) => {
-                          setXpReward(e.target.value);
+                          updateActiveForm({ xpReward: e.target.value });
                           if (formErrors.xpReward) {
                             setFormErrors({...formErrors, xpReward: undefined});
                           }
@@ -625,7 +737,7 @@ const AssignTasks = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="category">Category</Label>
-                      <Select value={category} onValueChange={setCategory}>
+                      <Select value={category} onValueChange={(value) => updateActiveForm({ category: value })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -647,7 +759,7 @@ const AssignTasks = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="branch">Branch *</Label>
-                      <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                      <Select value={selectedBranch} onValueChange={(value) => setAiForm(prev => ({ ...prev, selectedBranch: value }))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select branch" />
                         </SelectTrigger>
@@ -666,7 +778,7 @@ const AssignTasks = () => {
                         id="topic"
                         placeholder="e.g., algorithms, web dev"
                         value={topicArea}
-                        onChange={(e) => setTopicArea(e.target.value)}
+                        onChange={(e) => setAiForm(prev => ({ ...prev, topicArea: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -679,36 +791,36 @@ const AssignTasks = () => {
                     {aiGenerating ? "Generating..." : "Generate AI Task"}
                   </Button>
 
-                  {title && (
-                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                      <div>
-                        <Label className="text-sm font-medium">Generated Title</Label>
-                        <Input
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Generated Description</Label>
-                        <Textarea
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          rows={4}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">XP Reward</Label>
-                        <Input
-                          type="number"
-                          value={xpReward}
-                          onChange={(e) => setXpReward(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  )}
+                   {aiForm.generated && title && (
+                     <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                       <div>
+                         <Label className="text-sm font-medium">Generated Title</Label>
+                         <Input
+                           value={title}
+                           onChange={(e) => setAiForm(prev => ({ ...prev, title: e.target.value }))}
+                           className="mt-1"
+                         />
+                       </div>
+                       <div>
+                         <Label className="text-sm font-medium">Generated Description</Label>
+                         <Textarea
+                           value={description}
+                           onChange={(e) => setAiForm(prev => ({ ...prev, description: e.target.value }))}
+                           rows={4}
+                           className="mt-1"
+                         />
+                       </div>
+                       <div>
+                         <Label className="text-sm font-medium">XP Reward</Label>
+                         <Input
+                           type="number"
+                           value={xpReward}
+                           onChange={(e) => setAiForm(prev => ({ ...prev, xpReward: e.target.value }))}
+                           className="mt-1"
+                         />
+                       </div>
+                     </div>
+                   )}
                 </div>
               </TabsContent>
 
@@ -717,7 +829,7 @@ const AssignTasks = () => {
                   <div className="space-y-2">
                     <Label htmlFor="template">Select Template</Label>
                     <Select value={selectedTemplate} onValueChange={(value) => {
-                      setSelectedTemplate(value);
+                      setTemplateForm(prev => ({ ...prev, selectedTemplate: value }));
                       handleTemplateSelect(value);
                     }}>
                       <SelectTrigger>
@@ -739,7 +851,7 @@ const AssignTasks = () => {
                         <Label className="text-sm font-medium">Title (Editable)</Label>
                         <Input
                           value={title}
-                          onChange={(e) => setTitle(e.target.value)}
+                          onChange={(e) => setTemplateForm(prev => ({ ...prev, title: e.target.value }))}
                           className="mt-1"
                         />
                       </div>
@@ -747,7 +859,7 @@ const AssignTasks = () => {
                         <Label className="text-sm font-medium">Description (Editable)</Label>
                         <Textarea
                           value={description}
-                          onChange={(e) => setDescription(e.target.value)}
+                          onChange={(e) => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
                           rows={4}
                           className="mt-1"
                         />
@@ -757,7 +869,7 @@ const AssignTasks = () => {
                         <Input
                           type="number"
                           value={xpReward}
-                          onChange={(e) => setXpReward(e.target.value)}
+                          onChange={(e) => setTemplateForm(prev => ({ ...prev, xpReward: e.target.value }))}
                           className="mt-1"
                         />
                       </div>
@@ -788,7 +900,7 @@ const AssignTasks = () => {
                         <Label className="text-sm font-medium">Personalized Title</Label>
                         <Input
                           value={title}
-                          onChange={(e) => setTitle(e.target.value)}
+                          onChange={(e) => setPersonalForm(prev => ({ ...prev, title: e.target.value }))}
                           className="mt-1"
                         />
                       </div>
@@ -796,7 +908,7 @@ const AssignTasks = () => {
                         <Label className="text-sm font-medium">Personalized Description</Label>
                         <Textarea
                           value={description}
-                          onChange={(e) => setDescription(e.target.value)}
+                          onChange={(e) => setPersonalForm(prev => ({ ...prev, description: e.target.value }))}
                           rows={4}
                           className="mt-1"
                         />
@@ -806,7 +918,7 @@ const AssignTasks = () => {
                         <Input
                           type="number"
                           value={xpReward}
-                          onChange={(e) => setXpReward(e.target.value)}
+                          onChange={(e) => setPersonalForm(prev => ({ ...prev, xpReward: e.target.value }))}
                           className="mt-1"
                         />
                       </div>
@@ -838,7 +950,7 @@ const AssignTasks = () => {
                         mode="single"
                         selected={dueDate}
                         onSelect={(date) => {
-                          setDueDate(date);
+                          updateActiveForm({ dueDate: date });
                           if (formErrors.dueDate) {
                             setFormErrors({...formErrors, dueDate: undefined});
                           }
@@ -861,7 +973,7 @@ const AssignTasks = () => {
                   </div>
                   <Switch
                     checked={visibility === "Public"}
-                    onCheckedChange={(checked) => setVisibility(checked ? "Public" : "Private")}
+                    onCheckedChange={(checked) => updateActiveForm({ visibility: checked ? "Public" : "Private" })}
                   />
                 </div>
               </div>

@@ -323,6 +323,18 @@ const AssignTasks = () => {
     }));
   };
 
+  const clearTemplate = () => {
+    setTemplateForm(prev => ({
+      ...prev,
+      selectedTemplate: "",
+      title: "",
+      description: "",
+      xpReward: "",
+      category: ""
+      // Keep dueDate and visibility unchanged
+    }));
+  };
+
   const generateAITask = async () => {
     if (!aiForm.selectedBranch || !aiForm.dueDate) {
       toast({
@@ -843,6 +855,16 @@ const AssignTasks = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    {selectedTemplate && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={clearTemplate}
+                        className="mt-2 text-xs"
+                      >
+                        Clear Template
+                      </Button>
+                    )}
                   </div>
 
                   {selectedTemplate && (

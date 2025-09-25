@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -111,9 +111,9 @@ serve(async (req) => {
       }
 
       // Parse the response to extract title and description
-      const lines = text.split('\n').filter(line => line.trim());
-      const titleLine = lines.find(line => line.toLowerCase().includes('title:'));
-      const descriptionStart = lines.findIndex(line => line.toLowerCase().includes('description:'));
+      const lines = text.split('\n').filter((line: string) => line.trim());
+      const titleLine = lines.find((line: string) => line.toLowerCase().includes('title:'));
+      const descriptionStart = lines.findIndex((line: string) => line.toLowerCase().includes('description:'));
       
       const title = titleLine ? titleLine.replace(/title:\s*/i, '').trim() : 'Generated Task';
       const description = descriptionStart >= 0 
@@ -147,9 +147,9 @@ serve(async (req) => {
           visibility,
           status: 'pending',
           source: taskData.source,
-          created_by_college_id: roleData.role === 'college_admin' ? user.id : null,
-          created_by_admin_id: roleData.role === 'admin' ? user.id : null,
-          created_by_startup_id: roleData.role === 'startup' ? user.id : null,
+          created_by_college_id: roleData?.role === 'college_admin' ? user?.id || null : null,
+          created_by_admin_id: roleData?.role === 'admin' ? user?.id || null : null,
+          created_by_startup_id: roleData?.role === 'startup' ? user?.id || null : null,
           created_at: currentTime,
           updated_at: currentTime,
           approved_by_admin: true,

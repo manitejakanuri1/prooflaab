@@ -98,7 +98,7 @@ async function submitToMoss(allSubmissions: Array<{content: string, fileName: st
 
   } catch (error) {
     console.error('MOSS submission error:', error);
-    throw new Error(`MOSS check failed: ${error.message}`);
+    throw new Error(`MOSS check failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -341,7 +341,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

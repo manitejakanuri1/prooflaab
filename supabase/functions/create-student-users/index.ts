@@ -64,7 +64,10 @@ serve(async (req) => {
       // Convert comma-separated strings to arrays
       const convertToSkillsArray = (str: string): string[] => {
         if (!str || str.trim() === '') return []
-        return str.split(',').map(s => s.trim()).filter(s => s.length > 0)
+        return str.split(',')
+          .map(s => s.trim())
+          .map(s => s.replace(/^["']|["']$/g, '')) // Remove surrounding quotes
+          .filter(s => s.length > 0)
       }
 
       const preferredSkillsArray = convertToSkillsArray(preferred_skills)

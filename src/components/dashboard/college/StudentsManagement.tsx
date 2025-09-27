@@ -6,8 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Search, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
+import { Eye, Search, Users, FileText, UserMinus, Calendar, Hash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import StudentProfileModal from "./StudentProfileModal";
 
 interface Student {
@@ -21,6 +24,15 @@ interface Student {
   created_at: string;
   task_count: number;
   profile_photo_url: string | null;
+  status: string | null;
+}
+
+interface TaskHistoryItem {
+  id: string;
+  title: string;
+  status: string;
+  assigned_at: string;
+  completed_at?: string;
 }
 
 const StudentsManagement = () => {
@@ -30,8 +42,13 @@ const StudentsManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
   const [batchFilter, setBatchFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [trustScoreRange, setTrustScoreRange] = useState<number[]>([0]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [taskHistoryStudent, setTaskHistoryStudent] = useState<Student | null>(null);
+  const [isTaskHistoryOpen, setIsTaskHistoryOpen] = useState(false);
+  const [taskHistory, setTaskHistory] = useState<TaskHistoryItem[]>([]);
   const { toast } = useToast();
 
   const fetchStudents = async () => {
@@ -71,13 +88,13 @@ const StudentsManagement = () => {
           total_xp,
           created_at,
           profile_photo_url,
-          college_id
+          college_id,
+          status
         `)
         .eq('college_id', collegeData.id);
 
       if (studentsError) {
         console.error('Error fetching students:', studentsError);
-        // If auth error and we're in development mode, show empty state
         if (studentsError.code === 'PGRST301') {
           setStudents([]);
           setFilteredStudents([]);
@@ -86,9 +103,9 @@ const StudentsManagement = () => {
         throw studentsError;
       }
 
-      // Fetch task counts for each student
+      // Fetch task counts for each student using tasks table
       const studentsWithTaskCounts = await Promise.all(
-        studentsData.map(async (student) => {
+        (studentsData || []).map(async (student) => {
           const { data: tasks, error: tasksError } = await supabase
             .from('tasks')
             .select('id')
@@ -117,6 +134,39 @@ const StudentsManagement = () => {
     }
   };
 
+  const fetchTaskHistory = async (studentId: string) => {
+    try {
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select(`
+          id,
+          title,
+          status,
+          created_at,
+          completed_at
+        `)
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching task history:', error);
+        return;
+      }
+
+      const history: TaskHistoryItem[] = (tasks || []).map(task => ({
+        id: task.id,
+        title: task.title,
+        status: task.status || 'Pending',
+        assigned_at: task.created_at,
+        completed_at: task.completed_at,
+      }));
+
+      setTaskHistory(history);
+    } catch (error) {
+      console.error('Error fetching task history:', error);
+    }
+  };
+
   useEffect(() => {
     fetchStudents();
   }, []);
@@ -142,35 +192,106 @@ const StudentsManagement = () => {
       filtered = filtered.filter(student => student.batch === batchFilter);
     }
 
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(student => {
+        const studentStatus = getStudentStatus(student);
+        return studentStatus.toLowerCase() === statusFilter;
+      });
+    }
+
+    // Apply trust score filter
+    if (trustScoreRange[0] > 0) {
+      filtered = filtered.filter(student => 
+        (student.trust_score || 0) >= trustScoreRange[0]
+      );
+    }
+
     setFilteredStudents(filtered);
-  }, [searchTerm, branchFilter, batchFilter, students]);
+  }, [searchTerm, branchFilter, batchFilter, statusFilter, trustScoreRange, students]);
 
   const getTrustScoreBadge = (score: number | null) => {
     if (!score) return <Badge variant="secondary">No Score</Badge>;
     
-    if (score >= 80) return <Badge className="bg-green-500 hover:bg-green-600">High ({score})</Badge>;
-    if (score >= 60) return <Badge className="bg-yellow-500 hover:bg-yellow-600">Medium ({score})</Badge>;
-    if (score >= 40) return <Badge className="bg-orange-500 hover:bg-orange-600">Low ({score})</Badge>;
-    return <Badge variant="destructive">Very Low ({score})</Badge>;
+    let colorClass = "";
+    let label = "";
+    
+    if (score >= 70) {
+      colorClass = "bg-green-500 hover:bg-green-600 text-white";
+      label = "High";
+    } else if (score >= 40) {
+      colorClass = "bg-yellow-500 hover:bg-yellow-600 text-white";
+      label = "Medium";
+    } else {
+      colorClass = "bg-red-500 hover:bg-red-600 text-white";
+      label = "Low";
+    }
+    
+    return <Badge className={colorClass}>{score}/100</Badge>;
   };
 
-  const getStatusBadge = (student: Student) => {
-    // Consider a student active if they have tasks or were created recently
+  const getStudentStatus = (student: Student): string => {
+    if (student.status) {
+      return student.status.charAt(0).toUpperCase() + student.status.slice(1);
+    }
+    
+    // Fallback logic if status is not set
     const isRecent = new Date(student.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const hasActivity = student.task_count > 0 || isRecent;
     
-    return hasActivity ? 
-      <Badge className="bg-green-500 hover:bg-green-600">Active</Badge> : 
-      <Badge variant="secondary">Inactive</Badge>;
+    return hasActivity ? "Active" : "Inactive";
   };
 
-  const uniqueBranches = [...new Set(students.map(s => s.branch).filter(Boolean))];
-  const uniqueBatches = [...new Set(students.map(s => s.batch).filter(Boolean))];
+  const getStatusBadge = (student: Student) => {
+    const status = getStudentStatus(student);
+    
+    if (status === "Active") {
+      return <Badge className="bg-green-500 hover:bg-green-600 text-white">Active</Badge>;
+    } else if (status === "Alumni") {
+      return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Alumni</Badge>;
+    } else {
+      return <Badge variant="secondary">Inactive</Badge>;
+    }
+  };
 
   const handleViewProfile = (student: Student) => {
     setSelectedStudent(student);
     setIsProfileModalOpen(true);
   };
+
+  const handleViewTaskHistory = async (student: Student) => {
+    setTaskHistoryStudent(student);
+    setIsTaskHistoryOpen(true);
+    await fetchTaskHistory(student.id);
+  };
+
+  const handleDeactivateStudent = async (studentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('student_profiles')
+        .update({ status: 'inactive' })
+        .eq('id', studentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Student deactivated successfully",
+      });
+
+      await fetchStudents();
+    } catch (error) {
+      console.error('Error deactivating student:', error);
+      toast({
+        title: "Error",
+        description: "Failed to deactivate student",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const uniqueBranches = [...new Set(students.map(s => s.branch).filter(Boolean))];
+  const uniqueBatches = [...new Set(students.map(s => s.batch).filter(Boolean))];
 
   if (loading) {
     return (
@@ -196,8 +317,8 @@ const StudentsManagement = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-2 md:gap-4">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="relative lg:col-span-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
@@ -208,8 +329,8 @@ const StudentsManagement = () => {
             </div>
             
             <Select value={branchFilter} onValueChange={setBranchFilter}>
-              <SelectTrigger className="w-full sm:w-40 md:w-48">
-                <SelectValue placeholder="Filter by Branch" />
+              <SelectTrigger>
+                <SelectValue placeholder="Branch" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Branches</SelectItem>
@@ -220,8 +341,8 @@ const StudentsManagement = () => {
             </Select>
 
             <Select value={batchFilter} onValueChange={setBatchFilter}>
-              <SelectTrigger className="w-full sm:w-40 md:w-48">
-                <SelectValue placeholder="Filter by Batch" />
+              <SelectTrigger>
+                <SelectValue placeholder="Batch" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Batches</SelectItem>
@@ -230,6 +351,36 @@ const StudentsManagement = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="alumni">Alumni</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Trust Score Range Filter */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium min-w-fit">Trust Score Range:</span>
+            <div className="flex-1 px-4">
+              <Slider
+                value={trustScoreRange}
+                onValueChange={setTrustScoreRange}
+                max={100}
+                min={0}
+                step={5}
+                className="w-full"
+              />
+            </div>
+            <span className="text-sm text-muted-foreground min-w-fit">
+              {trustScoreRange[0]}+ points
+            </span>
           </div>
 
           {/* Students Table */}
@@ -238,49 +389,90 @@ const StudentsManagement = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[120px]">Name</TableHead>
+                    <TableHead className="min-w-[150px]">Name</TableHead>
                     <TableHead className="min-w-[200px]">Email</TableHead>
-                    <TableHead className="min-w-[100px]">Branch</TableHead>
-                    <TableHead className="min-w-[80px]">Batch</TableHead>
+                    <TableHead className="min-w-[100px] hidden md:table-cell">Branch</TableHead>
+                    <TableHead className="min-w-[80px] hidden lg:table-cell">Batch</TableHead>
                     <TableHead className="min-w-[120px]">Trust Score</TableHead>
-                    <TableHead className="min-w-[120px]">Tasks Assigned</TableHead>
+                    <TableHead className="min-w-[120px]">Tasks</TableHead>
                     <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[80px]">Actions</TableHead>
+                    <TableHead className="min-w-[100px] hidden lg:table-cell">Joined</TableHead>
+                    <TableHead className="min-w-[150px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-              <TableBody>
-                {filteredStudents.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      No students found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredStudents.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.full_name}</TableCell>
-                      <TableCell>{student.email}</TableCell>
-                      <TableCell>{student.branch || '-'}</TableCell>
-                      <TableCell>{student.batch || '-'}</TableCell>
-                      <TableCell>{getTrustScoreBadge(student.trust_score)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{student.task_count} tasks</Badge>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(student)}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewProfile(student)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                <TableBody>
+                  {filteredStudents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        No students found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
+                  ) : (
+                    filteredStudents.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell>
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto font-medium text-left"
+                            onClick={() => handleViewProfile(student)}
+                          >
+                            {student.full_name}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{student.email}</TableCell>
+                        <TableCell className="hidden md:table-cell">{student.branch || '-'}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{student.batch || '-'}</TableCell>
+                        <TableCell>{getTrustScoreBadge(student.trust_score)}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewTaskHistory(student)}
+                            className="h-auto p-1 font-normal"
+                          >
+                            <Hash className="h-3 w-3 mr-1" />
+                            {student.task_count} tasks
+                          </Button>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(student)}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground">
+                          {format(new Date(student.created_at), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewProfile(student)}
+                              className="h-8 w-8 p-0"
+                              title="View Profile"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {/* TODO: Implement assign task */}}
+                              className="h-8 w-8 p-0"
+                              title="Assign Task"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeactivateStudent(student.id)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              title="Deactivate Student"
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
               </Table>
             </div>
           </div>
@@ -296,6 +488,52 @@ const StudentsManagement = () => {
           setSelectedStudent(null);
         }}
       />
+
+      {/* Task History Modal */}
+      <Dialog open={isTaskHistoryOpen} onOpenChange={setIsTaskHistoryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Hash className="h-5 w-5" />
+              Task History - {taskHistoryStudent?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {taskHistory.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No tasks found for this student
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {taskHistory.map((task) => (
+                  <div key={task.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">{task.title}</h4>
+                      <Badge variant={task.status === 'Completed' ? 'default' : 'secondary'}>
+                        {task.status}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-2">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Assigned: {format(new Date(task.assigned_at), 'MMM dd, yyyy')}
+                        </span>
+                        {task.completed_at && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Completed: {format(new Date(task.completed_at), 'MMM dd, yyyy')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

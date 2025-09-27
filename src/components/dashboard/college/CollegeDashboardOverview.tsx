@@ -93,9 +93,7 @@ const CollegeDashboardOverview = () => {
     
     if (!record.name.trim()) return "Name is required";
     if (!record.email.trim()) return "Email is required";
-    // Make branch and batch optional since they can be filled later
-    // if (!record.branch.trim()) return "Branch is required";
-    // if (!record.batch.trim()) return "Batch is required";
+    // Branch and other fields are optional since they can be filled later
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(record.email)) return "Invalid email format";

@@ -51,7 +51,15 @@ serve(async (req) => {
     const results = []
 
     for (const studentData of students) {
-      const { name, email, branch, year_of_study, preferred_skills, key_interests, career_goals } = studentData
+      const { 
+        name, 
+        email, 
+        branch, 
+        year_of_study = '', 
+        preferred_skills = '', 
+        key_interests = '', 
+        career_goals = '' 
+      } = studentData
 
       try {
         // Check if auth user already exists
@@ -146,8 +154,8 @@ serve(async (req) => {
               full_name: name,
               branch: branch || '',
               year_of_study: year_of_study || '',
-              preferred_skills: preferred_skills ? preferred_skills.split(',').map(s => s.trim()).filter(s => s) : [],
-              key_interests: key_interests ? key_interests.split(',').map(s => s.trim()).filter(s => s) : [],
+              preferred_skills: preferred_skills ? preferred_skills.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
+              key_interests: key_interests ? key_interests.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
               career_goals: career_goals || '',
               status: 'active',
               college_id: college_id
@@ -173,8 +181,8 @@ serve(async (req) => {
               full_name: name,
               branch: branch || '',
               year_of_study: year_of_study || '',
-              preferred_skills: preferred_skills ? preferred_skills.split(',').map(s => s.trim()).filter(s => s) : [],
-              key_interests: key_interests ? key_interests.split(',').map(s => s.trim()).filter(s => s) : [],
+              preferred_skills: preferred_skills ? preferred_skills.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
+              key_interests: key_interests ? key_interests.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
               career_goals: career_goals || '',
               total_xp: 0,
               trust_score: 0,

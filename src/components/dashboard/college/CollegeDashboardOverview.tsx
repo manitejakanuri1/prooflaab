@@ -19,7 +19,10 @@ interface StudentRecord {
   name: string;
   email: string;
   branch: string;
-  batch: string;
+  year_of_study: string;
+  preferred_skills: string;
+  key_interests: string;
+  career_goals: string;
 }
 
 interface ProcessResult {
@@ -53,7 +56,7 @@ const CollegeDashboardOverview = () => {
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     
     // Validate headers
-    const requiredHeaders = ['name', 'email', 'branch', 'batch'];
+    const requiredHeaders = ['name', 'email', 'branch', 'year_of_study', 'preferred_skills', 'key_interests', 'career_goals'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
     if (missingHeaders.length > 0) {
       throw new Error(`Missing required columns: ${missingHeaders.join(', ')}`);
@@ -62,17 +65,23 @@ const CollegeDashboardOverview = () => {
     const records: StudentRecord[] = [];
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim());
-      if (values.length >= 4) {
+      if (values.length >= 7) {
         const nameIndex = headers.indexOf('name');
         const emailIndex = headers.indexOf('email');
         const branchIndex = headers.indexOf('branch');
-        const batchIndex = headers.indexOf('batch');
+        const yearOfStudyIndex = headers.indexOf('year_of_study');
+        const preferredSkillsIndex = headers.indexOf('preferred_skills');
+        const keyInterestsIndex = headers.indexOf('key_interests');
+        const careerGoalsIndex = headers.indexOf('career_goals');
 
         records.push({
           name: values[nameIndex] || '',
           email: values[emailIndex] || '',
           branch: values[branchIndex] || '',
-          batch: values[batchIndex] || ''
+          year_of_study: values[yearOfStudyIndex] || '',
+          preferred_skills: values[preferredSkillsIndex] || '',
+          key_interests: values[keyInterestsIndex] || '',
+          career_goals: values[careerGoalsIndex] || ''
         });
       }
     }
@@ -121,8 +130,20 @@ const CollegeDashboardOverview = () => {
       // Process all valid records through Edge Function
       const studentsToProcess = records.filter(record => !validateRecord(record));
       
-      if (studentsToProcess.length === 0) {
-        setResults([{ record: { name: '', email: '', branch: '', batch: '' }, status: 'error', message: 'No valid records to process' }]);
+        if (studentsToProcess.length === 0) {
+        setResults([{ 
+          record: { 
+            name: '', 
+            email: '', 
+            branch: '', 
+            year_of_study: '', 
+            preferred_skills: '', 
+            key_interests: '', 
+            career_goals: '' 
+          }, 
+          status: 'error', 
+          message: 'No valid records to process' 
+        }]);
         return;
       }
 
@@ -147,7 +168,10 @@ const CollegeDashboardOverview = () => {
             name: record.name,
             email: record.email,
             branch: record.branch,
-            batch: record.batch
+            year_of_study: record.year_of_study,
+            preferred_skills: record.preferred_skills,
+            key_interests: record.key_interests,
+            career_goals: record.career_goals
           }))
         }
       });
@@ -167,7 +191,15 @@ const CollegeDashboardOverview = () => {
       const processResults: ProcessResult[] = functionResults.map((result: any) => {
         const originalRecord = records.find(r => r.email === result.email);
         return {
-          record: originalRecord || { name: '', email: result.email, branch: '', batch: '' },
+          record: originalRecord || { 
+            name: '', 
+            email: result.email, 
+            branch: '', 
+            year_of_study: '', 
+            preferred_skills: '', 
+            key_interests: '', 
+            career_goals: '' 
+          },
           status: result.status,
           message: result.message
         };
@@ -392,8 +424,8 @@ const CollegeDashboardOverview = () => {
           <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
             <h3 className="font-medium text-blue-900 mb-2 text-sm md:text-base">CSV Format Requirements:</h3>
             <ul className="text-xs md:text-sm text-blue-800 space-y-1">
-              <li>• Column headers: Name, Email, Branch, Batch</li>
-              <li className="hidden sm:list-item">• Example: John Doe, john@email.com, Computer Science, 2024</li>
+              <li>• Column headers: Name, Email, Branch, Year_of_study, Preferred_skills, Key_interests, Career_goals</li>
+              <li className="hidden sm:list-item">• Example: John Doe, john@email.com, Computer Science, Second Year, Python Web Development, AI Machine Learning, Software Engineer</li>
               <li>• Make sure all email addresses are unique</li>
             </ul>
           </div>
@@ -450,13 +482,16 @@ const CollegeDashboardOverview = () => {
             <div className="mt-6">
               <h4 className="font-medium text-gray-900 mb-3">Upload Results</h4>
               <div className="overflow-x-auto">
-                <Table>
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Branch</TableHead>
-                      <TableHead>Batch</TableHead>
+                      <TableHead>Year of Study</TableHead>
+                      <TableHead>Preferred Skills</TableHead>
+                      <TableHead>Key Interests</TableHead>
+                      <TableHead>Career Goals</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Message</TableHead>
                     </TableRow>
@@ -467,7 +502,10 @@ const CollegeDashboardOverview = () => {
                         <TableCell>{result.record.name}</TableCell>
                         <TableCell>{result.record.email}</TableCell>
                         <TableCell>{result.record.branch}</TableCell>
-                        <TableCell>{result.record.batch}</TableCell>
+                        <TableCell>{result.record.year_of_study}</TableCell>
+                        <TableCell className="max-w-32 truncate">{result.record.preferred_skills}</TableCell>
+                        <TableCell className="max-w-32 truncate">{result.record.key_interests}</TableCell>
+                        <TableCell className="max-w-32 truncate">{result.record.career_goals}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             {getStatusIcon(result.status)}
@@ -492,19 +530,22 @@ const CollegeDashboardOverview = () => {
             <div className="mt-6">
               <h4 className="font-medium text-gray-900 mb-3">Upload Status</h4>
               <div className="overflow-x-auto">
-                <Table>
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Branch</TableHead>
-                      <TableHead>Batch</TableHead>
+                      <TableHead>Year of Study</TableHead>
+                      <TableHead>Preferred Skills</TableHead>
+                      <TableHead>Key Interests</TableHead>
+                      <TableHead>Career Goals</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-gray-500">
+                      <TableCell colSpan={8} className="text-center text-gray-500">
                         No data uploaded yet
                       </TableCell>
                     </TableRow>

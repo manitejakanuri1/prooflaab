@@ -446,7 +446,7 @@ const CollegeDashboardOverview = () => {
               disabled={isProcessing}
             />
             <label htmlFor="csv-upload">
-              <Button variant="outline" className="cursor-pointer" asChild disabled={isProcessing}>
+              <Button className="cursor-pointer bg-orange-600 hover:bg-orange-700 text-white" asChild disabled={isProcessing}>
                 <span>Choose CSV File</span>
               </Button>
             </label>

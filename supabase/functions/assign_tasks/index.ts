@@ -80,43 +80,61 @@ serve(async (req) => {
     // Helper function to call Gemini API
     async function generateWithGemini(prompt: string): Promise<{ title: string; description: string }> {
       if (!geminiApiKey) {
+        console.error('GEMINI_API_KEY environment variable not set');
         throw new Error('Gemini API key not configured');
       }
 
       console.log('Making Gemini API request with prompt length:', prompt.length);
+      console.log('Using Gemini API key (first 10 chars):', geminiApiKey.substring(0, 10) + '...');
       
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiApiKey, {
+      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiApiKey;
+      console.log('API URL:', apiUrl.replace(geminiApiKey, 'API_KEY_HIDDEN'));
+      
+      const requestBody = {
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        }
+      };
+      
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          }
-        })
+        body: JSON.stringify(requestBody)
       });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Gemini API error:', response.status, errorText);
+        console.error('Gemini API error response:', errorText);
+        console.error('Gemini API error status:', response.status);
         throw new Error(`Gemini API request failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Gemini API response data:', JSON.stringify(data, null, 2));
+      
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (!text) {
+        console.error('No text in Gemini response:', JSON.stringify(data, null, 2));
         throw new Error('No response from Gemini API');
       }
+
+      console.log('Generated text:', text);
 
       // Parse the response to extract title and description
       const lines = text.split('\n').filter((line: string) => line.trim());
@@ -144,6 +162,9 @@ serve(async (req) => {
           description = descLines.join(' ').trim();
         }
       }
+
+      console.log('Parsed title:', title);
+      console.log('Parsed description:', description);
 
       return { title, description };
     }
@@ -375,6 +396,12 @@ Description: [A detailed description tailored specifically to this student's pro
 
   } catch (error) {
     console.error('Error in assign-tasks function:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error ? error.cause : undefined
+    });
     
     let errorMessage = 'An unexpected error occurred';
     if (error instanceof Error) {
@@ -382,13 +409,17 @@ Description: [A detailed description tailored specifically to this student's pro
     }
 
     // Check if it's an AI generation error
-    if (errorMessage.includes('Gemini') || errorMessage.includes('AI')) {
+    if (errorMessage.includes('Gemini') || errorMessage.includes('AI') || errorMessage.includes('generateContent')) {
       errorMessage = 'AI generation failed. Please try again or use manual mode.';
     }
 
     return new Response(JSON.stringify({
       success: false,
-      error: errorMessage
+      error: errorMessage,
+      debug: {
+        errorType: error instanceof Error ? error.name : typeof error,
+        originalMessage: error instanceof Error ? error.message : String(error)
+      }
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

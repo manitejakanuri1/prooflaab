@@ -87,7 +87,7 @@ serve(async (req) => {
       console.log('Making Gemini API request with prompt length:', prompt.length);
       console.log('Using Gemini API key (first 10 chars):', geminiApiKey.substring(0, 10) + '...');
       
-      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiApiKey;
+      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiApiKey;
       console.log('API URL:', apiUrl.replace(geminiApiKey, 'API_KEY_HIDDEN'));
       
       const requestBody = {

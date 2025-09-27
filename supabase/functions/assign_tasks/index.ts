@@ -79,6 +79,12 @@ serve(async (req) => {
 
     // Helper function to call Gemini API
     async function generateWithGemini(prompt: string): Promise<{ title: string; description: string }> {
+      if (!geminiApiKey) {
+        throw new Error('Gemini API key not configured');
+      }
+
+      console.log('Making Gemini API request with prompt length:', prompt.length);
+      
       const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + geminiApiKey, {
         method: 'POST',
         headers: {
@@ -100,7 +106,9 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
-        throw new Error('Gemini API request failed');
+        const errorText = await response.text();
+        console.error('Gemini API error:', response.status, errorText);
+        throw new Error(`Gemini API request failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();

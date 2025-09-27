@@ -367,10 +367,10 @@ const AssignTasks = () => {
   };
 
   const generateAITask = async () => {
-    if (!aiForm.selectedBranch || !aiForm.dueDate) {
+    if (!aiForm.selectedBranch || !aiForm.topicArea.trim()) {
       toast({
         title: "Error",
-        description: "Please select branch and due date",
+        description: "Please select branch and enter topic keywords",
         variant: "destructive",
       });
       return;
@@ -378,28 +378,42 @@ const AssignTasks = () => {
 
     setAiGenerating(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const difficulties = ['Beginner', 'Intermediate', 'Advanced'];
-      const difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
-      const xpMapping = { 'Beginner': 50, 'Intermediate': 100, 'Advanced': 150 };
-      
-      setAiForm(prev => ({
-        ...prev,
-        title: `${aiForm.selectedBranch} AI Challenge: ${aiForm.topicArea || 'Advanced Problem Solving'}`,
-        description: `An AI-generated task for ${aiForm.selectedBranch} students focusing on ${aiForm.topicArea || 'core concepts'}. This challenge includes practical implementation, testing, and documentation requirements.`,
-        xpReward: xpMapping[difficulty as keyof typeof xpMapping].toString(),
-        generated: true
-      }));
-
-      toast({
-        title: "Success",
-        description: "AI task generated successfully!",
+      const { data, error } = await supabase.functions.invoke('assign_tasks', {
+        body: {
+          mode: 'ai',
+          keywords: aiForm.topicArea,
+          branch: aiForm.selectedBranch,
+          due_date: aiForm.dueDate?.toISOString(),
+          selected_students: [], // Just generating, not assigning yet
+          category: 'Coding',
+          visibility: aiForm.visibility.toLowerCase()
+        }
       });
+
+      if (error) throw error;
+
+      if (data?.tasks?.[0]) {
+        const generatedTask = data.tasks[0];
+        setAiForm(prev => ({
+          ...prev,
+          title: generatedTask.title,
+          description: generatedTask.description,
+          xpReward: generatedTask.xp_reward?.toString() || '50',
+          generated: true
+        }));
+
+        toast({
+          title: "Success",
+          description: "AI task generated successfully!",
+        });
+      } else {
+        throw new Error('No task generated');
+      }
     } catch (error) {
+      console.error('AI generation error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate AI task",
+        description: "Failed to generate AI task. Please try again.",
         variant: "destructive",
       });
     } finally {

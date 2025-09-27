@@ -112,13 +112,30 @@ serve(async (req) => {
 
       // Parse the response to extract title and description
       const lines = text.split('\n').filter((line: string) => line.trim());
-      const titleLine = lines.find((line: string) => line.toLowerCase().includes('title:'));
-      const descriptionStart = lines.findIndex((line: string) => line.toLowerCase().includes('description:'));
+      const titleLine = lines.find((line: string) => line.toLowerCase().startsWith('title:'));
+      const descriptionLine = lines.find((line: string) => line.toLowerCase().startsWith('description:'));
       
-      const title = titleLine ? titleLine.replace(/title:\s*/i, '').trim() : 'Generated Task';
-      const description = descriptionStart >= 0 
-        ? lines.slice(descriptionStart).join('\n').replace(/description:\s*/i, '').trim()
-        : text.trim();
+      let title = 'Generated Task';
+      let description = text.trim();
+      
+      if (titleLine) {
+        title = titleLine.replace(/^title:\s*/i, '').trim();
+      }
+      
+      if (descriptionLine) {
+        description = descriptionLine.replace(/^description:\s*/i, '').trim();
+        // If there are multiple lines starting from description, join them
+        const descIndex = lines.findIndex((line: string) => line.toLowerCase().startsWith('description:'));
+        if (descIndex >= 0 && descIndex < lines.length - 1) {
+          const descLines = [descriptionLine.replace(/^description:\s*/i, '').trim()];
+          for (let i = descIndex + 1; i < lines.length; i++) {
+            if (!lines[i].toLowerCase().startsWith('title:') && !lines[i].toLowerCase().startsWith('description:')) {
+              descLines.push(lines[i].trim());
+            }
+          }
+          description = descLines.join(' ').trim();
+        }
+      }
 
       return { title, description };
     }
@@ -199,8 +216,12 @@ serve(async (req) => {
         });
 
         createdTasks.push(task);
-        const taskAssignments = await insertAssignments(task.id, selected_students);
-        assignments.push(...taskAssignments);
+        
+        // Only assign if students are selected
+        if (selected_students.length > 0) {
+          const taskAssignments = await insertAssignments(task.id, selected_students);
+          assignments.push(...taskAssignments);
+        }
         break;
       }
 
@@ -213,22 +234,25 @@ serve(async (req) => {
 
         console.log('Generating AI task with keywords:', keywords);
         
-        // Get student profiles for context
-        const students = await getStudentProfiles(selected_students);
-        const studentContext = students.map(s => 
-          `${s.full_name} (${s.branch}, ${s.year_of_study}) - Interests: ${s.key_interests?.join(', ') || 'None'}, Skills: ${s.preferred_skills?.join(', ') || 'None'}`
-        ).join('\n');
+        const prompt = `You are an internship mentor creating practical tasks for engineering students. 
+Generate a task with the following format:
 
-        const prompt = `Generate a programming/learning task based on these requirements:
-Keywords: ${keywords}
-Branch: ${branch || 'Any'}
-Difficulty: ${difficulty || 'Medium'}
-Target students:
-${studentContext}
+Title: A short, clear, and professional project name (4–8 words, avoid "Challenge").
+Description: A detailed explanation (3–5 sentences) including:
+- The main goal of the task.
+- Expected deliverables (e.g., code, report, prototype).
+- Technologies/tools to use (related to the keywords).
+- A real-world application or why it matters.
 
-Please provide:
-Title: [A clear, engaging task title]
-Description: [A detailed description explaining what students need to do, including objectives, requirements, and deliverables. Make it educational and appropriate for their skill level.]`;
+Constraints:
+- Keep it student-appropriate (not enterprise-level).
+- Make it actionable within 7–10 days.
+- Relate it to the student's branch: ${branch || 'Computer Science'}.
+- Focus on the topic keywords: ${keywords}.
+
+Please respond in exactly this format:
+Title: [Your title here]
+Description: [Your description here]`;
 
         const { title, description } = await generateWithGemini(prompt);
         
@@ -240,8 +264,12 @@ Description: [A detailed description explaining what students need to do, includ
         });
 
         createdTasks.push(task);
-        const taskAssignments = await insertAssignments(task.id, selected_students);
-        assignments.push(...taskAssignments);
+        
+        // Only assign if students are selected
+        if (selected_students.length > 0) {
+          const taskAssignments = await insertAssignments(task.id, selected_students);
+          assignments.push(...taskAssignments);
+        }
         break;
       }
 

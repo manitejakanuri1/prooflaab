@@ -61,6 +61,15 @@ serve(async (req) => {
         career_goals = '' 
       } = studentData
 
+      // Convert comma-separated strings to arrays
+      const convertToSkillsArray = (str: string): string[] => {
+        if (!str || str.trim() === '') return []
+        return str.split(',').map(s => s.trim()).filter(s => s.length > 0)
+      }
+
+      const preferredSkillsArray = convertToSkillsArray(preferred_skills)
+      const keyInterestsArray = convertToSkillsArray(key_interests)
+
       try {
         // Check if auth user already exists
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
@@ -154,8 +163,8 @@ serve(async (req) => {
               full_name: name,
               branch: branch || '',
               year_of_study: year_of_study || '',
-              preferred_skills: preferred_skills ? preferred_skills.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
-              key_interests: key_interests ? key_interests.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
+              preferred_skills: preferredSkillsArray,
+              key_interests: keyInterestsArray,
               career_goals: career_goals || '',
               status: 'active',
               college_id: college_id
@@ -181,8 +190,8 @@ serve(async (req) => {
               full_name: name,
               branch: branch || '',
               year_of_study: year_of_study || '',
-              preferred_skills: preferred_skills ? preferred_skills.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
-              key_interests: key_interests ? key_interests.split(',').map((s: string) => s.trim()).filter((s: string) => s) : [],
+              preferred_skills: preferredSkillsArray,
+              key_interests: keyInterestsArray,
               career_goals: career_goals || '',
               total_xp: 0,
               trust_score: 0,

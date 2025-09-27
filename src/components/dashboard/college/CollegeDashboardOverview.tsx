@@ -49,11 +49,42 @@ const CollegeDashboardOverview = () => {
     }
   };
 
+  // Proper CSV parser that handles quoted fields
+  const parseCSVRow = (row: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < row.length; i++) {
+      const char = row[i];
+      const nextChar = row[i + 1];
+      
+      if (char === '"' && inQuotes && nextChar === '"') {
+        // Handle escaped quotes
+        current += '"';
+        i++; // Skip next quote
+      } else if (char === '"') {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    // Add the last field
+    result.push(current.trim());
+    return result;
+  };
+
   const parseCSV = (text: string): StudentRecord[] => {
     const lines = text.split('\n').filter(line => line.trim());
     if (lines.length === 0) throw new Error("CSV file is empty");
     
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const headers = parseCSVRow(lines[0]).map(h => h.trim().toLowerCase());
     
     // Validate headers
     const requiredHeaders = ['name', 'email', 'branch', 'year_of_study', 'preferred_skills', 'key_interests', 'career_goals'];
@@ -64,8 +95,8 @@ const CollegeDashboardOverview = () => {
 
     const records: StudentRecord[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if (values.length >= 7) {
+      const values = parseCSVRow(lines[i]);
+      if (values.length >= headers.length) {
         const nameIndex = headers.indexOf('name');
         const emailIndex = headers.indexOf('email');
         const branchIndex = headers.indexOf('branch');

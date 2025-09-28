@@ -75,7 +75,7 @@ serve(async (req) => {
       selected_students, 
       xp_reward = 50,
       category = 'General', 
-      visibility = 'private' 
+      visibility = 'public'
     } = requestData;
 
     // Validate required fields
@@ -98,7 +98,7 @@ serve(async (req) => {
 
       console.log('Making Gemini API request with prompt length:', prompt.length);
       
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`;
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`;
       
       const requestBody = {
         contents: [{
@@ -377,7 +377,7 @@ Now generate a task for: ${keywords}`;
           title: template.title,
           description: template.description,
           xp_reward: template.xp_reward || xp_reward,
-          source: 'template'
+          source: 'manual'
         });
 
         createdTasks.push(task);

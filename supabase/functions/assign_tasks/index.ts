@@ -71,6 +71,11 @@ serve(async (req) => {
     const requestData: AssignTasksRequest = await req.json();
     const { mode, due_date, selected_students, category = 'General', visibility = 'private' } = requestData;
 
+    // Validate required fields
+    if (!due_date) {
+      throw new Error('Due date is required');
+    }
+
     console.log(`Processing task assignment in ${mode} mode for ${selected_students.length} students`);
 
     const createdTasks: any[] = [];

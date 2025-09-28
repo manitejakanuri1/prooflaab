@@ -85,6 +85,28 @@ serve(async (req) => {
 
     console.log(`Processing task assignment in ${mode} mode for ${selected_students.length} students`);
 
+    // Get the appropriate creator ID based on role
+    let created_by_college_id: string | null = null;
+    let created_by_admin_id: string | null = null;
+    let created_by_startup_id: string | null = null;
+
+    if (roleData.role === 'college_admin') {
+      const { data: college, error: collegeError } = await supabase
+        .from('colleges')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (collegeError || !college) {
+        throw new Error('No college record found for this college admin');
+      }
+      created_by_college_id = college.id;
+    } else if (roleData.role === 'admin') {
+      created_by_admin_id = user.id;
+    } else if (roleData.role === 'startup') {
+      created_by_startup_id = user.id;
+    }
+
     const createdTasks: any[] = [];
     const assignments: any[] = [];
     const currentTime = new Date().toISOString();
@@ -228,9 +250,9 @@ serve(async (req) => {
           updated_at: currentTime,
           duration_days: 7,
           upload_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          created_by_college_id: roleData?.role === 'college_admin' ? user?.id || null : null,
-          created_by_admin_id: roleData?.role === 'admin' ? user?.id || null : null,
-          created_by_startup_id: roleData?.role === 'startup' ? user?.id || null : null,
+          created_by_college_id,
+          created_by_admin_id,
+          created_by_startup_id,
           is_paid: false,
           required_skills: [],
           posted_at: currentTime,

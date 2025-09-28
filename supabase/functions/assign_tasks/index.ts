@@ -97,10 +97,12 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .single();
       
-      if (collegeError || !college) {
-        throw new Error('No college record found for this college admin');
+      if (collegeError) {
+        console.error('Error fetching college:', collegeError);
+        created_by_college_id = null;
+      } else {
+        created_by_college_id = college?.id || null;
       }
-      created_by_college_id = college.id;
     } else if (roleData.role === 'admin') {
       created_by_admin_id = user.id;
     } else if (roleData.role === 'startup') {

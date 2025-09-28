@@ -107,14 +107,14 @@ serve(async (req) => {
           }]
         }],
         generationConfig: {
-          temperature: 0.7,
+          maxOutputTokens: 1000,
           topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
+          topP: 0.95
         }
       };
       
-      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+      console.log('Making Gemini API call to:', apiUrl);
+      console.log('Request payload:', JSON.stringify(requestBody, null, 2));
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -124,55 +124,81 @@ serve(async (req) => {
         body: JSON.stringify(requestBody)
       });
 
-      console.log('Response status:', response.status);
+      console.log('Gemini API response status:', response.status);
+      console.log('Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Gemini API error response:', errorText);
-        throw new Error('AI generation failed. Please try again or use manual mode.');
+        console.error('Full error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText
+        });
+        throw new Error(`AI generation failed. Status: ${response.status}. ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('Gemini API response data:', JSON.stringify(data, null, 2));
+      console.log('Full Gemini API response:', JSON.stringify(data, null, 2));
+      
+      // Check for safety ratings or blocked content
+      if (data.promptFeedback?.blockReason) {
+        console.error('Content was blocked:', data.promptFeedback.blockReason);
+        throw new Error('AI generation was blocked due to safety filters. Please try different keywords.');
+      }
       
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (!text) {
-        console.error('No text in Gemini response:', JSON.stringify(data, null, 2));
-        throw new Error('AI generation failed. Please try again or use manual mode.');
+        console.error('No text content in response. Full response:', JSON.stringify(data, null, 2));
+        throw new Error('AI generation failed - no content generated. Please try again.');
       }
 
-      console.log('Generated text:', text);
+      console.log('Generated text from Gemini:', text);
 
-      // Parse the response to extract title and description
-      const lines = text.split('\n').filter((line: string) => line.trim());
-      const titleLine = lines.find((line: string) => line.toLowerCase().startsWith('title:'));
-      const descriptionLine = lines.find((line: string) => line.toLowerCase().startsWith('description:'));
-      
-      let title = 'Generated Task';
+      // Simplified parsing with better error handling
+      let title = 'AI Generated Task';
       let description = text.trim();
-      
-      if (titleLine) {
-        title = titleLine.replace(/^title:\s*/i, '').trim();
-      }
-      
-      if (descriptionLine) {
-        description = descriptionLine.replace(/^description:\s*/i, '').trim();
-        // If there are multiple lines starting from description, join them
-        const descIndex = lines.findIndex((line: string) => line.toLowerCase().startsWith('description:'));
-        if (descIndex >= 0 && descIndex < lines.length - 1) {
-          const descLines = [descriptionLine.replace(/^description:\s*/i, '').trim()];
-          for (let i = descIndex + 1; i < lines.length; i++) {
-            if (!lines[i].toLowerCase().startsWith('title:') && !lines[i].toLowerCase().startsWith('description:')) {
-              descLines.push(lines[i].trim());
-            }
-          }
-          description = descLines.join(' ').trim();
+
+      // Try to parse Title and Description
+      const titleMatch = text.match(/(?:^|\n)\s*(?:Title|TITLE):\s*(.+?)(?:\n|$)/i);
+      const descMatch = text.match(/(?:^|\n)\s*(?:Description|DESCRIPTION):\s*(.+?)$/is);
+
+      if (titleMatch) {
+        title = titleMatch[1].trim();
+        console.log('Extracted title:', title);
+      } else {
+        // Fallback: use first line as title
+        const firstLine = text.split('\n')[0].trim();
+        if (firstLine.length > 0 && firstLine.length < 100) {
+          title = firstLine;
+          console.log('Using first line as title:', title);
         }
       }
 
-      console.log('Parsed title:', title);
-      console.log('Parsed description:', description);
+      if (descMatch) {
+        description = descMatch[1].trim();
+        console.log('Extracted description:', description);
+      } else {
+        // Fallback: use everything after the first line
+        const lines = text.split('\n');
+        if (lines.length > 1) {
+          description = lines.slice(1).join('\n').trim();
+        }
+        console.log('Using fallback description:', description);
+      }
+
+      // Ensure we have valid content
+      if (!title || title === 'AI Generated Task') {
+        title = 'AI Generated Programming Task';
+      }
+      
+      if (!description || description.length < 10) {
+        description = 'This is an AI-generated programming task. Please complete it according to the requirements and submit your work for review.';
+      }
+
+      console.log('Final parsed title:', title);
+      console.log('Final parsed description:', description);
 
       return { title, description };
     }
@@ -279,26 +305,26 @@ serve(async (req) => {
           throw new Error('Keywords are required for AI mode');
         }
 
-        console.log('Generating AI task with keywords:', keywords);
+        console.log('Generating AI task with keywords:', keywords, 'branch:', branch);
         
-        const prompt = `Generate a mini-project style task for engineering students with the following format:
+        const prompt = `You are a computer science professor creating a mini-project for engineering students. Generate a programming task based on these requirements:
 
-Title: A short, clear, and professional project name (4–8 words, avoid "Challenge").
-Description: A detailed explanation (3–5 sentences) including:
-- The main goal of the task.
-- Expected deliverables (e.g., code, report, prototype).
-- Technologies/tools to use (related to the keywords).
-- A real-world application or why it matters.
+REQUIREMENTS:
+- Topic keywords: ${keywords}
+- Student branch: ${branch || 'Computer Science'}
+- Duration: 7-10 days to complete
+- Difficulty: Intermediate level suitable for students
+- Must include practical coding/development work
 
-Constraints:
-- Keep it student-appropriate (not enterprise-level).
-- Make it actionable within 7–10 days.
-- Relate it to the student's branch: ${branch || 'Computer Science'}.
-- Focus on the topic keywords: ${keywords}.
+RESPONSE FORMAT (MUST follow this exact format):
+Title: [Write a clear 4-8 word project title without using "Challenge" or "Task"]
+Description: [Write a detailed 3-5 sentence description that includes: (1) the main objective, (2) specific deliverables like code/report/prototype, (3) technologies to use, (4) real-world application or importance]
 
-Please respond in exactly this format:
-Title: [Your title here]
-Description: [Your description here]`;
+EXAMPLE FORMAT:
+Title: React E-commerce Product Catalog
+Description: Build a dynamic web application that displays and filters product listings using React.js and a REST API. Students must create components for product cards, search functionality, and category filtering. The deliverables include a working React application, clean component architecture, and API integration code. This project teaches modern frontend development skills essential for building user-facing web applications in the e-commerce industry.
+
+Now generate a task for: ${keywords}`;
 
         const { title, description } = await generateWithGemini(prompt);
         
@@ -366,31 +392,41 @@ Description: [Your description here]`;
       case 'personalized': {
         console.log('Generating personalized tasks for students');
         
+        if (selected_students.length === 0) {
+          throw new Error('At least one student must be selected for personalized mode');
+        }
+        
         // Get student profiles
         const students = await getStudentProfiles(selected_students);
         
+        if (students.length === 0) {
+          throw new Error('No student profiles found. Students need to complete their profiles first.');
+        }
+        
         for (const student of students) {
-          const prompt = `Name: ${student.full_name}
-Branch: ${student.branch || 'General'}
-Year: ${student.year_of_study || 'Not specified'}
-Interests: ${student.key_interests?.join(', ') || 'General programming'}
-Skills: ${student.preferred_skills?.join(', ') || 'Basic programming'}
+          console.log('Generating personalized task for:', student.full_name);
+          
+          const prompt = `You are creating a personalized mini-project for this student. Use their profile to make it relevant and engaging.
+
+STUDENT PROFILE:
+Name: ${student.full_name}
+Branch: ${student.branch || 'Computer Science'}
+Year of Study: ${student.year_of_study || 'Not specified'}
+Key Interests: ${Array.isArray(student.key_interests) ? student.key_interests.join(', ') : 'General programming'}
+Preferred Skills: ${Array.isArray(student.preferred_skills) ? student.preferred_skills.join(', ') : 'Basic programming'}
 Career Goals: ${student.career_goals || 'Software development'}
 
-Generate a personalized mini-project with:
-Title: [short professional title]
-Description: [detailed, clear requirements, tools, real-world relevance]
+REQUIREMENTS:
+- Create a programming project that aligns with their interests and goals
+- Match their year of study and skill level
+- Be completable in 7-10 days
+- Include hands-on coding work
 
-The task should:
-1. Align with their interests and career goals
-2. Be appropriate for their year of study
-3. Help develop their preferred skills
-4. Be engaging and educational
-5. Be completable in 7-10 days
+RESPONSE FORMAT (MUST follow exactly):
+Title: [Personalized project title relevant to their interests]
+Description: [Detailed description explaining the project objectives, required deliverables, technologies to use, and how it connects to their career goals. Make it specific to this student's profile.]
 
-Please provide:
-Title: [A personalized, engaging task title]
-Description: [A detailed description tailored specifically to this student's profile, including clear objectives, requirements, and how it relates to their goals.]`;
+Generate a personalized task now:`;
 
           const { title, description } = await generateWithGemini(prompt);
           
@@ -441,21 +477,47 @@ Description: [A detailed description tailored specifically to this student's pro
   } catch (error) {
     console.error('Error in assign-tasks function:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error object:', typeof error === 'object' ? JSON.stringify(error) : String(error));
     
-    // Better error handling to show actual error details
     let errorMessage = 'An unexpected error occurred';
+    let statusCode = 500;
     
     if (error instanceof Error) {
       errorMessage = error.message;
-    } else if (typeof error === 'object' && error !== null) {
-      errorMessage = JSON.stringify(error);
-    } else {
-      errorMessage = String(error);
-    }
-    
-    // Check if it's an AI generation error
-    if (errorMessage.includes('Gemini') || errorMessage.includes('AI') || errorMessage.includes('generateContent')) {
-      errorMessage = 'AI generation failed. Please try again or use manual mode.';
+      
+      // Specific error handling for different types of errors
+      if (errorMessage.includes('Authentication') || errorMessage.includes('authorization')) {
+        statusCode = 401;
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (errorMessage.includes('Insufficient permissions')) {
+        statusCode = 403;
+        errorMessage = 'You do not have permission to perform this action.';
+      } else if (errorMessage.includes('required')) {
+        statusCode = 400;
+        errorMessage = 'Missing required fields: ' + errorMessage;
+      } else if (errorMessage.includes('AI generation failed') || errorMessage.includes('Gemini') || errorMessage.includes('blocked')) {
+        statusCode = 502;
+        errorMessage = 'AI service is currently unavailable. Please try manual mode or try again later.';
+      } else if (errorMessage.includes('23502') || errorMessage.includes('not-null')) {
+        statusCode = 400;
+        errorMessage = 'Missing required database fields. Please check your input data.';
+      } else if (errorMessage.includes('23514') || errorMessage.includes('check constraint')) {
+        statusCode = 400;
+        errorMessage = 'Invalid data provided. Please check the values and try again.';
+      }
+    } else if (typeof error === 'object' && error !== null && 'code' in error) {
+      const dbError = error as any;
+      console.error('Database error details:', JSON.stringify(dbError, null, 2));
+      
+      if (dbError.code === '23502') {
+        statusCode = 400;
+        errorMessage = 'Missing required data. Please ensure all required fields are provided.';
+      } else if (dbError.code === '23514') {
+        statusCode = 400;
+        errorMessage = 'Invalid data format. Please check your input values.';
+      } else {
+        errorMessage = `Database error: ${dbError.message || 'Unknown database issue'}`;
+      }
     }
 
     return new Response(JSON.stringify({
@@ -466,7 +528,7 @@ Description: [A detailed description tailored specifically to this student's pro
       task_assignments: [],
       error: errorMessage
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

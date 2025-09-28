@@ -222,7 +222,7 @@ serve(async (req) => {
           title: taskData.title,
           description: taskData.description,
           due_date: due_date,
-          status: 'pending',
+          status: 'Pending',
           xp_reward: taskData.xp_reward || 0,
           created_at: currentTime,
           updated_at: currentTime,

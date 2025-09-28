@@ -191,7 +191,7 @@ serve(async (req) => {
           xp_reward: taskData.xp_reward || 0,
           category,
           visibility,
-          status: 'pending',
+          status: 'Pending',
           source: taskData.source,
           created_by_college_id: roleData?.role === 'college_admin' ? user?.id || null : null,
           created_by_admin_id: roleData?.role === 'admin' ? user?.id || null : null,
@@ -326,7 +326,7 @@ Description: [Your description here]`;
           title: template.title,
           description: template.description,
           xp_reward: xp_reward_override || template.xp_reward || 0,
-          source: 'template'
+          source: 'manual'
         });
 
         createdTasks.push(task);
@@ -368,7 +368,7 @@ Description: [A detailed description tailored specifically to this student's pro
             title: `${title} (for ${student.full_name})`,
             description,
             xp_reward,
-            source: 'personal_ai'
+            source: 'personalized'
           });
 
           createdTasks.push(task);
@@ -397,17 +397,34 @@ Description: [A detailed description tailored specifically to this student's pro
   } catch (error) {
     console.error('Error in assign-tasks function:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    console.error('Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : String(error),
-      cause: error instanceof Error ? error.cause : undefined
-    });
     
+    // Better error handling to show actual error details
     let errorMessage = 'An unexpected error occurred';
+    let errorDetails: any = {};
+    
     if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
       errorMessage = error.message;
+      errorDetails = {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      };
+    } else if (typeof error === 'object' && error !== null) {
+      console.error('Error object:', JSON.stringify(error, null, 2));
+      errorMessage = JSON.stringify(error);
+      errorDetails = error;
+    } else {
+      console.error('Error (string):', String(error));
+      errorMessage = String(error);
     }
 
+    // Check if it's a database constraint error
+    if (errorDetails && errorDetails.code === '23514') {
+      errorMessage = 'Database constraint violation: ' + (errorDetails.message || 'Invalid data provided');
+    }
+    
     // Check if it's an AI generation error
     if (errorMessage.includes('Gemini') || errorMessage.includes('AI') || errorMessage.includes('generateContent')) {
       errorMessage = 'AI generation failed. Please try again or use manual mode.';
@@ -416,10 +433,7 @@ Description: [A detailed description tailored specifically to this student's pro
     return new Response(JSON.stringify({
       success: false,
       error: errorMessage,
-      debug: {
-        errorType: error instanceof Error ? error.name : typeof error,
-        originalMessage: error instanceof Error ? error.message : String(error)
-      }
+      debug: errorDetails
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -8,24 +8,24 @@ const corsHeaders = {
 };
 
 interface AssignTasksRequest {
-  mode: 'manual' | 'ai' | 'template' | 'personal';
+  mode: 'manual' | 'ai' | 'template' | 'personalized';
   // Common fields
   due_date: string;
   selected_students: string[];
+  xp_reward?: number;
   category?: string;
   visibility?: string;
+  
   // Manual mode
   title?: string;
   description?: string;
-  xp_reward?: number;
+  
   // AI mode
   keywords?: string;
   branch?: string;
-  difficulty?: string;
+  
   // Template mode
   template_id?: string;
-  xp_reward_override?: number;
-  // Personal mode uses due_date and xp_reward
 }
 
 serve(async (req) => {
@@ -69,7 +69,14 @@ serve(async (req) => {
     }
 
     const requestData: AssignTasksRequest = await req.json();
-    const { mode, due_date, selected_students, category = 'General', visibility = 'private' } = requestData;
+    const { 
+      mode, 
+      due_date, 
+      selected_students, 
+      xp_reward = 50,
+      category = 'General', 
+      visibility = 'private' 
+    } = requestData;
 
     // Validate required fields
     if (!due_date) {
@@ -90,10 +97,8 @@ serve(async (req) => {
       }
 
       console.log('Making Gemini API request with prompt length:', prompt.length);
-      console.log('Using Gemini API key (first 10 chars):', geminiApiKey.substring(0, 10) + '...');
       
-      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiApiKey;
-      console.log('API URL:', apiUrl.replace(geminiApiKey, 'API_KEY_HIDDEN'));
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`;
       
       const requestBody = {
         contents: [{
@@ -120,13 +125,11 @@ serve(async (req) => {
       });
 
       console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Gemini API error response:', errorText);
-        console.error('Gemini API error status:', response.status);
-        throw new Error(`Gemini API request failed: ${response.status} - ${errorText}`);
+        throw new Error('AI generation failed. Please try again or use manual mode.');
       }
 
       const data = await response.json();
@@ -136,7 +139,7 @@ serve(async (req) => {
       
       if (!text) {
         console.error('No text in Gemini response:', JSON.stringify(data, null, 2));
-        throw new Error('No response from Gemini API');
+        throw new Error('AI generation failed. Please try again or use manual mode.');
       }
 
       console.log('Generated text:', text);
@@ -193,18 +196,23 @@ serve(async (req) => {
           title: taskData.title,
           description: taskData.description,
           due_date: due_date,
+          status: 'pending',
           xp_reward: taskData.xp_reward || 0,
-          category,
-          visibility,
-          status: 'Pending',
-          source: taskData.source,
+          created_at: currentTime,
+          updated_at: currentTime,
+          duration_days: 7,
+          upload_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           created_by_college_id: roleData?.role === 'college_admin' ? user?.id || null : null,
           created_by_admin_id: roleData?.role === 'admin' ? user?.id || null : null,
           created_by_startup_id: roleData?.role === 'startup' ? user?.id || null : null,
-          created_at: currentTime,
-          updated_at: currentTime,
+          is_paid: false,
+          required_skills: [],
+          posted_at: currentTime,
+          category,
+          visibility,
           approved_by_admin: true,
-          posted_at: currentTime
+          source: taskData.source,
+          ai_metadata: taskData.ai_metadata || null
         })
         .select()
         .single();
@@ -220,7 +228,12 @@ serve(async (req) => {
         student_id: studentId,
         status: 'assigned',
         assigned_at: currentTime,
-        updated_at: currentTime
+        updated_at: currentTime,
+        completed_at: null,
+        submitted_at: null,
+        review_status: null,
+        reviewed_by: null,
+        feedback: null
       }));
 
       const { data, error } = await supabase
@@ -234,7 +247,7 @@ serve(async (req) => {
 
     switch (mode) {
       case 'manual': {
-        const { title, description, xp_reward = 0 } = requestData;
+        const { title, description } = requestData;
         
         if (!title || !description) {
           throw new Error('Title and description are required for manual mode');
@@ -260,7 +273,7 @@ serve(async (req) => {
       }
 
       case 'ai': {
-        const { keywords, branch, difficulty, xp_reward = 50 } = requestData;
+        const { keywords, branch } = requestData;
         
         if (!keywords) {
           throw new Error('Keywords are required for AI mode');
@@ -268,8 +281,7 @@ serve(async (req) => {
 
         console.log('Generating AI task with keywords:', keywords);
         
-        const prompt = `You are an internship mentor creating practical tasks for engineering students. 
-Generate a task with the following format:
+        const prompt = `Generate a mini-project style task for engineering students with the following format:
 
 Title: A short, clear, and professional project name (4–8 words, avoid "Challenge").
 Description: A detailed explanation (3–5 sentences) including:
@@ -290,11 +302,19 @@ Description: [Your description here]`;
 
         const { title, description } = await generateWithGemini(prompt);
         
+        const aiMetadata = {
+          keywords,
+          branch: branch || 'Computer Science',
+          generated_at: currentTime,
+          prompt_used: prompt
+        };
+        
         const task = await insertTask({
           title,
           description,
           xp_reward,
-          source: 'ai'
+          source: 'ai',
+          ai_metadata: aiMetadata
         });
 
         createdTasks.push(task);
@@ -308,7 +328,7 @@ Description: [Your description here]`;
       }
 
       case 'template': {
-        const { template_id, xp_reward_override } = requestData;
+        const { template_id } = requestData;
         
         if (!template_id) {
           throw new Error('Template ID is required for template mode');
@@ -330,38 +350,43 @@ Description: [Your description here]`;
         const task = await insertTask({
           title: template.title,
           description: template.description,
-          xp_reward: xp_reward_override || template.xp_reward || 0,
-          source: 'manual'
+          xp_reward: template.xp_reward || xp_reward,
+          source: 'template'
         });
 
         createdTasks.push(task);
-        const taskAssignments = await insertAssignments(task.id, selected_students);
-        assignments.push(...taskAssignments);
+        
+        if (selected_students.length > 0) {
+          const taskAssignments = await insertAssignments(task.id, selected_students);
+          assignments.push(...taskAssignments);
+        }
         break;
       }
 
-      case 'personal': {
-        const { xp_reward = 50 } = requestData;
-        
+      case 'personalized': {
         console.log('Generating personalized tasks for students');
         
         // Get student profiles
         const students = await getStudentProfiles(selected_students);
         
         for (const student of students) {
-          const prompt = `Generate a personalized programming/learning task for this student:
-Name: ${student.full_name}
+          const prompt = `Name: ${student.full_name}
 Branch: ${student.branch || 'General'}
 Year: ${student.year_of_study || 'Not specified'}
 Interests: ${student.key_interests?.join(', ') || 'General programming'}
 Skills: ${student.preferred_skills?.join(', ') || 'Basic programming'}
 Career Goals: ${student.career_goals || 'Software development'}
 
-Create a task that:
-1. Aligns with their interests and career goals
-2. Is appropriate for their year of study
-3. Helps develop their preferred skills
-4. Is engaging and educational
+Generate a personalized mini-project with:
+Title: [short professional title]
+Description: [detailed, clear requirements, tools, real-world relevance]
+
+The task should:
+1. Align with their interests and career goals
+2. Be appropriate for their year of study
+3. Help develop their preferred skills
+4. Be engaging and educational
+5. Be completable in 7-10 days
 
 Please provide:
 Title: [A personalized, engaging task title]
@@ -369,11 +394,25 @@ Description: [A detailed description tailored specifically to this student's pro
 
           const { title, description } = await generateWithGemini(prompt);
           
+          const aiMetadata = {
+            student_profile: {
+              full_name: student.full_name,
+              branch: student.branch,
+              year_of_study: student.year_of_study,
+              key_interests: student.key_interests,
+              preferred_skills: student.preferred_skills,
+              career_goals: student.career_goals
+            },
+            generated_at: currentTime,
+            prompt_used: prompt
+          };
+          
           const task = await insertTask({
             title: `${title} (for ${student.full_name})`,
             description,
             xp_reward,
-            source: 'personalized'
+            source: 'personalized',
+            ai_metadata: aiMetadata
           });
 
           createdTasks.push(task);
@@ -405,29 +444,13 @@ Description: [A detailed description tailored specifically to this student's pro
     
     // Better error handling to show actual error details
     let errorMessage = 'An unexpected error occurred';
-    let errorDetails: any = {};
     
     if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
       errorMessage = error.message;
-      errorDetails = {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      };
     } else if (typeof error === 'object' && error !== null) {
-      console.error('Error object:', JSON.stringify(error, null, 2));
       errorMessage = JSON.stringify(error);
-      errorDetails = error;
     } else {
-      console.error('Error (string):', String(error));
       errorMessage = String(error);
-    }
-
-    // Check if it's a database constraint error
-    if (errorDetails && errorDetails.code === '23514') {
-      errorMessage = 'Database constraint violation: ' + (errorDetails.message || 'Invalid data provided');
     }
     
     // Check if it's an AI generation error
@@ -437,8 +460,11 @@ Description: [A detailed description tailored specifically to this student's pro
 
     return new Response(JSON.stringify({
       success: false,
-      error: errorMessage,
-      debug: errorDetails
+      created_tasks: 0,
+      assignments: 0,
+      tasks: [],
+      task_assignments: [],
+      error: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

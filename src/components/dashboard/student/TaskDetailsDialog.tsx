@@ -131,7 +131,7 @@ const TaskDetailsDialog = ({
                   onUploadProof(task.id);
                   onClose();
                 }}
-                className="flex-1 bg-orange-600 hover:bg-orange-700"
+                className="flex-1 !bg-orange-600 hover:!bg-orange-700 text-white"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Submit Proof

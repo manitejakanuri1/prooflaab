@@ -5,24 +5,39 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
 import { format } from "date-fns";
-import { Clock, Award, Play, Upload, Search, Filter, Eye, CheckCircle, FileText } from "lucide-react";
+import { 
+  Calendar, 
+  Award, 
+  Play, 
+  Upload, 
+  Search, 
+  Filter, 
+  Eye, 
+  CheckCircle, 
+  FileText,
+  MoreVertical,
+  X,
+  Target
+} from "lucide-react";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const StudentTasksPage = () => {
   const { tasks, loading, startTask } = useAllStudentTasks();
+  const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [sortBy, setSortBy] = useState("Status Priority");
+  const [sourceFilter, setSourceFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("Due Date (ASC)");
 
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {
@@ -39,6 +54,14 @@ const StudentTasksPage = () => {
     // Apply status filter
     if (statusFilter !== "All") {
       filtered = filtered.filter(task => task.status === statusFilter);
+    }
+
+    // Apply source filter
+    if (sourceFilter !== "All") {
+      filtered = filtered.filter(task => {
+        const taskSource = task.source?.toLowerCase() || '';
+        return taskSource === sourceFilter.toLowerCase();
+      });
     }
 
     // Apply sorting
@@ -77,7 +100,7 @@ const StudentTasksPage = () => {
     });
 
     return sortedTasks;
-  }, [tasks, searchQuery, statusFilter, sortBy]);
+  }, [tasks, searchQuery, statusFilter, sourceFilter, sortBy]);
 
   if (loading) {
     return (
@@ -96,51 +119,52 @@ const StudentTasksPage = () => {
     );
   }
 
+  const getSourceBadgeColor = (source: string) => {
+    const normalizedSource = source?.toLowerCase() || '';
+    if (normalizedSource === 'college') return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (normalizedSource === 'admin') return 'bg-gray-100 text-gray-700 border-gray-200';
+    if (normalizedSource === 'startup') return 'bg-green-100 text-green-700 border-green-200';
+    return 'bg-muted text-muted-foreground border-border';
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Applied':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-orange-100 text-orange-700 border-orange-200';
       case 'In Progress':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'Completed':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-700 border-green-200';
       case 'Under Review':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'Overdue':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-700 border-red-200';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Applied':
-        return <Clock className="h-3 w-3" />;
-      case 'In Progress':
-        return <Play className="h-3 w-3" />;
-      case 'Completed':
-        return <CheckCircle className="h-3 w-3" />;
-      case 'Under Review':
-        return <Eye className="h-3 w-3" />;
-      default:
-        return <FileText className="h-3 w-3" />;
-    }
-  };
-
   const formatDueDate = (deadline: string) => {
     if (!deadline) return "Not Set";
-    
-    // Since the hook already formats this as relative time, just return it
-    return deadline;
+    try {
+      return format(new Date(deadline), "MMM dd, yyyy");
+    } catch {
+      return deadline;
+    }
   };
 
   const handleStartTask = async (taskId: string) => {
     try {
       await startTask(taskId);
+      toast.success("Task started successfully!");
     } catch (error) {
       console.error('Error starting task:', error);
+      toast.error("Failed to start task");
     }
+  };
+
+  const handleWithdraw = (taskId: string) => {
+    toast.info("Withdraw functionality coming soon");
   };
 
   return (
@@ -157,7 +181,7 @@ const StudentTasksPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg border">
+          <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/30 rounded-lg border">
             <div className="flex items-center gap-2 flex-1">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
@@ -168,18 +192,29 @@ const StudentTasksPage = () => {
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2 flex-wrap">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Status</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
                   <SelectItem value="Applied">Applied</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
                   <SelectItem value="Under Review">Under Review</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Sources</SelectItem>
+                  <SelectItem value="College">College</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Startup">Startup</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -188,132 +223,159 @@ const StudentTasksPage = () => {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Status Priority">Status Priority</SelectItem>
-                  <SelectItem value="Due Date (ASC)">Due Date (ASC)</SelectItem>
-                  <SelectItem value="Due Date (DESC)">Due Date (DESC)</SelectItem>
-                  <SelectItem value="XP (ASC)">XP (ASC)</SelectItem>
-                  <SelectItem value="XP (DESC)">XP (DESC)</SelectItem>
-                  <SelectItem value="Newest First">Newest First</SelectItem>
+                  <SelectItem value="Due Date (ASC)">Due Date (Soonest)</SelectItem>
+                  <SelectItem value="Due Date (DESC)">Due Date (Latest)</SelectItem>
+                  <SelectItem value="XP (DESC)">XP (High to Low)</SelectItem>
+                  <SelectItem value="XP (ASC)">XP (Low to High)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {filteredAndSortedTasks.length === 0 ? (
-            <div className="text-center py-12">
-              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
+            <div className="text-center py-16">
+              <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">
                 {tasks.length === 0 ? "No tasks assigned yet" : "No tasks match your filters"}
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-6">
                 {tasks.length === 0 
-                  ? "Check back later for new assignments from your instructors."
+                  ? "Check back soon for new opportunities."
                   : "Try adjusting your search or filter criteria."
                 }
               </p>
+              {tasks.length === 0 && (
+                <Button
+                  onClick={() => navigate("/student/dashboard")}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Explore Available Tasks
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b">
-                    <TableHead className="font-semibold">Task Details</TableHead>
-                    <TableHead className="font-semibold">Source</TableHead>
-                    <TableHead className="font-semibold">Due Date</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">XP Reward</TableHead>
-                    <TableHead className="text-right font-semibold">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAndSortedTasks.map((task, index) => (
-                    <TableRow 
-                      key={task.id}
-                      className={`border-b border-border hover:bg-muted/30 transition-colors ${
-                        index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-                      }`}
-                    >
-                      <TableCell className="py-4">
-                        <div className="space-y-1">
-                          <div className="font-medium text-foreground">{task.title}</div>
-                          {task.description && (
-                            <div className="text-sm text-muted-foreground">
-                              {task.description.substring(0, 100)}
-                              {task.description.length > 100 ? '...' : ''}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                          {task.source}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <div className="text-sm text-foreground">
-                          {new Date(task.deadline).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            year: 'numeric' 
-                          })}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <Badge 
-                          variant="outline" 
-                          className={`${getStatusColor(task.status)} flex items-center gap-1 w-fit`}
-                        >
-                          {getStatusIcon(task.status)}
-                          {task.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <div className="flex items-center gap-1">
-                          <Award className="h-4 w-4 text-orange-500" />
-                          <span className="font-medium text-foreground">{task.xp_reward || 0}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right py-4">
-                        <div className="flex justify-end gap-2">
-                          {task.status === 'Applied' && task.can_start && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleStartTask(task.id)}
-                              className="bg-orange-600 hover:bg-orange-700 text-white"
+            <div className="space-y-3">
+              {filteredAndSortedTasks.map((task) => (
+                <Card key={task.id} className="hover:shadow-md transition-shadow border-l-4 border-l-primary/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      {/* Left: Task Info */}
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-start gap-3 flex-wrap">
+                          <h3 className="font-semibold text-base text-foreground line-clamp-1 flex-1 min-w-0">
+                            {task.title}
+                          </h3>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge 
+                              variant="outline" 
+                              className={getSourceBadgeColor(task.source || '')}
                             >
-                              <Play className="h-4 w-4 mr-1" />
-                              Start Now
-                            </Button>
-                          )}
-                          {task.status === 'Applied' && !task.can_start && (
-                            <Badge variant="secondary" className="px-3 py-1">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Pending Approval
+                              {task.source || 'Unknown'}
                             </Badge>
-                          )}
-                          {task.status === 'In Progress' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedTaskId(task.id)}
-                              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                            <Badge 
+                              variant="outline" 
+                              className={getStatusColor(task.status)}
                             >
-                              <Upload className="h-4 w-4 mr-1" />
-                              Upload Proof
-                            </Button>
-                          )}
-                          {(task.status === 'Under Review' || task.status === 'Completed') && (
-                            <Badge variant="secondary" className="px-3 py-1">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              {task.status === 'Completed' ? 'Verified' : 'Under Review'}
+                              {task.status}
                             </Badge>
-                          )}
+                          </div>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+
+                        {task.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {task.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-4 flex-wrap text-sm">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>{formatDueDate(task.deadline)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-orange-600 font-medium">
+                            <Award className="h-4 w-4" />
+                            <span>{task.xp_reward || 0} XP</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {task.status === 'Applied' && task.can_start && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStartTask(task.id)}
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Start Task
+                          </Button>
+                        )}
+                        {task.status === 'In Progress' && (
+                          <Button
+                            size="sm"
+                            onClick={() => setSelectedTaskId(task.id)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Upload className="h-4 w-4 mr-1" />
+                            Submit Proof
+                          </Button>
+                        )}
+                        {task.status === 'Completed' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-green-50 text-green-700 border-green-200"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            View Submission
+                          </Button>
+                        )}
+                        {task.status === 'Under Review' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-purple-50 text-purple-700 border-purple-200"
+                            disabled
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Under Review
+                          </Button>
+                        )}
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            {task.status === 'In Progress' && (
+                              <DropdownMenuItem onClick={() => setSelectedTaskId(task.id)}>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Submit Proof
+                              </DropdownMenuItem>
+                            )}
+                            {task.status === 'Applied' && (
+                              <DropdownMenuItem 
+                                onClick={() => handleWithdraw(task.id)}
+                                className="text-red-600"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Withdraw
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </CardContent>

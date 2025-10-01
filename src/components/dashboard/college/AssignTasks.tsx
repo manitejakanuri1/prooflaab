@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Sliders, Upload, X, Link } from "lucide-react";
+import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Sliders, Upload, X, Link, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Student {
@@ -56,6 +56,18 @@ interface FormErrors {
   description?: string;
   xpReward?: string;
   dueDate?: string;
+}
+
+interface PersonalizedTask {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentBranch: string | null;
+  studentYear: string | null;
+  title: string;
+  description: string;
+  selected: boolean;
+  isEditing: boolean;
 }
 
 const AssignTasks = () => {
@@ -109,6 +121,10 @@ const AssignTasks = () => {
     category: "Coding",
     visibility: "Public"
   });
+
+  // Personalized tasks state
+  const [personalizedTasks, setPersonalizedTasks] = useState<PersonalizedTask[]>([]);
+  const [showPersonalPreview, setShowPersonalPreview] = useState(false);
 
   // Template state
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
@@ -303,24 +319,34 @@ const AssignTasks = () => {
       return;
     }
 
-    // Generate tasks based on student interests
+    // Generate unique tasks for each selected student
     const selectedStudentData = filteredStudents.filter(s => selectedStudents.includes(s.id));
-    const commonInterests = selectedStudentData.reduce((acc, student) => {
-      student.key_interests?.forEach(interest => {
-        acc[interest] = (acc[interest] || 0) + 1;
-      });
-      return acc;
-    }, {} as Record<string, number>);
+    
+    const tasks: PersonalizedTask[] = selectedStudentData.map((student, index) => {
+      // Mock personalized task based on student interests
+      const interests = student.key_interests?.join(', ') || 'general development';
+      const skills = student.preferred_skills?.slice(0, 2).join(' and ') || 'core skills';
+      
+      return {
+        id: `task-${student.id}-${Date.now()}`,
+        studentId: student.id,
+        studentName: student.full_name,
+        studentBranch: student.branch,
+        studentYear: student.year_of_study,
+        title: `Personalized ${interests.split(',')[0]} Challenge for ${student.full_name.split(' ')[0]}`,
+        description: `A customized task focusing on ${skills}, designed specifically for ${student.full_name} based on their interests in ${interests} and current skill level.`,
+        selected: true,
+        isEditing: false
+      };
+    });
 
-    const topInterest = Object.entries(commonInterests)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || "Programming";
-
-    setPersonalForm(prev => ({
-      ...prev,
-      title: `Personalized ${topInterest} Challenge`,
-      description: `A customized task focusing on ${topInterest} skills, designed based on the selected students' interests and skill levels.`,
-      xpReward: "120"
-    }));
+    setPersonalizedTasks(tasks);
+    setShowPersonalPreview(true);
+    
+    toast({
+      title: "Success",
+      description: `Generated ${tasks.length} personalized tasks`,
+    });
   };
 
   const clearTemplate = () => {
@@ -364,6 +390,39 @@ const AssignTasks = () => {
       xpReward: ""
       // Keep dueDate and visibility unchanged
     }));
+    setPersonalizedTasks([]);
+    setShowPersonalPreview(false);
+  };
+
+  const toggleTaskSelection = (taskId: string) => {
+    setPersonalizedTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, selected: !task.selected } : task
+      )
+    );
+  };
+
+  const toggleTaskEditing = (taskId: string) => {
+    setPersonalizedTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, isEditing: !task.isEditing } : task
+      )
+    );
+  };
+
+  const updatePersonalizedTask = (taskId: string, updates: Partial<PersonalizedTask>) => {
+    setPersonalizedTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      )
+    );
+  };
+
+  const selectAllPersonalizedTasks = () => {
+    const allSelected = personalizedTasks.every(task => task.selected);
+    setPersonalizedTasks(prev => 
+      prev.map(task => ({ ...task, selected: !allSelected }))
+    );
   };
 
   const generateAITask = async () => {
@@ -645,7 +704,11 @@ const AssignTasks = () => {
           variant="outline"
           onClick={handlePreviewAssignment}
           className="flex items-center gap-2"
-          disabled={!title.trim() || !description.trim() || !xpReward || parseInt(xpReward) <= 0 || !dueDate || selectedStudents.length === 0}
+          disabled={
+            activeTab === "personalized" 
+              ? personalizedTasks.filter(t => t.selected).length === 0 || !xpReward || parseInt(xpReward) <= 0 || !dueDate
+              : !title.trim() || !description.trim() || !xpReward || parseInt(xpReward) <= 0 || !dueDate || selectedStudents.length === 0
+          }
         >
           <Eye className="h-4 w-4" />
           Preview Assignment
@@ -987,64 +1050,154 @@ const AssignTasks = () => {
 
               <TabsContent value="personalized" className="space-y-4">
                 <div className="space-y-4">
-                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      Select students first, then generate personalized tasks based on their interests and skills.
-                    </p>
-                  </div>
-                  
-                  <Button
-                    onClick={generatePersonalizedTasks}
-                    disabled={selectedStudents.length === 0}
-                    className="w-full"
-                  >
-                    Generate Personalized Task
-                  </Button>
-
-                  {title && (
-                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                      <div>
-                        <Label className="text-sm font-medium">Personalized Title</Label>
-                        <Input
-                          value={title}
-                          onChange={(e) => setPersonalForm(prev => ({ ...prev, title: e.target.value }))}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Personalized Description</Label>
-                        <Textarea
-                          value={description}
-                          onChange={(e) => setPersonalForm(prev => ({ ...prev, description: e.target.value }))}
-                          rows={4}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">XP Reward</Label>
-                        <Input
-                          type="number"
-                          value={xpReward}
-                          onChange={(e) => setPersonalForm(prev => ({ ...prev, xpReward: e.target.value }))}
-                          className="mt-1"
-                        />
+                  {!showPersonalPreview ? (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-muted/30 rounded-lg border border-dashed">
+                        <div className="flex items-start gap-3">
+                          <User className="h-5 w-5 text-primary mt-0.5" />
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Generate Personalized Tasks</p>
+                            <p className="text-xs text-muted-foreground">
+                              Create unique, customized tasks for each selected student based on their interests, skills, and profile.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    )}
-                    
-                    {/* Clear Task Button - only show if personalized task was generated */}
-                    {title && (
-                      <div className="pt-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={clearPersonalTask}
-                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                          Clear Task
-                        </Button>
+                      
+                      <Button
+                        onClick={generatePersonalizedTasks}
+                        disabled={selectedStudents.length === 0}
+                        className="w-full"
+                      >
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Generate Personalized Tasks
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-sm">
+                            {personalizedTasks.filter(t => t.selected).length} / {personalizedTasks.length} selected
+                          </Badge>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={selectAllPersonalizedTasks}
+                          >
+                            {personalizedTasks.every(t => t.selected) ? "Deselect All" : "Select All"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearPersonalTask}
+                            className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Clear All
+                          </Button>
+                        </div>
                       </div>
-                    )}
+
+                      <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+                        {personalizedTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className={cn(
+                              "p-4 rounded-lg border transition-all",
+                              task.selected ? "bg-accent/50 border-primary/50" : "bg-background"
+                            )}
+                          >
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={task.selected}
+                                onCheckedChange={() => toggleTaskSelection(task.id)}
+                                className="mt-1"
+                              />
+                              <div className="flex-1 space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-medium text-sm">{task.studentName}</p>
+                                      {task.studentBranch && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {task.studentBranch}
+                                        </Badge>
+                                      )}
+                                      {task.studentYear && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Year {task.studentYear}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleTaskEditing(task.id)}
+                                    className="h-7 px-2"
+                                  >
+                                    {task.isEditing ? "Done" : "Edit"}
+                                  </Button>
+                                </div>
+
+                                {task.isEditing ? (
+                                  <div className="space-y-3">
+                                    <div>
+                                      <Label className="text-xs">Task Title</Label>
+                                      <Input
+                                        value={task.title}
+                                        onChange={(e) =>
+                                          updatePersonalizedTask(task.id, { title: e.target.value })
+                                        }
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs">Task Description</Label>
+                                      <Textarea
+                                        value={task.description}
+                                        onChange={(e) =>
+                                          updatePersonalizedTask(task.id, { description: e.target.value })
+                                        }
+                                        rows={3}
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">Title</Label>
+                                      <p className="text-sm mt-0.5">{task.title}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">Description</Label>
+                                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                                        {task.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>XP Reward (applies to all tasks)</Label>
+                        <Input
+                          type="number"
+                          placeholder="120"
+                          value={xpReward}
+                          onChange={(e) => setPersonalForm(prev => ({ ...prev, xpReward: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
                  </div>
                </TabsContent>
 

@@ -13,6 +13,7 @@ import CollegeOversight from "@/components/dashboard/admin/CollegeOversight";
 import StartupOversight from "@/components/dashboard/admin/StartupOversight";
 import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
+import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
 
 const AdminDashboard = () => {
   const { userType } = useParams();
@@ -56,6 +57,8 @@ const AdminDashboard = () => {
         return <EnhancedUserManagement initialTab={activeTab} />;
       case "task-oversight":
         return <TaskOversight />;
+      case "assign-tasks":
+        return <AdminAssignTasks />;
       case "jobs":
         return <ContentManagement type="jobs" />;
       case "resources":

@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +54,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     },
     { id: "proof-submissions", label: "Proof Review & Verification", icon: ClipboardCheck },
     { id: "task-oversight", label: "Task Oversight", icon: Eye },
+    { id: "assign-tasks", label: "Assign Tasks", icon: Plus },
     { 
       id: "content-management", 
       label: "Content Management", 

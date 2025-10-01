@@ -99,9 +99,7 @@ const AdminAssignTasks = () => {
   }, []);
 
   useEffect(() => {
-    if (audienceType !== "all") {
-      fetchStudents();
-    }
+    fetchStudents();
   }, [audienceType, selectedColleges]);
 
   useEffect(() => {
@@ -113,7 +111,6 @@ const AdminAssignTasks = () => {
       const { data, error } = await supabase
         .from('colleges')
         .select('id, name, email')
-        .eq('status', 'active')
         .order('name');
 
       if (error) throw error;
@@ -136,10 +133,11 @@ const AdminAssignTasks = () => {
         .select(`
           id, full_name, email, branch, batch, year_of_study,
           trust_score, total_xp, college_id,
-          colleges!college_id (name)
+          colleges!student_profiles_college_id_fkey (name)
         `)
         .eq('status', 'active');
 
+      // Filter by college if specific colleges are selected
       if (audienceType === "college" && selectedColleges.length > 0) {
         query = query.in('college_id', selectedColleges);
       }
@@ -150,7 +148,7 @@ const AdminAssignTasks = () => {
       
       const studentsWithCollegeName = (data || []).map(s => ({
         ...s,
-        college_name: (s as any).colleges?.name
+        college_name: (s as any).colleges?.name || "Direct Registration"
       }));
       
       setStudents(studentsWithCollegeName);

@@ -269,7 +269,7 @@ const StudentsManagement = () => {
     try {
       const { error } = await supabase
         .from('student_profiles')
-        .update({ status: 'inactive' })
+        .update({ status: 'Inactive' })
         .eq('id', studentId);
 
       if (error) throw error;
@@ -452,9 +452,9 @@ const StudentsManagement = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {/* TODO: Implement assign task */}}
+                              onClick={() => handleViewTaskHistory(student)}
                               className="h-8 w-8 p-0"
-                              title="Assign Task"
+                              title="View Task History"
                             >
                               <FileText className="h-4 w-4" />
                             </Button>

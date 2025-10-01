@@ -623,23 +623,52 @@ const AssignTasks = () => {
     
     setLoading(true);
     try {
-      const tasksToInsert = selectedStudents.map(studentId => ({
-        student_id: studentId,
-        title: confirmationData.title,
-        description: confirmationData.description,
-        due_date: confirmationData.dueDate.toISOString(),
-        xp_reward: confirmationData.xpReward,
-        category: confirmationData.category,
-        visibility: confirmationData.visibility.toLowerCase(),
-        status: 'Pending'
-      }));
+      let insertedTasks;
+      let error;
 
-      const { data: insertedTasks, error } = await supabase
-        .from('tasks')
-        .insert(tasksToInsert)
-        .select('id');
+      // For personalized mode, call the edge function
+      if (activeTab === "personalized") {
+        const { data, error: functionError } = await supabase.functions.invoke('assign_tasks', {
+          body: {
+            mode: 'personalized',
+            due_date: confirmationData.dueDate.toISOString(),
+            selected_students: selectedStudents,
+            xp_reward: confirmationData.xpReward,
+            category: confirmationData.category,
+            visibility: confirmationData.visibility.toLowerCase()
+          }
+        });
 
-      if (error) throw error;
+        if (functionError) throw functionError;
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to generate personalized tasks');
+        }
+
+        insertedTasks = data.tasks || [];
+      } else {
+        // For other modes, create tasks directly
+        const tasksToInsert = selectedStudents.map(studentId => ({
+          student_id: studentId,
+          title: confirmationData.title,
+          description: confirmationData.description,
+          due_date: confirmationData.dueDate.toISOString(),
+          xp_reward: confirmationData.xpReward,
+          category: confirmationData.category,
+          visibility: confirmationData.visibility.toLowerCase(),
+          status: 'Pending'
+        }));
+
+        const result = await supabase
+          .from('tasks')
+          .insert(tasksToInsert)
+          .select('id');
+
+        insertedTasks = result.data;
+        error = result.error;
+
+        if (error) throw error;
+      }
 
       // Create audit log entries for each task
       if (insertedTasks && insertedTasks.length > 0) {

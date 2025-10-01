@@ -170,7 +170,8 @@ serve(async (req) => {
               key_interests: keyInterestsArray,
               career_goals: career_goals || '',
               status: 'active',
-              college_id: college_id
+              college_id: college_id,
+              source: 'college'
             })
             .eq('id', existingProfile.id)
 
@@ -199,7 +200,8 @@ serve(async (req) => {
               total_xp: 0,
               trust_score: 0,
               status: 'active',
-              college_id: college_id
+              college_id: college_id,
+              source: 'college'
             })
 
           if (profileError) {

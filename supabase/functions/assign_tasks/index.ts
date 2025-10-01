@@ -85,10 +85,11 @@ serve(async (req) => {
 
     console.log(`Processing task assignment in ${mode} mode for ${selected_students.length} students`);
 
-    // Get the appropriate creator ID based on role
+    // Get the appropriate creator ID and source based on role
     let created_by_college_id: string | null = null;
     let created_by_admin_id: string | null = null;
     let created_by_startup_id: string | null = null;
+    let source_based_on_role: string;
 
     if (roleData.role === 'college_admin') {
       const { data: college, error: collegeError } = await supabase
@@ -103,10 +104,15 @@ serve(async (req) => {
       } else {
         created_by_college_id = college?.id || null;
       }
+      source_based_on_role = 'college';
     } else if (roleData.role === 'admin') {
       created_by_admin_id = user.id;
+      source_based_on_role = 'admin';
     } else if (roleData.role === 'startup') {
       created_by_startup_id = user.id;
+      source_based_on_role = 'startup';
+    } else {
+      source_based_on_role = 'manual';
     }
 
     const createdTasks: any[] = [];
@@ -299,7 +305,7 @@ serve(async (req) => {
           title,
           description,
           xp_reward,
-          source: 'manual'
+          source: mode === 'manual' ? source_based_on_role : 'manual'
         });
 
         createdTasks.push(task);
@@ -354,7 +360,7 @@ Now generate a task for: ${keywords}`;
           title,
           description,
           xp_reward,
-          source: 'ai',
+          source: mode === 'ai' ? source_based_on_role : 'ai',
           ai_metadata: aiMetadata
         });
 
@@ -392,7 +398,7 @@ Now generate a task for: ${keywords}`;
           title: template.title,
           description: template.description,
           xp_reward: template.xp_reward || xp_reward,
-          source: 'manual'
+          source: mode === 'template' ? source_based_on_role : 'template'
         });
 
         createdTasks.push(task);
@@ -477,7 +483,7 @@ Now generate a personalized mini-project for ${student.full_name}:`;
               title: title,
               description: description,
               xp_reward,
-              source: 'personalized',
+              source: mode === 'personalized' ? source_based_on_role : 'personalized',
               ai_metadata: aiMetadata
             });
 

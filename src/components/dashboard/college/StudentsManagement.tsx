@@ -269,7 +269,7 @@ const StudentsManagement = () => {
     try {
       const { error } = await supabase
         .from('student_profiles')
-        .update({ status: 'Inactive' })
+        .update({ status: 'inactive' })
         .eq('id', studentId);
 
       if (error) throw error;

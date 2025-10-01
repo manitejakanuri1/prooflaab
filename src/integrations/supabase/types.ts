@@ -203,7 +203,6 @@ export type Database = {
           email: string
           id: string
           invite_code: string | null
-          invitecode: string | null
           last_active: string | null
           name: string
           status: string | null
@@ -216,7 +215,6 @@ export type Database = {
           email: string
           id?: string
           invite_code?: string | null
-          invitecode?: string | null
           last_active?: string | null
           name: string
           status?: string | null
@@ -229,7 +227,6 @@ export type Database = {
           email?: string
           id?: string
           invite_code?: string | null
-          invitecode?: string | null
           last_active?: string | null
           name?: string
           status?: string | null
@@ -743,6 +740,7 @@ export type Database = {
       }
       student_profiles: {
         Row: {
+          ai_personalization_enabled: boolean | null
           batch: string | null
           branch: string | null
           career_goals: string | null
@@ -756,6 +754,7 @@ export type Database = {
           preferred_skills: string[] | null
           profile_completed: boolean
           profile_photo_url: string | null
+          profile_visibility: string | null
           slug: string | null
           source: string | null
           status: string | null
@@ -767,6 +766,7 @@ export type Database = {
           year_of_study: string | null
         }
         Insert: {
+          ai_personalization_enabled?: boolean | null
           batch?: string | null
           branch?: string | null
           career_goals?: string | null
@@ -780,6 +780,7 @@ export type Database = {
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
+          profile_visibility?: string | null
           slug?: string | null
           source?: string | null
           status?: string | null
@@ -791,6 +792,7 @@ export type Database = {
           year_of_study?: string | null
         }
         Update: {
+          ai_personalization_enabled?: boolean | null
           batch?: string | null
           branch?: string | null
           career_goals?: string | null
@@ -804,6 +806,7 @@ export type Database = {
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
+          profile_visibility?: string | null
           slug?: string | null
           source?: string | null
           status?: string | null
@@ -935,12 +938,119 @@ export type Database = {
           },
         ]
       }
+      task_assignments: {
+        Row: {
+          assigned_at: string | null
+          completed_at: string | null
+          feedback: string | null
+          id: string
+          review_status: string | null
+          reviewed_by: string | null
+          status: string | null
+          student_id: string | null
+          submitted_at: string | null
+          task_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          completed_at?: string | null
+          feedback?: string | null
+          id?: string
+          review_status?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          student_id?: string | null
+          submitted_at?: string | null
+          task_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          completed_at?: string | null
+          feedback?: string | null
+          id?: string
+          review_status?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          student_id?: string | null
+          submitted_at?: string | null
+          task_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_assignments_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_templates: {
+        Row: {
+          branch: string | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          skills: string[] | null
+          source: string | null
+          title: string
+          updated_at: string | null
+          visibility: string | null
+          xp_reward: number | null
+        }
+        Insert: {
+          branch?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          skills?: string[] | null
+          source?: string | null
+          title: string
+          updated_at?: string | null
+          visibility?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          branch?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          skills?: string[] | null
+          source?: string | null
+          title?: string
+          updated_at?: string | null
+          visibility?: string | null
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
+          ai_metadata: Json | null
           approved_by_admin: boolean | null
           category: string | null
           completed_at: string | null
           created_at: string | null
+          created_by_admin_id: string | null
           created_by_college_id: string | null
           created_by_startup_id: string | null
           description: string | null
@@ -950,6 +1060,7 @@ export type Database = {
           is_paid: boolean | null
           posted_at: string | null
           required_skills: string[] | null
+          source: string | null
           started_at: string | null
           status: string | null
           student_id: string | null
@@ -961,10 +1072,12 @@ export type Database = {
           xp_reward: number | null
         }
         Insert: {
+          ai_metadata?: Json | null
           approved_by_admin?: boolean | null
           category?: string | null
           completed_at?: string | null
           created_at?: string | null
+          created_by_admin_id?: string | null
           created_by_college_id?: string | null
           created_by_startup_id?: string | null
           description?: string | null
@@ -974,6 +1087,7 @@ export type Database = {
           is_paid?: boolean | null
           posted_at?: string | null
           required_skills?: string[] | null
+          source?: string | null
           started_at?: string | null
           status?: string | null
           student_id?: string | null
@@ -985,10 +1099,12 @@ export type Database = {
           xp_reward?: number | null
         }
         Update: {
+          ai_metadata?: Json | null
           approved_by_admin?: boolean | null
           category?: string | null
           completed_at?: string | null
           created_at?: string | null
+          created_by_admin_id?: string | null
           created_by_college_id?: string | null
           created_by_startup_id?: string | null
           description?: string | null
@@ -998,6 +1114,7 @@ export type Database = {
           is_paid?: boolean | null
           posted_at?: string | null
           required_skills?: string[] | null
+          source?: string | null
           started_at?: string | null
           status?: string | null
           student_id?: string | null

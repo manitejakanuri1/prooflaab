@@ -317,7 +317,7 @@ const StudentTasksPage = () => {
                           <Button
                             size="sm"
                             onClick={() => setSelectedTaskId(task.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
                           >
                             <Upload className="h-4 w-4 mr-1" />
                             Submit Proof

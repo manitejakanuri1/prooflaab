@@ -483,12 +483,15 @@ const AssignTasks = () => {
   const validateForm = () => {
     const errors: FormErrors = {};
     
-    if (!title.trim()) {
-      errors.title = "Task title is required";
-    }
-    
-    if (!description.trim()) {
-      errors.description = "Task description is required";
+    // Skip title/description validation for personalized mode
+    if (activeTab !== "personalized") {
+      if (!title.trim()) {
+        errors.title = "Task title is required";
+      }
+      
+      if (!description.trim()) {
+        errors.description = "Task description is required";
+      }
     }
     
     const xpNum = parseInt(xpReward);
@@ -536,6 +539,47 @@ const AssignTasks = () => {
   };
 
   const handlePreviewAssignment = async () => {
+    // For personalized mode, check personalizedTasks instead of selectedStudents
+    if (activeTab === "personalized") {
+      const selectedTasks = personalizedTasks.filter(t => t.selected);
+      if (!validateForm() || selectedTasks.length === 0) {
+        if (selectedTasks.length === 0) {
+          toast({
+            title: "Error",
+            description: "Please select at least one task to assign",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      // For personalized mode, show preview with first task's data (or summary)
+      // Using first task as representative for preview
+      const firstTask = selectedTasks[0];
+      setConfirmationData({
+        title: `${selectedTasks.length} Personalized Task${selectedTasks.length > 1 ? 's' : ''}`,
+        description: `Assigning personalized tasks to ${selectedTasks.length} student${selectedTasks.length > 1 ? 's' : ''}`,
+        dueDate: dueDate!,
+        xpReward: parseInt(xpReward),
+        selectedStudents: selectedTasks.map(t => ({
+          id: t.studentId,
+          full_name: t.studentName,
+          branch: t.studentBranch,
+          email: '',
+          batch: null,
+          year_of_study: t.studentYear,
+          key_interests: null,
+          preferred_skills: null,
+          trust_score: 0
+        })),
+        category,
+        visibility
+      });
+      setShowConfirmation(true);
+      return;
+    }
+
+    // Standard validation for other modes
     if (!validateForm() || selectedStudents.length === 0) {
       if (selectedStudents.length === 0) {
         toast({
@@ -667,6 +711,8 @@ const AssignTasks = () => {
         visibility: "Public"
       });
       setSelectedStudents([]);
+      setPersonalizedTasks([]);
+      setShowPersonalPreview(false);
       setFormErrors({});
       setShowConfirmation(false);
 

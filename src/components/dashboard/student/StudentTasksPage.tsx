@@ -27,6 +27,7 @@ import {
   Target
 } from "lucide-react";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
+import TaskDetailsDialog from "./TaskDetailsDialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -34,6 +35,7 @@ const StudentTasksPage = () => {
   const { tasks, loading, startTask } = useAllStudentTasks();
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
@@ -350,7 +352,7 @@ const StudentTasksPage = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSelectedTaskForDetails(task.id)}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
@@ -390,6 +392,18 @@ const StudentTasksPage = () => {
           onClose={() => setSelectedTaskId(null)}
         />
       )}
+
+      {/* Task Details Dialog */}
+      <TaskDetailsDialog
+        task={filteredAndSortedTasks.find(t => t.id === selectedTaskForDetails) || null}
+        isOpen={!!selectedTaskForDetails}
+        onClose={() => setSelectedTaskForDetails(null)}
+        onStartTask={handleStartTask}
+        onUploadProof={(taskId) => {
+          setSelectedTaskForDetails(null);
+          setSelectedTaskId(taskId);
+        }}
+      />
     </div>
   );
 };

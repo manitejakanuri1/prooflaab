@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { CalendarIcon, Users, Wand2, FileText, Filter, Eye, Globe, Lock, Save, Copy, CheckCircle, Building2, TrendingUp } from "lucide-react";
+import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Upload, X, Link, Building2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Student {
@@ -27,6 +26,8 @@ interface Student {
   year_of_study: string | null;
   college_id: string | null;
   college_name?: string;
+  key_interests: string[] | null;
+  preferred_skills: string[] | null;
   trust_score: number;
   total_xp: number;
 }
@@ -38,7 +39,6 @@ interface TaskTemplate {
   branch: string;
   skills: string[];
   difficulty: string;
-  xp_reward: number;
 }
 
 interface College {
@@ -47,64 +47,172 @@ interface College {
   email: string;
 }
 
+interface ConfirmationData {
+  title: string;
+  description: string;
+  dueDate: Date;
+  xpReward: number;
+  selectedStudents: Student[];
+  category: string;
+  visibility: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+}
+
+interface FormErrors {
+  title?: string;
+  description?: string;
+  xpReward?: string;
+  dueDate?: string;
+}
+
+interface PersonalizedTask {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentBranch: string | null;
+  studentYear: string | null;
+  title: string;
+  description: string;
+  selected: boolean;
+  isEditing: boolean;
+}
+
 const AdminAssignTasks = () => {
   // Core state
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [colleges, setColleges] = useState<College[]>([]);
-  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("manual");
   const { toast } = useToast();
 
-  // Task form state
-  const [taskForm, setTaskForm] = useState({
+  // Separate form states for each tab
+  const [manualForm, setManualForm] = useState({
     title: "",
     description: "",
     xpReward: "",
     dueDate: undefined as Date | undefined,
     category: "Coding",
     visibility: "Public",
-    autoApproved: true,
+    attachmentType: 'url' as 'url' | 'file',
+    attachmentUrl: "",
+    attachmentFile: null as File | null
   });
 
-  // AI generation state
   const [aiForm, setAiForm] = useState({
-    branch: "",
+    selectedBranch: "",
     topicArea: "",
-    generating: false,
+    dueDate: undefined as Date | undefined,
+    visibility: "Public",
+    title: "",
+    description: "",
+    xpReward: "",
+    generated: false
   });
+
+  const [templateForm, setTemplateForm] = useState({
+    selectedTemplate: "",
+    title: "",
+    description: "",
+    xpReward: "",
+    dueDate: undefined as Date | undefined,
+    category: "Coding",
+    visibility: "Public"
+  });
+
+  const [personalForm, setPersonalForm] = useState({
+    title: "",
+    description: "",
+    xpReward: "",
+    dueDate: undefined as Date | undefined,
+    category: "Coding",
+    visibility: "Public"
+  });
+
+  // Personalized tasks state
+  const [personalizedTasks, setPersonalizedTasks] = useState<PersonalizedTask[]>([]);
+  const [showPersonalPreview, setShowPersonalPreview] = useState(false);
 
   // Template state
-  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
-  // Audience filters
-  const [audienceType, setAudienceType] = useState("all"); // all, college, custom
+  // Helper functions to get and update active form
+  const getActiveForm = () => {
+    switch (activeTab) {
+      case 'manual': return manualForm;
+      case 'ai': return aiForm;
+      case 'template': return templateForm;
+      case 'personalized': return personalForm;
+      default: return manualForm;
+    }
+  };
+
+  const updateActiveForm = (updates: Partial<any>) => {
+    switch (activeTab) {
+      case 'manual':
+        setManualForm(prev => ({ ...prev, ...updates }));
+        break;
+      case 'ai':
+        setAiForm(prev => ({ ...prev, ...updates }));
+        break;
+      case 'template':
+        setTemplateForm(prev => ({ ...prev, ...updates }));
+        break;
+      case 'personalized':
+        setPersonalForm(prev => ({ ...prev, ...updates }));
+        break;
+    }
+  };
+
+  // Get current form values - safely handle different form types
+  const currentForm = getActiveForm();
+  const title = currentForm.title || "";
+  const description = currentForm.description || "";
+  const xpReward = currentForm.xpReward || "";
+  const dueDate = currentForm.dueDate;
+  const visibility = currentForm.visibility || "Public";
+  const category = ('category' in currentForm) ? currentForm.category : "Coding";
+  
+  // Tab-specific accessors
+  const selectedBranch = aiForm.selectedBranch;
+  const topicArea = aiForm.topicArea;
+  const selectedTemplate = templateForm.selectedTemplate;
+  const attachmentType = manualForm.attachmentType;
+  const attachmentUrl = manualForm.attachmentUrl;
+  const attachmentFile = manualForm.attachmentFile;
+
+  // Audience filters - Admin specific: college selection
+  const [audienceType, setAudienceType] = useState("custom"); // all, college, custom
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
-  const [branchFilters, setBranchFilters] = useState<string[]>([]);
-  const [yearFilters, setYearFilters] = useState<string[]>([]);
+  const [branchFilter, setBranchFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
   const [trustScoreMin, setTrustScoreMin] = useState("");
   const [trustScoreMax, setTrustScoreMax] = useState("");
-  const [xpMin, setXpMin] = useState("");
-  const [xpMax, setXpMax] = useState("");
+  const [skillsFilter, setSkillsFilter] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Confirmation modal
-  const [showPreview, setShowPreview] = useState(false);
+  // Confirmation modal state
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<ConfirmationData | null>(null);
+
+  // Form validation state
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+  // Attachment state
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchColleges();
+    fetchStudents();
     fetchTemplates();
   }, []);
 
   useEffect(() => {
-    fetchStudents();
-  }, [audienceType, selectedColleges]);
-
-  useEffect(() => {
     filterStudents();
-  }, [students, branchFilters, yearFilters, trustScoreMin, trustScoreMax, xpMin, xpMax]);
+  }, [students, branchFilter, yearFilter, trustScoreMin, trustScoreMax, skillsFilter, audienceType, selectedColleges]);
 
   const fetchColleges = async () => {
     try {
@@ -127,20 +235,14 @@ const AdminAssignTasks = () => {
 
   const fetchStudents = async () => {
     try {
-      setLoading(true);
       let query = supabase
         .from('student_profiles')
         .select(`
           id, full_name, email, branch, batch, year_of_study,
-          trust_score, total_xp, college_id,
+          key_interests, preferred_skills, trust_score, college_id, total_xp,
           colleges!student_profiles_college_id_fkey (name)
         `)
         .eq('status', 'active');
-
-      // Filter by college if specific colleges are selected
-      if (audienceType === "college" && selectedColleges.length > 0) {
-        query = query.in('college_id', selectedColleges);
-      }
 
       const { data, error } = await query.order('full_name');
 
@@ -159,31 +261,19 @@ const AdminAssignTasks = () => {
         description: "Failed to fetch students",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchTemplates = async () => {
-    // Mock templates - implement when task_templates table is ready
+    // Placeholder for templates - can be implemented when task_templates table exists
     setTemplates([
       {
         id: '1',
         title: 'Basic Programming Challenge',
-        description: 'A fundamental programming task focusing on core concepts and problem-solving skills.',
+        description: 'A fundamental programming task focusing on core concepts',
         branch: 'CSE',
         skills: ['Programming', 'Problem Solving'],
-        difficulty: 'Beginner',
-        xp_reward: 50
-      },
-      {
-        id: '2',
-        title: 'Web Development Project',
-        description: 'Build a responsive web application using modern frameworks.',
-        branch: 'IT',
-        skills: ['HTML', 'CSS', 'JavaScript'],
-        difficulty: 'Intermediate',
-        xp_reward: 100
+        difficulty: 'Beginner'
       }
     ]);
   };
@@ -191,11 +281,16 @@ const AdminAssignTasks = () => {
   const filterStudents = () => {
     let filtered = [...students];
 
-    if (branchFilters.length > 0) {
-      filtered = filtered.filter(s => s.branch && branchFilters.includes(s.branch));
+    // Admin-specific: Filter by selected colleges first
+    if (audienceType === "college" && selectedColleges.length > 0) {
+      filtered = filtered.filter(s => s.college_id && selectedColleges.includes(s.college_id));
     }
-    if (yearFilters.length > 0) {
-      filtered = filtered.filter(s => s.year_of_study && yearFilters.includes(s.year_of_study));
+
+    if (branchFilter && branchFilter !== "all-branches") {
+      filtered = filtered.filter(s => s.branch === branchFilter);
+    }
+    if (yearFilter && yearFilter !== "all-years") {
+      filtered = filtered.filter(s => s.year_of_study === yearFilter);
     }
     if (trustScoreMin) {
       filtered = filtered.filter(s => s.trust_score >= parseInt(trustScoreMin));
@@ -203,15 +298,19 @@ const AdminAssignTasks = () => {
     if (trustScoreMax) {
       filtered = filtered.filter(s => s.trust_score <= parseInt(trustScoreMax));
     }
-    if (xpMin) {
-      filtered = filtered.filter(s => s.total_xp >= parseInt(xpMin));
-    }
-    if (xpMax) {
-      filtered = filtered.filter(s => s.total_xp <= parseInt(xpMax));
+    if (skillsFilter.length > 0) {
+      filtered = filtered.filter(s => 
+        s.preferred_skills?.some(skill => 
+          skillsFilter.some(filter => skill.toLowerCase().includes(filter.toLowerCase()))
+        )
+      );
     }
 
     setFilteredStudents(filtered);
-    setSelectedStudents(prev => prev.filter(id => filtered.some(s => s.id === id)));
+    // Clear invalid selections
+    setSelectedStudents(prev => 
+      prev.filter(id => filtered.some(s => s.id === id))
+    );
   };
 
   const handleStudentSelect = (studentId: string, checked: boolean) => {
@@ -230,20 +329,133 @@ const AdminAssignTasks = () => {
     }
   };
 
-  const handleBranchToggle = (branch: string) => {
-    setBranchFilters(prev =>
-      prev.includes(branch) ? prev.filter(b => b !== branch) : [...prev, branch]
+  const handleTemplateSelect = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setTemplateForm(prev => ({
+        ...prev,
+        selectedTemplate: templateId,
+        title: template.title,
+        description: template.description,
+        xpReward: "100"
+      }));
+    }
+  };
+
+  const generatePersonalizedTasks = async () => {
+    if (selectedStudents.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select students first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Generate unique tasks for each selected student
+    const selectedStudentData = filteredStudents.filter(s => selectedStudents.includes(s.id));
+    
+    const tasks: PersonalizedTask[] = selectedStudentData.map((student, index) => {
+      // Mock personalized task based on student interests
+      const interests = student.key_interests?.join(', ') || 'general development';
+      const skills = student.preferred_skills?.slice(0, 2).join(' and ') || 'core skills';
+      
+      return {
+        id: `task-${student.id}-${Date.now()}`,
+        studentId: student.id,
+        studentName: student.full_name,
+        studentBranch: student.branch,
+        studentYear: student.year_of_study,
+        title: `Personalized ${interests.split(',')[0]} Challenge for ${student.full_name.split(' ')[0]}`,
+        description: `A customized task focusing on ${skills}, designed specifically for ${student.full_name} based on their interests in ${interests} and current skill level.`,
+        selected: true,
+        isEditing: false
+      };
+    });
+
+    setPersonalizedTasks(tasks);
+    setShowPersonalPreview(true);
+    
+    toast({
+      title: "Success",
+      description: `Generated ${tasks.length} personalized tasks`,
+    });
+  };
+
+  const clearTemplate = () => {
+    setTemplateForm(prev => ({
+      ...prev,
+      selectedTemplate: "",
+      title: "",
+      description: "",
+      xpReward: "",
+      category: ""
+    }));
+  };
+
+  const clearManualTask = () => {
+    setManualForm(prev => ({
+      ...prev,
+      title: "",
+      description: "",
+      xpReward: ""
+    }));
+  };
+
+  const clearAITask = () => {
+    setAiForm(prev => ({
+      ...prev,
+      title: "",
+      description: "",
+      xpReward: "",
+      generated: false
+    }));
+  };
+
+  const clearPersonalTask = () => {
+    setPersonalForm(prev => ({
+      ...prev,
+      title: "",
+      description: "",
+      xpReward: ""
+    }));
+    setPersonalizedTasks([]);
+    setShowPersonalPreview(false);
+  };
+
+  const toggleTaskSelection = (taskId: string) => {
+    setPersonalizedTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, selected: !task.selected } : task
+      )
     );
   };
 
-  const handleYearToggle = (year: string) => {
-    setYearFilters(prev =>
-      prev.includes(year) ? prev.filter(y => y !== year) : [...prev, year]
+  const toggleTaskEditing = (taskId: string) => {
+    setPersonalizedTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, isEditing: !task.isEditing } : task
+      )
+    );
+  };
+
+  const updatePersonalizedTask = (taskId: string, updates: Partial<PersonalizedTask>) => {
+    setPersonalizedTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      )
+    );
+  };
+
+  const selectAllPersonalizedTasks = () => {
+    const allSelected = personalizedTasks.every(task => task.selected);
+    setPersonalizedTasks(prev => 
+      prev.map(task => ({ ...task, selected: !allSelected }))
     );
   };
 
   const generateAITask = async () => {
-    if (!aiForm.branch || !aiForm.topicArea.trim()) {
+    if (!aiForm.selectedBranch || !aiForm.topicArea.trim()) {
       toast({
         title: "Error",
         description: "Please select branch and enter topic keywords",
@@ -252,132 +464,321 @@ const AdminAssignTasks = () => {
       return;
     }
 
-    setAiForm(prev => ({ ...prev, generating: true }));
+    setAiGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('assign_tasks', {
         body: {
           mode: 'ai',
           keywords: aiForm.topicArea,
-          branch: aiForm.branch,
+          branch: aiForm.selectedBranch,
+          due_date: aiForm.dueDate?.toISOString(),
+          selected_students: [],
+          category: 'Coding',
+          visibility: aiForm.visibility.toLowerCase()
         }
       });
 
       if (error) throw error;
 
       if (data?.tasks?.[0]) {
-        const task = data.tasks[0];
-        setTaskForm(prev => ({
+        const generatedTask = data.tasks[0];
+        setAiForm(prev => ({
           ...prev,
-          title: task.title,
-          description: task.description,
-          xpReward: task.xp_reward?.toString() || '50',
+          title: generatedTask.title,
+          description: generatedTask.description,
+          xpReward: generatedTask.xp_reward?.toString() || '50',
+          generated: true
         }));
 
         toast({
           title: "Success",
           description: "AI task generated successfully!",
         });
+      } else {
+        throw new Error('No task generated');
       }
     } catch (error) {
       console.error('AI generation error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate AI task",
+        description: "Failed to generate AI task. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setAiForm(prev => ({ ...prev, generating: false }));
+      setAiGenerating(false);
     }
   };
 
-  const handleTemplateSelect = (templateId: string) => {
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      setSelectedTemplate(templateId);
-      setTaskForm(prev => ({
-        ...prev,
-        title: template.title,
-        description: template.description,
-        xpReward: template.xp_reward?.toString() || '50',
-      }));
+  const validateForm = () => {
+    const errors: FormErrors = {};
+    
+    // Skip title/description validation for personalized mode
+    if (activeTab !== "personalized") {
+      if (!title.trim()) {
+        errors.title = "Task title is required";
+      }
+      
+      if (!description.trim()) {
+        errors.description = "Task description is required";
+      }
     }
+    
+    const xpNum = parseInt(xpReward);
+    if (!xpReward || isNaN(xpNum) || xpNum <= 0) {
+      errors.xpReward = "XP Reward must be greater than 0";
+    }
+    
+    if (!dueDate) {
+      errors.dueDate = "Due date is required";
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handlePreview = () => {
-    if (!taskForm.title.trim() || !taskForm.description.trim() || !taskForm.xpReward || !taskForm.dueDate) {
+  const handleAttachmentUpload = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `task-attachments/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Failed to upload attachment",
         variant: "destructive",
       });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePreviewAssignment = async () => {
+    // For personalized mode, check personalizedTasks instead of selectedStudents
+    if (activeTab === "personalized") {
+      const selectedTasks = personalizedTasks.filter(t => t.selected);
+      if (!validateForm() || selectedTasks.length === 0) {
+        if (selectedTasks.length === 0) {
+          toast({
+            title: "Error",
+            description: "Please select at least one task to assign",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      setConfirmationData({
+        title: `${selectedTasks.length} Personalized Task${selectedTasks.length > 1 ? 's' : ''}`,
+        description: `Assigning personalized tasks to ${selectedTasks.length} student${selectedTasks.length > 1 ? 's' : ''}`,
+        dueDate: dueDate!,
+        xpReward: parseInt(xpReward),
+        selectedStudents: selectedTasks.map(t => ({
+          id: t.studentId,
+          full_name: t.studentName,
+          branch: t.studentBranch,
+          email: '',
+          batch: null,
+          year_of_study: t.studentYear,
+          key_interests: null,
+          preferred_skills: null,
+          trust_score: 0,
+          college_id: null,
+          total_xp: 0
+        })),
+        category,
+        visibility
+      });
+      setShowConfirmation(true);
       return;
     }
 
-    if (audienceType !== "all" && selectedStudents.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one student",
-        variant: "destructive",
-      });
+    // Standard validation for other modes
+    if (!validateForm() || (audienceType !== "all" && selectedStudents.length === 0)) {
+      if (audienceType !== "all" && selectedStudents.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one student",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
-    setShowPreview(true);
+    let finalAttachmentUrl = attachmentUrl;
+    let finalAttachmentName = "";
+
+    // Handle file upload if a file is selected
+    if (attachmentFile) {
+      const uploadedUrl = await handleAttachmentUpload(attachmentFile);
+      if (uploadedUrl) {
+        finalAttachmentUrl = uploadedUrl;
+        finalAttachmentName = attachmentFile.name;
+      }
+    }
+
+    const selectedStudentData = audienceType === "all" 
+      ? filteredStudents 
+      : filteredStudents.filter(s => selectedStudents.includes(s.id));
+      
+    setConfirmationData({
+      title,
+      description,
+      dueDate: dueDate!,
+      xpReward: parseInt(xpReward),
+      selectedStudents: selectedStudentData,
+      category,
+      visibility,
+      attachmentUrl: finalAttachmentUrl || undefined,
+      attachmentName: finalAttachmentName || undefined
+    });
+    setShowConfirmation(true);
   };
 
-  const handleConfirmAssign = async () => {
+  const handleConfirmAssignment = async () => {
+    if (!confirmationData) return;
+    
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const tasksToCreate = selectedStudents.map(studentId => ({
-        title: taskForm.title,
-        description: taskForm.description,
-        xp_reward: parseInt(taskForm.xpReward),
-        xp: parseInt(taskForm.xpReward),
-        due_date: taskForm.dueDate?.toISOString() || new Date().toISOString(),
-        category: taskForm.category,
-        visibility: taskForm.visibility.toLowerCase(),
-        student_id: studentId,
-        status: 'Assigned',
-        created_by_admin_id: user.id,
-        source: activeTab === 'ai' ? 'ai' : activeTab === 'template' ? 'template' : 'manual',
-        approved_by_admin: taskForm.autoApproved,
-      }));
+      let insertedTasks;
+      let error;
 
-      const { error } = await supabase
-        .from('tasks')
-        .insert(tasksToCreate);
+      // For personalized mode, call the edge function
+      if (activeTab === "personalized") {
+        const { data, error: functionError } = await supabase.functions.invoke('assign_tasks', {
+          body: {
+            mode: 'personalized',
+            due_date: confirmationData.dueDate.toISOString(),
+            selected_students: selectedStudents,
+            xp_reward: confirmationData.xpReward,
+            category: confirmationData.category,
+            visibility: confirmationData.visibility.toLowerCase()
+          }
+        });
 
-      if (error) throw error;
+        if (functionError) throw functionError;
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to generate personalized tasks');
+        }
 
+        insertedTasks = data.tasks || [];
+      } else {
+        // For other modes, determine target students
+        const targetStudents = audienceType === "all" 
+          ? filteredStudents.map(s => s.id)
+          : selectedStudents;
+
+        // Create tasks directly
+        const tasksToInsert = targetStudents.map(studentId => ({
+          student_id: studentId,
+          title: confirmationData.title,
+          description: confirmationData.description,
+          due_date: confirmationData.dueDate.toISOString(),
+          xp_reward: confirmationData.xpReward,
+          xp: confirmationData.xpReward,
+          category: confirmationData.category,
+          visibility: confirmationData.visibility.toLowerCase(),
+          status: 'Assigned',
+          created_by_admin_id: user.id,
+          source: activeTab === 'ai' ? 'ai' : activeTab === 'template' ? 'template' : 'manual',
+          approved_by_admin: true
+        }));
+
+        const result = await supabase
+          .from('tasks')
+          .insert(tasksToInsert)
+          .select('id');
+
+        insertedTasks = result.data;
+        error = result.error;
+
+        if (error) throw error;
+      }
+
+      // Get college count for success message
       const totalColleges = [...new Set(
-        students.filter(s => selectedStudents.includes(s.id)).map(s => s.college_id)
+        confirmationData.selectedStudents.map(s => s.college_id).filter(Boolean)
       )].length;
 
       toast({
         title: "Success",
-        description: `✅ Task assigned to ${selectedStudents.length} students across ${totalColleges} colleges.`,
+        description: `Tasks assigned to ${confirmationData.selectedStudents.length} student(s) across ${totalColleges} college(s)`,
       });
 
-      // Reset form
-      setTaskForm({
+      // Reset all forms
+      setManualForm({
         title: "",
         description: "",
         xpReward: "",
         dueDate: undefined,
         category: "Coding",
         visibility: "Public",
-        autoApproved: true,
+        attachmentType: 'url',
+        attachmentUrl: "",
+        attachmentFile: null
+      });
+      setAiForm({
+        selectedBranch: "",
+        topicArea: "",
+        dueDate: undefined,
+        visibility: "Public",
+        title: "",
+        description: "",
+        xpReward: "",
+        generated: false
+      });
+      setTemplateForm({
+        selectedTemplate: "",
+        title: "",
+        description: "",
+        xpReward: "",
+        dueDate: undefined,
+        category: "Coding",
+        visibility: "Public"
+      });
+      setPersonalForm({
+        title: "",
+        description: "",
+        xpReward: "",
+        dueDate: undefined,
+        category: "Coding",
+        visibility: "Public"
       });
       setSelectedStudents([]);
-      setShowPreview(false);
-      setActiveTab("manual");
+      setPersonalizedTasks([]);
+      setShowPersonalPreview(false);
+      setFormErrors({});
+      setShowConfirmation(false);
+      setAudienceType("custom");
+      setSelectedColleges([]);
+      setBranchFilter("");
+      setYearFilter("");
+      setTrustScoreMin("");
+      setTrustScoreMax("");
+      setSkillsFilter([]);
+
     } catch (error) {
       console.error('Error assigning tasks:', error);
       toast({
-        title: "Error",
+        title: "Error", 
         description: "Failed to assign tasks",
         variant: "destructive",
       });
@@ -386,240 +787,469 @@ const AdminAssignTasks = () => {
     }
   };
 
-  const handleSaveTemplate = async () => {
-    if (!taskForm.title.trim() || !taskForm.description.trim()) {
-      toast({
-        title: "Error",
-        description: "Title and description are required",
-        variant: "destructive",
-      });
-      return;
+  const uniqueBranches = [...new Set(students.map(s => s.branch).filter(Boolean))];
+  const uniqueYears = [...new Set(students.map(s => s.year_of_study).filter(Boolean))];
+  const allSkills = [...new Set(students.flatMap(s => s.preferred_skills || []))];
+
+  const getTabIcon = (tab: string) => {
+    switch(tab) {
+      case 'manual': return <Plus className="h-4 w-4" />;
+      case 'ai': return <Wand2 className="h-4 w-4" />;
+      case 'template': return <FileText className="h-4 w-4" />;
+      case 'personalized': return <User className="h-4 w-4" />;
+      default: return <Plus className="h-4 w-4" />;
     }
-
-    try {
-      // Save to templates array (implement DB save when task_templates table is ready)
-      const newTemplate: TaskTemplate = {
-        id: Date.now().toString(),
-        title: taskForm.title,
-        description: taskForm.description,
-        xp_reward: parseInt(taskForm.xpReward) || 50,
-        branch: "ALL",
-        skills: [],
-        difficulty: "Intermediate"
-      };
-
-      setTemplates(prev => [...prev, newTemplate]);
-
-      toast({
-        title: "Success",
-        description: "Task saved as template",
-      });
-    } catch (error) {
-      console.error('Error saving template:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save template",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const branches = ["CSE", "ECE", "ME", "CE", "EEE", "IT"];
-  const years = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-  const categories = ["Coding", "Research", "Soft Skills", "Design", "Management", "General"];
-
-  const getCollegeCount = () => {
-    return [...new Set(students.filter(s => selectedStudents.includes(s.id)).map(s => s.college_id))].length;
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Assign Tasks (Admin)</h1>
-        <p className="text-muted-foreground">Create and assign tasks across colleges</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground">Assign Tasks (Admin)</h2>
+          <p className="text-muted-foreground">Create and assign tasks across multiple colleges</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={handlePreviewAssignment}
+          className="flex items-center gap-2"
+          disabled={
+            activeTab === "personalized" 
+              ? personalizedTasks.filter(t => t.selected).length === 0 || !xpReward || parseInt(xpReward) <= 0 || !dueDate
+              : !title.trim() || !description.trim() || !xpReward || parseInt(xpReward) <= 0 || !dueDate || (audienceType !== "all" && selectedStudents.length === 0)
+          }
+        >
+          <Eye className="h-4 w-4" />
+          Preview Assignment
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Task Configuration Panel */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Task Configuration</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="manual">Manual</TabsTrigger>
-                  <TabsTrigger value="ai">AI</TabsTrigger>
-                  <TabsTrigger value="template">Template</TabsTrigger>
-                  <TabsTrigger value="personalized">Personalized</TabsTrigger>
-                </TabsList>
+      {/* Admin-specific Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Students</p>
+                <p className="text-2xl font-bold">{students.length}</p>
+              </div>
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Colleges</p>
+                <p className="text-2xl font-bold">{colleges.length}</p>
+              </div>
+              <Building2 className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Selected</p>
+                <p className="text-2xl font-bold">
+                  {audienceType === "all" ? filteredStudents.length : selectedStudents.length}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-                <TabsContent value="manual" className="space-y-4 mt-4">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Task Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Task Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger 
+                  value="manual" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {getTabIcon('manual')}
+                  <span className="hidden sm:inline">Manual</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ai" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {getTabIcon('ai')}
+                  <span className="hidden sm:inline">AI</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="template" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {getTabIcon('template')}
+                  <span className="hidden sm:inline">Template</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="personalized" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {getTabIcon('personalized')}
+                  <span className="hidden sm:inline">Personal</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Manual Tab */}
+              <TabsContent value="manual" className="space-y-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Title *</Label>
+                    <Label htmlFor="title">Task Title *</Label>
                     <Input
-                      value={taskForm.title}
-                      onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))}
+                      id="title"
                       placeholder="Enter task title"
+                      value={title}
+                      onChange={(e) => {
+                        updateActiveForm({ title: e.target.value });
+                        if (formErrors.title) {
+                          setFormErrors({...formErrors, title: undefined});
+                        }
+                      }}
+                      className={formErrors.title ? "border-destructive" : ""}
                     />
+                    {formErrors.title && (
+                      <p className="text-sm text-destructive">{formErrors.title}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Enter task description"
+                      value={description}
+                      onChange={(e) => {
+                        updateActiveForm({ description: e.target.value });
+                        if (formErrors.description) {
+                          setFormErrors({...formErrors, description: undefined});
+                        }
+                      }}
+                      rows={4}
+                      className={formErrors.description ? "border-destructive" : ""}
+                    />
+                    {formErrors.description && (
+                      <p className="text-sm text-destructive">{formErrors.description}</p>
+                    )}
                   </div>
 
+                  {/* Attachments Section */}
                   <div className="space-y-2">
-                    <Label>Description *</Label>
-                    <Textarea
-                      value={taskForm.description}
-                      onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Enter task description"
-                      rows={5}
-                    />
+                    <Label>Attachments (optional)</Label>
+                    <div className="space-y-3">
+                      <Tabs value={attachmentType} onValueChange={(value) => setManualForm(prev => ({ ...prev, attachmentType: value as 'url' | 'file' }))} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="url" className="flex items-center gap-2">
+                            <Link className="h-4 w-4" />
+                            URL
+                          </TabsTrigger>
+                          <TabsTrigger value="file" className="flex items-center gap-2">
+                            <Upload className="h-4 w-4" />
+                            File
+                          </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="url" className="mt-3">
+                          <Input
+                            placeholder="https://example.com/resource"
+                            value={attachmentUrl}
+                            onChange={(e) => setManualForm(prev => ({ ...prev, attachmentUrl: e.target.value }))}
+                          />
+                        </TabsContent>
+                        <TabsContent value="file" className="mt-3">
+                          <div className="space-y-2">
+                            <Input
+                              type="file"
+                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setManualForm(prev => ({ ...prev, attachmentFile: file }));
+                                }
+                              }}
+                            />
+                            {attachmentFile && (
+                              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-sm flex-1">{attachmentFile.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setManualForm(prev => ({ ...prev, attachmentFile: null }))}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>XP Reward *</Label>
+                      <Label htmlFor="xp">XP Reward *</Label>
                       <Input
+                        id="xp"
                         type="number"
-                        value={taskForm.xpReward}
-                        onChange={(e) => setTaskForm(prev => ({ ...prev, xpReward: e.target.value }))}
-                        placeholder="50"
+                        placeholder="100"
+                        value={xpReward}
+                        onChange={(e) => {
+                          updateActiveForm({ xpReward: e.target.value });
+                          if (formErrors.xpReward) {
+                            setFormErrors({...formErrors, xpReward: undefined});
+                          }
+                        }}
+                        className={formErrors.xpReward ? "border-destructive" : ""}
                       />
+                      {formErrors.xpReward && (
+                        <p className="text-sm text-destructive">{formErrors.xpReward}</p>
+                      )}
                     </div>
-
                     <div className="space-y-2">
-                      <Label>Due Date *</Label>
+                      <Label htmlFor="category">Category</Label>
+                      <Select value={category} onValueChange={(value) => updateActiveForm({ category: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Coding">Coding</SelectItem>
+                          <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Research">Research</SelectItem>
+                          <SelectItem value="Writing">Writing</SelectItem>
+                          <SelectItem value="Analysis">Analysis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Clear Task Button - only show if fields have content */}
+                  {(title || description || xpReward) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={clearManualTask}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Task
+                    </Button>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="due-date">Due Date *</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !taskForm.dueDate && "text-muted-foreground")}>
+                          <Button
+                            id="due-date"
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !dueDate && "text-muted-foreground",
+                              formErrors.dueDate && "border-destructive"
+                            )}
+                          >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {taskForm.dueDate ? format(taskForm.dueDate, "PPP") : "Pick a date"}
+                            {dueDate ? format(dueDate, "PPP") : "Pick a date"}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={taskForm.dueDate}
-                            onSelect={(date) => setTaskForm(prev => ({ ...prev, dueDate: date }))}
+                            selected={dueDate}
+                            onSelect={(date) => {
+                              updateActiveForm({ dueDate: date });
+                              if (formErrors.dueDate) {
+                                setFormErrors({...formErrors, dueDate: undefined});
+                              }
+                            }}
                             initialFocus
-                            className="pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>
+                      {formErrors.dueDate && (
+                        <p className="text-sm text-destructive">{formErrors.dueDate}</p>
+                      )}
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Category</Label>
-                      <Select value={taskForm.category} onValueChange={(v) => setTaskForm(prev => ({ ...prev, category: v }))}>
-                        <SelectTrigger>
+                      <Label htmlFor="visibility">Visibility</Label>
+                      <Select value={visibility} onValueChange={(value) => updateActiveForm({ visibility: value })}>
+                        <SelectTrigger id="visibility">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map(cat => (
-                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Visibility</Label>
-                      <Select value={taskForm.visibility} onValueChange={(v) => setTaskForm(prev => ({ ...prev, visibility: v }))}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Public">Public</SelectItem>
-                          <SelectItem value="Restricted">Restricted</SelectItem>
+                          <SelectItem value="Public">
+                            <div className="flex items-center gap-2">
+                              <Globe className="h-4 w-4" />
+                              Public
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="Private">
+                            <div className="flex items-center gap-2">
+                              <Lock className="h-4 w-4" />
+                              Private
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
+                </div>
+              </TabsContent>
 
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={taskForm.autoApproved}
-                      onCheckedChange={(checked) => setTaskForm(prev => ({ ...prev, autoApproved: checked }))}
-                    />
-                    <Label>Mark as Auto-Approved</Label>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="ai" className="space-y-4 mt-4">
+              {/* AI Tab */}
+              <TabsContent value="ai" className="space-y-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Branch *</Label>
-                    <Select value={aiForm.branch} onValueChange={(v) => setAiForm(prev => ({ ...prev, branch: v }))}>
-                      <SelectTrigger>
+                    <Label htmlFor="ai-branch">Branch *</Label>
+                    <Select value={selectedBranch} onValueChange={(value) => setAiForm(prev => ({ ...prev, selectedBranch: value }))}>
+                      <SelectTrigger id="ai-branch">
                         <SelectValue placeholder="Select branch" />
                       </SelectTrigger>
                       <SelectContent>
-                        {branches.map(branch => (
+                        {["CSE", "ECE", "ME", "CE", "EEE", "IT"].map(branch => (
                           <SelectItem key={branch} value={branch}>{branch}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="space-y-2">
-                    <Label>Topic Area *</Label>
+                    <Label htmlFor="topic-area">Topic Area *</Label>
                     <Input
-                      value={aiForm.topicArea}
-                      onChange={(e) => setAiForm(prev => ({ ...prev, topicArea: e.target.value }))}
+                      id="topic-area"
                       placeholder="e.g., Machine Learning, Data Structures"
+                      value={topicArea}
+                      onChange={(e) => setAiForm(prev => ({ ...prev, topicArea: e.target.value }))}
                     />
                   </div>
-
-                  <Button onClick={generateAITask} disabled={aiForm.generating} className="w-full">
+                  <Button 
+                    onClick={generateAITask} 
+                    disabled={aiGenerating}
+                    className="w-full"
+                  >
                     <Wand2 className="mr-2 h-4 w-4" />
-                    {aiForm.generating ? "Generating..." : "Generate Task"}
+                    {aiGenerating ? "Generating..." : "Generate AI Task"}
                   </Button>
 
-                  {taskForm.title && (
+                  {aiForm.generated && title && (
                     <div className="space-y-4 pt-4 border-t">
                       <div className="space-y-2">
                         <Label>Generated Title</Label>
-                        <Input value={taskForm.title} onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))} />
+                        <Input
+                          value={title}
+                          onChange={(e) => setAiForm(prev => ({ ...prev, title: e.target.value }))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Generated Description</Label>
-                        <Textarea value={taskForm.description} onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))} rows={5} />
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setAiForm(prev => ({ ...prev, description: e.target.value }))}
+                          rows={4}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>XP Reward</Label>
-                          <Input type="number" value={taskForm.xpReward} onChange={(e) => setTaskForm(prev => ({ ...prev, xpReward: e.target.value }))} />
+                          <Input
+                            type="number"
+                            value={xpReward}
+                            onChange={(e) => setAiForm(prev => ({ ...prev, xpReward: e.target.value }))}
+                          />
                         </div>
                         <div className="space-y-2">
-                          <Label>Due Date</Label>
+                          <Label>Category</Label>
+                          <Select value="Coding" disabled>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {(title || description || xpReward) && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={clearAITask}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Clear Generated Task
+                        </Button>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Due Date *</Label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !taskForm.dueDate && "text-muted-foreground")}>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !dueDate && "text-muted-foreground"
+                                )}
+                              >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {taskForm.dueDate ? format(taskForm.dueDate, "PPP") : "Pick a date"}
+                                {dueDate ? format(dueDate, "PPP") : "Pick a date"}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={taskForm.dueDate}
-                                onSelect={(date) => setTaskForm(prev => ({ ...prev, dueDate: date }))}
+                                selected={dueDate}
+                                onSelect={(date) => setAiForm(prev => ({ ...prev, dueDate: date }))}
                                 initialFocus
-                                className="pointer-events-auto"
                               />
                             </PopoverContent>
                           </Popover>
                         </div>
+                        <div className="space-y-2">
+                          <Label>Visibility</Label>
+                          <Select value={visibility} onValueChange={(value) => setAiForm(prev => ({ ...prev, visibility: value }))}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Public">
+                                <div className="flex items-center gap-2">
+                                  <Globe className="h-4 w-4" />
+                                  Public
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="Private">
+                                <div className="flex items-center gap-2">
+                                  <Lock className="h-4 w-4" />
+                                  Private
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   )}
-                </TabsContent>
+                </div>
+              </TabsContent>
 
-                <TabsContent value="template" className="space-y-4 mt-4">
+              {/* Template Tab */}
+              <TabsContent value="template" className="space-y-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Select Template *</Label>
+                    <Label htmlFor="template-select">Select Template *</Label>
                     <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
-                      <SelectTrigger>
+                      <SelectTrigger id="template-select">
                         <SelectValue placeholder="Choose a template" />
                       </SelectTrigger>
                       <SelectContent>
@@ -636,330 +1266,503 @@ const AdminAssignTasks = () => {
                     <div className="space-y-4 pt-4 border-t">
                       <div className="space-y-2">
                         <Label>Title</Label>
-                        <Input value={taskForm.title} onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))} />
+                        <Input
+                          value={title}
+                          onChange={(e) => setTemplateForm(prev => ({ ...prev, title: e.target.value }))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Description</Label>
-                        <Textarea value={taskForm.description} onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))} rows={5} />
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
+                          rows={4}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>XP Reward</Label>
-                          <Input type="number" value={taskForm.xpReward} onChange={(e) => setTaskForm(prev => ({ ...prev, xpReward: e.target.value }))} />
+                          <Input
+                            type="number"
+                            value={xpReward}
+                            onChange={(e) => setTemplateForm(prev => ({ ...prev, xpReward: e.target.value }))}
+                          />
                         </div>
                         <div className="space-y-2">
-                          <Label>Due Date</Label>
+                          <Label>Category</Label>
+                          <Select value={category} onValueChange={(value) => setTemplateForm(prev => ({ ...prev, category: value }))}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Coding">Coding</SelectItem>
+                              <SelectItem value="Design">Design</SelectItem>
+                              <SelectItem value="Research">Research</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {(title || description || xpReward) && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={clearTemplate}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Clear Template
+                        </Button>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Due Date *</Label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !taskForm.dueDate && "text-muted-foreground")}>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !dueDate && "text-muted-foreground"
+                                )}
+                              >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {taskForm.dueDate ? format(taskForm.dueDate, "PPP") : "Pick a date"}
+                                {dueDate ? format(dueDate, "PPP") : "Pick a date"}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={taskForm.dueDate}
-                                onSelect={(date) => setTaskForm(prev => ({ ...prev, dueDate: date }))}
+                                selected={dueDate}
+                                onSelect={(date) => setTemplateForm(prev => ({ ...prev, dueDate: date }))}
                                 initialFocus
-                                className="pointer-events-auto"
                               />
                             </PopoverContent>
                           </Popover>
                         </div>
+                        <div className="space-y-2">
+                          <Label>Visibility</Label>
+                          <Select value={visibility} onValueChange={(value) => setTemplateForm(prev => ({ ...prev, visibility: value }))}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Public">
+                                <div className="flex items-center gap-2">
+                                  <Globe className="h-4 w-4" />
+                                  Public
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="Private">
+                                <div className="flex items-center gap-2">
+                                  <Lock className="h-4 w-4" />
+                                  Private
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   )}
-                </TabsContent>
+                </div>
+              </TabsContent>
 
-                <TabsContent value="personalized" className="space-y-4 mt-4">
+              {/* Personalized Tab */}
+              <TabsContent value="personalized" className="space-y-4">
+                <div className="space-y-4">
                   <div className="text-center py-8 text-muted-foreground">
                     <Wand2 className="h-12 w-12 mx-auto mb-4" />
-                    <p>Personalized AI tasks coming soon!</p>
-                    <p className="text-sm">Generate unique tasks for each student based on their profile</p>
+                    <p className="font-medium">AI-Powered Personalized Tasks</p>
+                    <p className="text-sm">Select students below and generate unique tasks tailored to each student's profile</p>
                   </div>
-                </TabsContent>
-              </Tabs>
+                  
+                  {selectedStudents.length > 0 && (
+                    <>
+                      <Button 
+                        onClick={generatePersonalizedTasks}
+                        className="w-full"
+                        disabled={aiGenerating}
+                      >
+                        <Wand2 className="mr-2 h-4 w-4" />
+                        Generate {selectedStudents.length} Personalized Task{selectedStudents.length > 1 ? 's' : ''}
+                      </Button>
 
-              <div className="flex gap-2 mt-6">
-                <Button onClick={handlePreview} className="flex-1 bg-orange-600 hover:bg-orange-700">
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview & Confirm
-                </Button>
-                <Button onClick={handleSaveTemplate} variant="outline">
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Template
-                </Button>
-                <Button variant="outline">
-                  <Copy className="mr-2 h-4 w-4" />
-                  Duplicate
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Audience Selection Panel */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Target Audience</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Audience Type</Label>
-                <Select value={audienceType} onValueChange={setAudienceType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Students</SelectItem>
-                    <SelectItem value="college">By College</SelectItem>
-                    <SelectItem value="custom">Custom Filters</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {audienceType === "college" && (
-                <div className="space-y-2">
-                  <Label>Select Colleges</Label>
-                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-3">
-                    {colleges.map(college => (
-                      <div key={college.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          checked={selectedColleges.includes(college.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColleges([...selectedColleges, college.id]);
-                            } else {
-                              setSelectedColleges(selectedColleges.filter(id => id !== college.id));
-                            }
-                          }}
-                        />
-                        <Label className="text-sm font-normal">{college.name}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {audienceType === "custom" && (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="w-full">
-                    <Filter className="mr-2 h-4 w-4" />
-                    {showFilters ? "Hide Filters" : "Show Filters"}
-                  </Button>
-
-                  {showFilters && (
-                    <div className="space-y-4 p-4 border rounded-md">
-                      <div className="space-y-2">
-                        <Label>Branch</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {branches.map(branch => (
-                            <Badge
-                              key={branch}
-                              variant={branchFilters.includes(branch) ? "default" : "outline"}
-                              className="cursor-pointer"
-                              onClick={() => handleBranchToggle(branch)}
+                      {personalizedTasks.length > 0 && (
+                        <div className="space-y-4 pt-4 border-t">
+                          <div className="flex items-center justify-between">
+                            <Label>Generated Tasks ({personalizedTasks.filter(t => t.selected).length}/{personalizedTasks.length})</Label>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={selectAllPersonalizedTasks}
                             >
-                              {branch}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Year of Study</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {years.map(year => (
-                            <Badge
-                              key={year}
-                              variant={yearFilters.includes(year) ? "default" : "outline"}
-                              className="cursor-pointer"
-                              onClick={() => handleYearToggle(year)}
-                            >
-                              {year}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Trust Score Range</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Min"
-                            value={trustScoreMin}
-                            onChange={(e) => setTrustScoreMin(e.target.value)}
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Max"
-                            value={trustScoreMax}
-                            onChange={(e) => setTrustScoreMax(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>XP Range</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Min"
-                            value={xpMin}
-                            onChange={(e) => setXpMin(e.target.value)}
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Max"
-                            value={xpMax}
-                            onChange={(e) => setXpMax(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {audienceType !== "all" && (
-                <>
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <Label>Students ({filteredStudents.length})</Label>
-                    <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                      {selectedStudents.length === filteredStudents.length ? "Deselect All" : "Select All"}
-                    </Button>
-                  </div>
-
-                  <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-3">
-                    {loading ? (
-                      <p className="text-sm text-muted-foreground text-center">Loading students...</p>
-                    ) : filteredStudents.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center">No students found</p>
-                    ) : (
-                      filteredStudents.map(student => (
-                        <div key={student.id} className="flex items-start space-x-2 p-2 hover:bg-muted rounded">
-                          <Checkbox
-                            checked={selectedStudents.includes(student.id)}
-                            onCheckedChange={(checked) => handleStudentSelect(student.id, !!checked)}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{student.full_name}</p>
-                            <p className="text-xs text-muted-foreground">{student.branch} • {student.year_of_study}</p>
-                            {student.college_name && (
-                              <p className="text-xs text-muted-foreground">{student.college_name}</p>
-                            )}
-                            <div className="flex gap-2 mt-1">
-                              <Badge variant="secondary" className="text-xs">XP: {student.total_xp}</Badge>
-                              <Badge variant="secondary" className="text-xs">Trust: {student.trust_score}</Badge>
+                              {personalizedTasks.every(t => t.selected) ? 'Deselect All' : 'Select All'}
+                            </Button>
+                          </div>
+                          <div className="max-h-96 overflow-y-auto space-y-2 border rounded p-2">
+                            {personalizedTasks.map(task => (
+                              <div key={task.id} className="p-3 border rounded space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <Checkbox
+                                    checked={task.selected}
+                                    onCheckedChange={() => toggleTaskSelection(task.id)}
+                                  />
+                                  <div className="flex-1 space-y-1">
+                                    <p className="font-medium text-sm">{task.studentName}</p>
+                                    {task.isEditing ? (
+                                      <div className="space-y-2">
+                                        <Input
+                                          value={task.title}
+                                          onChange={(e) => updatePersonalizedTask(task.id, { title: e.target.value })}
+                                          className="text-sm"
+                                        />
+                                        <Textarea
+                                          value={task.description}
+                                          onChange={(e) => updatePersonalizedTask(task.id, { description: e.target.value })}
+                                          rows={3}
+                                          className="text-sm"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <p className="text-sm font-medium">{task.title}</p>
+                                        <p className="text-xs text-muted-foreground">{task.description}</p>
+                                      </>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleTaskEditing(task.id)}
+                                  >
+                                    {task.isEditing ? 'Done' : 'Edit'}
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>XP Reward (for all) *</Label>
+                              <Input
+                                type="number"
+                                placeholder="100"
+                                value={xpReward}
+                                onChange={(e) => setPersonalForm(prev => ({ ...prev, xpReward: e.target.value }))}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Due Date *</Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "w-full justify-start text-left font-normal",
+                                      !dueDate && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                  <Calendar
+                                    mode="single"
+                                    selected={dueDate}
+                                    onSelect={(date) => setPersonalForm(prev => ({ ...prev, dueDate: date }))}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </>
-              )}
 
-              <div className="pt-4 border-t">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">{selectedStudents.length}</p>
-                  <p className="text-sm text-muted-foreground">Students Selected</p>
+                          {personalizedTasks.length > 0 && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full"
+                              onClick={clearPersonalTask}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Clear All Tasks
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Audience Selection Panel */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Target Audience</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Admin-specific: Audience Type Selector */}
+            <div className="space-y-2">
+              <Label>Audience Type</Label>
+              <Select value={audienceType} onValueChange={setAudienceType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Students</SelectItem>
+                  <SelectItem value="college">By College</SelectItem>
+                  <SelectItem value="custom">Custom Selection</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {audienceType === "all" && (
+              <div className="p-4 bg-muted/50 rounded-md">
+                <p className="text-sm text-muted-foreground text-center">
+                  Task will be assigned to all {filteredStudents.length} active students
+                </p>
+              </div>
+            )}
+
+            {/* Admin-specific: College Selector */}
+            {audienceType === "college" && (
+              <div className="space-y-2">
+                <Label>Select Colleges</Label>
+                <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-3">
+                  {colleges.map(college => (
+                    <div key={college.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedColleges.includes(college.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedColleges([...selectedColleges, college.id]);
+                          } else {
+                            setSelectedColleges(selectedColleges.filter(id => id !== college.id));
+                          }
+                        }}
+                      />
+                      <Label className="text-sm font-normal cursor-pointer">{college.name}</Label>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            )}
 
-      {/* Preview & Confirmation Modal */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Task Preview & Confirmation</DialogTitle>
-            <DialogDescription>Review the task details before assigning</DialogDescription>
-          </DialogHeader>
+            {audienceType === "custom" && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowFilters(!showFilters)} 
+                  className="w-full"
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  {showFilters ? 'Hide Filters' : 'Show Filters'}
+                </Button>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Task Title</Label>
-              <p className="font-medium">{taskForm.title}</p>
-            </div>
+                {showFilters && (
+                  <div className="space-y-4 p-4 border rounded-md">
+                    <div className="space-y-2">
+                      <Label>Branch</Label>
+                      <Select value={branchFilter} onValueChange={setBranchFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All branches" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all-branches">All Branches</SelectItem>
+                          {uniqueBranches.map(branch => (
+                            <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Description</Label>
-              <p className="text-sm">{taskForm.description}</p>
-            </div>
+                    <div className="space-y-2">
+                      <Label>Year of Study</Label>
+                      <Select value={yearFilter} onValueChange={setYearFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All years" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all-years">All Years</SelectItem>
+                          {uniqueYears.map(year => (
+                            <SelectItem key={year} value={year}>{year}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">XP Reward</Label>
-                <p className="font-medium">{taskForm.xpReward} XP</p>
-              </div>
+                    <div className="space-y-2">
+                      <Label>Trust Score Range</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={trustScoreMin}
+                          onChange={(e) => setTrustScoreMin(e.target.value)}
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          value={trustScoreMax}
+                          onChange={(e) => setTrustScoreMax(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Due Date</Label>
-                <p className="font-medium">{taskForm.dueDate ? format(taskForm.dueDate, "PPP") : "Not set"}</p>
-              </div>
-            </div>
+            {audienceType !== "all" && (
+              <>
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <Label>Students ({filteredStudents.length})</Label>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleSelectAll}
+                  >
+                    {selectedStudents.length === filteredStudents.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Category</Label>
-                <Badge>{taskForm.category}</Badge>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Visibility</Label>
-                <Badge variant="outline">
-                  {taskForm.visibility === "Public" ? <Globe className="h-3 w-3 mr-1" /> : <Lock className="h-3 w-3 mr-1" />}
-                  {taskForm.visibility}
-                </Badge>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Source</Label>
-                <Badge variant="secondary">{activeTab === 'ai' ? 'AI' : activeTab === 'template' ? 'Template' : 'Admin'}</Badge>
-              </div>
-            </div>
+                <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-3">
+                  {filteredStudents.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">No students found</p>
+                  ) : (
+                    filteredStudents.map(student => (
+                      <div key={student.id} className="flex items-start space-x-2 p-2 hover:bg-muted rounded">
+                        <Checkbox
+                          checked={selectedStudents.includes(student.id)}
+                          onCheckedChange={(checked) => handleStudentSelect(student.id, !!checked)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{student.full_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {student.branch} • {student.year_of_study}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{student.college_name}</p>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              Trust: {student.trust_score}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              XP: {student.total_xp}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{selectedStudents.length}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      Students
-                    </p>
+              <div className="text-center space-y-1">
+                <p className="text-sm text-muted-foreground">Target Students</p>
+                <p className="text-2xl font-bold text-primary">
+                  {audienceType === "all" ? filteredStudents.length : selectedStudents.length}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Across {[...new Set(
+                    (audienceType === "all" ? filteredStudents : filteredStudents.filter(s => selectedStudents.includes(s.id)))
+                      .map(s => s.college_id).filter(Boolean)
+                  )].length} college(s)
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Confirm Task Assignment</DialogTitle>
+            <DialogDescription>
+              Review the task details before assigning to students
+            </DialogDescription>
+          </DialogHeader>
+          
+          {confirmationData && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-md space-y-2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Title</p>
+                  <p className="font-medium">{confirmationData.title}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Description</p>
+                  <p className="text-sm">{confirmationData.description}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">XP Reward</p>
+                    <p className="font-medium">{confirmationData.xpReward} XP</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{getCollegeCount()}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      Colleges
-                    </p>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Due Date</p>
+                    <p className="font-medium">{format(confirmationData.dueDate, "PPP")}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle className={cn("h-4 w-4", taskForm.autoApproved ? "text-green-600" : "text-muted-foreground")} />
-                  <span className={taskForm.autoApproved ? "text-green-600" : "text-muted-foreground"}>
-                    {taskForm.autoApproved ? "Auto-Approved" : "Requires Approval"}
-                  </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Category</p>
+                    <Badge>{confirmationData.category}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Visibility</p>
+                    <Badge variant="outline">
+                      {confirmationData.visibility === "Public" ? (
+                        <><Globe className="h-3 w-3 mr-1" /> Public</>
+                      ) : (
+                        <><Lock className="h-3 w-3 mr-1" /> Private</>
+                      )}
+                    </Badge>
+                  </div>
+                </div>
+                {confirmationData.attachmentUrl && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Attachment</p>
+                    <p className="text-sm truncate">{confirmationData.attachmentName || confirmationData.attachmentUrl}</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2">
+                  Assigning to {confirmationData.selectedStudents.length} student(s) across {
+                    [...new Set(confirmationData.selectedStudents.map(s => s.college_id).filter(Boolean))].length
+                  } college(s)
+                </p>
+                <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-1">
+                  {confirmationData.selectedStudents.map(student => (
+                    <div key={student.id} className="text-sm py-1">
+                      <span className="font-medium">{student.full_name}</span>
+                      <span className="text-muted-foreground"> • {student.branch} • {student.college_name || 'Direct'}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPreview(false)}>
-              Edit Task
+            <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+              Cancel
             </Button>
-            <Button onClick={handleConfirmAssign} disabled={loading} className="bg-orange-600 hover:bg-orange-700">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {loading ? "Assigning..." : "Confirm Assign"}
+            <Button onClick={handleConfirmAssignment} disabled={loading}>
+              {loading ? "Assigning..." : "Confirm Assignment"}
             </Button>
           </DialogFooter>
         </DialogContent>

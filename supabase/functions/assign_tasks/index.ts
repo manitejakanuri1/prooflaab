@@ -305,7 +305,7 @@ serve(async (req) => {
           title,
           description,
           xp_reward,
-          source: mode === 'manual' ? source_based_on_role : 'manual'
+          source: 'manual'
         });
 
         createdTasks.push(task);
@@ -360,7 +360,7 @@ Now generate a task for: ${keywords}`;
           title,
           description,
           xp_reward,
-          source: mode === 'ai' ? source_based_on_role : 'ai',
+          source: 'ai',
           ai_metadata: aiMetadata
         });
 
@@ -398,7 +398,7 @@ Now generate a task for: ${keywords}`;
           title: template.title,
           description: template.description,
           xp_reward: template.xp_reward || xp_reward,
-          source: mode === 'template' ? source_based_on_role : 'template'
+          source: 'template'
         });
 
         createdTasks.push(task);
@@ -483,7 +483,7 @@ Now generate a personalized mini-project for ${student.full_name}:`;
               title: title,
               description: description,
               xp_reward,
-              source: mode === 'personalized' ? source_based_on_role : 'personalized',
+              source: 'personalized',
               ai_metadata: aiMetadata
             });
 

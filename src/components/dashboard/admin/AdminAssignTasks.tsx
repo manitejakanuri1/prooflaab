@@ -1129,6 +1129,58 @@ const AdminAssignTasks = () => {
                       onChange={(e) => setAiForm(prev => ({ ...prev, topicArea: e.target.value }))}
                     />
                   </div>
+
+                  {/* Due Date and Visibility - Always visible */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Due Date *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !dueDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={dueDate}
+                            onSelect={(date) => setAiForm(prev => ({ ...prev, dueDate: date }))}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Visibility</Label>
+                      <Select value={visibility} onValueChange={(value) => setAiForm(prev => ({ ...prev, visibility: value }))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Public">
+                            <div className="flex items-center gap-2">
+                              <Globe className="h-4 w-4" />
+                              Public
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="Private">
+                            <div className="flex items-center gap-2">
+                              <Lock className="h-4 w-4" />
+                              Private
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <Button 
                     onClick={generateAITask} 
                     disabled={aiGenerating}
@@ -1185,56 +1237,6 @@ const AdminAssignTasks = () => {
                           Clear Generated Task
                         </Button>
                       )}
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Due Date *</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !dueDate && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dueDate ? format(dueDate, "PPP") : "Pick a date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={dueDate}
-                                onSelect={(date) => setAiForm(prev => ({ ...prev, dueDate: date }))}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Visibility</Label>
-                          <Select value={visibility} onValueChange={(value) => setAiForm(prev => ({ ...prev, visibility: value }))}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Public">
-                                <div className="flex items-center gap-2">
-                                  <Globe className="h-4 w-4" />
-                                  Public
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="Private">
-                                <div className="flex items-center gap-2">
-                                  <Lock className="h-4 w-4" />
-                                  Private
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>

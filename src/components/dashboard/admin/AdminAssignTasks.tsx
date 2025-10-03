@@ -1377,16 +1377,20 @@ const AdminAssignTasks = () => {
                     <p className="text-sm">Select students below and generate unique tasks tailored to each student's profile</p>
                   </div>
                   
+                  <Button 
+                    onClick={generatePersonalizedTasks}
+                    className="w-full"
+                    disabled={aiGenerating || selectedStudents.length === 0}
+                  >
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    {selectedStudents.length > 0 
+                      ? `Generate ${selectedStudents.length} Personalized Task${selectedStudents.length > 1 ? 's' : ''}`
+                      : 'Generate Personalized Tasks'
+                    }
+                  </Button>
+                  
                   {selectedStudents.length > 0 && (
                     <>
-                      <Button 
-                        onClick={generatePersonalizedTasks}
-                        className="w-full"
-                        disabled={aiGenerating}
-                      >
-                        <Wand2 className="mr-2 h-4 w-4" />
-                        Generate {selectedStudents.length} Personalized Task{selectedStudents.length > 1 ? 's' : ''}
-                      </Button>
 
                       {personalizedTasks.length > 0 && (
                         <div className="space-y-4 pt-4 border-t">

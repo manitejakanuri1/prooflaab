@@ -658,60 +658,48 @@ const AdminAssignTasks = () => {
       if (!user) throw new Error("User not authenticated");
 
       let insertedTasks;
-      let error;
 
-      // For personalized mode, call the edge function
-      if (activeTab === "personalized") {
-        const { data, error: functionError } = await supabase.functions.invoke('assign_tasks', {
-          body: {
-            mode: 'personalized',
-            due_date: confirmationData.dueDate.toISOString(),
-            selected_students: selectedStudents,
-            xp_reward: confirmationData.xpReward,
-            category: confirmationData.category,
-            visibility: confirmationData.visibility.toLowerCase()
-          }
-        });
+      // Determine target students
+      const targetStudents = audienceType === "all" 
+        ? filteredStudents.map(s => s.id)
+        : selectedStudents;
 
-        if (functionError) throw functionError;
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to generate personalized tasks');
-        }
+      // Prepare request body based on mode
+      let requestBody: any = {
+        mode: activeTab,
+        due_date: confirmationData.dueDate.toISOString(),
+        selected_students: targetStudents,
+        xp_reward: confirmationData.xpReward,
+        category: confirmationData.category,
+        visibility: confirmationData.visibility.toLowerCase()
+      };
 
-        insertedTasks = data.tasks || [];
-      } else {
-        // For other modes, determine target students
-        const targetStudents = audienceType === "all" 
-          ? filteredStudents.map(s => s.id)
-          : selectedStudents;
-
-        // Create tasks directly
-        const tasksToInsert = targetStudents.map(studentId => ({
-          student_id: studentId,
-          title: confirmationData.title,
-          description: confirmationData.description,
-          due_date: confirmationData.dueDate.toISOString(),
-          xp_reward: confirmationData.xpReward,
-          xp: confirmationData.xpReward,
-          category: confirmationData.category,
-          visibility: confirmationData.visibility.toLowerCase(),
-          status: 'Assigned',
-          created_by_admin_id: user.id,
-          source: activeTab === 'ai' ? 'ai' : activeTab === 'template' ? 'template' : 'manual',
-          approved_by_admin: true
-        }));
-
-        const result = await supabase
-          .from('tasks')
-          .insert(tasksToInsert)
-          .select('id');
-
-        insertedTasks = result.data;
-        error = result.error;
-
-        if (error) throw error;
+      // Add mode-specific fields
+      if (activeTab === 'manual') {
+        requestBody.title = confirmationData.title;
+        requestBody.description = confirmationData.description;
+      } else if (activeTab === 'ai') {
+        requestBody.keywords = topicArea;
+        requestBody.branch = selectedBranch;
+      } else if (activeTab === 'template') {
+        requestBody.template_id = selectedTemplate;
       }
+
+      // Call the edge function for all modes
+      const { data, error: functionError } = await supabase.functions.invoke('assign_tasks', {
+        body: requestBody
+      });
+
+      if (functionError) {
+        console.error('Edge function error:', functionError);
+        throw functionError;
+      }
+      
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Failed to assign tasks');
+      }
+
+      insertedTasks = data.tasks || [];
 
       // Get college count for success message
       const totalColleges = [...new Set(

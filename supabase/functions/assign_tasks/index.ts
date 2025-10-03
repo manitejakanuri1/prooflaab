@@ -299,11 +299,26 @@ serve(async (req) => {
           throw new Error('Title and description are required for manual mode');
         }
 
-        console.log('Creating manual task:', title);
+        // Validate title length
+        const trimmedTitle = title.trim();
+        if (trimmedTitle.length < 3) {
+          throw new Error('Task title must be at least 3 characters long');
+        }
+        if (trimmedTitle.length > 200) {
+          throw new Error('Task title must not exceed 200 characters');
+        }
+
+        // Validate description length
+        const trimmedDescription = description.trim();
+        if (trimmedDescription.length < 20) {
+          throw new Error('Task description must be at least 20 characters long');
+        }
+
+        console.log('Creating manual task:', trimmedTitle);
         
         const task = await insertTask({
-          title,
-          description,
+          title: trimmedTitle,
+          description: trimmedDescription,
           xp_reward,
           source: 'manual'
         });

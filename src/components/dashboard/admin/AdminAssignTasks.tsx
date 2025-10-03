@@ -514,12 +514,21 @@ const AdminAssignTasks = () => {
     
     // Skip title/description validation for personalized mode
     if (activeTab !== "personalized") {
-      if (!title.trim()) {
+      const trimmedTitle = title.trim();
+      const trimmedDescription = description.trim();
+      
+      if (!trimmedTitle) {
         errors.title = "Task title is required";
+      } else if (trimmedTitle.length < 3) {
+        errors.title = "Task title must be at least 3 characters long";
+      } else if (trimmedTitle.length > 200) {
+        errors.title = "Task title must not exceed 200 characters";
       }
       
-      if (!description.trim()) {
+      if (!trimmedDescription) {
         errors.description = "Task description is required";
+      } else if (trimmedDescription.length < 20) {
+        errors.description = "Task description must be at least 20 characters long";
       }
     }
     

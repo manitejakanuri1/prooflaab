@@ -130,6 +130,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener only when not bypassing
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Handle auth errors (like invalid refresh token)
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.log('Token refresh failed, clearing auth state');
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -148,8 +158,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Get initial session with error handling
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        // Clear invalid auth state
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -160,6 +180,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }, 0);
       }
       
+      setLoading(false);
+    }).catch(async (error) => {
+      console.error('Failed to get session:', error);
+      // Clear invalid auth state
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
       setLoading(false);
     });
 

@@ -35,7 +35,8 @@ interface AdminSidebarProps {
 
 const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['user-management', 'content-management']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [allExpanded, setAllExpanded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -92,22 +93,41 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   };
 
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => 
-      prev.includes(groupId) 
-        ? prev.filter(id => id !== groupId)
-        : [...prev, groupId]
-    );
+    setExpandedGroups(prev => {
+      // If clicking on currently expanded group, collapse it
+      if (prev.includes(groupId)) {
+        return [];
+      }
+      // Otherwise, close all others and open this one (accordion behavior)
+      return [groupId];
+    });
+  };
+
+  const toggleAllGroups = () => {
+    if (allExpanded) {
+      setExpandedGroups([]);
+      setAllExpanded(false);
+    } else {
+      const groupsWithChildren = menuItems
+        .filter(item => item.children && item.children.length > 0)
+        .map(item => item.id);
+      setExpandedGroups(groupsWithChildren);
+      setAllExpanded(true);
+    }
   };
 
   const renderMenuItem = (item: any, level = 0) => {
-    const isActive = activeTab === item.id || 
-      (item.id === 'user-management' && ['students', 'startups', 'colleges'].includes(activeTab));
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedGroups.includes(item.id);
+    
+    // Check if this parent has an active child
+    const hasActiveChild = hasChildren && item.children.some((child: any) => activeTab === child.id);
+    
+    // Determine if this item is active
+    const isActive = activeTab === item.id || hasActiveChild;
     
     // For child items, check if they are directly active
     const isChildActive = level > 0 && activeTab === item.id;
-    
-    const hasChildren = item.children && item.children.length > 0;
-    const isExpanded = expandedGroups.includes(item.id);
 
     return (
       <div key={item.id}>
@@ -115,8 +135,10 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
           variant="ghost"
           className={cn(
             "w-full justify-start gap-3 px-3 py-2.5 h-auto transition-all duration-200 text-left",
-            (isActive || isChildActive)
-              ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+            level === 0 && (isActive || hasActiveChild)
+              ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-orange-900/50 font-medium" 
+              : level > 0 && isChildActive
+              ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/30"
               : "hover:bg-muted text-muted-foreground hover:text-foreground",
             level > 0 ? "ml-6 text-sm" : "",
             isCollapsed ? "justify-center px-2" : ""
@@ -125,12 +147,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             if (hasChildren) {
               toggleGroup(item.id);
             } else {
-              // Handle child navigation for user management items
-              if (['students', 'startups', 'colleges'].includes(item.id)) {
-                onTabChange(item.id);
-              } else {
-                onTabChange(item.id);
-              }
+              onTabChange(item.id);
             }
           }}
         >
@@ -139,7 +156,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             <>
               <span className="truncate flex-1 text-left">{item.label}</span>
               {hasChildren && (
-                <div className="ml-auto">
+                <div className="ml-auto transition-transform duration-200">
                   {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </div>
               )}
@@ -147,9 +164,16 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
           )}
         </Button>
         
-        {hasChildren && !isCollapsed && isExpanded && (
-          <div className="mt-1 space-y-1 ml-2">
-            {item.children.map((child: any) => renderMenuItem(child, level + 1))}
+        {hasChildren && !isCollapsed && (
+          <div 
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-in-out",
+              isExpanded ? "max-h-96 opacity-100 animate-accordion-down" : "max-h-0 opacity-0"
+            )}
+          >
+            <div className="mt-1 space-y-1 ml-2">
+              {item.children.map((child: any) => renderMenuItem(child, level + 1))}
+            </div>
           </div>
         )}
       </div>
@@ -187,7 +211,17 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border space-y-2">
+        {!isCollapsed && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={toggleAllGroups}
+          >
+            {allExpanded ? 'Collapse All' : 'Expand All'}
+          </Button>
+        )}
         <Button
           variant="ghost"
           className={cn(

@@ -103,6 +103,19 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     });
   };
 
+  const handleMenuClick = (item: any) => {
+    const hasChildren = item.children && item.children.length > 0;
+    
+    if (hasChildren) {
+      // Toggle the submenu
+      toggleGroup(item.id);
+    } else {
+      // Close all open submenus when clicking a main menu without children
+      setExpandedGroups([]);
+      onTabChange(item.id);
+    }
+  };
+
   const toggleAllGroups = () => {
     if (allExpanded) {
       setExpandedGroups([]);
@@ -144,9 +157,10 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             isCollapsed ? "justify-center px-2" : ""
           )}
           onClick={() => {
-            if (hasChildren) {
-              toggleGroup(item.id);
+            if (level === 0) {
+              handleMenuClick(item);
             } else {
+              // Child item clicked - just change tab
               onTabChange(item.id);
             }
           }}

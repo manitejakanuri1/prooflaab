@@ -277,9 +277,9 @@ const TaskOversight = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Fixed Header Section */}
-      <div className="flex-shrink-0 space-y-6 pb-4 bg-background">
+      <div className="flex-shrink-0 space-y-6 pb-4 bg-background border-b">
         {/* Header */}
         <div>
           <h2 className="text-3xl font-bold">Task Oversight</h2>
@@ -351,35 +351,35 @@ const TaskOversight = () => {
         </div>
       </div>
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-auto">
-        {/* Tasks Table */}
+      {/* Scrollable Table Container */}
+      <div className="flex-1 overflow-hidden">
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-3 p-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="h-16 bg-muted animate-pulse rounded" />
             ))}
           </div>
         ) : !tasks || tasks.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg bg-muted/20">
+          <div className="text-center py-12 mx-4 border rounded-lg bg-muted/20">
             <p className="text-muted-foreground">No tasks found</p>
           </div>
         ) : (
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
-                <TableRow>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Creator</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>XP</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="h-full overflow-auto">
+            <div className="border rounded-lg m-4">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
+                  <TableRow>
+                    <TableHead className="w-12 bg-background"></TableHead>
+                    <TableHead className="bg-background">Task</TableHead>
+                    <TableHead className="bg-background">Creator</TableHead>
+                    <TableHead className="bg-background">Category</TableHead>
+                    <TableHead className="bg-background">Due Date</TableHead>
+                    <TableHead className="bg-background">XP</TableHead>
+                    <TableHead className="bg-background">Status</TableHead>
+                    <TableHead className="w-12 bg-background"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
               {tasks.map((task) => (
                 <>
                   <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
@@ -475,7 +475,8 @@ const TaskOversight = () => {
               ))}
             </TableBody>
           </Table>
-        </div>
+            </div>
+          </div>
         )}
       </div>
 

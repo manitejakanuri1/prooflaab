@@ -66,10 +66,7 @@ const StartupOversight = () => {
       console.log('Fetching startups...');
       let query = supabase
         .from('startups')
-        .select(`
-          *,
-          startup_profiles(startup_name)
-        `);
+        .select('*');
 
       if (searchTerm) {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
@@ -90,6 +87,13 @@ const StartupOversight = () => {
       // Fetch additional data for each startup
       const startupsWithMetadata = await Promise.all(
         (data || []).map(async (startup: any) => {
+          // Get startup profile
+          const { data: profile } = await supabase
+            .from('startup_profiles')
+            .select('startup_name')
+            .eq('user_id', startup.user_id)
+            .maybeSingle();
+          
           // Get tasks count
           const { count: tasksPosted } = await supabase
             .from('tasks')
@@ -141,9 +145,8 @@ const StartupOversight = () => {
             ...startup, 
             tasks_posted: tasksPosted || 0,
             last_active: lastActive,
-            startup_name: Array.isArray(startup.startup_profiles) && startup.startup_profiles[0]?.startup_name 
-              ? startup.startup_profiles[0].startup_name 
-              : startup.name
+            startup_name: profile?.startup_name || startup.name,
+            startup_profiles: profile ? [profile] : []
           };
         })
       );

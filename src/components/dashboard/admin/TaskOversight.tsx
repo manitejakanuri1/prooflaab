@@ -44,13 +44,7 @@ const TaskOversight = () => {
       console.log('Fetching tasks...');
       let query = supabase
         .from('tasks')
-        .select(`
-          *,
-          colleges:created_by_college_id(name, id),
-          startups:created_by_startup_id(name, id),
-          student_profiles:student_id(id, full_name, email, profile_photo_url),
-          proof_uploads(id, status, submitted_at)
-        `);
+        .select('*');
 
       if (searchTerm) {
         query = query.ilike('title', `%${searchTerm}%`);
@@ -94,13 +88,63 @@ const TaskOversight = () => {
         }
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) {
-        console.error('Task fetch error:', error);
-        throw error;
+      const { data: tasksData, error: tasksError } = await query.order('created_at', { ascending: false });
+      if (tasksError) {
+        console.error('Task fetch error:', tasksError);
+        throw tasksError;
       }
-      console.log('Tasks fetched:', data);
-      return data;
+      
+      console.log('Tasks fetched:', tasksData);
+      
+      // Fetch related data separately and merge
+      const enrichedTasks = await Promise.all(
+        (tasksData || []).map(async (task) => {
+          const enrichedTask: any = { ...task };
+          
+          // Fetch college data
+          if (task.created_by_college_id) {
+            const { data: college } = await supabase
+              .from('colleges')
+              .select('id, name')
+              .eq('id', task.created_by_college_id)
+              .single();
+            enrichedTask.colleges = college;
+          }
+          
+          // Fetch startup data
+          if (task.created_by_startup_id) {
+            const { data: startup } = await supabase
+              .from('startups')
+              .select('id, name')
+              .eq('user_id', task.created_by_startup_id)
+              .single();
+            enrichedTask.startups = startup;
+          }
+          
+          // Fetch student data
+          if (task.student_id) {
+            const { data: student } = await supabase
+              .from('student_profiles')
+              .select('id, full_name, email, profile_photo_url')
+              .eq('id', task.student_id)
+              .single();
+            enrichedTask.student_profiles = student;
+          }
+          
+          // Fetch proof uploads
+          const { data: proofs } = await supabase
+            .from('proof_uploads')
+            .select('id, status, submitted_at')
+            .eq('task_id', task.id)
+            .order('submitted_at', { ascending: false });
+          enrichedTask.proof_uploads = proofs || [];
+          
+          return enrichedTask;
+        })
+      );
+      
+      console.log('Enriched tasks:', enrichedTasks);
+      return enrichedTasks;
     }
   });
 

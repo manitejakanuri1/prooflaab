@@ -279,16 +279,16 @@ const TaskOversight = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Fixed Header Section */}
-      <div className="flex-shrink-0 space-y-6 pb-4 bg-background border-b">
+      <div className="flex-shrink-0 space-y-4 md:space-y-6 pb-4 px-4 md:px-0 bg-background border-b">
         {/* Header */}
         <div>
-          <h2 className="text-3xl font-bold">Task Oversight</h2>
-          <p className="text-muted-foreground mt-1">Monitor and manage all tasks across the platform</p>
+          <h2 className="text-2xl md:text-3xl font-bold">Task Oversight</h2>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">Monitor and manage all tasks across the platform</p>
         </div>
 
         {/* Search & Filters */}
-        <div className="space-y-4">
-          <div className="relative max-w-md">
+        <div className="space-y-3 md:space-y-4">
+          <div className="relative w-full md:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search tasks by title..."
@@ -298,9 +298,9 @@ const TaskOversight = () => {
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="text-xs md:text-sm">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -312,7 +312,7 @@ const TaskOversight = () => {
             </Select>
 
             <Select value={creatorFilter} onValueChange={setCreatorFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="text-xs md:text-sm">
                 <SelectValue placeholder="Creator" />
               </SelectTrigger>
               <SelectContent>
@@ -324,7 +324,7 @@ const TaskOversight = () => {
             </Select>
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="text-xs md:text-sm">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -337,7 +337,7 @@ const TaskOversight = () => {
             </Select>
 
             <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="text-xs md:text-sm">
                 <SelectValue placeholder="Due Date" />
               </SelectTrigger>
               <SelectContent>
@@ -365,7 +365,8 @@ const TaskOversight = () => {
           </div>
         ) : (
           <div className="h-full overflow-auto">
-            <div className="border rounded-lg m-4">
+            {/* Desktop Table View */}
+            <div className="hidden md:block border rounded-lg m-4">
               <Table>
                 <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                   <TableRow>
@@ -475,6 +476,103 @@ const TaskOversight = () => {
               ))}
             </TableBody>
           </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 p-4">
+              {tasks.map((task) => (
+                <div key={task.id} className="border rounded-lg bg-card">
+                  <div className="p-4 space-y-3">
+                    {/* Task Title & Status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-medium text-sm flex-1 line-clamp-2">{task.title}</h3>
+                      {getStatusBadge(task.status)}
+                    </div>
+
+                    {/* Creator & Category */}
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {getCreatorBadge(task)}
+                      <Badge variant="outline" className="text-xs">{task.category || 'General'}</Badge>
+                    </div>
+
+                    {/* Due Date & XP */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-primary text-primary" />
+                        <span className="font-medium text-foreground">{task.xp_reward || task.xp || 0} XP</span>
+                      </div>
+                    </div>
+
+                    {/* Assigned Student (if any) */}
+                    {task.student_profiles && (
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-medium">
+                              {task.student_profiles.full_name?.charAt(0) || '?'}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-xs truncate">{task.student_profiles.full_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{task.student_profiles.email}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">{getStudentProgress(task)}</Badge>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-8 text-xs"
+                        onClick={() => setEditTask(task)}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-8 text-xs"
+                        onClick={() => setViewStudentsTask(task)}
+                      >
+                        <Users className="h-3 w-3 mr-1" />
+                        Students
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setReassignTask(task)}>
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Reassign
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => flagTaskMutation.mutate(task.id)}>
+                            <Flag className="h-4 w-4 mr-2" />
+                            Flag
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => removeTaskMutation.mutate(task.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

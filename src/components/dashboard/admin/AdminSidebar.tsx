@@ -196,11 +196,11 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   return (
     <div className={cn(
-      "bg-card border-r border-border flex flex-col transition-all duration-300",
+      "bg-card border-r border-border flex flex-col transition-all duration-300 h-screen",
       isCollapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className="p-4 border-b border-border flex items-center justify-between flex-shrink-0">
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">

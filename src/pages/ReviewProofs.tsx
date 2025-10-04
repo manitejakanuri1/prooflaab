@@ -52,10 +52,12 @@ const ReviewProofs = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="h-screen flex w-full bg-background overflow-hidden">
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="flex-1 p-6 overflow-auto">
-          {renderContent()}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </SidebarProvider>

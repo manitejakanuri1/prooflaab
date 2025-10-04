@@ -12,6 +12,9 @@ interface ViewAssignedStudentsModalProps {
 export function ViewAssignedStudentsModal({ task, open, onClose }: ViewAssignedStudentsModalProps) {
   if (!task) return null;
 
+  console.log('ViewAssignedStudentsModal - Task data:', task);
+  console.log('ViewAssignedStudentsModal - Student profiles:', task.student_profiles);
+
   const getProgressStatus = (task: any) => {
     if (!task.student_profiles) return "Not Started";
     

@@ -121,13 +121,20 @@ const TaskOversight = () => {
             enrichedTask.startups = startup;
           }
           
-          // Fetch student data
+          // Fetch student data - need to check RLS policies
           if (task.student_id) {
-            const { data: student } = await supabase
+            console.log('Fetching student for task:', task.id, 'student_id:', task.student_id);
+            const { data: student, error: studentError } = await supabase
               .from('student_profiles')
               .select('id, full_name, email, profile_photo_url')
               .eq('id', task.student_id)
               .maybeSingle();
+            
+            if (studentError) {
+              console.error('Error fetching student:', studentError);
+            } else {
+              console.log('Student data fetched:', student);
+            }
             enrichedTask.student_profiles = student;
           }
           

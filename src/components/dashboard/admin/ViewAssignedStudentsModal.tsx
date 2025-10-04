@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { User } from "lucide-react";
@@ -41,10 +41,13 @@ export function ViewAssignedStudentsModal({ task, open, onClose }: ViewAssignedS
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Assigned Students - {task.title}</DialogTitle>
+          <DialogDescription>
+            View student assignment details and progress for this task.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 mt-4">
-          {task.student_profiles ? (
+          {task.student_profiles && typeof task.student_profiles === 'object' && task.student_profiles.full_name ? (
             <div className="border rounded-lg p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12">

@@ -45,9 +45,9 @@ const TaskOversight = () => {
         .from('tasks')
         .select(`
           *,
-          colleges!tasks_created_by_college_id_fkey(name, id),
-          startups!tasks_created_by_startup_id_fkey(name, id),
-          student_profiles!tasks_student_id_fkey(id, full_name, email, profile_photo_url),
+          colleges:created_by_college_id(name, id),
+          startups:created_by_startup_id(name, id),
+          student_profiles:student_id(id, full_name, email, profile_photo_url),
           proof_uploads(id, status, submitted_at)
         `);
 

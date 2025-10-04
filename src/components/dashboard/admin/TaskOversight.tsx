@@ -107,7 +107,7 @@ const TaskOversight = () => {
               .from('colleges')
               .select('id, name')
               .eq('id', task.created_by_college_id)
-              .single();
+              .maybeSingle();
             enrichedTask.colleges = college;
           }
           
@@ -117,7 +117,7 @@ const TaskOversight = () => {
               .from('startups')
               .select('id, name')
               .eq('user_id', task.created_by_startup_id)
-              .single();
+              .maybeSingle();
             enrichedTask.startups = startup;
           }
           
@@ -127,7 +127,7 @@ const TaskOversight = () => {
               .from('student_profiles')
               .select('id, full_name, email, profile_photo_url')
               .eq('id', task.student_id)
-              .single();
+              .maybeSingle();
             enrichedTask.student_profiles = student;
           }
           

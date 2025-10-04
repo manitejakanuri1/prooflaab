@@ -59,14 +59,26 @@ export const useAvailableTasks = () => {
         return [];
       }
 
-      // Get available tasks (public visibility, not assigned to anyone, not expired)
+      // Get task_assignments for this student to exclude already assigned tasks
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('task_assignments')
+        .select('task_id')
+        .eq('student_id', profile.id);
+
+      if (assignmentsError) throw assignmentsError;
+
+      const assignedTaskIds = assignments?.map(a => a.task_id) || [];
+
+      // Get available tasks (public visibility, approved by admin, not assigned to anyone, not expired)
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
         .eq('visibility', 'public')
+        .eq('approved_by_admin', true) // Only show admin-approved tasks
         .is('student_id', null) // Not assigned to any student yet
         .gte('due_date', new Date().toISOString()) // Not expired
         .in('status', ['Pending'])
+        .not('id', 'in', `(${assignedTaskIds.length > 0 ? assignedTaskIds.join(',') : 'null'})`) // Exclude already assigned tasks
         .order('created_at', { ascending: false });
 
       if (tasksError) throw tasksError;

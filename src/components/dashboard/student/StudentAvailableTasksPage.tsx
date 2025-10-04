@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useAvailableTasks } from "@/hooks/useAvailableTasks";
 import { format } from "date-fns";
-import { Clock, Award, Search, Filter, Building2, MapPin, Calendar, DollarSign, User } from "lucide-react";
+import { Clock, Award, Search, Filter, Building2, Calendar, DollarSign, User, Code, Palette, FlaskConical, Briefcase, ShieldCheck } from "lucide-react";
 import { TaskApplicationModal } from "./TaskApplicationModal";
 
 const StudentAvailableTasksPage = () => {
@@ -79,6 +79,47 @@ const StudentAvailableTasksPage = () => {
     );
   }
 
+  const getSourceBadge = (task: any) => {
+    // Determine source from task fields
+    const source = task.source || 
+                   (task.created_by_startup_id ? 'startup' : 
+                    task.created_by_college_id ? 'college' : 
+                    task.created_by_admin_id ? 'admin' : 'unknown');
+    
+    const sourceConfig = {
+      startup: { 
+        label: 'Startup Posted', 
+        className: 'bg-green-100 text-green-700 border-green-200',
+        icon: Briefcase
+      },
+      college: { 
+        label: 'Assigned by College', 
+        className: 'bg-blue-100 text-blue-700 border-blue-200',
+        icon: Building2
+      },
+      admin: { 
+        label: 'Assigned by Admin', 
+        className: 'bg-purple-100 text-purple-700 border-purple-200',
+        icon: ShieldCheck
+      },
+      unknown: { 
+        label: 'Posted', 
+        className: 'bg-gray-100 text-gray-700 border-gray-200',
+        icon: Building2
+      }
+    };
+    
+    const config = sourceConfig[source as keyof typeof sourceConfig] || sourceConfig.unknown;
+    const Icon = config.icon;
+    
+    return (
+      <Badge variant="outline" className={config.className}>
+        <Icon className="h-3 w-3 mr-1" />
+        {config.label}
+      </Badge>
+    );
+  };
+
   const getApplicationStatusBadge = (hasApplied: boolean, applicationStatus?: string) => {
     if (!hasApplied) return null;
     
@@ -104,6 +145,13 @@ const StudentAvailableTasksPage = () => {
     );
   };
 
+  const quickFilterCategories = [
+    { value: 'All', label: 'All', icon: Building2 },
+    { value: 'Coding', label: 'Coding', icon: Code },
+    { value: 'Design', label: 'Design', icon: Palette },
+    { value: 'Research', label: 'Research', icon: FlaskConical },
+  ];
+
   return (
     <div className="space-y-6">
       <Card>
@@ -117,8 +165,32 @@ const StudentAvailableTasksPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg border">
+          {/* Quick Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            {quickFilterCategories.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <Button
+                  key={cat.value}
+                  variant={categoryFilter === cat.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCategoryFilter(cat.value)}
+                  className="gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {cat.label}
+                  {cat.value !== 'All' && (
+                    <Badge variant="secondary" className="ml-1">
+                      {tasks.filter(t => (t.category || 'General') === cat.value).length}
+                    </Badge>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Search & Sort Bar */}
+          <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/30 rounded-lg border">
             <div className="flex items-center gap-2 flex-1">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
@@ -129,35 +201,19 @@ const StudentAvailableTasksPage = () => {
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Newest First">Newest First</SelectItem>
-                  <SelectItem value="Oldest First">Oldest First</SelectItem>
-                  <SelectItem value="XP (High to Low)">XP (High to Low)</SelectItem>
-                  <SelectItem value="XP (Low to High)">XP (Low to High)</SelectItem>
-                  <SelectItem value="Due Date (Soon to Late)">Due Date (Soon to Late)</SelectItem>
-                  <SelectItem value="Due Date (Late to Soon)">Due Date (Late to Soon)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Newest First">Newest First</SelectItem>
+                <SelectItem value="Oldest First">Oldest First</SelectItem>
+                <SelectItem value="XP (High to Low)">XP (High to Low)</SelectItem>
+                <SelectItem value="XP (Low to High)">XP (Low to High)</SelectItem>
+                <SelectItem value="Due Date (Soon to Late)">Due Date (Soon to Late)</SelectItem>
+                <SelectItem value="Due Date (Late to Soon)">Due Date (Late to Soon)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {filteredAndSortedTasks.length === 0 ? (
@@ -180,14 +236,12 @@ const StudentAvailableTasksPage = () => {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                         <div className="flex items-center gap-2 mb-2">
+                         <div className="flex flex-wrap items-center gap-2 mb-2">
                            <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
                            <Badge variant="outline">{task.category || 'General'}</Badge>
-                           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                             From {task.created_by_startup_id ? 'Startup' : 'Admin'}
-                           </Badge>
+                           {getSourceBadge(task)}
                            {task.is_paid && (
-                             <Badge variant="secondary" className="bg-green-100 text-green-800">
+                             <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
                                <DollarSign className="h-3 w-3 mr-1" />
                                Paid
                              </Badge>

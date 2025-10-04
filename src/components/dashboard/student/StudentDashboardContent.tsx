@@ -1,6 +1,5 @@
 import StudentDashboardOverview from "./StudentDashboardOverview";
-import StudentTasksPage from "./StudentTasksPage";
-import StudentAvailableTasksPage from "./StudentAvailableTasksPage";
+import StudentUnifiedTasksPage from "./StudentUnifiedTasksPage";
 import StudentApplicationsPage from "./StudentApplicationsPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 import StudentPortfolioPage from "./StudentPortfolioPage";
@@ -21,9 +20,8 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
       case "dashboard":
         return <StudentDashboardOverview />;
       case "available-tasks":
-        return <StudentAvailableTasksPage />;
       case "tasks":
-        return <StudentTasksPage />;
+        return <StudentUnifiedTasksPage />;
       case "uploads":
         return <StudentUploadsPage />;
       case "portfolio":

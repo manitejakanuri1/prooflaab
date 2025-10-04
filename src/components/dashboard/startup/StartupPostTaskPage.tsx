@@ -96,6 +96,8 @@ export function StartupPostTaskPage() {
           xp_reward: data.xpReward,
           category: data.category,
           visibility: data.visibility,
+          approved_by_admin: true, // Auto-approve startup tasks
+          source: 'startup', // Mark as startup-posted
         });
 
       if (error) {

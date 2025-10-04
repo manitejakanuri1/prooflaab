@@ -38,9 +38,10 @@ const TaskOversight = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: tasks, isLoading } = useQuery({
+  const { data: tasks, isLoading, error } = useQuery({
     queryKey: ['admin-tasks', searchTerm, statusFilter, creatorFilter, categoryFilter, dueDateFilter],
     queryFn: async () => {
+      console.log('Fetching tasks...');
       let query = supabase
         .from('tasks')
         .select(`
@@ -94,7 +95,11 @@ const TaskOversight = () => {
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error('Task fetch error:', error);
+        throw error;
+      }
+      console.log('Tasks fetched:', data);
       return data;
     }
   });
@@ -203,6 +208,18 @@ const TaskOversight = () => {
               <div key={i} className="h-12 bg-muted rounded"></div>
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-3xl font-bold">Task Oversight</h2>
+        <div className="border rounded-lg bg-destructive/10 p-6 text-center">
+          <p className="text-destructive font-semibold">Error loading tasks</p>
+          <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
         </div>
       </div>
     );

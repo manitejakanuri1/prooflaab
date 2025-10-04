@@ -60,9 +60,10 @@ const StartupOversight = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: startups, isLoading } = useQuery({
+  const { data: startups, isLoading, error } = useQuery({
     queryKey: ['startup-oversight', searchTerm, statusFilter],
     queryFn: async () => {
+      console.log('Fetching startups...');
       let query = supabase
         .from('startups')
         .select(`
@@ -79,7 +80,12 @@ const StartupOversight = () => {
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error('Startup fetch error:', error);
+        throw error;
+      }
+      
+      console.log('Startups base data:', data);
       
       // Fetch additional data for each startup
       const startupsWithMetadata = await Promise.all(
@@ -366,6 +372,18 @@ const StartupOversight = () => {
               <div key={i} className="h-16 bg-muted rounded"></div>
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Startup Management</h1>
+        <div className="border rounded-lg bg-destructive/10 p-6 text-center">
+          <p className="text-destructive font-semibold">Error loading startups</p>
+          <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
         </div>
       </div>
     );

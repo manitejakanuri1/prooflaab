@@ -11,10 +11,17 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface StartupSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isVerified: boolean;
 }
 
 const sidebarItems = [
@@ -26,7 +33,9 @@ const sidebarItems = [
   { id: "settings", title: "Settings", icon: Settings },
 ];
 
-export function StartupSidebar({ activeTab, onTabChange }: StartupSidebarProps) {
+const restrictedTabs = ["post-task", "view-tasks", "view-applications", "submissions"];
+
+export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSidebarProps) {
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -55,31 +64,50 @@ export function StartupSidebar({ activeTab, onTabChange }: StartupSidebarProps) 
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
+              <TooltipProvider>
+                {sidebarItems.map((item) => {
+                  const isRestricted = restrictedTabs.includes(item.id);
+                  const isDisabled = isRestricted && !isVerified;
+
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="w-full">
+                            <SidebarMenuButton
+                              onClick={() => !isDisabled && onTabChange(item.id)}
+                              disabled={isDisabled}
+                              className={`w-full justify-start ${
+                                activeTab === item.id 
+                                  ? "bg-primary/10 text-primary font-medium" 
+                                  : "hover:bg-muted/50"
+                              } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              <span className="ml-2">{item.title}</span>
+                            </SidebarMenuButton>
+                          </div>
+                        </TooltipTrigger>
+                        {isDisabled && (
+                          <TooltipContent side="right">
+                            <p>Action disabled until account verification</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </SidebarMenuItem>
+                  );
+                })}
+              
+                <SidebarMenuItem>
                   <SidebarMenuButton
-                    onClick={() => onTabChange(item.id)}
-                    className={`w-full justify-start ${
-                      activeTab === item.id 
-                        ? "bg-primary/10 text-primary font-medium" 
-                        : "hover:bg-muted/50"
-                    }`}
+                    onClick={handleLogout}
+                    className="w-full justify-start text-destructive hover:bg-destructive/10"
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span className="ml-2">{item.title}</span>
+                    <LogOut className="h-4 w-4" />
+                    <span className="ml-2">Logout</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={handleLogout}
-                  className="w-full justify-start text-destructive hover:bg-destructive/10"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="ml-2">Logout</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              </TooltipProvider>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -5,10 +5,13 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { StartupSidebar } from "@/components/dashboard/startup/StartupSidebar";
 import { StartupDashboardHeader } from "@/components/dashboard/startup/StartupDashboardHeader";
 import { StartupDashboardContent } from "@/components/dashboard/startup/StartupDashboardContent";
+import { VerificationBanner } from "@/components/dashboard/startup/VerificationBanner";
+import { useStartupVerification } from "@/hooks/useStartupVerification";
 
 const StartupDashboard = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { data: verificationData } = useStartupVerification();
 
   if (loading) {
     return (
@@ -22,16 +25,29 @@ const StartupDashboard = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  const isVerified = verificationData?.verification_status === "approved";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <StartupSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <StartupSidebar 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          isVerified={isVerified}
+        />
         
         <div className="flex-1 flex flex-col">
           <StartupDashboardHeader />
           
           <main className="flex-1 p-6">
-            <StartupDashboardContent activeTab={activeTab} onTabChange={setActiveTab} />
+            {verificationData?.verification_status && (
+              <VerificationBanner verificationStatus={verificationData.verification_status} />
+            )}
+            <StartupDashboardContent 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab}
+              isVerified={isVerified}
+            />
           </main>
         </div>
       </div>

@@ -147,6 +147,56 @@ const StartupOversight = () => {
     }
   });
 
+  const approveVerificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('startups')
+        .update({ verification_status: 'approved', status: 'active' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['startup-oversight'] });
+      toast({
+        title: "Success",
+        description: "Startup verification approved successfully.",
+      });
+      closeModal();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to approve verification: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const rejectVerificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('startups')
+        .update({ verification_status: 'rejected' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['startup-oversight'] });
+      toast({
+        title: "Success",
+        description: "Startup verification rejected.",
+      });
+      closeModal();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to reject verification: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -262,6 +312,32 @@ const StartupOversight = () => {
     );
   };
 
+  const getVerificationBadge = (verificationStatus?: string) => {
+    if (!verificationStatus) return null;
+    
+    if (verificationStatus === 'approved') {
+      return (
+        <Badge className="bg-green-500 text-white hover:bg-green-500">
+          ✓ Verified
+        </Badge>
+      );
+    }
+    
+    if (verificationStatus === 'rejected') {
+      return (
+        <Badge className="bg-red-500 text-white hover:bg-red-500">
+          ✗ Rejected
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge className="bg-orange-500 text-white hover:bg-orange-500">
+        ⏳ Unverified
+      </Badge>
+    );
+  };
+
   const formatLastActive = (lastActiveDate: string | null) => {
     if (!lastActiveDate) return "—";
     
@@ -359,6 +435,7 @@ const StartupOversight = () => {
                   <TableHead className="font-semibold pl-4 sm:pl-4">Name</TableHead>
                   <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell">Verification</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Created</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Last Active</TableHead>
                   <TableHead className="font-semibold text-right pr-4 sm:pr-4">Actions</TableHead>
@@ -379,6 +456,9 @@ const StartupOversight = () => {
                       <span className="truncate block max-w-48">{startup.email}</span>
                     </TableCell>
                     <TableCell>{getStatusBadge(startup.status)}</TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {getVerificationBadge(startup.verification_status)}
+                    </TableCell>
                     <TableCell className="text-muted-foreground hidden md:table-cell">
                       {new Date(startup.created_at).toLocaleDateString('en-US', { 
                         month: 'numeric', 
@@ -401,6 +481,28 @@ const StartupOversight = () => {
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
+                          {startup.verification_status === 'pending' && (
+                            <DropdownMenuItem 
+                              onClick={() => approveVerificationMutation.mutate(startup.id)}
+                              className="text-green-600"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Approve Verification
+                            </DropdownMenuItem>
+                          )}
+                          {startup.verification_status === 'pending' && (
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                if (confirm(`Reject verification for ${startup.name}?`)) {
+                                  rejectVerificationMutation.mutate(startup.id);
+                                }
+                              }}
+                              className="text-red-600"
+                            >
+                              <Ban className="h-4 w-4 mr-2" />
+                              Reject Verification
+                            </DropdownMenuItem>
+                          )}
                           {startup.status === 'pending' && (
                             <DropdownMenuItem onClick={() => handleApprove(startup)} className="text-green-600">
                               <CheckCircle className="h-4 w-4 mr-2" />
@@ -485,10 +587,14 @@ const StartupOversight = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Status</label>
                   <div className="mt-1">{getStatusBadge(selectedStartup.status)}</div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Verification</label>
+                  <div className="mt-1">{getVerificationBadge(selectedStartup.verification_status)}</div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Created</label>
@@ -511,6 +617,30 @@ const StartupOversight = () => {
                   <p className="text-sm mt-1 font-mono">{(selectedStartup as any).tasks_posted || 0}</p>
                 </div>
               </div>
+              
+              {/* Verification Actions */}
+              {selectedStartup.verification_status !== 'approved' && (
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    onClick={() => approveVerificationMutation.mutate(selectedStartup.id)}
+                    disabled={approveVerificationMutation.isPending}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approve Verification
+                  </Button>
+                  {selectedStartup.verification_status === 'pending' && (
+                    <Button
+                      onClick={() => rejectVerificationMutation.mutate(selectedStartup.id)}
+                      disabled={rejectVerificationMutation.isPending}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      Reject Verification
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>

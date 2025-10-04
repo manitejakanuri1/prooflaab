@@ -1,45 +1,54 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Clock, Star, User, Calendar, CheckCircle, Flag, Trash2, FileText, Trophy } from "lucide-react";
+import { Search, MoreVertical, Clock, Star, ChevronDown, ChevronRight, Edit, Users, UserPlus, Flag, Trash2, Building2, Briefcase, Shield } from "lucide-react";
+import { ViewAssignedStudentsModal } from "./ViewAssignedStudentsModal";
+import { EditTaskModal } from "./EditTaskModal";
+import { ReassignTaskModal } from "./ReassignTaskModal";
 
 const TaskOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("due_date");
-  const [selectedTask, setSelectedTask] = useState<any>(null);
-  const [actionType, setActionType] = useState<'approve' | 'flag' | 'remove'>('approve');
+  const [creatorFilter, setCreatorFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dueDateFilter, setDueDateFilter] = useState("all");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [viewStudentsTask, setViewStudentsTask] = useState<any>(null);
+  const [editTask, setEditTask] = useState<any>(null);
+  const [reassignTask, setReassignTask] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ['admin-tasks', searchTerm, statusFilter, sortBy],
+    queryKey: ['admin-tasks', searchTerm, statusFilter, creatorFilter, categoryFilter, dueDateFilter],
     queryFn: async () => {
       let query = supabase
         .from('tasks')
         .select(`
           *,
-          student_profiles!tasks_student_id_fkey(full_name)
+          colleges!tasks_created_by_college_id_fkey(name, id),
+          startups!tasks_created_by_startup_id_fkey(name, id),
+          student_profiles!tasks_student_id_fkey(id, full_name, email, profile_photo_url),
+          proof_uploads(id, status, submitted_at)
         `);
 
       if (searchTerm) {
@@ -56,86 +65,131 @@ const TaskOversight = () => {
         }
       }
 
-      const sortField = sortBy === 'due_date' ? 'due_date' : sortBy === 'xp_reward' ? 'xp_reward' : 'status';
-      const { data, error } = await query.order(sortField, { ascending: sortBy === 'due_date' });
+      if (creatorFilter !== 'all') {
+        if (creatorFilter === 'college') {
+          query = query.not('created_by_college_id', 'is', null);
+        } else if (creatorFilter === 'startup') {
+          query = query.not('created_by_startup_id', 'is', null);
+        } else if (creatorFilter === 'admin') {
+          query = query.not('created_by_admin_id', 'is', null);
+        }
+      }
+
+      if (categoryFilter !== 'all') {
+        query = query.eq('category', categoryFilter);
+      }
+
+      if (dueDateFilter !== 'all') {
+        const now = new Date();
+        if (dueDateFilter === 'today') {
+          const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+          query = query.lte('due_date', endOfDay.toISOString());
+        } else if (dueDateFilter === 'week') {
+          const weekFromNow = new Date(now.setDate(now.getDate() + 7));
+          query = query.lte('due_date', weekFromNow.toISOString());
+        } else if (dueDateFilter === 'month') {
+          const monthFromNow = new Date(now.setMonth(now.getMonth() + 1));
+          query = query.lte('due_date', monthFromNow.toISOString());
+        }
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     }
   });
 
-  const updateTaskMutation = useMutation({
-    mutationFn: async ({ taskId, updates }: { taskId: string; updates: any }) => {
+  const flagTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
       const { error } = await supabase
         .from('tasks')
-        .update(updates)
+        .update({ status: 'Flagged' })
         .eq('id', taskId);
-      
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-tasks'] });
-      toast({
-        title: "Success",
-        description: `Task ${actionType}d successfully.`,
-      });
-      setSelectedTask(null);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to ${actionType} task: ${error.message}`,
-        variant: "destructive",
-      });
+      toast({ title: "Success", description: "Task flagged for review." });
     }
   });
 
-  const handleTaskAction = (task: any, action: 'approve' | 'flag' | 'remove') => {
-    setSelectedTask(task);
-    setActionType(action);
+  const removeTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tasks'] });
+      toast({ title: "Success", description: "Task removed successfully." });
+    }
+  });
+
+  const toggleRow = (taskId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId);
+    } else {
+      newExpanded.add(taskId);
+    }
+    setExpandedRows(newExpanded);
   };
 
-  const confirmAction = () => {
-    if (!selectedTask) return;
-
-    let updates: any = {};
-    
-    if (actionType === 'approve') {
-      updates.approved_by_admin = true;
-    } else if (actionType === 'flag') {
-      updates.status = 'Flagged';
-    } else if (actionType === 'remove') {
-      updates.status = 'Removed';
+  const getCreatorBadge = (task: any) => {
+    if (task.created_by_college_id && task.colleges) {
+      return (
+        <Badge variant="outline" className="gap-1">
+          <Building2 className="h-3 w-3" />
+          {task.colleges.name}
+        </Badge>
+      );
     }
-
-    updateTaskMutation.mutate({
-      taskId: selectedTask.id,
-      updates
-    });
+    if (task.created_by_startup_id && task.startups) {
+      return (
+        <Badge variant="outline" className="gap-1">
+          <Briefcase className="h-3 w-3" />
+          {task.startups.name}
+        </Badge>
+      );
+    }
+    if (task.created_by_admin_id) {
+      return (
+        <Badge variant="outline" className="gap-1">
+          <Shield className="h-3 w-3" />
+          Admin
+        </Badge>
+      );
+    }
+    return <Badge variant="outline">Unknown</Badge>;
   };
 
-  const getStatusBadge = (task: any) => {
-    const status = task.status || 'Pending';
-    const isOverdue = new Date(task.due_date) < new Date() && status !== 'Completed';
+  const getStudentProgress = (task: any) => {
+    if (!task.student_profiles) return "Not Started";
     
-    if (isOverdue) {
-      return <Badge className="bg-red-50 text-red-700 border-red-200">🔴 Overdue</Badge>;
-    }
+    const proofs = task.proof_uploads || [];
+    if (proofs.length === 0) return "Not Started";
     
-    const statusConfig = {
-      'Completed': { color: 'bg-green-50 text-green-700 border-green-200', emoji: '🟢' },
-      'In Progress': { color: 'bg-blue-50 text-blue-700 border-blue-200', emoji: '🔵' },
-      'Assigned': { color: 'bg-blue-50 text-blue-700 border-blue-200', emoji: '🔵' },
-      'Pending': { color: 'bg-gray-50 text-gray-700 border-gray-200', emoji: '⚪' },
-      'Flagged': { color: 'bg-red-50 text-red-700 border-red-200', emoji: '🚩' },
-      'Removed': { color: 'bg-red-50 text-red-700 border-red-200', emoji: '❌' }
+    const latestProof = proofs[0];
+    if (latestProof.status === 'Verified') return "Completed";
+    if (latestProof.status === 'Rejected') return "Rejected";
+    if (latestProof.submitted_at) return "Submitted";
+    
+    return task.status === 'In Progress' ? "In Progress" : "Not Started";
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
+      'Completed': { variant: 'default', label: 'Completed' },
+      'In Progress': { variant: 'secondary', label: 'In Progress' },
+      'Assigned': { variant: 'secondary', label: 'Assigned' },
+      'Pending': { variant: 'outline', label: 'Pending' },
+      'Flagged': { variant: 'destructive', label: 'Flagged' }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.Pending;
-    return <Badge className={`${config.color} border`}>{config.emoji} {status}</Badge>;
-  };
-
-  const getStatusIcon = (status: string) => {
-    return status === 'Completed' ? '📝' : '📌';
+    const config = statusConfig[status] || statusConfig.Pending;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   if (isLoading) {
@@ -156,24 +210,10 @@ const TaskOversight = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Task Dashboard</h2>
-          <p className="text-muted-foreground mt-1">Track and manage all assigned tasks in one place</p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Sort" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="due_date">Due Date</SelectItem>
-              <SelectItem value="status">Status</SelectItem>
-              <SelectItem value="xp_reward">XP Reward</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Header */}
+      <div>
+        <h2 className="text-3xl font-bold">Task Oversight</h2>
+        <p className="text-muted-foreground mt-1">Monitor and manage all tasks across the platform</p>
       </div>
 
       {/* Search & Filters */}
@@ -181,149 +221,208 @@ const TaskOversight = () => {
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search tasks…"
+            placeholder="Search tasks by title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 rounded-lg shadow-sm"
+            className="pl-10"
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant={statusFilter === 'active' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setStatusFilter('active')}
-            className="rounded-full"
-          >
-            🔵 Active
-          </Button>
-          <Button
-            variant={statusFilter === 'completed' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setStatusFilter('completed')}
-            className="rounded-full"
-          >
-            🟢 Completed
-          </Button>
-          <Button
-            variant={statusFilter === 'overdue' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setStatusFilter('overdue')}
-            className="rounded-full"
-          >
-            🟠 Overdue
-          </Button>
-          <Button
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setStatusFilter('all')}
-            className="rounded-full"
-          >
-            ⚪ All
-          </Button>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={creatorFilter} onValueChange={setCreatorFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Creator" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Creators</SelectItem>
+              <SelectItem value="college">Colleges</SelectItem>
+              <SelectItem value="startup">Startups</SelectItem>
+              <SelectItem value="admin">Admins</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="Development">Development</SelectItem>
+              <SelectItem value="Design">Design</SelectItem>
+              <SelectItem value="Marketing">Marketing</SelectItem>
+              <SelectItem value="General">General</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Due Date" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Dates</SelectItem>
+              <SelectItem value="today">Due Today</SelectItem>
+              <SelectItem value="week">Due This Week</SelectItem>
+              <SelectItem value="month">Due This Month</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Task List */}
-      <div className="space-y-3">
-        {!tasks || tasks.length === 0 ? (
-        <Card className="p-16">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <Trophy className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">🎉 No tasks assigned yet!</h3>
-          <p className="text-muted-foreground">New challenges coming soon.</p>
-        </Card>
-        ) : (
-          tasks.map((task) => (
-            <Card key={task.id} className="p-4 hover:shadow-md transition-shadow border border-border">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">{getStatusIcon(task.status)}</span>
-                    <h3 className="font-semibold text-foreground">{task.title}</h3>
-                    <Badge variant="outline" className="text-xs">
-                      {task.category || 'General'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      <span>Created by: {(task as any).student_profiles?.full_name || 'Admin'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>Due: {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3" />
-                      <span>⭐ +{task.xp_reward || task.xp || 0} XP</span>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    {getStatusBadge(task)}
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {!task.approved_by_admin && (
-                        <DropdownMenuItem onClick={() => handleTaskAction(task, 'approve')}>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approve
-                        </DropdownMenuItem>
+      {/* Tasks Table */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+          ))}
+        </div>
+      ) : !tasks || tasks.length === 0 ? (
+        <div className="text-center py-12 border rounded-lg bg-muted/20">
+          <p className="text-muted-foreground">No tasks found</p>
+        </div>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12"></TableHead>
+                <TableHead>Task</TableHead>
+                <TableHead>Creator</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>XP</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tasks.map((task) => (
+                <>
+                  <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableCell onClick={() => toggleRow(task.id)}>
+                      {expandedRows.has(task.id) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
                       )}
-                      {task.status !== 'Flagged' && (
-                        <DropdownMenuItem onClick={() => handleTaskAction(task, 'flag')}>
-                          <Flag className="h-4 w-4 mr-2" />
-                          Flag
-                        </DropdownMenuItem>
-                      )}
-                      {task.status !== 'Removed' && (
-                        <DropdownMenuItem 
-                          onClick={() => handleTaskAction(task, 'remove')}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{task.title}</TableCell>
+                    <TableCell>{getCreatorBadge(task)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{task.category || 'General'}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-primary text-primary" />
+                        <span>{task.xp_reward || task.xp || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(task.status)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEditTask(task)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Task
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setViewStudentsTask(task)}>
+                            <Users className="h-4 w-4 mr-2" />
+                            View Assigned Students
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setReassignTask(task)}>
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Reassign Task
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => flagTaskMutation.mutate(task.id)}>
+                            <Flag className="h-4 w-4 mr-2" />
+                            Flag for Review
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => removeTaskMutation.mutate(task.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove Task
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Expanded Row - Assigned Students */}
+                  {expandedRows.has(task.id) && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="bg-muted/30">
+                        <div className="py-3 px-4">
+                          <h4 className="font-semibold mb-3 text-sm">Assigned Students</h4>
+                          {task.student_profiles ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between p-3 bg-background rounded border">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <span className="text-sm font-medium">
+                                      {task.student_profiles.full_name?.charAt(0) || '?'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{task.student_profiles.full_name}</p>
+                                    <p className="text-xs text-muted-foreground">{task.student_profiles.email}</p>
+                                  </div>
+                                </div>
+                                <Badge variant="secondary">{getStudentProgress(task)}</Badge>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No students assigned yet</p>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      {/* Confirmation Dialog */}
-      <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Action</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to {actionType} this task? This action will affect its visibility and status.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedTask(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant={actionType === 'remove' ? 'destructive' : 'default'}
-              onClick={confirmAction}
-              disabled={updateTaskMutation.isPending}
-            >
-              {updateTaskMutation.isPending ? 'Processing...' : `${actionType} Task`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modals */}
+      <ViewAssignedStudentsModal
+        task={viewStudentsTask}
+        open={!!viewStudentsTask}
+        onClose={() => setViewStudentsTask(null)}
+      />
+      <EditTaskModal
+        task={editTask}
+        open={!!editTask}
+        onClose={() => setEditTask(null)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-tasks'] })}
+      />
+      <ReassignTaskModal
+        task={reassignTask}
+        open={!!reassignTask}
+        onClose={() => setReassignTask(null)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-tasks'] })}
+      />
     </div>
   );
 };

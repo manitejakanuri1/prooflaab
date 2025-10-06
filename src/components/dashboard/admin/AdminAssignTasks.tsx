@@ -799,7 +799,8 @@ const AdminAssignTasks = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex-shrink-0 space-y-4 pb-4 border-b">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-foreground">Assign Tasks (Admin)</h2>
@@ -858,8 +859,11 @@ const AdminAssignTasks = () => {
           </CardContent>
         </Card>
       </div>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-auto px-1">
+      <div className="grid gap-6 lg:grid-cols-2 pb-6">
         {/* Task Configuration */}
         <Card>
           <CardHeader>
@@ -1770,6 +1774,7 @@ const AdminAssignTasks = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

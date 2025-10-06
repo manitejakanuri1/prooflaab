@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -382,8 +383,8 @@ const TaskOversight = () => {
                 </TableHeader>
                 <TableBody>
               {tasks.map((task) => (
-                <>
-                  <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
+                <React.Fragment key={task.id}>
+                  <TableRow className="cursor-pointer hover:bg-muted/50">
                     <TableCell onClick={() => toggleRow(task.id)}>
                       {expandedRows.has(task.id) ? (
                         <ChevronDown className="h-4 w-4" />
@@ -472,7 +473,7 @@ const TaskOversight = () => {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>

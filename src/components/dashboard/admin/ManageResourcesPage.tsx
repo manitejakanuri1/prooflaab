@@ -3,7 +3,7 @@ import { Plus, Edit, Trash2, ExternalLink, Filter, MoreVertical, Eye, CheckCircl
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,43 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+// Utility function to extract YouTube video ID and convert to embed URL
+const getYouTubeEmbedUrl = (url: string): string | null => {
+  try {
+    const urlObj = new URL(url);
+    
+    // Handle youtube.com/watch?v=VIDEO_ID format
+    if (urlObj.hostname.includes('youtube.com') && urlObj.searchParams.has('v')) {
+      const videoId = urlObj.searchParams.get('v');
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+    
+    // Handle youtu.be/VIDEO_ID format
+    if (urlObj.hostname === 'youtu.be') {
+      const videoId = urlObj.pathname.slice(1);
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+    
+    // Already in embed format
+    if (urlObj.pathname.includes('/embed/')) {
+      return url;
+    }
+    
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const isYouTubeUrl = (url: string): boolean => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.includes('youtube.com') || urlObj.hostname === 'youtu.be';
+  } catch {
+    return false;
+  }
+};
 
 interface LearningResource {
   id: string;
@@ -51,6 +88,8 @@ const ManageResourcesPage = () => {
   const [editingResource, setEditingResource] = useState<LearningResource | null>(null);
   const [formData, setFormData] = useState<ResourceFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
+  const [previewResource, setPreviewResource] = useState<LearningResource | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -178,6 +217,11 @@ const ManageResourcesPage = () => {
     setIsDialogOpen(true);
   };
 
+  const openPreviewDialog = (resource: LearningResource) => {
+    setPreviewResource(resource);
+    setIsPreviewOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     return (
       <Badge 
@@ -272,9 +316,9 @@ const ManageResourcesPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => window.open(resource.url, "_blank")}>
+                          <DropdownMenuItem onClick={() => openPreviewDialog(resource)}>
                             <Eye className="mr-2 h-4 w-4" />
-                            View Resource
+                            Preview
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEditDialog(resource)}>
                             <Edit className="mr-2 h-4 w-4" />
@@ -297,6 +341,73 @@ const ManageResourcesPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewResource?.title}</DialogTitle>
+            <DialogDescription>
+              {previewResource?.description || "No description available"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            {/* Resource Metadata */}
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{previewResource?.platform}</Badge>
+              <Badge variant="outline">{previewResource?.category || 'General'}</Badge>
+              <Badge variant="outline">
+                {previewResource?.created_at && new Date(previewResource.created_at).toLocaleDateString()}
+              </Badge>
+            </div>
+
+            {/* YouTube Embed or Link */}
+            {previewResource && isYouTubeUrl(previewResource.url) ? (
+              <div className="w-full">
+                {getYouTubeEmbedUrl(previewResource.url) ? (
+                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                    <iframe
+                      src={getYouTubeEmbedUrl(previewResource.url)!}
+                      className="absolute top-0 left-0 w-full h-full rounded-lg"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <div className="p-8 bg-muted rounded-lg text-center">
+                    <p className="text-destructive">Invalid YouTube Link</p>
+                    <a 
+                      href={previewResource.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline mt-2 inline-block"
+                    >
+                      Open original link
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-8 bg-muted rounded-lg text-center">
+                <ExternalLink className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-4">This resource links to an external website</p>
+                <Button asChild>
+                  <a 
+                    href={previewResource?.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Visit Resource
+                  </a>
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

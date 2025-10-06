@@ -56,7 +56,10 @@ const StudentNotificationsPage = () => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'task':
+      case 'task_posted':
         return '📋';
+      case 'announcement':
+        return '📢';
       case 'proof':
         return '📤';
       case 'review':
@@ -64,16 +67,19 @@ const StudentNotificationsPage = () => {
       case 'achievement':
         return '🎉';
       default:
-        return '📢';
+        return '🔔';
     }
   };
 
   const getNotificationColor = (type: string) => {
     switch (type) {
       case 'task':
+      case 'task_posted':
         return 'bg-blue-100 text-blue-800';
-      case 'proof':
+      case 'announcement':
         return 'bg-purple-100 text-purple-800';
+      case 'proof':
+        return 'bg-indigo-100 text-indigo-800';
       case 'review':
         return 'bg-green-100 text-green-800';
       case 'achievement':
@@ -157,6 +163,18 @@ const StudentNotificationsPage = () => {
                   >
                     Achievements
                   </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filter.includes('announcement')}
+                    onCheckedChange={(checked) => {
+                      setFilter(prev => 
+                        checked 
+                          ? [...prev.filter(f => f !== 'all'), 'announcement']
+                          : prev.filter(f => f !== 'announcement')
+                      );
+                    }}
+                  >
+                    Announcements
+                  </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               
@@ -191,7 +209,15 @@ const StudentNotificationsPage = () => {
                   key={notification.id}
                   className={`p-4 hover:bg-gray-50 transition-colors ${
                     !notification.is_read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                  }`}
+                  } ${notification.link ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (notification.link) {
+                      if (!notification.is_read) {
+                        markAsRead(notification.id);
+                      }
+                      window.location.href = notification.link;
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
@@ -236,7 +262,10 @@ const StudentNotificationsPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => markAsRead(notification.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notification.id);
+                          }}
                           className="text-blue-600 hover:text-blue-700"
                         >
                           <Check className="h-4 w-4" />
@@ -246,7 +275,10 @@ const StudentNotificationsPage = () => {
                         variant="ghost"
                         size="sm"
                         className="text-gray-400 hover:text-red-600"
-                        onClick={() => handleDelete(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(notification.id);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

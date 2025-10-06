@@ -448,7 +448,9 @@ export type Database = {
           created_at: string | null
           id: string
           is_read: boolean | null
+          link: string | null
           message: string
+          read_at: string | null
           student_id: string
           title: string
           type: string | null
@@ -457,7 +459,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_read?: boolean | null
+          link?: string | null
           message: string
+          read_at?: string | null
           student_id: string
           title: string
           type?: string | null
@@ -466,7 +470,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_read?: boolean | null
+          link?: string | null
           message?: string
+          read_at?: string | null
           student_id?: string
           title?: string
           type?: string | null

@@ -12,6 +12,8 @@ interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
+  link?: string;
+  read_at?: string;
 }
 
 export const useNotifications = () => {
@@ -62,7 +64,7 @@ export const useNotifications = () => {
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
 
       if (error) throw error;
@@ -103,7 +105,7 @@ export const useNotifications = () => {
 
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('student_id', profile.id)
         .eq('is_read', false);
 

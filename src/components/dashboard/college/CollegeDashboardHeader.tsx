@@ -1,5 +1,6 @@
 import { Bell, User, Settings, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,6 +73,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
         
         {/* Profile Actions */}
         <div className="flex items-center space-x-2 md:space-x-4">
+          <ThemeToggle />
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-4 w-4 md:h-5 md:w-5" />
             <span className="absolute -top-1 -right-1 h-2 w-2 md:h-3 md:w-3 bg-red-500 rounded-full"></span>

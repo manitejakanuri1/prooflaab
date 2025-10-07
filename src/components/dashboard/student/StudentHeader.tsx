@@ -6,6 +6,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface StudentHeaderProps {
   studentName: string;
@@ -59,6 +60,7 @@ const StudentHeader = ({
         
         {/* User Profile */}
         <div className="flex items-center space-x-3">
+          <ThemeToggle />
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="relative p-2 hover:bg-accent">

@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight, Menu, X, Building, Briefcase, GraduationCap, Upload, Clock, Trophy } from "lucide-react";
 import { useState } from "react";
 import StickyCtaBar from "@/components/StickyCtaBar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -112,6 +113,7 @@ const Index = () => {
 
             {/* Desktop Auth Buttons */}
             <div className="hidden md:flex items-center space-x-4">
+              <ThemeToggle />
               <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
                 Login
               </Link>
@@ -138,6 +140,10 @@ const Index = () => {
                 <button onClick={() => scrollToSection('startups')} className="text-left text-muted-foreground hover:text-foreground transition-colors">For Startups</button>
                 <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
                 <div className="flex flex-col space-y-2 pt-4 border-t border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Theme:</span>
+                    <ThemeToggle />
+                  </div>
                   <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Login</Link>
                   <Button asChild size="sm" className="rounded-2xl w-fit">
                     <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>

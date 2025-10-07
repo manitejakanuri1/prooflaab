@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { useStartupNotifications } from "@/hooks/useStartupNotifications";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function StartupDashboardHeader() {
   const { data: profile } = useStartupProfile();
@@ -22,6 +23,7 @@ export function StartupDashboardHeader() {
         </div>
 
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (

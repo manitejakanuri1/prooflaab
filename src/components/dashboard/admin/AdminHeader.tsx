@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Menu, Shield } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
@@ -33,6 +34,7 @@ const AdminHeader = ({ onMenuClick, showMenuButton }: AdminHeaderProps) => {
       </div>
       
       <div className="flex items-center space-x-2">
+        <ThemeToggle />
         <div className="bg-blue-100 px-3 py-1 rounded-full">
           <span className="text-xs font-medium text-blue-700">Admin Access</span>
         </div>

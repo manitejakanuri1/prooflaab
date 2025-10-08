@@ -196,7 +196,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   return (
     <div className={cn(
-      "bg-card border-r border-border flex flex-col transition-all duration-300 h-screen",
+      "bg-card border-r border-border flex flex-col transition-all duration-300 h-screen overflow-hidden",
       isCollapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
@@ -220,7 +220,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 space-y-1 overflow-y-auto min-h-0">
         {menuItems.map((item) => renderMenuItem(item))}
       </nav>
 

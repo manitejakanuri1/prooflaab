@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
@@ -7,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/Logo";
 import { 
   Mail, 
   Trophy, 
@@ -115,14 +115,10 @@ const Portfolio = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
+      <header className="bg-background/90 backdrop-blur-sm border-b border-border px-6 py-4 dark:bg-card/90">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="text-gray-900 font-bold text-lg flex items-center space-x-3">
-            <img 
-              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-              alt="ProofLabAI Logo" 
-              className="h-10 w-10"
-            />
+          <div className="text-gray-900 dark:text-white font-bold text-lg flex items-center space-x-3">
+            <Logo />
             <span>ProofLabAI</span>
           </div>
           <Button variant="outline" onClick={() => window.location.href = '/'}>

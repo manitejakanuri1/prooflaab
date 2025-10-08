@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 
 interface StudentHeaderProps {
   studentName: string;
@@ -33,7 +34,7 @@ const StudentHeader = ({
   };
 
   return (
-    <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-6 py-4">
+    <header className="bg-background/90 backdrop-blur-sm border-b border-border px-6 py-4 dark:bg-card/90">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo and Menu */}
         <div className="flex items-center space-x-4">
@@ -48,12 +49,8 @@ const StudentHeader = ({
             </Button>
           )}
           
-          <div className="text-gray-900 font-bold text-lg flex items-center space-x-3">
-            <img 
-              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-              alt="ProofLabAI Logo" 
-              className="h-12 w-12"
-            />
+          <div className="text-gray-900 dark:text-white font-bold text-lg flex items-center space-x-3">
+            <Logo className="h-12 w-12" />
             <span>ProofLabAI</span>
           </div>
         </div>
@@ -148,7 +145,7 @@ const StudentHeader = ({
             </PopoverContent>
           </Popover>
           
-          <span className="text-sm text-gray-600 hidden sm:block">
+          <span className="text-sm text-muted-foreground hidden sm:block">
             Welcome, {studentName}
           </span>
           <Avatar className="h-10 w-10">

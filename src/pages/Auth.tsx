@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthForm";
 import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Logo } from "@/components/Logo";
 
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
 
@@ -158,11 +159,7 @@ export default function Auth() {
         {/* Logo */}
         <div className="text-center mb-5">
           <Link to="/" className="inline-flex items-center justify-center space-x-2">
-            <img 
-              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-              alt="ProofLabAI Logo" 
-              className="h-12 w-12"
-            />
+            <Logo className="h-12 w-12" />
             <span className="text-2xl font-bold text-foreground">ProofLabAI</span>
           </Link>
         </div>
@@ -182,11 +179,7 @@ export default function Auth() {
         {/* Logo */}
         <div className="text-center mb-5">
           <Link to="/" className="inline-flex items-center justify-center space-x-2">
-            <img 
-              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-              alt="ProofLabAI Logo" 
-              className="h-12 w-12"
-            />
+            <Logo className="h-12 w-12" />
             <span className="text-2xl font-bold text-foreground">ProofLabAI</span>
           </Link>
         </div>

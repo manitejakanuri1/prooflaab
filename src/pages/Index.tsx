@@ -10,6 +10,7 @@ import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, Chevr
 import { useState } from "react";
 import StickyCtaBar from "@/components/StickyCtaBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -95,11 +96,7 @@ const Index = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={scrollToTop}>
-              <img 
-                src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-                alt="ProofLabAI Logo" 
-                className="h-10 w-10"
-              />
+              <Logo />
               <span className="text-xl font-bold text-foreground">ProofLabAI</span>
             </div>
             

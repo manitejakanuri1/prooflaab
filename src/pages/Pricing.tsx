@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Logo } from "@/components/Logo";
 
 type AudienceType = "student" | "college" | "startup";
 type BillingType = "monthly" | "annual";
@@ -146,11 +147,7 @@ const Pricing = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-3 cursor-pointer">
-              <img 
-                src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-                alt="ProofLabAI Logo" 
-                className="h-10 w-10"
-              />
+              <Logo />
               <span className="text-xl font-bold text-foreground">ProofLabAI</span>
             </Link>
           </div>

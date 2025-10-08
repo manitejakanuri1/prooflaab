@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Logo } from "@/components/Logo";
 
 interface CollegeDashboardHeaderProps {
   collegeName: string;
@@ -43,7 +44,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
   };
 
   return (
-    <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200/30 px-3 md:px-6 py-4">
+    <header className="bg-background/90 backdrop-blur-sm border-b border-border px-3 md:px-6 py-4 dark:bg-card/90">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo and Title */}
         <div className="flex items-center space-x-2 md:space-x-6">
@@ -59,16 +60,12 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
             </Button>
           )}
           
-          <div className="text-gray-900 px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
-            <img 
-              src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
-              alt="ProofLabAI Logo" 
-              className="h-8 w-8 md:h-12 md:w-12"
-            />
+          <div className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
+            <Logo className="h-8 w-8 md:h-12 md:w-12" />
             <span className="hidden sm:inline">ProofLabAI</span>
           </div>
           
-          <h1 className="text-lg md:text-2xl font-semibold text-gray-800 hidden sm:block">College Dashboard</h1>
+          <h1 className="text-lg md:text-2xl font-semibold hidden sm:block">College Dashboard</h1>
         </div>
         
         {/* Profile Actions */}

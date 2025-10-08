@@ -9,7 +9,7 @@ interface AdminHeaderProps {
 
 const AdminHeader = ({ onMenuClick, showMenuButton }: AdminHeaderProps) => {
   return (
-    <header className="bg-white/90 backdrop-blur-sm border-b border-blue-200/30 h-16 md:h-20 flex items-center justify-between px-4 md:px-6">
+    <header className="bg-background/90 backdrop-blur-sm border-b border-border h-16 md:h-20 flex items-center justify-between px-4 md:px-6 dark:bg-card/90">
       <div className="flex items-center space-x-4">
         {showMenuButton && (
           <Button
@@ -27,16 +27,16 @@ const AdminHeader = ({ onMenuClick, showMenuButton }: AdminHeaderProps) => {
             <Shield className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg md:text-xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-xs md:text-sm text-gray-600">Review & Management System</p>
+            <h1 className="text-lg md:text-xl font-bold">Admin Panel</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">Review & Management System</p>
           </div>
         </div>
       </div>
       
       <div className="flex items-center space-x-2">
         <ThemeToggle />
-        <div className="bg-blue-100 px-3 py-1 rounded-full">
-          <span className="text-xs font-medium text-blue-700">Admin Access</span>
+        <div className="bg-primary/10 px-3 py-1 rounded-full">
+          <span className="text-xs font-medium text-primary">Admin Access</span>
         </div>
       </div>
     </header>

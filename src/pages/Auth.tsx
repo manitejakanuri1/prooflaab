@@ -154,7 +154,7 @@ export default function Auth() {
 
   if (showVerificationPrompt) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background dark:bg-gray-950 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-5">
@@ -174,7 +174,7 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background dark:bg-gray-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-5">
@@ -197,7 +197,7 @@ export default function Auth() {
           <button
             type="button"
             onClick={() => window.location.href = '/auth?clear=true'}
-            className="text-sm text-gray-600 hover:underline mr-4"
+            className="text-sm text-muted-foreground hover:underline mr-4"
           >
             Clear session & start fresh
           </button>

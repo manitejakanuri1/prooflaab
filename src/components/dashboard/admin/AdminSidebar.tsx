@@ -225,7 +225,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-border space-y-2">
+      <div className="p-3 border-t border-border space-y-2 flex-shrink-0">
         {!isCollapsed && (
           <Button
             variant="outline"

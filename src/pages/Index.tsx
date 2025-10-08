@@ -182,7 +182,7 @@ const Index = () => {
                 <img 
                   src="/lovable-uploads/dba3a561-930a-4e90-84a7-09a19371deb3.png" 
                   alt="Dashboard Preview" 
-                  className="w-full h-auto rounded-2xl"
+                  className="w-full h-auto rounded-2xl dark:invert dark:brightness-90"
                 />
               </div>
             </div>

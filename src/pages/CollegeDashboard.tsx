@@ -21,7 +21,7 @@ const CollegeDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <CollegeDashboardHeader 
         collegeName={collegeData.name}
         profilePhoto={collegeData.profilePhoto}

@@ -14,6 +14,7 @@ import StartupOversight from "@/components/dashboard/admin/StartupOversight";
 import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
+import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 
 const AdminDashboard = () => {
   const { userType } = useParams();
@@ -84,13 +85,16 @@ const AdminDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="h-screen flex w-full bg-background overflow-hidden">
-        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
-        <main className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-auto p-6">
-            {renderContent()}
-          </div>
-        </main>
+      <div className="h-screen flex flex-col w-full bg-background overflow-hidden">
+        <AdminHeader />
+        <div className="flex flex-1 overflow-hidden">
+          <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
+          <main className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-auto p-6">
+              {renderContent()}
+            </div>
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );

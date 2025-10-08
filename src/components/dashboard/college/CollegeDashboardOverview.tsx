@@ -406,11 +406,11 @@ const CollegeDashboardOverview = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-orange-100 to-yellow-100 p-6 rounded-2xl border border-orange-200/30">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+      <div className="bg-gradient-to-r from-orange-100 to-yellow-100 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl border border-orange-200/30 dark:border-gray-600">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
           Welcome to Your College Dashboard
         </h2>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-300">
           Manage student onboarding, assign tasks, and track proof-of-work performance.
         </p>
       </div>
@@ -420,19 +420,19 @@ const CollegeDashboardOverview = () => {
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="border border-gray-200/50 shadow-sm hover:shadow-md transition-shadow">
+            <Card key={index} className="border border-gray-200/50 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow dark:bg-gray-800">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs md:text-sm font-medium text-gray-600 mb-1 truncate">
+                    <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 truncate">
                       {stat.title}
                     </p>
-                    <p className="text-xl md:text-3xl font-bold text-gray-900">
+                    <p className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
                       {stat.value}
                     </p>
                   </div>
-                  <div className={`p-2 md:p-3 rounded-lg ${stat.bgColor} flex-shrink-0`}>
-                    <Icon className={`h-4 w-4 md:h-6 md:w-6 ${stat.color}`} />
+                  <div className={`p-2 md:p-3 rounded-lg ${stat.bgColor} dark:bg-gray-700 flex-shrink-0`}>
+                    <Icon className={`h-4 w-4 md:h-6 md:w-6 ${stat.color} dark:text-gray-300`} />
                   </div>
                 </div>
               </CardContent>
@@ -442,7 +442,7 @@ const CollegeDashboardOverview = () => {
       </div>
 
       {/* CSV Upload Section */}
-      <Card className="border border-gray-200/50 shadow-sm">
+      <Card className="border border-gray-200/50 dark:border-gray-700 shadow-sm dark:bg-gray-800">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Upload className="h-5 w-5" />

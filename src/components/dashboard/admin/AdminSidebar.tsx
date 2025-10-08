@@ -196,7 +196,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   return (
     <div className={cn(
-      "bg-card border-r border-border flex flex-col transition-all duration-300 h-screen overflow-hidden",
+      "bg-card border-r border-border flex flex-col transition-all duration-300 h-full overflow-hidden",
       isCollapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}

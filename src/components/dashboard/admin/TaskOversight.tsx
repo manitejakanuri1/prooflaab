@@ -104,27 +104,34 @@ const TaskOversight = () => {
           
           // Fetch college data
           if (task.created_by_college_id) {
-            const { data: college } = await supabase
+            const { data: college, error: collegeError } = await supabase
               .from('colleges')
               .select('id, name')
               .eq('id', task.created_by_college_id)
               .maybeSingle();
+            
+            if (collegeError) {
+              console.error('Error fetching college:', collegeError, 'for task:', task.id);
+            }
             enrichedTask.colleges = college;
           }
           
           // Fetch startup data
           if (task.created_by_startup_id) {
-            const { data: startup } = await supabase
+            const { data: startup, error: startupError } = await supabase
               .from('startups')
               .select('id, name')
               .eq('user_id', task.created_by_startup_id)
               .maybeSingle();
+            
+            if (startupError) {
+              console.error('Error fetching startup:', startupError, 'for task:', task.id);
+            }
             enrichedTask.startups = startup;
           }
           
-          // Fetch student data - need to check RLS policies
+          // Fetch student data
           if (task.student_id) {
-            console.log('Fetching student for task:', task.id, 'student_id:', task.student_id);
             const { data: student, error: studentError } = await supabase
               .from('student_profiles')
               .select('id, full_name, email, profile_photo_url')
@@ -132,9 +139,7 @@ const TaskOversight = () => {
               .maybeSingle();
             
             if (studentError) {
-              console.error('Error fetching student:', studentError);
-            } else {
-              console.log('Student data fetched:', student);
+              console.error('Error fetching student:', studentError, 'for task:', task.id);
             }
             enrichedTask.student_profiles = student;
           }
@@ -210,22 +215,7 @@ const TaskOversight = () => {
   };
 
   const getCreatorBadge = (task: any) => {
-    if (task.created_by_college_id && task.colleges) {
-      return (
-        <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
-          <Building2 className="h-3 w-3" />
-          {task.colleges.name}
-        </Badge>
-      );
-    }
-    if (task.created_by_startup_id && task.startups) {
-      return (
-        <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
-          <Briefcase className="h-3 w-3" />
-          {task.startups.name}
-        </Badge>
-      );
-    }
+    // Admin created
     if (task.created_by_admin_id) {
       return (
         <Badge variant="outline" className="gap-1 border-orange-500 text-orange-700 dark:text-orange-300">
@@ -234,6 +224,71 @@ const TaskOversight = () => {
         </Badge>
       );
     }
+    
+    // College created
+    if (task.created_by_college_id) {
+      if (task.colleges?.name) {
+        return (
+          <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
+            <Building2 className="h-3 w-3" />
+            {task.colleges.name}
+          </Badge>
+        );
+      }
+      // Fallback if college name not loaded
+      return (
+        <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
+          <Building2 className="h-3 w-3" />
+          College
+        </Badge>
+      );
+    }
+    
+    // Startup created
+    if (task.created_by_startup_id) {
+      if (task.startups?.name) {
+        return (
+          <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
+            <Briefcase className="h-3 w-3" />
+            {task.startups.name}
+          </Badge>
+        );
+      }
+      // Fallback if startup name not loaded
+      return (
+        <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
+          <Briefcase className="h-3 w-3" />
+          Startup
+        </Badge>
+      );
+    }
+    
+    // Fallback based on source field
+    if (task.source === 'admin') {
+      return (
+        <Badge variant="outline" className="gap-1 border-orange-500 text-orange-700 dark:text-orange-300">
+          <Shield className="h-3 w-3" />
+          Admin
+        </Badge>
+      );
+    }
+    if (task.source === 'college') {
+      return (
+        <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
+          <Building2 className="h-3 w-3" />
+          College
+        </Badge>
+      );
+    }
+    if (task.source === 'startup') {
+      return (
+        <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
+          <Briefcase className="h-3 w-3" />
+          Startup
+        </Badge>
+      );
+    }
+    
     return <Badge variant="outline">Unknown</Badge>;
   };
 

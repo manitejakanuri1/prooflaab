@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Clock, Star, ChevronDown, ChevronRight, Edit, Users, UserPlus, Flag, Trash2, Building2, Briefcase, Shield } from "lucide-react";
+import { Search, MoreVertical, Clock, Star, ChevronDown, ChevronRight, Edit, Users, UserPlus, Flag, Trash2, Building2, Briefcase, Shield, Eye, EyeOff } from "lucide-react";
 import { ViewAssignedStudentsModal } from "./ViewAssignedStudentsModal";
 import { EditTaskModal } from "./EditTaskModal";
 import { ReassignTaskModal } from "./ReassignTaskModal";
@@ -156,6 +156,21 @@ const TaskOversight = () => {
     }
   });
 
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async ({ taskId, currentVisibility }: { taskId: string, currentVisibility: string }) => {
+      const newVisibility = currentVisibility === 'public' ? 'private' : 'public';
+      const { error } = await supabase
+        .from('tasks')
+        .update({ visibility: newVisibility })
+        .eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tasks'] });
+      toast({ title: "Success", description: "Task visibility toggled successfully." });
+    }
+  });
+
   const flagTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
       const { error } = await supabase
@@ -197,7 +212,7 @@ const TaskOversight = () => {
   const getCreatorBadge = (task: any) => {
     if (task.created_by_college_id && task.colleges) {
       return (
-        <Badge variant="outline" className="gap-1">
+        <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
           <Building2 className="h-3 w-3" />
           {task.colleges.name}
         </Badge>
@@ -205,7 +220,7 @@ const TaskOversight = () => {
     }
     if (task.created_by_startup_id && task.startups) {
       return (
-        <Badge variant="outline" className="gap-1">
+        <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
           <Briefcase className="h-3 w-3" />
           {task.startups.name}
         </Badge>
@@ -213,7 +228,7 @@ const TaskOversight = () => {
     }
     if (task.created_by_admin_id) {
       return (
-        <Badge variant="outline" className="gap-1">
+        <Badge variant="outline" className="gap-1 border-orange-500 text-orange-700 dark:text-orange-300">
           <Shield className="h-3 w-3" />
           Admin
         </Badge>
@@ -236,17 +251,22 @@ const TaskOversight = () => {
     return task.status === 'In Progress' ? "In Progress" : "Not Started";
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      'Completed': { variant: 'default', label: 'Completed' },
-      'In Progress': { variant: 'secondary', label: 'In Progress' },
-      'Assigned': { variant: 'secondary', label: 'Assigned' },
-      'Pending': { variant: 'outline', label: 'Pending' },
-      'Flagged': { variant: 'destructive', label: 'Flagged' }
+  const getStatusBadge = (status: string, dueDate: string) => {
+    const isOverdue = new Date(dueDate) < new Date() && status !== 'Completed';
+    
+    if (isOverdue) {
+      return <Badge className="bg-red-500 text-white hover:bg-red-500">Overdue</Badge>;
+    }
+    
+    const statusConfig: Record<string, { className: string, label: string }> = {
+      'Completed': { className: 'bg-blue-500 text-white hover:bg-blue-500', label: 'Completed' },
+      'In Progress': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
+      'Assigned': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
+      'Pending': { className: 'bg-orange-500 text-white hover:bg-orange-500', label: 'Pending' }
     };
     
     const config = statusConfig[status] || statusConfig.Pending;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge className={config.className}>{config.label}</Badge>;
   };
 
   if (isLoading) {
@@ -406,7 +426,7 @@ const TaskOversight = () => {
                         <span>{task.xp_reward || task.xp || 0}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge(task.status)}</TableCell>
+                    <TableCell>{getStatusBadge(task.status, task.due_date)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -426,6 +446,10 @@ const TaskOversight = () => {
                           <DropdownMenuItem onClick={() => setReassignTask(task)}>
                             <UserPlus className="h-4 w-4 mr-2" />
                             Reassign Task
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => toggleVisibilityMutation.mutate({ taskId: task.id, currentVisibility: task.visibility })}>
+                            {task.visibility === 'public' ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                            Toggle Visibility ({task.visibility === 'public' ? 'Make Private' : 'Make Active'})
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => flagTaskMutation.mutate(task.id)}>
                             <Flag className="h-4 w-4 mr-2" />
@@ -487,7 +511,7 @@ const TaskOversight = () => {
                     {/* Task Title & Status */}
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-medium text-sm flex-1 line-clamp-2">{task.title}</h3>
-                      {getStatusBadge(task.status)}
+                      {getStatusBadge(task.status, task.due_date)}
                     </div>
 
                     {/* Creator & Category */}

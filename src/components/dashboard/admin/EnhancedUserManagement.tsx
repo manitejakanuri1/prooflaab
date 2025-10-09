@@ -60,6 +60,7 @@ interface UserData {
   proofs_submitted?: number;
   student_count?: number;
   tasks_assigned?: number;
+  domain_industry?: string;
 }
 
 interface EnhancedUserManagementProps {
@@ -138,7 +139,10 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
         let query;
         
         if (activeTab === 'startups') {
-          query = supabase.from('startups').select('*');
+          query = supabase.from('startups').select(`
+            *,
+            startup_profiles!user_id(domain_industry)
+          `);
         } else {
           // For colleges, get college data with student counts and task counts
           query = supabase.from('colleges').select(`
@@ -165,6 +169,14 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
             ...college,
             student_count: college.student_profiles?.[0]?.count || 0,
             tasks_assigned: college.tasks?.[0]?.count || 0
+          })) as UserData[];
+        }
+        
+        if (activeTab === 'startups') {
+          // Transform startups data to include domain
+          return (data as any[])?.map(startup => ({
+            ...startup,
+            domain_industry: startup.startup_profiles?.domain_industry || null
           })) as UserData[];
         }
         
@@ -460,8 +472,11 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                       {tab === 'students' && (
+                       <TableHead>Email</TableHead>
+                       {tab === 'startups' && (
+                         <TableHead className="hidden md:table-cell">Domain/Category</TableHead>
+                       )}
+                        {tab === 'students' && (
                          <>
                            <TableHead className="hidden md:table-cell">Source</TableHead>
                            <TableHead className="hidden lg:table-cell">Trust Score</TableHead>
@@ -496,6 +511,11 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                           <TableCell className="text-muted-foreground hidden sm:table-cell">
                             <span className="truncate block max-w-48">{user.email}</span>
                           </TableCell>
+                          {tab === 'startups' && (
+                            <TableCell className="hidden md:table-cell">
+                              <Badge variant="outline">{user.domain_industry || 'N/A'}</Badge>
+                            </TableCell>
+                          )}
                           {tab === 'students' && (
                             <>
                               <TableCell className="hidden md:table-cell">
@@ -580,61 +600,80 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-background border shadow-md z-50">
-                              <DropdownMenuItem onClick={() => setViewUserSheet(user)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              {tab === 'students' ? (
-                                <>
-                                  {user.status !== 'blocked' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleUserAction(user, 'block')}
-                                      className="text-red-600"
-                                    >
-                                      <Ban className="h-4 w-4 mr-2" />
-                                      Block User
-                                    </DropdownMenuItem>
-                                  )}
-                                  {user.status === 'blocked' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleUserAction(user, 'unblock')}
-                                      className="text-green-600"
-                                    >
-                                      <UserCheck className="h-4 w-4 mr-2" />
-                                      Unblock User
-                                    </DropdownMenuItem>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  {user.verification_status !== 'approved' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleUserAction(user, 'approve')}
-                                      className="text-green-600"
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-2" />
-                                      Approve
-                                    </DropdownMenuItem>
-                                  )}
-                                  {user.verification_status !== 'suspended' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleUserAction(user, 'suspend')}
-                                      className="text-yellow-600"
-                                    >
-                                      <AlertTriangle className="h-4 w-4 mr-2" />
-                                      Suspend
-                                    </DropdownMenuItem>
-                                  )}
-                                </>
-                              )}
-                              <DropdownMenuItem
-                                onClick={() => handleUserAction(user, 'delete')}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
+                             <DropdownMenuContent align="end" className="bg-background border shadow-md z-50">
+                               <DropdownMenuItem onClick={() => setViewUserSheet(user)}>
+                                 <Eye className="h-4 w-4 mr-2" />
+                                 {tab === 'startups' ? 'View Profile' : 'View Details'}
+                               </DropdownMenuItem>
+                               {tab === 'students' ? (
+                                 <>
+                                   {user.status !== 'blocked' && (
+                                     <DropdownMenuItem
+                                       onClick={() => handleUserAction(user, 'block')}
+                                       className="text-red-600"
+                                     >
+                                       <Ban className="h-4 w-4 mr-2" />
+                                       Block User
+                                     </DropdownMenuItem>
+                                   )}
+                                   {user.status === 'blocked' && (
+                                     <DropdownMenuItem
+                                       onClick={() => handleUserAction(user, 'unblock')}
+                                       className="text-green-600"
+                                     >
+                                       <UserCheck className="h-4 w-4 mr-2" />
+                                       Unblock User
+                                     </DropdownMenuItem>
+                                   )}
+                                 </>
+                               ) : tab === 'startups' ? (
+                                 <>
+                                   {user.verification_status !== 'suspended' && (
+                                     <DropdownMenuItem
+                                       onClick={() => handleUserAction(user, 'suspend')}
+                                       className="text-yellow-600"
+                                     >
+                                       <Ban className="h-4 w-4 mr-2" />
+                                       Suspend
+                                     </DropdownMenuItem>
+                                   )}
+                                   <DropdownMenuItem
+                                     onClick={() => handleUserAction(user, 'delete')}
+                                     className="text-red-600"
+                                   >
+                                     <Trash2 className="h-4 w-4 mr-2" />
+                                     Delete
+                                   </DropdownMenuItem>
+                                 </>
+                               ) : (
+                                 <>
+                                   {user.verification_status !== 'approved' && (
+                                     <DropdownMenuItem
+                                       onClick={() => handleUserAction(user, 'approve')}
+                                       className="text-green-600"
+                                     >
+                                       <CheckCircle className="h-4 w-4 mr-2" />
+                                       Approve
+                                     </DropdownMenuItem>
+                                   )}
+                                   {user.verification_status !== 'suspended' && (
+                                     <DropdownMenuItem
+                                       onClick={() => handleUserAction(user, 'suspend')}
+                                       className="text-yellow-600"
+                                     >
+                                       <AlertTriangle className="h-4 w-4 mr-2" />
+                                       Suspend
+                                     </DropdownMenuItem>
+                                   )}
+                                   <DropdownMenuItem
+                                     onClick={() => handleUserAction(user, 'delete')}
+                                     className="text-red-600"
+                                   >
+                                     <Trash2 className="h-4 w-4 mr-2" />
+                                     Delete
+                                   </DropdownMenuItem>
+                                 </>
+                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

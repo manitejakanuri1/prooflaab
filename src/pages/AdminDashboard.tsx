@@ -10,7 +10,6 @@ import ContentManagement from "@/components/dashboard/admin/ContentManagement";
 import AdminAnalytics from "@/components/dashboard/admin/AdminAnalytics";
 import TrustXPModeration from "@/components/dashboard/admin/TrustXPModeration";
 import CollegeOversight from "@/components/dashboard/admin/CollegeOversight";
-import StartupOversight from "@/components/dashboard/admin/StartupOversight";
 import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
@@ -72,8 +71,6 @@ const AdminDashboard = () => {
         return <TrustXPModeration />;
       case "college-oversight":
         return <CollegeOversight />;
-      case "startup-oversight":
-        return <StartupOversight />;
       case "student-oversight":
         return <StudentOversight />;
       case "settings":

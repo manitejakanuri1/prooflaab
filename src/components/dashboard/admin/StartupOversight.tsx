@@ -63,15 +63,11 @@ const StartupOversight = () => {
   const { data: startups, isLoading, error } = useQuery({
     queryKey: ['startup-oversight', searchTerm, statusFilter],
     queryFn: async () => {
-      console.log('Fetching startups with optimized query...');
+      console.log('Fetching startups...');
       
-      // Build the filter conditions
       let query = supabase
         .from('startups')
-        .select(`
-          *,
-          startup_profiles(startup_name)
-        `);
+        .select('*');
 
       if (searchTerm) {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
@@ -88,64 +84,41 @@ const StartupOversight = () => {
         throw error;
       }
       
-      console.log('Startups fetched:', data?.length);
+      console.log('Fetched startups:', data?.length, data);
       
       if (!data || data.length === 0) {
         return [];
       }
 
-      // Batch fetch all tasks counts in a single query
-      const userIds = data.map(s => s.user_id);
-      const { data: taskCounts } = await supabase
-        .from('tasks')
-        .select('created_by_startup_id')
-        .in('created_by_startup_id', userIds);
+      // Simple enrichment - just get startup names and task counts
+      const enrichedData = await Promise.all(
+        data.map(async (startup: any) => {
+          // Get startup profile name
+          const { data: profile } = await supabase
+            .from('startup_profiles')
+            .select('startup_name')
+            .eq('user_id', startup.user_id)
+            .maybeSingle();
+          
+          // Get task count
+          const { count } = await supabase
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('created_by_startup_id', startup.user_id);
+          
+          return {
+            ...startup,
+            startup_name: profile?.startup_name || startup.name,
+            tasks_posted: count || 0,
+            last_active: startup.updated_at || startup.created_at
+          };
+        })
+      );
       
-      // Create a map of user_id to task count
-      const taskCountMap = (taskCounts || []).reduce((acc: Record<string, number>, task) => {
-        acc[task.created_by_startup_id] = (acc[task.created_by_startup_id] || 0) + 1;
-        return acc;
-      }, {});
-
-      // Batch fetch last activity for all startups
-      const { data: activities } = await supabase
-        .from('activity_logs')
-        .select('user_id, date')
-        .in('user_id', userIds)
-        .order('date', { ascending: false });
-      
-      const { data: taskActivities } = await supabase
-        .from('tasks')
-        .select('created_by_startup_id, created_at')
-        .in('created_by_startup_id', userIds)
-        .order('created_at', { ascending: false });
-
-      // Create activity maps
-      const activityMap: Record<string, string> = {};
-      activities?.forEach(a => {
-        if (!activityMap[a.user_id]) {
-          activityMap[a.user_id] = a.date;
-        }
-      });
-
-      taskActivities?.forEach(t => {
-        const existing = activityMap[t.created_by_startup_id];
-        if (!existing || new Date(t.created_at) > new Date(existing)) {
-          activityMap[t.created_by_startup_id] = t.created_at;
-        }
-      });
-      
-      // Map the enriched data
-      const enrichedData = data.map((startup: any) => ({
-        ...startup,
-        tasks_posted: taskCountMap[startup.user_id] || 0,
-        last_active: activityMap[startup.user_id] || startup.created_at,
-        startup_name: startup.startup_profiles?.[0]?.startup_name || startup.name
-      }));
-      
-      console.log('Enriched startups:', enrichedData.length);
+      console.log('Enriched data:', enrichedData);
       return enrichedData;
-    }
+    },
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   const approveVerificationMutation = useMutation({

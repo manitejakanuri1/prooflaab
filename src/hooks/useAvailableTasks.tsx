@@ -32,6 +32,7 @@ export const useAvailableTasks = () => {
 
   return useQuery({
     queryKey: ['available-tasks', user?.id],
+    staleTime: 30000, // Cache for 30 seconds to reduce repeated queries
     queryFn: async () => {
       console.log('useAvailableTasks called with user:', user?.id);
       
@@ -74,12 +75,12 @@ export const useAvailableTasks = () => {
         .from('tasks')
         .select('*')
         .eq('visibility', 'public')
-        .eq('approved_by_admin', true) // Only show admin-approved tasks
-        .is('student_id', null) // Not assigned to any student yet
-        .gte('due_date', new Date().toISOString()) // Not expired
-        .in('status', ['Pending'])
-        .not('id', 'in', `(${assignedTaskIds.length > 0 ? assignedTaskIds.join(',') : 'null'})`) // Exclude already assigned tasks
-        .order('created_at', { ascending: false });
+        .eq('approved_by_admin', true)
+        .is('student_id', null)
+        .gte('due_date', new Date().toISOString())
+        .in('status', ['Pending', 'In Progress']) // Include both Pending and In Progress tasks
+        .not('id', 'in', `(${assignedTaskIds.length > 0 ? assignedTaskIds.join(',') : 'null'})`)
+        .order('posted_at', { ascending: false });
 
       if (tasksError) throw tasksError;
 

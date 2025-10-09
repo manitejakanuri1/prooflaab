@@ -236,13 +236,19 @@ serve(async (req) => {
 
     // Helper function to insert task
     async function insertTask(taskData: any) {
+      // Determine approved_by_admin based on creator
+      let approvedByAdmin = true; // Default to true for all creators
+      
+      // Determine the correct source based on role if not provided
+      const finalSource = taskData.source || source_based_on_role;
+      
       const { data, error } = await supabase
         .from('tasks')
         .insert({
           title: taskData.title,
           description: taskData.description,
           due_date: due_date,
-          status: 'Pending',
+          status: 'Pending', // Will be overridden by trigger based on verification
           xp_reward: taskData.xp_reward || 0,
           created_at: currentTime,
           updated_at: currentTime,
@@ -256,8 +262,8 @@ serve(async (req) => {
           posted_at: currentTime,
           category,
           visibility,
-          approved_by_admin: true,
-          source: taskData.source,
+          approved_by_admin: approvedByAdmin,
+          source: finalSource,
           ai_metadata: taskData.ai_metadata || null
         })
         .select()

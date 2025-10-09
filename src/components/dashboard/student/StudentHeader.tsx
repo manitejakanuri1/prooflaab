@@ -150,7 +150,7 @@ const StudentHeader = ({
           </span>
           <Avatar className="h-10 w-10">
             <AvatarImage src={profilePhoto || undefined} alt={studentName} />
-            <AvatarFallback className="bg-orange-100 text-orange-700">
+            <AvatarFallback className="bg-primary/10 text-primary">
               {getInitials(studentName)}
             </AvatarFallback>
           </Avatar>

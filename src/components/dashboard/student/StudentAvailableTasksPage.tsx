@@ -89,22 +89,22 @@ const StudentAvailableTasksPage = () => {
     const sourceConfig = {
       startup: { 
         label: 'Startup Posted', 
-        className: 'bg-green-100 text-green-700 border-green-200',
+        className: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
         icon: Briefcase
       },
       college: { 
         label: 'Assigned by College', 
-        className: 'bg-blue-100 text-blue-700 border-blue-200',
+        className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
         icon: Building2
       },
       admin: { 
         label: 'Assigned by Admin', 
-        className: 'bg-purple-100 text-purple-700 border-purple-200',
+        className: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20',
         icon: ShieldCheck
       },
       unknown: { 
         label: 'Posted', 
-        className: 'bg-gray-100 text-gray-700 border-gray-200',
+        className: 'bg-muted text-muted-foreground border-border',
         icon: Building2
       }
     };
@@ -130,9 +130,9 @@ const StudentAvailableTasksPage = () => {
     } as const;
 
     const colors = {
-      'Pending Review': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Accepted': 'bg-green-100 text-green-800 border-green-200',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200',
+      'Pending Review': 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20',
+      'Accepted': 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
+      'Rejected': 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20',
     } as const;
 
     return (
@@ -240,12 +240,12 @@ const StudentAvailableTasksPage = () => {
                            <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
                            <Badge variant="outline">{task.category || 'General'}</Badge>
                            {getSourceBadge(task)}
-                           {task.is_paid && (
-                             <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                               <DollarSign className="h-3 w-3 mr-1" />
-                               Paid
-                             </Badge>
-                           )}
+                            {task.is_paid && (
+                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
+                                <DollarSign className="h-3 w-3 mr-1" />
+                                Paid
+                              </Badge>
+                            )}
                          </div>
                         {task.description && (
                           <p className="text-muted-foreground text-sm mb-3 line-clamp-2">

@@ -32,7 +32,8 @@ export const useAvailableTasks = () => {
 
   return useQuery({
     queryKey: ['available-tasks', user?.id],
-    staleTime: 30000, // Cache for 30 seconds to reduce repeated queries
+    staleTime: 60000, // Cache for 60 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
     queryFn: async () => {
       console.log('useAvailableTasks called with user:', user?.id);
       
@@ -71,16 +72,21 @@ export const useAvailableTasks = () => {
       const assignedTaskIds = assignments?.map(a => a.task_id) || [];
 
       // Get available tasks (public visibility, approved by admin, not assigned to anyone, not expired)
-      const { data: tasks, error: tasksError } = await supabase
+      let query = supabase
         .from('tasks')
         .select('*')
         .eq('visibility', 'public')
         .eq('approved_by_admin', true)
         .is('student_id', null)
         .gte('due_date', new Date().toISOString())
-        .in('status', ['Pending', 'In Progress']) // Include both Pending and In Progress tasks
-        .not('id', 'in', `(${assignedTaskIds.length > 0 ? assignedTaskIds.join(',') : 'null'})`)
         .order('posted_at', { ascending: false });
+
+      // Only filter out assigned tasks if there are any
+      if (assignedTaskIds.length > 0) {
+        query = query.not('id', 'in', `(${assignedTaskIds.join(',')})`);
+      }
+
+      const { data: tasks, error: tasksError } = await query;
 
       if (tasksError) throw tasksError;
 

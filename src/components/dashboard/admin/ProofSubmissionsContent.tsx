@@ -27,12 +27,14 @@ interface ProofSubmission {
   moss_status: string | null;
   moss_url: string | null;
   moss_score: number | null;
+  review_status?: string | null;
   student_profiles?: {
     full_name: string;
     email: string;
   };
   tasks?: {
     title: string;
+    xp_reward?: number;
   };
 }
 
@@ -59,7 +61,8 @@ const ProofSubmissionsContent = () => {
             email
           ),
           tasks:task_id (
-            title
+            title,
+            xp_reward
           )
         `);
 
@@ -73,26 +76,104 @@ const ProofSubmissionsContent = () => {
 
       query = query.order(sortBy, { ascending: false });
 
-      const { data, error } = await query;
+      const { data: proofData, error } = await query;
       if (error) throw error;
-      return data as ProofSubmission[];
+
+      // Fetch task_assignments to get review_status
+      const enrichedData = await Promise.all(
+        (proofData || []).map(async (proof) => {
+          const { data: assignment } = await supabase
+            .from('task_assignments')
+            .select('review_status')
+            .eq('task_id', proof.task_id)
+            .eq('student_id', proof.student_id)
+            .single();
+          
+          return {
+            ...proof,
+            review_status: assignment?.review_status
+          };
+        })
+      );
+
+      return enrichedData as ProofSubmission[];
     },
   });
 
   // Update submission status
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status, comment }: { id: string; status: string; comment?: string }) => {
-      const { error } = await supabase
+    mutationFn: async ({ 
+      id, 
+      status, 
+      comment, 
+      taskId, 
+      studentId,
+      xpReward 
+    }: { 
+      id: string; 
+      status: string; 
+      comment?: string;
+      taskId: string;
+      studentId: string;
+      xpReward?: number;
+    }) => {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      
+      // Update proof_uploads status
+      const { error: proofError } = await supabase
         .from('proof_uploads')
         .update({ 
           status, 
           review_comment: comment,
-          reviewed_by: (await supabase.auth.getUser()).data.user?.id,
+          reviewed_by: userId,
           reviewed_at: new Date().toISOString()
         })
         .eq('id', id);
       
-      if (error) throw error;
+      if (proofError) throw proofError;
+
+      // Update task_assignments review_status
+      const { error: assignmentError } = await supabase
+        .from('task_assignments')
+        .update({ 
+          review_status: status,
+          feedback: comment,
+          reviewed_by: userId
+        })
+        .eq('task_id', taskId)
+        .eq('student_id', studentId);
+      
+      if (assignmentError) throw assignmentError;
+
+      // If verified, award XP
+      if (status === 'Verified' && xpReward && xpReward > 0) {
+        // Add XP log
+        const { error: xpError } = await supabase
+          .from('xp_logs')
+          .insert({
+            student_id: studentId,
+            xp_points: xpReward,
+            source: 'Task Verification'
+          });
+
+        if (xpError) console.error('XP log error:', xpError);
+
+        // Update student total XP
+        const { data: currentProfile } = await supabase
+          .from('student_profiles')
+          .select('total_xp')
+          .eq('id', studentId)
+          .single();
+
+        if (currentProfile) {
+          await supabase
+            .from('student_profiles')
+            .update({
+              total_xp: (currentProfile.total_xp || 0) + xpReward
+            })
+            .eq('id', studentId);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
@@ -146,13 +227,17 @@ const ProofSubmissionsContent = () => {
     setIsModalOpen(true);
   };
 
-  const handleStatusUpdate = (status: string) => {
-    if (!selectedSubmission) return;
+  const handleStatusUpdate = (status: string, submission?: ProofSubmission) => {
+    const sub = submission || selectedSubmission;
+    if (!sub) return;
     
     updateStatusMutation.mutate({
-      id: selectedSubmission.id,
+      id: sub.id,
       status,
-      comment: reviewComment
+      comment: reviewComment,
+      taskId: sub.task_id,
+      studentId: sub.student_id,
+      xpReward: sub.tasks?.xp_reward
     });
   };
 
@@ -334,27 +419,31 @@ const ProofSubmissionsContent = () => {
                           </Button>
                           <Button
                             size="sm"
-                            variant="default"
-                            onClick={() => {
-                              setSelectedSubmission(submission);
-                              handleStatusUpdate('Verified');
-                            }}
-                            className="h-8 px-2 text-xs bg-green-600 hover:bg-green-700"
+                            variant={submission.review_status === 'Verified' ? 'outline' : 'default'}
+                            onClick={() => handleStatusUpdate('Verified', submission)}
+                            disabled={submission.review_status === 'Verified' || submission.review_status === 'Rejected'}
+                            className={`h-8 px-2 text-xs ${
+                              submission.review_status === 'Verified' 
+                                ? 'bg-green-50 text-green-700 border-green-300 cursor-not-allowed' 
+                                : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Verify
+                            {submission.review_status === 'Verified' ? 'Verified ✅' : 'Verify'}
                           </Button>
                           <Button
                             size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              setSelectedSubmission(submission);
-                              handleStatusUpdate('Rejected');
-                            }}
-                            className="h-8 px-2 text-xs"
+                            variant={submission.review_status === 'Rejected' ? 'outline' : 'destructive'}
+                            onClick={() => handleStatusUpdate('Rejected', submission)}
+                            disabled={submission.review_status === 'Verified' || submission.review_status === 'Rejected'}
+                            className={`h-8 px-2 text-xs ${
+                              submission.review_status === 'Rejected'
+                                ? 'bg-red-50 text-red-700 border-red-300 cursor-not-allowed'
+                                : ''
+                            }`}
                           >
                             <XCircle className="h-3 w-3 mr-1" />
-                            Reject
+                            {submission.review_status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
                           </Button>
                         </div>
                       </TableCell>
@@ -426,19 +515,36 @@ const ProofSubmissionsContent = () => {
               <div className="flex space-x-2 pt-4 border-t">
                 <Button
                   onClick={() => handleStatusUpdate('Verified')}
-                  disabled={updateStatusMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={
+                    updateStatusMutation.isPending || 
+                    selectedSubmission.review_status === 'Verified' || 
+                    selectedSubmission.review_status === 'Rejected'
+                  }
+                  className={
+                    selectedSubmission.review_status === 'Verified'
+                      ? 'bg-green-50 text-green-700 border-green-300'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  }
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Verify
+                  {selectedSubmission.review_status === 'Verified' ? 'Verified ✅' : 'Verify'}
                 </Button>
                 <Button
                   onClick={() => handleStatusUpdate('Rejected')}
-                  disabled={updateStatusMutation.isPending}
-                  variant="destructive"
+                  disabled={
+                    updateStatusMutation.isPending || 
+                    selectedSubmission.review_status === 'Verified' || 
+                    selectedSubmission.review_status === 'Rejected'
+                  }
+                  variant={selectedSubmission.review_status === 'Rejected' ? 'outline' : 'destructive'}
+                  className={
+                    selectedSubmission.review_status === 'Rejected'
+                      ? 'bg-red-50 text-red-700 border-red-300'
+                      : ''
+                  }
                 >
                   <XCircle className="h-4 w-4 mr-2" />
-                  Reject
+                  {selectedSubmission.review_status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
                 </Button>
                 <Button
                   onClick={() => handleMossCheck(selectedSubmission.id)}

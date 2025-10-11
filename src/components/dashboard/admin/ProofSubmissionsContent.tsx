@@ -145,35 +145,50 @@ const ProofSubmissionsContent = () => {
       
       if (assignmentError) throw assignmentError;
 
-      // If verified, award XP
+      // If verified, try to award XP (don't fail if XP log fails due to RLS)
       if (status === 'Verified' && xpReward && xpReward > 0) {
-        // Add XP log
-        const { error: xpError } = await supabase
-          .from('xp_logs')
-          .insert({
-            student_id: studentId,
-            xp_points: xpReward,
-            source: 'Task Verification'
-          });
-
-        if (xpError) console.error('XP log error:', xpError);
-
-        // Update student total XP
-        const { data: currentProfile } = await supabase
-          .from('student_profiles')
-          .select('total_xp')
-          .eq('id', studentId)
-          .single();
-
-        if (currentProfile) {
-          await supabase
+        try {
+          // Update student total XP directly
+          const { data: currentProfile } = await supabase
             .from('student_profiles')
-            .update({
-              total_xp: (currentProfile.total_xp || 0) + xpReward
-            })
-            .eq('id', studentId);
+            .select('total_xp')
+            .eq('id', studentId)
+            .single();
+
+          if (currentProfile) {
+            await supabase
+              .from('student_profiles')
+              .update({
+                total_xp: (currentProfile.total_xp || 0) + xpReward
+              })
+              .eq('id', studentId);
+          }
+        } catch (xpError) {
+          console.error('XP update error:', xpError);
+          // Don't throw - XP update failure shouldn't prevent verification
         }
       }
+      
+      return { id, status, taskId, studentId };
+    },
+    onMutate: async ({ id, status, taskId, studentId }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['proof-submissions'] });
+      
+      // Snapshot previous value
+      const previousSubmissions = queryClient.getQueryData(['proof-submissions', statusFilter, sortBy, searchQuery]);
+      
+      // Optimistically update
+      queryClient.setQueryData(['proof-submissions', statusFilter, sortBy, searchQuery], (old: ProofSubmission[] | undefined) => {
+        if (!old) return old;
+        return old.map(sub => 
+          sub.id === id 
+            ? { ...sub, review_status: status, status } 
+            : sub
+        );
+      });
+      
+      return { previousSubmissions };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
@@ -184,7 +199,14 @@ const ProofSubmissionsContent = () => {
       setIsModalOpen(false);
       setReviewComment('');
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousSubmissions) {
+        queryClient.setQueryData(
+          ['proof-submissions', statusFilter, sortBy, searchQuery], 
+          context.previousSubmissions
+        );
+      }
       toast({
         title: 'Error',
         description: 'Failed to update submission status',

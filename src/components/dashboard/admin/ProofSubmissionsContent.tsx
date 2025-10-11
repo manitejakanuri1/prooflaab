@@ -190,8 +190,8 @@ const ProofSubmissionsContent = () => {
       
       return { previousSubmissions };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
+    onSuccess: (data) => {
+      // Don't invalidate - just keep the optimistic update to prevent button re-enabling
       toast({
         title: 'Success',
         description: 'Submission status updated successfully',

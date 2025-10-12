@@ -676,6 +676,47 @@ export type Database = {
         }
         Relationships: []
       }
+      student_credits: {
+        Row: {
+          created_at: string
+          credits_available: number
+          credits_used_today: number
+          id: string
+          last_refreshed_at: string
+          premium_status: boolean
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_available?: number
+          credits_used_today?: number
+          id?: string
+          last_refreshed_at?: string
+          premium_status?: boolean
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_available?: number
+          credits_used_today?: number
+          id?: string
+          last_refreshed_at?: string
+          premium_status?: boolean
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_credits_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_otps: {
         Row: {
           created_at: string
@@ -1062,10 +1103,12 @@ export type Database = {
           created_by_admin_id: string | null
           created_by_college_id: string | null
           created_by_startup_id: string | null
+          created_by_type: string | null
           description: string | null
           due_date: string
           duration_days: number | null
           id: string
+          is_ai_generated: boolean | null
           is_paid: boolean | null
           posted_at: string | null
           required_skills: string[] | null
@@ -1073,6 +1116,7 @@ export type Database = {
           started_at: string | null
           status: string | null
           student_id: string | null
+          suggested_xp: number | null
           title: string
           updated_at: string | null
           upload_deadline: string | null
@@ -1089,10 +1133,12 @@ export type Database = {
           created_by_admin_id?: string | null
           created_by_college_id?: string | null
           created_by_startup_id?: string | null
+          created_by_type?: string | null
           description?: string | null
           due_date: string
           duration_days?: number | null
           id?: string
+          is_ai_generated?: boolean | null
           is_paid?: boolean | null
           posted_at?: string | null
           required_skills?: string[] | null
@@ -1100,6 +1146,7 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           student_id?: string | null
+          suggested_xp?: number | null
           title: string
           updated_at?: string | null
           upload_deadline?: string | null
@@ -1116,10 +1163,12 @@ export type Database = {
           created_by_admin_id?: string | null
           created_by_college_id?: string | null
           created_by_startup_id?: string | null
+          created_by_type?: string | null
           description?: string | null
           due_date?: string
           duration_days?: number | null
           id?: string
+          is_ai_generated?: boolean | null
           is_paid?: boolean | null
           posted_at?: string | null
           required_skills?: string[] | null
@@ -1127,6 +1176,7 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           student_id?: string | null
+          suggested_xp?: number | null
           title?: string
           updated_at?: string | null
           upload_deadline?: string | null
@@ -1365,6 +1415,10 @@ export type Database = {
       is_email_confirmed: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      reset_daily_credits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       use_invite_code: {
         Args: { _code: string; _user_id: string }

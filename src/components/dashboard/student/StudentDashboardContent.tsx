@@ -8,6 +8,7 @@ import StudentLearningResourcesPage from "./StudentLearningResourcesPage";
 import StudentJobOpportunitiesPage from "./StudentJobOpportunitiesPage";
 import StudentNotificationsPage from "./StudentNotificationsPage";
 import StudentSettingsPage from "./StudentSettingsPage";
+import StudentCreateTaskPage from "./StudentCreateTaskPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -21,6 +22,8 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
         return <StudentDashboardOverview />;
       case "tasks":
         return <StudentUnifiedTasksPage />;
+      case "create-task":
+        return <StudentCreateTaskPage />;
       case "applications":
         return <StudentApplicationsPage />;
       case "uploads":

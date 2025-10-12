@@ -9,7 +9,8 @@ import {
   Briefcase,
   Bell, 
   Settings, 
-  LogOut 
+  LogOut,
+  PlusSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ interface StudentSidebarProps {
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "tasks", label: "Tasks", icon: ListTodo },
+  { id: "create-task", label: "Create a Task", icon: PlusSquare },
   { id: "applications", label: "Applications", icon: FileText },
   { id: "uploads", label: "My Uploads", icon: Upload },
   { id: "portfolio", label: "My Portfolio", icon: User },

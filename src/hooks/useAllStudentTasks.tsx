@@ -9,6 +9,7 @@ interface StudentTask {
   deadline: string;
   status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review';
   source: string;
+  created_by_type?: string;
   xp_reward: number | null;
   created_by_startup_id: string | null;
   application_status?: string;
@@ -60,6 +61,7 @@ export const useAllStudentTasks = () => {
             description,
             due_date,
             xp_reward,
+            created_by_type,
             created_by_startup_id
           )
         `)
@@ -92,7 +94,8 @@ export const useAllStudentTasks = () => {
           description: task.description,
           deadline: task.due_date,
           status,
-          source: task.created_by_startup_id ? 'Startup' : 'Admin',
+          source: task.created_by_startup_id ? 'Startup' : (task.created_by_type || 'Admin'),
+          created_by_type: task.created_by_type,
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
@@ -112,7 +115,8 @@ export const useAllStudentTasks = () => {
               description: app.tasks.description,
               deadline: app.tasks.due_date,
               status: 'Applied',
-              source: app.tasks.created_by_startup_id ? 'Startup' : 'Admin',
+              source: app.tasks.created_by_startup_id ? 'Startup' : (app.tasks.created_by_type || 'Admin'),
+              created_by_type: app.tasks.created_by_type,
               xp_reward: app.tasks.xp_reward,
               created_by_startup_id: app.tasks.created_by_startup_id,
               application_status: app.status,

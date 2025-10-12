@@ -123,6 +123,7 @@ const StudentTasksPage = () => {
 
   const getSourceBadgeColor = (source: string) => {
     const normalizedSource = source?.toLowerCase() || '';
+    if (normalizedSource === 'student') return 'bg-cyan-100 text-cyan-700 border-cyan-200';
     if (normalizedSource === 'college') return 'bg-blue-100 text-blue-700 border-blue-200';
     if (normalizedSource === 'admin') return 'bg-gray-100 text-gray-700 border-gray-200';
     if (normalizedSource === 'startup') return 'bg-green-100 text-green-700 border-green-200';
@@ -270,9 +271,9 @@ const StudentTasksPage = () => {
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <Badge 
                               variant="outline" 
-                              className={getSourceBadgeColor(task.source || '')}
+                              className={getSourceBadgeColor(task.created_by_type || task.source || '')}
                             >
-                              {task.source || 'Unknown'}
+                              {task.created_by_type === 'student' ? 'Student' : task.source || 'Unknown'}
                             </Badge>
                             <Badge 
                               variant="outline" 

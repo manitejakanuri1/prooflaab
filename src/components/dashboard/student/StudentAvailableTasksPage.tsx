@@ -80,13 +80,25 @@ const StudentAvailableTasksPage = () => {
   }
 
   const getSourceBadge = (task: any) => {
-    // Determine source from task fields
-    const source = task.source || 
-                   (task.created_by_startup_id ? 'startup' : 
-                    task.created_by_college_id ? 'college' : 
-                    task.created_by_admin_id ? 'admin' : 'unknown');
+    // Determine source from task fields - check created_by_type first for student tasks
+    let source = 'unknown';
+    
+    if (task.created_by_type === 'student' || (task.student_id && !task.created_by_startup_id && !task.created_by_college_id && !task.created_by_admin_id)) {
+      source = 'student';
+    } else if (task.created_by_startup_id) {
+      source = 'startup';
+    } else if (task.created_by_college_id) {
+      source = 'college';
+    } else if (task.created_by_admin_id) {
+      source = 'admin';
+    }
     
     const sourceConfig = {
+      student: { 
+        label: 'Student Created', 
+        className: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20',
+        icon: User
+      },
       startup: { 
         label: 'Startup Posted', 
         className: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',

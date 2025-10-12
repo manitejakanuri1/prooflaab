@@ -77,7 +77,7 @@ const ManualTaskForm = ({ studentId }: ManualTaskFormProps) => {
         description: "Task created successfully and sent for review.",
       });
 
-      navigate('/student-dashboard?tab=tasks');
+      navigate('/student/dashboard?tab=tasks');
     } catch (error) {
       console.error('Error creating task:', error);
       toast({

@@ -331,6 +331,7 @@ export type Database = {
           apply_link: string
           company_name: string
           created_at: string
+          created_by: string | null
           deadline: string
           eligible_branch: string
           id: string
@@ -345,6 +346,7 @@ export type Database = {
           apply_link: string
           company_name: string
           created_at?: string
+          created_by?: string | null
           deadline: string
           eligible_branch?: string
           id?: string
@@ -359,6 +361,7 @@ export type Database = {
           apply_link?: string
           company_name?: string
           created_at?: string
+          created_by?: string | null
           deadline?: string
           eligible_branch?: string
           id?: string

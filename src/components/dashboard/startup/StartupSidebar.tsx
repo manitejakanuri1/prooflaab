@@ -1,4 +1,4 @@
-import { Home, Plus, List, FileText, Settings, LogOut } from "lucide-react";
+import { Home, Plus, List, FileText, Settings, LogOut, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -30,10 +30,11 @@ const sidebarItems = [
   { id: "view-tasks", title: "View Posted Tasks", icon: List },
   { id: "view-applications", title: "View Applications", icon: FileText },
   { id: "submissions", title: "Student Submissions", icon: FileText },
+  { id: "jobs", title: "Jobs", icon: Briefcase },
   { id: "settings", title: "Settings", icon: Settings },
 ];
 
-const restrictedTabs = ["post-task", "view-tasks", "view-applications", "submissions"];
+const restrictedTabs = ["post-task", "view-tasks", "view-applications", "submissions", "jobs"];
 
 export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSidebarProps) {
   const { signOut } = useAuth();

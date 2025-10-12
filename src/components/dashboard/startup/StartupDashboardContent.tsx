@@ -4,6 +4,7 @@ import { StartupViewTasksPage } from "./StartupViewTasksPage";
 import StartupViewApplicationsPage from "./StartupViewApplicationsPage";
 import { StartupSubmissionsPage } from "./StartupSubmissionsPage";
 import { StartupSettingsPage } from "./StartupSettingsPage";
+import { StartupJobsPage } from "./StartupJobsPage";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 
@@ -26,7 +27,7 @@ const RestrictedAccessMessage = () => (
 );
 
 export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: StartupDashboardContentProps) {
-  const restrictedTabs = ["post-task", "view-tasks", "view-applications", "submissions"];
+  const restrictedTabs = ["post-task", "view-tasks", "view-applications", "submissions", "jobs"];
   const isRestrictedTab = restrictedTabs.includes(activeTab);
 
   if (isRestrictedTab && !isVerified) {
@@ -42,6 +43,8 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
       return <StartupViewApplicationsPage />;
     case "submissions":
       return <StartupSubmissionsPage />;
+    case "jobs":
+      return <StartupJobsPage />;
     case "settings":
       return <StartupSettingsPage />;
     default:

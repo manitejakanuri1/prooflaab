@@ -117,10 +117,10 @@ export const useStudentCredits = (studentId: string | undefined) => {
           .single();
 
         if (insertError) throw insertError;
-        setCredits(newCredits);
         
-        // Now deduct from the fresh credits
+        // Validate credits before deduction
         if (newCredits.credits_available < amount) {
+          setCredits(newCredits);
           toast({
             title: "Insufficient Credits",
             description: "You've used all your daily credits. Wait until tomorrow or get extra credits.",
@@ -128,6 +128,21 @@ export const useStudentCredits = (studentId: string | undefined) => {
           });
           return false;
         }
+
+        // Deduct credits for new user
+        const { data: updatedCredits, error: updateError } = await supabase
+          .from('student_credits')
+          .update({
+            credits_available: newCredits.credits_available - amount,
+            credits_used_today: amount,
+          })
+          .eq('student_id', studentId)
+          .select('credits_available, credits_used_today, last_refreshed_at, premium_status, id, student_id')
+          .single();
+
+        if (updateError) throw updateError;
+        setCredits(updatedCredits);
+        return true;
       } else {
         // Check if daily reset is needed
         const lastRefreshedDate = new Date(freshCredits.last_refreshed_at).toDateString();
@@ -186,25 +201,22 @@ export const useStudentCredits = (studentId: string | undefined) => {
           });
           return false;
         }
+
+        // Deduct credits after validation passes
+        const { data: updatedCredits, error: updateError } = await supabase
+          .from('student_credits')
+          .update({
+            credits_available: freshCredits.credits_available - amount,
+            credits_used_today: freshCredits.credits_used_today + amount,
+          })
+          .eq('student_id', studentId)
+          .select('credits_available, credits_used_today, last_refreshed_at, premium_status, id, student_id')
+          .single();
+
+        if (updateError) throw updateError;
+        setCredits(updatedCredits);
+        return true;
       }
-
-      // Deduct credits after validation passes
-      const currentCredits = freshCredits || credits;
-      const { data: updatedCredits, error: updateError } = await supabase
-        .from('student_credits')
-        .update({
-          credits_available: currentCredits.credits_available - amount,
-          credits_used_today: currentCredits.credits_used_today + amount,
-        })
-        .eq('student_id', studentId)
-        .select('credits_available, credits_used_today, last_refreshed_at, premium_status, id, student_id')
-        .single();
-
-      if (updateError) throw updateError;
-
-      // Update local state with fresh data
-      setCredits(updatedCredits);
-      return true;
 
     } catch (error) {
       console.error('Error deducting credits:', error);

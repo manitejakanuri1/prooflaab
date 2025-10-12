@@ -30,7 +30,7 @@ const sidebarItems = [
   { id: "view-tasks", title: "View Posted Tasks", icon: List },
   { id: "view-applications", title: "View Applications", icon: FileText },
   { id: "submissions", title: "Student Submissions", icon: FileText },
-  { id: "jobs", title: "Jobs", icon: Briefcase },
+  { id: "jobs", title: "Post A Job", icon: Briefcase },
   { id: "settings", title: "Settings", icon: Settings },
 ];
 

@@ -57,7 +57,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
   };
 
   return (
-    <aside className="w-64 bg-sidebar backdrop-blur-sm border-r border-sidebar-border h-[calc(100vh-64px)] md:h-[calc(100vh-80px)]">
+    <aside className="w-64 bg-sidebar backdrop-blur-sm border-r border-sidebar-border h-screen overflow-y-auto">
       <nav className="p-4">
         <div className="space-y-2">
           {menuItems.map((item) => {

@@ -40,9 +40,10 @@ const StudentDashboard = () => {
         
         {/* Sidebar */}
         <div className={`
-          ${isMobile ? 'fixed' : 'relative'} 
+          ${isMobile ? 'fixed' : 'sticky top-0'} 
           ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
           ${isMobile ? 'z-50' : ''}
+          ${isMobile ? 'h-screen' : 'h-screen'}
           transition-transform duration-300 ease-in-out
         `}>
           <StudentSidebar 

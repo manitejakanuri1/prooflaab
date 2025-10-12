@@ -55,12 +55,18 @@ const StudentCreateTaskPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="manual" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2 bg-muted">
+              <TabsTrigger 
+                value="manual" 
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
                 <Edit3 className="w-4 h-4" />
                 Manual Task
               </TabsTrigger>
-              <TabsTrigger value="ai" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="ai" 
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
                 <Sparkles className="w-4 h-4" />
                 AI Generator
               </TabsTrigger>

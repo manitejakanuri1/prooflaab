@@ -77,7 +77,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
   const [collegeFilter, setCollegeFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [viewUserSheet, setViewUserSheet] = useState<UserData | null>(null);
-  const [actionType, setActionType] = useState<'block' | 'unblock' | 'approve' | 'suspend' | 'delete'>('block');
+  const [actionType, setActionType] = useState<'block' | 'unblock' | 'approve' | 'suspend' | 'reject' | 'delete'>('block');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -96,7 +96,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
     navigate(`/admin/dashboard/user-management/${newTab}`);
   };
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading, error: queryError } = useQuery({
     queryKey: [`admin-users-${activeTab}`, searchTerm, statusFilter, sourceFilter, collegeFilter],
     queryFn: async () => {
       if (activeTab === 'students') {
@@ -126,7 +126,10 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
         }
 
         const { data, error } = await query.order('created_at', { ascending: false });
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching students:', error);
+          throw error;
+        }
 
         // Transform data to include college name and proofs count
         return (data as any[])?.map(student => ({
@@ -134,23 +137,58 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
           college_name: student.colleges?.name || null,
           proofs_submitted: student.proof_uploads?.length || 0
         })) as UserData[];
-      } else {
-        // For startups and colleges
-        let query;
-        
-        if (activeTab === 'startups') {
-          query = supabase.from('startups').select(`
-            *,
-            startup_profiles!user_id(domain_industry)
-          `);
-        } else {
-          // For colleges, get college data with student counts and task counts
-          query = supabase.from('colleges').select(`
-            *,
-            student_profiles!college_id(count),
-            tasks!created_by_college_id(count)
-          `);
+      } else if (activeTab === 'startups') {
+        // For startups, fetch from startups table and optionally join with startup_profiles
+        let query = supabase
+          .from('startups')
+          .select('id, user_id, name, email, status, verification_status, created_at, updated_at, invite_code');
+
+        if (searchTerm) {
+          query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
         }
+
+        // Only apply status filter if not "all"
+        if (statusFilter !== 'all') {
+          query = query.eq('verification_status', statusFilter);
+        }
+
+        const { data: startupsData, error: startupsError } = await query.order('created_at', { ascending: false });
+        
+        if (startupsError) {
+          console.error('Error fetching startups:', startupsError);
+          throw startupsError;
+        }
+
+        // Fetch startup profiles separately to avoid join issues
+        const userIds = startupsData?.map(s => s.user_id) || [];
+        let profilesData: any[] = [];
+        
+        if (userIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('startup_profiles')
+            .select('user_id, domain_industry')
+            .in('user_id', userIds);
+            
+          if (!profilesError && profiles) {
+            profilesData = profiles;
+          }
+        }
+
+        // Merge startups with their profiles
+        return startupsData?.map(startup => {
+          const profile = profilesData.find(p => p.user_id === startup.user_id);
+          return {
+            ...startup,
+            domain_industry: profile?.domain_industry || null
+          };
+        }) as UserData[];
+      } else {
+        // For colleges, get college data with student counts and task counts
+        let query = supabase.from('colleges').select(`
+          *,
+          student_profiles!college_id(count),
+          tasks!created_by_college_id(count)
+        `);
 
         if (searchTerm) {
           query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
@@ -161,29 +199,31 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
         }
 
         const { data, error } = await query.order('created_at', { ascending: false });
-        if (error) throw error;
-        
-        if (activeTab === 'colleges') {
-          // Transform colleges data to include student and task counts
-          return (data as any[])?.map(college => ({
-            ...college,
-            student_count: college.student_profiles?.[0]?.count || 0,
-            tasks_assigned: college.tasks?.[0]?.count || 0
-          })) as UserData[];
+        if (error) {
+          console.error('Error fetching colleges:', error);
+          throw error;
         }
-        
-        if (activeTab === 'startups') {
-          // Transform startups data to include domain
-          return (data as any[])?.map(startup => ({
-            ...startup,
-            domain_industry: startup.startup_profiles?.domain_industry || null
-          })) as UserData[];
-        }
-        
-        return data as UserData[];
+
+        // Transform colleges data to include student and task counts
+        return (data as any[])?.map(college => ({
+          ...college,
+          student_count: college.student_profiles?.[0]?.count || 0,
+          tasks_assigned: college.tasks?.[0]?.count || 0
+        })) as UserData[];
       }
     }
   });
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (queryError) {
+      toast({
+        title: "Error loading data",
+        description: `Failed to load ${activeTab}: ${queryError.message}`,
+        variant: "destructive",
+      });
+    }
+  }, [queryError, activeTab, toast]);
 
   // Fetch colleges for the college filter dropdown
   const { data: colleges } = useQuery({
@@ -258,6 +298,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
       if (actionType === 'delete') updates.status = 'deleted';
     } else {
       if (actionType === 'approve') updates.verification_status = 'approved';
+      if (actionType === 'reject') updates.verification_status = 'rejected';
       if (actionType === 'suspend') updates.verification_status = 'suspended';
       if (actionType === 'delete') updates.verification_status = 'deleted';
     }
@@ -284,6 +325,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
       return (
         <Badge variant={
           status === 'approved' ? 'default' : 
+          status === 'rejected' ? 'destructive' :
           status === 'suspended' ? 'destructive' : 'secondary'
         }>
           {status}
@@ -295,26 +337,52 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
   const exportToCSV = () => {
     if (!users) return;
     
-    const headers = activeTab === 'students' 
-      ? ['Name', 'Email', 'Source', 'College', 'Trust Score', 'XP', 'Proofs Submitted', 'Last Active', 'Status', 'Created']
-      : ['Name', 'Email', 'Status', 'Created'];
+    let headers: string[];
+    if (activeTab === 'students') {
+      headers = ['Name', 'Email', 'Source', 'College', 'Trust Score', 'XP', 'Proofs Submitted', 'Last Active', 'Status', 'Created'];
+    } else if (activeTab === 'startups') {
+      headers = ['Name', 'Email', 'Domain/Category', 'Verification Status', 'Created'];
+    } else {
+      headers = ['Name', 'Email', 'Student Count', 'Tasks Assigned', 'Verification Status', 'Created'];
+    }
     
     const csvContent = [
       headers.join(','),
-      ...users.map(user => [
-        activeTab === 'students' ? user.full_name : user.name,
-        user.email,
-        ...(activeTab === 'students' ? [
-          user.source || 'Website',
-          user.college_name || 'N/A',
-          user.trust_score || 0, 
-          user.total_xp || 0,
-          user.proofs_submitted || 0,
-          user.last_active ? new Date(user.last_active).toLocaleDateString() : 'Never'
-        ] : []),
-        activeTab === 'students' ? user.status : user.verification_status,
-        new Date(user.created_at).toLocaleDateString()
-      ].join(','))
+      ...users.map(user => {
+        const baseFields = [
+          activeTab === 'students' ? user.full_name : user.name,
+          user.email
+        ];
+        
+        if (activeTab === 'students') {
+          return [
+            ...baseFields,
+            user.source || 'Website',
+            user.college_name || 'N/A',
+            user.trust_score || 0, 
+            user.total_xp || 0,
+            user.proofs_submitted || 0,
+            user.last_active ? new Date(user.last_active).toLocaleDateString() : 'Never',
+            user.status || 'active',
+            new Date(user.created_at).toLocaleDateString()
+          ].join(',');
+        } else if (activeTab === 'startups') {
+          return [
+            ...baseFields,
+            user.domain_industry || 'N/A',
+            user.verification_status || 'pending',
+            new Date(user.created_at).toLocaleDateString()
+          ].join(',');
+        } else {
+          return [
+            ...baseFields,
+            user.student_count || 0,
+            user.tasks_assigned || 0,
+            user.verification_status || 'pending',
+            new Date(user.created_at).toLocaleDateString()
+          ].join(',');
+        }
+      })
     ].join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -414,21 +482,22 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-background border shadow-md z-50">
-                          <SelectItem value="all">All Status</SelectItem>
-                          {tab === 'students' ? (
-                            <>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="blocked">Blocked</SelectItem>
-                            </>
-                          ) : (
-                            <>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="approved">Approved</SelectItem>
-                              <SelectItem value="suspended">Suspended</SelectItem>
-                            </>
-                          )}
-                        </SelectContent>
+                          <SelectContent className="bg-background border shadow-md z-50">
+                            <SelectItem value="all">All Status</SelectItem>
+                            {tab === 'students' ? (
+                              <>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="blocked">Blocked</SelectItem>
+                              </>
+                            ) : (
+                              <>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="approved">Approved</SelectItem>
+                                <SelectItem value="rejected">Rejected</SelectItem>
+                                <SelectItem value="suspended">Suspended</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
                       </Select>
                       
                       {tab === 'students' && (
@@ -626,26 +695,35 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                                      </DropdownMenuItem>
                                    )}
                                  </>
-                               ) : tab === 'startups' ? (
-                                 <>
-                                   {user.verification_status !== 'suspended' && (
-                                     <DropdownMenuItem
-                                       onClick={() => handleUserAction(user, 'suspend')}
-                                       className="text-yellow-600"
-                                     >
-                                       <Ban className="h-4 w-4 mr-2" />
-                                       Suspend
-                                     </DropdownMenuItem>
-                                   )}
-                                   <DropdownMenuItem
-                                     onClick={() => handleUserAction(user, 'delete')}
-                                     className="text-red-600"
-                                   >
-                                     <Trash2 className="h-4 w-4 mr-2" />
-                                     Delete
-                                   </DropdownMenuItem>
-                                 </>
-                               ) : (
+                                ) : tab === 'startups' ? (
+                                  <>
+                                    {user.verification_status !== 'approved' && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleUserAction(user, 'approve')}
+                                        className="text-green-600"
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Approve
+                                      </DropdownMenuItem>
+                                    )}
+                                    {user.verification_status !== 'rejected' && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleUserAction(user, 'reject')}
+                                        className="text-yellow-600"
+                                      >
+                                        <UserX className="h-4 w-4 mr-2" />
+                                        Reject
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                      onClick={() => handleUserAction(user, 'delete')}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Remove
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : (
                                  <>
                                    {user.verification_status !== 'approved' && (
                                      <DropdownMenuItem

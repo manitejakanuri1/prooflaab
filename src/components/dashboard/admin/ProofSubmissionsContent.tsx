@@ -79,24 +79,7 @@ const ProofSubmissionsContent = () => {
       const { data: proofData, error } = await query;
       if (error) throw error;
 
-      // Fetch task_assignments to get review_status
-      const enrichedData = await Promise.all(
-        (proofData || []).map(async (proof) => {
-          const { data: assignment } = await supabase
-            .from('task_assignments')
-            .select('review_status')
-            .eq('task_id', proof.task_id)
-            .eq('student_id', proof.student_id)
-            .single();
-          
-          return {
-            ...proof,
-            review_status: assignment?.review_status
-          };
-        })
-      );
-
-      return enrichedData as ProofSubmission[];
+      return (proofData || []) as ProofSubmission[];
     },
   });
 
@@ -178,12 +161,12 @@ const ProofSubmissionsContent = () => {
       // Snapshot previous value
       const previousSubmissions = queryClient.getQueryData(['proof-submissions', statusFilter, sortBy, searchQuery]);
       
-      // Optimistically update
+      // Optimistically update - only update status field
       queryClient.setQueryData(['proof-submissions', statusFilter, sortBy, searchQuery], (old: ProofSubmission[] | undefined) => {
         if (!old) return old;
         return old.map(sub => 
           sub.id === id 
-            ? { ...sub, review_status: status, status } 
+            ? { ...sub, status } 
             : sub
         );
       });
@@ -441,31 +424,31 @@ const ProofSubmissionsContent = () => {
                           </Button>
                           <Button
                             size="sm"
-                            variant={submission.review_status === 'Verified' ? 'outline' : 'default'}
+                            variant={submission.status === 'Verified' ? 'outline' : 'default'}
                             onClick={() => handleStatusUpdate('Verified', submission)}
-                            disabled={submission.review_status === 'Verified' || submission.review_status === 'Rejected'}
+                            disabled={submission.status === 'Verified' || submission.status === 'Rejected'}
                             className={`h-8 px-2 text-xs ${
-                              submission.review_status === 'Verified' 
+                              submission.status === 'Verified' 
                                 ? 'bg-green-50 text-green-700 border-green-300 cursor-not-allowed' 
                                 : 'bg-green-600 hover:bg-green-700 text-white'
                             }`}
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            {submission.review_status === 'Verified' ? 'Verified ✅' : 'Verify'}
+                            {submission.status === 'Verified' ? 'Verified ✅' : 'Verify'}
                           </Button>
                           <Button
                             size="sm"
-                            variant={submission.review_status === 'Rejected' ? 'outline' : 'destructive'}
+                            variant={submission.status === 'Rejected' ? 'outline' : 'destructive'}
                             onClick={() => handleStatusUpdate('Rejected', submission)}
-                            disabled={submission.review_status === 'Verified' || submission.review_status === 'Rejected'}
+                            disabled={submission.status === 'Verified' || submission.status === 'Rejected'}
                             className={`h-8 px-2 text-xs ${
-                              submission.review_status === 'Rejected'
+                              submission.status === 'Rejected'
                                 ? 'bg-red-50 text-red-700 border-red-300 cursor-not-allowed'
                                 : ''
                             }`}
                           >
                             <XCircle className="h-3 w-3 mr-1" />
-                            {submission.review_status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
+                            {submission.status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
                           </Button>
                         </div>
                       </TableCell>
@@ -539,34 +522,34 @@ const ProofSubmissionsContent = () => {
                   onClick={() => handleStatusUpdate('Verified')}
                   disabled={
                     updateStatusMutation.isPending || 
-                    selectedSubmission.review_status === 'Verified' || 
-                    selectedSubmission.review_status === 'Rejected'
+                    selectedSubmission.status === 'Verified' || 
+                    selectedSubmission.status === 'Rejected'
                   }
                   className={
-                    selectedSubmission.review_status === 'Verified'
+                    selectedSubmission.status === 'Verified'
                       ? 'bg-green-50 text-green-700 border-green-300'
                       : 'bg-green-600 hover:bg-green-700 text-white'
                   }
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {selectedSubmission.review_status === 'Verified' ? 'Verified ✅' : 'Verify'}
+                  {selectedSubmission.status === 'Verified' ? 'Verified ✅' : 'Verify'}
                 </Button>
                 <Button
                   onClick={() => handleStatusUpdate('Rejected')}
                   disabled={
                     updateStatusMutation.isPending || 
-                    selectedSubmission.review_status === 'Verified' || 
-                    selectedSubmission.review_status === 'Rejected'
+                    selectedSubmission.status === 'Verified' || 
+                    selectedSubmission.status === 'Rejected'
                   }
-                  variant={selectedSubmission.review_status === 'Rejected' ? 'outline' : 'destructive'}
+                  variant={selectedSubmission.status === 'Rejected' ? 'outline' : 'destructive'}
                   className={
-                    selectedSubmission.review_status === 'Rejected'
+                    selectedSubmission.status === 'Rejected'
                       ? 'bg-red-50 text-red-700 border-red-300'
                       : ''
                   }
                 >
                   <XCircle className="h-4 w-4 mr-2" />
-                  {selectedSubmission.review_status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
+                  {selectedSubmission.status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
                 </Button>
                 <Button
                   onClick={() => handleMossCheck(selectedSubmission.id)}

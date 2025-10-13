@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { User } from "lucide-react";
 
 interface EditTaskModalProps {
   task: any;
@@ -153,6 +155,29 @@ export function EditTaskModal({ task, open, onClose, onSuccess }: EditTaskModalP
               />
             </div>
           </div>
+
+          {/* Assigned Students Section (Read-Only) */}
+          {task.task_assignments && task.task_assignments.length > 0 && (
+            <div className="border rounded-lg p-4 bg-muted/20">
+              <Label className="mb-3 block">Currently Assigned Students</Label>
+              <div className="space-y-2">
+                {task.task_assignments.map((assignment: any) => (
+                  <div key={assignment.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{assignment.student_profiles?.full_name || 'Unknown'}</p>
+                        <p className="text-xs text-muted-foreground">{assignment.student_profiles?.email || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs">{assignment.status || 'Assigned'}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

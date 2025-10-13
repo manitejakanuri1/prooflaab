@@ -47,7 +47,33 @@ export function ViewAssignedStudentsModal({ task, open, onClose }: ViewAssignedS
         </DialogHeader>
         
         <div className="space-y-4 mt-4">
-          {task.student_profiles && typeof task.student_profiles === 'object' && task.student_profiles.full_name ? (
+          {task.task_assignments && task.task_assignments.length > 0 ? (
+            task.task_assignments.map((assignment: any) => (
+              <div key={assignment.id} className="border rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    {assignment.student_profiles?.profile_photo_url ? (
+                      <img src={assignment.student_profiles.profile_photo_url} alt={assignment.student_profiles.full_name} />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-primary/10">
+                        <User className="h-6 w-6 text-primary" />
+                      </div>
+                    )}
+                  </Avatar>
+                  <div>
+                    <h4 className="font-semibold">{assignment.student_profiles?.full_name || 'Unknown'}</h4>
+                    <p className="text-sm text-muted-foreground">{assignment.student_profiles?.email || 'N/A'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Assigned: {new Date(assignment.assigned_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={getProgressBadgeVariant(assignment.status || 'assigned')}>
+                  {assignment.status || 'Assigned'}
+                </Badge>
+              </div>
+            ))
+          ) : task.student_profiles && typeof task.student_profiles === 'object' && task.student_profiles.full_name ? (
             <div className="border rounded-lg p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12">

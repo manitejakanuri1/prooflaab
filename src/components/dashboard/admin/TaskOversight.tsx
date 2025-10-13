@@ -21,10 +21,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Clock, Star, ChevronDown, ChevronRight, Edit, Users, UserPlus, Flag, Trash2, Building2, Briefcase, Shield, Eye, EyeOff } from "lucide-react";
+import { Search, MoreVertical, Clock, Star, ChevronDown, ChevronRight, Edit, Users, UserPlus, Flag, Trash2, Building2, Briefcase, Shield, Eye, EyeOff, User } from "lucide-react";
 import { ViewAssignedStudentsModal } from "./ViewAssignedStudentsModal";
 import { EditTaskModal } from "./EditTaskModal";
 import { ReassignTaskModal } from "./ReassignTaskModal";
+import { TaskDetailsModal } from "./TaskDetailsModal";
 
 const TaskOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,6 +37,7 @@ const TaskOversight = () => {
   const [viewStudentsTask, setViewStudentsTask] = useState<any>(null);
   const [editTask, setEditTask] = useState<any>(null);
   const [reassignTask, setReassignTask] = useState<any>(null);
+  const [detailsTask, setDetailsTask] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -130,7 +132,36 @@ const TaskOversight = () => {
             enrichedTask.startups = startup;
           }
           
-          // Fetch student data
+          // Fetch student creator data (for student-created tasks)
+          if (task.created_by_type === 'student' && task.student_id) {
+            const { data: studentCreator } = await supabase
+              .from('student_profiles')
+              .select('id, full_name')
+              .eq('id', task.student_id)
+              .maybeSingle();
+            enrichedTask.student_creator = studentCreator;
+            enrichedTask.created_by_student_id = task.student_id;
+          }
+          
+          // Fetch assigned students from task_assignments table
+          const { data: assignments } = await supabase
+            .from('task_assignments')
+            .select(`
+              id,
+              student_id,
+              status,
+              assigned_at,
+              student_profiles:student_id (
+                id,
+                full_name,
+                email,
+                profile_photo_url
+              )
+            `)
+            .eq('task_id', task.id);
+          enrichedTask.task_assignments = assignments || [];
+          
+          // Also keep direct student assignment for backwards compatibility
           if (task.student_id) {
             const { data: student, error: studentError } = await supabase
               .from('student_profiles')
@@ -235,7 +266,6 @@ const TaskOversight = () => {
           </Badge>
         );
       }
-      // Fallback if college name not loaded
       return (
         <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
           <Building2 className="h-3 w-3" />
@@ -254,7 +284,6 @@ const TaskOversight = () => {
           </Badge>
         );
       }
-      // Fallback if startup name not loaded
       return (
         <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
           <Briefcase className="h-3 w-3" />
@@ -263,28 +292,30 @@ const TaskOversight = () => {
       );
     }
     
+    // Student created
+    if (task.created_by_type === 'student' || task.created_by_student_id) {
+      if (task.student_creator?.full_name) {
+        return (
+          <Badge variant="outline" className="gap-1 border-green-500 text-green-700 dark:text-green-300">
+            <User className="h-3 w-3" />
+            {task.student_creator.full_name}
+          </Badge>
+        );
+      }
+      return (
+        <Badge variant="outline" className="gap-1 border-green-500 text-green-700 dark:text-green-300">
+          <User className="h-3 w-3" />
+          Student
+        </Badge>
+      );
+    }
+    
     // Fallback based on source field
-    if (task.source === 'admin') {
+    if (task.source === 'admin' || task.created_by_type === 'admin') {
       return (
         <Badge variant="outline" className="gap-1 border-orange-500 text-orange-700 dark:text-orange-300">
           <Shield className="h-3 w-3" />
           Admin
-        </Badge>
-      );
-    }
-    if (task.source === 'college') {
-      return (
-        <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
-          <Building2 className="h-3 w-3" />
-          College
-        </Badge>
-      );
-    }
-    if (task.source === 'startup') {
-      return (
-        <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
-          <Briefcase className="h-3 w-3" />
-          Startup
         </Badge>
       );
     }
@@ -467,7 +498,12 @@ const TaskOversight = () => {
                         <ChevronRight className="h-4 w-4" />
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{task.title}</TableCell>
+                    <TableCell 
+                      className="font-medium cursor-pointer hover:text-primary hover:underline"
+                      onClick={() => setDetailsTask(task)}
+                    >
+                      {task.title}
+                    </TableCell>
                     <TableCell>{getCreatorBadge(task)}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{task.category || 'General'}</Badge>
@@ -528,7 +564,26 @@ const TaskOversight = () => {
                       <TableCell colSpan={8} className="bg-muted/30">
                         <div className="py-3 px-4">
                           <h4 className="font-semibold mb-3 text-sm">Assigned Students</h4>
-                          {task.student_profiles ? (
+                          {task.task_assignments && task.task_assignments.length > 0 ? (
+                            <div className="space-y-2">
+                              {task.task_assignments.map((assignment: any) => (
+                                <div key={assignment.id} className="flex items-center justify-between p-3 bg-background rounded border">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                      <span className="text-sm font-medium">
+                                        {assignment.student_profiles?.full_name?.charAt(0) || '?'}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-sm">{assignment.student_profiles?.full_name || 'Unknown'}</p>
+                                      <p className="text-xs text-muted-foreground">{assignment.student_profiles?.email || 'N/A'}</p>
+                                    </div>
+                                  </div>
+                                  <Badge variant="secondary">{assignment.status || 'Assigned'}</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          ) : task.student_profiles ? (
                             <div className="space-y-2">
                               <div className="flex items-center justify-between p-3 bg-background rounded border">
                                 <div className="flex items-center gap-3">
@@ -565,7 +620,12 @@ const TaskOversight = () => {
                   <div className="p-4 space-y-3">
                     {/* Task Title & Status */}
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-medium text-sm flex-1 line-clamp-2">{task.title}</h3>
+                      <h3 
+                        className="font-medium text-sm flex-1 line-clamp-2 cursor-pointer hover:text-primary hover:underline"
+                        onClick={() => setDetailsTask(task)}
+                      >
+                        {task.title}
+                      </h3>
                       {getStatusBadge(task.status, task.due_date)}
                     </div>
 
@@ -659,6 +719,11 @@ const TaskOversight = () => {
       </div>
 
       {/* Modals */}
+      <TaskDetailsModal
+        task={detailsTask}
+        open={!!detailsTask}
+        onClose={() => setDetailsTask(null)}
+      />
       <ViewAssignedStudentsModal
         task={viewStudentsTask}
         open={!!viewStudentsTask}

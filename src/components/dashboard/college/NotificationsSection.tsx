@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Bell, Check, X, AlertCircle, Info, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
+
+const VIEWED_NOTIFICATIONS_KEY = 'college_viewed_notifications';
 
 interface Notification {
   id: string;
@@ -22,6 +25,7 @@ const NotificationsSection = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { markAsViewed, refetch: refetchBadge } = useCollegeNotifications();
 
   useEffect(() => {
     fetchNotifications();
@@ -30,6 +34,11 @@ const NotificationsSection = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
+      
+      // Get viewed notifications from localStorage
+      const viewedNotifications = JSON.parse(
+        localStorage.getItem(VIEWED_NOTIFICATIONS_KEY) || '[]'
+      ) as string[];
       
       // Get recent proof submissions and task applications as notifications
       const { data: proofs, error: proofsError } = await supabase
@@ -74,7 +83,7 @@ const NotificationsSection = () => {
         type: 'proof',
         title: proof.status === 'Under Review' ? 'New Proof Submitted' : `Proof ${proof.status}`,
         message: `${proof.student_profiles.full_name} submitted proof for "${proof.tasks.title}"`,
-        is_read: false,
+        is_read: viewedNotifications.includes(`proof-${proof.id}`),
         created_at: proof.submitted_at,
         student_name: proof.student_profiles.full_name,
         task_title: proof.tasks.title,
@@ -85,7 +94,7 @@ const NotificationsSection = () => {
         type: 'application',
         title: 'New Task Application',
         message: `${app.student_profiles.full_name} applied for "${app.tasks.title}"`,
-        is_read: false,
+        is_read: viewedNotifications.includes(`app-${app.id}`),
         created_at: app.created_at,
         student_name: app.student_profiles.full_name,
         task_title: app.tasks.title,
@@ -135,6 +144,7 @@ const NotificationsSection = () => {
   };
 
   const markAsRead = (notificationId: string) => {
+    // Update local state
     setNotifications(prev =>
       prev.map(notif =>
         notif.id === notificationId
@@ -142,12 +152,23 @@ const NotificationsSection = () => {
           : notif
       )
     );
+    
+    // Persist to localStorage
+    markAsViewed([notificationId]);
   };
 
   const markAllAsRead = () => {
+    // Get all notification IDs
+    const allIds = notifications.map(n => n.id);
+    
+    // Update local state
     setNotifications(prev =>
       prev.map(notif => ({ ...notif, is_read: true }))
     );
+    
+    // Persist to localStorage
+    markAsViewed(allIds);
+    
     toast({
       title: "Success",
       description: "All notifications marked as read",

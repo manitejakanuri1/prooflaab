@@ -67,7 +67,7 @@ const AdminDashboard = () => {
         return <ContentManagement type="announcements" />;
       case "analytics":
         return <AdminAnalytics />;
-      case "trust-xp":
+      case "xp-moderation":
         return <TrustXPModeration />;
       case "college-oversight":
         return <CollegeOversight />;

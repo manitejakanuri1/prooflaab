@@ -56,7 +56,7 @@ const CollegeDashboard = () => {
         </div>
         
         <main className="flex-1 p-3 md:p-6 w-full min-w-0">
-          <CollegeDashboardContent activeTab={activeTab} />
+          <CollegeDashboardContent activeTab={activeTab} onTabChange={setActiveTab} />
         </main>
       </div>
     </div>

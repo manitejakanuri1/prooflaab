@@ -9,13 +9,14 @@ import CollegeSettingsPage from "./CollegeSettingsPage";
 
 interface CollegeDashboardContentProps {
   activeTab: string;
+  onTabChange?: (tab: string) => void;
 }
 
-const CollegeDashboardContent = ({ activeTab }: CollegeDashboardContentProps) => {
+const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardContentProps) => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <CollegeDashboardOverview />;
+        return <CollegeDashboardOverview onNavigate={onTabChange} />;
       case "students":
         return <StudentsManagement />;
       case "assign-tasks":
@@ -31,7 +32,7 @@ const CollegeDashboardContent = ({ activeTab }: CollegeDashboardContentProps) =>
       case "settings":
         return <CollegeSettingsPage />;
       default:
-        return <CollegeDashboardOverview />;
+        return <CollegeDashboardOverview onNavigate={onTabChange} />;
     }
   };
 

@@ -31,7 +31,11 @@ interface ProcessResult {
   message: string;
 }
 
-const CollegeDashboardOverview = () => {
+interface CollegeDashboardOverviewProps {
+  onNavigate?: (tab: string) => void;
+}
+
+const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps) => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -340,6 +344,7 @@ const CollegeDashboardOverview = () => {
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
+      navigateTo: "students",
     },
     {
       title: "Tasks Assigned",
@@ -347,6 +352,7 @@ const CollegeDashboardOverview = () => {
       icon: ClipboardList,
       color: "text-green-600",
       bgColor: "bg-green-100",
+      navigateTo: "assign-tasks",
     },
     {
       title: "Proofs Received",
@@ -354,6 +360,7 @@ const CollegeDashboardOverview = () => {
       icon: Upload,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
+      navigateTo: "uploaded-proofs",
     },
     {
       title: "Verified Proofs",
@@ -361,6 +368,7 @@ const CollegeDashboardOverview = () => {
       icon: FileCheck,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
+      navigateTo: "uploaded-proofs",
     },
   ];
 
@@ -420,7 +428,11 @@ const CollegeDashboardOverview = () => {
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="border border-gray-200/50 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow dark:bg-gray-800">
+            <Card 
+              key={index} 
+              className="border border-gray-200/50 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-pointer dark:bg-gray-800 hover:scale-105"
+              onClick={() => onNavigate?.(stat.navigateTo)}
+            >
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">

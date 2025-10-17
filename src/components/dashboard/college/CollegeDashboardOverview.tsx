@@ -9,11 +9,13 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Download
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StudentRecord {
   name: string;
@@ -411,6 +413,28 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
     }
   };
 
+  const downloadCSVTemplate = () => {
+    const csvContent = `Name,Email,Branch,Year_of_study,Preferred_skills,Key_interests,Career_goals
+John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI Research,Machine Learning Engineer`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'student_onboarding_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Template downloaded successfully ✅",
+      description: "Use this file to format your student list correctly.",
+      duration: 3000,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -456,19 +480,42 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
       {/* CSV Upload Section */}
       <Card className="border border-gray-200/50 dark:border-gray-700 shadow-sm dark:bg-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Upload className="h-5 w-5" />
-            <span>Student Onboarding - CSV Upload</span>
-          </CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center space-x-2">
+              <Upload className="h-5 w-5" />
+              <span>Student Onboarding - CSV Upload</span>
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadCSVTemplate}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Template
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Download ready-made CSV template</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
-            <h3 className="font-medium text-blue-900 mb-2 text-sm md:text-base">CSV Format Requirements:</h3>
-            <ul className="text-xs md:text-sm text-blue-800 space-y-1">
+          <div className="bg-blue-50 dark:bg-blue-950/30 p-3 md:p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm md:text-base">CSV Format Requirements:</h3>
+            <ul className="text-xs md:text-sm text-blue-800 dark:text-blue-200 space-y-1">
               <li>• Column headers: Name, Email, Branch, Year_of_study, Preferred_skills, Key_interests, Career_goals</li>
               <li className="hidden sm:list-item">• Example: John Doe, john@email.com, Computer Science, Second Year, Python Web Development, AI Machine Learning, Software Engineer</li>
               <li>• Make sure all email addresses are unique</li>
             </ul>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+              💡 Use the template above to correctly format your student list before uploading.
+            </p>
           </div>
 
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-8 text-center">

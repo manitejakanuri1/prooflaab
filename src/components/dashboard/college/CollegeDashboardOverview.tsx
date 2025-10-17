@@ -518,7 +518,9 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
           </div>
 
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-8 text-center">
-            <Upload className="mx-auto h-8 w-8 md:h-12 md:w-12 text-gray-400 mb-2 md:mb-4" />
+            <label htmlFor="csv-upload" className={`inline-block ${!isProcessing ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+              <Upload className="mx-auto h-8 w-8 md:h-12 md:w-12 text-gray-400 mb-2 md:mb-4 hover:text-orange-600 transition-colors" />
+            </label>
             <h3 className="text-base md:text-lg font-medium text-gray-900 mb-1 md:mb-2">
               Upload Student Records
             </h3>

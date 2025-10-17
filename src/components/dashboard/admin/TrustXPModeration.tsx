@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -22,125 +23,305 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Shield, Edit, RotateCcw } from "lucide-react";
+import { 
+  Search, 
+  Shield, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  TrendingUp,
+  Plus,
+  AlertCircle
+} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const TrustXPModeration = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [editXP, setEditXP] = useState(0);
-  const [editTrust, setEditTrust] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [collegeFilter, setCollegeFilter] = useState("all");
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualStudent, setManualStudent] = useState("");
+  const [manualTask, setManualTask] = useState("");
+  const [manualXP, setManualXP] = useState(0);
+  const [manualNotes, setManualNotes] = useState("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: students, isLoading } = useQuery({
+  // Pending XP Reviews
+  const { data: pendingReviews, isLoading: loadingPending } = useQuery({
+    queryKey: ['pending-xp-reviews', statusFilter, collegeFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('proof_uploads')
+        .select(`
+          *,
+          student:student_profiles!inner(id, full_name, email, college_id),
+          task:tasks!inner(id, title, xp_reward)
+        `)
+        .in('status', ['Under Review', 'Pending']);
+
+      const { data, error } = await query.order('submitted_at', { ascending: false });
+      if (error) throw error;
+      
+      // Fetch college names separately
+      const studentIds = [...new Set(data?.map(p => p.student.college_id).filter(Boolean))];
+      const { data: colleges } = await supabase
+        .from('colleges')
+        .select('id, name')
+        .in('id', studentIds);
+      
+      const collegeMap = new Map(colleges?.map(c => [c.id, c.name]));
+      
+      return data?.map(proof => ({
+        ...proof,
+        student: {
+          ...proof.student,
+          collegeName: collegeMap.get(proof.student.college_id) || 'N/A'
+        }
+      }));
+    }
+  });
+
+  // All Students Trust Scores
+  const { data: students, isLoading: loadingStudents } = useQuery({
     queryKey: ['trust-xp-moderation', searchTerm],
     queryFn: async () => {
       let query = supabase
         .from('student_profiles')
-        .select('*');
+        .select('*, college_id');
 
       if (searchTerm) {
         query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query.order('total_xp', { ascending: false });
+      if (error) throw error;
+      
+      // Fetch college names and verified proofs count
+      const collegeIds = [...new Set(data?.map(s => s.college_id).filter(Boolean))];
+      const { data: colleges } = await supabase
+        .from('colleges')
+        .select('id, name')
+        .in('id', collegeIds);
+      
+      const collegeMap = new Map(colleges?.map(c => [c.id, c.name]));
+      
+      // Get verified proofs count for each student
+      const studentsWithData = await Promise.all(
+        data?.map(async (student) => {
+          const { count } = await supabase
+            .from('proof_uploads')
+            .select('*', { count: 'exact', head: true })
+            .eq('student_id', student.id)
+            .eq('status', 'Verified');
+          
+          return {
+            ...student,
+            collegeName: collegeMap.get(student.college_id) || 'N/A',
+            verifiedProofsCount: count || 0
+          };
+        }) || []
+      );
+      
+      return studentsWithData;
+    }
+  });
+
+  // Recent Activity (XP and Trust changes)
+  const { data: recentActivity, isLoading: loadingActivity } = useQuery({
+    queryKey: ['recent-xp-activity'],
+    queryFn: async () => {
+      const { data: logs, error } = await supabase
+        .from('manual_adjustment_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      
+      // Fetch student details for each log
+      const studentIds = logs?.map(log => log.student_id);
+      const { data: students } = await supabase
+        .from('student_profiles')
+        .select('id, full_name, email')
+        .in('id', studentIds || []);
+      
+      const studentMap = new Map(students?.map(s => [s.id, s]));
+      
+      return logs?.map(log => ({
+        ...log,
+        student: studentMap.get(log.student_id) || { full_name: 'Unknown', email: '' }
+      }));
+    }
+  });
+
+  // Colleges for filter
+  const { data: colleges } = useQuery({
+    queryKey: ['colleges-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('colleges')
+        .select('id, name')
+        .order('name');
       if (error) throw error;
       return data;
     }
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ studentId, xp, trust }: { 
-      studentId: string; 
-      xp: number; 
-      trust: number; 
+  // Approve/Reject XP Review
+  const reviewMutation = useMutation({
+    mutationFn: async ({ proofId, status, xpReward, studentId }: {
+      proofId: string;
+      status: 'Verified' | 'Rejected';
+      xpReward: number;
+      studentId: string;
     }) => {
-      const { error } = await supabase
-        .from('student_profiles')
-        .update({ 
-          total_xp: xp,
-          trust_score: Math.min(Math.max(trust, 0), 100)
-        })
-        .eq('id', studentId);
+      // Update proof status
+      const { error: proofError } = await supabase
+        .from('proof_uploads')
+        .update({ status, reviewed_at: new Date().toISOString() })
+        .eq('id', proofId);
 
-      if (error) throw error;
+      if (proofError) throw proofError;
+
+      // If verified, add XP
+      if (status === 'Verified' && xpReward > 0) {
+        const { error: xpError } = await supabase
+          .from('xp_logs')
+          .insert({
+            student_id: studentId,
+            xp_points: xpReward,
+            source: 'Task Verification'
+          });
+
+        if (xpError) throw xpError;
+
+        // Update student total XP
+        const { data: student } = await supabase
+          .from('student_profiles')
+          .select('total_xp')
+          .eq('id', studentId)
+          .single();
+
+        const { error: updateError } = await supabase
+          .from('student_profiles')
+          .update({ total_xp: (student?.total_xp || 0) + xpReward })
+          .eq('id', studentId);
+
+        if (updateError) throw updateError;
+      }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-xp-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['trust-xp-moderation'] });
       toast({
-        title: "Success",
-        description: "Student data updated successfully.",
+        title: "XP successfully updated ✅",
+        description: "Student XP has been updated.",
       });
-      setSelectedStudent(null);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to update student: ${error.message}`,
+        description: `Failed to update: ${error.message}`,
         variant: "destructive",
       });
     }
   });
 
-  const resetMutation = useMutation({
-    mutationFn: async (studentId: string) => {
-      const { error } = await supabase
+  // Manual XP Adjustment
+  const manualMutation = useMutation({
+    mutationFn: async () => {
+      // Find student by email
+      const { data: student, error: studentError } = await supabase
+        .from('student_profiles')
+        .select('id, total_xp, trust_score')
+        .eq('email', manualStudent)
+        .single();
+
+      if (studentError) throw new Error('Student not found');
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Log adjustment
+      const { error: logError } = await supabase
+        .from('manual_adjustment_log')
+        .insert({
+          student_id: student.id,
+          adjustment_type: manualXP >= 0 ? 'XP' : 'XP Deduction',
+          amount: Math.abs(manualXP),
+          reason: manualNotes,
+          admin_id: user.id
+        });
+
+      if (logError) throw logError;
+
+      // Update student XP and Trust
+      const newXP = Math.max(0, student.total_xp + manualXP);
+      const trustAdjustment = manualXP >= 0 ? 5 : -5;
+      const newTrust = Math.min(100, Math.max(0, student.trust_score + trustAdjustment));
+
+      const { error: updateError } = await supabase
         .from('student_profiles')
         .update({ 
-          total_xp: 0,
-          trust_score: 50
+          total_xp: newXP,
+          trust_score: newTrust
         })
-        .eq('id', studentId);
+        .eq('id', student.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trust-xp-moderation'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-xp-activity'] });
       toast({
-        title: "Success",
-        description: "Student data reset successfully.",
+        title: "XP successfully updated ✅",
+        description: "Manual XP adjustment completed.",
       });
+      setShowManualModal(false);
+      setManualStudent("");
+      setManualTask("");
+      setManualXP(0);
+      setManualNotes("");
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to reset student data: ${error.message}`,
+        description: error.message,
         variant: "destructive",
       });
     }
   });
 
-  const handleEdit = (student: any) => {
-    setSelectedStudent(student);
-    setEditXP(student.total_xp || 0);
-    setEditTrust(student.trust_score || 50);
-  };
-
-  const handleSave = () => {
-    if (!selectedStudent) return;
-    
-    updateMutation.mutate({
-      studentId: selectedStudent.id,
-      xp: editXP,
-      trust: editTrust
+  const handleApprove = (proof: any) => {
+    reviewMutation.mutate({
+      proofId: proof.id,
+      status: 'Verified',
+      xpReward: proof.task.xp_reward || 0,
+      studentId: proof.student.id
     });
   };
 
-  const handleReset = (student: any) => {
-    if (confirm(`Reset XP and Trust Score for ${student.full_name}?`)) {
-      resetMutation.mutate(student.id);
-    }
+  const handleReject = (proof: any) => {
+    reviewMutation.mutate({
+      proofId: proof.id,
+      status: 'Rejected',
+      xpReward: 0,
+      studentId: proof.student.id
+    });
   };
 
-  const paginatedStudents = students?.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil((students?.length || 0) / itemsPerPage);
+  const isLoading = loadingPending || loadingStudents || loadingActivity;
 
   if (isLoading) {
     return (
@@ -160,161 +341,318 @@ const TrustXPModeration = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-primary/10">
-          <Shield className="h-8 w-8 text-primary" />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <Shield className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Trust & XP Moderation</h1>
+            <p className="text-muted-foreground">
+              Manage and validate XP rewards, trust scores, and system-generated reputation across ProofLabAI
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold">Trust & XP Moderation</h1>
-          <p className="text-muted-foreground">Manage student XP and trust scores</p>
-        </div>
+        <Button onClick={() => setShowManualModal(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Manual Adjustment
+        </Button>
       </div>
 
+      {/* Filters */}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="pb-4">
+        <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search students..."
+                placeholder="Search by student name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
+            <Select value={collegeFilter} onValueChange={setCollegeFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="All Colleges" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Colleges</SelectItem>
+                {colleges?.map((college) => (
+                  <SelectItem key={college.id} value={college.id}>
+                    {college.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-semibold">Name</TableHead>
-                <TableHead className="font-semibold">Email</TableHead>
-                <TableHead className="font-semibold">XP</TableHead>
-                <TableHead className="font-semibold">Trust Score</TableHead>
-                <TableHead className="font-semibold">Created</TableHead>
-                <TableHead className="font-semibold text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedStudents?.map((student) => (
-                <TableRow key={student.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium">{student.full_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{student.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {student.total_xp || 0}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={
-                      (student.trust_score || 0) >= 80 ? 'default' :
-                      (student.trust_score || 0) >= 60 ? 'secondary' : 'destructive'
-                    }>
-                      {student.trust_score || 0}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(student.created_at).toLocaleDateString('en-GB')}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(student)}
-                        className="h-8 px-3"
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReset(student)}
-                        className="h-8 px-3"
-                      >
-                        <RotateCcw className="h-3 w-3 mr-1" />
-                        Reset
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <p className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, students?.length || 0)} of {students?.length || 0} students
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm px-3 py-1 bg-muted rounded">
-                  {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Edit Modal */}
-      <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
+      {/* Tabs */}
+      <Tabs defaultValue="pending" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="pending">
+            <Clock className="h-4 w-4 mr-2" />
+            Pending Reviews
+          </TabsTrigger>
+          <TabsTrigger value="students">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            All Students
+          </TabsTrigger>
+          <TabsTrigger value="activity">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Recent Adjustments
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Pending XP Reviews */}
+        <TabsContent value="pending">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Pending XP Reviews</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student</TableHead>
+                    <TableHead>College</TableHead>
+                    <TableHead>Task</TableHead>
+                    <TableHead>XP Awarded</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingReviews?.map((proof) => (
+                    <TableRow key={proof.id}>
+                      <TableCell className="font-medium">
+                        {proof.student.full_name}
+                        <div className="text-xs text-muted-foreground">{proof.student.email}</div>
+                      </TableCell>
+                      <TableCell>{proof.student.collegeName}</TableCell>
+                      <TableCell>{proof.task.title}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {proof.task.xp_reward || 0} XP
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                          Pending
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(proof)}
+                            className="h-8 bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleReject(proof)}
+                            className="h-8"
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {(!pendingReviews || pendingReviews.length === 0) && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No pending reviews at the moment
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* All Students Trust Scores */}
+        <TabsContent value="students">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Trust Score Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student</TableHead>
+                    <TableHead>College</TableHead>
+                    <TableHead>XP</TableHead>
+                    <TableHead>Trust Score</TableHead>
+                    <TableHead>Verified Proofs</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students?.slice(0, 20).map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">
+                        {student.full_name}
+                        <div className="text-xs text-muted-foreground">{student.email}</div>
+                      </TableCell>
+                      <TableCell>{student.collegeName}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {student.total_xp || 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={
+                          (student.trust_score || 0) >= 80 
+                            ? 'bg-green-100 text-green-700 border-green-200'
+                            : (student.trust_score || 0) >= 60 
+                            ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                            : 'bg-red-100 text-red-700 border-red-200'
+                        }>
+                          {student.trust_score || 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {student.verifiedProofsCount}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(student.updated_at).toLocaleDateString('en-GB')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => student.slug && window.open(`/portfolio/${student.slug}`, '_blank')}
+                          disabled={!student.slug}
+                        >
+                          View Profile
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Recent Activity */}
+        <TabsContent value="activity">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Recent Activity Feed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivity?.map((activity) => (
+                  <div 
+                    key={activity.id} 
+                    className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                  >
+                    <div className={`p-2 rounded-lg ${
+                      activity.adjustment_type.includes('Deduction') 
+                        ? 'bg-red-100' 
+                        : 'bg-green-100'
+                    }`}>
+                      {activity.adjustment_type.includes('Deduction') ? (
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      ) : (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">{activity.student.full_name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(activity.created_at).toLocaleString('en-GB')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {activity.adjustment_type}: {activity.adjustment_type.includes('Deduction') ? '-' : '+'}{activity.amount} points
+                      </p>
+                      {activity.reason && (
+                        <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          Note: {activity.reason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {(!recentActivity || recentActivity.length === 0) && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No recent adjustments
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Manual XP Adjustment Modal */}
+      <Dialog open={showManualModal} onOpenChange={setShowManualModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Student Data</DialogTitle>
+            <DialogTitle>Manual XP Adjustment</DialogTitle>
             <DialogDescription>
-              Update XP and Trust Score for {selectedStudent?.full_name}
+              Add or deduct XP for a student manually
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Current XP</label>
+              <Label>Student Email</Label>
               <Input
-                type="number"
-                value={editXP}
-                onChange={(e) => setEditXP(parseInt(e.target.value) || 0)}
-                min="0"
+                type="email"
+                placeholder="student@college.edu"
+                value={manualStudent}
+                onChange={(e) => setManualStudent(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Current Trust Score</label>
+              <Label>Task Title (Optional)</Label>
+              <Input
+                placeholder="e.g., Bonus XP for Achievement"
+                value={manualTask}
+                onChange={(e) => setManualTask(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>XP to Add/Deduct</Label>
               <Input
                 type="number"
-                value={editTrust}
-                onChange={(e) => setEditTrust(parseInt(e.target.value) || 0)}
-                min="0"
-                max="100"
+                placeholder="Use negative for deduction"
+                value={manualXP}
+                onChange={(e) => setManualXP(parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                placeholder="Reason for adjustment..."
+                value={manualNotes}
+                onChange={(e) => setManualNotes(e.target.value)}
+                rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedStudent(null)}>
+            <Button variant="outline" onClick={() => setShowManualModal(false)}>
               Cancel
             </Button>
             <Button
-              onClick={handleSave}
-              disabled={updateMutation.isPending}
+              onClick={() => manualMutation.mutate()}
+              disabled={!manualStudent || manualXP === 0 || manualMutation.isPending}
             >
-              {updateMutation.isPending ? 'Saving...' : 'Save'}
+              {manualMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>

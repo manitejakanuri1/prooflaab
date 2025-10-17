@@ -12,7 +12,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
 
 interface CollegeDashboardSidebarProps {
   activeTab: string;
@@ -32,6 +34,7 @@ const menuItems = [
 
 const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSidebarProps) => {
   const { toast } = useToast();
+  const { unreadCount } = useCollegeNotifications();
 
   const handleSignOut = async () => {
     try {
@@ -56,13 +59,16 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
         <div className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
+            const isNotifications = item.id === "notifications";
+            const showBadge = isNotifications && unreadCount > 0;
+            
             return (
               <Button
                 key={item.id}
                 variant="ghost"
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "w-full justify-start space-x-3 h-12 text-left text-sm md:text-base",
+                  "w-full justify-start space-x-3 h-12 text-left text-sm md:text-base relative",
                   activeTab === item.id 
                     ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium" 
                     : "text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400"
@@ -70,6 +76,14 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
               >
                 <Icon className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
                 <span className="truncate">{item.label}</span>
+                {showBadge && (
+                  <Badge 
+                    variant="destructive" 
+                    className="ml-auto h-5 px-2 text-[10px]"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
               </Button>
             );
           })}

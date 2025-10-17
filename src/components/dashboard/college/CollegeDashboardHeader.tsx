@@ -9,20 +9,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
+import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
 
 interface CollegeDashboardHeaderProps {
   collegeName: string;
   profilePhoto?: string | null;
   onMenuClick?: () => void;
   showMenuButton?: boolean;
+  onNotificationsClick?: () => void;
 }
 
-const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMenuButton }: CollegeDashboardHeaderProps) => {
+const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMenuButton, onNotificationsClick }: CollegeDashboardHeaderProps) => {
   const { signOut } = useAuth();
   const { toast } = useToast();
+  const { unreadCount } = useCollegeNotifications();
 
   const handleSignOut = async () => {
     try {
@@ -71,9 +75,21 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
         {/* Profile Actions */}
         <div className="flex items-center space-x-2 md:space-x-4">
           <ThemeToggle />
-          <Button variant="ghost" size="icon" className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            onClick={onNotificationsClick}
+          >
             <Bell className="h-4 w-4 md:h-5 md:w-5" />
-            <span className="absolute -top-1 -right-1 h-2 w-2 md:h-3 md:w-3 bg-red-500 rounded-full"></span>
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            )}
           </Button>
           
           <DropdownMenu>

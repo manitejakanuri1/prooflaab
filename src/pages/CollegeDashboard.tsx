@@ -27,6 +27,7 @@ const CollegeDashboard = () => {
         profilePhoto={collegeData.profilePhoto}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         showMenuButton={isMobile}
+        onNotificationsClick={() => setActiveTab("notifications")}
       />
       
       <div className="flex relative">

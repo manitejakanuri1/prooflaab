@@ -489,10 +489,9 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
                     size="sm"
                     onClick={downloadCSVTemplate}
-                    className="flex items-center gap-2 text-xs"
+                    className="flex items-center gap-2 text-xs bg-orange-600 hover:bg-orange-700 text-white"
                   >
                     <Download className="h-4 w-4" />
                     Download Template

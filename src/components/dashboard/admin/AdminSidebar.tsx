@@ -55,7 +55,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { open } = useSidebar();
+  const { open, setOpen, isMobile } = useSidebar();
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard Home", icon: LayoutDashboard },
@@ -115,6 +115,14 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     );
   };
 
+  const handleMenuClick = (tabId: string) => {
+    onTabChange(tabId);
+    // Close sidebar on mobile after navigation
+    if (isMobile) {
+      setOpen(false);
+    }
+  };
+
   const hasActiveChild = (item: any) => {
     return item.children?.some((child: any) => activeTab === child.id);
   };
@@ -167,7 +175,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
                             {item.children.map((child: any) => (
                               <SidebarMenuSubItem key={child.id}>
                                 <SidebarMenuSubButton
-                                  onClick={() => onTabChange(child.id)}
+                                  onClick={() => handleMenuClick(child.id)}
                                   className={cn(
                                     activeTab === child.id && "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300"
                                   )}
@@ -187,7 +195,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
-                      onClick={() => onTabChange(item.id)}
+                      onClick={() => handleMenuClick(item.id)}
                       className={cn(
                         isActive && "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
                       )}

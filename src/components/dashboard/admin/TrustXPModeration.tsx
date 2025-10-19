@@ -81,19 +81,26 @@ const TrustXPModeration = () => {
       
       const collegeMap = new Map(colleges?.map(c => [c.id, c.name]));
       
-      return data?.map(proof => ({
+      let filteredData = data?.map(proof => ({
         ...proof,
         student: {
           ...proof.student,
           collegeName: collegeMap.get(proof.student.college_id) || 'N/A'
         }
       }));
+
+      // Apply college filter
+      if (collegeFilter && collegeFilter !== 'all') {
+        filteredData = filteredData?.filter(proof => proof.student.college_id === collegeFilter);
+      }
+
+      return filteredData;
     }
   });
 
   // All Students Trust Scores
   const { data: students, isLoading: loadingStudents } = useQuery({
-    queryKey: ['trust-xp-moderation', searchTerm],
+    queryKey: ['trust-xp-moderation', searchTerm, collegeFilter],
     queryFn: async () => {
       let query = supabase
         .from('student_profiles')
@@ -101,6 +108,10 @@ const TrustXPModeration = () => {
 
       if (searchTerm) {
         query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      }
+
+      if (collegeFilter && collegeFilter !== 'all') {
+        query = query.eq('college_id', collegeFilter);
       }
 
       const { data, error } = await query.order('total_xp', { ascending: false });

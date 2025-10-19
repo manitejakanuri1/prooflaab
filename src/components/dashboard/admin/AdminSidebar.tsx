@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   LayoutDashboard, 
@@ -56,6 +56,7 @@ interface AdminSidebarProps {
 
 const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { open, setOpen, isMobile } = useSidebar();
   const { unreadCount } = useAdminNotifications();
@@ -156,9 +157,15 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   const handleMenuClick = (tabId: string, route?: string) => {
     if (route) {
-      // Navigate to specific route
+      // Navigate to specific route (like notifications)
       navigate(route);
     } else {
+      // For dashboard tabs, navigate to dashboard if not already there
+      const currentPath = location.pathname;
+      if (currentPath !== '/admin/dashboard') {
+        // Navigate back to dashboard with the selected tab
+        navigate('/admin/dashboard');
+      }
       onTabChange(tabId);
     }
     

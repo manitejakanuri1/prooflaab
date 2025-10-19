@@ -6,7 +6,7 @@ const AdminHeader = () => {
   return (
     <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border h-14 md:h-16 flex items-center justify-between px-3 md:px-6">
       <div className="flex items-center space-x-2 md:space-x-4">
-        <SidebarTrigger className="md:hidden" />
+        <SidebarTrigger />
         
         <div className="flex items-center space-x-2 md:space-x-3">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-1.5 md:p-2 rounded-lg">

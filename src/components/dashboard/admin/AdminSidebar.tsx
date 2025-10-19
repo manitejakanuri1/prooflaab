@@ -207,6 +207,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
                                 <SidebarMenuSubButton
                                   onClick={() => handleMenuClick(child.id)}
                                   className={cn(
+                                    "cursor-pointer",
                                     activeTab === child.id && "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300"
                                   )}
                                 >

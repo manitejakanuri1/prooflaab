@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -101,6 +101,16 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>(getInitialExpandedGroups());
 
+  // Update expanded groups when activeTab changes
+  useEffect(() => {
+    const groupToExpand = menuItems.find(item => 
+      item.children?.some((child: any) => child.id === activeTab)
+    );
+    
+    if (groupToExpand && !expandedGroups.includes(groupToExpand.id)) {
+      setExpandedGroups(prev => [...prev, groupToExpand.id]);
+    }
+  }, [activeTab]);
 
   const handleSignOut = async () => {
     try {

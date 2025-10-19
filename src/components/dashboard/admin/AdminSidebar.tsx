@@ -178,7 +178,10 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       <SidebarHeader className="border-b px-3 py-3">
         <div className="flex items-center gap-2">
           {open ? (
-            <Logo className="h-8 w-auto" alt="ProofLab Logo" />
+            <>
+              <Logo className="h-8 w-auto" alt="ProofLab Logo" />
+              <span className="font-semibold text-sm">ProofLabAI</span>
+            </>
           ) : (
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
               <Shield className="w-4 h-4 text-primary-foreground" />

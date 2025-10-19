@@ -140,6 +140,17 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   const handleMenuClick = (tabId: string) => {
     onTabChange(tabId);
+    
+    // Close all groups that don't contain the clicked tab
+    const parentGroup = menuItems.find(item => 
+      item.children?.some((child: any) => child.id === tabId)
+    );
+    
+    if (!parentGroup) {
+      // Clicking a top-level item, close all groups
+      setExpandedGroups([]);
+    }
+    
     // Close sidebar on mobile after navigation
     if (isMobile) {
       setOpen(false);

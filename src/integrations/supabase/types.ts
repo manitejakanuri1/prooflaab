@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          admin_user_id: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          link: string | null
+          message: string
+          metadata: Json | null
+          title: string
+          type: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          title: string
+          type: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string
@@ -1415,6 +1451,16 @@ export type Database = {
       is_email_confirmed: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      notify_all_admins: {
+        Args: {
+          notification_link?: string
+          notification_message: string
+          notification_metadata?: Json
+          notification_title: string
+          notification_type: string
+        }
+        Returns: undefined
       }
       reset_daily_credits: {
         Args: Record<PropertyKey, never>

@@ -19,9 +19,11 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  Plus
+  Plus,
+  Bell
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import {
   Sidebar,
   SidebarContent,
@@ -56,9 +58,18 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { open, setOpen, isMobile } = useSidebar();
+  const { unreadCount } = useAdminNotifications();
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard Home", icon: LayoutDashboard },
+    { 
+      id: "notifications", 
+      label: "Notifications", 
+      icon: Bell,
+      badge: unreadCount,
+      isRoute: true,
+      route: "/admin/notifications"
+    },
     { 
       id: "user-management", 
       label: "User Management", 
@@ -143,8 +154,13 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     });
   };
 
-  const handleMenuClick = (tabId: string) => {
-    onTabChange(tabId);
+  const handleMenuClick = (tabId: string, route?: string) => {
+    if (route) {
+      // Navigate to specific route
+      navigate(route);
+    } else {
+      onTabChange(tabId);
+    }
     
     // Close all groups that don't contain the clicked tab
     const parentGroup = menuItems.find(item => 
@@ -246,13 +262,19 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
-                      onClick={() => handleMenuClick(item.id)}
+                      onClick={() => handleMenuClick(item.id, (item as any).route)}
                       className={cn(
+                        "relative",
                         isActive && "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
                       )}
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
+                      {(item as any).badge && (item as any).badge > 0 && (
+                        <span className="ml-auto h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
+                          {(item as any).badge > 9 ? '9+' : (item as any).badge}
+                        </span>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

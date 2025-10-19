@@ -25,6 +25,7 @@ import OnboardingStartup from "./pages/OnboardingStartup";
 import OnboardingStudent from "./pages/OnboardingStudent";
 import OnboardingWizard from "./pages/OnboardingWizard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminNotifications from "./pages/AdminNotifications";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -102,6 +103,14 @@ const App = () => (
               element={
                 <RoleBasedProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/notifications" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminNotifications />
                 </RoleBasedProtectedRoute>
               } 
             />

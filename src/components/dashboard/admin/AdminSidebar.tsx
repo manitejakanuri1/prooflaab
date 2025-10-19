@@ -52,7 +52,6 @@ interface AdminSidebarProps {
 }
 
 const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { open, setOpen, isMobile } = useSidebar();
@@ -89,6 +88,20 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: "settings", label: "System Settings & Roles", icon: Settings }
   ];
 
+  // Find which group contains the active tab
+  const getInitialExpandedGroups = () => {
+    const groups: string[] = [];
+    menuItems.forEach(item => {
+      if (item.children?.some((child: any) => child.id === activeTab)) {
+        groups.push(item.id);
+      }
+    });
+    return groups;
+  };
+
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(getInitialExpandedGroups());
+
+
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -123,9 +136,16 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     }
   };
 
+  // Keep the group expanded when a child is active
   const hasActiveChild = (item: any) => {
     return item.children?.some((child: any) => activeTab === child.id);
   };
+
+  // Auto-expand groups with active children
+  const isGroupExpanded = (itemId: string, item: any) => {
+    return expandedGroups.includes(itemId) || hasActiveChild(item);
+  };
+
 
   return (
     <Sidebar collapsible="icon">
@@ -145,7 +165,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             <SidebarMenu>
               {menuItems.map((item) => {
                 const hasChildren = item.children && item.children.length > 0;
-                const isExpanded = expandedGroups.includes(item.id);
+                const isExpanded = isGroupExpanded(item.id, item);
                 const isActive = activeTab === item.id || hasActiveChild(item);
 
                 if (hasChildren) {

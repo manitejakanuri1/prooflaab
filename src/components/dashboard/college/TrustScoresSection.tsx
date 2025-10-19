@@ -169,53 +169,53 @@ const TrustScoresSection = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Students</p>
-                <p className="text-2xl font-bold">{stats.totalStudents}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Total Students</p>
+                <p className="text-xl md:text-2xl font-bold">{stats.totalStudents}</p>
               </div>
-              <Shield className="h-8 w-8 text-blue-500" />
+              <Shield className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">High Trust (≥80)</p>
-                <p className="text-2xl font-bold text-green-600">{stats.highTrust}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">High Trust (≥80)</p>
+                <p className="text-xl md:text-2xl font-bold text-green-600">{stats.highTrust}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
+              <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Average Trust</p>
-                <p className="text-2xl font-bold">{stats.averageTrust}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Average Trust</p>
+                <p className="text-xl md:text-2xl font-bold">{stats.averageTrust}</p>
               </div>
-              <Minus className="h-8 w-8 text-blue-500" />
+              <Minus className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Students</p>
-                <p className="text-2xl font-bold">{stats.activeStudents}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Active Students</p>
+                <p className="text-xl md:text-2xl font-bold">{stats.activeStudents}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-orange-500" />
+              <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>
@@ -223,70 +223,72 @@ const TrustScoresSection = () => {
 
       {/* Trust Scores Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+        <CardHeader className="p-3 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Shield className="h-4 w-4 md:h-5 md:w-5" />
             Student Trust Scores & Performance
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Trust Score</TableHead>
-                  <TableHead>Total XP</TableHead>
-                  <TableHead>Tasks Assigned</TableHead>
-                  <TableHead>Verified Proofs</TableHead>
-                  <TableHead>Performance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.length === 0 ? (
+        <CardContent className="p-3 md:p-6">
+          <div className="rounded-md border overflow-x-auto -mx-3 md:mx-0">
+            <div className="min-w-full inline-block align-middle">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No students found
-                    </TableCell>
+                    <TableHead className="min-w-[150px]">Student</TableHead>
+                    <TableHead className="min-w-[120px]">Trust Score</TableHead>
+                    <TableHead className="min-w-[80px] hidden sm:table-cell">Total XP</TableHead>
+                    <TableHead className="min-w-[100px] hidden md:table-cell">Tasks Assigned</TableHead>
+                    <TableHead className="min-w-[120px] hidden md:table-cell">Verified Proofs</TableHead>
+                    <TableHead className="min-w-[120px]">Performance</TableHead>
                   </TableRow>
-                ) : (
-                  students.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{student.full_name}</div>
-                          <div className="text-sm text-muted-foreground">{student.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getTrustScoreBadge(student.trust_score)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">{student.total_xp} XP</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{student.task_count}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          {student.verified_proofs}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-medium">
-                          {getPerformanceRating(student)}
-                        </span>
-                        {student.task_count > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            {Math.round((student.verified_proofs / student.task_count) * 100)}% completion
-                          </div>
-                        )}
+                </TableHeader>
+                <TableBody>
+                  {students.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No students found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    students.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium text-sm">{student.full_name}</div>
+                            <div className="text-xs text-muted-foreground truncate max-w-[150px]">{student.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getTrustScoreBadge(student.trust_score)}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <span className="font-medium text-sm">{student.total_xp} XP</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Badge variant="outline" className="text-xs">{student.task_count}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                            {student.verified_proofs}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs md:text-sm font-medium">
+                            {getPerformanceRating(student)}
+                          </span>
+                          {student.task_count > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              {Math.round((student.verified_proofs / student.task_count) * 100)}%
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

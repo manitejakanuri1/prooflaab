@@ -104,100 +104,101 @@ const UploadedProofs = () => {
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+        <CardHeader className="p-3 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <FileText className="h-4 w-4 md:h-5 md:w-5" />
             Uploaded Proofs
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Task</TableHead>
-                  <TableHead>File/Link</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>MOSS</TableHead>
-                  <TableHead>XP Reward</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {proofs?.map((proof) => (
-                  <TableRow key={proof.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{proof.student.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{proof.student.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{proof.task.title}</div>
-                    </TableCell>
-                    <TableCell>
-                      {proof.file_url ? (
-                        <a 
-                          href={proof.file_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-primary hover:underline"
-                        >
-                          View File <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">No file</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(proof.submitted_at), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(proof.status)}
-                    </TableCell>
-                    <TableCell>
-                      {getMossStatusBadge(proof.moss_status, proof.moss_score)}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{proof.task.xp_reward || 0} XP</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {proof.status === 'Under Review' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleReview(proof, "Verified")}
-                              className="text-green-600 border-green-300 hover:bg-green-50"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Verify
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleReview(proof, "Rejected")}
-                              className="text-red-600 border-red-300 hover:bg-red-50"
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                        {proof.file_url && !proof.moss_status && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleMossCheck(proof.id)}
-                            disabled={mossMutation.isPending}
-                            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+        <CardContent className="p-3 md:p-6">
+          <div className="rounded-md border overflow-x-auto -mx-3 md:mx-0">
+            <div className="min-w-full inline-block align-middle">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[150px]">Student</TableHead>
+                    <TableHead className="min-w-[150px]">Task</TableHead>
+                    <TableHead className="min-w-[100px] hidden sm:table-cell">File/Link</TableHead>
+                    <TableHead className="min-w-[100px] hidden md:table-cell">Submitted</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="min-w-[100px] hidden lg:table-cell">MOSS</TableHead>
+                    <TableHead className="min-w-[80px] hidden md:table-cell">XP Reward</TableHead>
+                    <TableHead className="min-w-[200px] sticky right-0 bg-background">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {proofs?.map((proof) => (
+                    <TableRow key={proof.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-sm">{proof.student.full_name}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[150px]">{proof.student.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm">{proof.task.title}</div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {proof.file_url ? (
+                          <a 
+                            href={proof.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-primary hover:underline text-xs md:text-sm"
                           >
-                            <Microscope className="h-3 w-3 mr-1" />
-                            MOSS
-                          </Button>
+                            View <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">No file</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-xs md:text-sm">
+                        {format(new Date(proof.submitted_at), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(proof.status)}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {getMossStatusBadge(proof.moss_status, proof.moss_score)}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className="font-medium text-sm">{proof.task.xp_reward || 0} XP</span>
+                      </TableCell>
+                      <TableCell className="sticky right-0 bg-background">
+                        <div className="flex gap-1 flex-wrap">
+                          {proof.status === 'Under Review' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleReview(proof, "Verified")}
+                                className="text-green-600 border-green-300 hover:bg-green-50 h-7 text-xs"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                <span className="hidden sm:inline">Verify</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleReview(proof, "Rejected")}
+                                className="text-red-600 border-red-300 hover:bg-red-50 h-7 text-xs"
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                <span className="hidden sm:inline">Reject</span>
+                              </Button>
+                            </>
+                          )}
+                          {proof.file_url && !proof.moss_status && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMossCheck(proof.id)}
+                              disabled={mossMutation.isPending}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50 h-7 text-xs"
+                            >
+                              <Microscope className="h-3 w-3 mr-1" />
+                              <span className="hidden sm:inline">MOSS</span>
+                            </Button>
                         )}
                         {proof.moss_url && (
                           <Button
@@ -211,19 +212,20 @@ const UploadedProofs = () => {
                               MOSS Report
                             </a>
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            
-            {(!proofs || proofs.length === 0) && (
-              <div className="text-center py-8 text-muted-foreground">
-                No proof submissions found.
-              </div>
-            )}
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {(!proofs || proofs.length === 0) && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No proof submissions found.
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

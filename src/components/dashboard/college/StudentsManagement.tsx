@@ -307,24 +307,24 @@ const StudentsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+        <CardHeader className="p-3 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Users className="h-4 w-4 md:h-5 md:w-5" />
             Students Management ({filteredStudents.length} students)
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-3 md:p-6">
           {/* Search and Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="relative lg:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm"
               />
             </div>
             
@@ -366,9 +366,9 @@ const StudentsManagement = () => {
           </div>
 
           {/* Trust Score Range Filter */}
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium min-w-fit">Trust Score Range:</span>
-            <div className="flex-1 px-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            <span className="text-sm font-medium whitespace-nowrap">Trust Score Range:</span>
+            <div className="flex-1 w-full sm:w-auto px-0 sm:px-4">
               <Slider
                 value={trustScoreRange}
                 onValueChange={setTrustScoreRange}
@@ -378,26 +378,26 @@ const StudentsManagement = () => {
                 className="w-full"
               />
             </div>
-            <span className="text-sm text-muted-foreground min-w-fit">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
               {trustScoreRange[0]}+ points
             </span>
           </div>
 
-          {/* Students Table */}
-          <div className="rounded-md border overflow-hidden">
-            <div className="overflow-x-auto">
+          {/* Students Table - Mobile Responsive */}
+          <div className="rounded-md border overflow-x-auto -mx-3 md:mx-0">
+            <div className="min-w-full inline-block align-middle">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[150px]">Name</TableHead>
-                    <TableHead className="min-w-[200px]">Email</TableHead>
+                    <TableHead className="min-w-[180px]">Email</TableHead>
                     <TableHead className="min-w-[100px] hidden md:table-cell">Branch</TableHead>
                     <TableHead className="min-w-[80px] hidden lg:table-cell">Batch</TableHead>
-                    <TableHead className="min-w-[120px]">Trust Score</TableHead>
-                    <TableHead className="min-w-[120px]">Tasks</TableHead>
-                    <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[100px] hidden lg:table-cell">Joined</TableHead>
-                    <TableHead className="min-w-[150px]">Actions</TableHead>
+                    <TableHead className="min-w-[100px]">Trust Score</TableHead>
+                    <TableHead className="min-w-[80px]">Tasks</TableHead>
+                    <TableHead className="min-w-[80px]">Status</TableHead>
+                    <TableHead className="min-w-[100px] hidden xl:table-cell">Joined</TableHead>
+                    <TableHead className="min-w-[120px] sticky right-0 bg-background">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -410,7 +410,7 @@ const StudentsManagement = () => {
                   ) : (
                     filteredStudents.map((student) => (
                       <TableRow key={student.id}>
-                        <TableCell>
+                        <TableCell className="font-medium text-sm">
                           <Button
                             variant="link"
                             className="p-0 h-auto font-medium text-left"
@@ -419,53 +419,53 @@ const StudentsManagement = () => {
                             {student.full_name}
                           </Button>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{student.email}</TableCell>
-                        <TableCell className="hidden md:table-cell">{student.branch || '-'}</TableCell>
-                        <TableCell className="hidden lg:table-cell">{student.batch || '-'}</TableCell>
+                        <TableCell className="text-xs md:text-sm text-muted-foreground">{student.email}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">{student.branch || '-'}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm">{student.batch || '-'}</TableCell>
                         <TableCell>{getTrustScoreBadge(student.trust_score)}</TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleViewTaskHistory(student)}
-                            className="h-auto p-1 font-normal"
+                            className="h-auto p-1 font-normal text-xs"
                           >
                             <Hash className="h-3 w-3 mr-1" />
-                            {student.task_count} tasks
+                            {student.task_count}
                           </Button>
                         </TableCell>
                         <TableCell>{getStatusBadge(student)}</TableCell>
-                        <TableCell className="hidden lg:table-cell text-muted-foreground">
+                        <TableCell className="hidden xl:table-cell text-xs md:text-sm text-muted-foreground">
                           {format(new Date(student.created_at), 'MMM dd, yyyy')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="sticky right-0 bg-background">
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleViewProfile(student)}
-                              className="h-8 w-8 p-0"
+                              className="h-7 w-7 p-0"
                               title="View Profile"
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3 w-3 md:h-4 md:w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleViewTaskHistory(student)}
-                              className="h-8 w-8 p-0"
+                              className="h-7 w-7 p-0"
                               title="View Task History"
                             >
-                              <FileText className="h-4 w-4" />
+                              <FileText className="h-3 w-3 md:h-4 md:w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDeactivateStudent(student.id)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                               title="Deactivate Student"
                             >
-                              <UserMinus className="h-4 w-4" />
+                              <UserMinus className="h-3 w-3 md:h-4 md:w-4" />
                             </Button>
                           </div>
                         </TableCell>

@@ -448,7 +448,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -457,18 +457,18 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
               className="border border-gray-200/50 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-pointer dark:bg-gray-800 hover:scale-105"
               onClick={() => onNavigate?.(stat.navigateTo)}
             >
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
+              <CardContent className="p-3 md:p-4 lg:p-6">
+                <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 truncate">
                       {stat.title}
                     </p>
-                    <p className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
                       {stat.value}
                     </p>
                   </div>
                   <div className={`p-2 md:p-3 rounded-lg ${stat.bgColor} dark:bg-gray-700 flex-shrink-0`}>
-                    <Icon className={`h-4 w-4 md:h-6 md:w-6 ${stat.color} dark:text-gray-300`} />
+                    <Icon className={`h-5 w-5 md:h-6 md:w-6 ${stat.color} dark:text-gray-300`} />
                   </div>
                 </div>
               </CardContent>
@@ -479,10 +479,10 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
 
       {/* CSV Upload Section */}
       <Card className="border border-gray-200/50 dark:border-gray-700 shadow-sm dark:bg-gray-800">
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="flex items-center space-x-2">
-              <Upload className="h-5 w-5" />
+        <CardHeader className="p-3 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
+              <Upload className="h-4 w-4 md:h-5 md:w-5" />
               <span>Student Onboarding - CSV Upload</span>
             </CardTitle>
             <TooltipProvider>
@@ -504,7 +504,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
             </TooltipProvider>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-3 md:p-6">
           <div className="bg-blue-50 dark:bg-blue-950/30 p-3 md:p-4 rounded-lg border border-blue-200 dark:border-blue-800">
             <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm md:text-base">CSV Format Requirements:</h3>
             <ul className="text-xs md:text-sm text-blue-800 dark:text-blue-200 space-y-1">
@@ -517,14 +517,14 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
             </p>
           </div>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-8 text-center">
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 md:p-8 text-center">
             <label htmlFor="csv-upload" className={`inline-block ${!isProcessing ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
-              <Upload className="mx-auto h-8 w-8 md:h-12 md:w-12 text-gray-400 mb-2 md:mb-4 hover:text-orange-600 transition-colors" />
+              <Upload className="mx-auto h-8 w-8 md:h-12 md:w-12 text-gray-400 dark:text-gray-500 mb-2 md:mb-4 hover:text-orange-600 transition-colors" />
             </label>
-            <h3 className="text-base md:text-lg font-medium text-gray-900 mb-1 md:mb-2">
+            <h3 className="text-base md:text-lg font-medium text-gray-900 dark:text-gray-100 mb-1 md:mb-2">
               Upload Student Records
             </h3>
-            <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3 md:mb-4">
               Select a CSV file containing student information
             </p>
             
@@ -543,7 +543,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
             </label>
             
             {uploadStatus && (
-              <p className="mt-3 text-sm text-gray-600">{uploadStatus}</p>
+              <p className="mt-3 text-xs md:text-sm text-gray-600 dark:text-gray-400">{uploadStatus}</p>
             )}
           </div>
 
@@ -551,7 +551,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
             <div className="flex justify-center">
               <Button 
                 onClick={processCSV} 
-                className="bg-orange-600 hover:bg-orange-700"
+                className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700"
                 disabled={isProcessing}
               >
                 {isProcessing ? (
@@ -566,50 +566,52 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
             </div>
           )}
 
-          {/* Results Table */}
+          {/* Results Table - Mobile Responsive */}
           {results.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-medium text-gray-900 mb-3">Upload Results</h4>
-              <div className="overflow-x-auto">
+            <div className="mt-6 space-y-3">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm md:text-base">Upload Results</h4>
+              <div className="rounded-md border overflow-x-auto -mx-3 md:mx-0">
+                <div className="min-w-full inline-block align-middle">
                   <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Branch</TableHead>
-                      <TableHead>Year of Study</TableHead>
-                      <TableHead>Preferred Skills</TableHead>
-                      <TableHead>Key Interests</TableHead>
-                      <TableHead>Career Goals</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Message</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.map((result, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{result.record.name}</TableCell>
-                        <TableCell>{result.record.email}</TableCell>
-                        <TableCell>{result.record.branch}</TableCell>
-                        <TableCell>{result.record.year_of_study}</TableCell>
-                        <TableCell className="max-w-32 truncate">{result.record.preferred_skills}</TableCell>
-                        <TableCell className="max-w-32 truncate">{result.record.key_interests}</TableCell>
-                        <TableCell className="max-w-32 truncate">{result.record.career_goals}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(result.status)}
-                            <span className={getStatusColor(result.status)}>
-                              {getStatusText(result.status)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          {result.message}
-                        </TableCell>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[120px]">Name</TableHead>
+                        <TableHead className="min-w-[150px]">Email</TableHead>
+                        <TableHead className="min-w-[100px] hidden sm:table-cell">Branch</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Year of Study</TableHead>
+                        <TableHead className="min-w-[120px] hidden lg:table-cell">Preferred Skills</TableHead>
+                        <TableHead className="min-w-[120px] hidden lg:table-cell">Key Interests</TableHead>
+                        <TableHead className="min-w-[120px] hidden xl:table-cell">Career Goals</TableHead>
+                        <TableHead className="min-w-[80px]">Status</TableHead>
+                        <TableHead className="min-w-[150px]">Message</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {results.map((result, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium text-sm">{result.record.name}</TableCell>
+                          <TableCell className="text-xs md:text-sm">{result.record.email}</TableCell>
+                          <TableCell className="hidden sm:table-cell text-sm">{result.record.branch}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">{result.record.year_of_study}</TableCell>
+                          <TableCell className="hidden lg:table-cell max-w-32 truncate text-sm">{result.record.preferred_skills}</TableCell>
+                          <TableCell className="hidden lg:table-cell max-w-32 truncate text-sm">{result.record.key_interests}</TableCell>
+                          <TableCell className="hidden xl:table-cell max-w-32 truncate text-sm">{result.record.career_goals}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(result.status)}
+                              <span className={`text-xs md:text-sm font-medium ${getStatusColor(result.status)}`}>
+                                {getStatusText(result.status)}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                            {result.message}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           )}
@@ -617,29 +619,31 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
           {/* Sample Data Table - Show when no results */}
           {results.length === 0 && (
             <div className="mt-6">
-              <h4 className="font-medium text-gray-900 mb-3">Upload Status</h4>
-              <div className="overflow-x-auto">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-sm md:text-base">Upload Status</h4>
+              <div className="rounded-md border overflow-x-auto -mx-3 md:mx-0">
+                <div className="min-w-full inline-block align-middle">
                   <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Branch</TableHead>
-                      <TableHead>Year of Study</TableHead>
-                      <TableHead>Preferred Skills</TableHead>
-                      <TableHead>Key Interests</TableHead>
-                      <TableHead>Career Goals</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center text-gray-500">
-                        No data uploaded yet
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[120px]">Name</TableHead>
+                        <TableHead className="min-w-[150px]">Email</TableHead>
+                        <TableHead className="min-w-[100px] hidden sm:table-cell">Branch</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Year of Study</TableHead>
+                        <TableHead className="min-w-[120px] hidden lg:table-cell">Preferred Skills</TableHead>
+                        <TableHead className="min-w-[120px] hidden lg:table-cell">Key Interests</TableHead>
+                        <TableHead className="min-w-[120px] hidden xl:table-cell">Career Goals</TableHead>
+                        <TableHead className="min-w-[80px]">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-gray-500 dark:text-gray-400 py-8">
+                          No data uploaded yet
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           )}

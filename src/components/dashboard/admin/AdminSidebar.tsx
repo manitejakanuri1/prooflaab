@@ -131,11 +131,15 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   };
 
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => 
-      prev.includes(groupId) 
-        ? prev.filter(id => id !== groupId)
-        : [...prev, groupId]
-    );
+    setExpandedGroups(prev => {
+      if (prev.includes(groupId)) {
+        // If clicking the already expanded group, collapse it
+        return prev.filter(id => id !== groupId);
+      } else {
+        // If opening a new group, close all others and open only this one
+        return [groupId];
+      }
+    });
   };
 
   const handleMenuClick = (tabId: string) => {

@@ -78,31 +78,31 @@ const StudentApplicationsPage = () => {
             <div className="space-y-4">
               {applications.map((application) => (
                 <Card key={application.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold text-foreground">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-foreground">
                             {application.tasks?.title || 'Unknown Task'}
                           </h3>
-                          <Badge variant="outline">{application.tasks?.category || 'General'}</Badge>
+                          <Badge variant="outline" className="text-xs">{application.tasks?.category || 'General'}</Badge>
                         </div>
                         {application.tasks?.description && (
-                          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                          <p className="text-muted-foreground text-xs sm:text-sm mb-3 line-clamp-2">
                             {application.tasks.description}
                           </p>
                         )}
                       </div>
                       
-                      <div className="flex flex-col items-end gap-2 ml-4">
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:ml-4">
                         <div className="flex items-center gap-1">
                           <Award className="h-4 w-4 text-orange-500" />
-                          <span className="font-semibold">{application.tasks?.xp_reward || 0}</span>
-                          <span className="text-sm text-muted-foreground">XP</span>
+                          <span className="font-semibold text-sm">{application.tasks?.xp_reward || 0}</span>
+                          <span className="text-xs text-muted-foreground">XP</span>
                         </div>
                         <Badge 
                           variant="outline" 
-                          className={`${getStatusColor(application.status)} flex items-center gap-1 w-fit`}
+                          className={`${getStatusColor(application.status)} flex items-center gap-1 w-fit text-xs`}
                         >
                           {getStatusIcon(application.status)}
                           {application.status}

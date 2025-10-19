@@ -202,9 +202,9 @@ const StudentAvailableTasksPage = () => {
           </div>
 
           {/* Search & Sort Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/30 rounded-lg border">
-            <div className="flex items-center gap-2 flex-1">
-              <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <Input
                 placeholder="Search tasks, skills..."
                 value={searchQuery}
@@ -214,10 +214,10 @@ const StudentAvailableTasksPage = () => {
             </div>
             
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border border-border z-50">
                 <SelectItem value="Newest First">Newest First</SelectItem>
                 <SelectItem value="Oldest First">Oldest First</SelectItem>
                 <SelectItem value="XP (High to Low)">XP (High to Low)</SelectItem>
@@ -245,32 +245,32 @@ const StudentAvailableTasksPage = () => {
             <div className="grid gap-4">
               {filteredAndSortedTasks.map((task) => (
                 <Card key={task.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4">
+                      <div className="flex-1 min-w-0">
                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                           <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
-                           <Badge variant="outline">{task.category || 'General'}</Badge>
+                           <h3 className="text-base sm:text-lg font-semibold text-foreground">{task.title}</h3>
+                           <Badge variant="outline" className="text-xs">{task.category || 'General'}</Badge>
                            {getSourceBadge(task)}
                             {task.is_paid && (
-                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
+                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs">
                                 <DollarSign className="h-3 w-3 mr-1" />
                                 Paid
                               </Badge>
                             )}
                          </div>
                         {task.description && (
-                          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                          <p className="text-muted-foreground text-xs sm:text-sm mb-3 line-clamp-2">
                             {task.description}
                           </p>
                         )}
                       </div>
                       
-                      <div className="flex flex-col items-end gap-2 ml-4">
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:ml-4">
                         <div className="flex items-center gap-1">
                           <Award className="h-4 w-4 text-orange-500" />
-                          <span className="font-semibold">{task.xp_reward || 0}</span>
-                          <span className="text-sm text-muted-foreground">XP</span>
+                          <span className="font-semibold text-sm">{task.xp_reward || 0}</span>
+                          <span className="text-xs text-muted-foreground">XP</span>
                         </div>
                         {getApplicationStatusBadge(task.has_applied, task.application_status)}
                       </div>
@@ -289,17 +289,17 @@ const StudentAvailableTasksPage = () => {
                       </div>
                     )}
 
-                    <Separator className="my-4" />
+                    <Separator className="my-3 sm:my-4" />
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          Due: {format(new Date(task.due_date), "MMM dd, yyyy")}
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span className="whitespace-nowrap">Due: {format(new Date(task.due_date), "MMM dd, yyyy")}</span>
                         </div>
                          <div className="flex items-center gap-1">
-                           <Clock className="h-4 w-4" />
-                           Posted: {task.created_at ? format(new Date(task.created_at), "MMM dd") : 'Unknown'}
+                           <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                           <span className="whitespace-nowrap">Posted: {task.created_at ? format(new Date(task.created_at), "MMM dd") : 'Unknown'}</span>
                          </div>
                       </div>
                       
@@ -307,13 +307,14 @@ const StudentAvailableTasksPage = () => {
                         {!task.has_applied ? (
                           <Button
                             onClick={() => setSelectedTaskId(task.id)}
-                            className="bg-orange-600 hover:bg-orange-700"
+                            className="bg-orange-600 hover:bg-orange-700 w-full sm:w-auto text-xs sm:text-sm"
+                            size="sm"
                           >
-                            <User className="h-4 w-4 mr-2" />
+                            <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                             Apply Now
                           </Button>
                         ) : (
-                          <Button variant="outline" disabled>
+                          <Button variant="outline" disabled className="w-full sm:w-auto text-xs sm:text-sm" size="sm">
                             {task.application_status === 'Accepted' ? 'Accepted' : 
                              task.application_status === 'Rejected' ? 'Rejected' : 'Applied'}
                           </Button>

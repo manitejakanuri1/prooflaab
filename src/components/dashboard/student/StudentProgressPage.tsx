@@ -104,7 +104,7 @@ const StudentProgressPage = () => {
   return (
     <div className="space-y-6">
       {/* Progress Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {progressCards.map((card, index) => {
           const Icon = card.icon;
           return (
@@ -132,14 +132,14 @@ const StudentProgressPage = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Monthly XP Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">XP Earned Monthly</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg font-semibold">XP Earned Monthly</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={monthlyXPData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -153,11 +153,11 @@ const StudentProgressPage = () => {
 
         {/* Trust Score Trend */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Trust Score Trends</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg font-semibold">Trust Score Trends</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={trustScoreData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -177,14 +177,14 @@ const StudentProgressPage = () => {
       </div>
 
       {/* Task Completion and Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Task Completion Pie Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Task Completion Breakdown</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg font-semibold">Task Completion Breakdown</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={taskCompletionData}
@@ -220,10 +220,10 @@ const StudentProgressPage = () => {
 
         {/* Progress Indicators */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Progress Indicators</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg font-semibold">Progress Indicators</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">Task Completion Rate</span>

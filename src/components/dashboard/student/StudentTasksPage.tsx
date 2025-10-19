@@ -184,9 +184,9 @@ const StudentTasksPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/30 rounded-lg border">
-            <div className="flex items-center gap-2 flex-1">
-              <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <Input
                 placeholder="Search tasks..."
                 value={searchQuery}
@@ -195,12 +195,12 @@ const StudentTasksPage = () => {
               />
             </div>
             
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border border-border z-50">
                   <SelectItem value="All">All Status</SelectItem>
                   <SelectItem value="Applied">Applied</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
@@ -210,10 +210,10 @@ const StudentTasksPage = () => {
               </Select>
 
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Source" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border border-border z-50">
                   <SelectItem value="All">All Sources</SelectItem>
                   <SelectItem value="College">College</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
@@ -222,10 +222,10 @@ const StudentTasksPage = () => {
               </Select>
               
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border border-border z-50">
                   <SelectItem value="Due Date (ASC)">Due Date (Soonest)</SelectItem>
                   <SelectItem value="Due Date (DESC)">Due Date (Latest)</SelectItem>
                   <SelectItem value="XP (DESC)">XP (High to Low)</SelectItem>
@@ -260,15 +260,15 @@ const StudentTasksPage = () => {
             <div className="space-y-3">
               {filteredAndSortedTasks.map((task) => (
                 <Card key={task.id} className="hover:shadow-md transition-shadow border-l-4 border-l-primary/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                       {/* Left: Task Info */}
                       <div className="flex-1 min-w-0 space-y-2">
-                        <div className="flex items-start gap-3 flex-wrap">
-                          <h3 className="font-semibold text-base text-foreground line-clamp-1 flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+                          <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2 flex-1 min-w-0">
                             {task.title}
                           </h3>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge 
                               variant="outline" 
                               className={getSourceBadgeColor(task.created_by_type || task.source || '')}
@@ -285,25 +285,25 @@ const StudentTasksPage = () => {
                         </div>
 
                         {task.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">
+                          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                             {task.description}
                           </p>
                         )}
 
-                        <div className="flex items-center gap-4 flex-wrap text-sm">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{formatDueDate(task.deadline)}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-orange-600 font-medium">
-                            <Award className="h-4 w-4" />
+                            <Award className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{task.xp_reward || 0} XP</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Right: Actions */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
                         {task.status === 'Applied' && task.can_start && (
                           <Button
                             size="sm"

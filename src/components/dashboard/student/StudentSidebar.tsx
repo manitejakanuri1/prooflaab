@@ -57,9 +57,9 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
   };
 
   return (
-    <aside className="w-64 bg-sidebar backdrop-blur-sm border-r border-sidebar-border h-screen overflow-y-auto">
-      <nav className="p-4">
-        <div className="space-y-2">
+    <aside className="w-56 sm:w-64 bg-sidebar backdrop-blur-sm border-r border-sidebar-border h-screen overflow-y-auto">
+      <nav className="p-2 sm:p-4">
+        <div className="space-y-1 sm:space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -68,27 +68,27 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
                 variant="ghost"
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "w-full justify-start space-x-3 h-12 text-left text-sm md:text-base",
+                  "w-full justify-start gap-2 sm:gap-3 h-10 sm:h-12 text-left text-xs sm:text-sm px-2 sm:px-4",
                   activeTab === item.id 
                     ? "bg-primary/10 text-primary font-medium border border-primary/20" 
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
-                <Icon className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                <span className="truncate text-xs sm:text-sm">{item.label}</span>
               </Button>
             );
           })}
           
           {/* Sign Out Button */}
-          <div className="pt-4 mt-4 border-t border-sidebar-border">
+          <div className="pt-2 sm:pt-4 mt-2 sm:mt-4 border-t border-sidebar-border">
             <Button
               variant="ghost"
               onClick={handleSignOut}
-              className="w-full justify-start space-x-3 h-12 text-left text-sm md:text-base text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300"
+              className="w-full justify-start gap-2 sm:gap-3 h-10 sm:h-12 text-left text-xs sm:text-sm px-2 sm:px-4 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300"
             >
-              <LogOut className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
-              <span className="truncate">Sign Out</span>
+              <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Sign Out</span>
             </Button>
           </div>
         </div>

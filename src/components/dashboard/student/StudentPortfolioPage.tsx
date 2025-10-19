@@ -88,35 +88,35 @@ const StudentPortfolioPage = () => {
       {/* Profile Header */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold">My Portfolio</CardTitle>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0 sm:justify-between">
+            <CardTitle className="text-lg sm:text-xl font-semibold">My Portfolio</CardTitle>
+            <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4">
+              <div className="flex items-center gap-2">
                 {portfolio?.is_public ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                <span className="text-sm">{portfolio?.is_public ? 'Public' : 'Private'}</span>
+                <span className="text-xs sm:text-sm">{portfolio?.is_public ? 'Public' : 'Private'}</span>
                 <Switch checked={portfolio?.is_public || false} onCheckedChange={toggleVisibility} />
               </div>
-              <Button onClick={handleShare} className="bg-orange-600 hover:bg-orange-700">
-                <Share className="h-4 w-4 mr-2" />
+              <Button onClick={handleShare} className="bg-orange-600 hover:bg-orange-700 w-full xs:w-auto text-xs sm:text-sm" size="sm">
+                <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Share Portfolio
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-start space-x-6">
-            <Avatar className="h-24 w-24">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
+            <Avatar className="h-20 w-20 sm:h-24 sm:w-24 mx-auto sm:mx-0">
               <AvatarImage src={profile?.profile_photo_url || undefined} alt={profile?.full_name} />
-              <AvatarFallback className="bg-orange-100 text-orange-700 text-lg">
+              <AvatarFallback className="bg-orange-100 text-orange-700 text-base sm:text-lg">
                 {getInitials(profile?.full_name || 'Student')}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900">{profile?.full_name}</h2>
-              <p className="text-gray-600 mb-4">{profile?.email}</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 text-center sm:text-left">{profile?.full_name}</h2>
+              <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base text-center sm:text-left truncate">{profile?.email}</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4">
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
                   <div className="text-2xl font-bold text-orange-600">{profile?.total_xp || 0}</div>
                   <div className="text-sm text-gray-600">Total XP</div>

@@ -126,12 +126,12 @@ const StudentDashboardOverview = () => {
               {ongoingTasks.slice(0, 5).map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border border-border"
                 >
-                  <div className="flex-1">
-                    <h4 className="font-medium text-foreground">{task.title}</h4>
-                    <div className="flex items-center space-x-4 mt-1">
-                      <span className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-foreground text-sm sm:text-base truncate">{task.title}</h4>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
+                      <span className="text-xs sm:text-sm text-muted-foreground">
                         {task.deadline ? (
                           (() => {
                             const deadlineDate = new Date(task.deadline);
@@ -148,12 +148,12 @@ const StudentDashboardOverview = () => {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2 sm:ml-2">
                     {task.status === 'Pending' ? (
                       <Button
                         size="sm"
                         onClick={() => startTask(task.id)}
-                        className="bg-orange-600 hover:bg-orange-700"
+                        className="bg-orange-600 hover:bg-orange-700 w-full sm:w-auto text-xs sm:text-sm"
                       >
                         Start Task
                       </Button>
@@ -161,7 +161,7 @@ const StudentDashboardOverview = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-orange-500/20 text-orange-700 dark:text-orange-400 hover:bg-orange-500/10"
+                        className="border-orange-500/20 text-orange-700 dark:text-orange-400 hover:bg-orange-500/10 w-full sm:w-auto text-xs sm:text-sm"
                       >
                         Continue
                       </Button>

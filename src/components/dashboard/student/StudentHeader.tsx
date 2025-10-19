@@ -34,38 +34,38 @@ const StudentHeader = ({
   };
 
   return (
-    <header className="bg-background/90 backdrop-blur-sm border-b border-border px-6 py-4 dark:bg-card/90">
+    <header className="bg-background/90 backdrop-blur-sm border-b border-border px-3 sm:px-6 py-3 sm:py-4 dark:bg-card/90">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo and Menu */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {showMenuButton && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onMenuClick}
-              className="p-2"
+              className="p-1.5 sm:p-2"
             >
               <Menu className="h-5 w-5" />
             </Button>
           )}
           
-          <div className="text-gray-900 dark:text-white font-bold text-lg flex items-center space-x-3">
-            <Logo className="h-12 w-12" />
-            <span>ProofLabAI</span>
+          <div className="text-gray-900 dark:text-white font-bold text-base sm:text-lg flex items-center gap-2 sm:gap-3">
+            <Logo className="h-8 w-8 sm:h-12 sm:w-12" />
+            <span className="hidden xs:inline">ProofLabAI</span>
           </div>
         </div>
         
         {/* User Profile */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative p-2 hover:bg-accent">
-                <Bell className="h-5 w-5" />
+              <Button variant="ghost" size="sm" className="relative p-1.5 sm:p-2 hover:bg-accent">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {unreadCount > 0 && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 min-w-[20px] p-0 flex items-center justify-center text-[10px] font-bold rounded-full pointer-events-none"
+                    className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 min-w-[16px] sm:min-w-[20px] p-0 flex items-center justify-center text-[9px] sm:text-[10px] font-bold rounded-full pointer-events-none"
                     style={{ zIndex: 10 }}
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -73,7 +73,7 @@ const StudentHeader = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-96 p-0" align="end" sideOffset={8}>
+            <PopoverContent className="w-[calc(100vw-2rem)] sm:w-96 p-0" align="end" sideOffset={8}>
               <div className="flex items-center justify-between p-4 border-b">
                 <h3 className="font-semibold text-base">Notifications</h3>
                 {unreadCount > 0 && (
@@ -145,12 +145,12 @@ const StudentHeader = ({
             </PopoverContent>
           </Popover>
           
-          <span className="text-sm text-muted-foreground hidden sm:block">
+          <span className="text-xs sm:text-sm text-muted-foreground hidden md:block truncate max-w-[120px]">
             Welcome, {studentName}
           </span>
-          <Avatar className="h-10 w-10">
+          <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
             <AvatarImage src={profilePhoto || undefined} alt={studentName} />
-            <AvatarFallback className="bg-primary/10 text-primary">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs sm:text-sm">
               {getInitials(studentName)}
             </AvatarFallback>
           </Avatar>

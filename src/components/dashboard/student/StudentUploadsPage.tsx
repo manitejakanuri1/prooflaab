@@ -171,21 +171,20 @@ const StudentUploadsPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg border">
-            <div className="flex items-center gap-2 flex-1">
-              <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 p-3 sm:p-4 bg-muted/50 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <Input
-                placeholder="Search uploads by task, notes, or feedback..."
+                placeholder="Search uploads..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1"
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border border-border z-50">
@@ -197,7 +196,7 @@ const StudentUploadsPage = () => {
               </Select>
               
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border border-border z-50">
@@ -226,16 +225,16 @@ const StudentUploadsPage = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b">
-                    <TableHead className="font-semibold">Task Details</TableHead>
-                    <TableHead className="font-semibold">Upload Date</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">File</TableHead>
-                    <TableHead className="font-semibold">Feedback</TableHead>
-                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                    <TableHead className="font-semibold text-xs sm:text-sm sticky left-0 bg-background z-10 min-w-[150px]">Task Details</TableHead>
+                    <TableHead className="font-semibold text-xs sm:text-sm min-w-[120px]">Upload Date</TableHead>
+                    <TableHead className="font-semibold text-xs sm:text-sm min-w-[100px]">Status</TableHead>
+                    <TableHead className="font-semibold text-xs sm:text-sm min-w-[120px] hidden sm:table-cell">File</TableHead>
+                    <TableHead className="font-semibold text-xs sm:text-sm min-w-[150px] hidden md:table-cell">Feedback</TableHead>
+                    <TableHead className="text-right font-semibold text-xs sm:text-sm sticky right-0 bg-background z-10 min-w-[120px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -242,17 +242,17 @@ const AdminAnalytics = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Weekly Proof Uploads */}
         <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Activity className="h-5 w-5 text-primary" />
+          <CardHeader className="p-4 md:pb-4">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               Proof Uploads Trend
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-80">
+          <CardContent className="p-4 pt-0">
+            <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={weeklyProofs}>
                   <defs>

@@ -353,19 +353,19 @@ const TrustXPModeration = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Shield className="h-8 w-8 text-primary" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
+            <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Trust & XP Moderation</h1>
-            <p className="text-muted-foreground">
-              Manage and validate XP rewards, trust scores, and system-generated reputation across ProofLabAI
+            <h1 className="text-2xl md:text-3xl font-bold">Trust & XP Moderation</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage and validate XP rewards, trust scores, and system-generated reputation
             </p>
           </div>
         </div>
-        <Button onClick={() => setShowManualModal(true)} className="gap-2">
+        <Button onClick={() => setShowManualModal(true)} className="gap-2 w-full sm:w-auto" size="sm">
           <Plus className="h-4 w-4" />
           Manual Adjustment
         </Button>
@@ -373,9 +373,9 @@ const TrustXPModeration = () => {
 
       {/* Filters */}
       <Card className="border-0 shadow-lg">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
+        <CardContent className="pt-4 md:pt-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search by student name or email..."
@@ -385,10 +385,10 @@ const TrustXPModeration = () => {
               />
             </div>
             <Select value={collegeFilter} onValueChange={setCollegeFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="All Colleges" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border shadow-md z-50">
                 <SelectItem value="all">All Colleges</SelectItem>
                 {colleges?.map((college) => (
                   <SelectItem key={college.id} value={college.id}>
@@ -402,40 +402,44 @@ const TrustXPModeration = () => {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="pending" className="space-y-6">
+      <Tabs defaultValue="pending" className="space-y-4 md:space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="pending">
-            <Clock className="h-4 w-4 mr-2" />
-            Pending Reviews
+          <TabsTrigger value="pending" className="text-xs sm:text-sm">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Pending Reviews</span>
+            <span className="sm:hidden">Pending</span>
           </TabsTrigger>
-          <TabsTrigger value="students">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            All Students
+          <TabsTrigger value="students" className="text-xs sm:text-sm">
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">All Students</span>
+            <span className="sm:hidden">Students</span>
           </TabsTrigger>
-          <TabsTrigger value="activity">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            Recent Adjustments
+          <TabsTrigger value="activity" className="text-xs sm:text-sm">
+            <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Recent Adjustments</span>
+            <span className="sm:hidden">Activity</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Pending XP Reviews */}
         <TabsContent value="pending">
           <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Pending XP Reviews</CardTitle>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg">Pending XP Reviews</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>College</TableHead>
-                    <TableHead>Task</TableHead>
-                    <TableHead>XP Awarded</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[180px]">Student</TableHead>
+                      <TableHead className="min-w-[120px]">College</TableHead>
+                      <TableHead className="min-w-[150px]">Task</TableHead>
+                      <TableHead>XP Awarded</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right min-w-[180px]">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {pendingReviews?.map((proof) => (
                     <TableRow key={proof.id}>
@@ -480,6 +484,7 @@ const TrustXPModeration = () => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
               {(!pendingReviews || pendingReviews.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
                   No pending reviews at the moment
@@ -492,22 +497,23 @@ const TrustXPModeration = () => {
         {/* All Students Trust Scores */}
         <TabsContent value="students">
           <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Trust Score Overview</CardTitle>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg">Trust Score Overview</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>College</TableHead>
-                    <TableHead>XP</TableHead>
-                    <TableHead>Trust Score</TableHead>
-                    <TableHead>Verified Proofs</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[180px]">Student</TableHead>
+                      <TableHead className="min-w-[120px]">College</TableHead>
+                      <TableHead>XP</TableHead>
+                      <TableHead>Trust Score</TableHead>
+                      <TableHead>Verified Proofs</TableHead>
+                      <TableHead>Last Updated</TableHead>
+                      <TableHead className="text-right min-w-[120px]">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {students?.slice(0, 20).map((student) => (
                     <TableRow key={student.id}>
@@ -552,6 +558,7 @@ const TrustXPModeration = () => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -82,12 +82,12 @@ const AdminDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="h-screen flex flex-col w-full bg-background overflow-hidden">
-        <AdminHeader />
-        <div className="flex flex-1 overflow-hidden">
-          <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
-          <main className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-auto p-6">
+      <div className="min-h-screen flex w-full bg-background">
+        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <AdminHeader />
+          <main className="flex-1 overflow-auto">
+            <div className="p-4 md:p-6">
               {renderContent()}
             </div>
           </main>

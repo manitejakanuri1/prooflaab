@@ -189,21 +189,21 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
         {kpiCards.map((kpi, index) => (
           <Card 
             key={index} 
             className="hover:shadow-lg transition-all cursor-pointer hover:scale-105"
             onClick={kpi.onClick}
           >
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">{kpi.title}</p>
-                  <p className="text-2xl font-bold">{kpi.value}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">{kpi.title}</p>
+                  <p className="text-xl md:text-2xl font-bold">{kpi.value}</p>
                   <p className="text-xs text-muted-foreground">{kpi.subtitle}</p>
                 </div>
-                <kpi.icon className={`h-8 w-8 ${kpi.color}`} />
+                <kpi.icon className={`h-6 w-6 md:h-8 md:w-8 ${kpi.color} flex-shrink-0`} />
               </div>
             </CardContent>
           </Card>
@@ -211,16 +211,16 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
       </div>
 
       {/* Filter Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4" />
           <span className="text-sm font-medium">Time Range:</span>
         </div>
         <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Select period" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-background border shadow-md z-50">
             <SelectItem value="7">Last 7 days</SelectItem>
             <SelectItem value="30">Last 30 days</SelectItem>
             <SelectItem value="90">Last 3 months</SelectItem>
@@ -229,21 +229,21 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />
               Signups Trend
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="p-4 md:p-6 pt-0">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Bar dataKey="studentSignups" fill="hsl(var(--primary))" name="Students" radius={4} />
                   <Bar dataKey="collegeSignups" fill="hsl(var(--secondary))" name="Colleges" radius={4} />
@@ -254,19 +254,19 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5" />
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <ClipboardCheck className="h-4 w-4 md:h-5 md:w-5" />
               Proof Submissions
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="p-4 md:p-6 pt-0">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Line 
                     type="monotone" 
@@ -282,19 +282,19 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Eye className="h-4 w-4 md:h-5 md:w-5" />
               Task Lifecycle
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="p-4 md:p-6 pt-0">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Bar dataKey="tasksCreated" fill="hsl(var(--chart-1))" name="Created" radius={4} />
                   <Bar dataKey="tasksCompleted" fill="hsl(var(--chart-2))" name="Completed" radius={4} />

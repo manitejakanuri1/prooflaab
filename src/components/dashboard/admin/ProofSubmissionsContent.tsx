@@ -345,24 +345,24 @@ const ProofSubmissionsContent = () => {
       <Card className="shadow-sm">
         <CardContent className="p-0">
           {submissions.length === 0 ? (
-          <div className="py-16">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <FileIcon className="h-8 w-8 text-muted-foreground" />
+          <div className="py-12 md:py-16 text-center">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-muted rounded-full flex items-center justify-center mb-4 mx-auto">
+              <FileIcon className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">No submissions found</h3>
-            <p className="text-muted-foreground">Encourage students to upload their proofs.</p>
+            <h3 className="text-base md:text-lg font-medium text-foreground mb-2">No submissions found</h3>
+            <p className="text-sm text-muted-foreground">Encourage students to upload their proofs.</p>
           </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b">
-                    <TableHead className="font-semibold">Student Name + Email</TableHead>
-                    <TableHead className="font-semibold">Task Title</TableHead>
-                    <TableHead className="font-semibold">Submission Type</TableHead>
-                    <TableHead className="font-semibold">Submission Date</TableHead>
-                    <TableHead className="font-semibold">Status Badge</TableHead>
-                    <TableHead className="font-semibold">Action Buttons</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm min-w-[200px]">Student Name + Email</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm min-w-[150px]">Task Title</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm">Submission Type</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm">Submission Date</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm">Status Badge</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm min-w-[200px]">Action Buttons</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

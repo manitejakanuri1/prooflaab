@@ -9,7 +9,7 @@ const AdminHeader = () => {
         <SidebarTrigger />
         
         <div className="flex items-center space-x-2 md:space-x-3">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-1.5 md:p-2 rounded-lg">
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-1.5 md:p-2 rounded-lg">
             <Shield className="h-4 w-4 md:h-6 md:w-6 text-white" />
           </div>
           <div className="hidden sm:block">

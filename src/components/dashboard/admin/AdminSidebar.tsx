@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Plus
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import {
   Sidebar,
   SidebarContent,
@@ -176,10 +177,13 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b px-3 py-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 text-primary-foreground" />
-          </div>
-          {open && <span className="font-semibold text-sm">ProofLab Admin</span>}
+          {open ? (
+            <Logo className="h-8 w-auto" alt="ProofLab Logo" />
+          ) : (
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-primary-foreground" />
+            </div>
+          )}
         </div>
       </SidebarHeader>
 

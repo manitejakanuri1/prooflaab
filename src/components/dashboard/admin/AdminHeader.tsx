@@ -1,10 +1,10 @@
+import React, { useState } from "react";
 import { Shield, Bell } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import AdminNotificationsPopover from "./AdminNotificationsPopover";
-import { useState } from "react";
 
 const AdminHeader = () => {
   const { recentNotifications, unreadCount, markAsRead, markAllAsRead } = useAdminNotifications();

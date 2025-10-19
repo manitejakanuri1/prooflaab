@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

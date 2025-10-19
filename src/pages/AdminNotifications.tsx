@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
+import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Bell, FileCheck, ListTodo, Users, AlertCircle, Trash2, CheckCheck } fro
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AdminNotifications() {
   const { 
@@ -20,6 +22,7 @@ export default function AdminNotifications() {
   } = useAdminNotifications();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'proof' | 'task' | 'user' | 'system'>('all');
+  const [activeTab, setActiveTab] = useState("notifications");
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -45,10 +48,14 @@ export default function AdminNotifications() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdminHeader />
-      
-      <div className="container mx-auto p-6 space-y-6">
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <div className="flex-1 flex flex-col">
+          <AdminHeader />
+          
+          <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -163,7 +170,9 @@ export default function AdminNotifications() {
             )}
           </CardContent>
         </Card>
+          </div>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

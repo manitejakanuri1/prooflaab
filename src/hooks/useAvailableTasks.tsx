@@ -25,6 +25,7 @@ interface AvailableTask {
   xp: number | null;
   has_applied?: boolean;
   application_status?: 'Pending Review' | 'Accepted' | 'Rejected';
+  startup_name?: string | null;
 }
 
 export const useAvailableTasks = () => {
@@ -107,9 +108,23 @@ export const useAvailableTasks = () => {
         applicationMap.set(app.task_id, app.status);
       });
 
+      // Fetch startup names for tasks created by startups
+      const startupIds = tasks.filter(t => t.created_by_startup_id).map(t => t.created_by_startup_id);
+      let startupNames = new Map();
+      
+      if (startupIds.length > 0) {
+        const { data: startupsData } = await supabase
+          .from('startups')
+          .select('user_id, name')
+          .in('user_id', startupIds);
+        
+        startupsData?.forEach(s => startupNames.set(s.user_id, s.name));
+      }
+
       // Merge application status with tasks
       const tasksWithApplicationStatus = tasks.map(task => ({
         ...task,
+        startup_name: task.created_by_startup_id ? (startupNames.get(task.created_by_startup_id) || 'Startup') : null,
         has_applied: applicationMap.has(task.id),
         application_status: applicationMap.get(task.id),
       }));

@@ -247,33 +247,39 @@ const StudentAvailableTasksPage = () => {
                 <Card key={task.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4">
-                      <div className="flex-1 min-w-0">
-                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                           <h3 className="text-base sm:text-lg font-semibold text-foreground">{task.title}</h3>
-                           <Badge variant="outline" className="text-xs">{task.category || 'General'}</Badge>
-                           {getSourceBadge(task)}
-                            {task.is_paid && (
-                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs">
-                                <DollarSign className="h-3 w-3 mr-1" />
-                                Paid
-                              </Badge>
-                            )}
+                       <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="text-base sm:text-lg font-semibold text-foreground">{task.title}</h3>
+                            <Badge variant="outline" className="text-xs">{task.category || 'General'}</Badge>
+                            {getSourceBadge(task)}
+                             {task.is_paid && (
+                               <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs">
+                                 <DollarSign className="h-3 w-3 mr-1" />
+                                 Paid
+                               </Badge>
+                             )}
+                          </div>
+                          {task.startup_name && (
+                            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              {task.startup_name}
+                            </p>
+                          )}
+                         {task.description && (
+                           <p className="text-muted-foreground text-xs sm:text-sm mb-3 line-clamp-2">
+                             {task.description}
+                           </p>
+                         )}
+                       </div>
+                       
+                       <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:ml-4">
+                         <div className="flex items-center gap-1">
+                           <Award className="h-4 w-4 text-orange-500" />
+                           <span className="font-semibold text-sm">{task.xp_reward || 0}</span>
+                           <span className="text-xs text-muted-foreground">XP</span>
                          </div>
-                        {task.description && (
-                          <p className="text-muted-foreground text-xs sm:text-sm mb-3 line-clamp-2">
-                            {task.description}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:ml-4">
-                        <div className="flex items-center gap-1">
-                          <Award className="h-4 w-4 text-orange-500" />
-                          <span className="font-semibold text-sm">{task.xp_reward || 0}</span>
-                          <span className="text-xs text-muted-foreground">XP</span>
-                        </div>
-                        {getApplicationStatusBadge(task.has_applied, task.application_status)}
-                      </div>
+                         {getApplicationStatusBadge(task.has_applied, task.application_status)}
+                       </div>
                     </div>
 
                     {task.required_skills && task.required_skills.length > 0 && (
@@ -291,17 +297,23 @@ const StudentAvailableTasksPage = () => {
 
                     <Separator className="my-3 sm:my-4" />
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                          <span className="whitespace-nowrap">Due: {format(new Date(task.due_date), "MMM dd, yyyy")}</span>
-                        </div>
+                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                       <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                         {task.duration_days && (
+                           <div className="flex items-center gap-1">
+                             <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                             <span className="whitespace-nowrap">{Math.ceil(task.duration_days / 7)} weeks</span>
+                           </div>
+                         )}
                          <div className="flex items-center gap-1">
-                           <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                           <span className="whitespace-nowrap">Posted: {task.created_at ? format(new Date(task.created_at), "MMM dd") : 'Unknown'}</span>
+                           <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                           <span className="whitespace-nowrap">Due: {format(new Date(task.due_date), "MMM dd, yyyy")}</span>
                          </div>
-                      </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="whitespace-nowrap">Posted: {task.created_at ? format(new Date(task.created_at), "MMM dd") : 'Unknown'}</span>
+                          </div>
+                       </div>
                       
                       <div className="flex gap-2">
                         {!task.has_applied ? (

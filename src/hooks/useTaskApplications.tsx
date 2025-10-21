@@ -170,6 +170,17 @@ export const useReviewApplication = () => {
     }) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Get the application details first
+      const { data: application, error: appError } = await supabase
+        .from('task_applications')
+        .select('task_id, student_id')
+        .eq('id', applicationId)
+        .single();
+
+      if (appError) throw appError;
+      if (!application) throw new Error('Application not found');
+
+      // Update the application status
       const { data, error } = await supabase
         .from('task_applications')
         .update({
@@ -183,12 +194,39 @@ export const useReviewApplication = () => {
         .single();
 
       if (error) throw error;
+
+      // If accepted, assign the task to the student
+      if (status === 'Accepted') {
+        const { error: taskError } = await supabase
+          .from('tasks')
+          .update({
+            student_id: application.student_id,
+          })
+          .eq('id', application.task_id);
+
+        if (taskError) throw taskError;
+
+        // Create a notification for the student
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert({
+            student_id: application.student_id,
+            title: 'Application Accepted',
+            message: 'Your application has been accepted! You can now start working on the task.',
+            type: 'task_assigned',
+          });
+
+        if (notifError) console.error('Failed to create notification:', notifError);
+      }
+
       return data;
     },
     onSuccess: (data) => {
       toast.success(`Application ${data.status.toLowerCase()} successfully!`);
       queryClient.invalidateQueries({ queryKey: ['startup-applications'] });
       queryClient.invalidateQueries({ queryKey: ['startup-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-student-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to review application');

@@ -113,11 +113,11 @@ const Portfolio = () => {
   const trustScore = portfolio?.student_profiles?.trust_score || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
+    <div className="light min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
       {/* Header */}
-      <header className="bg-background/90 backdrop-blur-sm border-b border-border px-6 py-4 dark:bg-card/90">
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="text-gray-900 dark:text-white font-bold text-lg flex items-center space-x-3">
+          <div className="text-gray-900 font-bold text-lg flex items-center space-x-3">
             <Logo />
             <span>ProofLabAI</span>
           </div>

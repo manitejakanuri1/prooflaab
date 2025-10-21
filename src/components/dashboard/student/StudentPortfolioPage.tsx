@@ -26,7 +26,7 @@ const StudentPortfolioPage = () => {
         <CardContent>
           <div className="animate-pulse space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-muted rounded"></div>
             ))}
           </div>
         </CardContent>
@@ -107,27 +107,27 @@ const StudentPortfolioPage = () => {
           <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
             <Avatar className="h-20 w-20 sm:h-24 sm:w-24 mx-auto sm:mx-0">
               <AvatarImage src={profile?.profile_photo_url || undefined} alt={profile?.full_name} />
-              <AvatarFallback className="bg-orange-100 text-orange-700 text-base sm:text-lg">
+              <AvatarFallback className="bg-primary/10 text-primary text-base sm:text-lg">
                 {getInitials(profile?.full_name || 'Student')}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 text-center sm:text-left">{profile?.full_name}</h2>
-              <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base text-center sm:text-left truncate">{profile?.email}</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground text-center sm:text-left">{profile?.full_name}</h2>
+              <p className="text-muted-foreground mb-3 sm:mb-4 text-sm sm:text-base text-center sm:text-left truncate">{profile?.email}</p>
               
               <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4">
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">{profile?.total_xp || 0}</div>
-                  <div className="text-sm text-gray-600">Total XP</div>
+                <div className="text-center p-4 bg-primary/10 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{profile?.total_xp || 0}</div>
+                  <div className="text-sm text-muted-foreground">Total XP</div>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{profile?.trust_score || 0}</div>
-                  <div className="text-sm text-gray-600">Trust Score</div>
+                <div className="text-center p-4 bg-secondary/20 rounded-lg">
+                  <div className="text-2xl font-bold text-secondary-foreground">{profile?.trust_score || 0}</div>
+                  <div className="text-sm text-muted-foreground">Trust Score</div>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{verifiedUploads.length}</div>
-                  <div className="text-sm text-gray-600">Completed Tasks</div>
+                <div className="text-center p-4 bg-accent/20 rounded-lg">
+                  <div className="text-2xl font-bold text-accent-foreground">{verifiedUploads.length}</div>
+                  <div className="text-sm text-muted-foreground">Completed Tasks</div>
                 </div>
               </div>
             </div>
@@ -146,27 +146,27 @@ const StudentPortfolioPage = () => {
         <CardContent>
           {verifiedUploads.length === 0 ? (
             <div className="text-center py-8">
-              <Award className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No verified tasks yet</h3>
-              <p className="text-gray-500">Complete and submit tasks to build your portfolio.</p>
+              <Award className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No verified tasks yet</h3>
+              <p className="text-muted-foreground">Complete and submit tasks to build your portfolio.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {verifiedUploads.map((upload) => (
                 <div
                   key={upload.id}
-                  className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                  className="p-4 border border-border rounded-lg hover:shadow-md transition-shadow bg-card"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-gray-900 flex-1">
+                    <h4 className="font-medium text-foreground flex-1">
                       {upload.tasks?.title || 'Unknown Task'}
                     </h4>
-                    <Badge className="bg-green-100 text-green-800 ml-2">
+                    <Badge className="bg-accent/20 text-accent-foreground ml-2">
                       ✅ Verified
                     </Badge>
                   </div>
                   
-                  <div className="text-sm text-gray-600 mb-3">
+                  <div className="text-sm text-muted-foreground mb-3">
                     Completed on {format(new Date(upload.submitted_at), "MMM dd, yyyy")}
                   </div>
                   
@@ -204,23 +204,23 @@ const StudentPortfolioPage = () => {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Bio</h4>
-              <p className="text-gray-600">
+              <h4 className="font-medium text-foreground mb-2">Bio</h4>
+              <p className="text-muted-foreground">
                 {portfolio?.bio || "No bio added yet. Update your portfolio in Settings to add a bio!"}
               </p>
             </div>
             
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Skills</h4>
+              <h4 className="font-medium text-foreground mb-2">Skills</h4>
               <div className="flex flex-wrap gap-2">
                 {portfolio?.skills && portfolio.skills.length > 0 ? (
                   portfolio.skills.map((skill, index) => (
-                    <Badge key={index} variant="outline" className="bg-orange-50 text-orange-700">
+                    <Badge key={index} variant="outline" className="bg-primary/10 text-primary">
                       {skill}
                     </Badge>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-sm">No skills added yet. Update your portfolio in Settings to add skills!</p>
+                  <p className="text-muted-foreground text-sm">No skills added yet. Update your portfolio in Settings to add skills!</p>
                 )}
               </div>
             </div>

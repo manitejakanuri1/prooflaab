@@ -77,6 +77,8 @@ export const useAllStudentTasks = () => {
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'In Progress';
         
+        console.log('Task:', task.title, 'started_at:', task.started_at, 'proofUploads:', proofUploads.length);
+        
         if (proofUploads.length > 0) {
           const latestProof = proofUploads[proofUploads.length - 1];
           if (latestProof.status === 'Verified') {
@@ -87,6 +89,8 @@ export const useAllStudentTasks = () => {
         } else if (!task.started_at) {
           status = 'Applied';
         }
+        
+        console.log('Task status set to:', status);
 
         allTasks.push({
           id: task.id,

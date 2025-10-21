@@ -97,40 +97,39 @@ export const usePortfolio = (slug?: string) => {
             .maybeSingle();
 
           if (fetchError) {
-            if (fetchError.code === 'PGRST116') {
-              // Portfolio doesn't exist yet - create it
-              const { data: newPortfolio, error: insertError } = await supabase
-                .from('student_portfolios')
-                .insert({
-                  student_id: profileData.id,
-                  is_public: true,
-                })
-                .select(`
-                  *,
-                  student_profiles!inner(
-                    full_name,
-                    email,
-                    profile_photo_url,
-                    total_xp,
-                    trust_score
-                  )
-                `)
-                .single();
-
-              if (insertError) {
-                console.error('Error creating portfolio:', insertError);
-                setError('Failed to create portfolio');
-                return;
-              }
-
-              setPortfolio(newPortfolio as PortfolioWithProfile);
-            } else {
-              throw fetchError;
-            }
-            return;
+            throw fetchError;
           }
 
-          setPortfolio(data as PortfolioWithProfile);
+          // If no portfolio exists, create one
+          if (!data) {
+            const { data: newPortfolio, error: insertError } = await supabase
+              .from('student_portfolios')
+              .insert({
+                student_id: profileData.id,
+                is_public: true,
+              })
+              .select(`
+                *,
+                student_profiles!inner(
+                  full_name,
+                  email,
+                  profile_photo_url,
+                  total_xp,
+                  trust_score
+                )
+              `)
+              .single();
+
+            if (insertError) {
+              console.error('Error creating portfolio:', insertError);
+              setError('Failed to create portfolio');
+              return;
+            }
+
+            setPortfolio(newPortfolio as PortfolioWithProfile);
+          } else {
+            setPortfolio(data as PortfolioWithProfile);
+          }
         } else {
           throw new Error('No user or slug provided');
         }

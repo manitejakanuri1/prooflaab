@@ -21,15 +21,18 @@ export function useStartupActivity() {
 
       const activities: ActivityItem[] = [];
 
-      // Get recent tasks posted
-      const { data: recentTasks } = await supabase
+      // Get all task IDs created by this startup
+      const { data: tasks } = await supabase
         .from('tasks')
         .select('id, title, created_at')
         .eq('created_by_startup_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
 
-      recentTasks?.forEach(task => {
+      const taskIds = tasks?.map(t => t.id) || [];
+
+      // Add recent tasks to activities
+      tasks?.slice(0, 5).forEach(task => {
         activities.push({
           id: `task-${task.id}`,
           type: 'task_posted',
@@ -40,52 +43,58 @@ export function useStartupActivity() {
         });
       });
 
-      // Get recent applications
+      if (taskIds.length === 0) {
+        return activities;
+      }
+
+      // Get recent applications for these tasks
       const { data: recentApplications } = await supabase
         .from('task_applications')
         .select(`
           id,
           created_at,
-          tasks!inner (title, created_by_startup_id),
-          student_profiles (full_name)
+          task_id,
+          student_profiles:student_id (full_name)
         `)
-        .eq('tasks.created_by_startup_id', user.id)
+        .in('task_id', taskIds)
         .order('created_at', { ascending: false })
         .limit(5);
 
       recentApplications?.forEach(app => {
+        const task = tasks?.find(t => t.id === app.task_id);
         activities.push({
           id: `app-${app.id}`,
           type: 'application_received',
           title: 'New Application',
-          description: `${app.student_profiles?.full_name || 'A student'} applied for "${app.tasks?.title}"`,
+          description: `${app.student_profiles?.full_name || 'A student'} applied for "${task?.title || 'a task'}"`,
           timestamp: app.created_at,
           status: 'info',
         });
       });
 
-      // Get recent submissions
+      // Get recent submissions for these tasks
       const { data: recentSubmissions } = await supabase
         .from('proof_uploads')
         .select(`
           id,
           submitted_at,
           status,
-          tasks!inner (title, created_by_startup_id),
-          student_profiles (full_name)
+          task_id,
+          student_profiles:student_id (full_name)
         `)
-        .eq('tasks.created_by_startup_id', user.id)
+        .in('task_id', taskIds)
         .order('submitted_at', { ascending: false })
         .limit(5);
 
       recentSubmissions?.forEach(submission => {
+        const task = tasks?.find(t => t.id === submission.task_id);
         activities.push({
           id: `sub-${submission.id}`,
           type: submission.status === 'Verified' ? 'proof_verified' : 'submission_received',
           title: submission.status === 'Verified' ? 'Proof Verified' : 'New Submission',
           description: submission.status === 'Verified' 
             ? `Verified proof submission from ${submission.student_profiles?.full_name || 'student'}`
-            : `New submission received for "${submission.tasks?.title}"`,
+            : `New submission received for "${task?.title || 'a task'}"`,
           timestamp: submission.submitted_at,
           status: submission.status === 'Verified' ? 'success' : 'info',
         });

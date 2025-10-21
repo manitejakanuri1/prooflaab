@@ -34,15 +34,26 @@ export function useStartupSubmissions() {
     queryFn: async () => {
       if (!user) return [];
 
+      // First, get all task IDs created by this startup
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('created_by_startup_id', user.id);
+
+      if (tasksError) throw tasksError;
+      if (!tasks || tasks.length === 0) return [];
+
+      const taskIds = tasks.map(t => t.id);
+
+      // Now fetch proof uploads for these tasks
       const { data, error } = await supabase
         .from('proof_uploads')
         .select(`
           *,
-          tasks!inner (
+          tasks:task_id (
             title,
             description,
-            xp_reward,
-            created_by_startup_id
+            xp_reward
           ),
           student_profiles:student_id (
             full_name,
@@ -50,7 +61,7 @@ export function useStartupSubmissions() {
             profile_photo_url
           )
         `)
-        .eq('tasks.created_by_startup_id', user.id)
+        .in('task_id', taskIds)
         .order('submitted_at', { ascending: false });
 
       if (error) throw error;

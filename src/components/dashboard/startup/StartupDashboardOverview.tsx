@@ -90,7 +90,7 @@ export function StartupDashboardOverview() {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
@@ -110,8 +110,24 @@ export function StartupDashboardOverview() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Users className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">
+                  {statsLoading ? '...' : stats?.pendingApplications || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">Pending Applications</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-orange-600" />
+                <CheckCircle className="h-6 w-6 text-orange-600" />
               </div>
               <div>
                 <div className="text-2xl font-bold">

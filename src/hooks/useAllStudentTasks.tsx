@@ -103,18 +103,26 @@ export const useAllStudentTasks = () => {
         });
       });
 
-      // Add pending applications (not yet assigned)
+      // Add applications (both pending and accepted)
       (applications || []).forEach(app => {
-        if (app.tasks && app.status === 'Pending Review') {
+        if (app.tasks) {
           // Only show if task is not already assigned
           const isAlreadyAssigned = allTasks.some(t => t.id === app.tasks.id);
           if (!isAlreadyAssigned) {
+            // Determine status based on application state
+            let taskStatus: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
+            if (app.status === 'Pending Review') {
+              taskStatus = 'Applied'; // Waiting for approval
+            } else if (app.status === 'Accepted') {
+              taskStatus = 'Applied'; // Accepted but not started yet
+            }
+
             allTasks.push({
               id: app.tasks.id,
               title: app.tasks.title,
               description: app.tasks.description,
               deadline: app.tasks.due_date,
-              status: 'Applied',
+              status: taskStatus,
               source: app.tasks.created_by_startup_id ? 'Startup' : (app.tasks.created_by_type || 'Admin'),
               created_by_type: app.tasks.created_by_type,
               xp_reward: app.tasks.xp_reward,
@@ -122,7 +130,7 @@ export const useAllStudentTasks = () => {
               application_status: app.status,
               application_id: app.id,
               proof_submitted: false,
-              can_start: false,
+              can_start: app.status === 'Accepted', // Can only start if accepted
             });
           }
         }

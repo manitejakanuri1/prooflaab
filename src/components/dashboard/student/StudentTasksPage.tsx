@@ -24,7 +24,8 @@ import {
   FileText,
   MoreVertical,
   X,
-  Target
+  Target,
+  Clock
 } from "lucide-react";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import TaskDetailsDialog from "./TaskDetailsDialog";
@@ -279,7 +280,7 @@ const StudentTasksPage = () => {
                               variant="outline" 
                               className={getStatusColor(task.status)}
                             >
-                              {task.status}
+                              {task.application_status === 'Pending Review' ? 'Pending Review' : task.status}
                             </Badge>
                           </div>
                         </div>
@@ -304,6 +305,17 @@ const StudentTasksPage = () => {
 
                       {/* Right: Actions */}
                       <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
+                        {task.status === 'Applied' && !task.can_start && task.application_status === 'Pending Review' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                          >
+                            <Clock className="h-4 w-4 mr-1" />
+                            Awaiting Approval
+                          </Button>
+                        )}
                         {task.status === 'Applied' && task.can_start && (
                           <Button
                             size="sm"

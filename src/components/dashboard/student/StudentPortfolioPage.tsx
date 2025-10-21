@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useProofUploads } from "@/hooks/useProofUploads";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { Award, Eye, EyeOff, ExternalLink, Share } from "lucide-react";
+import { Award, Eye, EyeOff, ExternalLink, Share, Star, Trophy, CheckCircle, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -116,19 +116,36 @@ const StudentPortfolioPage = () => {
               <h2 className="text-xl sm:text-2xl font-bold text-foreground text-center sm:text-left">{profile?.full_name}</h2>
               <p className="text-muted-foreground mb-3 sm:mb-4 text-sm sm:text-base text-center sm:text-left truncate">{profile?.email}</p>
               
-              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4">
-                <div className="text-center p-4 bg-primary/10 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{profile?.total_xp || 0}</div>
-                  <div className="text-sm text-muted-foreground">Total XP</div>
-                </div>
-                <div className="text-center p-4 bg-secondary/20 rounded-lg">
-                  <div className="text-2xl font-bold text-secondary-foreground">{profile?.trust_score || 0}</div>
-                  <div className="text-sm text-muted-foreground">Trust Score</div>
-                </div>
-                <div className="text-center p-4 bg-accent/20 rounded-lg">
-                  <div className="text-2xl font-bold text-accent-foreground">{verifiedUploads.length}</div>
-                  <div className="text-sm text-muted-foreground">Completed Tasks</div>
-                </div>
+              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="text-sm text-muted-foreground">Total XP</div>
+                      <Star className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <div className="text-3xl font-bold text-foreground">{profile?.total_xp || 0}</div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="text-sm text-muted-foreground">Trust Score</div>
+                      <Trophy className="h-5 w-5 text-purple-500" />
+                    </div>
+                    <div className="text-3xl font-bold text-foreground">{profile?.trust_score || 0}</div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="text-sm text-muted-foreground">Completed Tasks</div>
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    </div>
+                    <div className="text-3xl font-bold text-foreground">{verifiedUploads.length}</div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>

@@ -37,46 +37,103 @@ export const usePortfolio = (slug?: string) => {
         setLoading(true);
         setError(null);
 
-        let query = supabase
-          .from('student_portfolios')
-          .select(`
-            *,
-            student_profiles!inner(
-              full_name,
-              email,
-              profile_photo_url,
-              total_xp,
-              trust_score
-            )
-          `);
-
         if (slug) {
           // Public portfolio access by slug
-          query = query.eq('slug', slug).eq('is_public', true);
+          const { data, error: fetchError } = await supabase
+            .from('student_portfolios')
+            .select(`
+              *,
+              student_profiles!inner(
+                full_name,
+                email,
+                profile_photo_url,
+                total_xp,
+                trust_score
+              )
+            `)
+            .eq('slug', slug)
+            .eq('is_public', true)
+            .maybeSingle();
+
+          if (fetchError) {
+            if (fetchError.code === 'PGRST116') {
+              setError('Portfolio not found');
+            } else {
+              throw fetchError;
+            }
+            return;
+          }
+
+          setPortfolio(data as PortfolioWithProfile);
         } else if (user) {
-          // Current user's portfolio
-          query = query.eq('student_profiles.user_id', user.id);
+          // Current user's portfolio - first get student profile ID
+          const { data: profileData, error: profileError } = await supabase
+            .from('student_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (profileError || !profileData) {
+            console.error('Error fetching student profile:', profileError);
+            setError('Student profile not found');
+            setLoading(false);
+            return;
+          }
+
+          // Now fetch portfolio with the student_id
+          const { data, error: fetchError } = await supabase
+            .from('student_portfolios')
+            .select(`
+              *,
+              student_profiles!inner(
+                full_name,
+                email,
+                profile_photo_url,
+                total_xp,
+                trust_score
+              )
+            `)
+            .eq('student_id', profileData.id)
+            .maybeSingle();
+
+          if (fetchError) {
+            if (fetchError.code === 'PGRST116') {
+              // Portfolio doesn't exist yet - create it
+              const { data: newPortfolio, error: insertError } = await supabase
+                .from('student_portfolios')
+                .insert({
+                  student_id: profileData.id,
+                  is_public: true,
+                })
+                .select(`
+                  *,
+                  student_profiles!inner(
+                    full_name,
+                    email,
+                    profile_photo_url,
+                    total_xp,
+                    trust_score
+                  )
+                `)
+                .single();
+
+              if (insertError) {
+                console.error('Error creating portfolio:', insertError);
+                setError('Failed to create portfolio');
+                return;
+              }
+
+              setPortfolio(newPortfolio as PortfolioWithProfile);
+            } else {
+              throw fetchError;
+            }
+            return;
+          }
+
+          setPortfolio(data as PortfolioWithProfile);
         } else {
           throw new Error('No user or slug provided');
         }
-
-        const { data, error: fetchError } = await query.maybeSingle();
-
-        if (fetchError) {
-          if (fetchError.code === 'PGRST116') {
-            setError('Portfolio not found');
-          } else {
-            throw fetchError;
-          }
-          return;
-        }
-
-        // Transform the data to match our interface
-        const portfolioData: PortfolioWithProfile = {
-          ...data
-        };
-
-        setPortfolio(portfolioData);
       } catch (err) {
         console.error('Error fetching portfolio:', err);
         setError(err instanceof Error ? err.message : 'Failed to load portfolio');

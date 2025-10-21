@@ -54,8 +54,8 @@ const Portfolio = () => {
   if (error || !portfolio) {
     const isInvalidSlug = error === 'Portfolio not found' || !portfolio;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
-        <Card className="max-w-md mx-auto">
+      <div className="light min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
+        <Card className="max-w-md mx-auto bg-white border-gray-200">
           <CardContent className="p-8 text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
               {isInvalidSlug ? 'Portfolio Not Found' : 'Something Went Wrong'}
@@ -130,7 +130,7 @@ const Portfolio = () => {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto p-6">
         {/* Profile Header */}
-        <Card className="mb-8">
+        <Card className="mb-8 bg-white border-gray-200">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <Avatar className="h-24 w-24">
@@ -190,9 +190,9 @@ const Portfolio = () => {
         </Card>
 
         {/* Projects Section */}
-        <Card>
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900">
               <Trophy className="h-5 w-5 text-orange-600" />
               Projects & Achievements
             </CardTitle>
@@ -214,7 +214,7 @@ const Portfolio = () => {
             ) : projects.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {projects.map((project) => (
-                  <Card key={project.id} className="hover:shadow-md transition-shadow">
+                  <Card key={project.id} className="hover:shadow-md transition-shadow bg-white border-gray-200">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <h3 className="font-semibold text-gray-900 line-clamp-2">

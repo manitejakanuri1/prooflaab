@@ -196,6 +196,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           .from('student_portfolios')
           .update({
             bio: formData.bio,
+            skills: formData.skills,
           })
           .eq('student_id', profile?.id);
 
@@ -207,6 +208,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           .insert({
             student_id: profile?.id,
             bio: formData.bio,
+            skills: formData.skills,
           });
 
         if (portfolioError) throw portfolioError;
@@ -504,6 +506,30 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               placeholder="Tell us about yourself..."
               className="min-h-[100px]"
             />
+          </div>
+
+          {/* Portfolio Skills */}
+          <div>
+            <Label>Portfolio Skills</Label>
+            <p className="text-sm text-gray-500 mb-2">These skills will be displayed on your public portfolio</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              {SKILLS.map(skill => (
+                <div key={skill} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`portfolio-${skill}`}
+                    checked={formData.skills.includes(skill)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setFormData({ ...formData, skills: [...formData.skills, skill] });
+                      } else {
+                        setFormData({ ...formData, skills: formData.skills.filter(s => s !== skill) });
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`portfolio-${skill}`} className="text-sm">{skill}</Label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <Button onClick={handleProfileUpdate} disabled={saving} className="bg-orange-600 hover:bg-orange-700">

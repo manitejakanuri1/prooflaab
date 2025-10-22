@@ -213,6 +213,7 @@ export const useReviewApplication = () => {
           .from('tasks')
           .update({
             student_id: application.student_id,
+            status: 'In Progress',
           })
           .eq('id', application.task_id);
 

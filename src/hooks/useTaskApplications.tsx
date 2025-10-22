@@ -207,31 +207,8 @@ export const useReviewApplication = () => {
 
       if (error) throw error;
 
-      // If accepted, assign the task to the student
-      if (status === 'Accepted') {
-        const { error: taskError } = await supabase
-          .from('tasks')
-          .update({
-            student_id: application.student_id,
-            status: 'In Progress',
-            started_at: new Date().toISOString(),
-          })
-          .eq('id', application.task_id);
-
-        if (taskError) throw taskError;
-
-        // Create a notification for the student
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert({
-            student_id: application.student_id,
-            title: 'Application Accepted',
-            message: 'Your application has been accepted! You can now start working on the task.',
-            type: 'task_assigned',
-          });
-
-        if (notifError) console.error('Failed to create notification:', notifError);
-      }
+      // Task assignment and notification are now handled by database trigger
+      // (create_application_status_notification function)
 
       return data;
     },

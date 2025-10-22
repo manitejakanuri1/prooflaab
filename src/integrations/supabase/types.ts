@@ -1389,10 +1389,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      cleanup_expired_otps: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       create_user_with_role: {
         Args: {
           _invite_code?: string
@@ -1401,16 +1398,10 @@ export type Database = {
         }
         Returns: boolean
       }
-      generate_unique_slug: {
-        Args: { input_text: string }
-        Returns: string
-      }
-      generate_url_slug: {
-        Args: { student_name: string }
-        Returns: string
-      }
+      generate_unique_slug: { Args: { input_text: string }; Returns: string }
+      generate_url_slug: { Args: { student_name: string }; Returns: string }
       get_current_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_leaderboard: {
@@ -1424,7 +1415,7 @@ export type Database = {
         }[]
       }
       get_leaderboard_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           full_name: string
           id: string
@@ -1444,14 +1435,8 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_email_confirmed: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_email_confirmed: { Args: { user_id: string }; Returns: boolean }
       notify_all_admins: {
         Args: {
           notification_link?: string
@@ -1462,10 +1447,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      reset_daily_credits: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      reset_daily_credits: { Args: never; Returns: undefined }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
         Returns: boolean
@@ -1478,10 +1460,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      validate_email: {
-        Args: { _email: string }
-        Returns: boolean
-      }
+      validate_email: { Args: { _email: string }; Returns: boolean }
       validate_invite_code: {
         Args: { _code: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
@@ -1490,10 +1469,7 @@ export type Database = {
         Args: { _code: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: Json
       }
-      validate_task_title: {
-        Args: { _title: string }
-        Returns: boolean
-      }
+      validate_task_title: { Args: { _title: string }; Returns: boolean }
       verify_invite_code_and_activate: {
         Args: {
           _code: string

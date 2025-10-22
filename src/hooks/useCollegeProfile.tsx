@@ -20,59 +20,68 @@ export const useCollegeProfile = () => {
   const [error, setError] = useState<string | null>(null);
 
   const loadProfile = async () => {
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Profile load timeout')), 5000)
+    );
+
     try {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('Not authenticated');
-        return;
-      }
+      await Promise.race([
+        (async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            setError('Not authenticated');
+            return;
+          }
 
-      // Load basic college data
-      const { data: collegeData, error: collegeError } = await supabase
-        .from('colleges')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+          // Load basic college data
+          const { data: collegeData, error: collegeError } = await supabase
+            .from('colleges')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-      if (collegeError) throw collegeError;
+          if (collegeError) throw collegeError;
 
-      if (!collegeData) {
-        setError('College not found');
-        return;
-      }
+          if (!collegeData) {
+            setError('College not found');
+            return;
+          }
 
-      // Load extended college profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('college_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+          // Load extended college profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('college_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        throw profileError;
-      }
+          if (profileError && profileError.code !== 'PGRST116') {
+            throw profileError;
+          }
 
-      // Combine both datasets
-      const combinedProfile: CollegeProfile = {
-        id: collegeData.id,
-        name: collegeData.name,
-        email: collegeData.email,
-        status: collegeData.status,
-        verification_status: collegeData.verification_status,
-        college_name: profileData?.college_name || collegeData.name,
-        location: profileData?.location,
-        student_strength: profileData?.student_strength,
-        branches_offered: profileData?.branches_offered,
-        profile_photo_url: profileData?.profile_photo_url || null,
-      };
+          // Combine both datasets
+          const combinedProfile: CollegeProfile = {
+            id: collegeData.id,
+            name: collegeData.name,
+            email: collegeData.email,
+            status: collegeData.status,
+            verification_status: collegeData.verification_status,
+            college_name: profileData?.college_name || collegeData.name,
+            location: profileData?.location,
+            student_strength: profileData?.student_strength,
+            branches_offered: profileData?.branches_offered,
+            profile_photo_url: profileData?.profile_photo_url || null,
+          };
 
-      setProfile(combinedProfile);
+          setProfile(combinedProfile);
+        })(),
+        timeout
+      ]);
     } catch (err) {
       console.error('Error loading college profile:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
+      setError(err instanceof Error ? err.message : 'Profile load timed out');
     } finally {
       setLoading(false);
     }

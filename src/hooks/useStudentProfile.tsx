@@ -30,47 +30,56 @@ export const useStudentProfile = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = async () => {
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+    );
+
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setError("No authenticated user");
-        setLoading(false);
-        return;
-      }
+      await Promise.race([
+        (async () => {
+          // Get current user
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (!user) {
+            setError("No authenticated user");
+            setLoading(false);
+            return;
+          }
 
-      // Fetch student profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('student_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+          // Fetch student profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('student_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
 
-      if (profileError) {
-        setError(profileError.message);
-        setLoading(false);
-        return;
-      }
+          if (profileError) {
+            setError(profileError.message);
+            setLoading(false);
+            return;
+          }
 
-      setProfile(profileData);
+          setProfile(profileData);
 
-      // Fetch leaderboard rank using secure function
-      const { data: leaderboardData, error: leaderboardError } = await supabase
-        .rpc('get_leaderboard', { _limit: 1000 });
+          // Fetch leaderboard rank using secure function
+          const { data: leaderboardData, error: leaderboardError } = await supabase
+            .rpc('get_leaderboard', { _limit: 1000 });
 
-      if (leaderboardError) {
-        console.warn("Could not fetch rank:", leaderboardError.message);
-        setRank(0);
-      } else if (leaderboardData) {
-        const userRankData = leaderboardData.find(entry => entry.id === profileData.id);
-        setRank(userRankData?.rank || 0);
-      } else {
-        setRank(0);
-      }
-
+          if (leaderboardError) {
+            console.warn("Could not fetch rank:", leaderboardError.message);
+            setRank(0);
+          } else if (leaderboardData) {
+            const userRankData = leaderboardData.find(entry => entry.id === profileData.id);
+            setRank(userRankData?.rank || 0);
+          } else {
+            setRank(0);
+          }
+        })(),
+        timeout
+      ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "Profile load timed out");
+      console.error('Profile fetch error:', err);
     } finally {
       setLoading(false);
     }

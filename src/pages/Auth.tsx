@@ -34,42 +34,51 @@ export default function Auth() {
 
     // Only check for existing sessions if user isn't explicitly trying to auth
     const clearStaleSession = async () => {
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session check timeout')), 3000)
+      );
+
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // Check if this is a valid authenticated session
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user && user.email_confirmed_at) {
-            // Valid session - check wizard completion and redirect
-            const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role, has_completed_wizard')
-              .eq('user_id', user.id)
-              .maybeSingle();
-            
-            if (roleData) {
-              if (roleData.has_completed_wizard) {
-                redirectToDashboard(roleData.role);
-              } else {
-                // Redirect to role-specific onboarding
-                const role = roleData.role;
-                if (role === 'student') {
-                  navigate('/onboarding/student', { replace: true });
-                } else if (role === 'college_admin') {
-                  navigate('/onboarding/college', { replace: true });
-                } else if (role === 'startup') {
-                  navigate('/onboarding/startup', { replace: true });
-                } else {
-                  navigate('/onboarding-wizard', { replace: true });
+        await Promise.race([
+          (async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              // Check if this is a valid authenticated session
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user && user.email_confirmed_at) {
+                // Valid session - check wizard completion and redirect
+                const { data: roleData } = await supabase
+                  .from('user_roles')
+                  .select('role, has_completed_wizard')
+                  .eq('user_id', user.id)
+                  .maybeSingle();
+                
+                if (roleData) {
+                  if (roleData.has_completed_wizard) {
+                    redirectToDashboard(roleData.role);
+                  } else {
+                    // Redirect to role-specific onboarding
+                    const role = roleData.role;
+                    if (role === 'student') {
+                      navigate('/onboarding/student', { replace: true });
+                    } else if (role === 'college_admin') {
+                      navigate('/onboarding/college', { replace: true });
+                    } else if (role === 'startup') {
+                      navigate('/onboarding/startup', { replace: true });
+                    } else {
+                      navigate('/onboarding-wizard', { replace: true });
+                    }
+                  }
                 }
               }
             }
-          }
-        }
+          })(),
+          timeout
+        ]);
       } catch (error) {
-        // If session check fails, clear it
-        console.log('Clearing invalid session');
-        await supabase.auth.signOut();
+        // If session check fails or times out, clear it
+        console.log('Session check failed or timed out');
+        await supabase.auth.signOut().catch(() => {});
       }
     };
     

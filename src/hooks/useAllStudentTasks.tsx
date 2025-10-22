@@ -84,9 +84,9 @@ export const useAllStudentTasks = () => {
           } else if (latestProof.status === 'Under Review') {
             status = 'Under Review';
           }
-        } else if (!task.started_at) {
-          status = 'Applied';
         }
+        // Don't override to 'Applied' if started_at is null - respect the task's actual status
+        // Status is now 'In Progress' by default for assigned tasks
 
         allTasks.push({
           id: task.id,
@@ -99,7 +99,7 @@ export const useAllStudentTasks = () => {
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
-          can_start: !task.started_at && status === 'Applied',
+          can_start: false, // Assigned tasks are already started
         });
       });
 

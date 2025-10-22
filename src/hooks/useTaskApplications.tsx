@@ -214,6 +214,7 @@ export const useReviewApplication = () => {
           .update({
             student_id: application.student_id,
             status: 'In Progress',
+            started_at: new Date().toISOString(),
           })
           .eq('id', application.task_id);
 

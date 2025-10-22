@@ -25,28 +25,41 @@ const Index = () => {
     
     if (accessToken && refreshToken) {
       console.log('Index: Auth tokens found in hash, redirecting to callback handler');
-      // Redirect to auth callback with the hash intact
       navigate(`/auth/callback${window.location.hash}`, { replace: true });
       return;
     }
 
-    // Only redirect authenticated users, don't interfere with public access
+    // Only redirect authenticated users with a timeout to prevent hanging
     const checkUser = async () => {
+      const timeoutId = setTimeout(() => {
+        console.log('Auth check timed out, showing landing page');
+      }, 3000); // 3 second timeout
+
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        clearTimeout(timeoutId);
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          return; // Show landing page on error
+        }
+        
         if (session?.user) {
-          // Get user role and redirect accordingly  
-          const { data: roleData } = await supabase
+          const { data: roleData, error: roleError } = await supabase
             .from('user_roles')
             .select('role, has_completed_wizard')
             .eq('user_id', session.user.id)
             .maybeSingle();
           
+          if (roleError) {
+            console.error('Error fetching role:', roleError);
+            return; // Show landing page on error
+          }
+          
           if (roleData) {
             if (!roleData.has_completed_wizard && roleData.role !== 'admin') {
               navigate('/onboarding-wizard', { replace: true });
             } else {
-              // Redirect to appropriate dashboard
               const role = roleData.role;
               switch (role) {
                 case 'admin':
@@ -67,8 +80,8 @@ const Index = () => {
           }
         }
       } catch (error) {
+        clearTimeout(timeoutId);
         console.error('Error checking user session:', error);
-        // Don't redirect on error, let them access the landing page
       }
     };
     

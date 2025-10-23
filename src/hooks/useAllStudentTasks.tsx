@@ -36,17 +36,20 @@ export const useAllStudentTasks = () => {
 
       if (profileError || !profile) return [];
 
-      // Get assigned tasks
-      const { data: assignedTasks, error: assignedError } = await supabase
-        .from('tasks')
+      // Get assigned tasks from task_assignments table (supports multiple students per task)
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('task_assignments')
         .select(`
-          *,
-          proof_uploads (id, status, submitted_at)
+          task_id,
+          tasks:task_id (
+            *,
+            proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
+          )
         `)
         .eq('student_id', profile.id)
-        .order('created_at', { ascending: false });
+        .order('assigned_at', { ascending: false });
 
-      if (assignedError) throw assignedError;
+      if (assignmentsError) throw assignmentsError;
 
       // Get task applications
       const { data: applications, error: appsError } = await supabase
@@ -72,8 +75,11 @@ export const useAllStudentTasks = () => {
 
       const allTasks: StudentTask[] = [];
 
-      // Add assigned tasks
-      (assignedTasks || []).forEach(task => {
+      // Add assigned tasks from task_assignments
+      (assignments || []).forEach(assignment => {
+        const task = assignment.tasks;
+        if (!task) return;
+
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'In Progress';
         
@@ -85,8 +91,6 @@ export const useAllStudentTasks = () => {
             status = 'Under Review';
           }
         }
-        // Don't override to 'Applied' if started_at is null - respect the task's actual status
-        // Status is now 'In Progress' by default for assigned tasks
 
         allTasks.push({
           id: task.id,
@@ -142,12 +146,25 @@ export const useAllStudentTasks = () => {
   });
 
   const startTask = async (taskId: string) => {
+    if (!user?.id) throw new Error('User not authenticated');
+
+    // Get student profile
+    const { data: profile } = await supabase
+      .from('student_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!profile) throw new Error('Student profile not found');
+
+    // Update the task assignment to mark as started
     const { error } = await supabase
-      .from('tasks')
+      .from('task_assignments')
       .update({ 
-        started_at: new Date().toISOString()
+        status: 'in_progress'
       })
-      .eq('id', taskId);
+      .eq('task_id', taskId)
+      .eq('student_id', profile.id);
 
     if (error) throw error;
 

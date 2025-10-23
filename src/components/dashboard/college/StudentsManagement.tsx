@@ -8,10 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { Eye, Search, Users, FileText, UserMinus, Calendar, Hash } from "lucide-react";
+import { Eye, Search, Users, FileText, UserMinus, Calendar, Hash, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import StudentProfileModal from "./StudentProfileModal";
+import { GenerateRecruiterLinkModal } from "./GenerateRecruiterLinkModal";
+import { useCollegeProfile } from "@/hooks/useCollegeProfile";
 
 interface Student {
   id: string;
@@ -49,7 +51,9 @@ const StudentsManagement = () => {
   const [taskHistoryStudent, setTaskHistoryStudent] = useState<Student | null>(null);
   const [isTaskHistoryOpen, setIsTaskHistoryOpen] = useState(false);
   const [taskHistory, setTaskHistory] = useState<TaskHistoryItem[]>([]);
+  const [isRecruiterLinkModalOpen, setIsRecruiterLinkModalOpen] = useState(false);
   const { toast } = useToast();
+  const { profile } = useCollegeProfile();
 
   const fetchStudents = async () => {
     try {
@@ -310,10 +314,19 @@ const StudentsManagement = () => {
     <div className="space-y-4 md:space-y-6">
       <Card>
         <CardHeader className="p-3 md:p-6">
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <Users className="h-4 w-4 md:h-5 md:w-5" />
-            Students Management ({filteredStudents.length} students)
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Users className="h-4 w-4 md:h-5 md:w-5" />
+              Students Management ({filteredStudents.length} students)
+            </CardTitle>
+            <Button
+              onClick={() => setIsRecruiterLinkModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Link2 className="h-4 w-4" />
+              Generate Recruiter Link
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4 p-3 md:p-6">
           {/* Search and Filters */}
@@ -534,6 +547,15 @@ const StudentsManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Recruiter Link Generation Modal */}
+      {profile?.id && (
+        <GenerateRecruiterLinkModal
+          open={isRecruiterLinkModalOpen}
+          onOpenChange={setIsRecruiterLinkModalOpen}
+          collegeId={profile.id}
+        />
+      )}
     </div>
   );
 };

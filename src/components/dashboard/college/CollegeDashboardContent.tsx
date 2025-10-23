@@ -6,6 +6,7 @@ import TrustScoresSection from "./TrustScoresSection";
 import NotificationsSection from "./NotificationsSection";
 import CollegeProfilePage from "./CollegeProfilePage";
 import CollegeSettingsPage from "./CollegeSettingsPage";
+import { RecruiterLinksPage } from "./RecruiterLinksPage";
 
 interface CollegeDashboardContentProps {
   activeTab: string;
@@ -25,6 +26,8 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
         return <UploadedProofs />;
       case "trust-scores":
         return <TrustScoresSection />;
+      case "recruiter-links":
+        return <RecruiterLinksPage />;
       case "notifications":
         return <NotificationsSection />;
       case "profile":

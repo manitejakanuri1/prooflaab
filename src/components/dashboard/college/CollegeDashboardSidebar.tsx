@@ -7,7 +7,8 @@ import {
   Bell,
   Settings,
   User,
-  LogOut
+  LogOut,
+  Link2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +28,7 @@ const menuItems = [
   { id: "assign-tasks", label: "Assign Tasks", icon: ClipboardList },
   { id: "uploaded-proofs", label: "Uploaded Proofs", icon: Upload },
   { id: "trust-scores", label: "Trust Scores", icon: Shield },
+  { id: "recruiter-links", label: "Recruiter Links", icon: Link2 },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "profile", label: "My Profile", icon: User },
   { id: "settings", label: "Settings", icon: Settings },

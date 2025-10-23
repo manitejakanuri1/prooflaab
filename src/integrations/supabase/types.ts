@@ -592,6 +592,73 @@ export type Database = {
           },
         ]
       }
+      recruiter_link_views: {
+        Row: {
+          id: string
+          ip_address: unknown
+          link_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: unknown
+          link_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          ip_address?: unknown
+          link_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruiter_link_views_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "recruiter_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruiter_links: {
+        Row: {
+          college_id: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          filters: Json
+          id: string
+          status: string
+        }
+        Insert: {
+          college_id: string
+          created_at?: string
+          created_by: string
+          expires_at: string
+          filters?: Json
+          id?: string
+          status?: string
+        }
+        Update: {
+          college_id?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          filters?: Json
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruiter_links_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signup_rate_limits: {
         Row: {
           attempt_count: number | null

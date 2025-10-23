@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,21 +24,19 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: EditTaskDialogProps) {
-  const [title, setTitle] = useState(task?.title || "");
-  const [description, setDescription] = useState(task?.description || "");
-  const [deadline, setDeadline] = useState(
-    task?.deadline ? format(new Date(task.deadline), "yyyy-MM-dd") : ""
-  );
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update state when task changes
-  useState(() => {
+  useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDescription(task.description || "");
       setDeadline(task.deadline ? format(new Date(task.deadline), "yyyy-MM-dd") : "");
     }
-  });
+  }, [task]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

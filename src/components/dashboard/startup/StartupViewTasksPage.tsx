@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -5,13 +6,25 @@ import { Input } from "@/components/ui/input";
 import { Calendar, Clock, Users, Edit, Trash2 } from "lucide-react";
 import { useStartupTasks } from "@/hooks/useStartupTasks";
 import { format } from "date-fns";
+import { EditTaskDialog } from "./EditTaskDialog";
 
 interface StartupViewTasksPageProps {
   onNavigateToPostTask: () => void;
 }
 
 export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksPageProps) {
-  const { tasks, loading, error } = useStartupTasks();
+  const { tasks, loading, error, refetch } = useStartupTasks();
+  const [editingTask, setEditingTask] = useState<typeof tasks[0] | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const handleEditClick = (task: typeof tasks[0]) => {
+    setEditingTask(task);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleTaskUpdated = () => {
+    refetch();
+  };
 
   const getDescriptionSnippet = (description: string) => {
     if (!description) return "No description provided";
@@ -103,7 +116,12 @@ export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksP
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" title="Edit task">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      title="Edit task"
+                      onClick={() => handleEditClick(task)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" className="text-destructive" title="Delete task">
@@ -116,6 +134,13 @@ export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksP
           ))}
         </div>
       )}
+
+      <EditTaskDialog
+        task={editingTask}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onTaskUpdated={handleTaskUpdated}
+      />
     </div>
   );
 }

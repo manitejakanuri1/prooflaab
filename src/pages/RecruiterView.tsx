@@ -55,16 +55,10 @@ export default function RecruiterView() {
         link_id: linkId,
       });
 
-      // Fetch link data
+      // Fetch link data (without inner join to avoid RLS issues)
       const { data: link, error: linkError } = await supabase
         .from('recruiter_links')
-        .select(`
-          *,
-          colleges!inner(
-            name,
-            college_profiles(profile_photo_url)
-          )
-        `)
+        .select('*')
         .eq('id', linkId)
         .single();
 
@@ -77,9 +71,18 @@ export default function RecruiterView() {
         return;
       }
 
-      const collegeName = (link.colleges as any)?.name || "College";
-      const collegeData = link.colleges as any;
-      const collegeLogo = collegeData?.college_profiles?.[0]?.profile_photo_url;
+      // Fetch college data separately
+      const { data: collegeData } = await supabase
+        .from('colleges')
+        .select(`
+          name,
+          college_profiles(profile_photo_url)
+        `)
+        .eq('id', link.college_id)
+        .single();
+
+      const collegeName = collegeData?.name || "College";
+      const collegeLogo = (collegeData as any)?.college_profiles?.[0]?.profile_photo_url;
 
       setLinkData({
         ...link,

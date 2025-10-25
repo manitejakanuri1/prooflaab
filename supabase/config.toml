@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.test-github-connection]
 verify_jwt = true
+
+[functions.verify-proof]
+verify_jwt = true

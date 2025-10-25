@@ -110,6 +110,41 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_verifications: {
+        Row: {
+          ai_comments: string | null
+          ai_summary: string | null
+          created_at: string | null
+          id: string
+          originality_score: number | null
+          proof_id: string
+        }
+        Insert: {
+          ai_comments?: string | null
+          ai_summary?: string | null
+          created_at?: string | null
+          id?: string
+          originality_score?: number | null
+          proof_id: string
+        }
+        Update: {
+          ai_comments?: string | null
+          ai_summary?: string | null
+          created_at?: string | null
+          id?: string
+          originality_score?: number | null
+          proof_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_verifications_proof_id_fkey"
+            columns: ["proof_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           created_at: string
@@ -295,6 +330,47 @@ export type Database = {
           is_verified?: boolean | null
         }
         Relationships: []
+      }
+      github_verifications: {
+        Row: {
+          authenticity_score: number | null
+          commit_count: number | null
+          created_at: string | null
+          id: string
+          last_commit_date: string | null
+          proof_id: string
+          repo_url: string | null
+          unique_contributors: number | null
+        }
+        Insert: {
+          authenticity_score?: number | null
+          commit_count?: number | null
+          created_at?: string | null
+          id?: string
+          last_commit_date?: string | null
+          proof_id: string
+          repo_url?: string | null
+          unique_contributors?: number | null
+        }
+        Update: {
+          authenticity_score?: number | null
+          commit_count?: number | null
+          created_at?: string | null
+          id?: string
+          last_commit_date?: string | null
+          proof_id?: string
+          repo_url?: string | null
+          unique_contributors?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "github_verifications_proof_id_fkey"
+            columns: ["proof_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invite_codes: {
         Row: {

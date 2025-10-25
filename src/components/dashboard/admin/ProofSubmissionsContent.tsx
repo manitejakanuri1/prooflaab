@@ -277,9 +277,14 @@ const ProofSubmissionsContent = () => {
   };
 
   const hasVerificationResults = (submission: ProofSubmission) => {
-    return submission.moss_score !== null || 
-           submission.ai_verifications?.[0]?.originality_score !== null ||
-           submission.github_verifications?.[0]?.authenticity_score !== null;
+    const hasAI = Array.isArray(submission.ai_verifications) && 
+                  submission.ai_verifications.length > 0 && 
+                  submission.ai_verifications[0]?.originality_score !== null;
+    const hasGithub = Array.isArray(submission.github_verifications) && 
+                      submission.github_verifications.length > 0 && 
+                      submission.github_verifications[0]?.authenticity_score !== null;
+    
+    return submission.moss_score !== null || hasAI || hasGithub;
   };
 
   const getStatusBadge = (status: string) => {
@@ -459,12 +464,16 @@ const ProofSubmissionsContent = () => {
                               MOSS: {submission.moss_score}%
                             </Badge>
                           )}
-                          {submission.ai_verifications?.[0]?.originality_score !== null && (
+                          {Array.isArray(submission.ai_verifications) && 
+                           submission.ai_verifications.length > 0 && 
+                           submission.ai_verifications[0]?.originality_score !== null && (
                             <Badge variant="outline" className="text-xs">
                               AI: {submission.ai_verifications[0].originality_score}%
                             </Badge>
                           )}
-                          {submission.github_verifications?.[0]?.authenticity_score !== null && (
+                          {Array.isArray(submission.github_verifications) && 
+                           submission.github_verifications.length > 0 && 
+                           submission.github_verifications[0]?.authenticity_score !== null && (
                             <Badge variant="outline" className="text-xs flex items-center gap-1">
                               <Github className="h-2 w-2" />
                               {submission.github_verifications[0].authenticity_score}
@@ -648,12 +657,24 @@ const ProofSubmissionsContent = () => {
         data={verificationModalSubmission ? {
           moss_score: verificationModalSubmission.moss_score,
           moss_url: verificationModalSubmission.moss_url,
-          originality_score: verificationModalSubmission.ai_verifications?.[0]?.originality_score ?? null,
-          ai_summary: verificationModalSubmission.ai_verifications?.[0]?.ai_summary ?? null,
-          ai_comments: verificationModalSubmission.ai_verifications?.[0]?.ai_comments ?? null,
-          authenticity_score: verificationModalSubmission.github_verifications?.[0]?.authenticity_score ?? null,
-          commit_count: verificationModalSubmission.github_verifications?.[0]?.commit_count ?? null,
-          unique_contributors: verificationModalSubmission.github_verifications?.[0]?.unique_contributors ?? null,
+          originality_score: Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
+            ? verificationModalSubmission.ai_verifications[0]?.originality_score ?? null
+            : null,
+          ai_summary: Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
+            ? verificationModalSubmission.ai_verifications[0]?.ai_summary ?? null
+            : null,
+          ai_comments: Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
+            ? verificationModalSubmission.ai_verifications[0]?.ai_comments ?? null
+            : null,
+          authenticity_score: Array.isArray(verificationModalSubmission.github_verifications) && verificationModalSubmission.github_verifications.length > 0
+            ? verificationModalSubmission.github_verifications[0]?.authenticity_score ?? null
+            : null,
+          commit_count: Array.isArray(verificationModalSubmission.github_verifications) && verificationModalSubmission.github_verifications.length > 0
+            ? verificationModalSubmission.github_verifications[0]?.commit_count ?? null
+            : null,
+          unique_contributors: Array.isArray(verificationModalSubmission.github_verifications) && verificationModalSubmission.github_verifications.length > 0
+            ? verificationModalSubmission.github_verifications[0]?.unique_contributors ?? null
+            : null,
           trust_change: null,
           status: verificationModalSubmission.status,
           admin_review_status: verificationModalSubmission.admin_review_status

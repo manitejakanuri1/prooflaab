@@ -85,7 +85,12 @@ const UploadedProofs = () => {
   };
 
   const getOriginalityBadge = (proof: ProofReview) => {
-    const score = proof.ai_verifications?.[0]?.originality_score;
+    // Safely access ai_verifications array
+    const aiVerification = Array.isArray(proof.ai_verifications) && proof.ai_verifications.length > 0 
+      ? proof.ai_verifications[0] 
+      : null;
+    const score = aiVerification?.originality_score;
+    
     if (score === null || score === undefined) return <Badge variant="outline">-</Badge>;
     
     if (score > 70) {
@@ -98,7 +103,12 @@ const UploadedProofs = () => {
   };
 
   const getAuthenticityBadge = (proof: ProofReview) => {
-    const score = proof.github_verifications?.[0]?.authenticity_score;
+    // Safely access github_verifications array
+    const githubVerification = Array.isArray(proof.github_verifications) && proof.github_verifications.length > 0
+      ? proof.github_verifications[0]
+      : null;
+    const score = githubVerification?.authenticity_score;
+    
     if (score === null || score === undefined) return <Badge variant="outline">-</Badge>;
     
     return (
@@ -141,9 +151,14 @@ const UploadedProofs = () => {
   };
 
   const hasVerificationResults = (proof: ProofReview) => {
-    return proof.moss_score !== null || 
-           proof.ai_verifications?.[0]?.originality_score !== null ||
-           proof.github_verifications?.[0]?.authenticity_score !== null;
+    const hasAI = Array.isArray(proof.ai_verifications) && 
+                  proof.ai_verifications.length > 0 && 
+                  proof.ai_verifications[0]?.originality_score !== null;
+    const hasGithub = Array.isArray(proof.github_verifications) && 
+                      proof.github_verifications.length > 0 && 
+                      proof.github_verifications[0]?.authenticity_score !== null;
+    
+    return proof.moss_score !== null || hasAI || hasGithub;
   };
 
   if (isLoading) {
@@ -365,12 +380,24 @@ const UploadedProofs = () => {
         data={verificationModalProof ? {
           moss_score: verificationModalProof.moss_score,
           moss_url: verificationModalProof.moss_url,
-          originality_score: verificationModalProof.ai_verifications?.[0]?.originality_score ?? null,
-          ai_summary: verificationModalProof.ai_verifications?.[0]?.ai_summary ?? null,
-          ai_comments: verificationModalProof.ai_verifications?.[0]?.ai_comments ?? null,
-          authenticity_score: verificationModalProof.github_verifications?.[0]?.authenticity_score ?? null,
-          commit_count: verificationModalProof.github_verifications?.[0]?.commit_count ?? null,
-          unique_contributors: verificationModalProof.github_verifications?.[0]?.unique_contributors ?? null,
+          originality_score: Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            ? verificationModalProof.ai_verifications[0]?.originality_score ?? null
+            : null,
+          ai_summary: Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            ? verificationModalProof.ai_verifications[0]?.ai_summary ?? null
+            : null,
+          ai_comments: Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            ? verificationModalProof.ai_verifications[0]?.ai_comments ?? null
+            : null,
+          authenticity_score: Array.isArray(verificationModalProof.github_verifications) && verificationModalProof.github_verifications.length > 0
+            ? verificationModalProof.github_verifications[0]?.authenticity_score ?? null
+            : null,
+          commit_count: Array.isArray(verificationModalProof.github_verifications) && verificationModalProof.github_verifications.length > 0
+            ? verificationModalProof.github_verifications[0]?.commit_count ?? null
+            : null,
+          unique_contributors: Array.isArray(verificationModalProof.github_verifications) && verificationModalProof.github_verifications.length > 0
+            ? verificationModalProof.github_verifications[0]?.unique_contributors ?? null
+            : null,
           trust_change: null,
           status: verificationModalProof.status,
           admin_review_status: verificationModalProof.admin_review_status

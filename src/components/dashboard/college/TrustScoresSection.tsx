@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Shield, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import TrustTrendBadge from "@/components/dashboard/TrustTrendBadge";
 
 interface StudentTrustScore {
   id: string;
@@ -14,6 +15,7 @@ interface StudentTrustScore {
   total_xp: number;
   task_count: number;
   verified_proofs: number;
+  previous_trust_score?: number;
 }
 
 const TrustScoresSection = () => {
@@ -260,7 +262,11 @@ const TrustScoresSection = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {getTrustScoreBadge(student.trust_score)}
+                          <TrustTrendBadge 
+                            currentScore={student.trust_score}
+                            previousScore={student.previous_trust_score}
+                            source="Auto-verification (MOSS+AI)"
+                          />
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <span className="font-medium text-sm">{student.total_xp} XP</span>

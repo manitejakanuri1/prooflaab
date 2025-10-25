@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useVerifyProof } from '@/hooks/useVerifyProof';
+import VerificationSummaryModal from '@/components/dashboard/VerificationSummaryModal';
+import VerificationDropdown from '@/components/dashboard/VerificationDropdown';
 import { format } from 'date-fns';
-import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Search, FileIcon, Shield } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Search, FileIcon, Shield, Brain, Github } from 'lucide-react';
 
 interface ProofSubmission {
   id: string;
@@ -27,7 +30,17 @@ interface ProofSubmission {
   moss_status: string | null;
   moss_url: string | null;
   moss_score: number | null;
-  review_status?: string | null;
+  admin_review_status: string | null;
+  github_verifications?: Array<{
+    authenticity_score: number | null;
+    commit_count: number | null;
+    unique_contributors: number | null;
+  }>;
+  ai_verifications?: Array<{
+    originality_score: number | null;
+    ai_summary: string | null;
+    ai_comments: string | null;
+  }>;
   student_profiles?: {
     full_name: string;
     email: string;
@@ -45,8 +58,33 @@ const ProofSubmissionsContent = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<ProofSubmission | null>(null);
   const [reviewComment, setReviewComment] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [verificationModalSubmission, setVerificationModalSubmission] = useState<ProofSubmission | null>(null);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const verifyProofMutation = useVerifyProof();
+
+  // Real-time subscription for proof_uploads changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin_proof_uploads_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'proof_uploads'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Fetch proof submissions
   const { data: submissions = [], isLoading } = useQuery({
@@ -63,6 +101,16 @@ const ProofSubmissionsContent = () => {
           tasks:task_id (
             title,
             xp_reward
+          ),
+          github_verifications (
+            authenticity_score,
+            commit_count,
+            unique_contributors
+          ),
+          ai_verifications (
+            originality_score,
+            ai_summary,
+            ai_comments
           )
         `);
 
@@ -199,33 +247,6 @@ const ProofSubmissionsContent = () => {
     },
   });
 
-  // Send to MOSS
-  const mossMutation = useMutation({
-    mutationFn: async (submissionId: string) => {
-      const { data, error } = await supabase.functions.invoke('moss-check', {
-        body: { submissionId }
-      });
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
-      toast({
-        title: 'MOSS Check Complete',
-        description: `Plagiarism score: ${data.score}%`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'MOSS Check Failed',
-        description: 'Failed to run plagiarism check',
-        variant: 'destructive',
-      });
-      console.error('MOSS error:', error);
-    },
-  });
-
   const handleReview = (submission: ProofSubmission) => {
     setSelectedSubmission(submission);
     setReviewComment(submission.review_comment || '');
@@ -246,8 +267,19 @@ const ProofSubmissionsContent = () => {
     });
   };
 
-  const handleMossCheck = (submissionId: string) => {
-    mossMutation.mutate(submissionId);
+  const handleRunVerification = (proofId: string) => {
+    verifyProofMutation.mutate(proofId);
+  };
+
+  const handleViewVerificationResults = (submission: ProofSubmission) => {
+    setVerificationModalSubmission(submission);
+    setShowVerificationModal(true);
+  };
+
+  const hasVerificationResults = (submission: ProofSubmission) => {
+    return submission.moss_score !== null || 
+           submission.ai_verifications?.[0]?.originality_score !== null ||
+           submission.github_verifications?.[0]?.authenticity_score !== null;
   };
 
   const getStatusBadge = (status: string) => {
@@ -357,12 +389,13 @@ const ProofSubmissionsContent = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-b">
-                    <TableHead className="font-semibold text-xs md:text-sm min-w-[200px]">Student Name + Email</TableHead>
-                    <TableHead className="font-semibold text-xs md:text-sm min-w-[150px]">Task Title</TableHead>
-                    <TableHead className="font-semibold text-xs md:text-sm">Submission Type</TableHead>
-                    <TableHead className="font-semibold text-xs md:text-sm">Submission Date</TableHead>
-                    <TableHead className="font-semibold text-xs md:text-sm">Status Badge</TableHead>
-                    <TableHead className="font-semibold text-xs md:text-sm min-w-[200px]">Action Buttons</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm min-w-[200px]">Student</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm min-w-[150px]">Task</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm">Submission</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm">Date</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm">Status</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm">Verification</TableHead>
+                    <TableHead className="font-semibold text-xs md:text-sm min-w-[200px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -407,21 +440,60 @@ const ProofSubmissionsContent = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={`${getStatusBadge(submission.status)} border`}>
-                          {submission.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`${getStatusBadge(submission.status)} border`}>
+                            {submission.status}
+                          </Badge>
+                          {submission.admin_review_status === 'Auto-verified' && (
+                            <Badge variant="outline" className="text-xs">
+                              <Brain className="h-3 w-3 mr-1" />
+                              Auto
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleReview(submission)}
-                            className="h-8 px-2 text-xs"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
+                        <div className="flex flex-col gap-1">
+                          {submission.moss_score !== null && (
+                            <Badge variant="outline" className="text-xs">
+                              MOSS: {submission.moss_score}%
+                            </Badge>
+                          )}
+                          {submission.ai_verifications?.[0]?.originality_score !== null && (
+                            <Badge variant="outline" className="text-xs">
+                              AI: {submission.ai_verifications[0].originality_score}%
+                            </Badge>
+                          )}
+                          {submission.github_verifications?.[0]?.authenticity_score !== null && (
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <Github className="h-2 w-2" />
+                              {submission.github_verifications[0].authenticity_score}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          <VerificationDropdown
+                            proofId={submission.id}
+                            hasResults={hasVerificationResults(submission)}
+                            onRunVerification={handleRunVerification}
+                            onViewResults={() => handleViewVerificationResults(submission)}
+                            isRunning={verifyProofMutation.isPending}
+                          />
+                          
+                          {hasVerificationResults(submission) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewVerificationResults(submission)}
+                              className="h-8 px-2 text-xs"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Results
+                            </Button>
+                          )}
+                          
                           <Button
                             size="sm"
                             variant={submission.status === 'Verified' ? 'outline' : 'default'}
@@ -434,7 +506,7 @@ const ProofSubmissionsContent = () => {
                             }`}
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            {submission.status === 'Verified' ? 'Verified ✅' : 'Verify'}
+                            {submission.status === 'Verified' ? '✅' : 'Verify'}
                           </Button>
                           <Button
                             size="sm"
@@ -448,7 +520,7 @@ const ProofSubmissionsContent = () => {
                             }`}
                           >
                             <XCircle className="h-3 w-3 mr-1" />
-                            {submission.status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
+                            {submission.status === 'Rejected' ? '❌' : 'Reject'}
                           </Button>
                         </div>
                       </TableCell>
@@ -552,19 +624,43 @@ const ProofSubmissionsContent = () => {
                   {selectedSubmission.status === 'Rejected' ? 'Rejected ❌' : 'Reject'}
                 </Button>
                 <Button
-                  onClick={() => handleMossCheck(selectedSubmission.id)}
-                  disabled={mossMutation.isPending}
+                  onClick={() => {
+                    handleRunVerification(selectedSubmission.id);
+                    setIsModalOpen(false);
+                  }}
+                  disabled={verifyProofMutation.isPending}
                   variant="outline"
                   className="border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
                   <Shield className="h-4 w-4 mr-2" />
-                  Run MOSS Check
+                  Run Full Verification
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Verification Summary Modal */}
+      <VerificationSummaryModal
+        open={showVerificationModal}
+        onOpenChange={setShowVerificationModal}
+        data={verificationModalSubmission ? {
+          moss_score: verificationModalSubmission.moss_score,
+          moss_url: verificationModalSubmission.moss_url,
+          originality_score: verificationModalSubmission.ai_verifications?.[0]?.originality_score ?? null,
+          ai_summary: verificationModalSubmission.ai_verifications?.[0]?.ai_summary ?? null,
+          ai_comments: verificationModalSubmission.ai_verifications?.[0]?.ai_comments ?? null,
+          authenticity_score: verificationModalSubmission.github_verifications?.[0]?.authenticity_score ?? null,
+          commit_count: verificationModalSubmission.github_verifications?.[0]?.commit_count ?? null,
+          unique_contributors: verificationModalSubmission.github_verifications?.[0]?.unique_contributors ?? null,
+          trust_change: null,
+          status: verificationModalSubmission.status,
+          admin_review_status: verificationModalSubmission.admin_review_status
+        } : null}
+        studentName={verificationModalSubmission?.student_profiles?.full_name}
+        taskTitle={verificationModalSubmission?.tasks?.title}
+      />
     </div>
   );
 };

@@ -14,6 +14,17 @@ export interface ProofReview {
   moss_status: string | null;
   moss_score: number | null;
   moss_url: string | null;
+  admin_review_status: string | null;
+  github_verifications?: {
+    authenticity_score: number | null;
+    commit_count: number | null;
+    unique_contributors: number | null;
+  }[];
+  ai_verifications?: {
+    originality_score: number | null;
+    ai_summary: string | null;
+    ai_comments: string | null;
+  }[];
   student: {
     full_name: string;
     email: string;
@@ -40,6 +51,16 @@ export const useProofReviews = () => {
             tasks!inner (
               title,
               xp_reward
+            ),
+            github_verifications (
+              authenticity_score,
+              commit_count,
+              unique_contributors
+            ),
+            ai_verifications (
+              originality_score,
+              ai_summary,
+              ai_comments
             )
           `)
           .order('submitted_at', { ascending: false });

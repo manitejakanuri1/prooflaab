@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,18 +20,46 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useProofReviews, useUpdateProofStatus, useMossCheck, type ProofReview } from "@/hooks/useProofReviews";
-import { CheckCircle, XCircle, Clock, FileText, ExternalLink, Microscope } from "lucide-react";
+import { useProofReviews, useUpdateProofStatus, type ProofReview } from "@/hooks/useProofReviews";
+import { useVerifyProof } from "@/hooks/useVerifyProof";
+import VerificationSummaryModal from "@/components/dashboard/VerificationSummaryModal";
+import VerificationDropdown from "@/components/dashboard/VerificationDropdown";
+import { CheckCircle, XCircle, FileText, ExternalLink, Brain, Github, Shield } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 const UploadedProofs = () => {
-  const { data: proofs, isLoading } = useProofReviews();
+  const { data: proofs, isLoading, refetch } = useProofReviews();
   const updateStatusMutation = useUpdateProofStatus();
-  const mossMutation = useMossCheck();
+  const verifyProofMutation = useVerifyProof();
   
   const [selectedProof, setSelectedProof] = useState<ProofReview | null>(null);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewAction, setReviewAction] = useState<"Verified" | "Rejected" | null>(null);
+  const [verificationModalProof, setVerificationModalProof] = useState<ProofReview | null>(null);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+
+  // Real-time subscription for proof_uploads changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('proof_uploads_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'proof_uploads'
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -44,19 +72,40 @@ const UploadedProofs = () => {
     }
   };
 
-  const getMossStatusBadge = (status: string | null, score: number | null) => {
-    if (!status) return null;
+  const getMossScoreBadge = (score: number | null) => {
+    if (score === null) return <Badge variant="outline">Not Checked</Badge>;
     
-    const colors = {
-      'Unique': 'bg-green-100 text-green-800 border-green-300',
-      'Similar': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      'Suspicious': 'bg-red-100 text-red-800 border-red-300'
-    };
+    if (score < 20) {
+      return <Badge className="bg-green-100 text-green-800 border-green-300">{score}%</Badge>;
+    } else if (score < 60) {
+      return <Badge className="bg-orange-100 text-orange-800 border-orange-300">{score}%</Badge>;
+    } else {
+      return <Badge className="bg-red-100 text-red-800 border-red-300">{score}%</Badge>;
+    }
+  };
 
+  const getOriginalityBadge = (proof: ProofReview) => {
+    const score = proof.ai_verifications?.[0]?.originality_score;
+    if (score === null || score === undefined) return <Badge variant="outline">-</Badge>;
+    
+    if (score > 70) {
+      return <Badge className="bg-green-100 text-green-800">High</Badge>;
+    } else if (score > 40) {
+      return <Badge className="bg-orange-100 text-orange-800">Medium</Badge>;
+    } else {
+      return <Badge className="bg-red-100 text-red-800">Low</Badge>;
+    }
+  };
+
+  const getAuthenticityBadge = (proof: ProofReview) => {
+    const score = proof.github_verifications?.[0]?.authenticity_score;
+    if (score === null || score === undefined) return <Badge variant="outline">-</Badge>;
+    
     return (
-      <Badge variant="outline" className={colors[status as keyof typeof colors] || ''}>
-        {status} {score && `(${score}%)`}
-      </Badge>
+      <div className="flex items-center gap-1">
+        <Github className="h-3 w-3" />
+        <Badge variant="outline">{score}</Badge>
+      </div>
     );
   };
 
@@ -82,8 +131,19 @@ const UploadedProofs = () => {
     setReviewComment("");
   };
 
-  const handleMossCheck = (proofId: string) => {
-    mossMutation.mutate(proofId);
+  const handleRunVerification = (proofId: string) => {
+    verifyProofMutation.mutate(proofId);
+  };
+
+  const handleViewResults = (proof: ProofReview) => {
+    setVerificationModalProof(proof);
+    setShowVerificationModal(true);
+  };
+
+  const hasVerificationResults = (proof: ProofReview) => {
+    return proof.moss_score !== null || 
+           proof.ai_verifications?.[0]?.originality_score !== null ||
+           proof.github_verifications?.[0]?.authenticity_score !== null;
   };
 
   if (isLoading) {
@@ -121,9 +181,10 @@ const UploadedProofs = () => {
                     <TableHead className="min-w-[100px] hidden sm:table-cell">File/Link</TableHead>
                     <TableHead className="min-w-[100px] hidden md:table-cell">Submitted</TableHead>
                     <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[100px] hidden lg:table-cell">MOSS</TableHead>
-                    <TableHead className="min-w-[80px] hidden md:table-cell">XP Reward</TableHead>
-                    <TableHead className="min-w-[200px] sticky right-0 bg-background">Actions</TableHead>
+                    <TableHead className="min-w-[80px] hidden lg:table-cell">MOSS</TableHead>
+                    <TableHead className="min-w-[100px] hidden lg:table-cell">AI Score</TableHead>
+                    <TableHead className="min-w-[100px] hidden xl:table-cell">GitHub</TableHead>
+                    <TableHead className="min-w-[250px] sticky right-0 bg-background">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -156,16 +217,35 @@ const UploadedProofs = () => {
                         {format(new Date(proof.submitted_at), 'MMM dd, yyyy')}
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(proof.status)}
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(proof.status)}
+                          {proof.admin_review_status === 'Auto-verified' && (
+                            <Badge variant="outline" className="text-xs">
+                              <Brain className="h-3 w-3 mr-1" />
+                              Auto
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {getMossStatusBadge(proof.moss_status, proof.moss_score)}
+                        {getMossScoreBadge(proof.moss_score)}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="font-medium text-sm">{proof.task.xp_reward || 0} XP</span>
+                      <TableCell className="hidden lg:table-cell">
+                        {getOriginalityBadge(proof)}
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        {getAuthenticityBadge(proof)}
                       </TableCell>
                       <TableCell className="sticky right-0 bg-background">
                         <div className="flex gap-1 flex-wrap">
+                          <VerificationDropdown
+                            proofId={proof.id}
+                            hasResults={hasVerificationResults(proof)}
+                            onRunVerification={handleRunVerification}
+                            onViewResults={() => handleViewResults(proof)}
+                            isRunning={verifyProofMutation.isPending}
+                          />
+                          
                           {proof.status === 'Under Review' && (
                             <>
                               <Button
@@ -188,30 +268,19 @@ const UploadedProofs = () => {
                               </Button>
                             </>
                           )}
-                          {proof.file_url && !proof.moss_status && (
+                          
+                          {proof.file_url && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleMossCheck(proof.id)}
-                              disabled={mossMutation.isPending}
-                              className="text-blue-600 border-blue-300 hover:bg-blue-50 h-7 text-xs"
+                              asChild
+                              className="h-7 text-xs"
                             >
-                              <Microscope className="h-3 w-3 mr-1" />
-                              <span className="hidden sm:inline">MOSS</span>
+                              <a href={proof.file_url} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                <span className="hidden sm:inline">View</span>
+                              </a>
                             </Button>
-                        )}
-                        {proof.moss_url && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                            className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                          >
-                            <a href={proof.moss_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              MOSS Report
-                            </a>
-                          </Button>
                           )}
                         </div>
                       </TableCell>
@@ -288,6 +357,27 @@ const UploadedProofs = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Verification Summary Modal */}
+      <VerificationSummaryModal
+        open={showVerificationModal}
+        onOpenChange={setShowVerificationModal}
+        data={verificationModalProof ? {
+          moss_score: verificationModalProof.moss_score,
+          moss_url: verificationModalProof.moss_url,
+          originality_score: verificationModalProof.ai_verifications?.[0]?.originality_score ?? null,
+          ai_summary: verificationModalProof.ai_verifications?.[0]?.ai_summary ?? null,
+          ai_comments: verificationModalProof.ai_verifications?.[0]?.ai_comments ?? null,
+          authenticity_score: verificationModalProof.github_verifications?.[0]?.authenticity_score ?? null,
+          commit_count: verificationModalProof.github_verifications?.[0]?.commit_count ?? null,
+          unique_contributors: verificationModalProof.github_verifications?.[0]?.unique_contributors ?? null,
+          trust_change: null,
+          status: verificationModalProof.status,
+          admin_review_status: verificationModalProof.admin_review_status
+        } : null}
+        studentName={verificationModalProof?.student.full_name}
+        taskTitle={verificationModalProof?.task.title}
+      />
     </>
   );
 };

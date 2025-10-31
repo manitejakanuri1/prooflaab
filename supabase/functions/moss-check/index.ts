@@ -7,130 +7,60 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// MOSS configuration from the provided Perl script
-const MOSS_SERVER = 'moss.stanford.edu';
-const MOSS_PORT = 7690;
-const MOSS_USER_ID = 426805902; // From the provided Perl script
+async function submitToMossAPI(fileContents: string[], language: string = 'python'): Promise<{ similarity_score: number; report_url: string }> {
+  const mossApiUrl = Deno.env.get('MOSS_API_URL');
+  
+  if (!mossApiUrl) {
+    throw new Error('MOSS_API_URL environment variable is not set');
+  }
 
-async function submitToMoss(allSubmissions: Array<{content: string, fileName: string, studentId: string}>, language: string = 'java'): Promise<{ url: string; scores: Record<string, number>; status: string }> {
+  console.log('Submitting to MOSS API:', mossApiUrl);
+
   try {
-    // Connect to MOSS server
-    const conn = await Deno.connect({
-      hostname: MOSS_SERVER,
-      port: MOSS_PORT,
+    const response = await fetch(mossApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        language: language,
+        files: fileContents
+      })
     });
 
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    // Send MOSS authentication
-    await conn.write(encoder.encode(`moss ${MOSS_USER_ID}\n`));
-    await conn.write(encoder.encode(`directory 0\n`));
-    await conn.write(encoder.encode(`X 0\n`));
-    await conn.write(encoder.encode(`maxmatches 10\n`));
-    await conn.write(encoder.encode(`show 250\n`));
-
-    // Set language
-    await conn.write(encoder.encode(`language ${language}\n`));
-    
-    // Read language confirmation
-    const buffer = new Uint8Array(1024);
-    const n = await conn.read(buffer);
-    const response = decoder.decode(buffer.subarray(0, n || 0));
-    
-    if (response.trim() === 'no') {
-      throw new Error(`Unsupported language: ${language}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`MOSS API error: ${response.status} - ${errorText}`);
     }
 
-    // Upload all files for comparison
-    for (let i = 0; i < allSubmissions.length; i++) {
-      const submission = allSubmissions[i];
-      const fileSize = new TextEncoder().encode(submission.content).length;
-      const cleanFileName = `${submission.studentId}_${submission.fileName}`.replace(/\s/g, '_');
-      
-      await conn.write(encoder.encode(`file ${i + 1} ${language} ${fileSize} ${cleanFileName}\n`));
-      await conn.write(encoder.encode(submission.content));
-    }
-
-    // Submit query
-    await conn.write(encoder.encode(`query 0 Lovable MOSS Plagiarism Check\n`));
-
-    // Read response URL
-    const resultBuffer = new Uint8Array(1024);
-    const resultN = await conn.read(resultBuffer);
-    const resultResponse = decoder.decode(resultBuffer.subarray(0, resultN || 0));
-
-    // End connection
-    await conn.write(encoder.encode(`end\n`));
-    conn.close();
-
-    // Parse MOSS URL from response
-    const urlMatch = resultResponse.match(/http:\/\/moss\.stanford\.edu\/results\/\d+/);
-    const mossUrl = urlMatch ? urlMatch[0] : '';
-
-    // Calculate similarity scores based on file content comparison
-    const scores: Record<string, number> = {};
-    
-    for (let i = 0; i < allSubmissions.length; i++) {
-      const currentSubmission = allSubmissions[i];
-      let maxSimilarity = 0;
-      
-      // Compare with all other submissions
-      for (let j = 0; j < allSubmissions.length; j++) {
-        if (i !== j) {
-          const otherSubmission = allSubmissions[j];
-          const similarity = calculateSimilarity(currentSubmission.content, otherSubmission.content);
-          maxSimilarity = Math.max(maxSimilarity, similarity);
-        }
-      }
-      
-      scores[currentSubmission.studentId] = Math.round(maxSimilarity);
-    }
-
-    const maxScore = Math.max(...Object.values(scores));
-    const status = maxScore > 70 ? 'Suspicious' : maxScore > 30 ? 'Similar' : 'Unique';
+    const result = await response.json();
+    console.log('MOSS API Response:', result);
 
     return {
-      url: mossUrl,
-      scores,
-      status
+      similarity_score: result.similarity_score || 0,
+      report_url: result.report_url || ''
     };
 
   } catch (error) {
-    console.error('MOSS submission error:', error);
+    console.error('MOSS API submission error:', error);
     throw new Error(`MOSS check failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
-// Simple similarity calculation based on Levenshtein distance
-function calculateSimilarity(str1: string, str2: string): number {
-  const longer = str1.length > str2.length ? str1 : str2;
-  const shorter = str1.length > str2.length ? str2 : str1;
-  
-  if (longer.length === 0) return 100;
-  
-  const distance = levenshteinDistance(longer, shorter);
-  return ((longer.length - distance) / longer.length) * 100;
-}
-
-function levenshteinDistance(str1: string, str2: string): number {
-  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-  
-  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-  
-  for (let j = 1; j <= str2.length; j++) {
-    for (let i = 1; i <= str1.length; i++) {
-      const substitutionCost = str1[i - 1] === str2[j - 1] ? 0 : 1;
-      matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1,
-        matrix[j - 1][i] + 1,
-        matrix[j - 1][i - 1] + substitutionCost
-      );
-    }
+async function logAuditEvent(supabaseClient: any, userId: string | null, action: string, details: any) {
+  try {
+    await supabaseClient
+      .from('audit_logs')
+      .insert({
+        user_id: userId,
+        action: action,
+        table_name: 'proof_uploads',
+        record_id: details.submission_id,
+        new_values: details
+      });
+  } catch (error) {
+    console.error('Failed to log audit event:', error);
   }
-  
-  return matrix[str2.length][str1.length];
 }
 
 async function downloadFile(url: string): Promise<string> {
@@ -177,20 +107,20 @@ serve(async (req) => {
       .update({ moss_status: 'Pending' })
       .eq('id', submissionId);
 
+    // Log start of verification
+    await logAuditEvent(supabaseClient, null, 'MOSS_VERIFICATION_START', {
+      submission_id: submissionId,
+      task_id: submission.task_id,
+      student_id: submission.student_id
+    });
+
     // Get the task ID to fetch all submissions for this task
     const taskId = submission.task_id;
     
     // Fetch all submissions for the same task to compare for plagiarism
     const { data: allTaskSubmissions, error: allSubmissionsError } = await supabaseClient
       .from('proof_uploads')
-      .select(`
-        *,
-        student_profiles!inner (
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('task_id', taskId)
       .not('file_url', 'is', null);
 
@@ -202,30 +132,24 @@ serve(async (req) => {
 
     let mossResult;
     
-    if (submission.file_url && allTaskSubmissions.length > 1) {
-      // Handle file submissions with multiple submissions to compare
-      console.log('Processing multiple file submissions for MOSS comparison');
+    if (submission.file_url) {
+      console.log('Processing file submission for MOSS check');
       
       try {
         // Download all files for comparison
-        const submissionsData = [];
+        const fileContents: string[] = [];
         
         for (const sub of allTaskSubmissions) {
           try {
             const fileContent = await downloadFile(sub.file_url);
-            const fileName = sub.file_url.split('/').pop() || 'submission.txt';
-            submissionsData.push({
-              content: fileContent,
-              fileName: fileName,
-              studentId: sub.student_id
-            });
+            fileContents.push(fileContent);
           } catch (downloadError) {
             console.error(`Error downloading file for submission ${sub.id}:`, downloadError);
           }
         }
         
-        if (submissionsData.length < 2) {
-          throw new Error('Need at least 2 valid submissions for comparison');
+        if (fileContents.length === 0) {
+          throw new Error('No valid file contents to analyze');
         }
         
         // Determine language from file extension
@@ -234,70 +158,66 @@ serve(async (req) => {
         const languageMap: Record<string, string> = {
           'java': 'java',
           'py': 'python', 
-          'cpp': 'cc',
+          'cpp': 'c',
           'c': 'c',
           'js': 'javascript',
           'ts': 'javascript',
-          'cs': 'csharp'
+          'cs': 'csharp',
+          'rb': 'ruby',
+          'go': 'go',
+          'php': 'php'
         };
-        const language = languageMap[ext] || 'java';
+        const language = languageMap[ext] || 'python';
 
-        const mossComparisonResult = await submitToMoss(submissionsData, language);
-        
-        // Get the score for this specific submission
-        const submissionScore = mossComparisonResult.scores[submission.student_id] || 0;
+        console.log(`Detected language: ${language} from extension: ${ext}`);
+
+        // Submit to MOSS API wrapper
+        const apiResult = await submitToMossAPI(fileContents, language);
         
         mossResult = {
-          status: submissionScore > 70 ? 'Suspicious' : submissionScore > 30 ? 'Similar' : 'Unique',
-          url: mossComparisonResult.url,
-          score: submissionScore
+          similarity_score: apiResult.similarity_score,
+          report_url: apiResult.report_url,
+          status: 'completed'
         };
-        
-        // Update all other submissions with their scores
-        for (const [studentId, score] of Object.entries(mossComparisonResult.scores)) {
-          if (studentId !== submission.student_id) {
-            const otherSubmission = allTaskSubmissions.find(s => s.student_id === studentId);
-            if (otherSubmission) {
-              await supabaseClient
-                .from('proof_uploads')
-                .update({
-                  moss_status: score > 70 ? 'Suspicious' : score > 30 ? 'Similar' : 'Unique',
-                  moss_url: mossComparisonResult.url,
-                  moss_score: score
-                })
-                .eq('id', otherSubmission.id);
-            }
-          }
-        }
+
+        // Log successful verification
+        await logAuditEvent(supabaseClient, null, 'MOSS_VERIFICATION_SUCCESS', {
+          submission_id: submissionId,
+          similarity_score: apiResult.similarity_score,
+          report_url: apiResult.report_url
+        });
         
       } catch (error) {
-        console.error('Error processing files with MOSS:', error);
+        console.error('Error processing files with MOSS API:', error);
+        
+        // Log error
+        await logAuditEvent(supabaseClient, null, 'MOSS_VERIFICATION_ERROR', {
+          submission_id: submissionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        
         // Fallback to error result
         mossResult = {
-          status: 'Error',
-          url: '',
-          score: 0
+          similarity_score: 0,
+          report_url: '',
+          status: 'error'
         };
       }
       
-    } else if (submission.file_url) {
-      // Single submission - can't compare
-      console.log('Single submission - no comparison possible');
-      mossResult = {
-        status: 'Unique',
-        url: '',
-        score: 0
-      };
     } else {
-      // Handle link submission (if it's a GitHub link, etc.)
-      console.log('Processing link submission for MOSS');
+      // Handle link submission (no file to check)
+      console.log('Link submission - skipping MOSS check');
       
-      // For link submissions, we can't directly check with MOSS
       mossResult = {
-        status: 'Unique',
-        url: '',
-        score: 0
+        similarity_score: 0,
+        report_url: '',
+        status: 'completed'
       };
+
+      await logAuditEvent(supabaseClient, null, 'MOSS_VERIFICATION_SKIPPED', {
+        submission_id: submissionId,
+        reason: 'Link submission'
+      });
     }
 
     console.log('MOSS Result:', mossResult);
@@ -307,8 +227,8 @@ serve(async (req) => {
       .from('proof_uploads')
       .update({
         moss_status: mossResult.status,
-        moss_url: mossResult.url,
-        moss_score: mossResult.score
+        moss_url: mossResult.report_url,
+        moss_score: mossResult.similarity_score
       })
       .eq('id', submissionId);
 
@@ -317,14 +237,18 @@ serve(async (req) => {
       throw updateError;
     }
 
-    return new Response(JSON.stringify(mossResult), {
+    return new Response(JSON.stringify({
+      moss_score: mossResult.similarity_score,
+      moss_url: mossResult.report_url,
+      moss_status: mossResult.status
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in moss-check function:', error);
     
-    // Update submission to show error if we have the submissionId
+    // Log error to audit logs
     if (submissionId) {
       try {
         const supabaseClient = createClient(
@@ -332,9 +256,14 @@ serve(async (req) => {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
         );
         
+        await logAuditEvent(supabaseClient, null, 'MOSS_VERIFICATION_ERROR', {
+          submission_id: submissionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        
         await supabaseClient
           .from('proof_uploads')
-          .update({ moss_status: 'Error' })
+          .update({ moss_status: 'error' })
           .eq('id', submissionId);
       } catch (updateError) {
         console.error('Error updating submission status to error:', updateError);

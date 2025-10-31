@@ -51,7 +51,7 @@ const StudentHeader = ({
           
           <div className="text-gray-900 dark:text-white font-bold text-base sm:text-lg flex items-center gap-2 sm:gap-3">
             <Logo className="h-8 w-8 sm:h-12 sm:w-12" />
-            <span className="hidden xs:inline">ProofLabAI</span>
+            <span className="hidden sm:inline">ProofLabAI</span>
           </div>
         </div>
         

@@ -56,7 +56,7 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
   };
 
   return (
-    <aside className="w-56 md:w-64 bg-white/80 dark:bg-gray-800/90 backdrop-blur-sm border-r border-orange-200/30 dark:border-gray-700 h-[calc(100vh-64px)] overflow-y-auto">
+    <aside className="w-56 md:w-64 bg-card/80 backdrop-blur-sm border-r border-border h-[calc(100vh-64px)] overflow-y-auto">
       <nav className="p-3 md:p-4">
         <div className="space-y-1 md:space-y-2">
           {menuItems.map((item) => {
@@ -72,8 +72,8 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
                 className={cn(
                   "w-full justify-start space-x-2 md:space-x-3 h-10 md:h-12 text-left text-xs md:text-sm relative",
                   activeTab === item.id 
-                    ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium" 
-                    : "text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400"
+                    ? "bg-primary/10 text-primary font-medium" 
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
@@ -91,11 +91,11 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
           })}
           
           {/* Sign Out Button */}
-          <div className="pt-3 md:pt-4 mt-3 md:mt-4 border-t border-orange-200/30 dark:border-gray-700">
+          <div className="pt-3 md:pt-4 mt-3 md:mt-4 border-t border-border">
             <Button
               variant="ghost"
               onClick={handleSignOut}
-              className="w-full justify-start space-x-2 md:space-x-3 h-10 md:h-12 text-left text-xs md:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300"
+              className="w-full justify-start space-x-2 md:space-x-3 h-10 md:h-12 text-left text-xs md:text-sm text-destructive hover:bg-destructive/10"
             >
               <LogOut className="h-4 w-4 flex-shrink-0" />
               <span className="truncate">Sign Out</span>

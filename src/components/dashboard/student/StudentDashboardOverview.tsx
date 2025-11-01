@@ -132,15 +132,15 @@ const StudentDashboardOverview = () => {
                     <h4 className="font-medium text-foreground text-sm sm:text-base truncate">{task.title}</h4>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
                       <span className="text-xs sm:text-sm text-muted-foreground">
-                        {task.deadline ? (
+                        {task.due_date ? (
                           (() => {
-                            const deadlineDate = new Date(task.deadline);
+                            const deadlineDate = new Date(task.due_date);
                             return !isNaN(deadlineDate.getTime()) 
                               ? `Due ${formatDistanceToNow(deadlineDate, { addSuffix: true })}`
-                              : 'Due date: Invalid';
+                              : task.deadline || 'No due date';
                           })()
                         ) : (
-                          'No due date'
+                          task.deadline || 'No due date'
                         )}
                       </span>
                       <Badge className={getStatusColor(task.status)}>

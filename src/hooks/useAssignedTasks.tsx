@@ -7,6 +7,7 @@ interface AssignedTask {
   id: string;
   title: string;
   deadline: string;
+  due_date?: string; // Raw date from database
   status: 'Pending' | 'In Progress' | 'Completed' | 'Under Review';
   progress: number;
   description?: string;
@@ -95,6 +96,7 @@ export const useAssignedTasks = () => {
           id: task.id,
           title: task.title,
           deadline: getRelativeTime(dueDate),
+          due_date: task.due_date, // Include raw date
           status: currentStatus as 'Pending' | 'In Progress' | 'Completed' | 'Under Review',
           progress: calculateProgress(currentStatus),
           description: task.description,

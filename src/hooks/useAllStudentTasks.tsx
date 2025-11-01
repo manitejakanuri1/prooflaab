@@ -108,9 +108,6 @@ export const useAllStudentTasks = () => {
       const allTasks: StudentTask[] = [];
       const addedTaskIds = new Set<string>();
 
-      console.log('Direct tasks raw data:', directTasks);
-      console.log('Assignments raw data:', assignments);
-
       // Add directly assigned tasks (legacy/manual assignments via tasks.student_id)
       (directTasks || []).forEach(task => {
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];

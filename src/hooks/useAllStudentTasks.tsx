@@ -91,7 +91,7 @@ export const useAllStudentTasks = () => {
       // Add directly assigned tasks (legacy/manual assignments via tasks.student_id)
       (directTasks || []).forEach(task => {
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
-        let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'In Progress';
+        let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
         
         if (proofUploads.length > 0) {
           const latestProof = proofUploads[proofUploads.length - 1];
@@ -99,10 +99,13 @@ export const useAllStudentTasks = () => {
             status = 'Completed';
           } else if (latestProof.status === 'Under Review') {
             status = 'Under Review';
+          } else {
+            status = 'In Progress'; // Proof submitted but not verified
           }
-        } else if (!task.started_at) {
-          status = 'In Progress'; // Default to In Progress for assigned tasks
+        } else if (task.started_at) {
+          status = 'In Progress'; // Task started but no proof yet
         }
+        // If no started_at and no proof, keep status as 'Applied'
 
         allTasks.push({
           id: task.id,
@@ -115,7 +118,7 @@ export const useAllStudentTasks = () => {
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
-          can_start: !task.started_at,
+          can_start: !task.started_at && status === 'Applied',
         });
         addedTaskIds.add(task.id);
       });
@@ -126,7 +129,7 @@ export const useAllStudentTasks = () => {
         if (!task || addedTaskIds.has(task.id)) return; // Skip if already added
 
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
-        let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'In Progress';
+        let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
         
         if (proofUploads.length > 0) {
           const latestProof = proofUploads[proofUploads.length - 1];
@@ -134,8 +137,13 @@ export const useAllStudentTasks = () => {
             status = 'Completed';
           } else if (latestProof.status === 'Under Review') {
             status = 'Under Review';
+          } else {
+            status = 'In Progress'; // Proof submitted but not verified
           }
+        } else if (task.started_at) {
+          status = 'In Progress'; // Task started but no proof yet
         }
+        // If no started_at and no proof, keep status as 'Applied'
 
         allTasks.push({
           id: task.id,
@@ -148,7 +156,7 @@ export const useAllStudentTasks = () => {
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
-          can_start: false, // Assigned tasks are already started
+          can_start: !task.started_at && status === 'Applied',
         });
         addedTaskIds.add(task.id);
       });

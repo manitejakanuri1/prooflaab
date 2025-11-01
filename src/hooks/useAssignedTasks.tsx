@@ -133,17 +133,47 @@ export const useAssignedTasks = () => {
   };
 
   const startTask = async (taskId: string) => {
-    const { error } = await supabase
+    if (!user) throw new Error('User not authenticated');
+
+    // Get student profile
+    const { data: profile, error: profileError } = await supabase
+      .from('student_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError) throw profileError;
+    if (!profile) throw new Error('Student profile not found');
+
+    // Create or update task assignment (UPSERT logic to prevent duplicates)
+    const { error: assignmentError } = await supabase
+      .from('task_assignments')
+      .upsert({
+        task_id: taskId,
+        student_id: profile.id,
+        status: 'in_progress',
+        assigned_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'task_id,student_id'
+      });
+
+    if (assignmentError) throw assignmentError;
+
+    // Also update tasks table for backward compatibility
+    const { error: taskError } = await supabase
       .from('tasks')
       .update({ 
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
+        status: 'In Progress'
       })
       .eq('id', taskId);
 
-    if (error) throw error;
+    if (taskError) throw taskError;
 
-    // Invalidate queries to refresh data
+    // Invalidate all related queries to refresh data
     queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['all-student-tasks'] });
   };
 
   return { 

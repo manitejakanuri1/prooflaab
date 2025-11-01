@@ -42,7 +42,17 @@ export const useAllStudentTasks = () => {
         .select(`
           task_id,
           tasks:task_id (
-            *,
+            id,
+            title,
+            description,
+            due_date,
+            xp_reward,
+            status,
+            started_at,
+            created_by_type,
+            created_by_startup_id,
+            created_by_college_id,
+            created_by_admin_id,
             proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
           )
         `)
@@ -55,7 +65,17 @@ export const useAllStudentTasks = () => {
       const { data: directTasks, error: directTasksError } = await supabase
         .from('tasks')
         .select(`
-          *,
+          id,
+          title,
+          description,
+          due_date,
+          xp_reward,
+          status,
+          started_at,
+          created_by_type,
+          created_by_startup_id,
+          created_by_college_id,
+          created_by_admin_id,
           proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
         `)
         .eq('student_id', profile.id)

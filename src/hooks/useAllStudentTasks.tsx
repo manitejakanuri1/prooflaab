@@ -107,14 +107,24 @@ export const useAllStudentTasks = () => {
         }
         // If no started_at and no proof, keep status as 'Applied'
 
+        // Determine source based on available data
+        let taskSource = 'Admin';
+        if (task.created_by_startup_id) {
+          taskSource = 'Startup';
+        } else if (task.created_by_college_id) {
+          taskSource = 'College';
+        } else if (task.created_by_admin_id) {
+          taskSource = 'Admin';
+        }
+
         allTasks.push({
           id: task.id,
           title: task.title,
           description: task.description,
           deadline: task.due_date,
           status,
-          source: task.created_by_startup_id ? 'Startup' : (task.created_by_college_id ? 'College' : 'Admin'),
-          created_by_type: task.created_by_type,
+          source: taskSource,
+          created_by_type: task.created_by_type || taskSource.toLowerCase(),
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
@@ -145,14 +155,24 @@ export const useAllStudentTasks = () => {
         }
         // If no started_at and no proof, keep status as 'Applied'
 
+        // Determine source based on available data
+        let taskSource = 'Admin';
+        if (task.created_by_startup_id) {
+          taskSource = 'Startup';
+        } else if (task.created_by_college_id) {
+          taskSource = 'College';
+        } else if (task.created_by_admin_id) {
+          taskSource = 'Admin';
+        }
+
         allTasks.push({
           id: task.id,
           title: task.title,
           description: task.description,
           deadline: task.due_date,
           status,
-          source: task.created_by_startup_id ? 'Startup' : (task.created_by_college_id ? 'College' : 'Admin'),
-          created_by_type: task.created_by_type,
+          source: taskSource,
+          created_by_type: task.created_by_type || taskSource.toLowerCase(),
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
@@ -172,14 +192,24 @@ export const useAllStudentTasks = () => {
             taskStatus = 'Applied'; // Accepted but not started yet
           }
 
+          // Determine source for application tasks
+          let taskSource = 'Admin';
+          if (app.tasks.created_by_startup_id) {
+            taskSource = 'Startup';
+          } else if (app.tasks.created_by_type === 'college' || app.tasks.created_by_type === 'college_admin') {
+            taskSource = 'College';
+          } else if (app.tasks.created_by_type === 'admin') {
+            taskSource = 'Admin';
+          }
+
           allTasks.push({
             id: app.tasks.id,
             title: app.tasks.title,
             description: app.tasks.description,
             deadline: app.tasks.due_date,
             status: taskStatus,
-            source: app.tasks.created_by_startup_id ? 'Startup' : (app.tasks.created_by_type || 'Admin'),
-            created_by_type: app.tasks.created_by_type,
+            source: taskSource,
+            created_by_type: app.tasks.created_by_type || taskSource.toLowerCase(),
             xp_reward: app.tasks.xp_reward,
             created_by_startup_id: app.tasks.created_by_startup_id,
             application_status: app.status,

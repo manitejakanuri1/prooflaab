@@ -610,6 +610,13 @@ export type Database = {
           moss_score: number | null
           moss_status: string | null
           moss_url: string | null
+          reflection_answers: Json | null
+          reflection_questions: Json | null
+          reflection_reasoning: string | null
+          reflection_score: number | null
+          reflection_status: string | null
+          reflection_trigger_time: string | null
+          reflection_verified_at: string | null
           review_comment: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -626,6 +633,13 @@ export type Database = {
           moss_score?: number | null
           moss_status?: string | null
           moss_url?: string | null
+          reflection_answers?: Json | null
+          reflection_questions?: Json | null
+          reflection_reasoning?: string | null
+          reflection_score?: number | null
+          reflection_status?: string | null
+          reflection_trigger_time?: string | null
+          reflection_verified_at?: string | null
           review_comment?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -642,6 +656,13 @@ export type Database = {
           moss_score?: number | null
           moss_status?: string | null
           moss_url?: string | null
+          reflection_answers?: Json | null
+          reflection_questions?: Json | null
+          reflection_reasoning?: string | null
+          reflection_score?: number | null
+          reflection_status?: string | null
+          reflection_trigger_time?: string | null
+          reflection_verified_at?: string | null
           review_comment?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null

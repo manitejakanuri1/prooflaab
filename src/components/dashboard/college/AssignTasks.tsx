@@ -648,6 +648,14 @@ const AssignTasks = () => {
         insertedTasks = data.tasks || [];
       } else {
         // For other modes, create tasks directly
+        // Get college ID first
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: collegeData } = await supabase
+          .from('colleges')
+          .select('id')
+          .eq('user_id', user?.id)
+          .single();
+
         const tasksToInsert = selectedStudents.map(studentId => ({
           student_id: studentId,
           title: confirmationData.title,
@@ -656,7 +664,9 @@ const AssignTasks = () => {
           xp_reward: confirmationData.xpReward,
           category: confirmationData.category,
           visibility: confirmationData.visibility.toLowerCase(),
-          status: 'Pending'
+          status: 'Pending',
+          created_by_type: 'college',
+          created_by_college_id: collegeData?.id
         }));
 
         const result = await supabase

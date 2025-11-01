@@ -272,9 +272,9 @@ const StudentTasksPage = () => {
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge 
                               variant="outline" 
-                              className={getSourceBadgeColor(task.created_by_type || task.source || '')}
+                              className={getSourceBadgeColor(task.source || '')}
                             >
-                              {task.created_by_type === 'student' ? 'Student' : task.source || 'Unknown'}
+                              {task.source || 'Unknown'}
                             </Badge>
                             <Badge 
                               variant="outline" 

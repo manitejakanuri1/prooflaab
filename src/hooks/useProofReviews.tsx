@@ -15,6 +15,10 @@ export interface ProofReview {
   moss_score: number | null;
   moss_url: string | null;
   admin_review_status: string | null;
+  ai_score: number | null;
+  ai_summary: string | null;
+  ai_feedback: string | null;
+  ai_status: string | null;
   github_verifications?: {
     authenticity_score: number | null;
     commit_count: number | null;

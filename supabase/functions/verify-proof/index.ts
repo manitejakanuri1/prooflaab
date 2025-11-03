@@ -332,13 +332,18 @@ serve(async (req) => {
       }
     }
 
-    // 6. Update proof status with validated payload
+    // 6. Update proof status with validated payload including AI data
     const updatePayload: any = {
       status: 'Verified',
       admin_review_status: 'Auto-verified',
       review_comment: reviewComment,
       reviewed_at: new Date().toISOString(),
-      moss_status: mossScore > 0 ? 'completed' : null
+      moss_status: mossScore > 0 ? 'completed' : null,
+      moss_url: githubInfo ? proof.file_url : null,
+      ai_score: originalityScore,
+      ai_summary: aiResult.ai_summary,
+      ai_feedback: aiResult.ai_comments,
+      ai_status: 'completed'
     };
 
     console.log('Updating proof_uploads with payload:', JSON.stringify(updatePayload, null, 2));

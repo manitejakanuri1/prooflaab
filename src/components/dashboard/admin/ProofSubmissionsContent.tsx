@@ -31,6 +31,10 @@ interface ProofSubmission {
   moss_url: string | null;
   moss_score: number | null;
   admin_review_status: string | null;
+  ai_score: number | null;
+  ai_summary: string | null;
+  ai_feedback: string | null;
+  ai_status: string | null;
   github_verifications?: Array<{
     authenticity_score: number | null;
     commit_count: number | null;
@@ -657,15 +661,15 @@ const ProofSubmissionsContent = () => {
         data={verificationModalSubmission ? {
           moss_score: verificationModalSubmission.moss_score,
           moss_url: verificationModalSubmission.moss_url,
-          originality_score: Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
+          ai_score: verificationModalSubmission.ai_score ?? (Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
             ? verificationModalSubmission.ai_verifications[0]?.originality_score ?? null
-            : null,
-          ai_summary: Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
+            : null),
+          ai_summary: verificationModalSubmission.ai_summary ?? (Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
             ? verificationModalSubmission.ai_verifications[0]?.ai_summary ?? null
-            : null,
-          ai_comments: Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
+            : null),
+          ai_feedback: verificationModalSubmission.ai_feedback ?? (Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
             ? verificationModalSubmission.ai_verifications[0]?.ai_comments ?? null
-            : null,
+            : null),
           authenticity_score: Array.isArray(verificationModalSubmission.github_verifications) && verificationModalSubmission.github_verifications.length > 0
             ? verificationModalSubmission.github_verifications[0]?.authenticity_score ?? null
             : null,

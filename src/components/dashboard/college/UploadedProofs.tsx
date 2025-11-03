@@ -85,20 +85,19 @@ const UploadedProofs = () => {
   };
 
   const getOriginalityBadge = (proof: ProofReview) => {
-    // Safely access ai_verifications array
-    const aiVerification = Array.isArray(proof.ai_verifications) && proof.ai_verifications.length > 0 
-      ? proof.ai_verifications[0] 
-      : null;
-    const score = aiVerification?.originality_score;
+    // Use ai_score from proof_uploads first, fallback to ai_verifications
+    const score = proof.ai_score ?? (Array.isArray(proof.ai_verifications) && proof.ai_verifications.length > 0 
+      ? proof.ai_verifications[0]?.originality_score 
+      : null);
     
-    if (score === null || score === undefined) return <Badge variant="outline">-</Badge>;
+    if (score === null || score === undefined) return <Badge variant="outline">Not Checked</Badge>;
     
     if (score > 70) {
-      return <Badge className="bg-green-100 text-green-800">High</Badge>;
+      return <Badge className="bg-green-100 text-green-800 border-green-300">High ({score}%)</Badge>;
     } else if (score > 40) {
-      return <Badge className="bg-orange-100 text-orange-800">Medium</Badge>;
+      return <Badge className="bg-orange-100 text-orange-800 border-orange-300">Medium ({score}%)</Badge>;
     } else {
-      return <Badge className="bg-red-100 text-red-800">Low</Badge>;
+      return <Badge className="bg-red-100 text-red-800 border-red-300">Low ({score}%)</Badge>;
     }
   };
 
@@ -380,15 +379,15 @@ const UploadedProofs = () => {
         data={verificationModalProof ? {
           moss_score: verificationModalProof.moss_score,
           moss_url: verificationModalProof.moss_url,
-          originality_score: Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+          ai_score: verificationModalProof.ai_score ?? (Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
             ? verificationModalProof.ai_verifications[0]?.originality_score ?? null
-            : null,
-          ai_summary: Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            : null),
+          ai_summary: verificationModalProof.ai_summary ?? (Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
             ? verificationModalProof.ai_verifications[0]?.ai_summary ?? null
-            : null,
-          ai_comments: Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            : null),
+          ai_feedback: verificationModalProof.ai_feedback ?? (Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
             ? verificationModalProof.ai_verifications[0]?.ai_comments ?? null
-            : null,
+            : null),
           authenticity_score: Array.isArray(verificationModalProof.github_verifications) && verificationModalProof.github_verifications.length > 0
             ? verificationModalProof.github_verifications[0]?.authenticity_score ?? null
             : null,

@@ -7,9 +7,9 @@ import { CheckCircle, XCircle, Brain, Github, Shield, TrendingUp } from "lucide-
 interface VerificationData {
   moss_score: number | null;
   moss_url: string | null;
-  originality_score: number | null;
+  ai_score: number | null;
   ai_summary: string | null;
-  ai_comments: string | null;
+  ai_feedback: string | null;
   authenticity_score: number | null;
   commit_count: number | null;
   unique_contributors: number | null;
@@ -151,15 +151,15 @@ const VerificationSummaryModal = ({
                   <Brain className="h-5 w-5 text-purple-600" />
                   <h3 className="font-semibold">AI Originality Analysis</h3>
                 </div>
-                {getOriginalityBadge(data.originality_score)}
+                {getOriginalityBadge(data.ai_score)}
               </div>
               {data.ai_summary && (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">{data.ai_summary}</p>
-                  {data.ai_comments && (
+                  {data.ai_feedback && (
                     <div className="bg-muted/50 p-3 rounded-md">
                       <p className="text-sm font-medium mb-1">AI Feedback:</p>
-                      <p className="text-sm text-muted-foreground">{data.ai_comments}</p>
+                      <p className="text-sm text-muted-foreground">{data.ai_feedback}</p>
                     </div>
                   )}
                 </div>

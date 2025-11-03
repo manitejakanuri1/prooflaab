@@ -605,6 +605,10 @@ export type Database = {
       proof_uploads: {
         Row: {
           admin_review_status: string | null
+          ai_feedback: string | null
+          ai_score: number | null
+          ai_status: string | null
+          ai_summary: string | null
           file_url: string | null
           id: string
           moss_score: number | null
@@ -628,6 +632,10 @@ export type Database = {
         }
         Insert: {
           admin_review_status?: string | null
+          ai_feedback?: string | null
+          ai_score?: number | null
+          ai_status?: string | null
+          ai_summary?: string | null
           file_url?: string | null
           id?: string
           moss_score?: number | null
@@ -651,6 +659,10 @@ export type Database = {
         }
         Update: {
           admin_review_status?: string | null
+          ai_feedback?: string | null
+          ai_score?: number | null
+          ai_status?: string | null
+          ai_summary?: string | null
           file_url?: string | null
           id?: string
           moss_score?: number | null

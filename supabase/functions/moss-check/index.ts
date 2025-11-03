@@ -7,13 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function submitToMossAPI(fileContents: string[], language: string = 'python'): Promise<{ similarity_score: number; report_url: string }> {
+async function submitToMossAPI(repoUrl: string, language: string = 'javascript'): Promise<{ similarity_score: number; report_url: string }> {
   const mossApiUrl = Deno.env.get('MOSS_API_URL');
   
   if (!mossApiUrl) {
     throw new Error('MOSS_API_URL environment variable is not set');
   }
 
+  console.log('Calling MOSS Wrapper with:', repoUrl);
   console.log('Submitting to MOSS API:', mossApiUrl);
 
   try {
@@ -23,8 +24,8 @@ async function submitToMossAPI(fileContents: string[], language: string = 'pytho
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        language: language,
-        files: fileContents
+        repo_url: repoUrl,
+        language: language || 'javascript'
       })
     });
 
@@ -136,43 +137,42 @@ serve(async (req) => {
       console.log('Processing file submission for MOSS check');
       
       try {
-        // Download all files for comparison
-        const fileContents: string[] = [];
+        // Determine language from file extension or GitHub repo
+        let language = 'javascript'; // default
         
-        for (const sub of allTaskSubmissions) {
-          try {
-            const fileContent = await downloadFile(sub.file_url);
-            fileContents.push(fileContent);
-          } catch (downloadError) {
-            console.error(`Error downloading file for submission ${sub.id}:`, downloadError);
+        if (submission.file_url.includes('github.com')) {
+          // For GitHub repos, try to detect language from repo structure
+          const urlParts = submission.file_url.toLowerCase();
+          if (urlParts.includes('python') || urlParts.includes('.py')) {
+            language = 'python';
+          } else if (urlParts.includes('java') || urlParts.includes('.java')) {
+            language = 'java';
+          } else if (urlParts.includes('cpp') || urlParts.includes('c++') || urlParts.includes('.cpp')) {
+            language = 'c';
           }
+        } else {
+          // For direct file uploads, detect from extension
+          const fileName = submission.file_url.split('/').pop() || 'submission.txt';
+          const ext = fileName.split('.').pop()?.toLowerCase() || '';
+          const languageMap: Record<string, string> = {
+            'java': 'java',
+            'py': 'python', 
+            'cpp': 'c',
+            'c': 'c',
+            'js': 'javascript',
+            'ts': 'javascript',
+            'cs': 'csharp',
+            'rb': 'ruby',
+            'go': 'go',
+            'php': 'php'
+          };
+          language = languageMap[ext] || 'javascript';
         }
-        
-        if (fileContents.length === 0) {
-          throw new Error('No valid file contents to analyze');
-        }
-        
-        // Determine language from file extension
-        const fileName = submission.file_url.split('/').pop() || 'submission.txt';
-        const ext = fileName.split('.').pop()?.toLowerCase() || '';
-        const languageMap: Record<string, string> = {
-          'java': 'java',
-          'py': 'python', 
-          'cpp': 'c',
-          'c': 'c',
-          'js': 'javascript',
-          'ts': 'javascript',
-          'cs': 'csharp',
-          'rb': 'ruby',
-          'go': 'go',
-          'php': 'php'
-        };
-        const language = languageMap[ext] || 'python';
 
-        console.log(`Detected language: ${language} from extension: ${ext}`);
+        console.log(`Detected language: ${language}`);
 
-        // Submit to MOSS API wrapper
-        const apiResult = await submitToMossAPI(fileContents, language);
+        // Submit to MOSS API wrapper with repo URL
+        const apiResult = await submitToMossAPI(submission.file_url, language);
         
         mossResult = {
           similarity_score: apiResult.similarity_score,

@@ -92,7 +92,7 @@ const VerificationSummaryModal = ({
     }
   };
 
-  const isAutoVerified = data.admin_review_status === 'Auto-verified';
+  const isAutoVerified = data.admin_review_status === 'Verified' && data.status === 'Verified';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,7 +103,8 @@ const VerificationSummaryModal = ({
             Verification Summary
             {isAutoVerified && (
               <Badge variant="outline" className="ml-2">
-                Auto-verified
+                <Brain className="h-3 w-3 mr-1" />
+                Automated
               </Badge>
             )}
           </DialogTitle>

@@ -233,7 +233,7 @@ const UploadedProofs = () => {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(proof.status)}
-                          {proof.admin_review_status === 'Auto-verified' && (
+                          {proof.admin_review_status === 'Verified' && proof.ai_score !== null && (
                             <Badge variant="outline" className="text-xs">
                               <Brain className="h-3 w-3 mr-1" />
                               Auto

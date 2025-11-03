@@ -453,7 +453,7 @@ const ProofSubmissionsContent = () => {
                           <Badge className={`${getStatusBadge(submission.status)} border`}>
                             {submission.status}
                           </Badge>
-                          {submission.admin_review_status === 'Auto-verified' && (
+                          {submission.admin_review_status === 'Verified' && submission.ai_score !== null && (
                             <Badge variant="outline" className="text-xs">
                               <Brain className="h-3 w-3 mr-1" />
                               Auto

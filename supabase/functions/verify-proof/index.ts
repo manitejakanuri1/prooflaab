@@ -190,10 +190,13 @@ serve(async (req) => {
 
     console.log('Starting verification for proof:', proofId);
 
-    // 1. Fetch proof record
+    // 1. Fetch proof record with user_id
     const { data: proof, error: proofError } = await supabase
       .from('proof_uploads')
-      .select('*, student_profiles!inner(full_name, email, college_id)')
+      .select(`
+        *, 
+        student_profiles!inner(full_name, email, college_id, user_id)
+      `)
       .eq('id', proofId)
       .single();
 
@@ -335,7 +338,7 @@ serve(async (req) => {
     // 6. Update proof status with validated payload including AI data
     const updatePayload: any = {
       status: 'Verified',
-      admin_review_status: 'Auto-verified',
+      admin_review_status: 'Verified',
       review_comment: reviewComment,
       reviewed_at: new Date().toISOString(),
       moss_status: mossScore > 0 ? 'completed' : null,
@@ -355,19 +358,22 @@ serve(async (req) => {
 
     if (proofUpdateError) {
       console.error('Error updating proof_uploads:', proofUpdateError);
-      // Log error to audit trail
-      await supabase.from('audit_logs').insert({
-        user_id: proof.student_id,
-        action: 'VERIFICATION_ERROR',
-        table_name: 'proof_uploads',
-        record_id: proofId,
-        new_values: {
-          error_message: proofUpdateError.message,
-          attempted_payload: updatePayload
-        }
-      }).then(({ error }) => {
-        if (error) console.error('Failed to log error to audit:', error);
-      });
+      // Log error to audit trail with proper user_id
+      const studentUserId = proof.student_profiles?.user_id;
+      if (studentUserId) {
+        await supabase.from('audit_logs').insert({
+          user_id: studentUserId,
+          action: 'VERIFICATION_ERROR',
+          table_name: 'proof_uploads',
+          record_id: proofId,
+          new_values: {
+            error_message: proofUpdateError.message,
+            attempted_payload: updatePayload
+          }
+        }).then(({ error }) => {
+          if (error) console.error('Failed to log error to audit:', error);
+        });
+      }
     }
 
     // 7. Log audit trail - check for existing entry first
@@ -379,21 +385,24 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!existingAudit) {
-      const { error: auditError } = await supabase.from('audit_logs').insert({
-        user_id: proof.student_id,
-        action: 'AUTO_VERIFIED',
-        table_name: 'proof_uploads',
-        record_id: proofId,
-        new_values: {
-          moss_score: mossScore,
-          originality_score: originalityScore,
-          authenticity_score: authenticityScore,
-          trust_change: trustChange
-        }
-      });
+      const studentUserId = proof.student_profiles?.user_id;
+      if (studentUserId) {
+        const { error: auditError } = await supabase.from('audit_logs').insert({
+          user_id: studentUserId,
+          action: 'AUTO_VERIFIED',
+          table_name: 'proof_uploads',
+          record_id: proofId,
+          new_values: {
+            moss_score: mossScore,
+            originality_score: originalityScore,
+            authenticity_score: authenticityScore,
+            trust_change: trustChange
+          }
+        });
 
-      if (auditError) {
-        console.error('Error inserting audit log:', auditError);
+        if (auditError) {
+          console.error('Error inserting audit log:', auditError);
+        }
       }
     }
 

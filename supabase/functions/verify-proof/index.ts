@@ -275,52 +275,122 @@ serve(async (req) => {
       reviewComment = 'Moderate verification scores. Standard trust adjustment applied.';
     }
 
-    // 5. Update student trust score
-    const { data: currentTrust } = await supabase
+    // 5. Update student trust score with error handling
+    const { data: currentTrust, error: trustFetchError } = await supabase
       .from('student_profiles')
       .select('trust_score')
       .eq('id', proof.student_id)
-      .single();
+      .maybeSingle();
+
+    if (trustFetchError) {
+      console.error('Error fetching trust score:', trustFetchError);
+    }
 
     if (currentTrust) {
-      const newTrustScore = Math.max(0, Math.min(100, currentTrust.trust_score + trustChange));
+      const newTrustScore = Math.max(0, Math.min(100, (currentTrust.trust_score || 0) + trustChange));
       
-      await supabase
+      const { error: trustUpdateError } = await supabase
         .from('student_profiles')
         .update({ trust_score: newTrustScore })
         .eq('id', proof.student_id);
 
-      await supabase.from('trust_scores').upsert({
-        student_id: proof.student_id,
-        score: newTrustScore,
-        last_updated: new Date().toISOString()
+      if (trustUpdateError) {
+        console.error('Error updating trust score:', trustUpdateError);
+      }
+
+      // Check if trust_scores entry exists before upserting
+      const { data: existingTrustScore } = await supabase
+        .from('trust_scores')
+        .select('id')
+        .eq('student_id', proof.student_id)
+        .maybeSingle();
+
+      if (existingTrustScore) {
+        const { error: trustScoreUpdateError } = await supabase
+          .from('trust_scores')
+          .update({
+            score: newTrustScore,
+            last_updated: new Date().toISOString()
+          })
+          .eq('student_id', proof.student_id);
+
+        if (trustScoreUpdateError) {
+          console.error('Error updating trust_scores:', trustScoreUpdateError);
+        }
+      } else {
+        const { error: trustScoreInsertError } = await supabase
+          .from('trust_scores')
+          .insert({
+            student_id: proof.student_id,
+            score: newTrustScore,
+            last_updated: new Date().toISOString()
+          });
+
+        if (trustScoreInsertError) {
+          console.error('Error inserting trust_scores:', trustScoreInsertError);
+        }
+      }
+    }
+
+    // 6. Update proof status with validated payload
+    const updatePayload: any = {
+      status: 'Verified',
+      admin_review_status: 'Auto-verified',
+      review_comment: reviewComment,
+      reviewed_at: new Date().toISOString(),
+      moss_status: mossScore > 0 ? 'completed' : null
+    };
+
+    console.log('Updating proof_uploads with payload:', JSON.stringify(updatePayload, null, 2));
+
+    const { error: proofUpdateError } = await supabase
+      .from('proof_uploads')
+      .update(updatePayload)
+      .eq('id', proofId);
+
+    if (proofUpdateError) {
+      console.error('Error updating proof_uploads:', proofUpdateError);
+      // Log error to audit trail
+      await supabase.from('audit_logs').insert({
+        user_id: proof.student_id,
+        action: 'VERIFICATION_ERROR',
+        table_name: 'proof_uploads',
+        record_id: proofId,
+        new_values: {
+          error_message: proofUpdateError.message,
+          attempted_payload: updatePayload
+        }
+      }).then(({ error }) => {
+        if (error) console.error('Failed to log error to audit:', error);
       });
     }
 
-    // 6. Update proof status
-    await supabase
-      .from('proof_uploads')
-      .update({
-        status: 'Verified',
-        admin_review_status: 'Auto-verified',
-        review_comment: reviewComment,
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('id', proofId);
+    // 7. Log audit trail - check for existing entry first
+    const { data: existingAudit } = await supabase
+      .from('audit_logs')
+      .select('id')
+      .eq('record_id', proofId)
+      .eq('action', 'AUTO_VERIFIED')
+      .maybeSingle();
 
-    // 7. Log audit trail
-    await supabase.from('audit_logs').insert({
-      user_id: proof.student_id,
-      action: 'AUTO_VERIFIED',
-      table_name: 'proof_uploads',
-      record_id: proofId,
-      new_values: {
-        moss_score: mossScore,
-        originality_score: originalityScore,
-        authenticity_score: authenticityScore,
-        trust_change: trustChange
+    if (!existingAudit) {
+      const { error: auditError } = await supabase.from('audit_logs').insert({
+        user_id: proof.student_id,
+        action: 'AUTO_VERIFIED',
+        table_name: 'proof_uploads',
+        record_id: proofId,
+        new_values: {
+          moss_score: mossScore,
+          originality_score: originalityScore,
+          authenticity_score: authenticityScore,
+          trust_change: trustChange
+        }
+      });
+
+      if (auditError) {
+        console.error('Error inserting audit log:', auditError);
       }
-    });
+    }
 
     const result: VerificationResult = {
       proofId,

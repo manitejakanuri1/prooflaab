@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
-import { createHash } from "https://deno.land/std@0.168.0/hash/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,8 +44,12 @@ serve(async (req) => {
 
     console.log('Starting AI authorship analysis for proof:', proof_id);
 
-    // Create cache key based on content hash
-    const contentHash = createHash("md5").update(code_snippets_or_repo_summary).toString();
+    // Create cache key based on content hash using Web Crypto API
+    const encoder = new TextEncoder();
+    const data = encoder.encode(code_snippets_or_repo_summary);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
     // Check cache first
     const cached = cache.get(contentHash);

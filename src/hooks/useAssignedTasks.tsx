@@ -59,8 +59,8 @@ export const useAssignedTasks = () => {
         const dueDate = new Date(task.due_date);
         const uploadDeadline = task.upload_deadline ? new Date(task.upload_deadline) : null;
         
-        // Determine actual status based on proof uploads
-        let currentStatus = task.status;
+        // Determine actual status based on proof uploads and started_at
+        let currentStatus: 'Pending' | 'In Progress' | 'Completed' | 'Under Review' = 'Pending';
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         
         if (proofUploads.length > 0) {
@@ -70,11 +70,19 @@ export const useAssignedTasks = () => {
             currentStatus = 'Completed';
           } else if (latestProof.status === 'Under Review') {
             currentStatus = 'Under Review';
+          } else {
+            currentStatus = 'In Progress'; // Proof submitted but not verified
           }
-        } else if (task.started_at && uploadDeadline && now > uploadDeadline && task.status === 'In Progress') {
-          // Check if task should revert to pending due to missed deadline
-          currentStatus = 'Pending';
+        } else if (task.started_at) {
+          // Task has been started by student but no proof yet
+          if (uploadDeadline && now > uploadDeadline) {
+            // Missed upload deadline - revert to pending
+            currentStatus = 'Pending';
+          } else {
+            currentStatus = 'In Progress';
+          }
         }
+        // If no started_at and no proof, status remains 'Pending'
         
         // Calculate relative time for due date
         const getRelativeTime = (date: Date) => {

@@ -12,10 +12,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useVerifyProof } from '@/hooks/useVerifyProof';
+import { useFullVerification } from '@/hooks/useFullVerification';
+import { VerificationBadges } from '@/components/dashboard/VerificationBadges';
 import VerificationSummaryModal from '@/components/dashboard/VerificationSummaryModal';
 import VerificationDropdown from '@/components/dashboard/VerificationDropdown';
 import { format } from 'date-fns';
-import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Search, FileIcon, Shield, Brain, Github } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Search, FileIcon, Shield, Brain, Github, Play } from 'lucide-react';
 
 interface ProofSubmission {
   id: string;
@@ -67,6 +69,7 @@ const ProofSubmissionsContent = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const verifyProofMutation = useVerifyProof();
+  const fullVerificationMutation = useFullVerification();
 
   // Real-time subscription for proof_uploads changes
   useEffect(() => {
@@ -273,6 +276,11 @@ const ProofSubmissionsContent = () => {
 
   const handleRunVerification = (proofId: string) => {
     verifyProofMutation.mutate(proofId);
+  };
+
+  const handleRunFullVerification = (submission: ProofSubmission) => {
+    const repoUrl = submission.file_url || undefined;
+    fullVerificationMutation.mutate({ proofId: submission.id, repoUrl });
   };
 
   const handleViewVerificationResults = (submission: ProofSubmission) => {
@@ -548,61 +556,114 @@ const ProofSubmissionsContent = () => {
 
       {/* Review Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Review Submission</DialogTitle>
           </DialogHeader>
           
           {selectedSubmission && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Student & Task Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Student</label>
-                  <p className="text-sm text-gray-900 mt-1">{selectedSubmission.student_profiles?.full_name}</p>
-                  <p className="text-xs text-gray-500">{selectedSubmission.student_profiles?.email}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Student</label>
+                  <p className="text-sm text-foreground mt-1 font-medium">{selectedSubmission.student_profiles?.full_name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedSubmission.student_profiles?.email}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Task</label>
-                  <p className="text-sm text-gray-900 mt-1">{selectedSubmission.tasks?.title}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Task</label>
+                  <p className="text-sm text-foreground mt-1 font-medium">{selectedSubmission.tasks?.title}</p>
+                  <p className="text-xs text-muted-foreground">XP Reward: {selectedSubmission.tasks?.xp_reward || 0}</p>
                 </div>
               </div>
 
+              {/* Verification Badges */}
+              {(selectedSubmission.ai_score || 
+                selectedSubmission.github_verifications?.[0]?.authenticity_score ||
+                selectedSubmission.moss_score) && (
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Verification Scores</label>
+                  <VerificationBadges
+                    aiAuthorshipScore={selectedSubmission.ai_score ?? (selectedSubmission.ai_verifications?.[0]?.originality_score)}
+                    commitAuthenticityScore={selectedSubmission.github_verifications?.[0]?.authenticity_score}
+                    conceptualScore={null}
+                    cognitiveIntegrityScore={null}
+                    size="md"
+                  />
+                </div>
+              )}
+
+              {/* Verification Details */}
+              {selectedSubmission.ai_summary && (
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground">AI Summary</label>
+                  <div className="text-sm text-foreground bg-muted p-3 rounded-lg mt-2 border">
+                    {selectedSubmission.ai_summary}
+                  </div>
+                </div>
+              )}
+
+              {/* GitHub Verification Details */}
+              {selectedSubmission.github_verifications && selectedSubmission.github_verifications.length > 0 && (
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block flex items-center gap-2">
+                    <Github className="h-4 w-4" />
+                    GitHub Analysis
+                  </label>
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Commits</p>
+                      <p className="font-medium">{selectedSubmission.github_verifications[0]?.commit_count || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Contributors</p>
+                      <p className="font-medium">{selectedSubmission.github_verifications[0]?.unique_contributors || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Authenticity</p>
+                      <p className="font-medium">{selectedSubmission.github_verifications[0]?.authenticity_score || 0}/100</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {selectedSubmission.submission_notes && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Student Notes</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg mt-1 border">
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground">Student Notes</label>
+                  <div className="text-sm text-foreground bg-muted p-3 rounded-lg mt-2 border">
                     {selectedSubmission.submission_notes}
                   </div>
                 </div>
               )}
 
               {selectedSubmission.file_url && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Submitted File</label>
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground">Submitted File/Repo</label>
                   <a 
                     href={selectedSubmission.file_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 text-sm flex items-center space-x-1 mt-1 hover:underline"
+                    className="text-primary hover:text-primary/80 text-sm flex items-center space-x-1 mt-2 hover:underline"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    <span>Open File/Link</span>
+                    <span>Open in New Tab</span>
                   </a>
                 </div>
               )}
 
-              <div>
-                <label className="text-sm font-medium text-gray-700">Review Comment</label>
+              <div className="border-t pt-4">
+                <label className="text-sm font-medium text-muted-foreground">Review Comment</label>
                 <Textarea
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   placeholder="Add your review comment..."
-                  className="mt-1"
+                  className="mt-2"
                   rows={3}
                 />
               </div>
 
-              <div className="flex space-x-2 pt-4 border-t">
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2 pt-4 border-t">
                 <Button
                   onClick={() => handleStatusUpdate('Verified')}
                   disabled={
@@ -638,15 +699,27 @@ const ProofSubmissionsContent = () => {
                 </Button>
                 <Button
                   onClick={() => {
-                    handleRunVerification(selectedSubmission.id);
-                    setIsModalOpen(false);
+                    handleRunFullVerification(selectedSubmission);
                   }}
-                  disabled={verifyProofMutation.isPending}
+                  disabled={fullVerificationMutation.isPending}
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  {fullVerificationMutation.isPending ? 'Running...' : 'Trigger Full Verification'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (hasVerificationResults(selectedSubmission)) {
+                      handleViewVerificationResults(selectedSubmission);
+                    }
+                  }}
+                  disabled={!hasVerificationResults(selectedSubmission)}
                   variant="outline"
                   className="border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Run Full Verification
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Results
                 </Button>
               </div>
             </div>

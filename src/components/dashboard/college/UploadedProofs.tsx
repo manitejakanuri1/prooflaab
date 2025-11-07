@@ -22,9 +22,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useProofReviews, useUpdateProofStatus, type ProofReview } from "@/hooks/useProofReviews";
 import { useVerifyProof } from "@/hooks/useVerifyProof";
+import { useFullVerification } from "@/hooks/useFullVerification";
+import { VerificationBadges } from "@/components/dashboard/VerificationBadges";
 import VerificationSummaryModal from "@/components/dashboard/VerificationSummaryModal";
 import VerificationDropdown from "@/components/dashboard/VerificationDropdown";
-import { CheckCircle, XCircle, FileText, ExternalLink, Brain, Github, Shield } from "lucide-react";
+import { CheckCircle, XCircle, FileText, ExternalLink, Brain, Github, Shield, Play, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,6 +34,7 @@ const UploadedProofs = () => {
   const { data: proofs, isLoading, refetch } = useProofReviews();
   const updateStatusMutation = useUpdateProofStatus();
   const verifyProofMutation = useVerifyProof();
+  const fullVerificationMutation = useFullVerification();
   
   const [selectedProof, setSelectedProof] = useState<ProofReview | null>(null);
   const [reviewComment, setReviewComment] = useState("");
@@ -142,6 +145,11 @@ const UploadedProofs = () => {
 
   const handleRunVerification = (proofId: string) => {
     verifyProofMutation.mutate(proofId);
+  };
+
+  const handleRunFullVerification = (proof: ProofReview) => {
+    const repoUrl = proof.file_url || undefined;
+    fullVerificationMutation.mutate({ proofId: proof.id, repoUrl });
   };
 
   const handleViewResults = (proof: ProofReview) => {
@@ -315,7 +323,7 @@ const UploadedProofs = () => {
 
       {/* Review Dialog */}
       <Dialog open={!!selectedProof} onOpenChange={() => setSelectedProof(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {reviewAction === "Verified" ? "Verify" : "Reject"} Proof Submission
@@ -328,47 +336,127 @@ const UploadedProofs = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="comment">Review Comment {reviewAction === "Rejected" && "(Required)"}</Label>
-              <Textarea
-                id="comment"
-                placeholder={reviewAction === "Verified" 
-                  ? "Add any feedback (optional)..." 
-                  : "Please provide a reason for rejection..."
-                }
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedProof(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmReview}
-              disabled={reviewAction === "Rejected" && !reviewComment.trim()}
-              className={reviewAction === "Verified" 
-                ? "bg-green-600 hover:bg-green-700" 
-                : "bg-red-600 hover:bg-red-700"
-              }
-            >
-              {reviewAction === "Verified" ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Verify Submission
-                </>
-              ) : (
-                <>
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Reject Submission
-                </>
+          {selectedProof && (
+            <div className="space-y-6">
+              {/* Verification Badges */}
+              {(selectedProof.ai_score || 
+                selectedProof.github_verifications?.[0]?.authenticity_score ||
+                selectedProof.moss_score) && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Verification Scores</label>
+                  <VerificationBadges
+                    aiAuthorshipScore={selectedProof.ai_score ?? (selectedProof.ai_verifications?.[0]?.originality_score)}
+                    commitAuthenticityScore={selectedProof.github_verifications?.[0]?.authenticity_score}
+                    conceptualScore={null}
+                    cognitiveIntegrityScore={null}
+                    size="md"
+                  />
+                </div>
               )}
-            </Button>
-          </DialogFooter>
+
+              {/* GitHub Verification Details */}
+              {selectedProof.github_verifications && selectedProof.github_verifications.length > 0 && (
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block flex items-center gap-2">
+                    <Github className="h-4 w-4" />
+                    GitHub Analysis
+                  </label>
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Commits</p>
+                      <p className="font-medium">{selectedProof.github_verifications[0]?.commit_count || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Contributors</p>
+                      <p className="font-medium">{selectedProof.github_verifications[0]?.unique_contributors || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Authenticity</p>
+                      <p className="font-medium">{selectedProof.github_verifications[0]?.authenticity_score || 0}/100</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedProof.file_url && (
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground">Submitted File/Repo</label>
+                  <a 
+                    href={selectedProof.file_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary/80 text-sm flex items-center space-x-1 mt-2 hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Open in New Tab</span>
+                  </a>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <Label htmlFor="comment">Review Comment {reviewAction === "Rejected" && "(Required)"}</Label>
+                <Textarea
+                  id="comment"
+                  placeholder={reviewAction === "Verified" 
+                    ? "Add any feedback (optional)..." 
+                    : "Please provide a reason for rejection..."
+                  }
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  className="mt-2"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setSelectedProof(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmReview}
+                  disabled={reviewAction === "Rejected" && !reviewComment.trim()}
+                  className={reviewAction === "Verified" 
+                    ? "bg-green-600 hover:bg-green-700" 
+                    : "bg-red-600 hover:bg-red-700"
+                  }
+                >
+                  {reviewAction === "Verified" ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Verify Submission
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Reject Submission
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => handleRunFullVerification(selectedProof)}
+                  disabled={fullVerificationMutation.isPending}
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  {fullVerificationMutation.isPending ? 'Running...' : 'Full Verification'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (hasVerificationResults(selectedProof)) {
+                      handleViewResults(selectedProof);
+                      setSelectedProof(null);
+                    }
+                  }}
+                  disabled={!hasVerificationResults(selectedProof)}
+                  variant="outline"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Results
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

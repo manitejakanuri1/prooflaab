@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.question-generator]
 verify_jwt = true
+
+[functions.submit-conceptual-answers]
+verify_jwt = true

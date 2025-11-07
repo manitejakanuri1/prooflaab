@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,14 +14,58 @@ import {
 } from "@/components/ui/table";
 import { useProofUploads } from "@/hooks/useProofUploads";
 import { format, isValid } from "date-fns";
-import { Download, Eye, FileText, Upload as UploadIcon, Search, Filter, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Download, Eye, FileText, Upload as UploadIcon, Search, Filter, CheckCircle, Clock, XCircle, Brain } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 
 const StudentUploadsPage = () => {
   const currentDate = new Date();
-  const { data: uploads, isLoading, error } = useProofUploads(currentDate);
+  const { data: uploads, isLoading, error, refetch } = useProofUploads(currentDate);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Newest First");
+  const [conceptualTests, setConceptualTests] = useState<Record<string, any>>({});
+  const [selectedProofId, setSelectedProofId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // Fetch conceptual tests for all proofs
+  useEffect(() => {
+    if (uploads && uploads.length > 0) {
+      fetchConceptualTests();
+    }
+  }, [uploads]);
+
+  const fetchConceptualTests = async () => {
+    try {
+      const proofIds = uploads?.map(u => u.id) || [];
+      if (proofIds.length === 0) return;
+
+      const { data, error } = await supabase
+        .from('conceptual_tests')
+        .select('proof_id, status')
+        .in('proof_id', proofIds);
+
+      if (error) throw error;
+
+      const testsMap: Record<string, any> = {};
+      data?.forEach(test => {
+        testsMap[test.proof_id] = test;
+      });
+      setConceptualTests(testsMap);
+    } catch (err) {
+      console.error('Error fetching conceptual tests:', err);
+    }
+  };
+
+  const handleOpenQuestions = (proofId: string) => {
+    setSelectedProofId(proofId);
+    setModalOpen(true);
+  };
+
+  const handleSubmitSuccess = () => {
+    fetchConceptualTests();
+    refetch();
+  };
 
   // Enhanced sorting and filtering logic
   const filteredAndSortedUploads = useMemo(() => {
@@ -305,7 +349,23 @@ const StudentUploadsPage = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right py-4">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2 flex-wrap">
+                            {conceptualTests[upload.id]?.status === 'pending' && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => handleOpenQuestions(upload.id)}
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                              >
+                                <Brain className="h-4 w-4 mr-1" />
+                                Answer Qs
+                              </Button>
+                            )}
+                            {conceptualTests[upload.id]?.status === 'submitted' && (
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                Qs Submitted ✅
+                              </Badge>
+                            )}
                             {upload.file_url && (
                               <>
                                 <Button
@@ -344,6 +404,15 @@ const StudentUploadsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {selectedProofId && (
+        <ConceptualQuestionsModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          proofId={selectedProofId}
+          onSubmitSuccess={handleSubmitSuccess}
+        />
+      )}
     </div>
   );
 };

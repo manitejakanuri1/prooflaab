@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.response-evaluator]
 verify_jwt = true
+
+[functions.trust-compute]
+verify_jwt = true

@@ -1,0 +1,256 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface TrustScoreResult {
+  proof_id: string;
+  student_id: string;
+  commit_authenticity_score: number;
+  ai_authorship_score: number;
+  conceptual_understanding_score: number;
+  cognitive_integrity_score: number;
+  suggested_action: 'verified' | 'needs_review' | 'failed';
+  summary: string;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { proof_id } = await req.json();
+
+    if (!proof_id) {
+      return new Response(
+        JSON.stringify({ error: 'Missing proof_id' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get auth user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Computing trust score for proof ${proof_id}`);
+
+    // Fetch proof upload to get student_id
+    const { data: proofUpload, error: proofError } = await supabase
+      .from('proof_uploads')
+      .select('student_id')
+      .eq('id', proof_id)
+      .single();
+
+    if (proofError || !proofUpload) {
+      return new Response(
+        JSON.stringify({ error: 'Proof upload not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const student_id = proofUpload.student_id;
+
+    // Fetch GitHub verification
+    const { data: githubVerification } = await supabase
+      .from('github_verifications')
+      .select('*')
+      .eq('proof_id', proof_id)
+      .single();
+
+    // Fetch AI verification
+    const { data: aiVerification } = await supabase
+      .from('ai_verifications')
+      .select('*')
+      .eq('proof_id', proof_id)
+      .single();
+
+    // Fetch conceptual test
+    const { data: conceptualTest } = await supabase
+      .from('conceptual_tests')
+      .select('*')
+      .eq('proof_id', proof_id)
+      .single();
+
+    // Calculate commit_authenticity_score
+    let commitAuthenticityScore = 0;
+    if (githubVerification) {
+      const commitCount = githubVerification.commit_count || 0;
+      const largestCommitDelta = githubVerification.largest_commit_delta || 0;
+      const authenticityScore = githubVerification.authenticity_score || 0;
+
+      // Normalize commit count (more commits = better, cap at 20 commits = 100)
+      const commitCountScore = Math.min((commitCount / 20) * 100, 100);
+
+      // Penalize large single commits (delta > 1000 lines is suspicious)
+      const singleBigCommitPenalty = largestCommitDelta > 1000 ? 20 : 0;
+
+      // Weighted average
+      commitAuthenticityScore = Math.max(0, 
+        (commitCountScore * 0.4) + 
+        (authenticityScore * 0.6) - 
+        singleBigCommitPenalty
+      );
+    }
+
+    // Calculate ai_authorship_score (100 - risk)
+    let aiAuthorshipScore = 100;
+    if (aiVerification && aiVerification.ai_authorship_risk !== null) {
+      aiAuthorshipScore = Math.max(0, 100 - (aiVerification.ai_authorship_risk || 0));
+    }
+
+    // Get conceptual_understanding_score
+    let conceptualUnderstandingScore = 0;
+    if (conceptualTest && conceptualTest.answer_scores) {
+      const answerScores = conceptualTest.answer_scores as any[];
+      if (answerScores.length > 0) {
+        conceptualUnderstandingScore = Math.round(
+          answerScores.reduce((sum: number, score: any) => sum + (score.final_score || 0), 0) / answerScores.length
+        );
+      }
+    }
+
+    // Calculate composite cognitive_integrity_score
+    // Weights: 30% commit, 30% ai_authorship, 40% conceptual
+    const cognitiveIntegrityScore = Math.round(
+      (commitAuthenticityScore * 0.30) +
+      (aiAuthorshipScore * 0.30) +
+      (conceptualUnderstandingScore * 0.40)
+    );
+
+    // Determine suggested action
+    let suggestedAction: 'verified' | 'needs_review' | 'failed';
+    let summary: string;
+
+    if (cognitiveIntegrityScore >= 75) {
+      suggestedAction = 'verified';
+      summary = `High cognitive integrity (${cognitiveIntegrityScore}/100). All verifications passed with strong scores. Recommended for automatic approval.`;
+    } else if (cognitiveIntegrityScore >= 50) {
+      suggestedAction = 'needs_review';
+      summary = `Moderate cognitive integrity (${cognitiveIntegrityScore}/100). Some concerns detected. Manual review recommended before approval.`;
+    } else {
+      suggestedAction = 'failed';
+      summary = `Low cognitive integrity (${cognitiveIntegrityScore}/100). Multiple red flags detected. Not recommended for approval.`;
+    }
+
+    // Add specific concerns to summary
+    const concerns: string[] = [];
+    if (commitAuthenticityScore < 50) concerns.push('Low commit authenticity');
+    if (aiAuthorshipScore < 50) concerns.push('High AI-generated content likelihood');
+    if (conceptualUnderstandingScore < 50) concerns.push('Weak conceptual understanding');
+
+    if (concerns.length > 0) {
+      summary += ` Concerns: ${concerns.join(', ')}.`;
+    }
+
+    console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (${suggestedAction})`);
+
+    // Update trust_scores table
+    const { error: trustScoreError } = await supabase
+      .from('trust_scores')
+      .upsert({
+        student_id: student_id,
+        score: cognitiveIntegrityScore,
+        last_updated: new Date().toISOString()
+      }, {
+        onConflict: 'student_id'
+      });
+
+    if (trustScoreError) {
+      console.error('Error updating trust_scores:', trustScoreError);
+    }
+
+    // Update proof_uploads with admin_review_status and summary
+    const { error: proofUpdateError } = await supabase
+      .from('proof_uploads')
+      .update({
+        admin_review_status: suggestedAction === 'verified' ? 'Approved' : 
+                           suggestedAction === 'needs_review' ? 'Pending' : 'Rejected',
+        ai_summary: summary,
+        ai_score: cognitiveIntegrityScore
+      })
+      .eq('id', proof_id);
+
+    if (proofUpdateError) {
+      console.error('Error updating proof_uploads:', proofUpdateError);
+    }
+
+    // Update student profile trust score
+    const { error: profileUpdateError } = await supabase
+      .from('student_profiles')
+      .update({
+        trust_score: cognitiveIntegrityScore
+      })
+      .eq('id', student_id);
+
+    if (profileUpdateError) {
+      console.error('Error updating student profile:', profileUpdateError);
+    }
+
+    // Log to audit_logs
+    await supabase
+      .from('audit_logs')
+      .insert({
+        user_id: user.id,
+        action: 'trust_score_computed',
+        table_name: 'trust_scores',
+        record_id: proof_id,
+        new_values: {
+          proof_id,
+          student_id,
+          cognitive_integrity_score: cognitiveIntegrityScore,
+          suggested_action: suggestedAction
+        }
+      });
+
+    const result: TrustScoreResult = {
+      proof_id,
+      student_id,
+      commit_authenticity_score: Math.round(commitAuthenticityScore),
+      ai_authorship_score: Math.round(aiAuthorshipScore),
+      conceptual_understanding_score: conceptualUnderstandingScore,
+      cognitive_integrity_score: cognitiveIntegrityScore,
+      suggested_action: suggestedAction,
+      summary: summary
+    };
+
+    console.log(`Trust computation complete for proof ${proof_id}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        ...result
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Error in trust-compute:', error);
+    return new Response(
+      JSON.stringify({ error: error.message || 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

@@ -112,28 +112,37 @@ export type Database = {
       }
       ai_verifications: {
         Row: {
+          ai_authorship_risk: number | null
           ai_comments: string | null
           ai_summary: string | null
           created_at: string | null
+          explanation: string | null
           id: string
           originality_score: number | null
           proof_id: string
+          raw_model_output: Json | null
         }
         Insert: {
+          ai_authorship_risk?: number | null
           ai_comments?: string | null
           ai_summary?: string | null
           created_at?: string | null
+          explanation?: string | null
           id?: string
           originality_score?: number | null
           proof_id: string
+          raw_model_output?: Json | null
         }
         Update: {
+          ai_authorship_risk?: number | null
           ai_comments?: string | null
           ai_summary?: string | null
           created_at?: string | null
+          explanation?: string | null
           id?: string
           originality_score?: number | null
           proof_id?: string
+          raw_model_output?: Json | null
         }
         Relationships: [
           {
@@ -307,6 +316,44 @@ export type Database = {
         }
         Relationships: []
       }
+      conceptual_tests: {
+        Row: {
+          answer_scores: Json | null
+          created_at: string | null
+          id: string
+          proof_id: string
+          questions: Json | null
+          status: string | null
+          student_answers: Json | null
+        }
+        Insert: {
+          answer_scores?: Json | null
+          created_at?: string | null
+          id?: string
+          proof_id: string
+          questions?: Json | null
+          status?: string | null
+          student_answers?: Json | null
+        }
+        Update: {
+          answer_scores?: Json | null
+          created_at?: string | null
+          id?: string
+          proof_id?: string
+          questions?: Json | null
+          status?: string | null
+          student_answers?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conceptual_tests_proof_id_fkey"
+            columns: ["proof_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_verifications: {
         Row: {
           code: string | null
@@ -333,31 +380,40 @@ export type Database = {
       }
       github_verifications: {
         Row: {
+          authenticity_notes: Json | null
           authenticity_score: number | null
           commit_count: number | null
           created_at: string | null
+          first_commit_at: string | null
           id: string
-          last_commit_date: string | null
+          largest_commit_delta: number | null
+          last_commit_at: string | null
           proof_id: string
           repo_url: string | null
           unique_contributors: number | null
         }
         Insert: {
+          authenticity_notes?: Json | null
           authenticity_score?: number | null
           commit_count?: number | null
           created_at?: string | null
+          first_commit_at?: string | null
           id?: string
-          last_commit_date?: string | null
+          largest_commit_delta?: number | null
+          last_commit_at?: string | null
           proof_id: string
           repo_url?: string | null
           unique_contributors?: number | null
         }
         Update: {
+          authenticity_notes?: Json | null
           authenticity_score?: number | null
           commit_count?: number | null
           created_at?: string | null
+          first_commit_at?: string | null
           id?: string
-          last_commit_date?: string | null
+          largest_commit_delta?: number | null
+          last_commit_at?: string | null
           proof_id?: string
           repo_url?: string | null
           unique_contributors?: number | null
@@ -1415,27 +1471,49 @@ export type Database = {
       }
       trust_scores: {
         Row: {
+          ai_authorship_score: number | null
+          cognitive_integrity_score: number | null
+          commit_authenticity_score: number | null
+          conceptual_understanding_score: number | null
           created_at: string
           id: string
           last_updated: string
+          proof_id: string | null
           score: number
           student_id: string
         }
         Insert: {
+          ai_authorship_score?: number | null
+          cognitive_integrity_score?: number | null
+          commit_authenticity_score?: number | null
+          conceptual_understanding_score?: number | null
           created_at?: string
           id?: string
           last_updated?: string
+          proof_id?: string | null
           score?: number
           student_id: string
         }
         Update: {
+          ai_authorship_score?: number | null
+          cognitive_integrity_score?: number | null
+          commit_authenticity_score?: number | null
+          conceptual_understanding_score?: number | null
           created_at?: string
           id?: string
           last_updated?: string
+          proof_id?: string | null
           score?: number
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trust_scores_proof_id_fkey"
+            columns: ["proof_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trust_scores_student_id_fkey"
             columns: ["student_id"]

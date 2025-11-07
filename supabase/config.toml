@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.submit-conceptual-answers]
 verify_jwt = true
+
+[functions.response-evaluator]
+verify_jwt = true

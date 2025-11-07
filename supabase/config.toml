@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.github-check]
 verify_jwt = true
+
+[functions.ai-authorship]
+verify_jwt = true

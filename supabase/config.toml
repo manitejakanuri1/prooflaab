@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.verify-proof]
 verify_jwt = true
+
+[functions.github-check]
+verify_jwt = true

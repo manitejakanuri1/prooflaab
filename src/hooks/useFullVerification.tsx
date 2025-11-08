@@ -159,10 +159,11 @@ export const useEvaluateAnswers = () => {
       queryClient.invalidateQueries({ queryKey: ['proof-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
       queryClient.invalidateQueries({ queryKey: ['trust-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['student-conceptual-tests'] });
       
       toast({
         title: "Verification Complete",
-        description: `Cognitive Integrity Score: ${data.trust.cognitive_integrity_score}/100 - ${data.trust.suggested_action}`,
+        description: `Cognitive Integrity Score: ${data.trust?.cognitive_integrity_score || data.evaluation?.conceptual_understanding_score}/100`,
         duration: 7000
       });
     },

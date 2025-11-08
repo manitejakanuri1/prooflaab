@@ -35,6 +35,11 @@ export interface ProofReview {
     score: number | null;
     last_updated: string | null;
   }[];
+  conceptual_tests?: {
+    proof_id: string;
+    status: string;
+    answer_scores: any;
+  }[];
   student: {
     full_name: string;
     email: string;
@@ -79,6 +84,11 @@ export const useProofReviews = () => {
             trust_scores (
               score,
               last_updated
+            ),
+            conceptual_tests (
+              proof_id,
+              status,
+              answer_scores
             )
           `)
           .order('submitted_at', { ascending: false });

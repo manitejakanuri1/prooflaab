@@ -224,7 +224,7 @@ Scoring guidelines:
       ? Math.round(answerScores.reduce((sum, score) => sum + score.final_score, 0) / answerScores.length)
       : 0;
 
-    // Update conceptual test with scores
+    // Update conceptual test with scores and status
     const { error: updateError } = await supabase
       .from('conceptual_tests')
       .update({
@@ -239,6 +239,26 @@ Scoring guidelines:
         JSON.stringify({ error: 'Failed to save evaluation results' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Get proof details and notify student
+    const { data: proofData } = await supabase
+      .from('proof_uploads')
+      .select('student_id, task_id, tasks(title)')
+      .eq('id', proof_id)
+      .single();
+
+    if (proofData) {
+      await supabase
+        .from('notifications')
+        .insert({
+          student_id: proofData.student_id,
+          type: 'verification',
+          title: 'Conceptual Evaluation Complete ✅',
+          message: `Your conceptual understanding score: ${conceptualUnderstandingScore}/100`,
+          link: `/student/uploads`,
+          is_read: false
+        });
     }
 
     // Log to audit_logs

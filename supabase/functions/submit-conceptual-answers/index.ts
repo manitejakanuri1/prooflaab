@@ -125,6 +125,49 @@ serve(async (req) => {
       );
     }
 
+    // Get proof details for notification
+    const { data: proofData } = await supabase
+      .from('proof_uploads')
+      .select('student_id, task_id, tasks(title)')
+      .eq('id', proof_id)
+      .single();
+
+    // Create notification for student
+    if (proofData) {
+      await supabase
+        .from('notifications')
+        .insert({
+          student_id: proofData.student_id,
+          type: 'verification',
+          title: 'Answers Submitted ✅',
+          message: 'Your conceptual answers have been submitted and are being evaluated.',
+          link: `/student/uploads`,
+          is_read: false
+        });
+    }
+
+    // Automatically trigger evaluation
+    console.log('Triggering automatic evaluation...');
+    const evalResult = await supabase.functions.invoke('response-evaluator', {
+      body: { proof_id }
+    });
+
+    if (evalResult.error) {
+      console.error('Evaluation error:', evalResult.error);
+      // Don't fail the submission even if evaluation fails
+    } else {
+      console.log('Evaluation triggered successfully');
+      
+      // Trigger trust computation after evaluation
+      const trustResult = await supabase.functions.invoke('trust-compute', {
+        body: { proof_id }
+      });
+      
+      if (trustResult.error) {
+        console.error('Trust computation error:', trustResult.error);
+      }
+    }
+
     // Log to audit_logs
     await supabase
       .from('audit_logs')

@@ -193,6 +193,7 @@ const UploadedProofs = () => {
                     <TableHead className="min-w-[100px] hidden sm:table-cell">File/Link</TableHead>
                     <TableHead className="min-w-[100px] hidden md:table-cell">Submitted</TableHead>
                     <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="min-w-[120px] hidden xl:table-cell">Concept Score</TableHead>
                     <TableHead className="min-w-[200px] hidden lg:table-cell">Verification</TableHead>
                     <TableHead className="min-w-[250px] sticky right-0 bg-background">Actions</TableHead>
                   </TableRow>
@@ -236,6 +237,26 @@ const UploadedProofs = () => {
                             </Badge>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        {(() => {
+                          const conceptualTest = proof.conceptual_tests?.[0];
+                          if (!conceptualTest) {
+                            return <Badge variant="outline" className="text-xs text-muted-foreground">N/A</Badge>;
+                          }
+                          if (conceptualTest.status === 'pending') {
+                            return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending 🕓</Badge>;
+                          }
+                          if (conceptualTest.status === 'submitted') {
+                            return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Submitted 📨</Badge>;
+                          }
+                          if (conceptualTest.status === 'completed' && conceptualTest.answer_scores) {
+                            const scores = conceptualTest.answer_scores as any[];
+                            const avgScore = Math.round(scores.reduce((sum: number, s: any) => sum + (s.final_score || 0), 0) / scores.length);
+                            return <Badge variant="default" className="bg-green-100 text-green-800">Graded ✅ {avgScore}%</Badge>;
+                          }
+                          return <Badge variant="outline" className="text-xs text-muted-foreground">-</Badge>;
+                        })()}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <VerificationBadges
@@ -338,7 +359,14 @@ const UploadedProofs = () => {
                 commitCount={selectedProof.github_verifications?.[0]?.commit_count}
                 commitAuthenticityScore={selectedProof.github_verifications?.[0]?.authenticity_score}
                 repoUrl={selectedProof.file_url}
-                conceptualScore={null}
+                conceptualScore={(() => {
+                  const conceptualTest = selectedProof.conceptual_tests?.[0];
+                  if (conceptualTest?.status === 'completed' && conceptualTest.answer_scores) {
+                    const scores = conceptualTest.answer_scores as any[];
+                    return Math.round(scores.reduce((sum: number, s: any) => sum + (s.final_score || 0), 0) / scores.length);
+                  }
+                  return null;
+                })()}
                 trustScore={selectedProof.trust_scores?.[0]?.score}
                 trustChange={null}
                 onReVerify={() => handleRunFullVerification(selectedProof)}
@@ -347,6 +375,22 @@ const UploadedProofs = () => {
                 lastCommitAt={selectedProof.github_verifications?.[0]?.last_commit_at}
                 firstCommitAt={selectedProof.github_verifications?.[0]?.first_commit_at}
               />
+              
+              {selectedProof.conceptual_tests?.[0] && (
+                <div className="mt-2 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">Conceptual Understanding</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedProof.conceptual_tests[0].status === 'completed' 
+                      ? `Student completed ${(selectedProof.conceptual_tests[0].answer_scores as any[])?.length || 0} AI-generated conceptual questions.`
+                      : selectedProof.conceptual_tests[0].status === 'submitted'
+                      ? 'Student has submitted answers — awaiting evaluation.'
+                      : 'Student has pending conceptual questions to answer.'}
+                  </p>
+                </div>
+              )}
 
               {selectedProof.file_url && (
                 <div className="border-t pt-4">

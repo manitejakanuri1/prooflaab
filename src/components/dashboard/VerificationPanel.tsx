@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { format } from "date-fns";
 
 interface VerificationPanelProps {
   // AI Verification
@@ -28,6 +29,8 @@ interface VerificationPanelProps {
   commitCount?: number | null;
   commitAuthenticityScore?: number | null;
   repoUrl?: string | null;
+  lastCommitAt?: string | null;
+  firstCommitAt?: string | null;
   
   // Conceptual Test
   conceptualScore?: number | null;
@@ -48,6 +51,8 @@ const VerificationPanel = ({
   commitCount,
   commitAuthenticityScore,
   repoUrl,
+  lastCommitAt,
+  firstCommitAt,
   conceptualScore,
   trustScore,
   trustChange,
@@ -79,6 +84,39 @@ const VerificationPanel = ({
                      commitAuthenticityScore !== null || 
                      conceptualScore !== null || 
                      trustScore !== null;
+
+  const isAwaitingVerification = !hasAnyData && repoUrl;
+  const hasPartialData = (aiOriginalityScore === null || commitAuthenticityScore === null) && hasAnyData;
+
+  if (isAwaitingVerification) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="p-4 text-center">
+          <Shield className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-pulse" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">⏳ Awaiting Verification</p>
+          <p className="text-xs text-muted-foreground">
+            {!aiOriginalityScore && !commitAuthenticityScore 
+              ? "AI authorship and GitHub commit analysis in progress..."
+              : !aiOriginalityScore 
+              ? "AI authorship analysis in progress..."
+              : "GitHub commit analysis in progress..."}
+          </p>
+          {onReVerify && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={onReVerify}
+              disabled={isVerifying}
+              className="mt-3"
+            >
+              <RefreshCw className={`h-3 w-3 mr-2 ${isVerifying ? 'animate-spin' : ''}`} />
+              Run Full Verification
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!hasAnyData) {
     return (
@@ -193,6 +231,11 @@ const VerificationPanel = ({
                       <span className="text-xl font-bold">{getScoreEmoji(commitAuthenticityScore)}</span>
                       <span className="text-lg font-bold">{commitCount || 0}</span>
                     </div>
+                    {lastCommitAt && (
+                      <div className="text-xs mt-1 text-muted-foreground">
+                        Last: {format(new Date(lastCommitAt), 'MMM dd, yyyy')}
+                      </div>
+                    )}
                     {repoUrl && (
                       <a 
                         href={repoUrl} 
@@ -209,6 +252,11 @@ const VerificationPanel = ({
                 <TooltipContent side="bottom" className="max-w-xs">
                   <p className="font-semibold mb-1">Commit Authenticity: {commitAuthenticityScore || "N/A"}</p>
                   <p className="text-xs">Analyzes commit patterns and distribution to verify genuine development work</p>
+                  {firstCommitAt && lastCommitAt && (
+                    <p className="text-xs mt-1">
+                      Span: {format(new Date(firstCommitAt), 'MMM dd')} - {format(new Date(lastCommitAt), 'MMM dd, yyyy')}
+                    </p>
+                  )}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

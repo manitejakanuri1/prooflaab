@@ -39,11 +39,19 @@ interface ProofSubmission {
     authenticity_score: number | null;
     commit_count: number | null;
     unique_contributors: number | null;
+    first_commit_at: string | null;
+    last_commit_at: string | null;
+    largest_commit_delta: number | null;
   }>;
   ai_verifications?: Array<{
     originality_score: number | null;
+    ai_authorship_risk: number | null;
     ai_summary: string | null;
     ai_comments: string | null;
+  }>;
+  trust_scores?: Array<{
+    score: number | null;
+    last_updated: string | null;
   }>;
   student_profiles?: {
     full_name: string;
@@ -110,12 +118,20 @@ const ProofSubmissionsContent = () => {
           github_verifications (
             authenticity_score,
             commit_count,
-            unique_contributors
+            unique_contributors,
+            first_commit_at,
+            last_commit_at,
+            largest_commit_delta
           ),
           ai_verifications (
             originality_score,
+            ai_authorship_risk,
             ai_summary,
             ai_comments
+          ),
+          trust_scores (
+            score,
+            last_updated
           )
         `);
 
@@ -562,19 +578,27 @@ const ProofSubmissionsContent = () => {
 
               {/* Unified Verification Panel */}
               <VerificationPanel
-                aiAuthorshipRisk={selectedSubmission.ai_verifications?.[0]?.originality_score 
-                  ? 100 - selectedSubmission.ai_verifications[0].originality_score 
-                  : null}
-                aiSummary={selectedSubmission.ai_summary}
+                aiAuthorshipRisk={
+                  selectedSubmission.ai_verifications?.[0]?.ai_authorship_risk ?? 
+                  (selectedSubmission.ai_verifications?.[0]?.originality_score 
+                    ? 100 - selectedSubmission.ai_verifications[0].originality_score 
+                    : null)
+                }
+                aiSummary={
+                  selectedSubmission.ai_verifications?.[0]?.ai_summary ?? 
+                  selectedSubmission.ai_summary
+                }
                 commitCount={selectedSubmission.github_verifications?.[0]?.commit_count}
                 commitAuthenticityScore={selectedSubmission.github_verifications?.[0]?.authenticity_score}
                 repoUrl={selectedSubmission.file_url}
                 conceptualScore={null}
-                trustScore={null}
+                trustScore={selectedSubmission.trust_scores?.[0]?.score}
                 trustChange={null}
                 onReVerify={() => handleRunFullVerification(selectedSubmission)}
                 onViewLogs={undefined}
                 isVerifying={fullVerificationMutation.isPending}
+                lastCommitAt={selectedSubmission.github_verifications?.[0]?.last_commit_at}
+                firstCommitAt={selectedSubmission.github_verifications?.[0]?.first_commit_at}
               />
 
               {selectedSubmission.submission_notes && (

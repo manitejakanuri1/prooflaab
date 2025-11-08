@@ -328,19 +328,24 @@ const UploadedProofs = () => {
             <div className="space-y-6">
               {/* Unified Verification Panel */}
               <VerificationPanel
-                aiAuthorshipRisk={selectedProof.ai_verifications?.[0]?.originality_score 
-                  ? 100 - selectedProof.ai_verifications[0].originality_score 
-                  : null}
+                aiAuthorshipRisk={
+                  selectedProof.ai_verifications?.[0]?.ai_authorship_risk ?? 
+                  (selectedProof.ai_verifications?.[0]?.originality_score 
+                    ? 100 - selectedProof.ai_verifications[0].originality_score 
+                    : null)
+                }
                 aiSummary={selectedProof.ai_verifications?.[0]?.ai_summary}
                 commitCount={selectedProof.github_verifications?.[0]?.commit_count}
                 commitAuthenticityScore={selectedProof.github_verifications?.[0]?.authenticity_score}
                 repoUrl={selectedProof.file_url}
                 conceptualScore={null}
-                trustScore={null}
+                trustScore={selectedProof.trust_scores?.[0]?.score}
                 trustChange={null}
                 onReVerify={() => handleRunFullVerification(selectedProof)}
                 onViewLogs={undefined}
                 isVerifying={fullVerificationMutation.isPending}
+                lastCommitAt={selectedProof.github_verifications?.[0]?.last_commit_at}
+                firstCommitAt={selectedProof.github_verifications?.[0]?.first_commit_at}
               />
 
               {selectedProof.file_url && (

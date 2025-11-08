@@ -21,11 +21,19 @@ export interface ProofReview {
     authenticity_score: number | null;
     commit_count: number | null;
     unique_contributors: number | null;
+    first_commit_at: string | null;
+    last_commit_at: string | null;
+    largest_commit_delta: number | null;
   }[];
   ai_verifications?: {
     originality_score: number | null;
+    ai_authorship_risk: number | null;
     ai_summary: string | null;
     ai_comments: string | null;
+  }[];
+  trust_scores?: {
+    score: number | null;
+    last_updated: string | null;
   }[];
   student: {
     full_name: string;
@@ -57,12 +65,20 @@ export const useProofReviews = () => {
             github_verifications (
               authenticity_score,
               commit_count,
-              unique_contributors
+              unique_contributors,
+              first_commit_at,
+              last_commit_at,
+              largest_commit_delta
             ),
             ai_verifications (
               originality_score,
+              ai_authorship_risk,
               ai_summary,
               ai_comments
+            ),
+            trust_scores (
+              score,
+              last_updated
             )
           `)
           .order('submitted_at', { ascending: false });

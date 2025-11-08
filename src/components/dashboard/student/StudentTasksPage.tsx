@@ -453,6 +453,28 @@ const StudentTasksPage = () => {
                                     </Badge>
                                   );
                                 }
+                              } else {
+                                // No conceptual test yet - show disabled button
+                                return (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled
+                                          className="bg-gray-50 text-gray-500 border-gray-200"
+                                        >
+                                          <Brain className="h-4 w-4 mr-1" />
+                                          Awaiting Questions
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Questions will be generated after verification</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                );
                               }
                               return null;
                             })()}

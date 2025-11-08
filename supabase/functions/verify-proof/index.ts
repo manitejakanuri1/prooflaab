@@ -102,7 +102,7 @@ Format your response as JSON:
 }`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -224,7 +224,7 @@ serve(async (req) => {
             proof_id: proofId,
             repo_url: proof.file_url,
             commit_count: githubInfo.commit_count,
-            last_commit_date: githubInfo.last_commit_date,
+            last_commit_at: githubInfo.last_commit_date,
             unique_contributors: githubInfo.unique_contributors,
             authenticity_score: githubInfo.authenticity_score
           });

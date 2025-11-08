@@ -167,7 +167,11 @@ const UploadedProofs = () => {
   };
 
   const handleRunVerification = (proofId: string) => {
-    verifyProofMutation.mutate(proofId);
+    // Find the proof to get the complete data
+    const proof = proofs?.find(p => p.id === proofId);
+    if (proof) {
+      handleRunFullVerification(proof);
+    }
   };
 
   const handleRunFullVerification = (proof: ProofReview) => {
@@ -343,7 +347,7 @@ const UploadedProofs = () => {
                             hasResults={hasVerificationResults(proof)}
                             onRunVerification={handleRunVerification}
                             onViewResults={() => handleViewResults(proof)}
-                            isRunning={verifyProofMutation.isPending}
+                            isRunning={fullVerificationMutation.isPending}
                           />
                           
                           {proof.status === 'Under Review' && (

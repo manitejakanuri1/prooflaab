@@ -431,7 +431,7 @@ const StudentTasksPage = () => {
                                             className="bg-orange-600 hover:bg-orange-700 text-white"
                                           >
                                             <Brain className="h-4 w-4 mr-1" />
-                                            Answer Qs
+                                            🧠 Answer Qs
                                           </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -442,19 +442,19 @@ const StudentTasksPage = () => {
                                   );
                                 } else if (conceptualTest.status === 'submitted') {
                                   return (
-                                    <Badge variant="secondary" className="text-gray-700">
+                                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
                                       Qs Submitted ✅
                                     </Badge>
                                   );
                                 } else if (conceptualTest.status === 'graded') {
                                   return (
-                                    <Badge variant="default" className="bg-green-600 text-white">
+                                    <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
                                       Evaluated 🧩
                                     </Badge>
                                   );
                                 }
-                              } else {
-                                // No conceptual test yet - show disabled button
+                              } else if (task.status === 'Under Review') {
+                                // Show "Awaiting Questions" when under review but no test yet
                                 return (
                                   <TooltipProvider>
                                     <Tooltip>
@@ -463,14 +463,14 @@ const StudentTasksPage = () => {
                                           size="sm"
                                           variant="outline"
                                           disabled
-                                          className="bg-gray-50 text-gray-500 border-gray-200"
+                                          className="bg-muted text-muted-foreground border-border"
                                         >
                                           <Brain className="h-4 w-4 mr-1" />
                                           Awaiting Questions
                                         </Button>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>Questions will be generated after verification</p>
+                                        <p>Questions will be generated after full verification</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>

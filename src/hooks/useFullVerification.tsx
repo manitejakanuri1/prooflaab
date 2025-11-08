@@ -97,6 +97,7 @@ export const useFullVerification = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['proof-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['student-conceptual-tests'] });
       
       if (data.status === 'awaiting_student_answers') {
         toast({

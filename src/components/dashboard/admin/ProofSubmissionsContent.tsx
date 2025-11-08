@@ -92,6 +92,39 @@ const ProofSubmissionsContent = () => {
           queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ai_verifications'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'github_verifications'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conceptual_tests'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['proof-submissions'] });
+        }
+      )
       .subscribe();
 
     return () => {

@@ -58,6 +58,39 @@ const UploadedProofs = () => {
           refetch();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ai_verifications'
+        },
+        () => {
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'github_verifications'
+        },
+        () => {
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conceptual_tests'
+        },
+        () => {
+          refetch();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -193,8 +226,9 @@ const UploadedProofs = () => {
                     <TableHead className="min-w-[100px] hidden sm:table-cell">File/Link</TableHead>
                     <TableHead className="min-w-[100px] hidden md:table-cell">Submitted</TableHead>
                     <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[120px] hidden xl:table-cell">Concept Score</TableHead>
-                    <TableHead className="min-w-[200px] hidden lg:table-cell">Verification</TableHead>
+                    <TableHead className="min-w-[100px] hidden lg:table-cell">AI Score</TableHead>
+                    <TableHead className="min-w-[100px] hidden xl:table-cell">Commits</TableHead>
+                    <TableHead className="min-w-[120px] hidden 2xl:table-cell">Concept</TableHead>
                     <TableHead className="min-w-[250px] sticky right-0 bg-background">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -238,7 +272,51 @@ const UploadedProofs = () => {
                           )}
                         </div>
                       </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {(() => {
+                          const aiScore = proof.ai_score ?? proof.ai_verifications?.[0]?.originality_score;
+                          if (aiScore === null || aiScore === undefined) {
+                            return <Badge variant="outline" className="text-xs text-muted-foreground">-</Badge>;
+                          }
+                          if (aiScore >= 80) {
+                            return (
+                              <Badge className="bg-green-100 text-green-800 border-green-300">
+                                <Brain className="h-3 w-3 mr-1" />
+                                {aiScore}% 🧠
+                              </Badge>
+                            );
+                          } else if (aiScore >= 60) {
+                            return (
+                              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                                <Brain className="h-3 w-3 mr-1" />
+                                {aiScore}% 🧠
+                              </Badge>
+                            );
+                          } else {
+                            return (
+                              <Badge className="bg-red-100 text-red-800 border-red-300">
+                                <Brain className="h-3 w-3 mr-1" />
+                                {aiScore}% 🧠
+                              </Badge>
+                            );
+                          }
+                        })()}
+                      </TableCell>
                       <TableCell className="hidden xl:table-cell">
+                        {(() => {
+                          const githubData = proof.github_verifications?.[0];
+                          if (!githubData?.commit_count) {
+                            return <Badge variant="outline" className="text-xs text-muted-foreground">-</Badge>;
+                          }
+                          return (
+                            <Badge variant="outline" className="border-purple-300">
+                              <Github className="h-3 w-3 mr-1" />
+                              {githubData.commit_count} ⛓️
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell className="hidden 2xl:table-cell">
                         {(() => {
                           const conceptualTest = proof.conceptual_tests?.[0];
                           if (!conceptualTest) {
@@ -250,22 +328,13 @@ const UploadedProofs = () => {
                           if (conceptualTest.status === 'submitted') {
                             return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Submitted 📨</Badge>;
                           }
-                          if (conceptualTest.status === 'completed' && conceptualTest.answer_scores) {
+                          if (conceptualTest.status === 'graded' && conceptualTest.answer_scores) {
                             const scores = conceptualTest.answer_scores as any[];
                             const avgScore = Math.round(scores.reduce((sum: number, s: any) => sum + (s.final_score || 0), 0) / scores.length);
                             return <Badge variant="default" className="bg-green-100 text-green-800">Graded ✅ {avgScore}%</Badge>;
                           }
                           return <Badge variant="outline" className="text-xs text-muted-foreground">-</Badge>;
                         })()}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <VerificationBadges
-                          aiAuthorshipScore={proof.ai_score ?? (proof.ai_verifications?.[0]?.originality_score)}
-                          commitAuthenticityScore={proof.github_verifications?.[0]?.authenticity_score}
-                          conceptualScore={null}
-                          cognitiveIntegrityScore={null}
-                          size="sm"
-                        />
                       </TableCell>
                       <TableCell className="sticky right-0 bg-background">
                         <div className="flex gap-1 flex-wrap">

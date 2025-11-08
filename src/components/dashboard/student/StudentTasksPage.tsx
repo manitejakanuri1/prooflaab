@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
 import { useConceptualTests } from "@/hooks/useConceptualTests";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { 
   Calendar, 
@@ -54,6 +55,39 @@ const StudentTasksPage = () => {
 
   // Fetch conceptual tests for all student proofs
   const { data: conceptualTests = {}, refetch: refetchConceptualTests } = useConceptualTests();
+
+  // Real-time subscription for proof_uploads and conceptual_tests changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('student_verification_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'proof_uploads'
+        },
+        () => {
+          refetchConceptualTests();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conceptual_tests'
+        },
+        () => {
+          refetchConceptualTests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetchConceptualTests]);
 
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {

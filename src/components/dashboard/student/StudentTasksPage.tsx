@@ -10,7 +10,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
+import { useConceptualTests } from "@/hooks/useConceptualTests";
 import { format } from "date-fns";
 import { 
   Calendar, 
@@ -25,9 +32,11 @@ import {
   MoreVertical,
   X,
   Target,
-  Clock
+  Clock,
+  Brain
 } from "lucide-react";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
+import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import TaskDetailsDialog from "./TaskDetailsDialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -37,10 +46,14 @@ const StudentTasksPage = () => {
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
+  const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Due Date (ASC)");
+
+  // Fetch conceptual tests for all student proofs
+  const { data: conceptualTests = {}, refetch: refetchConceptualTests } = useConceptualTests();
 
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {
@@ -155,6 +168,15 @@ const StudentTasksPage = () => {
     } catch {
       return deadline;
     }
+  };
+
+  const handleConceptualSuccess = () => {
+    refetchConceptualTests();
+    toast.success("Answers submitted! Verification will continue automatically.");
+  };
+
+  const getConceptualTestStatus = (taskId: string) => {
+    return conceptualTests[taskId];
   };
 
   const handleStartTask = async (taskId: string) => {
@@ -347,15 +369,60 @@ const StudentTasksPage = () => {
                           </Button>
                         )}
                         {task.status === 'Under Review' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-purple-50 text-purple-700 border-purple-200"
-                            disabled
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Under Review
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-purple-50 text-purple-700 border-purple-200"
+                              disabled
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Under Review
+                            </Button>
+
+                            {(() => {
+                              const conceptualTest = getConceptualTestStatus(task.id);
+                              if (conceptualTest) {
+                                if (conceptualTest.status === 'pending') {
+                                  return (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => setSelectedConceptualTest({ 
+                                              proofId: conceptualTest.proof_id, 
+                                              taskId: task.id 
+                                            })}
+                                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                                          >
+                                            <Brain className="h-4 w-4 mr-1" />
+                                            Answer Qs
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>You have conceptual questions to answer for this proof</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
+                                } else if (conceptualTest.status === 'submitted') {
+                                  return (
+                                    <Badge variant="secondary" className="text-gray-700">
+                                      Qs Submitted ✅
+                                    </Badge>
+                                  );
+                                } else if (conceptualTest.status === 'graded') {
+                                  return (
+                                    <Badge variant="default" className="bg-green-600 text-white">
+                                      Evaluated 🧩
+                                    </Badge>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
+                          </>
                         )}
 
                         <DropdownMenu>
@@ -417,6 +484,16 @@ const StudentTasksPage = () => {
           setSelectedTaskId(taskId);
         }}
       />
+
+      {/* Conceptual Questions Modal */}
+      {selectedConceptualTest && (
+        <ConceptualQuestionsModal
+          open={!!selectedConceptualTest}
+          onOpenChange={(open) => !open && setSelectedConceptualTest(null)}
+          proofId={selectedConceptualTest.proofId}
+          onSubmitSuccess={handleConceptualSuccess}
+        />
+      )}
     </div>
   );
 };

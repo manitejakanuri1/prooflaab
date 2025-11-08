@@ -5,8 +5,6 @@ import { Separator } from "@/components/ui/separator";
 import { CheckCircle, XCircle, Brain, Github, Shield, TrendingUp } from "lucide-react";
 
 interface VerificationData {
-  moss_score: number | null;
-  moss_url: string | null;
   ai_score: number | null;
   ai_summary: string | null;
   ai_feedback: string | null;
@@ -34,18 +32,6 @@ const VerificationSummaryModal = ({
   taskTitle 
 }: VerificationSummaryModalProps) => {
   if (!data) return null;
-
-  const getMossScoreBadge = (score: number | null) => {
-    if (score === null) return null;
-    
-    if (score < 20) {
-      return <Badge className="bg-green-500 text-white">Unique ({score}%)</Badge>;
-    } else if (score < 60) {
-      return <Badge className="bg-orange-500 text-white">Similar ({score}%)</Badge>;
-    } else {
-      return <Badge className="bg-red-500 text-white">High Risk ({score}%)</Badge>;
-    }
-  };
 
   const getOriginalityBadge = (score: number | null) => {
     if (score === null) return null;
@@ -116,34 +102,6 @@ const VerificationSummaryModal = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* MOSS Score */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-semibold">MOSS Plagiarism Check</h3>
-                </div>
-                {getMossScoreBadge(data.moss_score)}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {data.moss_score !== null 
-                  ? `Similarity score: ${data.moss_score}%. ${data.moss_score < 20 ? 'Original work detected.' : data.moss_score < 60 ? 'Some similarities found.' : 'High similarity detected - requires manual review.'}`
-                  : 'MOSS check not completed yet.'}
-              </p>
-              {data.moss_url && (
-                <a 
-                  href={data.moss_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline mt-2 inline-block"
-                >
-                  View detailed MOSS report →
-                </a>
-              )}
-            </CardContent>
-          </Card>
-
           {/* AI Originality */}
           <Card>
             <CardContent className="p-4">

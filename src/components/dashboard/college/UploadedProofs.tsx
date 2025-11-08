@@ -24,6 +24,7 @@ import { useProofReviews, useUpdateProofStatus, type ProofReview } from "@/hooks
 import { useVerifyProof } from "@/hooks/useVerifyProof";
 import { useFullVerification } from "@/hooks/useFullVerification";
 import { VerificationBadges } from "@/components/dashboard/VerificationBadges";
+import VerificationPanel from "@/components/dashboard/VerificationPanel";
 import VerificationSummaryModal from "@/components/dashboard/VerificationSummaryModal";
 import VerificationDropdown from "@/components/dashboard/VerificationDropdown";
 import { CheckCircle, XCircle, FileText, ExternalLink, Brain, Github, Shield, Play, Eye } from "lucide-react";
@@ -75,17 +76,6 @@ const UploadedProofs = () => {
     }
   };
 
-  const getMossScoreBadge = (score: number | null) => {
-    if (score === null) return <Badge variant="outline">Not Checked</Badge>;
-    
-    if (score < 20) {
-      return <Badge className="bg-green-100 text-green-800 border-green-300">{score}%</Badge>;
-    } else if (score < 60) {
-      return <Badge className="bg-orange-100 text-orange-800 border-orange-300">{score}%</Badge>;
-    } else {
-      return <Badge className="bg-red-100 text-red-800 border-red-300">{score}%</Badge>;
-    }
-  };
 
   const getOriginalityBadge = (proof: ProofReview) => {
     // Use ai_score from proof_uploads first, fallback to ai_verifications
@@ -165,7 +155,7 @@ const UploadedProofs = () => {
                       proof.github_verifications.length > 0 && 
                       proof.github_verifications[0]?.authenticity_score !== null;
     
-    return proof.moss_score !== null || hasAI || hasGithub;
+    return hasAI || hasGithub;
   };
 
   if (isLoading) {
@@ -203,9 +193,7 @@ const UploadedProofs = () => {
                     <TableHead className="min-w-[100px] hidden sm:table-cell">File/Link</TableHead>
                     <TableHead className="min-w-[100px] hidden md:table-cell">Submitted</TableHead>
                     <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[80px] hidden lg:table-cell">MOSS</TableHead>
-                    <TableHead className="min-w-[100px] hidden lg:table-cell">AI Score</TableHead>
-                    <TableHead className="min-w-[100px] hidden xl:table-cell">GitHub</TableHead>
+                    <TableHead className="min-w-[200px] hidden lg:table-cell">Verification</TableHead>
                     <TableHead className="min-w-[250px] sticky right-0 bg-background">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -250,13 +238,13 @@ const UploadedProofs = () => {
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {getMossScoreBadge(proof.moss_score)}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {getOriginalityBadge(proof)}
-                      </TableCell>
-                      <TableCell className="hidden xl:table-cell">
-                        {getAuthenticityBadge(proof)}
+                        <VerificationBadges
+                          aiAuthorshipScore={proof.ai_score ?? (proof.ai_verifications?.[0]?.originality_score)}
+                          commitAuthenticityScore={proof.github_verifications?.[0]?.authenticity_score}
+                          conceptualScore={null}
+                          cognitiveIntegrityScore={null}
+                          size="sm"
+                        />
                       </TableCell>
                       <TableCell className="sticky right-0 bg-background">
                         <div className="flex gap-1 flex-wrap">
@@ -338,45 +326,22 @@ const UploadedProofs = () => {
           
           {selectedProof && (
             <div className="space-y-6">
-              {/* Verification Badges */}
-              {(selectedProof.ai_score || 
-                selectedProof.github_verifications?.[0]?.authenticity_score ||
-                selectedProof.moss_score) && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Verification Scores</label>
-                  <VerificationBadges
-                    aiAuthorshipScore={selectedProof.ai_score ?? (selectedProof.ai_verifications?.[0]?.originality_score)}
-                    commitAuthenticityScore={selectedProof.github_verifications?.[0]?.authenticity_score}
-                    conceptualScore={null}
-                    cognitiveIntegrityScore={null}
-                    size="md"
-                  />
-                </div>
-              )}
-
-              {/* GitHub Verification Details */}
-              {selectedProof.github_verifications && selectedProof.github_verifications.length > 0 && (
-                <div className="border-t pt-4">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block flex items-center gap-2">
-                    <Github className="h-4 w-4" />
-                    GitHub Analysis
-                  </label>
-                  <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Commits</p>
-                      <p className="font-medium">{selectedProof.github_verifications[0]?.commit_count || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Contributors</p>
-                      <p className="font-medium">{selectedProof.github_verifications[0]?.unique_contributors || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Authenticity</p>
-                      <p className="font-medium">{selectedProof.github_verifications[0]?.authenticity_score || 0}/100</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Unified Verification Panel */}
+              <VerificationPanel
+                aiAuthorshipRisk={selectedProof.ai_verifications?.[0]?.originality_score 
+                  ? 100 - selectedProof.ai_verifications[0].originality_score 
+                  : null}
+                aiSummary={selectedProof.ai_verifications?.[0]?.ai_summary}
+                commitCount={selectedProof.github_verifications?.[0]?.commit_count}
+                commitAuthenticityScore={selectedProof.github_verifications?.[0]?.authenticity_score}
+                repoUrl={selectedProof.file_url}
+                conceptualScore={null}
+                trustScore={null}
+                trustChange={null}
+                onReVerify={() => handleRunFullVerification(selectedProof)}
+                onViewLogs={undefined}
+                isVerifying={fullVerificationMutation.isPending}
+              />
 
               {selectedProof.file_url && (
                 <div className="border-t pt-4">
@@ -465,8 +430,6 @@ const UploadedProofs = () => {
         open={showVerificationModal}
         onOpenChange={setShowVerificationModal}
         data={verificationModalProof ? {
-          moss_score: verificationModalProof.moss_score,
-          moss_url: verificationModalProof.moss_url,
           ai_score: verificationModalProof.ai_score ?? (Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
             ? verificationModalProof.ai_verifications[0]?.originality_score ?? null
             : null),

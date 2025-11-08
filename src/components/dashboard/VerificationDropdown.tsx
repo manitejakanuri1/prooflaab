@@ -61,7 +61,7 @@ const VerificationDropdown = ({
           className="cursor-pointer"
         >
           <Play className="h-4 w-4 mr-2" />
-          Run MOSS + AI Check
+          Run Full Verification
         </DropdownMenuItem>
         
         {hasResults && (

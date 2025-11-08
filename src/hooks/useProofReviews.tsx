@@ -11,9 +11,7 @@ export interface ProofReview {
   status: 'Under Review' | 'Verified' | 'Rejected';
   submitted_at: string;
   review_comment: string | null;
-  moss_status: string | null;
-  moss_score: number | null;
-  moss_url: string | null;
+  reviewed_by: string | null;
   admin_review_status: string | null;
   ai_score: number | null;
   ai_summary: string | null;
@@ -166,37 +164,6 @@ export const useUpdateProofStatus = () => {
       toast({
         title: "Error",
         description: "Failed to update proof status.",
-        variant: "destructive",
-      });
-    },
-  });
-};
-
-export const useMossCheck = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (proofId: string) => {
-      const { data, error } = await supabase.functions.invoke('moss-check', {
-        body: { proof_id: proofId }
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proof-reviews'] });
-      toast({
-        title: "MOSS Check Started",
-        description: "Plagiarism check is in progress.",
-      });
-    },
-    onError: (error) => {
-      console.error('Error running MOSS check:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start MOSS check.",
         variant: "destructive",
       });
     },

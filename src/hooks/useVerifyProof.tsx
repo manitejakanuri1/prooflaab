@@ -22,10 +22,10 @@ export const useVerifyProof = () => {
       queryClient.invalidateQueries({ queryKey: ['trust-scores'] });
       
       if (data && data.originality_score !== undefined) {
-        toast({
-          title: "Verification Complete",
-          description: `MOSS: ${data.moss_score || 0}% | AI Originality: ${data.originality_score}% | Trust Change: ${data.trust_change > 0 ? '+' : ''}${data.trust_change}`,
-        });
+      toast({
+        title: "Verification Complete",
+        description: `AI Originality: ${data.originality_score}% | Trust Change: ${data.trust_change > 0 ? '+' : ''}${data.trust_change}`,
+      });
       } else {
         toast({
           title: "Verification Processing",

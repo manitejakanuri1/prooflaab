@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useVerifyProof } from '@/hooks/useVerifyProof';
 import { useFullVerification } from '@/hooks/useFullVerification';
 import { VerificationBadges } from '@/components/dashboard/VerificationBadges';
+import VerificationPanel from '@/components/dashboard/VerificationPanel';
 import VerificationSummaryModal from '@/components/dashboard/VerificationSummaryModal';
 import VerificationDropdown from '@/components/dashboard/VerificationDropdown';
 import { format } from 'date-fns';
@@ -29,9 +30,6 @@ interface ProofSubmission {
   submitted_at: string;
   review_comment: string | null;
   reviewed_by: string | null;
-  moss_status: string | null;
-  moss_url: string | null;
-  moss_score: number | null;
   admin_review_status: string | null;
   ai_score: number | null;
   ai_summary: string | null;
@@ -296,7 +294,7 @@ const ProofSubmissionsContent = () => {
                       submission.github_verifications.length > 0 && 
                       submission.github_verifications[0]?.authenticity_score !== null;
     
-    return submission.moss_score !== null || hasAI || hasGithub;
+    return hasAI || hasGithub;
   };
 
   const getStatusBadge = (status: string) => {
@@ -470,28 +468,13 @@ const ProofSubmissionsContent = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {submission.moss_score !== null && (
-                            <Badge variant="outline" className="text-xs">
-                              MOSS: {submission.moss_score}%
-                            </Badge>
-                          )}
-                          {Array.isArray(submission.ai_verifications) && 
-                           submission.ai_verifications.length > 0 && 
-                           submission.ai_verifications[0]?.originality_score !== null && (
-                            <Badge variant="outline" className="text-xs">
-                              AI: {submission.ai_verifications[0].originality_score}%
-                            </Badge>
-                          )}
-                          {Array.isArray(submission.github_verifications) && 
-                           submission.github_verifications.length > 0 && 
-                           submission.github_verifications[0]?.authenticity_score !== null && (
-                            <Badge variant="outline" className="text-xs flex items-center gap-1">
-                              <Github className="h-2 w-2" />
-                              {submission.github_verifications[0].authenticity_score}
-                            </Badge>
-                          )}
-                        </div>
+                        <VerificationBadges
+                          aiAuthorshipScore={submission.ai_verifications?.[0]?.originality_score}
+                          commitAuthenticityScore={submission.github_verifications?.[0]?.authenticity_score}
+                          conceptualScore={null}
+                          cognitiveIntegrityScore={null}
+                          size="sm"
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
@@ -577,55 +560,22 @@ const ProofSubmissionsContent = () => {
                 </div>
               </div>
 
-              {/* Verification Badges */}
-              {(selectedSubmission.ai_score || 
-                selectedSubmission.github_verifications?.[0]?.authenticity_score ||
-                selectedSubmission.moss_score) && (
-                <div className="border-t pt-4">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Verification Scores</label>
-                  <VerificationBadges
-                    aiAuthorshipScore={selectedSubmission.ai_score ?? (selectedSubmission.ai_verifications?.[0]?.originality_score)}
-                    commitAuthenticityScore={selectedSubmission.github_verifications?.[0]?.authenticity_score}
-                    conceptualScore={null}
-                    cognitiveIntegrityScore={null}
-                    size="md"
-                  />
-                </div>
-              )}
-
-              {/* Verification Details */}
-              {selectedSubmission.ai_summary && (
-                <div className="border-t pt-4">
-                  <label className="text-sm font-medium text-muted-foreground">AI Summary</label>
-                  <div className="text-sm text-foreground bg-muted p-3 rounded-lg mt-2 border">
-                    {selectedSubmission.ai_summary}
-                  </div>
-                </div>
-              )}
-
-              {/* GitHub Verification Details */}
-              {selectedSubmission.github_verifications && selectedSubmission.github_verifications.length > 0 && (
-                <div className="border-t pt-4">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block flex items-center gap-2">
-                    <Github className="h-4 w-4" />
-                    GitHub Analysis
-                  </label>
-                  <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Commits</p>
-                      <p className="font-medium">{selectedSubmission.github_verifications[0]?.commit_count || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Contributors</p>
-                      <p className="font-medium">{selectedSubmission.github_verifications[0]?.unique_contributors || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Authenticity</p>
-                      <p className="font-medium">{selectedSubmission.github_verifications[0]?.authenticity_score || 0}/100</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Unified Verification Panel */}
+              <VerificationPanel
+                aiAuthorshipRisk={selectedSubmission.ai_verifications?.[0]?.originality_score 
+                  ? 100 - selectedSubmission.ai_verifications[0].originality_score 
+                  : null}
+                aiSummary={selectedSubmission.ai_summary}
+                commitCount={selectedSubmission.github_verifications?.[0]?.commit_count}
+                commitAuthenticityScore={selectedSubmission.github_verifications?.[0]?.authenticity_score}
+                repoUrl={selectedSubmission.file_url}
+                conceptualScore={null}
+                trustScore={null}
+                trustChange={null}
+                onReVerify={() => handleRunFullVerification(selectedSubmission)}
+                onViewLogs={undefined}
+                isVerifying={fullVerificationMutation.isPending}
+              />
 
               {selectedSubmission.submission_notes && (
                 <div className="border-t pt-4">
@@ -732,8 +682,6 @@ const ProofSubmissionsContent = () => {
         open={showVerificationModal}
         onOpenChange={setShowVerificationModal}
         data={verificationModalSubmission ? {
-          moss_score: verificationModalSubmission.moss_score,
-          moss_url: verificationModalSubmission.moss_url,
           ai_score: verificationModalSubmission.ai_score ?? (Array.isArray(verificationModalSubmission.ai_verifications) && verificationModalSubmission.ai_verifications.length > 0
             ? verificationModalSubmission.ai_verifications[0]?.originality_score ?? null
             : null),

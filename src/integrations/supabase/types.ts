@@ -678,8 +678,12 @@ export type Database = {
           reflection_trigger_time: string | null
           reflection_verified_at: string | null
           review_comment: string | null
+          review_flag: boolean | null
+          review_override_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          reviewed_by_name: string | null
+          reviewer_id: string | null
           status: string | null
           student_id: string
           submission_notes: string | null
@@ -705,8 +709,12 @@ export type Database = {
           reflection_trigger_time?: string | null
           reflection_verified_at?: string | null
           review_comment?: string | null
+          review_flag?: boolean | null
+          review_override_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          reviewer_id?: string | null
           status?: string | null
           student_id: string
           submission_notes?: string | null
@@ -732,8 +740,12 @@ export type Database = {
           reflection_trigger_time?: string | null
           reflection_verified_at?: string | null
           review_comment?: string | null
+          review_flag?: boolean | null
+          review_override_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          reviewer_id?: string | null
           status?: string | null
           student_id?: string
           submission_notes?: string | null

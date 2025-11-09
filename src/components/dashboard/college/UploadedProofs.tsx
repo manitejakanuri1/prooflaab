@@ -26,6 +26,7 @@ import { useFullVerification } from "@/hooks/useFullVerification";
 import { VerificationBadges } from "@/components/dashboard/VerificationBadges";
 import VerificationPanel from "@/components/dashboard/VerificationPanel";
 import VerificationSummaryModal from "@/components/dashboard/VerificationSummaryModal";
+import EnhancedVerificationModal from "@/components/dashboard/EnhancedVerificationModal";
 import VerificationDropdown from "@/components/dashboard/VerificationDropdown";
 import { CheckCircle, XCircle, FileText, ExternalLink, Brain, Github, Shield, Play, Eye } from "lucide-react";
 import { format } from "date-fns";
@@ -43,6 +44,7 @@ const UploadedProofs = () => {
   const [reviewAction, setReviewAction] = useState<"Verified" | "Rejected" | null>(null);
   const [verificationModalProof, setVerificationModalProof] = useState<ProofReview | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [showEnhancedModal, setShowEnhancedModal] = useState(false);
 
   // Real-time subscription for proof_uploads changes
   useEffect(() => {
@@ -110,7 +112,10 @@ const UploadedProofs = () => {
     };
   }, [refetch]);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, reviewFlag?: boolean) => {
+    if (reviewFlag || status === 'needs_review') {
+      return <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">Needs Review ⚠️</Badge>;
+    }
     switch (status) {
       case 'Verified':
         return <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">Verified</Badge>;
@@ -193,7 +198,13 @@ const UploadedProofs = () => {
 
   const handleViewResults = (proof: ProofReview) => {
     setVerificationModalProof(proof);
-    setShowVerificationModal(true);
+    // Use enhanced modal if trust score exists
+    const trustScore = proof.trust_scores?.[0]?.score ?? null;
+    if (trustScore !== null) {
+      setShowEnhancedModal(true);
+    } else {
+      setShowVerificationModal(true);
+    }
   };
 
   const handleReRunEvaluation = async (proof: ProofReview) => {
@@ -321,7 +332,7 @@ const UploadedProofs = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {getStatusBadge(proof.status)}
+                          {getStatusBadge(proof.status, proof.review_flag)}
                           {proof.admin_review_status === 'Verified' && proof.ai_score !== null && (
                             <Badge variant="outline" className="text-xs">
                               <Brain className="h-3 w-3 mr-1" />
@@ -658,6 +669,45 @@ const UploadedProofs = () => {
         } : null}
         studentName={verificationModalProof?.student.full_name}
         taskTitle={verificationModalProof?.task.title}
+      />
+
+      {/* Enhanced Verification Modal */}
+      <EnhancedVerificationModal
+        open={showEnhancedModal}
+        onOpenChange={setShowEnhancedModal}
+        data={verificationModalProof ? {
+          id: verificationModalProof.id,
+          ai_score: verificationModalProof.ai_score ?? (Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            ? verificationModalProof.ai_verifications[0]?.originality_score ?? null
+            : null),
+          ai_summary: verificationModalProof.ai_summary ?? (Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            ? verificationModalProof.ai_verifications[0]?.ai_summary ?? null
+            : null),
+          ai_feedback: verificationModalProof.ai_feedback ?? (Array.isArray(verificationModalProof.ai_verifications) && verificationModalProof.ai_verifications.length > 0
+            ? verificationModalProof.ai_verifications[0]?.ai_comments ?? null
+            : null),
+          authenticity_score: Array.isArray(verificationModalProof.github_verifications) && verificationModalProof.github_verifications.length > 0
+            ? verificationModalProof.github_verifications[0]?.authenticity_score ?? null
+            : null,
+          commit_count: Array.isArray(verificationModalProof.github_verifications) && verificationModalProof.github_verifications.length > 0
+            ? verificationModalProof.github_verifications[0]?.commit_count ?? null
+            : null,
+          unique_contributors: Array.isArray(verificationModalProof.github_verifications) && verificationModalProof.github_verifications.length > 0
+            ? verificationModalProof.github_verifications[0]?.unique_contributors ?? null
+            : null,
+          conceptual_score: verificationModalProof.conceptual_score ?? null,
+          trust_score: verificationModalProof.trust_scores?.[0]?.score ?? null,
+          trust_change: null,
+          status: verificationModalProof.status,
+          admin_review_status: verificationModalProof.admin_review_status,
+          review_flag: verificationModalProof.review_flag ?? false,
+          student_id: verificationModalProof.student_id,
+          task_id: verificationModalProof.task_id,
+          conceptual_tests: verificationModalProof.conceptual_tests
+        } : null}
+        studentName={verificationModalProof?.student.full_name}
+        taskTitle={verificationModalProof?.task.title}
+        onRefetch={refetch}
       />
     </>
   );

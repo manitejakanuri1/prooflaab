@@ -165,7 +165,7 @@ serve(async (req) => {
 
     // Update proof_uploads with status and summary
     const newStatus = suggestedAction === 'verified' ? 'Verified' : 
-                      suggestedAction === 'needs_review' ? 'Under Review' : 'Rejected';
+                      suggestedAction === 'needs_review' ? 'needs_review' : 'Rejected';
     
     const { error: proofUpdateError } = await supabase
       .from('proof_uploads')
@@ -175,7 +175,8 @@ serve(async (req) => {
                            suggestedAction === 'needs_review' ? 'Pending' : 'Rejected',
         ai_summary: summary,
         ai_score: cognitiveIntegrityScore,
-        review_comment: summary
+        review_comment: summary,
+        review_flag: cognitiveIntegrityScore < 10 // Flag for manual review if trust score < 10
       })
       .eq('id', proof_id);
 

@@ -19,6 +19,7 @@ export interface ProofReview {
   ai_status: string | null;
   conceptual_score: number | null;
   conceptual_status: string | null;
+  review_flag?: boolean;
   github_verifications?: {
     authenticity_score: number | null;
     commit_count: number | null;
@@ -41,6 +42,7 @@ export interface ProofReview {
     proof_id: string;
     status: string;
     answer_scores: any;
+    questions: any[];
   }[];
   student: {
     full_name: string;
@@ -90,7 +92,8 @@ export const useProofReviews = () => {
             conceptual_tests (
               proof_id,
               status,
-              answer_scores
+              answer_scores,
+              questions
             )
           `)
           .order('submitted_at', { ascending: false });

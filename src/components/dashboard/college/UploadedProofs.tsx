@@ -30,6 +30,7 @@ import VerificationDropdown from "@/components/dashboard/VerificationDropdown";
 import { CheckCircle, XCircle, FileText, ExternalLink, Brain, Github, Shield, Play, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const UploadedProofs = () => {
   const { data: proofs, isLoading, refetch } = useProofReviews();
@@ -195,9 +196,51 @@ const UploadedProofs = () => {
     setShowVerificationModal(true);
   };
 
+  const handleReRunEvaluation = async (proof: ProofReview) => {
+    try {
+      toast.info('Re-running evaluation...', { description: 'This may take 10-20 seconds' });
+      console.log('Re-running evaluation for proof:', proof.id);
+      
+      // First, trigger response-evaluator
+      const { data: evalData, error: evalError } = await supabase.functions.invoke('response-evaluator', {
+        body: { proof_id: proof.id }
+      });
+
+      if (evalError) {
+        console.error('Evaluation error:', evalError);
+        toast.error('Evaluation failed', { description: evalError.message });
+        throw evalError;
+      }
+
+      console.log('Evaluation completed:', evalData);
+
+      // Then, trigger trust-compute
+      const { data: trustData, error: trustError } = await supabase.functions.invoke('trust-compute', {
+        body: { proof_id: proof.id }
+      });
+
+      if (trustError) {
+        console.error('Trust computation error:', trustError);
+        toast.error('Trust computation failed', { description: trustError.message });
+        throw trustError;
+      }
+
+      console.log('Trust computation completed:', trustData);
+      
+      toast.success('Evaluation completed!', { 
+        description: `Final score: ${trustData.cognitive_integrity_score}/100 (${trustData.suggested_action})` 
+      });
+      
+      // Refetch to show updated results
+      refetch();
+    } catch (error) {
+      console.error('Error re-running evaluation:', error);
+    }
+  };
+
   const hasVerificationResults = (proof: ProofReview) => {
     const hasAI = Array.isArray(proof.ai_verifications) && 
-                  proof.ai_verifications.length > 0 && 
+                  proof.ai_verifications.length > 0 &&
                   proof.ai_verifications[0]?.originality_score !== null;
     const hasGithub = Array.isArray(proof.github_verifications) && 
                       proof.github_verifications.length > 0 && 
@@ -556,6 +599,16 @@ const UploadedProofs = () => {
                   <Play className="h-4 w-4 mr-2" />
                   {fullVerificationMutation.isPending ? 'Running...' : 'Full Verification'}
                 </Button>
+                {selectedProof.conceptual_tests?.[0]?.status === 'graded' && (
+                  <Button
+                    onClick={() => handleReRunEvaluation(selectedProof)}
+                    variant="outline"
+                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                  >
+                    <Brain className="h-4 w-4 mr-2" />
+                    Re-run Evaluation
+                  </Button>
+                )}
                 <Button
                   onClick={() => {
                     if (hasVerificationResults(selectedProof)) {

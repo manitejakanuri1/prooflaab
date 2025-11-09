@@ -17,6 +17,8 @@ import { format, isValid } from "date-fns";
 import { Download, Eye, FileText, Upload as UploadIcon, Search, Filter, CheckCircle, Clock, XCircle, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
+import AppealSubmissionModal from "./AppealSubmissionModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 const StudentUploadsPage = () => {
   const currentDate = new Date();
@@ -27,6 +29,25 @@ const StudentUploadsPage = () => {
   const [conceptualTests, setConceptualTests] = useState<Record<string, any>>({});
   const [selectedProofId, setSelectedProofId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [appealModalOpen, setAppealModalOpen] = useState(false);
+  const [appealProofId, setAppealProofId] = useState<string | null>(null);
+  const [studentProfileId, setStudentProfileId] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Fetch student profile ID
+  useEffect(() => {
+    const fetchStudentProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) setStudentProfileId(data.id);
+    };
+    fetchStudentProfile();
+  }, [user]);
 
   // Fetch conceptual tests for all proofs
   useEffect(() => {
@@ -396,6 +417,19 @@ const StudentUploadsPage = () => {
                                 Evaluated ✅
                               </Badge>
                             )}
+                            {upload.status === 'Rejected' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setAppealProofId(upload.id);
+                                  setAppealModalOpen(true);
+                                }}
+                                className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                              >
+                                Appeal
+                              </Button>
+                            )}
                             {upload.file_url && (
                               <>
                                 <Button
@@ -441,6 +475,15 @@ const StudentUploadsPage = () => {
           onOpenChange={setModalOpen}
           proofId={selectedProofId}
           onSubmitSuccess={handleSubmitSuccess}
+        />
+      )}
+      {appealProofId && studentProfileId && (
+        <AppealSubmissionModal
+          open={appealModalOpen}
+          onOpenChange={setAppealModalOpen}
+          proofId={appealProofId}
+          studentId={studentProfileId}
+          taskTitle={filteredAndSortedUploads.find(u => u.id === appealProofId)?.tasks?.title}
         />
       )}
     </div>

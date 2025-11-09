@@ -658,6 +658,53 @@ export type Database = {
           },
         ]
       }
+      proof_appeals: {
+        Row: {
+          appeal_reason: string
+          appeal_status: string
+          created_at: string
+          id: string
+          proof_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_comment: string | null
+          reviewer_decision: string | null
+          student_id: string
+        }
+        Insert: {
+          appeal_reason: string
+          appeal_status?: string
+          created_at?: string
+          id?: string
+          proof_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_comment?: string | null
+          reviewer_decision?: string | null
+          student_id: string
+        }
+        Update: {
+          appeal_reason?: string
+          appeal_status?: string
+          created_at?: string
+          id?: string
+          proof_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_comment?: string | null
+          reviewer_decision?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proof_appeals_proof_id_fkey"
+            columns: ["proof_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proof_uploads: {
         Row: {
           admin_review_status: string | null
@@ -1609,6 +1656,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      verification_settings: {
+        Row: {
+          auto_approve_threshold: number
+          college_id: string
+          created_at: string
+          id: string
+          min_ai_likelihood: number
+          min_authenticity_score: number
+          min_conceptual_score: number
+          min_trust_score: number
+          updated_at: string
+        }
+        Insert: {
+          auto_approve_threshold?: number
+          college_id: string
+          created_at?: string
+          id?: string
+          min_ai_likelihood?: number
+          min_authenticity_score?: number
+          min_conceptual_score?: number
+          min_trust_score?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_approve_threshold?: number
+          college_id?: string
+          created_at?: string
+          id?: string
+          min_ai_likelihood?: number
+          min_authenticity_score?: number
+          min_conceptual_score?: number
+          min_trust_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_settings_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: true
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       xp_logs: {
         Row: {

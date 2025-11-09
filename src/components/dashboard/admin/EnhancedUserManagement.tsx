@@ -781,7 +781,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
                 <div className="space-y-2 mt-2">
                   <p><strong>Name:</strong> {activeTab === 'students' ? viewUserSheet.full_name : viewUserSheet.name}</p>
                   <p><strong>Email:</strong> {viewUserSheet.email}</p>
-                  <p><strong>Status:</strong> {getStatusBadge(viewUserSheet)}</p>
+                  <div className="flex items-center gap-2"><strong>Status:</strong> {getStatusBadge(viewUserSheet)}</div>
                   <p><strong>Created:</strong> {new Date(viewUserSheet.created_at).toLocaleDateString()}</p>
                 </div>
               </div>

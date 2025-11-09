@@ -250,34 +250,8 @@ Scoring guidelines:
       );
     }
 
-    // Update proof_uploads with conceptual score
-    const { error: proofUpdateError } = await supabase
-      .from('proof_uploads')
-      .update({
-        conceptual_status: 'graded',
-        conceptual_score: conceptualUnderstandingScore
-      })
-      .eq('id', proof_id);
-
-    if (proofUpdateError) {
-      console.error('Error updating proof_uploads:', proofUpdateError);
-    }
-
-    // Update or insert trust score
-    const { error: trustError } = await supabase
-      .from('trust_scores')
-      .upsert({
-        student_id: proofData.student_id,
-        proof_id: proof_id,
-        score: conceptualUnderstandingScore,
-        last_updated: new Date().toISOString()
-      }, {
-        onConflict: 'student_id'
-      });
-
-    if (trustError) {
-      console.error('Error updating trust_scores:', trustError);
-    }
+    // Note: Trust scores are updated by trust-compute function
+    // We only update conceptual_tests here
 
     // Send notification to student
     await supabase

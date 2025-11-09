@@ -163,14 +163,19 @@ serve(async (req) => {
       console.error('Error updating trust_scores:', trustScoreError);
     }
 
-    // Update proof_uploads with admin_review_status and summary
+    // Update proof_uploads with status and summary
+    const newStatus = suggestedAction === 'verified' ? 'Verified' : 
+                      suggestedAction === 'needs_review' ? 'Under Review' : 'Rejected';
+    
     const { error: proofUpdateError } = await supabase
       .from('proof_uploads')
       .update({
+        status: newStatus,
         admin_review_status: suggestedAction === 'verified' ? 'Approved' : 
                            suggestedAction === 'needs_review' ? 'Pending' : 'Rejected',
         ai_summary: summary,
-        ai_score: cognitiveIntegrityScore
+        ai_score: cognitiveIntegrityScore,
+        review_comment: summary
       })
       .eq('id', proof_id);
 

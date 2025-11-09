@@ -57,25 +57,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get auth user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Fetch conceptual test
     const { data: conceptualTest, error: fetchError } = await supabase
       .from('conceptual_tests')
@@ -142,23 +123,36 @@ Scoring guidelines:
 - AI likelihood indicators: Generic language, overly formal, lacks specificity, no personal insights
 - Human indicators: Specific references to their code, casual language, personal observations, typos`;
 
+      let retryCount = 0;
+      let geminiResponse;
+      
       try {
-        const geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: evaluationPrompt }]
-              }],
-              generationConfig: {
-                temperature: 0.3,
-                maxOutputTokens: 1000,
-              }
-            })
+        // Try with retry logic
+        while (retryCount <= 1) {
+          geminiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{ text: evaluationPrompt }]
+                }],
+                generationConfig: {
+                  temperature: 0.3,
+                  maxOutputTokens: 1000,
+                }
+              })
+            }
+          );
+          
+          if (geminiResponse.ok) break;
+          retryCount++;
+          if (retryCount <= 1) {
+            console.log(`Gemini API failed, retrying... (attempt ${retryCount + 1})`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
-        );
+        }
 
         if (!geminiResponse.ok) {
           const errorText = await geminiResponse.text();
@@ -229,7 +223,7 @@ Scoring guidelines:
       .from('conceptual_tests')
       .update({
         answer_scores: answerScores,
-        status: 'completed'
+        status: 'graded'
       })
       .eq('proof_id', proof_id);
 
@@ -248,29 +242,66 @@ Scoring guidelines:
       .eq('id', proof_id)
       .single();
 
-    if (proofData) {
-      await supabase
-        .from('notifications')
-        .insert({
-          student_id: proofData.student_id,
-          type: 'verification',
-          title: 'Conceptual Evaluation Complete ✅',
-          message: `Your conceptual understanding score: ${conceptualUnderstandingScore}/100`,
-          link: `/student/uploads`,
-          is_read: false
-        });
+    if (!proofData) {
+      console.error('Proof data not found for proof_id:', proof_id);
+      return new Response(
+        JSON.stringify({ error: 'Proof data not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Update proof_uploads with conceptual score
+    const { error: proofUpdateError } = await supabase
+      .from('proof_uploads')
+      .update({
+        conceptual_status: 'graded',
+        conceptual_score: conceptualUnderstandingScore
+      })
+      .eq('id', proof_id);
+
+    if (proofUpdateError) {
+      console.error('Error updating proof_uploads:', proofUpdateError);
+    }
+
+    // Update or insert trust score
+    const { error: trustError } = await supabase
+      .from('trust_scores')
+      .upsert({
+        student_id: proofData.student_id,
+        proof_id: proof_id,
+        score: conceptualUnderstandingScore,
+        last_updated: new Date().toISOString()
+      }, {
+        onConflict: 'student_id'
+      });
+
+    if (trustError) {
+      console.error('Error updating trust_scores:', trustError);
+    }
+
+    // Send notification to student
+    await supabase
+      .from('notifications')
+      .insert({
+        student_id: proofData.student_id,
+        type: 'verification',
+        title: 'Conceptual Evaluation Complete ✅',
+        message: `You scored ${conceptualUnderstandingScore}/100 on your conceptual test.`,
+        link: `/student/uploads`,
+        is_read: false
+      });
 
     // Log to audit_logs
     await supabase
       .from('audit_logs')
       .insert({
-        user_id: user.id,
+        user_id: proofData.student_id,
         action: 'conceptual_answers_evaluated',
         table_name: 'conceptual_tests',
         record_id: proof_id,
         new_values: {
           proof_id,
+          student_id: proofData.student_id,
           conceptual_understanding_score: conceptualUnderstandingScore,
           answer_count: answerScores.length
         }
@@ -282,9 +313,10 @@ Scoring guidelines:
       JSON.stringify({
         success: true,
         proof_id,
+        student_id: proofData.student_id,
         conceptual_understanding_score: conceptualUnderstandingScore,
         answer_scores: answerScores,
-        status: 'completed'
+        status: 'graded'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -31,7 +31,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.response-evaluator]
-verify_jwt = true
+verify_jwt = false
 
 [functions.trust-compute]
 verify_jwt = true

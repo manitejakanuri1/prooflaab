@@ -17,6 +17,8 @@ export interface ProofReview {
   ai_summary: string | null;
   ai_feedback: string | null;
   ai_status: string | null;
+  conceptual_score: number | null;
+  conceptual_status: string | null;
   github_verifications?: {
     authenticity_score: number | null;
     commit_count: number | null;
@@ -106,7 +108,9 @@ export const useProofReviews = () => {
         return data?.map(item => ({
           ...item,
           student: item.student_profiles,
-          task: item.tasks
+          task: item.tasks,
+          conceptual_score: (item as any).conceptual_score ?? null,
+          conceptual_status: (item as any).conceptual_status ?? null,
         })) as ProofReview[] || [];
       } catch (error) {
         console.error('Proof reviews query error:', error);

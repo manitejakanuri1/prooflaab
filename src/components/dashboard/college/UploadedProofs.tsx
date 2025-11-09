@@ -91,6 +91,17 @@ const UploadedProofs = () => {
           refetch();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trust_scores'
+        },
+        () => {
+          refetch();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -323,19 +334,37 @@ const UploadedProofs = () => {
                       <TableCell className="hidden 2xl:table-cell">
                         {(() => {
                           const conceptualTest = proof.conceptual_tests?.[0];
+                          const conceptualScore = proof.conceptual_score;
+                          
                           if (!conceptualTest) {
                             return <Badge variant="outline" className="text-xs text-muted-foreground">N/A</Badge>;
                           }
                           if (conceptualTest.status === 'pending') {
-                            return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending 🕓</Badge>;
+                            return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                              <Brain className="h-3 w-3 mr-1" />
+                              Pending 🕓
+                            </Badge>;
                           }
                           if (conceptualTest.status === 'submitted') {
-                            return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Submitted 📨</Badge>;
+                            return <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
+                              <Brain className="h-3 w-3 mr-1" />
+                              Evaluating... ⏳
+                            </Badge>;
                           }
-                          if (conceptualTest.status === 'graded' && conceptualTest.answer_scores) {
-                            const scores = conceptualTest.answer_scores as any[];
-                            const avgScore = Math.round(scores.reduce((sum: number, s: any) => sum + (s.final_score || 0), 0) / scores.length);
-                            return <Badge variant="default" className="bg-green-100 text-green-800">Graded ✅ {avgScore}%</Badge>;
+                          if (conceptualTest.status === 'graded') {
+                            const displayScore = conceptualScore ?? (conceptualTest.answer_scores 
+                              ? Math.round((conceptualTest.answer_scores as any[]).reduce((sum: number, s: any) => sum + (s.final_score || 0), 0) / (conceptualTest.answer_scores as any[]).length)
+                              : 0);
+                            
+                            return (
+                              <Badge 
+                                variant="default" 
+                                className={displayScore >= 70 ? "bg-green-100 text-green-800 border-green-300" : displayScore >= 50 ? "bg-yellow-100 text-yellow-800 border-yellow-300" : "bg-red-100 text-red-800 border-red-300"}
+                              >
+                                <Brain className="h-3 w-3 mr-1" />
+                                {displayScore}% ✅
+                              </Badge>
+                            );
                           }
                           return <Badge variant="outline" className="text-xs text-muted-foreground">-</Badge>;
                         })()}

@@ -35,6 +35,29 @@ const StudentUploadsPage = () => {
     }
   }, [uploads]);
 
+  // Real-time subscription for conceptual test updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('conceptual_tests_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conceptual_tests'
+        },
+        () => {
+          fetchConceptualTests();
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchConceptualTests = async () => {
     try {
       const proofIds = uploads?.map(u => u.id) || [];
@@ -362,8 +385,15 @@ const StudentUploadsPage = () => {
                               </Button>
                             )}
                             {conceptualTests[upload.id]?.status === 'submitted' && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                Qs Submitted ✅
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
+                                <Brain className="h-3 w-3 mr-1" />
+                                Evaluating... ⏳
+                              </Badge>
+                            )}
+                            {conceptualTests[upload.id]?.status === 'graded' && (
+                              <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
+                                <Brain className="h-3 w-3 mr-1" />
+                                Evaluated ✅
                               </Badge>
                             )}
                             {upload.file_url && (

@@ -36,25 +36,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get auth user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     console.log(`Computing trust score for proof ${proof_id}`);
 
     // Fetch proof upload to get student_id
@@ -213,7 +194,7 @@ serve(async (req) => {
     await supabase
       .from('audit_logs')
       .insert({
-        user_id: user.id,
+        user_id: student_id,
         action: 'trust_score_computed',
         table_name: 'trust_scores',
         record_id: proof_id,

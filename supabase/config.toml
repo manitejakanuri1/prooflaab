@@ -34,4 +34,4 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.trust-compute]
-verify_jwt = true
+verify_jwt = false

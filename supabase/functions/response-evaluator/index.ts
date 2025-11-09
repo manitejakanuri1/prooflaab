@@ -71,7 +71,8 @@ serve(async (req) => {
       );
     }
 
-    if (conceptualTest.status !== 'submitted') {
+    // Allow evaluation for both 'submitted' (first time) and 'graded' (re-run)
+    if (conceptualTest.status !== 'submitted' && conceptualTest.status !== 'graded') {
       return new Response(
         JSON.stringify({ error: `Cannot evaluate. Current status: ${conceptualTest.status}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

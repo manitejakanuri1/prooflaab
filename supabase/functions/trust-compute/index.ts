@@ -114,26 +114,31 @@ serve(async (req) => {
     }
 
     // Calculate composite cognitive_integrity_score
-    // Weights: 30% commit, 30% ai_authorship, 40% conceptual
+    // Updated CIS formula (v2.0) for fairer weighting and adaptive thresholds
+    // Weights: 35% commit, 25% ai_authorship, 40% conceptual
     const cognitiveIntegrityScore = Math.round(
-      (commitAuthenticityScore * 0.30) +
-      (aiAuthorshipScore * 0.30) +
+      (commitAuthenticityScore * 0.35) +
+      (aiAuthorshipScore * 0.25) +
       (conceptualUnderstandingScore * 0.40)
     );
 
-    // Determine suggested action
+    // Determine suggested action with updated thresholds
     let suggestedAction: 'verified' | 'needs_review' | 'failed';
     let summary: string;
+    let trustDelta = 0;
 
-    if (cognitiveIntegrityScore >= 75) {
+    if (cognitiveIntegrityScore >= 60) {
       suggestedAction = 'verified';
+      trustDelta = 3;
       summary = `High cognitive integrity (${cognitiveIntegrityScore}/100). All verifications passed with strong scores. Recommended for automatic approval.`;
-    } else if (cognitiveIntegrityScore >= 50) {
+    } else if (cognitiveIntegrityScore >= 40) {
       suggestedAction = 'needs_review';
+      trustDelta = 1;
       summary = `Moderate cognitive integrity (${cognitiveIntegrityScore}/100). Some concerns detected. Manual review recommended before approval.`;
     } else {
       suggestedAction = 'failed';
-      summary = `Low cognitive integrity (${cognitiveIntegrityScore}/100). Multiple red flags detected. Not recommended for approval.`;
+      trustDelta = 0;
+      summary = `Low cognitive integrity (${cognitiveIntegrityScore}/100). Multiple red flags detected. Not recommended for approval. Admin notified for manual review.`;
     }
 
     // Add specific concerns to summary
@@ -146,14 +151,25 @@ serve(async (req) => {
       summary += ` Concerns: ${concerns.join(', ')}.`;
     }
 
-    console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (${suggestedAction})`);
+    console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (${suggestedAction}), trust delta: +${trustDelta}`);
 
-    // Update trust_scores table
+    // Fetch current trust score to calculate new total
+    const { data: currentTrustScore } = await supabase
+      .from('trust_scores')
+      .select('total')
+      .eq('student_id', student_id)
+      .single();
+
+    const currentTotal = currentTrustScore?.total || 0;
+    const newTotal = currentTotal + trustDelta;
+
+    // Update trust_scores table with new score and delta
     const { error: trustScoreError } = await supabase
       .from('trust_scores')
       .upsert({
         student_id: student_id,
         score: cognitiveIntegrityScore,
+        total: newTotal,
         last_updated: new Date().toISOString()
       }, {
         onConflict: 'student_id'
@@ -176,7 +192,7 @@ serve(async (req) => {
         ai_summary: summary,
         ai_score: cognitiveIntegrityScore,
         review_comment: summary,
-        review_flag: cognitiveIntegrityScore < 10 // Flag for manual review if trust score < 10
+        review_flag: suggestedAction === 'needs_review' || suggestedAction === 'failed' // Flag for manual review
       })
       .eq('id', proof_id);
 

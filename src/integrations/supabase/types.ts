@@ -712,6 +712,8 @@ export type Database = {
           ai_score: number | null
           ai_status: string | null
           ai_summary: string | null
+          declaration_acknowledged: boolean | null
+          declaration_text: string | null
           file_url: string | null
           id: string
           moss_score: number | null
@@ -720,6 +722,7 @@ export type Database = {
           reflection_answers: Json | null
           reflection_questions: Json | null
           reflection_reasoning: string | null
+          reflection_requested: boolean | null
           reflection_score: number | null
           reflection_status: string | null
           reflection_trigger_time: string | null
@@ -743,6 +746,8 @@ export type Database = {
           ai_score?: number | null
           ai_status?: string | null
           ai_summary?: string | null
+          declaration_acknowledged?: boolean | null
+          declaration_text?: string | null
           file_url?: string | null
           id?: string
           moss_score?: number | null
@@ -751,6 +756,7 @@ export type Database = {
           reflection_answers?: Json | null
           reflection_questions?: Json | null
           reflection_reasoning?: string | null
+          reflection_requested?: boolean | null
           reflection_score?: number | null
           reflection_status?: string | null
           reflection_trigger_time?: string | null
@@ -774,6 +780,8 @@ export type Database = {
           ai_score?: number | null
           ai_status?: string | null
           ai_summary?: string | null
+          declaration_acknowledged?: boolean | null
+          declaration_text?: string | null
           file_url?: string | null
           id?: string
           moss_score?: number | null
@@ -782,6 +790,7 @@ export type Database = {
           reflection_answers?: Json | null
           reflection_questions?: Json | null
           reflection_reasoning?: string | null
+          reflection_requested?: boolean | null
           reflection_score?: number | null
           reflection_status?: string | null
           reflection_trigger_time?: string | null

@@ -6,6 +6,8 @@ interface SubmitProofData {
   taskId: string;
   fileUrl: string;
   submissionNotes?: string;
+  declarationAcknowledged?: boolean;
+  declarationText?: string;
 }
 
 export const useSubmitProof = () => {
@@ -13,7 +15,7 @@ export const useSubmitProof = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ taskId, fileUrl, submissionNotes }: SubmitProofData) => {
+    mutationFn: async ({ taskId, fileUrl, submissionNotes, declarationAcknowledged, declarationText }: SubmitProofData) => {
       if (!user) throw new Error('User not authenticated');
 
       // Get student profile ID
@@ -33,12 +35,29 @@ export const useSubmitProof = () => {
           student_id: profile.id,
           file_url: fileUrl,
           submission_notes: submissionNotes || null,
+          declaration_acknowledged: declarationAcknowledged || false,
+          declaration_text: declarationText || null,
           status: 'Under Review'
         })
         .select()
         .single();
 
       if (error) throw error;
+      
+      // Log declaration submission in audit logs if acknowledged
+      if (declarationAcknowledged) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: 'declaration_submitted',
+          table_name: 'proof_uploads',
+          record_id: data.id,
+          new_values: {
+            declaration_acknowledged: true,
+            declaration_text: declarationText
+          }
+        });
+      }
+      
       return data;
     },
     onSuccess: () => {

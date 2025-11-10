@@ -27,6 +27,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { IntegrityContextPanel } from "./IntegrityContextPanel";
 
 interface VerificationData {
   id: string;
@@ -44,6 +45,9 @@ interface VerificationData {
   review_flag: boolean;
   student_id: string;
   task_id: string;
+  declaration_acknowledged?: boolean;
+  declaration_text?: string | null;
+  reflection_requested?: boolean;
   conceptual_tests?: Array<{
     status: string;
     questions: any[];
@@ -209,7 +213,7 @@ const EnhancedVerificationModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
@@ -228,7 +232,9 @@ const EnhancedVerificationModal = ({
           )}
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Main Content - Left Column */}
+          <div className="lg:col-span-2 space-y-4">
           {/* Alert Banner for Low Trust Score */}
           {needsReview && (
             <Card className="border-orange-300 bg-orange-50">
@@ -481,6 +487,19 @@ const EnhancedVerificationModal = ({
                 'Under Review'
               )}
             </Badge>
+          </div>
+          </div>
+
+          {/* Integrity Context Panel - Right Column */}
+          <div className="lg:col-span-1">
+            <IntegrityContextPanel
+              declarationAcknowledged={data.declaration_acknowledged}
+              declarationText={data.declaration_text}
+              reflectionRequested={data.reflection_requested}
+              aiAuthorshipRisk={data.ai_score ? 100 - data.ai_score : undefined}
+              conceptualScore={data.conceptual_score ?? undefined}
+              trustScore={data.trust_score ?? undefined}
+            />
           </div>
         </div>
 

@@ -9,6 +9,7 @@ import { Upload, Link, FileText, Video, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { IntegrityDeclarationModal } from "./IntegrityDeclarationModal";
 
 interface UploadProofModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function UploadProofModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [submissionNotes, setSubmissionNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeclarationModal, setShowDeclarationModal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -76,6 +78,12 @@ export default function UploadProofModal({
       return;
     }
 
+    // Show integrity declaration modal
+    setShowDeclarationModal(true);
+  };
+
+  const handleDeclarationConfirm = async (declaration: { acknowledged: boolean; text?: string }) => {
+    setShowDeclarationModal(false);
     setIsSubmitting(true);
 
     try {
@@ -100,18 +108,36 @@ export default function UploadProofModal({
         fileUrl = `[FILE: ${selectedFile.name} (${selectedFile.type}, ${selectedFile.size} bytes)]`;
       }
 
-      // Insert proof upload record
-      const { error } = await supabase
+      // Insert proof upload record with declaration
+      const { data: proofData, error } = await supabase
         .from('proof_uploads')
         .insert({
           task_id: taskId,
           student_id: profile.id,
           file_url: fileUrl,
           submission_notes: submissionNotes.trim() || null,
+          declaration_acknowledged: declaration.acknowledged,
+          declaration_text: declaration.text || null,
           status: 'Under Review'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Log declaration in audit logs
+      if (declaration.acknowledged) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: 'declaration_submitted',
+          table_name: 'proof_uploads',
+          record_id: proofData.id,
+          new_values: {
+            declaration_acknowledged: true,
+            declaration_text: declaration.text
+          }
+        });
+      }
 
       toast({
         title: "Proof Submitted",
@@ -229,6 +255,12 @@ export default function UploadProofModal({
           </Button>
         </div>
       </DialogContent>
+
+      <IntegrityDeclarationModal
+        open={showDeclarationModal}
+        onConfirm={handleDeclarationConfirm}
+        onCancel={() => setShowDeclarationModal(false)}
+      />
     </Dialog>
   );
 }

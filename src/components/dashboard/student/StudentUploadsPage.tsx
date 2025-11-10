@@ -18,6 +18,8 @@ import { Download, Eye, FileText, Upload as UploadIcon, Search, Filter, CheckCir
 import { supabase } from "@/integrations/supabase/client";
 import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import AppealSubmissionModal from "./AppealSubmissionModal";
+import { ReflectionModal } from "../ReflectionModal";
+import { useReflectionRequest } from "@/hooks/useReflectionRequest";
 import { useAuth } from "@/contexts/AuthContext";
 
 const StudentUploadsPage = () => {
@@ -32,7 +34,14 @@ const StudentUploadsPage = () => {
   const [appealModalOpen, setAppealModalOpen] = useState(false);
   const [appealProofId, setAppealProofId] = useState<string | null>(null);
   const [studentProfileId, setStudentProfileId] = useState<string | null>(null);
+  const [reflectionModalOpen, setReflectionModalOpen] = useState(false);
+  const [reflectionProofData, setReflectionProofData] = useState<{
+    proofId: string;
+    conceptualScore?: number;
+    trustScore?: number;
+  } | null>(null);
   const { user } = useAuth();
+  const reflectionMutation = useReflectionRequest();
 
   // Fetch student profile ID
   useEffect(() => {
@@ -484,6 +493,26 @@ const StudentUploadsPage = () => {
           proofId={appealProofId}
           studentId={studentProfileId}
           taskTitle={filteredAndSortedUploads.find(u => u.id === appealProofId)?.tasks?.title}
+        />
+      )}
+      {reflectionProofData && studentProfileId && (
+        <ReflectionModal
+          open={reflectionModalOpen}
+          onRequestReview={() => {
+            reflectionMutation.mutate({
+              proofId: reflectionProofData.proofId,
+              studentId: studentProfileId,
+            });
+            setReflectionModalOpen(false);
+            setReflectionProofData(null);
+            refetch();
+          }}
+          onSkip={() => {
+            setReflectionModalOpen(false);
+            setReflectionProofData(null);
+          }}
+          conceptualScore={reflectionProofData.conceptualScore}
+          trustScore={reflectionProofData.trustScore}
         />
       )}
     </div>

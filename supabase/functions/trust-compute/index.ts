@@ -38,10 +38,10 @@ serve(async (req) => {
 
     console.log(`Computing trust score for proof ${proof_id}`);
 
-    // Fetch proof upload to get student_id
+    // Fetch proof upload to get student_id and integrity declarations
     const { data: proofUpload, error: proofError } = await supabase
       .from('proof_uploads')
-      .select('student_id')
+      .select('student_id, declaration_acknowledged, reflection_requested')
       .eq('id', proof_id)
       .single();
 
@@ -113,14 +113,25 @@ serve(async (req) => {
       }
     }
 
-    // Calculate composite cognitive_integrity_score
+    // Calculate base cognitive_integrity_score
     // Updated CIS formula (v2.0) for fairer weighting and adaptive thresholds
     // Weights: 35% commit, 25% ai_authorship, 40% conceptual
-    const cognitiveIntegrityScore = Math.round(
+    let baseCIS = Math.round(
       (commitAuthenticityScore * 0.35) +
       (aiAuthorshipScore * 0.25) +
       (conceptualUnderstandingScore * 0.40)
     );
+
+    // Apply ethical framing adjustments
+    let ethicalAdjustment = 0;
+    if (proofUpload.declaration_acknowledged === true) {
+      ethicalAdjustment += 5; // Reward honesty and transparency
+    }
+    if (proofUpload.reflection_requested === true) {
+      ethicalAdjustment += 3; // Reward learning mindset
+    }
+
+    const cognitiveIntegrityScore = Math.min(100, baseCIS + ethicalAdjustment);
 
     // Determine suggested action with updated thresholds
     let suggestedAction: 'verified' | 'needs_review' | 'failed';
@@ -151,7 +162,7 @@ serve(async (req) => {
       summary += ` Concerns: ${concerns.join(', ')}.`;
     }
 
-    console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (${suggestedAction}), trust delta: +${trustDelta}`);
+    console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (base: ${baseCIS}, adjustment: +${ethicalAdjustment}) (${suggestedAction}), trust delta: +${trustDelta}`);
 
     // Fetch current trust score to calculate new total
     const { data: currentTrustScore } = await supabase
@@ -212,7 +223,7 @@ serve(async (req) => {
       console.error('Error updating student profile:', profileUpdateError);
     }
 
-    // Log to audit_logs
+    // Log to audit_logs with ethical adjustments
     await supabase
       .from('audit_logs')
       .insert({
@@ -223,8 +234,13 @@ serve(async (req) => {
         new_values: {
           proof_id,
           student_id,
+          base_cis: baseCIS,
+          ethical_adjustment: ethicalAdjustment,
+          adjusted_cis: cognitiveIntegrityScore,
           cognitive_integrity_score: cognitiveIntegrityScore,
-          suggested_action: suggestedAction
+          suggested_action: suggestedAction,
+          declaration_acknowledged: proofUpload.declaration_acknowledged,
+          reflection_requested: proofUpload.reflection_requested
         }
       });
 

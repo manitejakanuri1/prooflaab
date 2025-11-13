@@ -79,8 +79,10 @@ serve(async (req) => {
     } = requestData;
 
     // Validate required fields
-    if (!due_date) {
-      throw new Error('Due date is required');
+    // Due date is only required when actually assigning tasks (selected_students > 0)
+    // For AI generation preview, due_date can be optional
+    if (!due_date && selected_students && selected_students.length > 0) {
+      throw new Error('Due date is required when assigning tasks');
     }
 
     console.log(`Processing task assignment in ${mode} mode for ${selected_students.length} students`);

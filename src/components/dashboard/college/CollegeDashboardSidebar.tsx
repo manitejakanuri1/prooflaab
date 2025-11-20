@@ -25,7 +25,7 @@ interface CollegeDashboardSidebarProps {
 }
 
 const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
   { id: "students", label: "Students", icon: Users },
   { id: "assign-tasks", label: "Assign Tasks", icon: ClipboardList },
   { id: "uploaded-proofs", label: "Uploaded Proofs", icon: Upload },

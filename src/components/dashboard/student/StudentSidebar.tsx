@@ -23,7 +23,7 @@ interface StudentSidebarProps {
 }
 
 const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
   { id: "tasks", label: "Tasks", icon: ListTodo },
   { id: "create-task", label: "Create a Task", icon: PlusSquare },
   { id: "applications", label: "Applications", icon: FileText },

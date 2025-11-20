@@ -84,7 +84,10 @@ const AdminDashboard = () => {
   };
 
   return (
-    <SidebarProvider defaultOpen={!isMobile}>
+    <SidebarProvider 
+      open={!isMobile || sidebarOpen}
+      onOpenChange={setSidebarOpen}
+    >
       <div className="min-h-screen flex w-full bg-background relative">
         {/* Mobile overlay */}
         {isMobile && sidebarOpen && (
@@ -94,20 +97,13 @@ const AdminDashboard = () => {
           />
         )}
         
-        <div className={`
-          ${isMobile ? 'fixed inset-y-0 left-0' : ''} 
-          ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-          ${isMobile ? 'z-50' : ''}
-          transition-transform duration-300 ease-in-out
-        `}>
-          <AdminSidebar 
-            activeTab={activeTab} 
-            onTabChange={(tab) => {
-              handleTabChange(tab);
-              if (isMobile) setSidebarOpen(false);
-            }} 
-          />
-        </div>
+        <AdminSidebar 
+          activeTab={activeTab} 
+          onTabChange={(tab) => {
+            handleTabChange(tab);
+            if (isMobile) setSidebarOpen(false);
+          }} 
+        />
         
         <div className="flex-1 flex flex-col min-w-0">
           <AdminHeader 

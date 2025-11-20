@@ -183,9 +183,9 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to the ProofLabAI administration panel</p>
+      <div className="bg-gradient-to-r from-orange-100 to-yellow-100 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl border border-orange-200/30 dark:border-gray-600">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Admin Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-300">Welcome to the ProofLabAI administration panel</p>
       </div>
 
       {/* KPI Cards */}

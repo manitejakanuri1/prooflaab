@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import AdminDashboardOverview from "@/components/dashboard/admin/AdminDashboardOverview";
 import ProofSubmissionsContent from "@/components/dashboard/admin/ProofSubmissionsContent";
@@ -20,6 +21,8 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Update activeTab based on URL
   useEffect(() => {
@@ -81,13 +84,38 @@ const AdminDashboard = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
+    <SidebarProvider defaultOpen={!isMobile}>
+      <div className="min-h-screen flex w-full bg-background relative">
+        {/* Mobile overlay */}
+        {isMobile && sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
+        <div className={`
+          ${isMobile ? 'fixed inset-y-0 left-0' : ''} 
+          ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+          ${isMobile ? 'z-50' : ''}
+          transition-transform duration-300 ease-in-out
+        `}>
+          <AdminSidebar 
+            activeTab={activeTab} 
+            onTabChange={(tab) => {
+              handleTabChange(tab);
+              if (isMobile) setSidebarOpen(false);
+            }} 
+          />
+        </div>
+        
         <div className="flex-1 flex flex-col min-w-0">
-          <AdminHeader />
+          <AdminHeader 
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            showMenuButton={isMobile}
+          />
           <main className="flex-1 overflow-auto">
-            <div className="p-4 md:p-6">
+            <div className="p-3 md:p-4 lg:p-6">
               {renderContent()}
             </div>
           </main>

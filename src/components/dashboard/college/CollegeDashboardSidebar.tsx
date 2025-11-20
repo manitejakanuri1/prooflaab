@@ -60,7 +60,7 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
   };
 
   return (
-    <aside className="w-56 md:w-64 bg-card/80 backdrop-blur-sm border-r border-border h-[calc(100vh-64px)] overflow-y-auto">
+    <aside className="sticky top-[64px] w-56 md:w-64 bg-card/80 backdrop-blur-sm border-r border-border h-[calc(100vh-64px)] overflow-y-auto">
       <nav className="p-3 md:p-4">
         <div className="space-y-1 md:space-y-2">
           {menuItems.map((item) => {

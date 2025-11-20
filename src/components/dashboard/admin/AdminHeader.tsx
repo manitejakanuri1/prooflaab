@@ -1,18 +1,29 @@
 import React, { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import AdminNotificationsPopover from "./AdminNotificationsPopover";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
+
 const AdminHeader = () => {
   const { recentNotifications, unreadCount, markAsRead, markAllAsRead } = useAdminNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
+  const { toggleSidebar, isMobile } = useSidebar();
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border h-16 flex items-center justify-between px-3 md:px-6">
       <div className="flex items-center space-x-2 md:space-x-4">
-        <SidebarTrigger className="md:hidden" />
+        {isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
         <h1 className="text-xl font-bold">Admin Dashboard</h1>
       </div>
       

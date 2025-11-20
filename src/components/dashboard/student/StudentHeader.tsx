@@ -49,8 +49,8 @@ const StudentHeader = ({
             </Button>
           )}
           
-          <div className="text-gray-900 dark:text-white font-bold text-base sm:text-lg flex items-center gap-2 sm:gap-3">
-            <Logo className="h-8 w-8 sm:h-12 sm:w-12" />
+          <div className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
+            <Logo className="h-8 w-8 md:h-12 md:w-12" />
             <span className="hidden sm:inline">ProofLabAI</span>
           </div>
           

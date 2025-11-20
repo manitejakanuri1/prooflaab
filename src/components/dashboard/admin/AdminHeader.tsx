@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Bell } from "lucide-react";
-import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
@@ -12,8 +11,7 @@ const AdminHeader = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border h-16 flex items-center justify-between px-6">
-      <div className="flex items-center space-x-4">
-        <Logo className="h-10 w-10" />
+      <div className="flex items-center">
         <h1 className="text-xl font-bold">Admin Dashboard</h1>
       </div>
       

@@ -37,7 +37,7 @@ const StudentHeader = ({
     <header className="bg-background/90 backdrop-blur-sm border-b border-border px-3 sm:px-6 py-3 sm:py-4 dark:bg-card/90">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo and Menu */}
-        <div className="flex items-center space-x-2 md:space-x-6 lg:ml-64">
+        <div className="flex items-center space-x-2 md:space-x-6">
           {showMenuButton && (
             <Button
               variant="ghost"
@@ -54,7 +54,7 @@ const StudentHeader = ({
             <span className="hidden sm:inline">ProofLabAI</span>
           </div>
           
-          <h1 className="text-xl font-bold hidden sm:block">Students Dashboard</h1>
+          <h1 className="text-xl font-bold hidden sm:block lg:ml-52">Students Dashboard</h1>
         </div>
         
         {/* User Profile */}

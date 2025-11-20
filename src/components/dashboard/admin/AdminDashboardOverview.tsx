@@ -6,25 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Building2, Rocket, ClipboardCheck, Eye, TrendingUp, Calendar, Filter } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ComposedChart } from "recharts";
-
 interface AdminDashboardOverviewProps {
   onNavigate?: (section: string) => void;
 }
-
-const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => {
+const AdminDashboardOverview = ({
+  onNavigate
+}: AdminDashboardOverviewProps) => {
   const [dateFilter, setDateFilter] = useState("7");
-
-  const { data: stats, isLoading } = useQuery({
+  const {
+    data: stats,
+    isLoading
+  } = useQuery({
     queryKey: ['admin-overview-stats'],
     queryFn: async () => {
-      const [studentsRes, collegesRes, startupsRes, proofsRes, tasksRes] = await Promise.all([
-        supabase.from('student_profiles').select('id, status', { count: 'exact' }),
-        supabase.from('colleges').select('id, verification_status', { count: 'exact' }),
-        supabase.from('startups').select('id, verification_status', { count: 'exact' }),
-        supabase.from('proof_uploads').select('id, status', { count: 'exact' }),
-        supabase.from('tasks').select('id, status', { count: 'exact' })
-      ]);
-
+      const [studentsRes, collegesRes, startupsRes, proofsRes, tasksRes] = await Promise.all([supabase.from('student_profiles').select('id, status', {
+        count: 'exact'
+      }), supabase.from('colleges').select('id, verification_status', {
+        count: 'exact'
+      }), supabase.from('startups').select('id, verification_status', {
+        count: 'exact'
+      }), supabase.from('proof_uploads').select('id, status', {
+        count: 'exact'
+      }), supabase.from('tasks').select('id, status', {
+        count: 'exact'
+      })]);
       return {
         totalStudents: studentsRes.count || 0,
         activeStudents: studentsRes.data?.filter(s => s.status === 'active').length || 0,
@@ -39,75 +44,52 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
       };
     }
   });
-
-  const { data: analyticsData } = useQuery({
+  const {
+    data: analyticsData
+  } = useQuery({
     queryKey: ['admin-analytics-data', dateFilter],
     queryFn: async () => {
       const daysBack = parseInt(dateFilter);
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysBack);
-
-      const [signupsRes, proofsRes, collegeSignupsRes, tasksRes] = await Promise.all([
-        supabase
-          .from('student_profiles')
-          .select('created_at')
-          .gte('created_at', startDate.toISOString()),
-        supabase
-          .from('proof_uploads')
-          .select('submitted_at')
-          .gte('submitted_at', startDate.toISOString()),
-        supabase
-          .from('colleges')
-          .select('created_at')
-          .gte('created_at', startDate.toISOString()),
-        supabase
-          .from('tasks')
-          .select('created_at, completed_at')
-          .gte('created_at', startDate.toISOString())
-      ]);
+      const [signupsRes, proofsRes, collegeSignupsRes, tasksRes] = await Promise.all([supabase.from('student_profiles').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('proof_uploads').select('submitted_at').gte('submitted_at', startDate.toISOString()), supabase.from('colleges').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('tasks').select('created_at, completed_at').gte('created_at', startDate.toISOString())]);
 
       // Group by day/week based on filter
       const groupSize = daysBack <= 7 ? 1 : 7;
       const periods = Math.ceil(daysBack / groupSize);
-      
-      return Array.from({ length: periods }, (_, i) => {
+      return Array.from({
+        length: periods
+      }, (_, i) => {
         const periodStart = new Date();
         periodStart.setDate(periodStart.getDate() - (periods - i) * groupSize);
         const periodEnd = new Date();
         periodEnd.setDate(periodEnd.getDate() - (periods - i - 1) * groupSize);
-        
         const periodKey = periodStart.toISOString().split('T')[0];
-        
         const studentSignups = signupsRes.data?.filter(s => {
           const date = new Date(s.created_at);
           return date >= periodStart && date < periodEnd;
         }).length || 0;
-        
         const collegeSignups = collegeSignupsRes.data?.filter(c => {
           const date = new Date(c.created_at);
           return date >= periodStart && date < periodEnd;
         }).length || 0;
-        
         const proofs = proofsRes.data?.filter(p => {
           const date = new Date(p.submitted_at);
           return date >= periodStart && date < periodEnd;
         }).length || 0;
-        
         const tasksCreated = tasksRes.data?.filter(t => {
           const date = new Date(t.created_at);
           return date >= periodStart && date < periodEnd;
         }).length || 0;
-        
         const tasksCompleted = tasksRes.data?.filter(t => {
           if (!t.completed_at) return false;
           const date = new Date(t.completed_at);
           return date >= periodStart && date < periodEnd;
         }).length || 0;
-
         return {
-          date: daysBack <= 7 
-            ? periodStart.toLocaleDateString('en-US', { weekday: 'short' })
-            : `Week ${i + 1}`,
+          date: daysBack <= 7 ? periodStart.toLocaleDateString('en-US', {
+            weekday: 'short'
+          }) : `Week ${i + 1}`,
           studentSignups,
           collegeSignups,
           totalSignups: studentSignups + collegeSignups,
@@ -118,84 +100,67 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
       });
     }
   });
-
-  const kpiCards = [
-    {
-      title: "Total Students",
-      value: stats?.totalStudents || 0,
-      subtitle: `${stats?.activeStudents || 0} active`,
-      icon: Users,
-      color: "text-blue-600",
-      onClick: () => onNavigate?.("students")
-    },
-    {
-      title: "Active Colleges",
-      value: stats?.activeColleges || 0,
-      subtitle: `${stats?.totalColleges || 0} total`,
-      icon: Building2,
-      color: "text-green-600",
-      onClick: () => onNavigate?.("colleges")
-    },
-    {
-      title: "Active Startups",
-      value: stats?.activeStartups || 0,
-      subtitle: `${stats?.totalStartups || 0} total`,
-      icon: Rocket,
-      color: "text-purple-600",
-      onClick: () => onNavigate?.("startups")
-    },
-    {
-      title: "Pending Proofs",
-      value: stats?.pendingProofs || 0,
-      subtitle: `${stats?.totalProofs || 0} total submitted`,
-      icon: ClipboardCheck,
-      color: "text-orange-600",
-      onClick: () => onNavigate?.("proof-submissions")
-    },
-    {
-      title: "Active Tasks",
-      value: stats?.activeTasks || 0,
-      subtitle: `${stats?.totalTasks || 0} total posted`,
-      icon: Eye,
-      color: "text-teal-600",
-      onClick: () => onNavigate?.("task-oversight")
-    }
-  ];
-
+  const kpiCards = [{
+    title: "Total Students",
+    value: stats?.totalStudents || 0,
+    subtitle: `${stats?.activeStudents || 0} active`,
+    icon: Users,
+    color: "text-blue-600",
+    onClick: () => onNavigate?.("students")
+  }, {
+    title: "Active Colleges",
+    value: stats?.activeColleges || 0,
+    subtitle: `${stats?.totalColleges || 0} total`,
+    icon: Building2,
+    color: "text-green-600",
+    onClick: () => onNavigate?.("colleges")
+  }, {
+    title: "Active Startups",
+    value: stats?.activeStartups || 0,
+    subtitle: `${stats?.totalStartups || 0} total`,
+    icon: Rocket,
+    color: "text-purple-600",
+    onClick: () => onNavigate?.("startups")
+  }, {
+    title: "Pending Proofs",
+    value: stats?.pendingProofs || 0,
+    subtitle: `${stats?.totalProofs || 0} total submitted`,
+    icon: ClipboardCheck,
+    color: "text-orange-600",
+    onClick: () => onNavigate?.("proof-submissions")
+  }, {
+    title: "Active Tasks",
+    value: stats?.activeTasks || 0,
+    subtitle: `${stats?.totalTasks || 0} total posted`,
+    icon: Eye,
+    color: "text-teal-600",
+    onClick: () => onNavigate?.("task-oversight")
+  }];
   if (isLoading) {
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
+          {Array.from({
+          length: 5
+        }).map((_, i) => <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
                 <div className="h-6 bg-muted rounded w-1/2 mb-1"></div>
                 <div className="h-3 bg-muted rounded w-2/3"></div>
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-100 to-yellow-100 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl border border-orange-200/30 dark:border-gray-600">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Welcome To Admin Dashboard</h1>
         <p className="text-gray-600 dark:text-gray-300">Welcome to the ProofLabAI administration panel</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
-        {kpiCards.map((kpi, index) => (
-          <Card 
-            key={index} 
-            className="hover:shadow-lg transition-all cursor-pointer hover:scale-105"
-            onClick={kpi.onClick}
-          >
+        {kpiCards.map((kpi, index) => <Card key={index} className="hover:shadow-lg transition-all cursor-pointer hover:scale-105" onClick={kpi.onClick}>
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -206,8 +171,7 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
                 <kpi.icon className={`h-6 w-6 md:h-8 md:w-8 ${kpi.color} flex-shrink-0`} />
               </div>
             </CardContent>
-          </Card>
-        ))}
+          </Card>)}
       </div>
 
       {/* Filter Controls */}
@@ -242,8 +206,12 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{
+                  fontSize: 12
+                }} />
+                  <YAxis tick={{
+                  fontSize: 12
+                }} />
                   <Tooltip />
                   <Bar dataKey="studentSignups" fill="hsl(var(--primary))" name="Students" radius={4} />
                   <Bar dataKey="collegeSignups" fill="hsl(var(--secondary))" name="Colleges" radius={4} />
@@ -265,16 +233,16 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{
+                  fontSize: 12
+                }} />
+                  <YAxis tick={{
+                  fontSize: 12
+                }} />
                   <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="proofs" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--primary))" }}
-                  />
+                  <Line type="monotone" dataKey="proofs" stroke="hsl(var(--primary))" strokeWidth={2} dot={{
+                  fill: "hsl(var(--primary))"
+                }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -293,8 +261,12 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{
+                  fontSize: 12
+                }} />
+                  <YAxis tick={{
+                  fontSize: 12
+                }} />
                   <Tooltip />
                   <Bar dataKey="tasksCreated" fill="hsl(var(--chart-1))" name="Created" radius={4} />
                   <Bar dataKey="tasksCompleted" fill="hsl(var(--chart-2))" name="Completed" radius={4} />
@@ -304,8 +276,6 @@ const AdminDashboardOverview = ({ onNavigate }: AdminDashboardOverviewProps) => 
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboardOverview;

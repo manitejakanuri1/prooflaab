@@ -48,7 +48,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
   };
 
   return (
-    <header className="bg-background/90 backdrop-blur-sm border-b border-border px-3 md:px-6 py-4 dark:bg-card/90">
+    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-sm border-b border-border px-3 md:px-6 py-4 dark:bg-card/90">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo and Title */}
         <div className="flex items-center space-x-2 md:space-x-6">

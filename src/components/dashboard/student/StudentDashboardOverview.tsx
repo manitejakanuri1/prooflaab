@@ -92,7 +92,7 @@ const StudentDashboardOverview = () => {
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-orange-100 to-yellow-100 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl border border-orange-200/30 dark:border-gray-600">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-          Welcome, {profile?.full_name || "Student"}!
+          Welcome to Your Students Dashboard
         </h1>
         <p className="text-gray-600 dark:text-gray-300">Here's your progress overview</p>
       </div>

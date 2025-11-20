@@ -69,7 +69,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
             <span className="hidden sm:inline">ProofLabAI</span>
           </div>
           
-          <h1 className="text-lg md:text-2xl font-semibold hidden sm:block">College Dashboard</h1>
+          <h1 className="text-xl font-bold hidden sm:block">College Dashboard</h1>
         </div>
         
         {/* Profile Actions */}

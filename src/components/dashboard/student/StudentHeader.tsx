@@ -53,6 +53,8 @@ const StudentHeader = ({
             <Logo className="h-8 w-8 sm:h-12 sm:w-12" />
             <span className="hidden sm:inline">ProofLabAI</span>
           </div>
+          
+          <h1 className="text-xl font-bold hidden sm:block">Students Dashboard</h1>
         </div>
         
         {/* User Profile */}

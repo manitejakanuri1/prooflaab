@@ -89,6 +89,14 @@ const StudentDashboardOverview = () => {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-orange-100 to-yellow-100 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl border border-orange-200/30 dark:border-gray-600">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+          Welcome, {profile?.full_name || "Student"}!
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300">Here's your progress overview</p>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {summaryCards.map((card, index) => {

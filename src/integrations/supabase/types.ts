@@ -705,6 +705,69 @@ export type Database = {
           },
         ]
       }
+      proof_posts: {
+        Row: {
+          comments_count: number | null
+          created_at: string | null
+          description: string | null
+          emoji_code: string
+          id: string
+          likes_count: number | null
+          proof_id: string
+          skills: string[] | null
+          status: string | null
+          student_id: string
+          title: string
+          verified_badge: boolean | null
+          visibility: string
+        }
+        Insert: {
+          comments_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          emoji_code: string
+          id?: string
+          likes_count?: number | null
+          proof_id: string
+          skills?: string[] | null
+          status?: string | null
+          student_id: string
+          title: string
+          verified_badge?: boolean | null
+          visibility?: string
+        }
+        Update: {
+          comments_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          emoji_code?: string
+          id?: string
+          likes_count?: number | null
+          proof_id?: string
+          skills?: string[] | null
+          status?: string | null
+          student_id?: string
+          title?: string
+          verified_badge?: boolean | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proof_posts_proof_id_fkey"
+            columns: ["proof_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proof_posts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proof_uploads: {
         Row: {
           admin_review_status: string | null
@@ -1766,6 +1829,7 @@ export type Database = {
       }
       generate_unique_slug: { Args: { input_text: string }; Returns: string }
       generate_url_slug: { Args: { student_name: string }; Returns: string }
+      get_current_student_id: { Args: never; Returns: string }
       get_current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1803,6 +1867,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_email_confirmed: { Args: { user_id: string }; Returns: boolean }
+      is_student_owner: {
+        Args: { _student_id: string; _user_id: string }
+        Returns: boolean
+      }
       notify_all_admins: {
         Args: {
           notification_link?: string
@@ -1814,6 +1882,10 @@ export type Database = {
         Returns: undefined
       }
       reset_daily_credits: { Args: never; Returns: undefined }
+      same_college: {
+        Args: { _student_id_1: string; _student_id_2: string }
+        Returns: boolean
+      }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
         Returns: boolean

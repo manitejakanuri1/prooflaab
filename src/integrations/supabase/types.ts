@@ -212,7 +212,15 @@ export type Database = {
           table_name?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       auth_rate_limits: {
         Row: {
@@ -275,7 +283,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "college_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       colleges: {
         Row: {
@@ -314,7 +330,22 @@ export type Database = {
           user_id?: string
           verification_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "colleges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_college_user"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       conceptual_tests: {
         Row: {
@@ -377,6 +408,42 @@ export type Database = {
           is_verified?: boolean | null
         }
         Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string | null
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       github_verifications: {
         Row: {
@@ -459,7 +526,22 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           used_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "invite_codes_used_by_fkey"
+            columns: ["used_by"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       invite_codes_validation: {
         Row: {
@@ -492,7 +574,15 @@ export type Database = {
           used_at?: string | null
           used_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_validation_used_by_fkey"
+            columns: ["used_by"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       job_opportunities: {
         Row: {
@@ -540,7 +630,15 @@ export type Database = {
           source?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "job_opportunities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       learning_resources: {
         Row: {
@@ -688,6 +786,13 @@ export type Database = {
             referencedRelation: "proof_posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       post_likes: {
@@ -716,6 +821,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proof_posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -934,6 +1046,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "proof_uploads_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "proof_uploads_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -1013,6 +1132,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "colleges"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiter_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1098,7 +1224,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "startup_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       startups: {
         Row: {
@@ -1134,7 +1268,22 @@ export type Database = {
           user_id?: string
           verification_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_startup_user"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "startups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       student_credits: {
         Row: {
@@ -1335,6 +1484,13 @@ export type Database = {
             referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "student_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       students: {
@@ -1365,7 +1521,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "students_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       students_auth: {
         Row: {
@@ -1761,7 +1925,15 @@ export type Database = {
           user_id?: string
           weekly_digest?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1788,7 +1960,22 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_follow_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       verification_settings: {
         Row: {
@@ -1868,7 +2055,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      users_follow_counts: {
+        Row: {
+          followers_count: number | null
+          following_count: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_rate_limit: {
@@ -1895,6 +2089,8 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_follower_count: { Args: { target_user: string }; Returns: number }
+      get_following_count: { Args: { target_user: string }; Returns: number }
       get_leaderboard: {
         Args: { _limit?: number }
         Returns: {

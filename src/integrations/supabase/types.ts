@@ -1892,6 +1892,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_comment: {
+        Args: { p_comment: string; p_post_id: string }
+        Returns: string
+      }
       check_rate_limit: {
         Args: {
           _identifier: string
@@ -1901,6 +1905,17 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_otps: { Args: never; Returns: undefined }
+      create_proof_post: {
+        Args: {
+          p_description: string
+          p_emoji_code: string
+          p_proof_id: string
+          p_skills: string[]
+          p_title: string
+          p_visibility: string
+        }
+        Returns: string
+      }
       create_user_with_role: {
         Args: {
           _invite_code?: string
@@ -1915,6 +1930,30 @@ export type Database = {
       get_current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_feed_posts: {
+        Args: never
+        Returns: {
+          comments_count: number | null
+          created_at: string | null
+          description: string | null
+          emoji_code: string
+          id: string
+          likes_count: number | null
+          proof_id: string
+          skills: string[] | null
+          status: string | null
+          student_id: string
+          title: string
+          verified_badge: boolean | null
+          visibility: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "proof_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_follower_count: { Args: { target_user: string }; Returns: number }
       get_following_count: { Args: { target_user: string }; Returns: number }
@@ -1963,6 +2002,7 @@ export type Database = {
         Args: { _student_id: string; _user_id: string }
         Returns: boolean
       }
+      like_post: { Args: { p_post_id: string }; Returns: undefined }
       notify_all_admins: {
         Args: {
           notification_link?: string
@@ -1978,6 +2018,7 @@ export type Database = {
         Args: { _student_id_1: string; _student_id_2: string }
         Returns: boolean
       }
+      unlike_post: { Args: { p_post_id: string }; Returns: undefined }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
         Returns: boolean

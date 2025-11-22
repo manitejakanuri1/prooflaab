@@ -238,8 +238,24 @@ const StudentFeedPage = () => {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="space-y-6">
           {feedPosts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No posts yet. Be the first to share your work!</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="bg-card rounded-2xl border border-border p-12 shadow-lg max-w-md text-center">
+                <div className="text-6xl mb-4 animate-[wobbleFloat_4s_ease-in-out_infinite]">
+                  🎨
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">
+                  No posts yet
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Be the first to share your work and inspire others!
+                </p>
+                <button
+                  onClick={() => setPostTypeModalOpen(true)}
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                >
+                  Share your first proof
+                </button>
+              </div>
             </div>
           ) : (
             feedPosts.map((post) => {
@@ -267,6 +283,8 @@ const StudentFeedPage = () => {
                   isLiked={post.user_has_liked || false}
                   onLike={() => handleLike(post.id, post.user_has_liked || false)}
                   onProofClick={() => navigate(`/student/proofs/${post.proof_id}`)}
+                  externalLink={post.external_link}
+                  proofId={post.proof_id}
                 />
               );
             })

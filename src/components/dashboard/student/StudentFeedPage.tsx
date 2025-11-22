@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import PostTypeSelectorModal from "./PostTypeSelectorModal";
 import VerifiedProofSelectorModal from "./VerifiedProofSelectorModal";
 import ExternalProjectPostModal from "./ExternalProjectPostModal";
+import VerifiedPostComposerModal from "./VerifiedPostComposerModal";
 
 type ProofPost = Database['public']['Tables']['proof_posts']['Row'];
 
@@ -51,6 +52,8 @@ const StudentFeedPage = () => {
   const [isPostTypeModalOpen, setPostTypeModalOpen] = useState(false);
   const [isVerifiedProofModalOpen, setVerifiedProofModalOpen] = useState(false);
   const [isExternalProjectModalOpen, setExternalProjectModalOpen] = useState(false);
+  const [isVerifiedPostComposerOpen, setVerifiedPostComposerOpen] = useState(false);
+  const [selectedProofId, setSelectedProofId] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -300,8 +303,21 @@ const StudentFeedPage = () => {
         isOpen={isVerifiedProofModalOpen}
         onClose={() => setVerifiedProofModalOpen(false)}
         onSelectProof={(proofId) => {
-          // TODO: Open verified post composer with this proof
-          toast.success(`Selected proof: ${proofId}`);
+          setSelectedProofId(proofId);
+          setVerifiedPostComposerOpen(true);
+        }}
+      />
+
+      {/* Verified Post Composer Modal */}
+      <VerifiedPostComposerModal
+        isOpen={isVerifiedPostComposerOpen}
+        onClose={() => {
+          setVerifiedPostComposerOpen(false);
+          setSelectedProofId("");
+        }}
+        proofId={selectedProofId}
+        onPostSuccess={() => {
+          toast.success("Post will appear in the feed shortly");
         }}
       />
 

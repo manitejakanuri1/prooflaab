@@ -161,12 +161,12 @@ export const FeedPostCard = ({
               }
             `}</style>
             <div className="flex items-center justify-center rounded-full shadow-lg" style={{ 
-              width: '200px',
-              height: '200px',
+              width: '130px',
+              height: '130px',
               backgroundColor: '#FFF7EE',
               boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)'
             }}>
-              <span style={{ fontSize: '120px', lineHeight: '1' }}>{getEmoji(tinyEmojiCode)}</span>
+              <span style={{ fontSize: '80px', lineHeight: '1' }}>{getEmoji(tinyEmojiCode)}</span>
             </div>
           </div>
         )}

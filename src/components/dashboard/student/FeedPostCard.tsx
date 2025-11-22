@@ -148,14 +148,16 @@ export const FeedPostCard = ({
           <div 
             className="absolute bottom-4 right-4"
             style={{
-              animation: 'floatEmoji 3s ease-in-out infinite'
+              animation: 'wobbleFloat 4s ease-in-out infinite'
             }}
           >
             <style>{`
-              @keyframes floatEmoji {
-                0% { transform: translateY(0px); }
-                50% { transform: translateY(-6px); }
-                100% { transform: translateY(0px); }
+              @keyframes wobbleFloat {
+                0%   { transform: translateY(0px) translateX(0px) rotate(0deg); }
+                25%  { transform: translateY(-3px) translateX(1px) rotate(1deg); }
+                50%  { transform: translateY(-2px) translateX(-1px) rotate(-1deg); }
+                75%  { transform: translateY(-3px) translateX(1px) rotate(0.8deg); }
+                100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
               }
             `}</style>
             <div className="flex items-center justify-center w-20 h-20 rounded-full shadow-lg" style={{ 

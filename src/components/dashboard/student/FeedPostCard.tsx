@@ -148,7 +148,7 @@ export const FeedPostCard = ({
           <div 
             className="absolute bottom-4 right-4"
             style={{
-              animation: 'wobbleFloat 4s ease-in-out infinite'
+              animation: 'wobbleFloat 3s ease-in-out infinite'
             }}
           >
             <style>{`
@@ -160,11 +160,11 @@ export const FeedPostCard = ({
                 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
               }
             `}</style>
-            <div className="flex items-center justify-center w-20 h-20 rounded-full shadow-lg" style={{ 
+            <div className="flex items-center justify-center w-28 h-28 rounded-full shadow-lg" style={{ 
               backgroundColor: '#FFF7EE',
               boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)'
             }}>
-              <span className="text-5xl leading-none">{getEmoji(tinyEmojiCode)}</span>
+              <span className="text-6xl leading-none">{getEmoji(tinyEmojiCode)}</span>
             </div>
           </div>
         )}

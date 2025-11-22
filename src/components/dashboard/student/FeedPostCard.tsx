@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, MoreVertical, ShieldCheck } from "lucide-react";
+import { Heart, MessageCircle, MoreVertical, ShieldCheck, ArrowRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ interface FeedPostCardProps {
   isLiked?: boolean;
   onLike?: () => void;
   onProofClick?: () => void;
+  externalLink?: string | null;
+  proofId?: string | null;
 }
 
 export const FeedPostCard = ({
@@ -49,6 +51,8 @@ export const FeedPostCard = ({
   isLiked = false,
   onLike,
   onProofClick,
+  externalLink,
+  proofId,
 }: FeedPostCardProps) => {
   // Convert emoji code to actual emoji
   const getEmoji = (code: string) => {
@@ -96,6 +100,25 @@ export const FeedPostCard = ({
         </DropdownMenu>
       </div>
 
+      {/* Verification Badge */}
+      <div className="mb-4">
+        {isVerified ? (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <span className="text-green-600 dark:text-green-400 text-sm">🟢</span>
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">
+              Verified Proof • ProofLabAI
+            </span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border border-border">
+            <span className="text-muted-foreground text-sm">⚪</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Unverified • External Project
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Main Content Card */}
       <div className="relative bg-background border border-border rounded-xl p-6 mb-4">
         {/* Large Emoji Icon */}
@@ -139,12 +162,29 @@ export const FeedPostCard = ({
           </div>
 
           {/* View Project Link */}
-          <button
-            onClick={onProofClick}
-            className="text-orange-500 hover:text-orange-600 font-medium inline-flex items-center gap-1 text-lg transition-colors"
-          >
-            View My Project
-          </button>
+          <div className="flex gap-2">
+            {isVerified && proofId ? (
+              <a
+                href={`/student/proofs/${proofId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+              >
+                <span>View Proof</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            ) : externalLink ? (
+              <a
+                href={externalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <span>Open Project</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            ) : null}
+          </div>
         </div>
 
         {/* Tiny Emoji Bottom Right - Notion Style Floating */}

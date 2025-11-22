@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { FeedPostCard } from "./FeedPostCard";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
+import PostTypeSelectorModal from "./PostTypeSelectorModal";
 
 type ProofPost = Database['public']['Tables']['proof_posts']['Row'];
 
@@ -44,6 +46,7 @@ const parseDescription = (description: string | null): string[] => {
 const StudentFeedPage = () => {
   const [feedPosts, setFeedPosts] = useState<FeedPostWithProfile[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isPostTypeModalOpen, setPostTypeModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -263,6 +266,24 @@ const StudentFeedPage = () => {
           )}
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <button
+        onClick={() => setPostTypeModalOpen(true)}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-white rounded-full shadow-lg hover:scale-105 transition-transform duration-200 flex items-center justify-center z-50 animate-[wobbleFloat_4s_ease-in-out_infinite]"
+        style={{
+          boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.12)',
+        }}
+        aria-label="Create post"
+      >
+        <Plus className="w-6 h-6 text-primary" strokeWidth={2.5} />
+      </button>
+
+      {/* Post Type Selector Modal */}
+      <PostTypeSelectorModal
+        open={isPostTypeModalOpen}
+        onOpenChange={setPostTypeModalOpen}
+      />
     </div>
   );
 };

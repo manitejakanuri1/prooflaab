@@ -7,7 +7,7 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const StudentDashboard = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("feed");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { profile, loading, refreshProfile } = useStudentProfile();

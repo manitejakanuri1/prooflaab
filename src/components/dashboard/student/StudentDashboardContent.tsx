@@ -9,6 +9,7 @@ import StudentJobOpportunitiesPage from "./StudentJobOpportunitiesPage";
 import StudentNotificationsPage from "./StudentNotificationsPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 import StudentCreateTaskPage from "./StudentCreateTaskPage";
+import StudentFeedPage from "./StudentFeedPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -18,6 +19,8 @@ interface StudentDashboardContentProps {
 const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboardContentProps) => {
   const renderContent = () => {
     switch (activeTab) {
+      case "feed":
+        return <StudentFeedPage />;
       case "dashboard":
         return <StudentDashboardOverview />;
       case "tasks":
@@ -41,7 +44,7 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
       case "settings":
         return <StudentSettingsPage refreshProfile={refreshProfile} />;
       default:
-        return <StudentDashboardOverview />;
+        return <StudentFeedPage />;
     }
   };
 

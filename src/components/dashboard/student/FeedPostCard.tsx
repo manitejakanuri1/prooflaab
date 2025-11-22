@@ -145,7 +145,19 @@ export const FeedPostCard = ({
 
         {/* Tiny Emoji Bottom Right - Notion Style Floating */}
         {tinyEmojiCode && (
-          <div className="absolute bottom-4 right-4 animate-float-emoji">
+          <div 
+            className="absolute bottom-4 right-4"
+            style={{
+              animation: 'floatEmoji 3s ease-in-out infinite'
+            }}
+          >
+            <style>{`
+              @keyframes floatEmoji {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-6px); }
+                100% { transform: translateY(0px); }
+              }
+            `}</style>
             <div className="flex items-center justify-center w-20 h-20 rounded-full shadow-lg" style={{ 
               backgroundColor: '#FFF7EE',
               boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)'

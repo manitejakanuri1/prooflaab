@@ -25,6 +25,9 @@ interface FeedPostCardProps {
   timeAgo: string;
   emojiCode: string;
   tinyEmojiCode?: string;
+  isLiked?: boolean;
+  onLike?: () => void;
+  onProofClick?: () => void;
 }
 
 export const FeedPostCard = ({
@@ -43,6 +46,9 @@ export const FeedPostCard = ({
   timeAgo,
   emojiCode,
   tinyEmojiCode,
+  isLiked = false,
+  onLike,
+  onProofClick,
 }: FeedPostCardProps) => {
   // Convert emoji code to actual emoji
   const getEmoji = (code: string) => {
@@ -133,14 +139,12 @@ export const FeedPostCard = ({
           </div>
 
           {/* View Project Link */}
-          <a
-            href={proofUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-500 hover:text-orange-600 font-medium inline-flex items-center gap-1 text-lg"
+          <button
+            onClick={onProofClick}
+            className="text-orange-500 hover:text-orange-600 font-medium inline-flex items-center gap-1 text-lg transition-colors"
           >
             View My Project
-          </a>
+          </button>
         </div>
 
         {/* Tiny Emoji Bottom Right - Notion Style Floating */}
@@ -175,8 +179,13 @@ export const FeedPostCard = ({
       {/* Footer */}
       <div className="flex items-center justify-between text-sm text-muted-foreground px-2">
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 hover:text-primary transition-colors">
-            <Heart className="h-5 w-5" />
+          <button 
+            onClick={onLike}
+            className={`flex items-center gap-2 transition-colors ${
+              isLiked ? 'text-red-500' : 'hover:text-primary'
+            }`}
+          >
+            <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
             <span>{likesCount}</span>
           </button>
           <button className="flex items-center gap-2 hover:text-primary transition-colors">

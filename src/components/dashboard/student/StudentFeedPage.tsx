@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import PostTypeSelectorModal from "./PostTypeSelectorModal";
 import VerifiedProofSelectorModal from "./VerifiedProofSelectorModal";
+import ExternalProjectPostModal from "./ExternalProjectPostModal";
 
 type ProofPost = Database['public']['Tables']['proof_posts']['Row'];
 
@@ -49,6 +50,7 @@ const StudentFeedPage = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isPostTypeModalOpen, setPostTypeModalOpen] = useState(false);
   const [isVerifiedProofModalOpen, setVerifiedProofModalOpen] = useState(false);
+  const [isExternalProjectModalOpen, setExternalProjectModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -289,8 +291,7 @@ const StudentFeedPage = () => {
           setVerifiedProofModalOpen(true);
         }}
         onSelectExternal={() => {
-          // TODO: Open external project modal
-          toast.info("External project modal will open here");
+          setExternalProjectModalOpen(true);
         }}
       />
 
@@ -301,6 +302,15 @@ const StudentFeedPage = () => {
         onSelectProof={(proofId) => {
           // TODO: Open verified post composer with this proof
           toast.success(`Selected proof: ${proofId}`);
+        }}
+      />
+
+      {/* External Project Post Modal */}
+      <ExternalProjectPostModal
+        isOpen={isExternalProjectModalOpen}
+        onClose={() => setExternalProjectModalOpen(false)}
+        onPostSuccess={() => {
+          toast.success("Post will appear in the feed shortly");
         }}
       />
     </div>

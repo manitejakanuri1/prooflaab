@@ -793,6 +793,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           emoji_code: string
+          external_link: string | null
           id: string
           likes_count: number | null
           proof_id: string
@@ -808,6 +809,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           emoji_code: string
+          external_link?: string | null
           id?: string
           likes_count?: number | null
           proof_id: string
@@ -823,6 +825,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           emoji_code?: string
+          external_link?: string | null
           id?: string
           likes_count?: number | null
           proof_id?: string
@@ -1938,6 +1941,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           emoji_code: string
+          external_link: string | null
           id: string
           likes_count: number | null
           proof_id: string

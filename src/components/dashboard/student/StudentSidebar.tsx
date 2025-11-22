@@ -1,4 +1,5 @@
 import { 
+  Home,
   LayoutDashboard, 
   ListTodo,
   FileText,
@@ -23,6 +24,7 @@ interface StudentSidebarProps {
 }
 
 const menuItems = [
+  { id: "feed", label: "Feed", icon: Home },
   { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
   { id: "tasks", label: "Tasks", icon: ListTodo },
   { id: "create-task", label: "Create a Task", icon: PlusSquare },

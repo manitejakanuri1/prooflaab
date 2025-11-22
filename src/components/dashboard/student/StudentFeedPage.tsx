@@ -283,6 +283,14 @@ const StudentFeedPage = () => {
       <PostTypeSelectorModal
         open={isPostTypeModalOpen}
         onOpenChange={setPostTypeModalOpen}
+        onSelectVerified={() => {
+          // TODO: Open verified proof modal
+          toast.info("Verified proof modal will open here");
+        }}
+        onSelectExternal={() => {
+          // TODO: Open external project modal
+          toast.info("External project modal will open here");
+        }}
       />
     </div>
   );

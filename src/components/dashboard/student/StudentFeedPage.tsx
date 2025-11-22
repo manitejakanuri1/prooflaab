@@ -270,13 +270,13 @@ const StudentFeedPage = () => {
       {/* Floating Action Button */}
       <button
         onClick={() => setPostTypeModalOpen(true)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-white rounded-full shadow-lg hover:scale-105 transition-transform duration-200 flex items-center justify-center z-50 animate-[wobbleFloat_4s_ease-in-out_infinite]"
+        className="fixed bottom-8 right-8 w-14 h-14 bg-primary rounded-full shadow-lg hover:scale-105 transition-transform duration-200 flex items-center justify-center z-50 animate-[wobbleFloat_4s_ease-in-out_infinite]"
         style={{
           boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.12)',
         }}
         aria-label="Create post"
       >
-        <Plus className="w-6 h-6 text-primary" strokeWidth={2.5} />
+        <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
       </button>
 
       {/* Post Type Selector Modal */}

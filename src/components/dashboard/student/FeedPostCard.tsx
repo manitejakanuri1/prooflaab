@@ -50,7 +50,7 @@ export const FeedPostCard = ({
   };
 
   return (
-    <article className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+    <article className="relative bg-card border border-border rounded-2xl p-6 pb-20 shadow-sm hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -143,10 +143,15 @@ export const FeedPostCard = ({
           </a>
         </div>
 
-        {/* Tiny Emoji Bottom Right */}
+        {/* Tiny Emoji Bottom Right - Notion Style Floating */}
         {tinyEmojiCode && (
-          <div className="absolute -bottom-3 -right-3 bg-background border-2 border-border rounded-full p-3 shadow-md">
-            <span className="text-3xl">{getEmoji(tinyEmojiCode)}</span>
+          <div className="absolute bottom-4 right-4 animate-float-emoji">
+            <div className="flex items-center justify-center w-20 h-20 rounded-full shadow-lg" style={{ 
+              backgroundColor: '#FFF7EE',
+              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)'
+            }}>
+              <span className="text-5xl leading-none">{getEmoji(tinyEmojiCode)}</span>
+            </div>
           </div>
         )}
       </div>

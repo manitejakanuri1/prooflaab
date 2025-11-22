@@ -84,11 +84,23 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'float-emoji': {
+					'0%': {
+						transform: 'translateY(0px)'
+					},
+					'50%': {
+						transform: 'translateY(-6px)'
+					},
+					'100%': {
+						transform: 'translateY(0px)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'float-emoji': 'float-emoji 3s ease-in-out infinite'
 			}
 		}
 	},

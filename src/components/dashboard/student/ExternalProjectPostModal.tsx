@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -61,12 +61,14 @@ interface ExternalProjectPostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPostSuccess: () => void;
+  editingPost?: any | null;
 }
 
 const ExternalProjectPostModal = ({
   isOpen,
   onClose,
   onPostSuccess,
+  editingPost = null,
 }: ExternalProjectPostModalProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -76,6 +78,17 @@ const ExternalProjectPostModal = ({
   const [emojiCode, setEmojiCode] = useState("1F517");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (isOpen && editingPost) {
+      setTitle(editingPost.title || "");
+      setDescription(editingPost.description || "");
+      setExternalLink(editingPost.external_link || "");
+      setSkills(editingPost.skills || []);
+      setEmojiCode(editingPost.emoji_code || "1F517");
+    }
+  }, [isOpen, editingPost]);
 
   const handleReset = () => {
     setTitle("");
@@ -138,46 +151,64 @@ const ExternalProjectPostModal = ({
       setErrors({});
       setIsSubmitting(true);
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("You must be logged in to post");
-        return;
+      if (editingPost) {
+        // Update existing post
+        const { error } = await supabase
+          .from("proof_posts")
+          .update({
+            title: validationResult.data.title,
+            description: validationResult.data.description,
+            external_link: validationResult.data.externalLink,
+            skills: validationResult.data.skills,
+            emoji_code: validationResult.data.emojiCode,
+          })
+          .eq("id", editingPost.id);
+
+        if (error) {
+          console.error("Error updating post:", error);
+          toast.error("Failed to update post");
+          return;
+        }
+      } else {
+        // Create new post
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error("You must be logged in to post");
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("student_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!profile) {
+          toast.error("Student profile not found");
+          return;
+        }
+
+        const { error } = await supabase.from("proof_posts").insert({
+          student_id: profile.id,
+          proof_id: null,
+          title: validationResult.data.title,
+          description: validationResult.data.description,
+          external_link: validationResult.data.externalLink,
+          skills: validationResult.data.skills,
+          emoji_code: validationResult.data.emojiCode,
+          visibility: "public",
+          verified_badge: false,
+          status: "active",
+        });
+
+        if (error) {
+          console.error("Error creating post:", error);
+          toast.error("Failed to create post");
+          return;
+        }
       }
 
-      // Get student profile
-      const { data: profile } = await supabase
-        .from("student_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!profile) {
-        toast.error("Student profile not found");
-        return;
-      }
-
-      // Insert post
-      const { error } = await supabase.from("proof_posts").insert({
-        student_id: profile.id,
-        proof_id: null,
-        title: validationResult.data.title,
-        description: validationResult.data.description,
-        external_link: validationResult.data.externalLink,
-        skills: validationResult.data.skills,
-        emoji_code: validationResult.data.emojiCode,
-        visibility: "public",
-        verified_badge: false,
-        status: "active",
-      });
-
-      if (error) {
-        console.error("Error creating post:", error);
-        toast.error("Failed to create post");
-        return;
-      }
-
-      toast.success("External project posted successfully!");
+      toast.success(editingPost ? "Post updated successfully!" : "External project posted successfully!");
       handleReset();
       onClose();
       onPostSuccess();
@@ -195,10 +226,10 @@ const ExternalProjectPostModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ExternalLink className="w-5 h-5" />
-            Share External Project
+            {editingPost ? "Edit External Project" : "Share External Project"}
           </DialogTitle>
           <DialogDescription>
-            Share work you've done outside of ProofLabAI
+            {editingPost ? "Update your external project post" : "Share work you've done outside of ProofLabAI"}
           </DialogDescription>
         </DialogHeader>
 
@@ -363,7 +394,7 @@ const ExternalProjectPostModal = ({
             disabled={isSubmitting}
             className="flex-1"
           >
-            {isSubmitting ? "Posting..." : "Post Project"}
+            {isSubmitting ? (editingPost ? "Updating..." : "Posting...") : (editingPost ? "Update Post" : "Post Project")}
           </Button>
         </div>
       </DialogContent>

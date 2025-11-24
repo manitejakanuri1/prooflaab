@@ -86,7 +86,9 @@ export const FeedPostCard = ({
               {isVerified && (
                 <ShieldCheck className="h-4 w-4 text-primary" fill="currentColor" />
               )}
-              <span className="text-muted-foreground text-sm">• You</span>
+              {isOwnPost && (
+                <span className="text-muted-foreground text-sm">• You</span>
+              )}
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Co-founder | Helping Engineering Students</span>

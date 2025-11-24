@@ -229,7 +229,7 @@ const Portfolio = () => {
                     key={project.id}
                     emojiCode={generateEmojiCode(project.task?.title || project.id)}
                     title={project.task?.title || "Untitled Project"}
-                    description={project.task?.description || ""}
+                    description={project.submission_notes || project.task?.description || ""}
                     skills={project.task?.required_skills || []}
                     submittedAt={project.submitted_at}
                     fileUrl={project.file_url}

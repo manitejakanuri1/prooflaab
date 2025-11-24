@@ -31,6 +31,11 @@ interface FeedPostCardProps {
   onProofClick?: () => void;
   externalLink?: string | null;
   proofId?: string | null;
+  postId?: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onShare?: () => void;
+  isOwnPost?: boolean;
 }
 
 export const FeedPostCard = ({
@@ -55,6 +60,11 @@ export const FeedPostCard = ({
   onProofClick,
   externalLink,
   proofId,
+  postId,
+  onEdit,
+  onDelete,
+  onShare,
+  isOwnPost = false,
 }: FeedPostCardProps) => {
   // Convert emoji code to actual emoji
   const getEmoji = (code: string) => {
@@ -95,9 +105,15 @@ export const FeedPostCard = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-            <DropdownMenuItem>Delete</DropdownMenuItem>
-            <DropdownMenuItem>Share</DropdownMenuItem>
+            {isOwnPost && (
+              <>
+                <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                  Delete
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuItem onClick={onShare}>Share</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

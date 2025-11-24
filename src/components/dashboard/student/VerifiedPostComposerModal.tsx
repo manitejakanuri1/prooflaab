@@ -59,6 +59,7 @@ interface VerifiedPostComposerModalProps {
   onClose: () => void;
   proofId: string;
   onPostSuccess: () => void;
+  editingPost?: any | null;
 }
 
 interface ProofData {
@@ -76,6 +77,7 @@ const VerifiedPostComposerModal = ({
   onClose,
   proofId,
   onPostSuccess,
+  editingPost = null,
 }: VerifiedPostComposerModalProps) => {
   const [proof, setProof] = useState<ProofData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,9 +91,18 @@ const VerifiedPostComposerModal = ({
 
   useEffect(() => {
     if (isOpen && proofId) {
-      fetchProofDetails();
+      if (editingPost) {
+        // Pre-fill with existing post data
+        setTitle(editingPost.title || "");
+        setDescription(editingPost.description || "");
+        setSkills(editingPost.skills || []);
+        setEmojiCode(editingPost.emoji_code || "1F680");
+        setLoading(false);
+      } else {
+        fetchProofDetails();
+      }
     }
-  }, [isOpen, proofId]);
+  }, [isOpen, proofId, editingPost]);
 
   const fetchProofDetails = async () => {
     try {
@@ -193,23 +204,42 @@ const VerifiedPostComposerModal = ({
       setErrors({});
       setIsSubmitting(true);
 
-      // Call RPC function to create proof post
-      const { error } = await supabase.rpc("create_proof_post", {
-        p_proof_id: proofId,
-        p_title: validationResult.data.title,
-        p_description: validationResult.data.description,
-        p_emoji_code: validationResult.data.emojiCode,
-        p_skills: validationResult.data.skills,
-        p_visibility: "public",
-      });
+      if (editingPost) {
+        // Update existing post
+        const { error } = await supabase
+          .from("proof_posts")
+          .update({
+            title: validationResult.data.title,
+            description: validationResult.data.description,
+            emoji_code: validationResult.data.emojiCode,
+            skills: validationResult.data.skills,
+          })
+          .eq("id", editingPost.id);
 
-      if (error) {
-        console.error("Error creating post:", error);
-        toast.error("Failed to create post");
-        return;
+        if (error) {
+          console.error("Error updating post:", error);
+          toast.error("Failed to update post");
+          return;
+        }
+      } else {
+        // Create new post
+        const { error } = await supabase.rpc("create_proof_post", {
+          p_proof_id: proofId,
+          p_title: validationResult.data.title,
+          p_description: validationResult.data.description,
+          p_emoji_code: validationResult.data.emojiCode,
+          p_skills: validationResult.data.skills,
+          p_visibility: "public",
+        });
+
+        if (error) {
+          console.error("Error creating post:", error);
+          toast.error("Failed to create post");
+          return;
+        }
       }
 
-      toast.success("Verified Proof posted successfully!");
+      toast.success(editingPost ? "Post updated successfully!" : "Verified Proof posted successfully!");
       handleReset();
       onClose();
       onPostSuccess();
@@ -227,10 +257,10 @@ const VerifiedPostComposerModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-600" />
-            Share Verified Proof
+            {editingPost ? "Edit Verified Proof Post" : "Share Verified Proof"}
           </DialogTitle>
           <DialogDescription>
-            This post will appear as a Verified ProofLabAI achievement
+            {editingPost ? "Update your verified ProofLabAI post" : "This post will appear as a Verified ProofLabAI achievement"}
           </DialogDescription>
         </DialogHeader>
 
@@ -395,7 +425,7 @@ const VerifiedPostComposerModal = ({
                 disabled={isSubmitting}
                 className="flex-1"
               >
-                {isSubmitting ? "Posting..." : "Post Verified Proof"}
+                {isSubmitting ? (editingPost ? "Updating..." : "Posting...") : (editingPost ? "Update Post" : "Post Verified Proof")}
               </Button>
             </div>
           </>

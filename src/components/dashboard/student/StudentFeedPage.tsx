@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { FeedPostCard } from "./FeedPostCard";
+import { CommentsBottomSheet } from "./CommentsBottomSheet";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import PostTypeSelectorModal from "./PostTypeSelectorModal";
@@ -49,6 +50,7 @@ const parseDescription = (description: string | null): string[] => {
 const StudentFeedPage = () => {
   const [feedPosts, setFeedPosts] = useState<FeedPostWithProfile[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
   const [isPostTypeModalOpen, setPostTypeModalOpen] = useState(false);
   const [isVerifiedProofModalOpen, setVerifiedProofModalOpen] = useState(false);
   const [isExternalProjectModalOpen, setExternalProjectModalOpen] = useState(false);
@@ -311,6 +313,7 @@ const StudentFeedPage = () => {
                   tinyEmojiCode={post.emoji_code}
                   isLiked={post.user_has_liked || false}
                   onLike={() => handleLike(post.id, post.user_has_liked || false)}
+                  onCommentClick={() => setOpenCommentsPostId(post.id)}
                   onProofClick={() => navigate(`/student/proofs/${post.proof_id}`)}
                   externalLink={post.external_link}
                   proofId={post.proof_id}
@@ -375,6 +378,13 @@ const StudentFeedPage = () => {
         onPostSuccess={() => {
           toast.success("Post will appear in the feed shortly");
         }}
+      />
+
+      {/* Comments Bottom Sheet */}
+      <CommentsBottomSheet
+        isOpen={!!openCommentsPostId}
+        onClose={() => setOpenCommentsPostId(null)}
+        postId={openCommentsPostId}
       />
     </div>
   );

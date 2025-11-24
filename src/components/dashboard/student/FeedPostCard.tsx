@@ -27,6 +27,7 @@ interface FeedPostCardProps {
   tinyEmojiCode?: string;
   isLiked?: boolean;
   onLike?: () => void;
+  onCommentClick?: () => void;
   onProofClick?: () => void;
   externalLink?: string | null;
   proofId?: string | null;
@@ -50,6 +51,7 @@ export const FeedPostCard = ({
   tinyEmojiCode,
   isLiked = false,
   onLike,
+  onCommentClick,
   onProofClick,
   externalLink,
   proofId,
@@ -228,7 +230,10 @@ export const FeedPostCard = ({
             <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
             <span>{likesCount}</span>
           </button>
-          <button className="flex items-center gap-2 hover:text-primary transition-colors">
+          <button 
+            onClick={onCommentClick}
+            className="flex items-center gap-2 hover:text-primary transition-colors"
+          >
             <MessageCircle className="h-5 w-5" />
             <span>{commentsCount}</span>
           </button>

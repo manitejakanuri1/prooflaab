@@ -208,6 +208,16 @@ const StudentFeedPage = () => {
       }
     );
 
+    // Subscribe to post deletions
+    channel.on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'proof_posts' },
+      (payload) => {
+        const deletedPostId = (payload.old as any).id;
+        setFeedPosts((prev) => prev.filter((post) => post.id !== deletedPostId));
+      }
+    );
+
     channel.subscribe();
 
     return () => {

@@ -9,10 +9,13 @@ interface PortfolioProject {
   status: string;
   file_url: string | null;
   submission_notes: string | null;
+  ai_summary: string | null;
+  reflection_answers: any;
   task: {
     title: string;
     description: string | null;
     xp_reward: number;
+    required_skills: string[] | null;
   } | null;
 }
 
@@ -42,14 +45,18 @@ export const usePortfolioProjects = (studentId: string) => {
             status,
             file_url,
             submission_notes,
+            ai_summary,
+            reflection_answers,
             tasks!inner(
               title,
               description,
-              xp_reward
+              xp_reward,
+              required_skills
             )
           `)
           .eq('student_id', studentId)
           .eq('status', 'Verified')
+          .eq('is_public', true)
           .order('submitted_at', { ascending: false });
 
         if (fetchError) throw fetchError;
@@ -61,6 +68,8 @@ export const usePortfolioProjects = (studentId: string) => {
           status: item.status || 'Under Review',
           file_url: item.file_url,
           submission_notes: item.submission_notes,
+          ai_summary: item.ai_summary,
+          reflection_answers: item.reflection_answers,
           task: Array.isArray(item.tasks) ? item.tasks[0] : item.tasks
         }));
 

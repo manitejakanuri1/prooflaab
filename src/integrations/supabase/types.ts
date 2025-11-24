@@ -853,6 +853,51 @@ export type Database = {
           },
         ]
       }
+      proof_public_audit: {
+        Row: {
+          changed_by: string
+          created_at: string | null
+          current: boolean
+          id: string
+          previous: boolean
+          proof_upload_id: string
+          student_id: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string | null
+          current: boolean
+          id?: string
+          previous: boolean
+          proof_upload_id: string
+          student_id: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string | null
+          current?: boolean
+          id?: string
+          previous?: boolean
+          proof_upload_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proof_public_audit_proof_upload_id_fkey"
+            columns: ["proof_upload_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proof_public_audit_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proof_uploads: {
         Row: {
           admin_review_status: string | null

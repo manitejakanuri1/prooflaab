@@ -12,6 +12,7 @@ interface PublicProjectCardProps {
   proofId: string;
   aiSummary?: string | null;
   reflectionSummary?: string | null;
+  xpEarned?: number | null;
 }
 
 export const PublicProjectCard = ({
@@ -24,6 +25,7 @@ export const PublicProjectCard = ({
   proofId,
   aiSummary,
   reflectionSummary,
+  xpEarned,
 }: PublicProjectCardProps) => {
   const getEmoji = (code: string) => {
     try {
@@ -33,12 +35,12 @@ export const PublicProjectCard = ({
     }
   };
 
-  // Use best available description
+  // Use best available description: ai_summary → submission_notes → fallback
   const displayDescription = 
     aiSummary || 
+    description ||
     reflectionSummary || 
-    description || 
-    "A verified project completed through ProofLabAI.";
+    "Description not available";
 
   return (
     <article className="relative bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-200">
@@ -91,9 +93,20 @@ export const PublicProjectCard = ({
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5" />
-          <span>{format(new Date(submittedAt), "MMM dd, yyyy")}</span>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>{format(new Date(submittedAt), "MMM dd, yyyy")}</span>
+          </div>
+          {xpEarned && (
+            <>
+              <span>•</span>
+              <div className="flex items-center gap-1 text-primary font-medium">
+                <span>⭐</span>
+                <span>{xpEarned} XP</span>
+              </div>
+            </>
+          )}
         </div>
 
         {fileUrl && (

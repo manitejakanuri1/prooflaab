@@ -14,6 +14,7 @@ interface PortfolioProject {
   ai_summary: string | null;
   moss_score: number | null;
   reflection_answers: any;
+  proof_posts?: Array<{ emoji_code: string }>;
   task: {
     title: string;
     description: string | null;
@@ -53,6 +54,9 @@ export const usePortfolioProjects = (studentId: string) => {
             ai_summary,
             moss_score,
             reflection_answers,
+            proof_posts(
+              emoji_code
+            ),
             tasks(
               title,
               description,
@@ -79,6 +83,7 @@ export const usePortfolioProjects = (studentId: string) => {
           ai_summary: item.ai_summary,
           moss_score: item.moss_score,
           reflection_answers: item.reflection_answers,
+          proof_posts: item.proof_posts,
           task: Array.isArray(item.tasks) ? item.tasks[0] : item.tasks
         }));
 

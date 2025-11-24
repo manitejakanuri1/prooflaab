@@ -183,7 +183,7 @@ export const FeedPostCard = ({
           <div className="flex gap-2">
             {isVerified && proofId ? (
               <a
-                href={`/student/proofs/${proofId}`}
+                href={`/student/proof/${proofId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"

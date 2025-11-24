@@ -208,9 +208,24 @@ const StudentFeedPage = () => {
     };
   }, [navigate, currentUserId]);
 
-  // Handle like/unlike
+  // Handle like/unlike with optimistic updates
   const handleLike = async (postId: string, currentlyLiked: boolean) => {
     if (!currentUserId) return;
+
+    // Optimistic update
+    setFeedPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              likes_count: currentlyLiked
+                ? Math.max((post.likes_count || 0) - 1, 0)
+                : (post.likes_count || 0) + 1,
+              user_has_liked: !currentlyLiked,
+            }
+          : post
+      )
+    );
 
     try {
       if (currentlyLiked) {
@@ -219,6 +234,20 @@ const StudentFeedPage = () => {
         await supabase.rpc('like_post', { p_post_id: postId });
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setFeedPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                likes_count: currentlyLiked
+                  ? (post.likes_count || 0) + 1
+                  : Math.max((post.likes_count || 0) - 1, 0),
+                user_has_liked: currentlyLiked,
+              }
+            : post
+        )
+      );
       console.error('Error toggling like:', error);
       toast.error('Failed to update like');
     }

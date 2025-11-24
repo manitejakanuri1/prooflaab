@@ -29,6 +29,7 @@ import OnboardingWizard from "./pages/OnboardingWizard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminNotifications from "./pages/AdminNotifications";
 import ProtectedRoute from "./components/ProtectedRoute";
+import StudentProof from "./pages/StudentProof";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,14 @@ const App = () => (
                   <StudentDashboard />
                 </RoleBasedProtectedRoute>
               } 
+            />
+            <Route
+              path="/student/proof/:id"
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['student']}>
+                  <StudentProof />
+                </RoleBasedProtectedRoute>
+              }
             />
             
             {/* College Admin Routes */}

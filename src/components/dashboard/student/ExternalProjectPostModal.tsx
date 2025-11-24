@@ -34,7 +34,18 @@ const COMMON_SKILLS = [
   "Git",
 ];
 
-const EMOJI_OPTIONS = ["🔗", "💻", "🚀", "🎨", "📱", "⚡", "🔥", "✨", "🎯", "🌟"];
+const EMOJI_OPTIONS = [
+  { emoji: "🔗", code: "1F517" },
+  { emoji: "💻", code: "1F4BB" },
+  { emoji: "🚀", code: "1F680" },
+  { emoji: "🎨", code: "1F3A8" },
+  { emoji: "📱", code: "1F4F1" },
+  { emoji: "⚡", code: "26A1" },
+  { emoji: "🔥", code: "1F525" },
+  { emoji: "✨", code: "2728" },
+  { emoji: "🎯", code: "1F3AF" },
+  { emoji: "🌟", code: "1F31F" },
+];
 
 const externalProjectSchema = z.object({
   title: z.string().trim().min(3, "Title must be at least 3 characters").max(200, "Title must be less than 200 characters"),
@@ -62,7 +73,7 @@ const ExternalProjectPostModal = ({
   const [externalLink, setExternalLink] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState("");
-  const [emojiCode, setEmojiCode] = useState("🔗");
+  const [emojiCode, setEmojiCode] = useState("1F517");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -72,7 +83,7 @@ const ExternalProjectPostModal = ({
     setExternalLink("");
     setSkills([]);
     setCustomSkill("");
-    setEmojiCode("🔗");
+    setEmojiCode("1F517");
     setErrors({});
   };
 
@@ -139,7 +150,7 @@ const ExternalProjectPostModal = ({
         .from("student_profiles")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!profile) {
         toast.error("Student profile not found");
@@ -317,18 +328,18 @@ const ExternalProjectPostModal = ({
           <div>
             <Label>Choose an Emoji *</Label>
             <div className="flex flex-wrap gap-2 mt-2">
-              {EMOJI_OPTIONS.map((emoji) => (
+              {EMOJI_OPTIONS.map((option) => (
                 <button
-                  key={emoji}
+                  key={option.code}
                   type="button"
-                  onClick={() => setEmojiCode(emoji)}
+                  onClick={() => setEmojiCode(option.code)}
                   className={`w-12 h-12 text-2xl rounded-lg transition-all ${
-                    emojiCode === emoji
+                    emojiCode === option.code
                       ? "bg-primary/20 ring-2 ring-primary scale-110"
                       : "bg-secondary hover:bg-secondary/80"
                   }`}
                 >
-                  {emoji}
+                  {option.emoji}
                 </button>
               ))}
             </div>

@@ -3,21 +3,18 @@ import { useEffect } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { usePortfolioProjects } from "@/hooks/usePortfolioProjects";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
+import { PublicProjectCard } from "@/components/portfolio/PublicProjectCard";
 import { 
   Mail, 
   Trophy, 
-  Calendar, 
-  ExternalLink, 
-  CheckCircle, 
-  Clock, 
   XCircle,
-  Star
+  Star,
+  Briefcase
 } from "lucide-react";
-import { format } from "date-fns";
 
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -80,28 +77,13 @@ const Portfolio = () => {
     );
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Verified': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'Under Review': return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'Rejected': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Verified': return 'bg-green-100 text-green-800';
-      case 'Under Review': return 'bg-yellow-100 text-yellow-800';
-      case 'Rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const trustScore = portfolio?.student_profiles?.trust_score || 0;
+  const totalXP = portfolio?.student_profiles?.total_xp || 0;
 
   const getTrustScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 80) return 'text-green-600 dark:text-green-400';
+    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-orange-600 dark:text-orange-400';
   };
 
   const getTrustScoreLabel = (score: number) => {
@@ -110,167 +92,166 @@ const Portfolio = () => {
     return 'Building Trust';
   };
 
-  const trustScore = portfolio?.student_profiles?.trust_score || 0;
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Generate emoji code from string (for project cards)
+  const generateEmojiCode = (str: string) => {
+    const emojis = ["1F680", "1F4BB", "1F3A8", "1F4A1", "1F31F", "1F525", "1F389", "1F4DA"];
+    const index = (str.charCodeAt(0) + str.length) % emojis.length;
+    return emojis[index];
+  };
 
   return (
-    <div className="light min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-6 py-4">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="text-gray-900 font-bold text-lg flex items-center space-x-3">
+          <div className="font-bold text-lg flex items-center space-x-3">
             <Logo />
             <span>ProofLabAI</span>
           </div>
-          <Button variant="outline" onClick={() => window.location.href = '/'}>
+          <Button variant="outline" onClick={() => (window.location.href = "/")}>
             Back to Platform
           </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto p-6">
-        {/* Profile Header */}
-        <Card className="mb-8 bg-white border-gray-200">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <Avatar className="h-24 w-24">
-                <AvatarImage 
-                  src={portfolio?.student_profiles?.profile_photo_url || ""} 
-                  alt={portfolio?.student_profiles?.full_name || "Student"} 
-                />
-                <AvatarFallback className="text-2xl">
-                  {portfolio?.student_profiles?.full_name?.split(" ").map(n => n[0]).join("") || "S"}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {portfolio?.student_profiles?.full_name || "Student"}
-                </h1>
-                <p className="text-gray-600 mb-4">
-                  {portfolio?.bio || "Passionate student building skills through hands-on projects."}
-                </p>
-                
-                {/* Skills */}
-                {portfolio?.skills && portfolio.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {portfolio.skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+      <main className="max-w-6xl mx-auto px-6 py-12">
+        {/* Hero Section */}
+        <div className="relative mb-12 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 rounded-3xl p-8 md:p-12 border border-border shadow-lg">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Avatar */}
+            <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
+              <AvatarImage
+                src={portfolio?.student_profiles?.profile_photo_url || ""}
+                alt={portfolio?.student_profiles?.full_name || "Student"}
+              />
+              <AvatarFallback className="text-4xl font-bold bg-primary/10">
+                {getInitials(portfolio?.student_profiles?.full_name || "Student")}
+              </AvatarFallback>
+            </Avatar>
 
-                {/* Stats */}
-                <div className="flex flex-wrap gap-6 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    <span className="font-medium">{portfolio?.student_profiles?.total_xp || 0} XP</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Trophy className={`h-4 w-4 ${getTrustScoreColor(trustScore)}`} />
-                    <span className={`font-medium ${getTrustScoreColor(trustScore)}`}>
-                      {getTrustScoreLabel(trustScore)} ({trustScore}/100)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <a 
-                      href={`mailto:${portfolio?.student_profiles?.email || ''}`}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      Connect with me
-                    </a>
-                  </div>
+            {/* Info */}
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                {portfolio?.student_profiles?.full_name || "Student"}
+              </h1>
+              <p className="text-muted-foreground text-lg mb-6 max-w-2xl">
+                {portfolio?.bio ||
+                  "Passionate student building real-world projects through ProofLabAI."}
+              </p>
+
+              {/* Skills */}
+              {portfolio?.skills && portfolio.skills.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6 justify-center md:justify-start">
+                  {portfolio.skills.map((skill, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Stats Row */}
+              <div className="flex flex-wrap gap-6 justify-center md:justify-start text-sm mb-6">
+                <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  <span className="font-semibold">{totalXP} XP</span>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
+                  <Trophy className={`h-5 w-5 ${getTrustScoreColor(trustScore)}`} />
+                  <span className={`font-semibold ${getTrustScoreColor(trustScore)}`}>
+                    {getTrustScoreLabel(trustScore)} ({trustScore}/100)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">{projects.length} Projects</span>
                 </div>
               </div>
+
+              {/* Contact Button */}
+              <a
+                href={`mailto:${portfolio?.student_profiles?.email || ""}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium"
+              >
+                <Mail className="h-4 w-4" />
+                <span>Contact Me</span>
+              </a>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Projects Section */}
-        <Card className="bg-white border-gray-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-900">
-              <Trophy className="h-5 w-5 text-orange-600" />
-              Projects & Achievements
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {projectsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading projects...</p>
-              </div>
-            ) : projectsError ? (
-              <div className="text-center py-12">
-                <XCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Failed to load projects</p>
-                <Button variant="outline" onClick={handleRetry}>
-                  Try Again
-                </Button>
-              </div>
-            ) : projects.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {projects.map((project) => (
-                  <Card key={project.id} className="hover:shadow-md transition-shadow bg-white border-gray-200">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-gray-900 line-clamp-2">
-                          {project.task?.title || 'Untitled Project'}
-                        </h3>
-                        {getStatusIcon(project.status)}
-                      </div>
-                      
-                      {project.task?.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                          {project.task.description}
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge className={`text-xs ${getStatusColor(project.status)}`}>
-                          {project.status}
-                        </Badge>
-                        {project.task?.xp_reward && (
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <Star className="h-3 w-3" />
-                            {project.task.xp_reward} XP
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(project.submitted_at), 'MMM dd, yyyy')}
-                        </div>
-                        {project.file_url && (
-                          <a
-                            href={project.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            View
-                          </a>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Public Projects Yet</h3>
-                <p className="text-gray-500">Complete tasks and mark them public to showcase here.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div>
+          <div className="flex items-center gap-3 mb-8">
+            <Trophy className="h-7 w-7 text-primary" />
+            <h2 className="text-3xl font-bold">Projects & Achievements</h2>
+          </div>
+
+          {projectsLoading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading projects...</p>
+            </div>
+          ) : projectsError ? (
+            <div className="text-center py-16 bg-card rounded-2xl border border-border">
+              <XCircle className="h-16 w-16 text-destructive/50 mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">Failed to load projects</p>
+              <Button variant="outline" onClick={handleRetry}>
+                Try Again
+              </Button>
+            </div>
+          ) : projects.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => {
+                // Extract reflection summary if available
+                const reflectionSummary =
+                  project.reflection_answers &&
+                  Array.isArray(project.reflection_answers) &&
+                  project.reflection_answers.length > 0
+                    ? project.reflection_answers
+                        .map((qa: any) => qa.answer)
+                        .join(" ")
+                        .slice(0, 200)
+                    : null;
+
+                return (
+                  <PublicProjectCard
+                    key={project.id}
+                    emojiCode={generateEmojiCode(project.task?.title || project.id)}
+                    title={project.task?.title || "Untitled Project"}
+                    description={project.task?.description || ""}
+                    skills={project.task?.required_skills || []}
+                    submittedAt={project.submitted_at}
+                    fileUrl={project.file_url}
+                    proofId={project.id}
+                    aiSummary={project.ai_summary}
+                    reflectionSummary={reflectionSummary}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-card rounded-2xl border border-border">
+              <Trophy className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">
+                Nothing public yet
+              </h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                This student hasn't shared any projects publicly yet. Check back later!
+              </p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

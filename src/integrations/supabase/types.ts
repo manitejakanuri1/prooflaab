@@ -864,6 +864,7 @@ export type Database = {
           declaration_text: string | null
           file_url: string | null
           id: string
+          is_public: boolean
           moss_score: number | null
           moss_status: string | null
           moss_url: string | null
@@ -898,6 +899,7 @@ export type Database = {
           declaration_text?: string | null
           file_url?: string | null
           id?: string
+          is_public?: boolean
           moss_score?: number | null
           moss_status?: string | null
           moss_url?: string | null
@@ -932,6 +934,7 @@ export type Database = {
           declaration_text?: string | null
           file_url?: string | null
           id?: string
+          is_public?: boolean
           moss_score?: number | null
           moss_status?: string | null
           moss_url?: string | null
@@ -2021,6 +2024,10 @@ export type Database = {
       same_college: {
         Args: { _student_id_1: string; _student_id_2: string }
         Returns: boolean
+      }
+      set_proof_publicity: {
+        Args: { p_is_public: boolean; p_proof_id: string }
+        Returns: undefined
       }
       unlike_post: { Args: { p_post_id: string }; Returns: undefined }
       use_invite_code: {

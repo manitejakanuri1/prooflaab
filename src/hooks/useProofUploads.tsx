@@ -12,6 +12,7 @@ export interface ProofUpload {
   submission_notes: string | null;
   status: 'Under Review' | 'Verified' | 'Rejected';
   submitted_at: string;
+  is_public: boolean;
   tasks?: {
     title: string;
     xp_reward?: number;

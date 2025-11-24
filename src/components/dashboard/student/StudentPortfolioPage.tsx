@@ -45,13 +45,6 @@ const StudentPortfolioPage = () => {
     );
   }
 
-  // Sync localUploads with uploads whenever uploads changes
-  useState(() => {
-    if (uploads) {
-      setLocalUploads(uploads);
-    }
-  });
-
   const verifiedUploads = (localUploads || uploads || []).filter(upload => upload.status === 'Verified');
 
   const toggleProofVisibility = async (proofId: string, currentIsPublic: boolean) => {

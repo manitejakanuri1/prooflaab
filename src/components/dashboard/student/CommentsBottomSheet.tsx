@@ -2,7 +2,8 @@ import { X, Send } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -35,6 +36,18 @@ export const CommentsBottomSheet = ({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Fetch current user
   useEffect(() => {
@@ -47,12 +60,16 @@ export const CommentsBottomSheet = ({
 
   // Fetch comments and setup realtime
   useEffect(() => {
-    if (!postId || !isOpen) return;
+    if (!postId || !isOpen) {
+      setComments([]);
+      setIsLoading(true);
+      return;
+    }
 
     const fetchComments = async () => {
       setIsLoading(true);
       
-      // Fetch comments
+      // Fetch comments with profiles
       const { data: commentsData, error: commentsError } = await supabase
         .from("post_comments")
         .select("*")
@@ -67,10 +84,11 @@ export const CommentsBottomSheet = ({
       }
 
       // Fetch student profiles for all comment user_ids
-      const userIds = commentsData?.map((c) => c.user_id) || [];
+      const userIds = [...new Set(commentsData?.map((c) => c.user_id) || [])];
       if (userIds.length === 0) {
         setComments([]);
         setIsLoading(false);
+        setTimeout(scrollToBottom, 100);
         return;
       }
 
@@ -95,11 +113,12 @@ export const CommentsBottomSheet = ({
 
       setComments(commentsWithProfiles);
       setIsLoading(false);
+      setTimeout(scrollToBottom, 100);
     };
 
     fetchComments();
 
-    // Setup realtime subscription
+    // Setup realtime subscription with duplicate prevention
     const channel = supabase
       .channel(`comments-${postId}`)
       .on(
@@ -111,32 +130,63 @@ export const CommentsBottomSheet = ({
           filter: `post_id=eq.${postId}`,
         },
         async (payload) => {
-          // Fetch the student profile for the new comment
-          const { data: profile } = await supabase
-            .from("student_profiles")
-            .select("user_id, full_name, profile_photo_url")
-            .eq("user_id", (payload.new as any).user_id)
-            .single();
+          const newCommentId = (payload.new as any).id;
+          
+          // Prevent duplicates
+          setComments((prev) => {
+            if (prev.some(c => c.id === newCommentId)) {
+              return prev;
+            }
 
-          const newComment = {
-            ...(payload.new as Comment),
-            student_profiles: profile || undefined,
-          };
+            // Fetch the student profile for the new comment
+            (async () => {
+              const { data: profile } = await supabase
+                .from("student_profiles")
+                .select("user_id, full_name, profile_photo_url")
+                .eq("user_id", (payload.new as any).user_id)
+                .single();
 
-          setComments((prev) => [...prev, newComment]);
+              const newComment = {
+                ...(payload.new as Comment),
+                student_profiles: profile || undefined,
+              };
+
+              setComments((current) => {
+                if (current.some(c => c.id === newCommentId)) {
+                  return current;
+                }
+                const updated = [...current, newComment];
+                setTimeout(scrollToBottom, 100);
+                return updated;
+              });
+            })();
+
+            return prev;
+          });
         }
       )
       .subscribe();
 
     return () => {
+      console.log(`Unsubscribing from comments-${postId}`);
       channel.unsubscribe();
     };
   }, [postId, isOpen]);
+
+  // Scroll when comments change
+  useEffect(() => {
+    if (comments.length > 0 && !isLoading) {
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [comments.length, isLoading]);
 
   const handleSend = async () => {
     if (!commentText.trim() || !postId || !currentUser) return;
 
     setIsSending(true);
+    const tempCommentText = commentText.trim();
+    setCommentText(""); // Clear immediately for better UX
+
     try {
       // Insert comment
       const { data: newComment, error: insertError } = await supabase
@@ -144,7 +194,7 @@ export const CommentsBottomSheet = ({
         .insert({
           post_id: postId,
           user_id: currentUser.id,
-          comment: commentText.trim(),
+          comment: tempCommentText,
         })
         .select()
         .single();
@@ -158,20 +208,26 @@ export const CommentsBottomSheet = ({
         .eq("user_id", currentUser.id)
         .single();
 
-      // Optimistically add comment to local state
+      // Optimistically add comment to local state (prevent duplicates)
       if (newComment) {
-        const commentWithProfile = {
-          ...newComment,
-          student_profiles: profile || undefined,
-        };
-        setComments((prev) => [...prev, commentWithProfile]);
+        setComments((prev) => {
+          if (prev.some(c => c.id === newComment.id)) {
+            return prev;
+          }
+          const commentWithProfile = {
+            ...newComment,
+            student_profiles: profile || undefined,
+          };
+          return [...prev, commentWithProfile];
+        });
+        setTimeout(scrollToBottom, 100);
       }
 
-      setCommentText("");
       toast.success("Comment posted!");
     } catch (error) {
       console.error("Error posting comment:", error);
       toast.error("Failed to post comment");
+      setCommentText(tempCommentText); // Restore text on error
     } finally {
       setIsSending(false);
     }
@@ -179,13 +235,23 @@ export const CommentsBottomSheet = ({
 
   if (!isOpen) return null;
 
+  if (!isOpen) return null;
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-fade-in"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+        style={{ animation: "fadeIn 0.2s ease-out" }}
         onClick={onClose}
-      />
+      >
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+      </div>
 
       {/* Bottom Sheet */}
       <div
@@ -226,12 +292,21 @@ export const CommentsBottomSheet = ({
 
         {/* Comments List - Scrollable */}
         <div
-          className="overflow-y-auto px-6 py-4"
+          ref={scrollContainerRef}
+          className="overflow-y-auto px-6 py-4 scroll-smooth"
           style={{ height: "calc(75vh - 180px)" }}
         >
           {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-muted-foreground">Loading comments...</div>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : comments.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -243,33 +318,39 @@ export const CommentsBottomSheet = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarImage 
-                      src={comment.student_profiles?.profile_photo_url || undefined}
-                    />
-                    <AvatarFallback>
-                      {comment.student_profiles?.full_name?.charAt(0) || "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-sm text-foreground">
-                        {comment.student_profiles?.full_name || "Anonymous"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(comment.created_at), {
-                          addSuffix: true,
-                        })}
-                      </span>
+              {comments.map((comment, index) => (
+                <div key={comment.id}>
+                  <div className="flex gap-3 py-2">
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage 
+                        src={comment.student_profiles?.profile_photo_url || undefined}
+                      />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {comment.student_profiles?.full_name?.charAt(0) || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-foreground">
+                          {comment.student_profiles?.full_name || "Anonymous"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(comment.created_at), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                        {comment.comment}
+                      </p>
                     </div>
-                    <p className="text-sm text-foreground leading-relaxed">
-                      {comment.comment}
-                    </p>
                   </div>
+                  {index < comments.length - 1 && (
+                    <div className="border-b border-border/50 ml-13 mt-2" />
+                  )}
                 </div>
               ))}
+              <div ref={commentsEndRef} />
             </div>
           )}
         </div>

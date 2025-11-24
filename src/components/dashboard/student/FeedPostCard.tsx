@@ -108,7 +108,7 @@ export const FeedPostCard = ({
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
             <span className="text-green-600 dark:text-green-400 text-sm">🟢</span>
             <span className="text-sm font-medium text-green-600 dark:text-green-400">
-              Verified Proof • ProofLabAI
+              Verified • Internal Project
             </span>
           </div>
         ) : (

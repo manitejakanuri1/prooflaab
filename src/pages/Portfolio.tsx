@@ -224,18 +224,22 @@ const Portfolio = () => {
                         .slice(0, 200)
                     : null;
 
+                // Get emoji from proof_posts if available, otherwise generate from title
+                const emojiCode = project.proof_posts?.[0]?.emoji_code || generateEmojiCode(project.task?.title || project.id);
+
                 return (
                   <PublicProjectCard
                     key={project.id}
-                    emojiCode={generateEmojiCode(project.task?.title || project.id)}
-                    title={project.task?.title || "Untitled Project"}
-                    description={project.submission_notes || project.task?.description || ""}
+                    emojiCode={emojiCode}
+                    title={project.task?.title || "Project"}
+                    description={project.submission_notes || ""}
                     skills={project.task?.required_skills || []}
                     submittedAt={project.submitted_at}
                     fileUrl={project.file_url}
                     proofId={project.id}
                     aiSummary={project.ai_summary}
                     reflectionSummary={reflectionSummary}
+                    xpEarned={project.task?.xp_reward}
                   />
                 );
               })}

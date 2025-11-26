@@ -1996,6 +1996,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      follow_user: { Args: { target_id: string }; Returns: undefined }
       generate_unique_slug: { Args: { input_text: string }; Returns: string }
       generate_url_slug: { Args: { student_name: string }; Returns: string }
       get_current_student_id: { Args: never; Returns: string }
@@ -2028,8 +2029,8 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      get_follower_count: { Args: { target_user: string }; Returns: number }
-      get_following_count: { Args: { target_user: string }; Returns: number }
+      get_follower_count: { Args: { user_id: string }; Returns: number }
+      get_following_count: { Args: { user_id: string }; Returns: number }
       get_leaderboard: {
         Args: { _limit?: number }
         Returns: {
@@ -2070,7 +2071,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_email_confirmed: { Args: { user_id: string }; Returns: boolean }
-      is_following: { Args: { target_user: string }; Returns: boolean }
+      is_following: { Args: { target_id: string }; Returns: boolean }
       is_student_owner: {
         Args: { _student_id: string; _user_id: string }
         Returns: boolean
@@ -2095,6 +2096,7 @@ export type Database = {
         Args: { p_is_public: boolean; p_proof_id: string }
         Returns: undefined
       }
+      unfollow_user: { Args: { target_id: string }; Returns: undefined }
       unlike_post: { Args: { p_post_id: string }; Returns: undefined }
       use_invite_code: {
         Args: { _code: string; _user_id: string }

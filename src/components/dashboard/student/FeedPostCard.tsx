@@ -31,11 +31,6 @@ interface FeedPostCardProps {
   onProofClick?: () => void;
   externalLink?: string | null;
   proofId?: string | null;
-  postId?: string;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  onShare?: () => void;
-  isOwnPost?: boolean;
 }
 
 export const FeedPostCard = ({
@@ -60,11 +55,6 @@ export const FeedPostCard = ({
   onProofClick,
   externalLink,
   proofId,
-  postId,
-  onEdit,
-  onDelete,
-  onShare,
-  isOwnPost = false,
 }: FeedPostCardProps) => {
   // Convert emoji code to actual emoji
   const getEmoji = (code: string) => {
@@ -105,15 +95,9 @@ export const FeedPostCard = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {isOwnPost && (
-              <>
-                <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
-                <DropdownMenuItem onClick={onDelete} className="text-destructive">
-                  Delete
-                </DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuItem onClick={onShare}>Share</DropdownMenuItem>
+            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuItem>Delete</DropdownMenuItem>
+            <DropdownMenuItem>Share</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -124,7 +108,7 @@ export const FeedPostCard = ({
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
             <span className="text-green-600 dark:text-green-400 text-sm">🟢</span>
             <span className="text-sm font-medium text-green-600 dark:text-green-400">
-              Verified • Internal Project
+              Verified Proof • ProofLabAI
             </span>
           </div>
         ) : (

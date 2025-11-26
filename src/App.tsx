@@ -12,7 +12,6 @@ import StudentDashboard from "./pages/StudentDashboard";
 import CollegeDashboard from "./pages/CollegeDashboard";
 import StartupDashboard from "./pages/StartupDashboard";
 import RecruiterView from "./pages/RecruiterView";
-import PublicPost from "./pages/PublicPost";
 
 import Portfolio from "./pages/Portfolio";
 import Auth from "./pages/Auth";
@@ -69,7 +68,6 @@ const App = () => (
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/portfolio/:slug" element={<Portfolio />} />
             <Route path="/recruiter/:linkId" element={<RecruiterView />} />
-            <Route path="/post/:id" element={<PublicPost />} />
             
             {/* Student Routes */}
             <Route 

@@ -5,21 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 interface PortfolioProject {
   id: string;
   task_id: string;
-  student_id: string;
-  is_public: boolean;
   submitted_at: string;
   status: string;
   file_url: string | null;
   submission_notes: string | null;
-  ai_summary: string | null;
-  moss_score: number | null;
-  reflection_answers: any;
-  proof_posts?: Array<{ emoji_code: string }>;
   task: {
     title: string;
     description: string | null;
     xp_reward: number;
-    required_skills: string[] | null;
   } | null;
 }
 
@@ -45,28 +38,18 @@ export const usePortfolioProjects = (studentId: string) => {
           .select(`
             id,
             task_id,
-            student_id,
-            is_public,
             submitted_at,
             status,
             file_url,
             submission_notes,
-            ai_summary,
-            moss_score,
-            reflection_answers,
-            proof_posts(
-              emoji_code
-            ),
-            tasks(
+            tasks!inner(
               title,
               description,
-              xp_reward,
-              required_skills
+              xp_reward
             )
           `)
           .eq('student_id', studentId)
           .eq('status', 'Verified')
-          .eq('is_public', true)
           .order('submitted_at', { ascending: false });
 
         if (fetchError) throw fetchError;
@@ -74,16 +57,10 @@ export const usePortfolioProjects = (studentId: string) => {
         const formattedProjects = data.map(item => ({
           id: item.id,
           task_id: item.task_id,
-          student_id: item.student_id,
-          is_public: item.is_public,
           submitted_at: item.submitted_at,
           status: item.status || 'Under Review',
           file_url: item.file_url,
           submission_notes: item.submission_notes,
-          ai_summary: item.ai_summary,
-          moss_score: item.moss_score,
-          reflection_answers: item.reflection_answers,
-          proof_posts: item.proof_posts,
           task: Array.isArray(item.tasks) ? item.tasks[0] : item.tasks
         }));
 

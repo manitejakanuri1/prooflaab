@@ -10,7 +10,6 @@ import PostTypeSelectorModal from "./PostTypeSelectorModal";
 import VerifiedProofSelectorModal from "./VerifiedProofSelectorModal";
 import ExternalProjectPostModal from "./ExternalProjectPostModal";
 import VerifiedPostComposerModal from "./VerifiedPostComposerModal";
-import { SimpleAlertDialog } from "@/components/ui/alert-dialog-simple";
 
 type ProofPost = Database['public']['Tables']['proof_posts']['Row'];
 
@@ -19,8 +18,7 @@ interface FeedPostWithProfile extends ProofPost {
     full_name: string;
     profile_photo_url: string | null;
     branch: string | null;
-    user_id: string | null;
-  } | null;
+  };
   user_has_liked?: boolean;
 }
 
@@ -58,8 +56,6 @@ const StudentFeedPage = () => {
   const [isExternalProjectModalOpen, setExternalProjectModalOpen] = useState(false);
   const [isVerifiedPostComposerOpen, setVerifiedPostComposerOpen] = useState(false);
   const [selectedProofId, setSelectedProofId] = useState<string>("");
-  const [editingPost, setEditingPost] = useState<FeedPostWithProfile | null>(null);
-  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,8 +77,7 @@ const StudentFeedPage = () => {
           student_profiles!inner(
             full_name,
             profile_photo_url,
-            branch,
-            user_id
+            branch
           )
         `)
         .eq('status', 'active')
@@ -124,7 +119,7 @@ const StudentFeedPage = () => {
         // Fetch student profile for new post
         const { data: profile } = await supabase
           .from('student_profiles')
-          .select('full_name, profile_photo_url, branch, user_id')
+          .select('full_name, profile_photo_url, branch')
           .eq('id', newPost.student_id)
           .single();
         
@@ -214,51 +209,6 @@ const StudentFeedPage = () => {
       channel.unsubscribe();
     };
   }, [navigate, currentUserId]);
-
-  // Handle edit post
-  const handleEdit = (post: FeedPostWithProfile) => {
-    setEditingPost(post);
-    if (post.verified_badge && post.proof_id) {
-      setSelectedProofId(post.proof_id);
-      setVerifiedPostComposerOpen(true);
-    } else {
-      setExternalProjectModalOpen(true);
-    }
-  };
-
-  // Handle delete post
-  const handleDelete = async (postId: string) => {
-    setDeletingPostId(postId);
-  };
-
-  const confirmDelete = async () => {
-    if (!deletingPostId) return;
-
-    try {
-      const { error } = await supabase
-        .from("proof_posts")
-        .delete()
-        .eq("id", deletingPostId);
-
-      if (error) throw error;
-
-      // Remove from feed
-      setFeedPosts((prev) => prev.filter((post) => post.id !== deletingPostId));
-      toast.success("Post deleted successfully");
-    } catch (error) {
-      console.error("Error deleting post:", error);
-      toast.error("Failed to delete post");
-    } finally {
-      setDeletingPostId(null);
-    }
-  };
-
-  // Handle share post
-  const handleShare = (postId: string) => {
-    const url = `${window.location.origin}/post/${postId}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copied to clipboard!");
-  };
 
   // Handle like/unlike with optimistic updates
   const handleLike = async (postId: string, currentlyLiked: boolean) => {
@@ -367,11 +317,6 @@ const StudentFeedPage = () => {
                   onProofClick={() => navigate(`/student/proofs/${post.proof_id}`)}
                   externalLink={post.external_link}
                   proofId={post.proof_id}
-                  postId={post.id}
-                  onEdit={() => handleEdit(post)}
-                  onDelete={() => handleDelete(post.id)}
-                  onShare={() => handleShare(post.id)}
-                  isOwnPost={currentUserId === post.student_profiles?.user_id}
                 />
               );
             })
@@ -419,27 +364,19 @@ const StudentFeedPage = () => {
         onClose={() => {
           setVerifiedPostComposerOpen(false);
           setSelectedProofId("");
-          setEditingPost(null);
         }}
         proofId={selectedProofId}
-        editingPost={editingPost}
         onPostSuccess={() => {
-          toast.success(editingPost ? "Post updated successfully" : "Post will appear in the feed shortly");
-          setEditingPost(null);
+          toast.success("Post will appear in the feed shortly");
         }}
       />
 
       {/* External Project Post Modal */}
       <ExternalProjectPostModal
         isOpen={isExternalProjectModalOpen}
-        onClose={() => {
-          setExternalProjectModalOpen(false);
-          setEditingPost(null);
-        }}
-        editingPost={editingPost}
+        onClose={() => setExternalProjectModalOpen(false)}
         onPostSuccess={() => {
-          toast.success(editingPost ? "Post updated successfully" : "Post will appear in the feed shortly");
-          setEditingPost(null);
+          toast.success("Post will appear in the feed shortly");
         }}
       />
 
@@ -448,17 +385,6 @@ const StudentFeedPage = () => {
         isOpen={!!openCommentsPostId}
         onClose={() => setOpenCommentsPostId(null)}
         postId={openCommentsPostId}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <SimpleAlertDialog
-        isOpen={!!deletingPostId}
-        onClose={() => setDeletingPostId(null)}
-        onConfirm={confirmDelete}
-        title="Delete Post"
-        description="Are you sure you want to delete this post? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
       />
     </div>
   );

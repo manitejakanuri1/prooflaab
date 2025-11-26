@@ -11,6 +11,7 @@ import PostTypeSelectorModal from "./PostTypeSelectorModal";
 import VerifiedProofSelectorModal from "./VerifiedProofSelectorModal";
 import ExternalProjectPostModal from "./ExternalProjectPostModal";
 import VerifiedPostComposerModal from "./VerifiedPostComposerModal";
+import SuggestedStudents from "@/components/feed/SuggestedStudents";
 
 type ProofPost = Database['public']['Tables']['proof_posts']['Row'];
 
@@ -409,74 +410,94 @@ const StudentFeedPage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold text-foreground">ProofFeed</h1>
           <p className="text-muted-foreground mt-1">Discover verified work from your peers</p>
         </div>
       </div>
 
-      {/* Feed Content */}
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {feedPosts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="bg-card rounded-2xl border border-border p-12 shadow-lg max-w-md text-center">
-                <div className="text-6xl mb-4 animate-[wobbleFloat_4s_ease-in-out_infinite]">
-                  🎨
+      {/* Main Layout with Sidebar */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex gap-6">
+          {/* Feed Content - Main Column */}
+          <div className="flex-1 max-w-3xl">
+            <div className="space-y-6">
+              {feedPosts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="bg-card rounded-2xl border border-border p-12 shadow-lg max-w-md text-center">
+                    <div className="text-6xl mb-4 animate-[wobbleFloat_4s_ease-in-out_infinite]">
+                      🎨
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground mb-2">
+                      No posts yet
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      Be the first to share your work and inspire others!
+                    </p>
+                    <button
+                      onClick={() => setPostTypeModalOpen(true)}
+                      className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                    >
+                      Share your first proof
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">
-                  No posts yet
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Be the first to share your work and inspire others!
-                </p>
-                <button
-                  onClick={() => setPostTypeModalOpen(true)}
-                  className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                >
-                  Share your first proof
-                </button>
+              ) : (
+                feedPosts.map((post) => {
+                  const profile = post.student_profiles;
+                  const descriptionItems = parseDescription(post.description);
+                  
+                  return (
+                    <FeedPostCard
+                      key={post.id}
+                      userName={profile?.full_name || "Anonymous"}
+                      userAvatarUrl={profile?.profile_photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.student_id}`}
+                      isVerified={post.verified_badge || false}
+                      timestamp={post.created_at ? new Date(post.created_at).toLocaleDateString() : ""}
+                      title={post.title}
+                      description={post.description || ""}
+                      descriptionItems={descriptionItems}
+                      skills={post.skills || []}
+                      proofUrl={`/student/proof/${post.proof_id}`}
+                      likesCount={post.likes_count || 0}
+                      commentsCount={post.comments_count || 0}
+                      branch={profile?.branch || "General"}
+                      timeAgo={post.created_at ? formatTimeAgo(post.created_at) : ""}
+                      emojiCode={post.emoji_code}
+                      tinyEmojiCode={post.emoji_code}
+                      isLiked={post.user_has_liked || false}
+                      onLike={() => handleLike(post.id, post.user_has_liked || false)}
+                      onCommentClick={() => setOpenCommentsPostId(post.id)}
+                      onProofClick={() => navigate(`/student/proof/${post.proof_id}`)}
+                      externalLink={post.external_link}
+                      proofId={post.proof_id}
+                      studentId={post.student_id}
+                      currentStudentId={currentStudentId || undefined}
+                      isPublic={post.visibility === 'public'}
+                      onEdit={() => handleEdit(post)}
+                      onDelete={() => handleDelete(post.id)}
+                      onShare={() => handleShare(post)}
+                    />
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Right Sidebar - Suggested Students (Desktop Only) */}
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-[100px] max-h-[calc(100vh-120px)] overflow-y-auto">
+              <div className="bg-card/30 backdrop-blur-sm rounded-xl border border-border/50 p-6 shadow-sm">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">Suggested Students</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Connect with peers building great projects
+                  </p>
+                </div>
+                <SuggestedStudents />
               </div>
             </div>
-          ) : (
-            feedPosts.map((post) => {
-              const profile = post.student_profiles;
-              const descriptionItems = parseDescription(post.description);
-              
-              return (
-                <FeedPostCard
-                  key={post.id}
-                  userName={profile?.full_name || "Anonymous"}
-                  userAvatarUrl={profile?.profile_photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.student_id}`}
-                  isVerified={post.verified_badge || false}
-                  timestamp={post.created_at ? new Date(post.created_at).toLocaleDateString() : ""}
-                  title={post.title}
-                  description={post.description || ""}
-                  descriptionItems={descriptionItems}
-                  skills={post.skills || []}
-                  proofUrl={`/student/proof/${post.proof_id}`}
-                  likesCount={post.likes_count || 0}
-                  commentsCount={post.comments_count || 0}
-                  branch={profile?.branch || "General"}
-                  timeAgo={post.created_at ? formatTimeAgo(post.created_at) : ""}
-                  emojiCode={post.emoji_code}
-                  tinyEmojiCode={post.emoji_code}
-                  isLiked={post.user_has_liked || false}
-                  onLike={() => handleLike(post.id, post.user_has_liked || false)}
-                  onCommentClick={() => setOpenCommentsPostId(post.id)}
-                  onProofClick={() => navigate(`/student/proof/${post.proof_id}`)}
-                  externalLink={post.external_link}
-                  proofId={post.proof_id}
-                  studentId={post.student_id}
-                  currentStudentId={currentStudentId || undefined}
-                  isPublic={post.visibility === 'public'}
-                  onEdit={() => handleEdit(post)}
-                  onDelete={() => handleDelete(post.id)}
-                  onShare={() => handleShare(post)}
-                />
-              );
-            })
-          )}
+          </aside>
         </div>
       </div>
 
@@ -564,5 +585,7 @@ const StudentFeedPage = () => {
     </div>
   );
 };
+
+// Step 7C complete — SuggestedStudents integrated into Feed sidebar
 
 export default StudentFeedPage;

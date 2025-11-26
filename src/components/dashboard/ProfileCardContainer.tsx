@@ -9,6 +9,7 @@ interface Student {
   totalXp: number;
   trustScore: number;
   rank: number;
+  id?: string;
 }
 
 export default function ProfileCardContainer() {
@@ -36,7 +37,8 @@ export default function ProfileCardContainer() {
     profilePhoto: profile.profile_photo_url,
     totalXp: profile.total_xp || 0,
     trustScore: profile.trust_score || 0,
-    rank: rank
+    rank: rank,
+    id: profile.id
   };
 
   return <ProfileCard student={studentData} />;

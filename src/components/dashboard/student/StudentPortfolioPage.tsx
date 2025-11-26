@@ -7,7 +7,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useProofUploads } from "@/hooks/useProofUploads";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { Award, Eye, EyeOff, ExternalLink, Share, Star, Trophy, CheckCircle, Clock, Globe, Lock } from "lucide-react";
+import { useFollowCounts } from "@/hooks/useFollowCounts";
+import { FollowersFollowingModal } from "./FollowersFollowingModal";
+import { Award, Eye, EyeOff, ExternalLink, Share, Star, Trophy, CheckCircle, Clock, Globe, Lock, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -18,8 +20,11 @@ const StudentPortfolioPage = () => {
   const currentDate = new Date();
   const { data: uploads, isLoading: uploadsLoading, refetch } = useProofUploads(currentDate);
   const { portfolio, loading: portfolioLoading, updatePortfolioVisibility } = usePortfolio();
+  const { followerCount, followingCount, loading: countsLoading } = useFollowCounts(profile?.id);
   const { toast } = useToast();
   const [localUploads, setLocalUploads] = useState(uploads || []);
+  const [followModalOpen, setFollowModalOpen] = useState(false);
+  const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
 
   // Sync localUploads with uploads whenever uploads changes
   useEffect(() => {
@@ -174,7 +179,7 @@ const StudentPortfolioPage = () => {
               <h2 className="text-xl sm:text-2xl font-bold text-foreground text-center sm:text-left">{profile?.full_name}</h2>
               <p className="text-muted-foreground mb-3 sm:mb-4 text-sm sm:text-base text-center sm:text-left truncate">{profile?.email}</p>
               
-              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -202,6 +207,36 @@ const StudentPortfolioPage = () => {
                       <CheckCircle className="h-5 w-5 text-green-500" />
                     </div>
                     <div className="text-3xl font-bold text-foreground">{verifiedUploads.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="text-sm text-muted-foreground">Connections</div>
+                      <Users className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div className="flex items-center gap-3 text-lg font-semibold text-foreground">
+                      <button
+                        onClick={() => {
+                          setFollowModalTab("followers");
+                          setFollowModalOpen(true);
+                        }}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {followerCount} <span className="text-sm text-muted-foreground font-normal">Followers</span>
+                      </button>
+                      <span className="text-muted-foreground">·</span>
+                      <button
+                        onClick={() => {
+                          setFollowModalTab("following");
+                          setFollowModalOpen(true);
+                        }}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {followingCount} <span className="text-sm text-muted-foreground font-normal">Following</span>
+                      </button>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -349,6 +384,15 @@ const StudentPortfolioPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Followers/Following Modal */}
+      <FollowersFollowingModal
+        open={followModalOpen}
+        onOpenChange={setFollowModalOpen}
+        userId={profile?.id || ""}
+        currentUserId={profile?.id}
+        defaultTab={followModalTab}
+      />
     </div>
   );
 };

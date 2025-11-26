@@ -9,23 +9,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
 import { PublicProjectCard } from "@/components/portfolio/PublicProjectCard";
 import { FollowButton } from "@/components/dashboard/student/FollowButton";
+import { FollowersFollowingModal } from "@/components/dashboard/student/FollowersFollowingModal";
+import { useFollowCounts } from "@/hooks/useFollowCounts";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Mail, 
   Trophy, 
   XCircle,
   Star,
-  Briefcase
+  Briefcase,
+  Users
 } from "lucide-react";
 
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
+  const [followModalOpen, setFollowModalOpen] = useState(false);
+  const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
   
   const { portfolio, loading, error } = usePortfolio(slug);
   const { projects, loading: projectsLoading, error: projectsError } = usePortfolioProjects(
     portfolio?.student_id || ""
   );
+  const { followerCount, followingCount, loading: countsLoading } = useFollowCounts(portfolio?.student_id);
 
   // Get current user ID
   useEffect(() => {
@@ -196,6 +202,26 @@ const Portfolio = () => {
                   <Briefcase className="h-5 w-5 text-primary" />
                   <span className="font-semibold">{projects.length} Projects</span>
                 </div>
+                <button
+                  onClick={() => {
+                    setFollowModalTab("followers");
+                    setFollowModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border hover:bg-background transition-colors cursor-pointer"
+                >
+                  <Users className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">{followerCount} Followers</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setFollowModalTab("following");
+                    setFollowModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border hover:bg-background transition-colors cursor-pointer"
+                >
+                  <Users className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">{followingCount} Following</span>
+                </button>
               </div>
 
               {/* Action Buttons */}
@@ -281,6 +307,15 @@ const Portfolio = () => {
           )}
         </div>
       </main>
+
+      {/* Followers/Following Modal */}
+      <FollowersFollowingModal
+        open={followModalOpen}
+        onOpenChange={setFollowModalOpen}
+        userId={portfolio?.student_id || ""}
+        currentUserId={currentUserId}
+        defaultTab={followModalTab}
+      />
     </div>
   );
 };

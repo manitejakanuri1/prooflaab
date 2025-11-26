@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Mail, Award, Trophy } from "lucide-react";
+import { Mail, Award, Trophy, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useFollowCounts } from "@/hooks/useFollowCounts";
+import { FollowersFollowingModal } from "./student/FollowersFollowingModal";
 
 interface Student {
   name: string;
@@ -13,6 +14,7 @@ interface Student {
   totalXp: number;
   trustScore: number;
   rank: number;
+  id?: string;
 }
 
 interface ProfileCardProps {
@@ -20,7 +22,12 @@ interface ProfileCardProps {
 }
 
 export default function ProfileCard({ student }: ProfileCardProps) {
+  const { followerCount, followingCount } = useFollowCounts(student.id);
+  const [followModalOpen, setFollowModalOpen] = useState(false);
+  const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
+
   return (
+    <>
     <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-3xl overflow-hidden">
       <CardContent className="p-0">
         {/* Profile Image Section */}
@@ -71,16 +78,56 @@ export default function ProfileCard({ student }: ProfileCardProps) {
               <span className="text-sm font-semibold text-gray-700">{student.totalXp}</span>
             </div>
             
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center space-x-3">
                 <Trophy className="h-5 w-5 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">Leaderboard Rank</span>
               </div>
               <span className="text-sm font-semibold text-gray-700">#{student.rank}</span>
             </div>
+            
+            <div className="flex items-center justify-between py-3">
+              <div className="flex items-center space-x-3">
+                <Users className="h-5 w-5 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Connections</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                <button
+                  onClick={() => {
+                    setFollowModalTab("followers");
+                    setFollowModalOpen(true);
+                  }}
+                  className="hover:text-orange-600 transition-colors"
+                >
+                  {followerCount} Followers
+                </button>
+                <span>·</span>
+                <button
+                  onClick={() => {
+                    setFollowModalTab("following");
+                    setFollowModalOpen(true);
+                  }}
+                  className="hover:text-orange-600 transition-colors"
+                >
+                  {followingCount} Following
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>
     </Card>
+
+    {/* Followers/Following Modal */}
+    {student.id && (
+      <FollowersFollowingModal
+        open={followModalOpen}
+        onOpenChange={setFollowModalOpen}
+        userId={student.id}
+        currentUserId={student.id}
+        defaultTab={followModalTab}
+      />
+    )}
+    </>
   );
 }

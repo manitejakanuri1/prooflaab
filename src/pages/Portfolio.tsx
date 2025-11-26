@@ -10,6 +10,7 @@ import { Logo } from "@/components/Logo";
 import { PublicProjectCard } from "@/components/portfolio/PublicProjectCard";
 import { FollowButton } from "@/components/dashboard/student/FollowButton";
 import { FollowersFollowingModal } from "@/components/dashboard/student/FollowersFollowingModal";
+import PublicSuggestedStudents from "@/components/feed/PublicSuggestedStudents";
 import { useFollowCounts } from "@/hooks/useFollowCounts";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -150,9 +151,12 @@ const Portfolio = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-12">
-        {/* Hero Section */}
-        <div className="relative mb-12 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 rounded-3xl p-8 md:p-12 border border-border shadow-lg">
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex gap-8">
+          {/* Main Column */}
+          <div className="flex-1 min-w-0">
+            {/* Hero Section */}
+            <div className="relative mb-12 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 rounded-3xl p-8 md:p-12 border border-border shadow-lg">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Avatar */}
             <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
@@ -242,69 +246,82 @@ const Portfolio = () => {
               </div>
             </div>
           </div>
-        </div>
+            </div>
 
-        {/* Projects Section */}
-        <div>
-          <div className="flex items-center gap-3 mb-8">
-            <Trophy className="h-7 w-7 text-primary" />
-            <h2 className="text-3xl font-bold">Projects & Achievements</h2>
+            {/* Projects Section */}
+            <div>
+              <div className="flex items-center gap-3 mb-8">
+                <Trophy className="h-7 w-7 text-primary" />
+                <h2 className="text-3xl font-bold">Projects & Achievements</h2>
+              </div>
+
+              {projectsLoading ? (
+                <div className="text-center py-16">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading projects...</p>
+                </div>
+              ) : projectsError ? (
+                <div className="text-center py-16 bg-card rounded-2xl border border-border">
+                  <XCircle className="h-16 w-16 text-destructive/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">Failed to load projects</p>
+                  <Button variant="outline" onClick={handleRetry}>
+                    Try Again
+                  </Button>
+                </div>
+              ) : projects.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+                  {projects.map((project) => {
+                    // Extract reflection summary if available
+                    const reflectionSummary =
+                      project.reflection_answers &&
+                      Array.isArray(project.reflection_answers) &&
+                      project.reflection_answers.length > 0
+                        ? project.reflection_answers
+                            .map((qa: any) => qa.answer)
+                            .join(" ")
+                            .slice(0, 200)
+                        : null;
+
+                    return (
+                      <PublicProjectCard
+                        key={project.id}
+                        emojiCode={generateEmojiCode(project.task?.title || project.id)}
+                        title={project.task?.title || "Untitled Project"}
+                        description={project.task?.description || ""}
+                        skills={project.task?.required_skills || []}
+                        submittedAt={project.submitted_at}
+                        fileUrl={project.file_url}
+                        proofId={project.id}
+                        aiSummary={project.ai_summary}
+                        reflectionSummary={reflectionSummary}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-16 bg-card rounded-2xl border border-border">
+                  <Trophy className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">
+                    Nothing public yet
+                  </h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    This student hasn't shared any projects publicly yet. Check back later!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {projectsLoading ? (
-            <div className="text-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading projects...</p>
+          {/* Right Sidebar - Desktop Only */}
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-24">
+              <PublicSuggestedStudents
+                currentStudentId={portfolio?.student_id || ""}
+                currentBranch={undefined}
+                currentSkills={portfolio?.skills || []}
+              />
             </div>
-          ) : projectsError ? (
-            <div className="text-center py-16 bg-card rounded-2xl border border-border">
-              <XCircle className="h-16 w-16 text-destructive/50 mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">Failed to load projects</p>
-              <Button variant="outline" onClick={handleRetry}>
-                Try Again
-              </Button>
-            </div>
-          ) : projects.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => {
-                // Extract reflection summary if available
-                const reflectionSummary =
-                  project.reflection_answers &&
-                  Array.isArray(project.reflection_answers) &&
-                  project.reflection_answers.length > 0
-                    ? project.reflection_answers
-                        .map((qa: any) => qa.answer)
-                        .join(" ")
-                        .slice(0, 200)
-                    : null;
-
-                return (
-                  <PublicProjectCard
-                    key={project.id}
-                    emojiCode={generateEmojiCode(project.task?.title || project.id)}
-                    title={project.task?.title || "Untitled Project"}
-                    description={project.task?.description || ""}
-                    skills={project.task?.required_skills || []}
-                    submittedAt={project.submitted_at}
-                    fileUrl={project.file_url}
-                    proofId={project.id}
-                    aiSummary={project.ai_summary}
-                    reflectionSummary={reflectionSummary}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-card rounded-2xl border border-border">
-              <Trophy className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">
-                Nothing public yet
-              </h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                This student hasn't shared any projects publicly yet. Check back later!
-              </p>
-            </div>
-          )}
+          </aside>
         </div>
       </main>
 

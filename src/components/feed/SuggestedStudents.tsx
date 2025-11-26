@@ -183,16 +183,15 @@ const SuggestedStudents = () => {
                   </p>
                 </div>
 
-                {/* Connect Button */}
+                {/* Follow Button */}
                 <Button
                   size="sm"
-                  variant={isFollowing ? "outline" : "outline"}
-                  className="h-8 px-4 text-xs font-semibold rounded-full border-border/60 hover:bg-muted/50"
+                  variant={isFollowing ? "outline" : "default"}
+                  className="h-8 px-4 text-xs font-semibold rounded-full"
                   onClick={() => handleFollowToggle(student)}
                   disabled={followMutation.isPending || unfollowMutation.isPending}
                 >
-                  <Users className="h-3 w-3 mr-1" />
-                  {isFollowing ? "Following" : "Connect"}
+                  {isFollowing ? "Following ✓" : "Follow"}
                 </Button>
               </div>
             </div>

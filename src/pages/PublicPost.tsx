@@ -182,7 +182,7 @@ const PublicPost = () => {
           description={post.description || ""}
           descriptionItems={descriptionItems}
           skills={post.skills || []}
-          proofUrl={`/student/proof/${post.proof_id}`}
+          proofUrl={`/student/proofs/${post.proof_id}`}
           likesCount={post.likes_count || 0}
           commentsCount={post.comments_count || 0}
           branch={profile?.branch || "General"}

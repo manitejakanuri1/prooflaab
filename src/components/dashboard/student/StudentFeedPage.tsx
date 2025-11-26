@@ -354,7 +354,7 @@ const StudentFeedPage = () => {
                   description={post.description || ""}
                   descriptionItems={descriptionItems}
                   skills={post.skills || []}
-                  proofUrl={`/student/proof/${post.proof_id}`}
+                  proofUrl={`/student/proofs/${post.proof_id}`}
                   likesCount={post.likes_count || 0}
                   commentsCount={post.comments_count || 0}
                   branch={profile?.branch || "General"}
@@ -364,7 +364,7 @@ const StudentFeedPage = () => {
                   isLiked={post.user_has_liked || false}
                   onLike={() => handleLike(post.id, post.user_has_liked || false)}
                   onCommentClick={() => setOpenCommentsPostId(post.id)}
-                  onProofClick={() => navigate(`/student/proof/${post.proof_id}`)}
+                  onProofClick={() => navigate(`/student/proofs/${post.proof_id}`)}
                   externalLink={post.external_link}
                   proofId={post.proof_id}
                   postId={post.id}
@@ -382,7 +382,7 @@ const StudentFeedPage = () => {
       {/* Floating Action Button */}
       <button
         onClick={() => setPostTypeModalOpen(true)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-primary rounded-full shadow-lg flex items-center justify-center z-50"
+        className="fixed bottom-8 right-8 w-14 h-14 bg-primary rounded-full shadow-lg hover:scale-105 transition-transform duration-200 flex items-center justify-center z-50 animate-[wobbleFloat_4s_ease-in-out_infinite]"
         style={{
           boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.12)',
         }}

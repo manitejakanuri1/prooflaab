@@ -281,7 +281,7 @@ const VerifiedPostComposerModal = ({
             {/* View Proof Link */}
             {proof && (
               <a
-                href={`/student/proof/${proofId}`}
+                href={`/student/proofs/${proofId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-sm"

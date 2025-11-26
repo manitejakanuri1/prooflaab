@@ -19,8 +19,10 @@ interface FeedPostWithProfile extends ProofPost {
     full_name: string;
     profile_photo_url: string | null;
     branch: string | null;
+    college_id: string | null;
   };
   user_has_liked?: boolean;
+  priority?: number; // 1 = followed, 2 = same college, 3 = other
 }
 
 // Helper to format timestamp to "22h ago" format
@@ -52,6 +54,8 @@ const StudentFeedPage = () => {
   const [feedPosts, setFeedPosts] = useState<FeedPostWithProfile[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
+  const [currentCollegeId, setCurrentCollegeId] = useState<string | null>(null);
+  const [userFollowingIds, setUserFollowingIds] = useState<Set<string>>(new Set());
   const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
   const [isPostTypeModalOpen, setPostTypeModalOpen] = useState(false);
   const [isVerifiedProofModalOpen, setVerifiedProofModalOpen] = useState(false);
@@ -61,6 +65,33 @@ const StudentFeedPage = () => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePost, setSharePost] = useState<FeedPostWithProfile | null>(null);
   const navigate = useNavigate();
+
+  // Helper function to add priority and sort posts
+  const sortPostsByPriority = (posts: FeedPostWithProfile[]): FeedPostWithProfile[] => {
+    return posts.map(post => {
+      let priority = 3; // Default: other posts
+      
+      // Priority 1: Posts from followed users
+      if (userFollowingIds.has(post.student_id)) {
+        priority = 1;
+      }
+      // Priority 2: Posts from same college
+      else if (currentCollegeId && post.student_profiles?.college_id === currentCollegeId) {
+        priority = 2;
+      }
+      
+      return { ...post, priority };
+    }).sort((a, b) => {
+      // Sort by priority first (ASC), then by created_at (DESC)
+      if (a.priority !== b.priority) {
+        return (a.priority || 3) - (b.priority || 3);
+      }
+      // If same priority, sort by created_at DESC
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
+  };
 
   useEffect(() => {
     // Auth check and fetch feed
@@ -73,18 +104,28 @@ const StudentFeedPage = () => {
       
       setCurrentUserId(session.user.id);
 
-      // Fetch current student profile ID
+      // Fetch current student profile ID and college_id
       const { data: studentProfile } = await supabase
         .from('student_profiles')
-        .select('id')
+        .select('id, college_id')
         .eq('user_id', session.user.id)
         .single();
       
       if (studentProfile) {
         setCurrentStudentId(studentProfile.id);
+        setCurrentCollegeId(studentProfile.college_id);
       }
 
-      // Fetch feed posts with student profiles
+      // Fetch list of users current student follows
+      const { data: followingData } = await supabase
+        .from('user_follows')
+        .select('following_id')
+        .eq('follower_id', session.user.id);
+      
+      const followingIds = new Set(followingData?.map(f => f.following_id) || []);
+      setUserFollowingIds(followingIds);
+
+      // Fetch feed posts with student profiles including college_id
       const { data: posts, error } = await supabase
         .from('proof_posts')
         .select(`
@@ -92,7 +133,8 @@ const StudentFeedPage = () => {
           student_profiles!inner(
             full_name,
             profile_photo_url,
-            branch
+            branch,
+            college_id
           )
         `)
         .eq('status', 'active')
@@ -116,7 +158,9 @@ const StudentFeedPage = () => {
           user_has_liked: likedPostIds.has(post.id)
         })) || [];
 
-        setFeedPosts(postsWithLikes);
+        // Apply priority sorting
+        const sortedPosts = sortPostsByPriority(postsWithLikes);
+        setFeedPosts(sortedPosts);
       }
     };
     
@@ -134,15 +178,17 @@ const StudentFeedPage = () => {
         // Fetch student profile for new post
         const { data: profile } = await supabase
           .from('student_profiles')
-          .select('full_name, profile_photo_url, branch')
+          .select('full_name, profile_photo_url, branch, college_id')
           .eq('id', newPost.student_id)
           .single();
         
-        setFeedPosts((prev) => [{
+        const postWithProfile = {
           ...newPost,
           student_profiles: profile || undefined,
           user_has_liked: false
-        }, ...prev]);
+        };
+        
+        setFeedPosts((prev) => sortPostsByPriority([postWithProfile, ...prev]));
       }
     );
 
@@ -215,6 +261,47 @@ const StudentFeedPage = () => {
               : post
           )
         );
+      }
+    );
+
+    // Subscribe to follow changes to update feed priorities
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'user_follows' },
+      (payload) => {
+        const followingId = (payload.new as any).following_id;
+        const followerId = (payload.new as any).follower_id;
+        
+        // If current user followed someone, update following list and re-sort
+        if (followerId === currentUserId) {
+          setUserFollowingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.add(followingId);
+            return newSet;
+          });
+          // Re-sort feed with new priorities
+          setFeedPosts(prev => sortPostsByPriority(prev));
+        }
+      }
+    );
+
+    channel.on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'user_follows' },
+      (payload) => {
+        const followingId = (payload.old as any).following_id;
+        const followerId = (payload.old as any).follower_id;
+        
+        // If current user unfollowed someone, update following list and re-sort
+        if (followerId === currentUserId) {
+          setUserFollowingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(followingId);
+            return newSet;
+          });
+          // Re-sort feed with new priorities
+          setFeedPosts(prev => sortPostsByPriority(prev));
+        }
       }
     );
 

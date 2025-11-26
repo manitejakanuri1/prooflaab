@@ -2062,6 +2062,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_follow_recommendations: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          bio: string
+          followers_count: number
+          full_name: string
+          rank_score: number
+          student_id: string
+          total_xp: number
+          trust_score: number
+        }[]
+      }
       get_follower_count: { Args: { user_id: string }; Returns: number }
       get_following_count: { Args: { user_id: string }; Returns: number }
       get_leaderboard: {

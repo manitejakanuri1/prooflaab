@@ -12,6 +12,7 @@ import VerifiedProofSelectorModal from "./VerifiedProofSelectorModal";
 import ExternalProjectPostModal from "./ExternalProjectPostModal";
 import VerifiedPostComposerModal from "./VerifiedPostComposerModal";
 import SuggestedStudents from "@/components/feed/SuggestedStudents";
+import OnboardingFollowSuggestions from "@/components/feed/OnboardingFollowSuggestions";
 
 type ProofPost = Database['public']['Tables']['proof_posts']['Row'];
 
@@ -65,6 +66,7 @@ const StudentFeedPage = () => {
   const [selectedProofId, setSelectedProofId] = useState<string>("");
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePost, setSharePost] = useState<FeedPostWithProfile | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const navigate = useNavigate();
 
   // Helper function to add priority and sort posts
@@ -125,6 +127,12 @@ const StudentFeedPage = () => {
       
       const followingIds = new Set(followingData?.map(f => f.following_id) || []);
       setUserFollowingIds(followingIds);
+
+      // Check if onboarding should be shown
+      const onboardingCompleted = localStorage.getItem('follow_onboarding_completed');
+      if (!onboardingCompleted && followingIds.size === 0) {
+        setShowOnboarding(true);
+      }
 
       // Fetch feed posts with student profiles including college_id
       const { data: posts, error } = await supabase
@@ -582,10 +590,30 @@ const StudentFeedPage = () => {
           externalLink={sharePost.external_link}
         />
       )}
+
+      {/* Onboarding Follow Suggestions Modal */}
+      <OnboardingFollowSuggestions
+        open={showOnboarding}
+        onComplete={() => {
+          setShowOnboarding(false);
+          // Refresh following list after onboarding
+          supabase
+            .from('user_follows')
+            .select('following_id')
+            .eq('follower_id', currentUserId)
+            .then(({ data }) => {
+              const followingIds = new Set(data?.map(f => f.following_id) || []);
+              setUserFollowingIds(followingIds);
+              // Re-sort feed with new following list
+              setFeedPosts(prev => sortPostsByPriority(prev));
+            });
+        }}
+      />
     </div>
   );
 };
 
 // Step 7C complete — SuggestedStudents integrated into Feed sidebar
+// Step 7E complete — Follow Onboarding Modal implemented
 
 export default StudentFeedPage;

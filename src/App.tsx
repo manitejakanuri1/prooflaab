@@ -28,6 +28,7 @@ import OnboardingWizard from "./pages/OnboardingWizard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminNotifications from "./pages/AdminNotifications";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ProofViewer from "./pages/ProofViewer";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,14 @@ const App = () => (
               element={
                 <RoleBasedProtectedRoute allowedRoles={['student']}>
                   <StudentDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/student/proof/:id" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['student']}>
+                  <ProofViewer />
                 </RoleBasedProtectedRoute>
               } 
             />

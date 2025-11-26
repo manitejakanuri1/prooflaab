@@ -50,22 +50,10 @@ export const useNotifications = () => {
         console.error('Error fetching system notifications:', systemError);
       }
 
-      // Fetch social notifications with triggered_by user info
+      // Fetch social notifications
       const { data: socialNotifications, error: socialError } = await supabase
         .from('social_notifications')
-        .select(`
-          id,
-          type,
-          message,
-          read,
-          created_at,
-          post_id,
-          triggered_by,
-          triggered_by_profile:student_profiles!social_notifications_triggered_by_fkey(
-            full_name,
-            profile_photo_url
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -87,11 +75,23 @@ export const useNotifications = () => {
         source: 'system' as const,
       }));
 
+      // Fetch profiles for triggered_by users
+      const triggeredByIds = (socialNotifications || [])
+        .map(n => n.triggered_by)
+        .filter(Boolean) as string[];
+      
+      const { data: triggeredByProfiles } = await supabase
+        .from('student_profiles')
+        .select('user_id, full_name, profile_photo_url')
+        .in('user_id', triggeredByIds);
+
+      const profileMap = new Map(
+        (triggeredByProfiles || []).map(p => [p.user_id, p])
+      );
+
       // Map social notifications to unified format
       const mappedSocialNotifications: Notification[] = (socialNotifications || []).map(n => {
-        const triggeredByProfile = Array.isArray(n.triggered_by_profile) 
-          ? n.triggered_by_profile[0] 
-          : n.triggered_by_profile;
+        const triggeredByProfile = n.triggered_by ? profileMap.get(n.triggered_by) : null;
         
         // Generate titles based on type
         let title = '';

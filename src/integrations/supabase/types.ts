@@ -796,7 +796,7 @@ export type Database = {
           external_link: string | null
           id: string
           likes_count: number | null
-          proof_id: string
+          proof_id: string | null
           skills: string[] | null
           status: string | null
           student_id: string
@@ -812,7 +812,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           likes_count?: number | null
-          proof_id: string
+          proof_id?: string | null
           skills?: string[] | null
           status?: string | null
           student_id: string
@@ -828,7 +828,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           likes_count?: number | null
-          proof_id?: string
+          proof_id?: string | null
           skills?: string[] | null
           status?: string | null
           student_id?: string
@@ -2047,7 +2047,7 @@ export type Database = {
           external_link: string | null
           id: string
           likes_count: number | null
-          proof_id: string
+          proof_id: string | null
           skills: string[] | null
           status: string | null
           student_id: string

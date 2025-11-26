@@ -31,6 +31,12 @@ interface FeedPostCardProps {
   onProofClick?: () => void;
   externalLink?: string | null;
   proofId?: string | null;
+  studentId: string;
+  currentStudentId?: string;
+  isPublic?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onShare?: () => void;
 }
 
 export const FeedPostCard = ({
@@ -55,7 +61,21 @@ export const FeedPostCard = ({
   onProofClick,
   externalLink,
   proofId,
+  studentId,
+  currentStudentId,
+  isPublic = false,
+  onEdit,
+  onDelete,
+  onShare,
 }: FeedPostCardProps) => {
+  // Ownership and visibility flags
+  const isOwner = studentId === currentStudentId;
+  const isInternal = proofId !== null;
+  const isExternal = proofId === null;
+
+  // Share button visibility
+  const showShare = isOwner || isPublic;
+
   // Convert emoji code to actual emoji
   const getEmoji = (code: string) => {
     return String.fromCodePoint(parseInt(code, 16));
@@ -88,18 +108,26 @@ export const FeedPostCard = ({
             </div>
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-            <DropdownMenuItem>Delete</DropdownMenuItem>
-            <DropdownMenuItem>Share</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {(isOwner || showShare) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isOwner && (
+                <>
+                  <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+                  <DropdownMenuItem onClick={onDelete}>Delete</DropdownMenuItem>
+                </>
+              )}
+              {showShare && (
+                <DropdownMenuItem onClick={onShare}>Share</DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Verification Badge */}

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { FeedPostCard } from "./FeedPostCard";
 import { CommentsBottomSheet } from "./CommentsBottomSheet";
+import { SharePostModal } from "./SharePostModal";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import PostTypeSelectorModal from "./PostTypeSelectorModal";
@@ -50,12 +51,15 @@ const parseDescription = (description: string | null): string[] => {
 const StudentFeedPage = () => {
   const [feedPosts, setFeedPosts] = useState<FeedPostWithProfile[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
   const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
   const [isPostTypeModalOpen, setPostTypeModalOpen] = useState(false);
   const [isVerifiedProofModalOpen, setVerifiedProofModalOpen] = useState(false);
   const [isExternalProjectModalOpen, setExternalProjectModalOpen] = useState(false);
   const [isVerifiedPostComposerOpen, setVerifiedPostComposerOpen] = useState(false);
   const [selectedProofId, setSelectedProofId] = useState<string>("");
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharePost, setSharePost] = useState<FeedPostWithProfile | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -68,6 +72,17 @@ const StudentFeedPage = () => {
       }
       
       setCurrentUserId(session.user.id);
+
+      // Fetch current student profile ID
+      const { data: studentProfile } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .single();
+      
+      if (studentProfile) {
+        setCurrentStudentId(studentProfile.id);
+      }
 
       // Fetch feed posts with student profiles
       const { data: posts, error } = await supabase
@@ -210,6 +225,54 @@ const StudentFeedPage = () => {
     };
   }, [navigate, currentUserId]);
 
+  // Handle share
+  const handleShare = async (post: FeedPostWithProfile) => {
+    // For internal proofs, fetch the actual is_public status from proof_uploads
+    if (post.proof_id) {
+      const { data: proof } = await supabase
+        .from('proof_uploads')
+        .select('is_public')
+        .eq('id', post.proof_id)
+        .single();
+      
+      // Update the post with actual is_public status
+      setSharePost({
+        ...post,
+        // Store is_public in a custom property for the modal
+        _is_public: proof?.is_public ?? false
+      } as any);
+    } else {
+      setSharePost(post);
+    }
+    setShareModalOpen(true);
+  };
+
+  // Handle edit
+  const handleEdit = (post: FeedPostWithProfile) => {
+    // TODO: Implement edit functionality
+    toast.info("Edit functionality coming soon");
+  };
+
+  // Handle delete
+  const handleDelete = async (postId: string) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from('proof_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) throw error;
+
+      setFeedPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.success("Post deleted successfully");
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error("Failed to delete post");
+    }
+  };
+
   // Handle like/unlike with optimistic updates
   const handleLike = async (postId: string, currentlyLiked: boolean) => {
     if (!currentUserId) return;
@@ -317,6 +380,12 @@ const StudentFeedPage = () => {
                   onProofClick={() => navigate(`/student/proof/${post.proof_id}`)}
                   externalLink={post.external_link}
                   proofId={post.proof_id}
+                  studentId={post.student_id}
+                  currentStudentId={currentStudentId || undefined}
+                  isPublic={post.visibility === 'public'}
+                  onEdit={() => handleEdit(post)}
+                  onDelete={() => handleDelete(post.id)}
+                  onShare={() => handleShare(post)}
                 />
               );
             })
@@ -386,6 +455,25 @@ const StudentFeedPage = () => {
         onClose={() => setOpenCommentsPostId(null)}
         postId={openCommentsPostId}
       />
+
+      {/* Share Post Modal */}
+      {sharePost && (
+        <SharePostModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setSharePost(null);
+          }}
+          postId={sharePost.id}
+          title={sharePost.title}
+          emojiCode={sharePost.emoji_code}
+          isInternal={sharePost.proof_id !== null}
+          isPublic={(sharePost as any)._is_public ?? (sharePost.visibility === 'public')}
+          isOwner={sharePost.student_id === currentStudentId}
+          proofId={sharePost.proof_id}
+          externalLink={sharePost.external_link}
+        />
+      )}
     </div>
   );
 };

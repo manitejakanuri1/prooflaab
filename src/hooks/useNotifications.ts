@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface Notification {
   id: string;
-  student_id: string;
+  student_id?: string;
   type: string;
   title: string;
   message: string;
@@ -14,19 +14,24 @@ interface Notification {
   created_at: string;
   link?: string;
   read_at?: string;
+  triggered_by?: string;
+  triggered_by_name?: string;
+  triggered_by_avatar?: string;
+  post_id?: string;
+  source: 'system' | 'social';
 }
 
 export const useNotifications = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch notifications
+  // Fetch both system and social notifications
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // First get the student profile to get the student_id
+      // Fetch system notifications
       const { data: profile } = await supabase
         .from('student_profiles')
         .select('id')
@@ -35,26 +40,105 @@ export const useNotifications = () => {
 
       if (!profile) return [];
 
-      // Then fetch notifications for this student
-      const { data, error } = await supabase
+      const { data: systemNotifications, error: systemError } = await supabase
         .from('notifications')
         .select('*')
         .eq('student_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        return [];
+      if (systemError) {
+        console.error('Error fetching system notifications:', systemError);
       }
 
-      // Remove duplicates based on ID
-      const uniqueNotifications = data ? 
-        data.filter((notification, index, self) => 
-          index === self.findIndex(n => n.id === notification.id)
-        ) : [];
+      // Fetch social notifications with triggered_by user info
+      const { data: socialNotifications, error: socialError } = await supabase
+        .from('social_notifications')
+        .select(`
+          id,
+          type,
+          message,
+          read,
+          created_at,
+          post_id,
+          triggered_by,
+          triggered_by_profile:student_profiles!social_notifications_triggered_by_fkey(
+            full_name,
+            profile_photo_url
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      return uniqueNotifications as Notification[];
+      if (socialError) {
+        console.error('Error fetching social notifications:', socialError);
+      }
+
+      // Map system notifications to unified format
+      const mappedSystemNotifications: Notification[] = (systemNotifications || []).map(n => ({
+        id: n.id,
+        student_id: n.student_id,
+        type: n.type || 'general',
+        title: n.title,
+        message: n.message,
+        is_read: n.is_read || false,
+        created_at: n.created_at || new Date().toISOString(),
+        link: n.link || undefined,
+        read_at: n.read_at || undefined,
+        source: 'system' as const,
+      }));
+
+      // Map social notifications to unified format
+      const mappedSocialNotifications: Notification[] = (socialNotifications || []).map(n => {
+        const triggeredByProfile = Array.isArray(n.triggered_by_profile) 
+          ? n.triggered_by_profile[0] 
+          : n.triggered_by_profile;
+        
+        // Generate titles based on type
+        let title = '';
+        let link = '';
+        
+        switch (n.type) {
+          case 'follow':
+            title = 'New Follower';
+            link = `/portfolio/${n.triggered_by}`;
+            break;
+          case 'like':
+            title = 'Post Liked';
+            link = `/student/feed?post=${n.post_id}`;
+            break;
+          case 'comment':
+            title = 'New Comment';
+            link = `/student/feed?post=${n.post_id}`;
+            break;
+          case 'new_post':
+            title = 'New Post';
+            link = `/student/feed?post=${n.post_id}`;
+            break;
+          default:
+            title = 'Notification';
+        }
+
+        return {
+          id: n.id,
+          type: n.type,
+          title,
+          message: n.message,
+          is_read: n.read || false,
+          created_at: n.created_at,
+          link,
+          triggered_by: n.triggered_by || undefined,
+          triggered_by_name: triggeredByProfile?.full_name || 'Someone',
+          triggered_by_avatar: triggeredByProfile?.profile_photo_url || undefined,
+          post_id: n.post_id || undefined,
+          source: 'social' as const,
+        };
+      });
+
+      // Merge and sort by created_at DESC
+      const merged = [...mappedSystemNotifications, ...mappedSocialNotifications];
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return merged;
     },
     enabled: !!user?.id,
   });
@@ -62,12 +146,26 @@ export const useNotifications = () => {
   // Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('id', notificationId);
+      // Find the notification to determine its source
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      if (!notification) return;
 
-      if (error) throw error;
+      if (notification.source === 'system') {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ is_read: true, read_at: new Date().toISOString() })
+          .eq('id', notificationId);
+
+        if (error) throw error;
+      } else if (notification.source === 'social') {
+        const { error } = await supabase
+          .from('social_notifications')
+          .update({ read: true })
+          .eq('id', notificationId);
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -77,12 +175,26 @@ export const useNotifications = () => {
   // Delete notification
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
+      // Find the notification to determine its source
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      if (!notification) return;
 
-      if (error) throw error;
+      if (notification.source === 'system') {
+        const { error } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('id', notificationId);
+
+        if (error) throw error;
+      } else if (notification.source === 'social') {
+        const { error } = await supabase
+          .from('social_notifications')
+          .delete()
+          .eq('id', notificationId);
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -103,18 +215,69 @@ export const useNotifications = () => {
 
       if (!profile) return;
 
-      const { error } = await supabase
+      // Mark all system notifications as read
+      const { error: systemError } = await supabase
         .from('notifications')
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('student_id', profile.id)
         .eq('is_read', false);
 
-      if (error) throw error;
+      if (systemError) {
+        console.error('Error marking system notifications as read:', systemError);
+      }
+
+      // Mark all social notifications as read
+      const { error: socialError } = await supabase
+        .from('social_notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (socialError) {
+        console.error('Error marking social notifications as read:', socialError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
+
+  // Realtime subscription for social notifications
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('social-notifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'social_notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'social_notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   const markAsRead = (notificationId: string) => {
     markAsReadMutation.mutate(notificationId);

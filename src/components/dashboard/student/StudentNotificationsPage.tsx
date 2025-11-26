@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNotifications } from "@/hooks/useNotifications";
 import { format, formatDistanceToNow } from "date-fns";
-import { Bell, Check, CheckCheck, Trash2, Filter } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Filter, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +19,7 @@ const StudentNotificationsPage = () => {
   const { notifications, isLoading, markAsRead, deleteNotification, markAllAsRead } = useNotifications();
   const [filter, setFilter] = useState<string[]>(['all']);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleDelete = (notificationId: string) => {
     deleteNotification(notificationId);
@@ -32,6 +35,15 @@ const StudentNotificationsPage = () => {
       title: "All notifications marked as read",
       description: "All unread notifications have been marked as read.",
     });
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+    if (notification.link) {
+      navigate(notification.link);
+    }
   };
 
   if (isLoading) {
@@ -66,6 +78,14 @@ const StudentNotificationsPage = () => {
         return '✅';
       case 'achievement':
         return '🎉';
+      case 'follow':
+        return '👤';
+      case 'like':
+        return '❤️';
+      case 'comment':
+        return '💬';
+      case 'new_post':
+        return '📝';
       default:
         return '🔔';
     }
@@ -84,6 +104,14 @@ const StudentNotificationsPage = () => {
         return 'bg-green-100 text-green-800';
       case 'achievement':
         return 'bg-orange-100 text-orange-800';
+      case 'follow':
+        return 'bg-pink-100 text-pink-800';
+      case 'like':
+        return 'bg-red-100 text-red-800';
+      case 'comment':
+        return 'bg-cyan-100 text-cyan-800';
+      case 'new_post':
+        return 'bg-emerald-100 text-emerald-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -175,6 +203,54 @@ const StudentNotificationsPage = () => {
                   >
                     Announcements
                   </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filter.includes('follow')}
+                    onCheckedChange={(checked) => {
+                      setFilter(prev => 
+                        checked 
+                          ? [...prev.filter(f => f !== 'all'), 'follow']
+                          : prev.filter(f => f !== 'follow')
+                      );
+                    }}
+                  >
+                    Follows
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filter.includes('like')}
+                    onCheckedChange={(checked) => {
+                      setFilter(prev => 
+                        checked 
+                          ? [...prev.filter(f => f !== 'all'), 'like']
+                          : prev.filter(f => f !== 'like')
+                      );
+                    }}
+                  >
+                    Likes
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filter.includes('comment')}
+                    onCheckedChange={(checked) => {
+                      setFilter(prev => 
+                        checked 
+                          ? [...prev.filter(f => f !== 'all'), 'comment']
+                          : prev.filter(f => f !== 'comment')
+                      );
+                    }}
+                  >
+                    Comments
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filter.includes('new_post')}
+                    onCheckedChange={(checked) => {
+                      setFilter(prev => 
+                        checked 
+                          ? [...prev.filter(f => f !== 'all'), 'new_post']
+                          : prev.filter(f => f !== 'new_post')
+                      );
+                    }}
+                  >
+                    New Posts
+                  </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               
@@ -210,25 +286,30 @@ const StudentNotificationsPage = () => {
                   className={`p-4 hover:bg-gray-50 transition-colors ${
                     !notification.is_read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                   } ${notification.link ? 'cursor-pointer' : ''}`}
-                  onClick={() => {
-                    if (notification.link) {
-                      if (!notification.is_read) {
-                        markAsRead(notification.id);
-                      }
-                      window.location.href = notification.link;
-                    }
-                  }}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
-                      <div className="text-2xl">
-                        {getNotificationIcon(notification.type)}
-                      </div>
+                      {notification.source === 'social' && notification.triggered_by_avatar ? (
+                        <Avatar className="h-10 w-10 mt-1">
+                          <AvatarImage src={notification.triggered_by_avatar} />
+                          <AvatarFallback>
+                            <User className="h-5 w-5" />
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <div className="text-2xl">
+                          {getNotificationIcon(notification.type)}
+                        </div>
+                      )}
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="text-sm font-medium text-gray-900">
-                            {notification.title || 'Notification'}
+                            {notification.source === 'social' && notification.triggered_by_name 
+                              ? `${notification.triggered_by_name} ${notification.message.toLowerCase().replace('someone ', '')}`
+                              : notification.title || 'Notification'
+                            }
                           </h4>
                           <Badge className={getNotificationColor(notification.type)}>
                             {notification.type}
@@ -238,9 +319,11 @@ const StudentNotificationsPage = () => {
                           )}
                         </div>
                         
-                        <p className="text-sm text-gray-600 mb-2">
-                          {notification.message}
-                        </p>
+                        {notification.source === 'system' && (
+                          <p className="text-sm text-gray-600 mb-2">
+                            {notification.message}
+                          </p>
+                        )}
                         
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500">

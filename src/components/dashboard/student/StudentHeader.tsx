@@ -1,4 +1,4 @@
-import { Menu, Bell, CheckCheck, Trash2 } from "lucide-react";
+import { Menu, Bell, CheckCheck, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
+import { useNavigate } from "react-router-dom";
 
 interface StudentHeaderProps {
   studentName: string;
@@ -23,6 +24,7 @@ const StudentHeader = ({
   showMenuButton 
 }: StudentHeaderProps) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const navigate = useNavigate();
   
   const getInitials = (name: string) => {
     return name
@@ -31,6 +33,15 @@ const StudentHeader = ({
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+    if (notification.link) {
+      navigate(notification.link);
+    }
   };
 
   return (
@@ -104,25 +115,42 @@ const StudentHeader = ({
                         className={`p-4 hover:bg-accent/50 transition-colors cursor-pointer ${
                           !notification.is_read ? 'bg-primary/5' : ''
                         }`}
-                        onClick={() => {
-                          if (!notification.is_read) {
-                            markAsRead(notification.id);
-                          }
-                        }}
+                        onClick={() => handleNotificationClick(notification)}
                       >
                         <div className="flex items-start gap-3">
+                          {notification.source === 'social' && notification.triggered_by_avatar ? (
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={notification.triggered_by_avatar} />
+                              <AvatarFallback>
+                                <User className="h-4 w-4" />
+                              </AvatarFallback>
+                            </Avatar>
+                          ) : (
+                            <div className="text-xl mt-1">
+                              {notification.type === 'follow' && '👤'}
+                              {notification.type === 'like' && '❤️'}
+                              {notification.type === 'comment' && '💬'}
+                              {notification.type === 'new_post' && '📝'}
+                              {!['follow', 'like', 'comment', 'new_post'].includes(notification.type) && '🔔'}
+                            </div>
+                          )}
                           <div className="flex-1 space-y-1">
                             <div className="flex items-start justify-between gap-2">
                               <p className={`text-sm ${!notification.is_read ? 'font-semibold' : 'font-normal'}`}>
-                                {notification.title}
+                                {notification.source === 'social' && notification.triggered_by_name 
+                                  ? `${notification.triggered_by_name} ${notification.message.toLowerCase().replace('someone ', '')}`
+                                  : notification.title
+                                }
                               </p>
                               {!notification.is_read && (
                                 <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {notification.message}
-                            </p>
+                            {notification.source === 'system' && (
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {notification.message}
+                              </p>
+                            )}
                             <p className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                             </p>

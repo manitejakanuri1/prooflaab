@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FollowButton } from "./FollowButton";
 
 interface FeedPostCardProps {
   userName: string;
@@ -96,7 +97,7 @@ export const FeedPostCard = ({
               {isVerified && (
                 <ShieldCheck className="h-4 w-4 text-primary" fill="currentColor" />
               )}
-              <span className="text-muted-foreground text-sm">• You</span>
+              {isOwner && <span className="text-muted-foreground text-sm">• You</span>}
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Co-founder | Helping Engineering Students</span>
@@ -108,7 +109,16 @@ export const FeedPostCard = ({
             </div>
           </div>
         </div>
-        {(isOwner || showShare) && (
+        <div className="flex items-center gap-2">
+          {/* Follow Button */}
+          <FollowButton
+            targetUserId={studentId}
+            currentUserId={currentStudentId}
+            variant="feed"
+            size="sm"
+          />
+          
+          {(isOwner || showShare) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -127,7 +137,8 @@ export const FeedPostCard = ({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Verification Badge */}

@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { usePortfolioProjects } from "@/hooks/usePortfolioProjects";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
 import { PublicProjectCard } from "@/components/portfolio/PublicProjectCard";
+import { FollowButton } from "@/components/dashboard/student/FollowButton";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Mail, 
   Trophy, 
@@ -18,11 +20,29 @@ import {
 
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   
   const { portfolio, loading, error } = usePortfolio(slug);
   const { projects, loading: projectsLoading, error: projectsError } = usePortfolioProjects(
     portfolio?.student_id || ""
   );
+
+  // Get current user ID
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Get student profile ID from user_id
+        const { data: profile } = await supabase
+          .from('student_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        setCurrentUserId(profile?.id);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
 
   // Debug logging for API responses
   useEffect(() => {
@@ -178,14 +198,22 @@ const Portfolio = () => {
                 </div>
               </div>
 
-              {/* Contact Button */}
-              <a
-                href={`mailto:${portfolio?.student_profiles?.email || ""}`}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium"
-              >
-                <Mail className="h-4 w-4" />
-                <span>Contact Me</span>
-              </a>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                <FollowButton
+                  targetUserId={portfolio?.student_id || ""}
+                  currentUserId={currentUserId}
+                  variant="profile"
+                  size="default"
+                />
+                <a
+                  href={`mailto:${portfolio?.student_profiles?.email || ""}`}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium"
+                >
+                  <Mail className="h-4 w-4" />
+                  <span>Contact Me</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>

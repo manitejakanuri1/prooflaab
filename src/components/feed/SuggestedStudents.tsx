@@ -114,110 +114,94 @@ const SuggestedStudents = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Suggested Students
+      <Card className="p-5 rounded-xl border-border/50 bg-card shadow-sm">
+        <h3 className="text-base font-semibold text-foreground mb-4">
+          People you may know
         </h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="p-4 space-y-3">
-              <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-3 w-3/4 mx-auto" />
-              <Skeleton className="h-8 w-full" />
-            </Card>
+            <div key={i} className="flex items-start gap-3">
+              <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-8 w-24 mt-2" />
+              </div>
+            </div>
           ))}
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (recommendations.length === 0) {
     return (
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Suggested Students
+      <Card className="p-5 rounded-xl border-border/50 bg-card shadow-sm">
+        <h3 className="text-base font-semibold text-foreground mb-4">
+          People you may know
         </h3>
-        <Card className="p-6 text-center">
+        <div className="text-center py-6">
           <User className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
           <p className="text-sm text-muted-foreground">No suggestions available yet.</p>
-        </Card>
-      </div>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-        <Users className="h-4 w-4" />
-        Suggested Students
+    <Card className="p-5 rounded-xl border-border/50 bg-card shadow-sm">
+      <h3 className="text-base font-semibold text-foreground mb-4">
+        People you may know
       </h3>
       
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-4">
         {recommendations.slice(0, 8).map((student) => {
           const isFollowing = followingStates[student.student_id] || false;
           
           return (
-            <Card 
+            <div 
               key={student.student_id}
-              className="p-4 hover:shadow-md transition-all duration-200 bg-card/50 backdrop-blur-sm border-border/50 rounded-xl"
-              style={{ width: '100%', minWidth: '160px', maxWidth: '190px' }}
+              className="flex items-start gap-3 pb-4 border-b border-border/30 last:border-0 last:pb-0"
             >
-              <div className="flex flex-col items-center space-y-3">
-                {/* Avatar */}
-                <Avatar className="h-12 w-12 border-2 border-border">
-                  <AvatarImage src={student.avatar_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                    {getInitials(student.full_name)}
-                  </AvatarFallback>
-                </Avatar>
+              {/* Avatar */}
+              <Avatar className="h-12 w-12 flex-shrink-0 border border-border">
+                <AvatarImage src={student.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  {getInitials(student.full_name)}
+                </AvatarFallback>
+              </Avatar>
 
-                {/* Name */}
-                <div className="text-center w-full">
+              {/* Info and Button */}
+              <div className="flex-1 min-w-0">
+                {/* Name and Bio */}
+                <div className="mb-2">
                   <h4 className="text-sm font-semibold text-foreground truncate">
                     {student.full_name}
                   </h4>
-                  {student.bio && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                      {student.bio}
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                    {student.bio || `${student.total_xp} XP • Trust Score ${student.trust_score}`}
+                  </p>
                 </div>
 
-                {/* Stats */}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground w-full justify-center">
-                  <div className="flex items-center gap-1" title="Total XP">
-                    <Award className="h-3 w-3 text-orange-500" />
-                    <span className="font-medium">{student.total_xp}</span>
-                  </div>
-                  <div className="flex items-center gap-1" title="Trust Score">
-                    <div className="h-3 w-3 rounded-full bg-green-500 flex items-center justify-center text-[8px] text-white font-bold">
-                      T
-                    </div>
-                    <span className="font-medium">{student.trust_score}</span>
-                  </div>
-                </div>
-
-                {/* Follow Button */}
+                {/* Connect Button */}
                 <Button
                   size="sm"
-                  variant={isFollowing ? "outline" : "default"}
-                  className="w-full text-xs h-7"
+                  variant={isFollowing ? "outline" : "outline"}
+                  className="h-8 px-4 text-xs font-semibold rounded-full border-border/60 hover:bg-muted/50"
                   onClick={() => handleFollowToggle(student)}
                   disabled={followMutation.isPending || unfollowMutation.isPending}
                 >
-                  {isFollowing ? "Following ✓" : "Follow"}
+                  <Users className="h-3 w-3 mr-1" />
+                  {isFollowing ? "Following" : "Connect"}
                 </Button>
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>
 
       {/* Next: integrate this into Feed sidebar */}
-    </div>
+    </Card>
   );
 };
 

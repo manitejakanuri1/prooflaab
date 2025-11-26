@@ -304,7 +304,7 @@ const StudentFeedPage = () => {
                   description={post.description || ""}
                   descriptionItems={descriptionItems}
                   skills={post.skills || []}
-                  proofUrl={`/student/proofs/${post.proof_id}`}
+                  proofUrl={`/student/proof/${post.proof_id}`}
                   likesCount={post.likes_count || 0}
                   commentsCount={post.comments_count || 0}
                   branch={profile?.branch || "General"}
@@ -314,7 +314,7 @@ const StudentFeedPage = () => {
                   isLiked={post.user_has_liked || false}
                   onLike={() => handleLike(post.id, post.user_has_liked || false)}
                   onCommentClick={() => setOpenCommentsPostId(post.id)}
-                  onProofClick={() => navigate(`/student/proofs/${post.proof_id}`)}
+                  onProofClick={() => navigate(`/student/proof/${post.proof_id}`)}
                   externalLink={post.external_link}
                   proofId={post.proof_id}
                 />

@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, MoreVertical, ShieldCheck, ArrowRight } from "lucide-react";
+import { Heart, MessageCircle, MoreVertical, ShieldCheck, ArrowRight, Share2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FollowButton } from "./FollowButton";
+import { toast } from "sonner";
 
 interface FeedPostCardProps {
+  postId: string;
   userName: string;
   userAvatarUrl?: string;
   isVerified?: boolean;
@@ -37,10 +40,10 @@ interface FeedPostCardProps {
   isPublic?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
-  onShare?: () => void;
 }
 
 export const FeedPostCard = ({
+  postId,
   userName,
   userAvatarUrl,
   isVerified = false,
@@ -67,19 +70,31 @@ export const FeedPostCard = ({
   isPublic = false,
   onEdit,
   onDelete,
-  onShare,
 }: FeedPostCardProps) => {
-  // Ownership and visibility flags
+  // Ownership flag
   const isOwner = studentId === currentStudentId;
-  const isInternal = proofId !== null;
-  const isExternal = proofId === null;
-
-  // Share button visibility
-  const showShare = isOwner || isPublic;
 
   // Convert emoji code to actual emoji
   const getEmoji = (code: string) => {
     return String.fromCodePoint(parseInt(code, 16));
+  };
+
+  // Share handler - copies public URL to clipboard
+  const handleShare = async () => {
+    const publicUrl = `${window.location.origin}/post/${postId}`;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast.success("Post link copied!");
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = publicUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      toast.success("Post link copied!");
+    }
   };
 
   return (
@@ -118,7 +133,7 @@ export const FeedPostCard = ({
             size="sm"
           />
           
-          {(isOwner || showShare) && (
+          {/* Dropdown Menu - Always visible for Share, Edit/Delete only for owner */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -129,15 +144,18 @@ export const FeedPostCard = ({
               {isOwner && (
                 <>
                   <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
-                  <DropdownMenuItem onClick={onDelete}>Delete</DropdownMenuItem>
+                  <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                    Delete
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                 </>
               )}
-              {showShare && (
-                <DropdownMenuItem onClick={onShare}>Share</DropdownMenuItem>
-              )}
+              <DropdownMenuItem onClick={handleShare}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          )}
         </div>
       </div>
 
@@ -270,6 +288,13 @@ export const FeedPostCard = ({
           >
             <MessageCircle className="h-5 w-5" />
             <span>{commentsCount}</span>
+          </button>
+          <button 
+            onClick={handleShare}
+            className="flex items-center gap-2 hover:text-primary transition-colors"
+            title="Share post"
+          >
+            <Share2 className="h-5 w-5" />
           </button>
           <Badge variant="outline" className="rounded-full">
             {branch}

@@ -29,6 +29,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminNotifications from "./pages/AdminNotifications";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ProofViewer from "./pages/ProofViewer";
+import PostPage from "./pages/PostPage";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/post/:postId" element={<PostPage />} />
             <Route path="/portfolio/:slug" element={<Portfolio />} />
             <Route path="/recruiter/:linkId" element={<RecruiterView />} />
             

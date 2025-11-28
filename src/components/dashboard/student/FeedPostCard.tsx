@@ -245,8 +245,8 @@ export const FeedPostCard = ({
                 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
               }
             `}</style>
-            <div className="flex items-center justify-center rounded-full shadow-sm w-16 h-16 sm:w-20 sm:h-20 bg-muted/50 dark:bg-muted/30">
-              <span className="text-3xl sm:text-4xl">{getEmoji(tinyEmojiCode)}</span>
+            <div className="flex items-center justify-center rounded-full shadow-sm w-20 h-20 sm:w-24 sm:h-24 bg-muted/50 dark:bg-muted/30">
+              <span className="text-4xl sm:text-5xl">{getEmoji(tinyEmojiCode)}</span>
             </div>
           </div>
         )}

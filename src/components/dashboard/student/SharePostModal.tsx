@@ -63,8 +63,8 @@ export const SharePostModal = ({
   };
 
   const getShareLink = () => {
-    if (isInternal && isPublic) {
-      return `${window.location.origin}/student/proof/${proofId}`;
+    if (isInternal && isPublic && postId) {
+      return `${window.location.origin}/post/${postId}`;
     }
     if (!isInternal && externalLink) {
       return externalLink;

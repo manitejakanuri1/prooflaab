@@ -1,6 +1,7 @@
 import { Calendar, ArrowRight, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 
 interface PublicProjectCardProps {
   emojiCode: string;
@@ -10,6 +11,7 @@ interface PublicProjectCardProps {
   submittedAt: string;
   fileUrl: string | null;
   proofId: string;
+  postId?: string | null;
   aiSummary?: string | null;
   reflectionSummary?: string | null;
 }
@@ -22,6 +24,7 @@ export const PublicProjectCard = ({
   submittedAt,
   fileUrl,
   proofId,
+  postId,
   aiSummary,
   reflectionSummary,
 }: PublicProjectCardProps) => {
@@ -96,7 +99,15 @@ export const PublicProjectCard = ({
           <span>{format(new Date(submittedAt), "MMM dd, yyyy")}</span>
         </div>
 
-        {fileUrl && (
+        {postId ? (
+          <Link
+            to={`/post/${postId}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-xs font-medium"
+          >
+            <span>View Project</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        ) : fileUrl ? (
           <a
             href={fileUrl}
             target="_blank"
@@ -106,7 +117,7 @@ export const PublicProjectCard = ({
             <span>View Project</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </a>
-        )}
+        ) : null}
       </div>
     </article>
   );

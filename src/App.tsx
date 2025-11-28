@@ -29,6 +29,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminNotifications from "./pages/AdminNotifications";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ProofViewer from "./pages/ProofViewer";
+import ProofRedirect from "./components/ProofRedirect";
 import PostPage from "./pages/PostPage";
 
 const queryClient = new QueryClient();
@@ -81,13 +82,10 @@ const App = () => (
                 </RoleBasedProtectedRoute>
               } 
             />
+            {/* Legacy proof route - redirects to post page */}
             <Route 
               path="/student/proof/:id" 
-              element={
-                <RoleBasedProtectedRoute allowedRoles={['student']}>
-                  <ProofViewer />
-                </RoleBasedProtectedRoute>
-              } 
+              element={<ProofRedirect />}
             />
             
             {/* College Admin Routes */}

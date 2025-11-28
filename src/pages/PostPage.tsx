@@ -50,6 +50,7 @@ interface PostData {
   proof_upload: {
     is_public: boolean;
     status: string | null;
+    file_url: string | null;
   } | null;
 }
 
@@ -205,7 +206,7 @@ const PostPage = () => {
         if (postData.proof_id) {
           const { data: proof } = await supabase
             .from("proof_uploads")
-            .select("is_public, status")
+            .select("is_public, status, file_url")
             .eq("id", postData.proof_id)
             .single();
           
@@ -696,13 +697,13 @@ const PostPage = () => {
 
         {/* Action Button */}
         <div className="flex flex-wrap gap-3 mb-8">
-          {isInternalPost && post.proof_id ? (
-            <Link to={`/student/proof/${post.proof_id}`}>
+          {isInternalPost && post.proof_id && post.proof_upload?.file_url ? (
+            <a href={post.proof_upload.file_url} target="_blank" rel="noopener noreferrer">
               <Button className="gap-2">
                 <Shield className="w-4 h-4" />
-                View Verified Proof
+                View Project Files
               </Button>
-            </Link>
+            </a>
           ) : post.external_link ? (
             <a href={post.external_link} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="gap-2">

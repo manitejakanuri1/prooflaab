@@ -11,6 +11,7 @@ interface PortfolioProject {
   submission_notes: string | null;
   ai_summary: string | null;
   reflection_answers: any;
+  post_id: string | null;
   task: {
     title: string;
     description: string | null;
@@ -61,6 +62,24 @@ export const usePortfolioProjects = (studentId: string) => {
 
         if (fetchError) throw fetchError;
 
+        // Fetch associated post IDs for each proof
+        const proofIds = data?.map(d => d.id) || [];
+        let postMap: Record<string, string> = {};
+        
+        if (proofIds.length > 0) {
+          const { data: posts } = await supabase
+            .from('proof_posts')
+            .select('id, proof_id')
+            .in('proof_id', proofIds);
+          
+          if (posts) {
+            postMap = posts.reduce((acc, post) => {
+              if (post.proof_id) acc[post.proof_id] = post.id;
+              return acc;
+            }, {} as Record<string, string>);
+          }
+        }
+
         const formattedProjects = data.map(item => ({
           id: item.id,
           task_id: item.task_id,
@@ -70,6 +89,7 @@ export const usePortfolioProjects = (studentId: string) => {
           submission_notes: item.submission_notes,
           ai_summary: item.ai_summary,
           reflection_answers: item.reflection_answers,
+          post_id: postMap[item.id] || null,
           task: Array.isArray(item.tasks) ? item.tasks[0] : item.tasks
         }));
 

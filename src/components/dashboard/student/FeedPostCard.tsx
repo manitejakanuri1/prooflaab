@@ -245,13 +245,8 @@ export const FeedPostCard = ({
                 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
               }
             `}</style>
-            <div className="flex items-center justify-center rounded-full shadow-lg" style={{ 
-              width: '130px',
-              height: '130px',
-              backgroundColor: '#FFF7EE',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)'
-            }}>
-              <span style={{ fontSize: '80px', lineHeight: '1' }}>{getEmoji(tinyEmojiCode)}</span>
+            <div className="flex items-center justify-center rounded-full shadow-sm w-14 h-14 sm:w-16 sm:h-16 bg-muted/50 dark:bg-muted/30">
+              <span className="text-2xl sm:text-3xl">{getEmoji(tinyEmojiCode)}</span>
             </div>
           </div>
         )}

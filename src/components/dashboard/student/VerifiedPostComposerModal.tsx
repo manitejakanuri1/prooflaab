@@ -86,12 +86,23 @@ const VerifiedPostComposerModal = ({
   const [emojiCode, setEmojiCode] = useState("1F680");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [existingPostId, setExistingPostId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && proofId) {
       fetchProofDetails();
+      checkExistingPost();
     }
   }, [isOpen, proofId]);
+
+  const checkExistingPost = async () => {
+    const { data } = await supabase
+      .from("proof_posts")
+      .select("id")
+      .eq("proof_id", proofId)
+      .maybeSingle();
+    setExistingPostId(data?.id || null);
+  };
 
   const fetchProofDetails = async () => {
     try {
@@ -248,16 +259,16 @@ const VerifiedPostComposerModal = ({
               </span>
             </div>
 
-            {/* View Proof Link */}
-            {proof && (
+            {/* View Proof Link - links to post page if post exists, otherwise to proof viewer */}
+            {proof && existingPostId && (
               <a
-                href={`/student/proof/${proofId}`}
+                href={`/post/${existingPostId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-sm"
               >
                 <ExternalLink className="w-4 h-4" />
-                <span>View Original Proof Submission</span>
+                <span>View Post</span>
               </a>
             )}
 

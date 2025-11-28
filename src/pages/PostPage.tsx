@@ -365,9 +365,19 @@ const PostPage = () => {
 
   const updateMetaTags = (postData: PostData) => {
     const studentName = postData.student?.full_name || "Student";
-    const description = postData.description?.slice(0, 155) || `Project by ${studentName}`;
+    const pageUrl = `${window.location.origin}/post/${postData.id}`;
+    const description = (
+      postData.description?.slice(0, 155) || 
+      `A verified project by ${studentName} on ProofLabAI`
+    );
+    const title = `${postData.title} – Verified Proof by ${studentName}`;
+    const image = postData.emoji_code 
+      ? `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${postData.emoji_code.toLowerCase()}.png`
+      : "https://prooflab.ai/og-default.png";
+    const datePublished = postData.created_at || new Date().toISOString();
     
     const setMeta = (name: string, content: string, property?: boolean) => {
+      if (!content) return;
       const attr = property ? "property" : "name";
       let meta = document.querySelector(`meta[${attr}="${name}"]`);
       if (!meta) {
@@ -378,13 +388,80 @@ const PostPage = () => {
       meta.setAttribute("content", content);
     };
 
+    const setLink = (rel: string, href: string) => {
+      if (!href) return;
+      let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.setAttribute("rel", rel);
+        document.head.appendChild(link);
+      }
+      link.setAttribute("href", href);
+    };
+
+    // Document title
+    document.title = title;
+
+    // Basic meta
     setMeta("description", description);
-    setMeta("og:title", `${postData.title} | ProofLabAI`, true);
+    setMeta("author", studentName);
+
+    // Canonical URL
+    setLink("canonical", pageUrl);
+
+    // OpenGraph tags
+    setMeta("og:title", title, true);
     setMeta("og:description", description, true);
     setMeta("og:type", "article", true);
+    setMeta("og:url", pageUrl, true);
+    setMeta("og:image", image, true);
+    setMeta("og:site_name", "ProofLabAI", true);
+    setMeta("article:published_time", datePublished, true);
+    setMeta("article:author", studentName, true);
+
+    // Twitter Card tags
     setMeta("twitter:card", "summary_large_image");
-    setMeta("twitter:title", `${postData.title} | ProofLabAI`);
+    setMeta("twitter:title", title);
     setMeta("twitter:description", description);
+    setMeta("twitter:image", image);
+    setMeta("twitter:site", "@ProofLabAI");
+
+    // JSON-LD Structured Data
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: postData.title,
+      description: description,
+      author: {
+        "@type": "Person",
+        name: studentName,
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "ProofLabAI",
+        url: "https://prooflab.ai",
+        logo: {
+          "@type": "ImageObject",
+          url: "https://prooflab.ai/logo.png",
+        },
+      },
+      datePublished: datePublished,
+      dateModified: datePublished,
+      image: image,
+      url: pageUrl,
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": pageUrl,
+      },
+    };
+
+    let script = document.querySelector('script[type="application/ld+json"]') as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.setAttribute("type", "application/ld+json");
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(jsonLd);
   };
 
   const handleLike = async () => {

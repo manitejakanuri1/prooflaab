@@ -60,6 +60,97 @@ const Portfolio = () => {
     console.log('Projects API Response:', { projects, loading: projectsLoading, error: projectsError });
   }, [projects, projectsLoading, projectsError]);
 
+  // SEO Meta Tags
+  useEffect(() => {
+    if (!portfolio || !portfolio.student_profiles) return;
+
+    const studentName = portfolio.student_profiles.full_name || "Student";
+    const pageUrl = `${window.location.origin}/portfolio/${slug}`;
+    const title = `${studentName} – ProofLabAI Portfolio`;
+    const description = (
+      portfolio.bio?.slice(0, 155) || 
+      `View ${studentName}'s verified projects and achievements on ProofLabAI.`
+    );
+    const image = portfolio.student_profiles.profile_photo_url || "https://prooflab.ai/og-default.png";
+
+    // Document title
+    document.title = title;
+
+    const setMeta = (name: string, content: string, isProperty = false) => {
+      if (!content) return;
+      const attr = isProperty ? "property" : "name";
+      let meta = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute(attr, name);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", content);
+    };
+
+    const setLink = (rel: string, href: string) => {
+      if (!href) return;
+      let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.setAttribute("rel", rel);
+        document.head.appendChild(link);
+      }
+      link.setAttribute("href", href);
+    };
+
+    // Basic meta
+    setMeta("description", description);
+    setMeta("author", studentName);
+
+    // Canonical URL
+    setLink("canonical", pageUrl);
+
+    // OpenGraph tags
+    setMeta("og:title", title, true);
+    setMeta("og:description", description, true);
+    setMeta("og:type", "profile", true);
+    setMeta("og:url", pageUrl, true);
+    setMeta("og:image", image, true);
+    setMeta("og:site_name", "ProofLabAI", true);
+    setMeta("profile:username", studentName, true);
+
+    // Twitter Card tags
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+    setMeta("twitter:image", image);
+    setMeta("twitter:site", "@ProofLabAI");
+
+    // JSON-LD Structured Data
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: studentName,
+      description: description,
+      image: image,
+      url: pageUrl,
+      knowsAbout: portfolio.skills || [],
+      memberOf: {
+        "@type": "Organization",
+        name: "ProofLabAI",
+        url: "https://prooflab.ai",
+      },
+    };
+
+    let script = document.querySelector('script[type="application/ld+json"]') as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.setAttribute("type", "application/ld+json");
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(jsonLd);
+
+    return () => {
+      document.title = "ProofLabAI";
+    };
+  }, [portfolio, slug]);
+
   const handleRetry = () => {
     window.location.reload();
   };

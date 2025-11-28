@@ -1,13 +1,26 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, ExternalLink, Shield, ArrowLeft, Lock } from "lucide-react";
-import { format } from "date-fns";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Heart, 
+  MessageCircle, 
+  ExternalLink, 
+  Shield, 
+  ArrowLeft, 
+  Lock, 
+  Share2,
+  Send,
+  LogIn
+} from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import { FollowButton } from "@/components/dashboard/student/FollowButton";
 
 interface PostData {
   id: string;
@@ -25,10 +38,14 @@ interface PostData {
   visibility: string;
   status: string | null;
   student: {
+    id: string;
+    user_id: string | null;
     full_name: string;
     profile_photo_url: string | null;
     career_goals: string | null;
     slug: string | null;
+    branch: string | null;
+    college_id: string | null;
   } | null;
   proof_upload: {
     is_public: boolean;
@@ -44,12 +61,41 @@ interface RelatedPost {
   likes_count: number | null;
 }
 
+interface Comment {
+  id: string;
+  comment: string;
+  created_at: string;
+  user_id: string;
+  student_profiles?: {
+    full_name: string;
+    profile_photo_url: string | null;
+  };
+}
+
 const PostPage = () => {
   const { postId } = useParams<{ postId: string }>();
+  const navigate = useNavigate();
   const [post, setPost] = useState<PostData | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Auth state
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  
+  // Like state
+  const [isLiked, setIsLiked] = useState(false);
+  const [localLikesCount, setLocalLikesCount] = useState(0);
+  const [isLiking, setIsLiking] = useState(false);
+  
+  // Comments state
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [isSendingComment, setIsSendingComment] = useState(false);
+  const commentsRef = useRef<HTMLDivElement>(null);
 
   const getEmoji = (emojiCode: string): string => {
     if (!emojiCode) return "🎯";
@@ -66,6 +112,30 @@ const PostPage = () => {
     }
   };
 
+  // Check auth status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from("student_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+        
+        if (profile) {
+          setCurrentStudentId(profile.id);
+        }
+      }
+      setIsAuthChecking(false);
+    };
+    
+    checkAuth();
+  }, []);
+
+  // Fetch post data
   useEffect(() => {
     const fetchPost = async () => {
       if (!postId) {
@@ -75,7 +145,6 @@ const PostPage = () => {
       }
 
       try {
-        // Fetch post with student info
         const { data: postData, error: postError } = await supabase
           .from("proof_posts")
           .select(`
@@ -94,10 +163,14 @@ const PostPage = () => {
             visibility,
             status,
             student_profiles!proof_posts_student_id_fkey (
+              id,
+              user_id,
               full_name,
               profile_photo_url,
               career_goals,
-              slug
+              slug,
+              branch,
+              college_id
             )
           `)
           .eq("id", postId)
@@ -113,9 +186,16 @@ const PostPage = () => {
           return;
         }
 
-        // Check if post is accessible (public or verified)
+        // Check post visibility
         if (postData.visibility !== "public" && !postData.verified_badge) {
-          setError("This post is private");
+          setError("This post is not public");
+          setLoading(false);
+          return;
+        }
+
+        // Check if post is deleted/inactive
+        if (postData.status === "deleted") {
+          setError("This post is no longer available");
           setLoading(false);
           return;
         }
@@ -131,7 +211,6 @@ const PostPage = () => {
           
           proofData = proof;
           
-          // For internal verified posts, proof must be public
           if (proof && !proof.is_public && postData.verified_badge) {
             setError("This proof is private");
             setLoading(false);
@@ -148,19 +227,19 @@ const PostPage = () => {
         };
 
         setPost(formattedPost);
+        setLocalLikesCount(postData.likes_count || 0);
 
         // Update SEO meta tags
         document.title = `${postData.title} | ProofLabAI`;
         updateMetaTags(formattedPost);
 
-        // Fetch related posts from same student
+        // Fetch related posts
         if (postData.student_id) {
           const { data: related } = await supabase
             .from("proof_posts")
             .select("id, title, emoji_code, created_at, likes_count")
             .eq("student_id", postData.student_id)
             .eq("visibility", "public")
-            .eq("status", "active")
             .neq("id", postId)
             .order("created_at", { ascending: false })
             .limit(3);
@@ -180,8 +259,106 @@ const PostPage = () => {
     fetchPost();
 
     return () => {
-      // Reset meta tags on unmount
       document.title = "ProofLabAI";
+    };
+  }, [postId]);
+
+  // Check if user has liked the post
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      if (!currentUser || !postId) return;
+      
+      const { data } = await supabase
+        .from("post_likes")
+        .select("id")
+        .eq("post_id", postId)
+        .eq("user_id", currentUser.id)
+        .single();
+      
+      setIsLiked(!!data);
+    };
+    
+    checkLikeStatus();
+  }, [currentUser, postId]);
+
+  // Fetch comments
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!postId) return;
+      
+      setIsLoadingComments(true);
+      
+      const { data: commentsData, error: commentsError } = await supabase
+        .from("post_comments")
+        .select("*")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+
+      if (commentsError) {
+        console.error("Error fetching comments:", commentsError);
+        setIsLoadingComments(false);
+        return;
+      }
+
+      const userIds = [...new Set(commentsData?.map((c) => c.user_id) || [])];
+      
+      if (userIds.length === 0) {
+        setComments([]);
+        setIsLoadingComments(false);
+        return;
+      }
+
+      const { data: profilesData } = await supabase
+        .from("student_profiles")
+        .select("user_id, full_name, profile_photo_url")
+        .in("user_id", userIds);
+
+      const profilesMap = new Map(
+        profilesData?.map((p) => [p.user_id, p]) || []
+      );
+
+      const commentsWithProfiles = commentsData?.map((comment) => ({
+        ...comment,
+        student_profiles: profilesMap.get(comment.user_id),
+      })) || [];
+
+      setComments(commentsWithProfiles);
+      setIsLoadingComments(false);
+    };
+
+    fetchComments();
+
+    // Setup realtime subscription
+    const channel = supabase
+      .channel(`public-post-comments-${postId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "post_comments",
+          filter: `post_id=eq.${postId}`,
+        },
+        async (payload) => {
+          const newComment = payload.new as any;
+          
+          // Fetch profile for new comment
+          const { data: profile } = await supabase
+            .from("student_profiles")
+            .select("user_id, full_name, profile_photo_url")
+            .eq("user_id", newComment.user_id)
+            .single();
+
+          setComments((prev) => {
+            if (prev.some(c => c.id === newComment.id)) return prev;
+            return [...prev, { ...newComment, student_profiles: profile || undefined }];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
     };
   }, [postId]);
 
@@ -189,7 +366,6 @@ const PostPage = () => {
     const studentName = postData.student?.full_name || "Student";
     const description = postData.description?.slice(0, 155) || `Project by ${studentName}`;
     
-    // Update or create meta tags
     const setMeta = (name: string, content: string, property?: boolean) => {
       const attr = property ? "property" : "name";
       let meta = document.querySelector(`meta[${attr}="${name}"]`);
@@ -208,6 +384,112 @@ const PostPage = () => {
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", `${postData.title} | ProofLabAI`);
     setMeta("twitter:description", description);
+  };
+
+  const handleLike = async () => {
+    if (!currentUser) {
+      toast.info("Please login to like posts");
+      return;
+    }
+    
+    if (isLiking || !postId) return;
+    
+    setIsLiking(true);
+    const wasLiked = isLiked;
+    
+    // Optimistic update
+    setIsLiked(!wasLiked);
+    setLocalLikesCount(prev => wasLiked ? prev - 1 : prev + 1);
+    
+    try {
+      if (wasLiked) {
+        await supabase
+          .from("post_likes")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", currentUser.id);
+      } else {
+        await supabase
+          .from("post_likes")
+          .insert({ post_id: postId, user_id: currentUser.id });
+      }
+    } catch (error) {
+      // Revert on error
+      setIsLiked(wasLiked);
+      setLocalLikesCount(prev => wasLiked ? prev + 1 : prev - 1);
+      toast.error("Failed to update like");
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const handleComment = async () => {
+    if (!currentUser) {
+      toast.info("Please login to comment");
+      return;
+    }
+    
+    if (!commentText.trim() || !postId || isSendingComment) return;
+    
+    setIsSendingComment(true);
+    const tempText = commentText.trim();
+    setCommentText("");
+    
+    try {
+      const { data: newComment, error } = await supabase
+        .from("post_comments")
+        .insert({
+          post_id: postId,
+          user_id: currentUser.id,
+          comment: tempText,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const { data: profile } = await supabase
+        .from("student_profiles")
+        .select("user_id, full_name, profile_photo_url")
+        .eq("user_id", currentUser.id)
+        .single();
+
+      if (newComment) {
+        setComments((prev) => {
+          if (prev.some(c => c.id === newComment.id)) return prev;
+          return [...prev, { ...newComment, student_profiles: profile || undefined }];
+        });
+      }
+
+      toast.success("Comment posted!");
+      
+      // Scroll to comments
+      setTimeout(() => {
+        commentsRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (error) {
+      console.error("Error posting comment:", error);
+      toast.error("Failed to post comment");
+      setCommentText(tempText);
+    } finally {
+      setIsSendingComment(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const publicUrl = `${window.location.origin}/post/${postId}`;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast.success("Post link copied!");
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = publicUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      toast.success("Post link copied!");
+    }
   };
 
   if (loading) {
@@ -234,19 +516,21 @@ const PostPage = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center px-4">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
-            {error.includes("private") ? (
+            {error.includes("private") || error.includes("public") ? (
               <Lock className="w-10 h-10 text-muted-foreground" />
             ) : (
               <span className="text-4xl">🔍</span>
             )}
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">
-            {error.includes("private") ? "Private Content" : "Post Not Found"}
+            {error.includes("private") || error.includes("public") 
+              ? "Private Content" 
+              : error.includes("no longer") 
+                ? "Post Unavailable"
+                : "Post Not Found"}
           </h1>
           <p className="text-muted-foreground mb-6 max-w-md">
-            {error.includes("private")
-              ? "This content is not publicly available. The owner may have set it to private."
-              : "The post you're looking for doesn't exist or may have been removed."}
+            {error}
           </p>
           <Link to="/">
             <Button variant="outline">
@@ -266,6 +550,7 @@ const PostPage = () => {
   const formattedDate = post.created_at
     ? format(new Date(post.created_at), "MMMM d, yyyy")
     : "";
+  const isOwner = currentStudentId === post.student_id;
 
   return (
     <div className="min-h-screen bg-background">
@@ -276,13 +561,24 @@ const PostPage = () => {
             <ArrowLeft className="w-4 h-4" />
             <span className="font-medium">ProofLabAI</span>
           </Link>
-          {post.student?.slug && (
-            <Link to={`/portfolio/${post.student.slug}`}>
-              <Button variant="outline" size="sm">
-                View Portfolio
+          <div className="flex items-center gap-2">
+            {currentUser ? (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate("/student/dashboard")}
+              >
+                Back to Dashboard
               </Button>
-            </Link>
-          )}
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
@@ -290,9 +586,12 @@ const PostPage = () => {
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
         {/* Post Header */}
         <div className="relative mb-8">
-          {/* Floating Emoji */}
+          {/* Floating Emoji - Animated */}
           <div className="absolute -top-2 right-0 sm:right-4">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-muted/50 flex items-center justify-center shadow-sm">
+            <div 
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-lg animate-bounce"
+              style={{ animationDuration: '3s' }}
+            >
               <span className="text-4xl sm:text-5xl">{getEmoji(post.emoji_code)}</span>
             </div>
           </div>
@@ -312,24 +611,64 @@ const PostPage = () => {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4 pr-24 sm:pr-32">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2 pr-24 sm:pr-32">
             {post.title}
           </h1>
 
-          {/* Author Info */}
-          <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={post.student?.profile_photo_url || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {studentName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium text-foreground">{studentName}</p>
-              <p className="text-sm text-muted-foreground">{formattedDate}</p>
-            </div>
-          </div>
+          {/* Subtitle */}
+          <p className="text-muted-foreground mb-6">
+            By {studentName} • {formattedDate}
+          </p>
         </div>
+
+        {/* Author Bio Section */}
+        <Card className="mb-8 border-border/50">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start gap-4">
+              <Link to={post.student?.slug ? `/portfolio/${post.student.slug}` : "#"}>
+                <Avatar className="w-14 h-14 sm:w-16 sm:h-16 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                  <AvatarImage src={post.student?.profile_photo_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                    {studentName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <Link 
+                      to={post.student?.slug ? `/portfolio/${post.student.slug}` : "#"}
+                      className="hover:underline"
+                    >
+                      <h3 className="font-semibold text-foreground text-lg">{studentName}</h3>
+                    </Link>
+                    <p className="text-sm text-muted-foreground">
+                      {post.student?.branch || "Student"} 
+                      {post.student?.career_goals && ` • ${post.student.career_goals.slice(0, 60)}${post.student.career_goals.length > 60 ? '...' : ''}`}
+                    </p>
+                  </div>
+                  {/* Follow Button - Only show if logged in and not owner */}
+                  {currentUser && !isOwner && post.student?.user_id && (
+                    <FollowButton
+                      targetUserId={post.student.user_id}
+                      currentUserId={currentUser.id}
+                      variant="feed"
+                      size="sm"
+                    />
+                  )}
+                </div>
+                {post.student?.slug && (
+                  <Link 
+                    to={`/portfolio/${post.student.slug}`}
+                    className="text-sm text-primary hover:underline mt-2 inline-block"
+                  >
+                    View full portfolio →
+                  </Link>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Description */}
         {post.description && (
@@ -356,7 +695,7 @@ const PostPage = () => {
         )}
 
         {/* Action Button */}
-        <div className="mb-8">
+        <div className="flex flex-wrap gap-3 mb-8">
           {isInternalPost && post.proof_id ? (
             <Link to={`/student/proof/${post.proof_id}`}>
               <Button className="gap-2">
@@ -372,30 +711,157 @@ const PostPage = () => {
               </Button>
             </a>
           ) : null}
+          
+          {/* Share Button */}
+          <Button variant="outline" onClick={handleShare} className="gap-2">
+            <Share2 className="w-4 h-4" />
+            Share
+          </Button>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-6 py-4 border-t border-b border-border/40 mb-8">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Heart className="w-5 h-5" />
-            <span className="font-medium">{post.likes_count || 0} likes</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
+        {/* Interactive Stats */}
+        <div className="flex items-center gap-4 py-4 border-t border-b border-border/40 mb-8">
+          <button
+            onClick={handleLike}
+            disabled={isLiking}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
+              isLiked 
+                ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" 
+                : "bg-muted hover:bg-muted/80 text-muted-foreground"
+            }`}
+          >
+            <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
+            <span className="font-medium">{localLikesCount}</span>
+          </button>
+          
+          <button
+            onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-all"
+          >
             <MessageCircle className="w-5 h-5" />
-            <span className="font-medium">{post.comments_count || 0} comments</span>
-          </div>
+            <span className="font-medium">{comments.length}</span>
+          </button>
+          
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-all"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
         </div>
+
+        {/* Comments Section */}
+        <section ref={commentsRef} className="mb-12">
+          <h2 className="text-xl font-semibold text-foreground mb-6">
+            Comments ({comments.length})
+          </h2>
+
+          {/* Comment Input */}
+          {currentUser ? (
+            <div className="flex gap-3 mb-6">
+              <Avatar className="w-10 h-10 flex-shrink-0">
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {currentUser.email?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 flex gap-2">
+                <Textarea
+                  placeholder="Write a comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="min-h-[44px] max-h-[120px] resize-none rounded-xl"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleComment();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleComment}
+                  disabled={!commentText.trim() || isSendingComment}
+                  size="icon"
+                  className="h-11 w-11 rounded-xl flex-shrink-0"
+                >
+                  {isSendingComment ? (
+                    <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Card className="mb-6 bg-muted/50">
+              <CardContent className="p-4 text-center">
+                <p className="text-muted-foreground mb-3">Login to join the conversation</p>
+                <Link to="/auth">
+                  <Button variant="outline" size="sm">
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Login to comment
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Comments List */}
+          {isLoadingComments ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">💬</div>
+              <p className="text-muted-foreground">No comments yet. Be the first!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex gap-3 py-3 border-b border-border/30 last:border-0">
+                  <Avatar className="h-10 w-10 flex-shrink-0">
+                    <AvatarImage src={comment.student_profiles?.profile_photo_url || undefined} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {comment.student_profiles?.full_name?.charAt(0) || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-sm text-foreground">
+                        {comment.student_profiles?.full_name || "Anonymous"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                      {comment.comment}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Related Posts */}
         {relatedPosts.length > 0 && (
-          <section>
+          <section className="border-t border-border/40 pt-8">
             <h2 className="text-lg font-semibold text-foreground mb-4">
               More from {studentName}
             </h2>
             <div className="grid gap-4 sm:grid-cols-3">
               {relatedPosts.map((relatedPost) => (
                 <Link key={relatedPost.id} to={`/post/${relatedPost.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full hover:border-primary/30">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center flex-shrink-0">

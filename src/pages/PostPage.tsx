@@ -16,11 +16,13 @@ import {
   Lock, 
   Share2,
   Send,
-  LogIn
+  LogIn,
+  Mail
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { FollowButton } from "@/components/dashboard/student/FollowButton";
+import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 
 interface PostData {
   id: string;
@@ -629,36 +631,19 @@ const PostPage = () => {
     ? format(new Date(post.created_at), "MMMM d, yyyy")
     : "";
   const isOwner = currentStudentId === post.student_id;
+  
+  // Recruiter mode: not logged in OR logged in but not a student
+  const isStudent = !!currentStudentId;
+  const isRecruiterMode = !isStudent && !isAuthChecking;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="font-medium">ProofLabAI</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            {currentUser ? (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate("/student/dashboard")}
-              >
-                Back to Dashboard
-              </Button>
-            ) : (
-              <Link to="/auth">
-                <Button variant="outline" size="sm">
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Login
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      <RecruiterHeader 
+        isLoggedIn={!!currentUser} 
+        isStudent={isStudent} 
+        isLoading={isAuthChecking}
+      />
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
@@ -725,17 +710,29 @@ const PostPage = () => {
                       {post.student?.career_goals && ` • ${post.student.career_goals.slice(0, 60)}${post.student.career_goals.length > 60 ? '...' : ''}`}
                     </p>
                   </div>
-                  {/* Follow Button - Only show if logged in and not owner */}
-                  {currentUser && !isOwner && post.student?.user_id && (
+                  {/* Follow Button - Only show if logged in as student and not owner */}
+                  {isStudent && !isOwner && post.student_id && (
                     <FollowButton
-                      targetUserId={post.student.user_id}
-                      currentUserId={currentUser.id}
+                      targetUserId={post.student_id}
+                      currentUserId={currentStudentId}
                       variant="feed"
                       size="sm"
                     />
                   )}
                 </div>
-                {post.student?.slug && (
+                
+                {/* Contact Student Button - Show in Recruiter Mode */}
+                {isRecruiterMode && post.student?.slug && (
+                  <a 
+                    href={`mailto:contact@prooflab.ai?subject=Interest in ${studentName}'s Profile`}
+                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Contact Student
+                  </a>
+                )}
+                
+                {post.student?.slug && !isRecruiterMode && (
                   <Link 
                     to={`/portfolio/${post.student.slug}`}
                     className="text-sm text-primary hover:underline mt-2 inline-block"
@@ -799,27 +796,44 @@ const PostPage = () => {
 
         {/* Interactive Stats */}
         <div className="flex items-center gap-4 py-4 border-t border-b border-border/40 mb-8">
-          <button
-            onClick={handleLike}
-            disabled={isLiking}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-              isLiked 
-                ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" 
-                : "bg-muted hover:bg-muted/80 text-muted-foreground"
-            }`}
-          >
-            <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
-            <span className="font-medium">{localLikesCount}</span>
-          </button>
+          {/* Like Button - Interactive for students, display-only for recruiters */}
+          {isStudent ? (
+            <button
+              onClick={handleLike}
+              disabled={isLiking}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
+                isLiked 
+                  ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" 
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground"
+              }`}
+            >
+              <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
+              <span className="font-medium">{localLikesCount}</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-muted-foreground">
+              <Heart className="w-5 h-5" />
+              <span className="font-medium">{localLikesCount}</span>
+            </div>
+          )}
           
-          <button
-            onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-all"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span className="font-medium">{comments.length}</span>
-          </button>
+          {/* Comments - Interactive for students, display-only for recruiters */}
+          {isStudent ? (
+            <button
+              onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-all"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span className="font-medium">{comments.length}</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-muted-foreground">
+              <MessageCircle className="w-5 h-5" />
+              <span className="font-medium">{comments.length}</span>
+            </div>
+          )}
           
+          {/* Share Button - Always interactive */}
           <button
             onClick={handleShare}
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-all"
@@ -834,12 +848,12 @@ const PostPage = () => {
             Comments ({comments.length})
           </h2>
 
-          {/* Comment Input */}
-          {currentUser ? (
+          {/* Comment Input - Only for students */}
+          {isStudent ? (
             <div className="flex gap-3 mb-6">
               <Avatar className="w-10 h-10 flex-shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary">
-                  {currentUser.email?.charAt(0).toUpperCase() || "U"}
+                  {currentUser?.email?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 flex gap-2">
@@ -872,13 +886,17 @@ const PostPage = () => {
           ) : (
             <Card className="mb-6 bg-muted/50">
               <CardContent className="p-4 text-center">
-                <p className="text-muted-foreground mb-3">Login to join the conversation</p>
-                <Link to="/auth">
-                  <Button variant="outline" size="sm">
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Login to comment
-                  </Button>
-                </Link>
+                <p className="text-muted-foreground mb-3">
+                  {currentUser ? "Students can join the conversation" : "Login to join the conversation"}
+                </p>
+                {!currentUser && (
+                  <Link to="/auth">
+                    <Button variant="outline" size="sm">
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Login to comment
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
           )}

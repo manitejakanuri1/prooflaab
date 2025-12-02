@@ -6,13 +6,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Logo } from "@/components/Logo";
 import { PublicProjectCard } from "@/components/portfolio/PublicProjectCard";
 import { FollowButton } from "@/components/dashboard/student/FollowButton";
 import { FollowersFollowingModal } from "@/components/dashboard/student/FollowersFollowingModal";
 import PublicSuggestedStudents from "@/components/feed/PublicSuggestedStudents";
 import { useFollowCounts } from "@/hooks/useFollowCounts";
 import { supabase } from "@/integrations/supabase/client";
+import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import { 
   Mail, 
   Trophy, 
@@ -25,6 +25,8 @@ import {
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [followModalOpen, setFollowModalOpen] = useState(false);
   const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
   
@@ -34,10 +36,12 @@ const Portfolio = () => {
   );
   const { followerCount, followingCount, loading: countsLoading } = useFollowCounts(portfolio?.student_id);
 
-  // Get current user ID
+  // Get current user ID and check if they're a student
   useEffect(() => {
     const fetchCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      
       if (user) {
         // Get student profile ID from user_id
         const { data: profile } = await supabase
@@ -47,9 +51,14 @@ const Portfolio = () => {
           .single();
         setCurrentUserId(profile?.id);
       }
+      setIsAuthLoading(false);
     };
     fetchCurrentUser();
   }, []);
+  
+  // Derived state
+  const isStudent = !!currentUserId;
+  const isRecruiterMode = !isStudent && !isAuthLoading;
 
   // Debug logging for API responses
   useEffect(() => {
@@ -229,17 +238,11 @@ const Portfolio = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="font-bold text-lg flex items-center space-x-3">
-            <Logo />
-            <span>ProofLabAI</span>
-          </div>
-          <Button variant="outline" onClick={() => (window.location.href = "/")}>
-            Back to Platform
-          </Button>
-        </div>
-      </header>
+      <RecruiterHeader 
+        isLoggedIn={!!currentUser} 
+        isStudent={isStudent} 
+        isLoading={isAuthLoading}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-12">
@@ -321,18 +324,23 @@ const Portfolio = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                <FollowButton
-                  targetUserId={portfolio?.student_id || ""}
-                  currentUserId={currentUserId}
-                  variant="profile"
-                  size="default"
-                />
+                {/* Follow Button - Only show if logged in as student */}
+                {isStudent && (
+                  <FollowButton
+                    targetUserId={portfolio?.student_id || ""}
+                    currentUserId={currentUserId}
+                    variant="profile"
+                    size="default"
+                  />
+                )}
+                
+                {/* Contact Button - Show for recruiters with different label */}
                 <a
-                  href={`mailto:${portfolio?.student_profiles?.email || ""}`}
+                  href={`mailto:${portfolio?.student_profiles?.email || "contact@prooflab.ai"}?subject=Interest in ${portfolio?.student_profiles?.full_name || "Student"}'s Profile`}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium"
                 >
                   <Mail className="h-4 w-4" />
-                  <span>Contact Me</span>
+                  <span>{isRecruiterMode ? "Contact Student" : "Contact Me"}</span>
                 </a>
               </div>
             </div>

@@ -52,6 +52,9 @@ interface PostData {
     email: string | null;
     total_xp: number | null;
     trust_score: number | null;
+    linkedin_url: string | null;
+    github_url: string | null;
+    resume_url: string | null;
   } | null;
   proof_upload: {
     is_public: boolean;
@@ -183,7 +186,10 @@ const PostPage = () => {
               college_id,
               email,
               total_xp,
-              trust_score
+              trust_score,
+              linkedin_url,
+              github_url,
+              resume_url
             )
           `)
           .eq("id", postId)
@@ -1019,6 +1025,9 @@ const PostPage = () => {
             trust_score: post.student.trust_score,
             email: post.student.email,
             slug: post.student.slug,
+            linkedin_url: post.student.linkedin_url,
+            github_url: post.student.github_url,
+            resume_url: post.student.resume_url,
           }}
           postTitle={post.title}
         />

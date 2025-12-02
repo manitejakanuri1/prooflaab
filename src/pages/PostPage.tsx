@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { FollowButton } from "@/components/dashboard/student/FollowButton";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import { ContactStudentModal } from "@/components/public/ContactStudentModal";
+import { RecruiterInterestBox } from "@/components/public/RecruiterInterestBox";
 import { usePostEngagement, usePostEngagementStats } from "@/hooks/usePostEngagement";
 
 interface PostData {
@@ -862,6 +863,17 @@ const PostPage = () => {
                 {skill}
               </Badge>
             ))}
+          </div>
+        )}
+
+        {/* Recruiter Interest Box - Only show in recruiter mode */}
+        {isRecruiterMode && post.student && (
+          <div className="mb-8">
+            <RecruiterInterestBox
+              postId={post.id}
+              studentId={post.student_id}
+              postTitle={post.title}
+            />
           </div>
         )}
 

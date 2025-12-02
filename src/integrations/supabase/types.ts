@@ -1363,13 +1363,16 @@ export type Database = {
           created_at: string | null
           email: string
           full_name: string
+          github_url: string | null
           id: string
           key_interests: string[] | null
           last_active: string | null
+          linkedin_url: string | null
           preferred_skills: string[] | null
           profile_completed: boolean
           profile_photo_url: string | null
           profile_visibility: string | null
+          resume_url: string | null
           slug: string | null
           source: string | null
           status: string | null
@@ -1389,13 +1392,16 @@ export type Database = {
           created_at?: string | null
           email: string
           full_name: string
+          github_url?: string | null
           id?: string
           key_interests?: string[] | null
           last_active?: string | null
+          linkedin_url?: string | null
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string | null
+          resume_url?: string | null
           slug?: string | null
           source?: string | null
           status?: string | null
@@ -1415,13 +1421,16 @@ export type Database = {
           created_at?: string | null
           email?: string
           full_name?: string
+          github_url?: string | null
           id?: string
           key_interests?: string[] | null
           last_active?: string | null
+          linkedin_url?: string | null
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string | null
+          resume_url?: string | null
           slug?: string | null
           source?: string | null
           status?: string | null

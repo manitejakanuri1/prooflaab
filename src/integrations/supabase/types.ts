@@ -718,6 +718,7 @@ export type Database = {
           id: string
           post_id: string
           post_owner_id: string
+          referrer: string | null
           user_agent: string | null
           viewer_id: string | null
           viewer_ip_hash: string | null
@@ -729,6 +730,7 @@ export type Database = {
           id?: string
           post_id: string
           post_owner_id: string
+          referrer?: string | null
           user_agent?: string | null
           viewer_id?: string | null
           viewer_ip_hash?: string | null
@@ -740,6 +742,7 @@ export type Database = {
           id?: string
           post_id?: string
           post_owner_id?: string
+          referrer?: string | null
           user_agent?: string | null
           viewer_id?: string | null
           viewer_ip_hash?: string | null
@@ -846,6 +849,7 @@ export type Database = {
           student_id: string
           title: string
           verified_badge: boolean | null
+          view_count: number | null
           visibility: string
         }
         Insert: {
@@ -862,6 +866,7 @@ export type Database = {
           student_id: string
           title: string
           verified_badge?: boolean | null
+          view_count?: number | null
           visibility?: string
         }
         Update: {
@@ -878,6 +883,7 @@ export type Database = {
           student_id?: string
           title?: string
           verified_badge?: boolean | null
+          view_count?: number | null
           visibility?: string
         }
         Relationships: [
@@ -2106,6 +2112,7 @@ export type Database = {
           student_id: string
           title: string
           verified_badge: boolean | null
+          view_count: number | null
           visibility: string
         }[]
         SetofOptions: {

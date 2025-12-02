@@ -470,6 +470,7 @@ const StudentFeedPage = () => {
                       postId={post.id}
                       likesCount={post.likes_count || 0}
                       commentsCount={post.comments_count || 0}
+                      viewCount={post.view_count || 0}
                       branch={profile?.branch || "General"}
                       timeAgo={post.created_at ? formatTimeAgo(post.created_at) : ""}
                       emojiCode={post.emoji_code}

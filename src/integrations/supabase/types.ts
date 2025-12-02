@@ -1071,6 +1071,48 @@ export type Database = {
           },
         ]
       }
+      recruiter_interests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          post_id: string
+          recruiter_email: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          post_id: string
+          recruiter_email: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          post_id?: string
+          recruiter_email?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruiter_interests_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "proof_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiter_interests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruiter_link_views: {
         Row: {
           id: string

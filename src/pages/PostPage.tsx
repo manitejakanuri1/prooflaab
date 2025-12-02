@@ -40,6 +40,7 @@ interface PostData {
   verified_badge: boolean | null;
   likes_count: number | null;
   comments_count: number | null;
+  view_count: number | null;
   created_at: string | null;
   visibility: string;
   status: string | null;
@@ -200,6 +201,7 @@ const PostPage = () => {
             verified_badge,
             likes_count,
             comments_count,
+            view_count,
             created_at,
             visibility,
             status,
@@ -746,10 +748,19 @@ const PostPage = () => {
             {post.title}
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-muted-foreground mb-4">
-            By {studentName} • {formattedDate}
-          </p>
+          {/* Subtitle with View Count */}
+          <div className="flex items-center gap-3 text-muted-foreground mb-4">
+            <span>By {studentName} • {formattedDate}</span>
+            {post.view_count !== undefined && post.view_count > 0 && (
+              <>
+                <span>•</span>
+                <div className="flex items-center gap-1.5">
+                  <Eye className="w-4 h-4" />
+                  <span>{post.view_count} views</span>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Analytics Box - Only visible to post owner */}
           {isOwner && engagementStats && (

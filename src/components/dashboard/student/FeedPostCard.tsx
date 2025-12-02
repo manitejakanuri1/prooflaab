@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, MoreVertical, ShieldCheck, ArrowRight, Share2 } from "lucide-react";
+import { Heart, MessageCircle, MoreVertical, ShieldCheck, ArrowRight, Share2, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ interface FeedPostCardProps {
   proofUrl: string;
   likesCount: number;
   commentsCount: number;
+  viewCount?: number;
   branch: string;
   timeAgo: string;
   emojiCode: string;
@@ -55,6 +56,7 @@ export const FeedPostCard = ({
   proofUrl,
   likesCount,
   commentsCount,
+  viewCount = 0,
   branch,
   timeAgo,
   emojiCode,
@@ -289,6 +291,10 @@ export const FeedPostCard = ({
             <MessageCircle className="h-5 w-5" />
             <span>{commentsCount}</span>
           </button>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Eye className="h-5 w-5" />
+            <span>{viewCount}</span>
+          </div>
           <button 
             onClick={handleShare}
             className="flex items-center gap-2 hover:text-primary transition-colors"

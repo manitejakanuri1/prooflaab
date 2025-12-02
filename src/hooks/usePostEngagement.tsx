@@ -59,6 +59,7 @@ export const usePostEngagement = ({ postId, postOwnerId, isStudent = false }: Us
         engagement_type: engagementType,
         viewer_ip_hash: viewerHash,
         user_agent: navigator.userAgent,
+        referrer: typeof document !== 'undefined' ? document.referrer : null,
       });
     } catch (error) {
       console.error('Failed to track engagement:', error);

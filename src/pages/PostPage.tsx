@@ -23,6 +23,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { FollowButton } from "@/components/dashboard/student/FollowButton";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
+import { ContactStudentModal } from "@/components/public/ContactStudentModal";
 
 interface PostData {
   id: string;
@@ -48,6 +49,9 @@ interface PostData {
     slug: string | null;
     branch: string | null;
     college_id: string | null;
+    email: string | null;
+    total_xp: number | null;
+    trust_score: number | null;
   } | null;
   proof_upload: {
     is_public: boolean;
@@ -99,6 +103,9 @@ const PostPage = () => {
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isSendingComment, setIsSendingComment] = useState(false);
   const commentsRef = useRef<HTMLDivElement>(null);
+  
+  // Contact modal state
+  const [contactModalOpen, setContactModalOpen] = useState(false);
 
   const getEmoji = (emojiCode: string): string => {
     if (!emojiCode) return "🎯";
@@ -173,7 +180,10 @@ const PostPage = () => {
               career_goals,
               slug,
               branch,
-              college_id
+              college_id,
+              email,
+              total_xp,
+              trust_score
             )
           `)
           .eq("id", postId)
@@ -722,14 +732,14 @@ const PostPage = () => {
                 </div>
                 
                 {/* Contact Student Button - Show in Recruiter Mode */}
-                {isRecruiterMode && post.student?.slug && (
-                  <a 
-                    href={`mailto:contact@prooflab.ai?subject=Interest in ${studentName}'s Profile`}
+                {isRecruiterMode && post.student && (
+                  <button
+                    onClick={() => setContactModalOpen(true)}
                     className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
                   >
                     <Mail className="w-4 h-4" />
                     Contact Student
-                  </a>
+                  </button>
                 )}
                 
                 {post.student?.slug && !isRecruiterMode && (
@@ -994,6 +1004,25 @@ const PostPage = () => {
           </p>
         </div>
       </footer>
+
+      {/* Contact Student Modal */}
+      {post?.student && (
+        <ContactStudentModal
+          open={contactModalOpen}
+          onOpenChange={setContactModalOpen}
+          student={{
+            id: post.student.id,
+            full_name: post.student.full_name,
+            profile_photo_url: post.student.profile_photo_url,
+            branch: post.student.branch,
+            total_xp: post.student.total_xp,
+            trust_score: post.student.trust_score,
+            email: post.student.email,
+            slug: post.student.slug,
+          }}
+          postTitle={post.title}
+        />
+      )}
     </div>
   );
 };

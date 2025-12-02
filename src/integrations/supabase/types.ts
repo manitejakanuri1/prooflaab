@@ -711,6 +711,50 @@ export type Database = {
           },
         ]
       }
+      post_engagements: {
+        Row: {
+          created_at: string
+          engagement_type: string
+          id: string
+          post_id: string
+          post_owner_id: string
+          user_agent: string | null
+          viewer_id: string | null
+          viewer_ip_hash: string | null
+          viewer_type: string
+        }
+        Insert: {
+          created_at?: string
+          engagement_type: string
+          id?: string
+          post_id: string
+          post_owner_id: string
+          user_agent?: string | null
+          viewer_id?: string | null
+          viewer_ip_hash?: string | null
+          viewer_type: string
+        }
+        Update: {
+          created_at?: string
+          engagement_type?: string
+          id?: string
+          post_id?: string
+          post_owner_id?: string
+          user_agent?: string | null
+          viewer_id?: string | null
+          viewer_ip_hash?: string | null
+          viewer_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_engagements_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "proof_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_likes: {
         Row: {
           created_at: string | null
@@ -2104,6 +2148,16 @@ export type Database = {
           rank: number
           total_xp: number
           trust_score: number
+        }[]
+      }
+      get_post_engagement_summary: {
+        Args: { p_post_id: string }
+        Returns: {
+          email_clicks: number
+          github_clicks: number
+          linkedin_clicks: number
+          resume_clicks: number
+          views_count: number
         }[]
       }
       get_user_follow_counts: {

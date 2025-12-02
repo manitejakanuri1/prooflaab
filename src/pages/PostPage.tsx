@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,13 +17,16 @@ import {
   Share2,
   Send,
   LogIn,
-  Mail
+  Mail,
+  Eye,
+  MousePointerClick
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { FollowButton } from "@/components/dashboard/student/FollowButton";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import { ContactStudentModal } from "@/components/public/ContactStudentModal";
+import { usePostEngagement, usePostEngagementStats } from "@/hooks/usePostEngagement";
 
 interface PostData {
   id: string;
@@ -109,6 +112,15 @@ const PostPage = () => {
   
   // Contact modal state
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  
+  // Engagement analytics state
+  const [engagementStats, setEngagementStats] = useState<{
+    views_count: number;
+    email_clicks: number;
+    linkedin_clicks: number;
+    github_clicks: number;
+    resume_clicks: number;
+  } | null>(null);
 
   const getEmoji = (emojiCode: string): string => {
     if (!emojiCode) return "🎯";
@@ -652,6 +664,44 @@ const PostPage = () => {
   const isStudent = !!currentStudentId;
   const isRecruiterMode = !isStudent && !isAuthChecking;
 
+  // Post engagement tracking
+  const postOwnerId = post.student?.user_id || '';
+  const {
+    trackView,
+    trackEmailClick,
+    trackLinkedinClick,
+    trackGithubClick,
+    trackResumeClick,
+  } = usePostEngagement({ 
+    postId: postId || '', 
+    postOwnerId, 
+    isStudent 
+  });
+  
+  const { fetchStats } = usePostEngagementStats(postId);
+
+  // Track view on page load
+  useEffect(() => {
+    if (postId && postOwnerId) {
+      trackView();
+    }
+  }, [postId, postOwnerId, trackView]);
+
+  // Fetch engagement stats for post owner
+  useEffect(() => {
+    const loadStats = async () => {
+      if (isOwner && postId) {
+        const stats = await fetchStats();
+        setEngagementStats(stats);
+      }
+    };
+    loadStats();
+  }, [isOwner, postId, fetchStats]);
+
+  const totalContactClicks = engagementStats 
+    ? engagementStats.email_clicks + engagementStats.linkedin_clicks + engagementStats.github_clicks + engagementStats.resume_clicks
+    : 0;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -695,9 +745,26 @@ const PostPage = () => {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground mb-4">
             By {studentName} • {formattedDate}
           </p>
+
+          {/* Analytics Box - Only visible to post owner */}
+          {isOwner && engagementStats && (
+            <div className="flex items-center gap-4 mb-6 p-3 rounded-lg bg-muted/50 border border-border/50">
+              <div className="flex items-center gap-2 text-sm">
+                <Eye className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">{engagementStats.views_count}</span>
+                <span className="text-muted-foreground">views</span>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <div className="flex items-center gap-2 text-sm">
+                <MousePointerClick className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">{totalContactClicks}</span>
+                <span className="text-muted-foreground">contact actions</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Author Bio Section */}
@@ -1030,6 +1097,10 @@ const PostPage = () => {
             resume_url: post.student.resume_url,
           }}
           postTitle={post.title}
+          onEmailClick={trackEmailClick}
+          onLinkedinClick={trackLinkedinClick}
+          onGithubClick={trackGithubClick}
+          onResumeClick={trackResumeClick}
         />
       )}
     </div>

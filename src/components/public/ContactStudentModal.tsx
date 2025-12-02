@@ -33,6 +33,10 @@ interface ContactStudentModalProps {
   onOpenChange: (open: boolean) => void;
   student: StudentInfo | null;
   postTitle?: string;
+  onEmailClick?: () => void;
+  onLinkedinClick?: () => void;
+  onGithubClick?: () => void;
+  onResumeClick?: () => void;
 }
 
 export const ContactStudentModal = ({
@@ -40,6 +44,10 @@ export const ContactStudentModal = ({
   onOpenChange,
   student,
   postTitle,
+  onEmailClick,
+  onLinkedinClick,
+  onGithubClick,
+  onResumeClick,
 }: ContactStudentModalProps) => {
   if (!student) return null;
 
@@ -124,6 +132,7 @@ export const ContactStudentModal = ({
               {student.email && (
                 <a
                   href={`mailto:${student.email}?subject=${encodeURIComponent(emailSubject)}`}
+                  onClick={onEmailClick}
                   className="flex items-center gap-3 w-full p-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Mail className="h-5 w-5" />
@@ -137,6 +146,7 @@ export const ContactStudentModal = ({
                   href={student.linkedin_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={onLinkedinClick}
                   className="flex items-center gap-3 w-full p-3 rounded-xl bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 transition-colors font-medium"
                 >
                   <Linkedin className="h-5 w-5" />
@@ -150,6 +160,7 @@ export const ContactStudentModal = ({
                   href={student.github_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={onGithubClick}
                   className="flex items-center gap-3 w-full p-3 rounded-xl bg-[#24292e] text-white hover:bg-[#24292e]/90 transition-colors font-medium"
                 >
                   <Github className="h-5 w-5" />
@@ -163,6 +174,7 @@ export const ContactStudentModal = ({
                   href={student.resume_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={onResumeClick}
                   className="flex items-center gap-3 w-full p-3 rounded-xl bg-muted hover:bg-muted/80 text-foreground transition-colors font-medium border border-border"
                 >
                   <FileText className="h-5 w-5" />

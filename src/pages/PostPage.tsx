@@ -122,6 +122,22 @@ const PostPage = () => {
     resume_clicks: number;
   } | null>(null);
 
+  // Post engagement tracking - must be called at top level before any returns
+  const postOwnerId = post?.student?.user_id || '';
+  const {
+    trackView,
+    trackEmailClick,
+    trackLinkedinClick,
+    trackGithubClick,
+    trackResumeClick,
+  } = usePostEngagement({ 
+    postId: postId || '', 
+    postOwnerId, 
+    isStudent: !!currentStudentId 
+  });
+  
+  const { fetchStats } = usePostEngagementStats(postId);
+
   const getEmoji = (emojiCode: string): string => {
     if (!emojiCode) return "🎯";
     try {
@@ -392,6 +408,25 @@ const PostPage = () => {
       channel.unsubscribe();
     };
   }, [postId]);
+
+  // Track view on page load
+  useEffect(() => {
+    if (postId && postOwnerId) {
+      trackView();
+    }
+  }, [postId, postOwnerId, trackView]);
+
+  // Fetch engagement stats for post owner
+  useEffect(() => {
+    const loadStats = async () => {
+      const isOwner = currentStudentId === post?.student_id;
+      if (isOwner && postId) {
+        const stats = await fetchStats();
+        setEngagementStats(stats);
+      }
+    };
+    loadStats();
+  }, [currentStudentId, post?.student_id, postId, fetchStats]);
 
   const updateMetaTags = (postData: PostData) => {
     const studentName = postData.student?.full_name || "Student";
@@ -664,39 +699,6 @@ const PostPage = () => {
   const isStudent = !!currentStudentId;
   const isRecruiterMode = !isStudent && !isAuthChecking;
 
-  // Post engagement tracking
-  const postOwnerId = post.student?.user_id || '';
-  const {
-    trackView,
-    trackEmailClick,
-    trackLinkedinClick,
-    trackGithubClick,
-    trackResumeClick,
-  } = usePostEngagement({ 
-    postId: postId || '', 
-    postOwnerId, 
-    isStudent 
-  });
-  
-  const { fetchStats } = usePostEngagementStats(postId);
-
-  // Track view on page load
-  useEffect(() => {
-    if (postId && postOwnerId) {
-      trackView();
-    }
-  }, [postId, postOwnerId, trackView]);
-
-  // Fetch engagement stats for post owner
-  useEffect(() => {
-    const loadStats = async () => {
-      if (isOwner && postId) {
-        const stats = await fetchStats();
-        setEngagementStats(stats);
-      }
-    };
-    loadStats();
-  }, [isOwner, postId, fetchStats]);
 
   const totalContactClicks = engagementStats 
     ? engagementStats.email_clicks + engagementStats.linkedin_clicks + engagementStats.github_clicks + engagementStats.resume_clicks

@@ -87,6 +87,9 @@ interface Comment {
   };
 }
 
+// User role types for stable role detection
+type UserRole = 'loading' | 'recruiter_guest' | 'recruiter_account' | 'student';
+
 const PostPage = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
@@ -95,10 +98,10 @@ const PostPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Auth state
+  // Auth state - stable role detection
+  const [userRole, setUserRole] = useState<UserRole>('loading');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
   
   // Like state
   const [isLiked, setIsLiked] = useState(false);
@@ -126,6 +129,7 @@ const PostPage = () => {
 
   // Post engagement tracking - must be called at top level before any returns
   const postOwnerId = post?.student?.user_id || '';
+  const isStudent = userRole === 'student';
   const {
     trackView,
     trackEmailClick,
@@ -135,7 +139,7 @@ const PostPage = () => {
   } = usePostEngagement({ 
     postId: postId || '', 
     postOwnerId, 
-    isStudent: !!currentStudentId 
+    isStudent
   });
   
   const { fetchStats } = usePostEngagementStats(postId);
@@ -155,27 +159,45 @@ const PostPage = () => {
     }
   };
 
-  // Check auth status
+  // Stable role detection - runs once on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-      
-      if (user) {
+    const detectUserRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          // No user logged in = recruiter guest
+          setUserRole('recruiter_guest');
+          setCurrentUser(null);
+          setCurrentStudentId(null);
+          return;
+        }
+        
+        setCurrentUser(user);
+        
+        // Check if user has a student profile
         const { data: profile } = await supabase
           .from("student_profiles")
           .select("id")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
         
         if (profile) {
+          // User is a student
           setCurrentStudentId(profile.id);
+          setUserRole('student');
+        } else {
+          // User is logged in but not a student = recruiter account
+          setUserRole('recruiter_account');
         }
+      } catch (error) {
+        console.error("Error detecting user role:", error);
+        // On error, default to recruiter guest for safety
+        setUserRole('recruiter_guest');
       }
-      setIsAuthChecking(false);
     };
     
-    checkAuth();
+    detectUserRole();
   }, []);
 
   // Fetch post data
@@ -698,10 +720,9 @@ const PostPage = () => {
     : "";
   const isOwner = currentStudentId === post.student_id;
   
-  // Recruiter mode: not logged in OR logged in but not a student
-  const isStudent = !!currentStudentId;
-  const isRecruiterMode = !isStudent && !isAuthChecking;
-
+  // Recruiter mode: guest (not logged in) OR account (logged in but not a student)
+  const isRecruiterMode = userRole === 'recruiter_guest' || userRole === 'recruiter_account';
+  const isRoleLoading = userRole === 'loading';
 
   const totalContactClicks = engagementStats 
     ? engagementStats.email_clicks + engagementStats.linkedin_clicks + engagementStats.github_clicks + engagementStats.resume_clicks
@@ -713,7 +734,7 @@ const PostPage = () => {
       <RecruiterHeader 
         isLoggedIn={!!currentUser} 
         isStudent={isStudent} 
-        isLoading={isAuthChecking}
+        isLoading={isRoleLoading}
       />
 
       {/* Main Content */}

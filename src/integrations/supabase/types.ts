@@ -1711,6 +1711,81 @@ export type Database = {
           },
         ]
       }
+      task_pack_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_number: number
+          pack_id: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_number?: number
+          pack_id: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_number?: number
+          pack_id?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_pack_items_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "task_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_pack_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_packs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_templates: {
         Row: {
           branch: string | null
@@ -1776,6 +1851,7 @@ export type Database = {
           id: string
           is_ai_generated: boolean | null
           is_paid: boolean | null
+          pack_id: string | null
           posted_at: string | null
           required_skills: string[] | null
           source: string | null
@@ -1806,6 +1882,7 @@ export type Database = {
           id?: string
           is_ai_generated?: boolean | null
           is_paid?: boolean | null
+          pack_id?: string | null
           posted_at?: string | null
           required_skills?: string[] | null
           source?: string | null
@@ -1836,6 +1913,7 @@ export type Database = {
           id?: string
           is_ai_generated?: boolean | null
           is_paid?: boolean | null
+          pack_id?: string | null
           posted_at?: string | null
           required_skills?: string[] | null
           source?: string | null
@@ -1856,6 +1934,13 @@ export type Database = {
             columns: ["created_by_college_id"]
             isOneToOne: false
             referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "task_packs"
             referencedColumns: ["id"]
           },
           {
@@ -2122,6 +2207,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_task_pack: {
+        Args: {
+          p_description: string
+          p_difficulty: string
+          p_name: string
+          p_status: string
+          p_tasks?: Json
+        }
+        Returns: string
+      }
       create_user_with_role: {
         Args: {
           _invite_code?: string
@@ -2130,6 +2225,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      delete_task_pack: { Args: { p_pack_id: string }; Returns: boolean }
       follow_user: { Args: { target_id: string }; Returns: undefined }
       generate_unique_slug: { Args: { input_text: string }; Returns: string }
       generate_url_slug: { Args: { student_name: string }; Returns: string }
@@ -2209,6 +2305,36 @@ export type Database = {
           views_count: number
         }[]
       }
+      get_task_pack_with_tasks: {
+        Args: { p_pack_id: string }
+        Returns: {
+          pack_created_at: string
+          pack_description: string
+          pack_difficulty: string
+          pack_id: string
+          pack_name: string
+          pack_status: string
+          task_description: string
+          task_id: string
+          task_order: number
+          task_title: string
+          task_xp: number
+        }[]
+      }
+      get_task_packs: {
+        Args: { p_status?: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          description: string
+          difficulty: string
+          id: string
+          name: string
+          status: string
+          task_count: number
+          updated_at: string
+        }[]
+      }
       get_user_follow_counts: {
         Args: { target_user: string }
         Returns: {
@@ -2256,6 +2382,17 @@ export type Database = {
       }
       unfollow_user: { Args: { target_id: string }; Returns: undefined }
       unlike_post: { Args: { p_post_id: string }; Returns: undefined }
+      update_task_pack: {
+        Args: {
+          p_description: string
+          p_difficulty: string
+          p_name: string
+          p_pack_id: string
+          p_status: string
+          p_tasks?: Json
+        }
+        Returns: boolean
+      }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
         Returns: boolean
@@ -2289,6 +2426,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "college_admin" | "startup" | "student"
+      task_type: "assigned" | "custom" | "startup" | "pack"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2417,6 +2555,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "college_admin", "startup", "student"],
+      task_type: ["assigned", "custom", "startup", "pack"],
     },
   },
 } as const

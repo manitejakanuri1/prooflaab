@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Eye, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Package, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,58 +18,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-interface TaskPack {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: "Beginner" | "Intermediate" | "Advanced";
-  taskCount: number;
-  status: "Published" | "Draft";
-}
-
-const mockTaskPacks: TaskPack[] = [
-  {
-    id: "pack-1",
-    title: "Full Stack Beginner Pack",
-    description: "Learn the fundamentals of full stack development with hands-on projects.",
-    difficulty: "Beginner",
-    taskCount: 5,
-    status: "Published",
-  },
-  {
-    id: "pack-2",
-    title: "React Advanced Patterns",
-    description: "Master advanced React patterns including hooks, context, and performance optimization.",
-    difficulty: "Advanced",
-    taskCount: 8,
-    status: "Published",
-  },
-  {
-    id: "pack-3",
-    title: "API Design Fundamentals",
-    description: "Build RESTful APIs with proper authentication, validation, and documentation.",
-    difficulty: "Intermediate",
-    taskCount: 6,
-    status: "Draft",
-  },
-  {
-    id: "pack-4",
-    title: "Data Structures & Algorithms",
-    description: "Strengthen your problem-solving skills with common DSA challenges.",
-    difficulty: "Intermediate",
-    taskCount: 10,
-    status: "Published",
-  },
-  {
-    id: "pack-5",
-    title: "Cloud Deployment Basics",
-    description: "Deploy applications to cloud platforms with CI/CD pipelines.",
-    difficulty: "Beginner",
-    taskCount: 4,
-    status: "Draft",
-  },
-];
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useTaskPacks, useDeleteTaskPack, TaskPack } from "@/hooks/useTaskPacks";
 
 const getDifficultyColor = (difficulty: TaskPack["difficulty"]) => {
   switch (difficulty) {
@@ -86,9 +46,9 @@ const getDifficultyColor = (difficulty: TaskPack["difficulty"]) => {
 
 const getStatusColor = (status: TaskPack["status"]) => {
   switch (status) {
-    case "Published":
+    case "published":
       return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-    case "Draft":
+    case "draft":
       return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
     default:
       return "bg-muted text-muted-foreground";
@@ -97,6 +57,8 @@ const getStatusColor = (status: TaskPack["status"]) => {
 
 const AdminTaskPacksPage = () => {
   const navigate = useNavigate();
+  const { data: packs, isLoading, error } = useTaskPacks();
+  const deletePackMutation = useDeleteTaskPack();
 
   const handleCreatePack = () => {
     navigate("/admin/task-packs/create");
@@ -111,9 +73,24 @@ const AdminTaskPacksPage = () => {
   };
 
   const handleDeletePack = (packId: string) => {
-    // Placeholder - will be implemented later
-    console.log("Delete pack:", packId);
+    deletePackMutation.mutate(packId);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-destructive">Error loading task packs</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -143,72 +120,100 @@ const AdminTaskPacksPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead className="hidden md:table-cell">Description</TableHead>
-                  <TableHead>Difficulty</TableHead>
-                  <TableHead className="text-center">Tasks</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockTaskPacks.map((pack) => (
-                  <TableRow key={pack.id}>
-                    <TableCell className="font-medium">{pack.title}</TableCell>
-                    <TableCell className="hidden md:table-cell max-w-xs truncate text-muted-foreground">
-                      {pack.description}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={getDifficultyColor(pack.difficulty)}>
-                        {pack.difficulty}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">{pack.taskCount}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={getStatusColor(pack.status)}>
-                        {pack.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewTasks(pack.id)}
-                          className="h-8 w-8"
-                          title="View Tasks"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditPack(pack.id)}
-                          className="h-8 w-8"
-                          title="Edit Pack"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeletePack(pack.id)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          title="Delete Pack"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {!packs || packs.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-4 opacity-40" />
+              <p>No task packs yet</p>
+              <p className="text-sm">Create your first pack to get started</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead className="hidden md:table-cell">Description</TableHead>
+                    <TableHead>Difficulty</TableHead>
+                    <TableHead className="text-center">Tasks</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {packs.map((pack) => (
+                    <TableRow key={pack.id}>
+                      <TableCell className="font-medium">{pack.name}</TableCell>
+                      <TableCell className="hidden md:table-cell max-w-xs truncate text-muted-foreground">
+                        {pack.description}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={getDifficultyColor(pack.difficulty)}>
+                          {pack.difficulty}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">{pack.task_count}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={getStatusColor(pack.status)}>
+                          {pack.status === "published" ? "Published" : "Draft"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleViewTasks(pack.id)}
+                            className="h-8 w-8"
+                            title="View Tasks"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditPack(pack.id)}
+                            className="h-8 w-8"
+                            title="Edit Pack"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                title="Delete Pack"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Task Pack</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{pack.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeletePack(pack.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

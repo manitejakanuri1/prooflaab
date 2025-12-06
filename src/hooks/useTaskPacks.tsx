@@ -111,19 +111,18 @@ export const useCreateTaskPack = () => {
 
   return useMutation({
     mutationFn: async (data: CreatePackData) => {
-      const tasksJson = JSON.stringify(
-        data.tasks.map((task) => ({
-          title: task.title,
-          description: task.description,
-        }))
-      );
+      // Pass the tasks array directly - Supabase client handles JSONB conversion
+      const tasksArray = data.tasks.map((task) => ({
+        title: task.title,
+        description: task.description,
+      }));
 
       const { data: packId, error } = await supabase.rpc("create_task_pack", {
         p_name: data.name,
         p_description: data.description,
         p_difficulty: data.difficulty,
         p_status: data.status,
-        p_tasks: tasksJson,
+        p_tasks: tasksArray,
       });
 
       if (error) {
@@ -156,13 +155,12 @@ export const useUpdateTaskPack = () => {
 
   return useMutation({
     mutationFn: async (data: UpdatePackData) => {
-      const tasksJson = JSON.stringify(
-        data.tasks.map((task: any) => ({
-          id: task.id || null,
-          title: task.title,
-          description: task.description,
-        }))
-      );
+      // Pass the tasks array directly - Supabase client handles JSONB conversion
+      const tasksArray = data.tasks.map((task: any) => ({
+        id: task.id || null,
+        title: task.title,
+        description: task.description,
+      }));
 
       const { data: success, error } = await supabase.rpc("update_task_pack", {
         p_pack_id: data.packId,
@@ -170,7 +168,7 @@ export const useUpdateTaskPack = () => {
         p_description: data.description,
         p_difficulty: data.difficulty,
         p_status: data.status,
-        p_tasks: tasksJson,
+        p_tasks: tasksArray,
       });
 
       if (error) {

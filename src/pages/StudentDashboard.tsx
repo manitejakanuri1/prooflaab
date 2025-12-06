@@ -1,16 +1,31 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import StudentHeader from "@/components/dashboard/student/StudentHeader";
 import StudentSidebar from "@/components/dashboard/student/StudentSidebar";
 import StudentDashboardContent from "@/components/dashboard/student/StudentDashboardContent";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+const getTabFromPath = (pathname: string): string => {
+  if (pathname.startsWith("/student/tasks/opportunities")) return "tasks-opportunities";
+  if (pathname.startsWith("/student/tasks/assigned")) return "tasks-assigned";
+  if (pathname.startsWith("/student/tasks/created")) return "tasks-created";
+  if (pathname.match(/^\/student\/task-packs\/[^/]+$/)) return "task-pack-detail";
+  if (pathname === "/student/task-packs") return "task-packs";
+  return "feed";
+};
+
 const StudentDashboard = () => {
-  const [activeTab, setActiveTab] = useState("feed");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { profile, loading, refreshProfile } = useStudentProfile();
+
+  useEffect(() => {
+    setActiveTab(getTabFromPath(location.pathname));
+  }, [location.pathname]);
 
   if (loading) {
     return (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Home,
   LayoutDashboard, 
@@ -35,21 +36,22 @@ interface MenuItem {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  route?: string;
   children?: MenuItem[];
 }
 
 const menuItems: MenuItem[] = [
-  { id: "feed", label: "Feed", icon: Home },
+  { id: "feed", label: "Feed", icon: Home, route: "/student/dashboard" },
   { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
   { 
     id: "tasks", 
     label: "Tasks", 
     icon: ListTodo,
     children: [
-      { id: "tasks-opportunities", label: "Startup Opportunities", icon: Building2 },
-      { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList },
-      { id: "tasks-created", label: "My Created Tasks", icon: Sparkles },
-      { id: "task-packs", label: "Task Packs", icon: Package },
+      { id: "tasks-opportunities", label: "Startup Opportunities", icon: Building2, route: "/student/tasks/opportunities" },
+      { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList, route: "/student/tasks/assigned" },
+      { id: "tasks-created", label: "My Created Tasks", icon: Sparkles, route: "/student/tasks/created" },
+      { id: "task-packs", label: "Task Packs", icon: Package, route: "/student/task-packs" },
     ]
   },
   { id: "create-task", label: "Create a Task", icon: PlusSquare },
@@ -65,6 +67,7 @@ const menuItems: MenuItem[] = [
 
 const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Check if any tasks child is active to keep the group expanded
   const isTasksChildActive = menuItems
@@ -72,6 +75,14 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
     ?.children?.some(child => child.id === activeTab) || false;
   
   const [tasksExpanded, setTasksExpanded] = useState(isTasksChildActive || activeTab === "tasks");
+
+  const handleNavigation = (item: MenuItem) => {
+    if (item.route) {
+      navigate(item.route);
+    } else {
+      onTabChange(item.id);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -130,7 +141,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
                 <Button
                   key={child.id}
                   variant="ghost"
-                  onClick={() => onTabChange(child.id)}
+                  onClick={() => handleNavigation(child)}
                   className={cn(
                     "w-full justify-start gap-2 h-9 sm:h-10 text-left text-xs sm:text-sm px-2 sm:px-3",
                     isChildActive
@@ -152,7 +163,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
       <Button
         key={item.id}
         variant="ghost"
-        onClick={() => onTabChange(item.id)}
+        onClick={() => handleNavigation(item)}
         className={cn(
           "w-full justify-start gap-2 sm:gap-3 h-10 sm:h-12 text-left text-xs sm:text-sm px-2 sm:px-4",
           isActive 

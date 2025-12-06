@@ -15,9 +15,12 @@ import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
+import AdminTaskPacksPage from "@/components/dashboard/admin/AdminTaskPacksPage";
+import AdminTaskPackCreatePage from "@/components/dashboard/admin/AdminTaskPackCreatePage";
+import AdminTaskPackEditPage from "@/components/dashboard/admin/AdminTaskPackEditPage";
 
 const AdminDashboard = () => {
-  const { userType } = useParams();
+  const { userType, packId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -26,12 +29,16 @@ const AdminDashboard = () => {
 
   // Update activeTab based on URL
   useEffect(() => {
-    if (location.pathname.includes('/user-management/')) {
+    const path = location.pathname;
+    
+    if (path.includes('/admin/task-packs')) {
+      setActiveTab('task-packs');
+    } else if (path.includes('/user-management/')) {
       if (userType === 'students') setActiveTab('students');
       else if (userType === 'startups') setActiveTab('startups');
       else if (userType === 'colleges') setActiveTab('colleges');
-      else setActiveTab('students'); // default fallback
-    } else if (location.pathname === '/admin/dashboard') {
+      else setActiveTab('students');
+    } else if (path === '/admin/dashboard') {
       setActiveTab('dashboard');
     }
   }, [location.pathname, userType]);
@@ -49,6 +56,23 @@ const AdminDashboard = () => {
   };
 
   const renderContent = () => {
+    const path = location.pathname;
+    
+    // Handle task-packs routes
+    if (path === '/admin/task-packs') {
+      return <AdminTaskPacksPage />;
+    }
+    if (path === '/admin/task-packs/create') {
+      return <AdminTaskPackCreatePage />;
+    }
+    if (path.match(/\/admin\/task-packs\/[^/]+\/edit$/)) {
+      return <AdminTaskPackEditPage />;
+    }
+    if (path.match(/\/admin\/task-packs\/[^/]+$/)) {
+      // View tasks in pack - placeholder for now
+      return <AdminTaskPacksPage />;
+    }
+    
     switch (activeTab) {
       case "dashboard":
         return <AdminDashboardOverview onNavigate={setActiveTab} />;
@@ -62,6 +86,8 @@ const AdminDashboard = () => {
         return <TaskOversight />;
       case "assign-tasks":
         return <AdminAssignTasks />;
+      case "task-packs":
+        return <AdminTaskPacksPage />;
       case "jobs":
         return <ContentManagement type="jobs" />;
       case "resources":

@@ -1,5 +1,8 @@
 import StudentDashboardOverview from "./StudentDashboardOverview";
-import StudentUnifiedTasksPage from "./StudentUnifiedTasksPage";
+import StudentStartupOpportunitiesPage from "./StudentStartupOpportunitiesPage";
+import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
+import StudentCreatedTasksPage from "./StudentCreatedTasksPage";
+import StudentTaskPacksPage from "./StudentTaskPacksPage";
 import StudentApplicationsPage from "./StudentApplicationsPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 import StudentPortfolioPage from "./StudentPortfolioPage";
@@ -23,8 +26,15 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
         return <StudentFeedPage />;
       case "dashboard":
         return <StudentDashboardOverview />;
-      case "tasks":
-        return <StudentUnifiedTasksPage />;
+      // New task submenu routes
+      case "tasks-opportunities":
+        return <StudentStartupOpportunitiesPage />;
+      case "tasks-assigned":
+        return <StudentAssignedTasksPage />;
+      case "tasks-created":
+        return <StudentCreatedTasksPage />;
+      case "task-packs":
+        return <StudentTaskPacksPage />;
       case "create-task":
         return <StudentCreateTaskPage />;
       case "applications":

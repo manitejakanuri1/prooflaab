@@ -14,6 +14,25 @@ const difficultyColors: Record<Difficulty, string> = {
   Advanced: "bg-rose-500/10 text-rose-500 border-rose-500/20",
 };
 
+// Light pastel colors for task cards - rotating through different hues
+const taskCardColors = [
+  "border-l-4 border-l-blue-400 bg-blue-50/50 dark:bg-blue-950/20",
+  "border-l-4 border-l-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20",
+  "border-l-4 border-l-violet-400 bg-violet-50/50 dark:bg-violet-950/20",
+  "border-l-4 border-l-amber-400 bg-amber-50/50 dark:bg-amber-950/20",
+  "border-l-4 border-l-rose-400 bg-rose-50/50 dark:bg-rose-950/20",
+  "border-l-4 border-l-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20",
+  "border-l-4 border-l-orange-400 bg-orange-50/50 dark:bg-orange-950/20",
+  "border-l-4 border-l-teal-400 bg-teal-50/50 dark:bg-teal-950/20",
+];
+
+const getTaskCardColor = (index: number, isCompleted: boolean) => {
+  if (isCompleted) {
+    return "border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20";
+  }
+  return taskCardColors[index % taskCardColors.length];
+};
+
 const StudentTaskPackDetailPage = () => {
   const navigate = useNavigate();
   const { packId } = useParams<{ packId: string }>();
@@ -138,7 +157,7 @@ const StudentTaskPackDetailPage = () => {
             .map((task, index) => (
               <Card 
                 key={task.taskId} 
-                className={`hover:shadow-md transition-shadow ${task.isCompleted ? "border-green-500/30 bg-green-500/5" : ""}`}
+                className={`hover:shadow-md transition-all duration-200 ${getTaskCardColor(index, task.isCompleted)}`}
               >
                 <CardContent className="p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

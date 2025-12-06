@@ -165,6 +165,38 @@ const App = () => (
                 </RoleBasedProtectedRoute>
               } 
             />
+            <Route 
+              path="/admin/task-packs" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/task-packs/create" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/task-packs/:packId/edit" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/task-packs/:packId" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
             
             {/* Legacy Routes - redirect to proper paths */}
             <Route 

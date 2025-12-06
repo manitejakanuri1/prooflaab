@@ -185,9 +185,8 @@ const StudentTaskPackDetailPage = () => {
                       </Badge>
                     ) : (
                       <Button 
-                        variant="outline" 
                         size="sm"
-                        className="shrink-0"
+                        className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white"
                         onClick={() => navigate(`/student/task-packs/${packId}/tasks/${task.taskId}`)}
                       >
                         <Clock className="h-3 w-3 mr-1" />

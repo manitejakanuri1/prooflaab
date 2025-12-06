@@ -2315,6 +2315,7 @@ export type Database = {
           pack_name: string
           pack_status: string
           task_description: string
+          task_due_date: string
           task_id: string
           task_order: number
           task_title: string

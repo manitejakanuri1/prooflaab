@@ -37,6 +37,8 @@ const AdminTaskPackEditPage = () => {
       description: task.description,
       difficulty: task.difficulty,
       order: task.order,
+      dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+      xp: task.xp || 100,
     })),
   };
 

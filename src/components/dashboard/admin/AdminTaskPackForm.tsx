@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { 
   ArrowLeft, 
   Package, 
@@ -10,7 +11,9 @@ import {
   GripVertical,
   Save,
   Send,
-  Loader2
+  Loader2,
+  CalendarIcon,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Card,
   CardContent,
@@ -34,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateTaskPack, useUpdateTaskPack } from "@/hooks/useTaskPacks";
+import { cn } from "@/lib/utils";
 
 interface PackTask {
   id: string;
@@ -41,6 +47,8 @@ interface PackTask {
   description: string;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   order: number;
+  dueDate: Date | undefined;
+  xp: number;
 }
 
 interface PackData {
@@ -92,12 +100,17 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
   const generateTaskId = () => `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const handleAddTask = () => {
+    const defaultDueDate = new Date();
+    defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+    
     const newTask: PackTask = {
       id: generateTaskId(),
       title: "",
       description: "",
       difficulty: "Beginner",
       order: packData.tasks.length + 1,
+      dueDate: defaultDueDate,
+      xp: 100,
     };
     setPackData(prev => ({
       ...prev,
@@ -171,16 +184,39 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
       return;
     }
 
+    // Validate due dates and XP
+    const hasInvalidDueDate = packData.tasks.some(task => !task.dueDate);
+    if (hasInvalidDueDate) {
+      toast({
+        title: "Validation Error",
+        description: "All tasks must have a due date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const hasInvalidXP = packData.tasks.some(task => task.xp < 1);
+    if (hasInvalidXP) {
+      toast({
+        title: "Validation Error",
+        description: "All tasks must have at least 1 XP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const apiData = {
       name: packData.title,
       description: packData.description,
       difficulty: packData.difficulty,
       status: publish ? "published" : "draft",
       tasks: packData.tasks.map(task => ({
-        id: task.id.startsWith("task-") ? undefined : task.id, // Only include ID if it's from DB
+        id: task.id.startsWith("task-") ? undefined : task.id,
         title: task.title,
         description: task.description,
         difficulty: task.difficulty,
+        due_date: task.dueDate?.toISOString().split('T')[0],
+        xp: task.xp,
       })),
     };
 
@@ -365,6 +401,75 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
                         onChange={(e) => handleUpdateTask(task.id, { description: e.target.value })}
                       />
                     </div>
+                    
+                    {/* Due Date and XP Row */}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs flex items-center gap-1">
+                          <CalendarIcon className="h-3 w-3" />
+                          Due Date *
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal h-9",
+                                !task.dueDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {task.dueDate ? format(task.dueDate, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 z-50" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={task.dueDate}
+                              onSelect={(date) => handleUpdateTask(task.id, { dueDate: date })}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          XP Reward *
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => handleUpdateTask(task.id, { xp: Math.max(1, task.xp - 10) })}
+                          >
+                            -
+                          </Button>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={task.xp}
+                            onChange={(e) => handleUpdateTask(task.id, { xp: Math.max(1, parseInt(e.target.value) || 1) })}
+                            className="h-9 w-20 text-center"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => handleUpdateTask(task.id, { xp: task.xp + 10 })}
+                          >
+                            +
+                          </Button>
+                          <span className="text-xs text-muted-foreground">XP</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <Badge variant="secondary" className={getDifficultyColor(task.difficulty)}>
                       {task.difficulty}
                     </Badge>

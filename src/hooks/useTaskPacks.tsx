@@ -20,6 +20,8 @@ export interface TaskPackTask {
   description: string;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   order: number;
+  xp: number;
+  dueDate: string | null;
 }
 
 export interface TaskPackWithTasks extends Omit<TaskPack, 'task_count'> {
@@ -35,6 +37,8 @@ interface CreatePackData {
     title: string;
     description: string;
     difficulty: string;
+    due_date?: string;
+    xp?: number;
   }>;
 }
 
@@ -96,6 +100,8 @@ export const useTaskPack = (packId: string | undefined) => {
             description: row.task_description || "",
             difficulty: "Beginner" as const,
             order: row.task_order,
+            xp: row.task_xp || 100,
+            dueDate: row.task_due_date,
           })),
       };
 
@@ -111,10 +117,11 @@ export const useCreateTaskPack = () => {
 
   return useMutation({
     mutationFn: async (data: CreatePackData) => {
-      // Pass the tasks array directly - Supabase client handles JSONB conversion
       const tasksArray = data.tasks.map((task) => ({
         title: task.title,
         description: task.description,
+        due_date: task.due_date,
+        xp: task.xp,
       }));
 
       const { data: packId, error } = await supabase.rpc("create_task_pack", {
@@ -155,11 +162,12 @@ export const useUpdateTaskPack = () => {
 
   return useMutation({
     mutationFn: async (data: UpdatePackData) => {
-      // Pass the tasks array directly - Supabase client handles JSONB conversion
       const tasksArray = data.tasks.map((task: any) => ({
         id: task.id || null,
         title: task.title,
         description: task.description,
+        due_date: task.due_date,
+        xp: task.xp,
       }));
 
       const { data: success, error } = await supabase.rpc("update_task_pack", {

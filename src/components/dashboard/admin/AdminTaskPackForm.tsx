@@ -9,7 +9,8 @@ import {
   ChevronDown,
   GripVertical,
   Save,
-  Send
+  Send,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateTaskPack, useUpdateTaskPack } from "@/hooks/useTaskPacks";
 
 interface PackTask {
   id: string;
@@ -80,9 +82,12 @@ const getDifficultyColor = (difficulty: PackTask["difficulty"]) => {
 const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const createPackMutation = useCreateTaskPack();
+  const updatePackMutation = useUpdateTaskPack();
   
   const [packData, setPackData] = useState<PackData>(initialData || defaultPackData);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  const isLoading = createPackMutation.isPending || updatePackMutation.isPending;
 
   const generateTaskId = () => `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -98,7 +103,6 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
       ...prev,
       tasks: [...prev.tasks, newTask],
     }));
-    setEditingTaskId(newTask.id);
   };
 
   const handleUpdateTask = (taskId: string, updates: Partial<PackTask>) => {
@@ -129,7 +133,6 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
     const newTasks = [...packData.tasks];
     [newTasks[taskIndex], newTasks[newIndex]] = [newTasks[newIndex], newTasks[taskIndex]];
     
-    // Update order numbers
     const reorderedTasks = newTasks.map((task, index) => ({
       ...task,
       order: index + 1,
@@ -138,7 +141,7 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
     setPackData(prev => ({ ...prev, tasks: reorderedTasks }));
   };
 
-  const handleSave = (publish: boolean) => {
+  const handleSave = async (publish: boolean) => {
     // Validation
     if (!packData.title.trim()) {
       toast({
@@ -168,20 +171,29 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
       return;
     }
 
-    const finalData = {
-      ...packData,
-      isPublished: publish,
+    const apiData = {
+      name: packData.title,
+      description: packData.description,
+      difficulty: packData.difficulty,
+      status: publish ? "published" : "draft",
+      tasks: packData.tasks.map(task => ({
+        id: task.id.startsWith("task-") ? undefined : task.id, // Only include ID if it's from DB
+        title: task.title,
+        description: task.description,
+        difficulty: task.difficulty,
+      })),
     };
 
-    // Log to console for now (will be replaced with API call)
-    console.log(`${mode === "create" ? "Creating" : "Updating"} Task Pack:`, finalData);
-
-    toast({
-      title: publish ? "Pack Published!" : "Draft Saved!",
-      description: `Task pack "${packData.title}" has been ${publish ? "published" : "saved as draft"}.`,
-    });
-
-    navigate("/admin/task-packs");
+    try {
+      if (mode === "create") {
+        await createPackMutation.mutateAsync(apiData);
+      } else if (packId) {
+        await updatePackMutation.mutateAsync({ ...apiData, packId });
+      }
+      navigate("/admin/task-packs");
+    } catch (error) {
+      // Error toast is handled by the mutation
+    }
   };
 
   return (
@@ -402,22 +414,25 @@ const AdminTaskPackForm = ({ mode, initialData, packId }: AdminTaskPackFormProps
         <Button
           variant="outline"
           onClick={() => navigate("/admin/task-packs")}
+          disabled={isLoading}
         >
           Cancel
         </Button>
         <Button
           variant="secondary"
           onClick={() => handleSave(false)}
+          disabled={isLoading}
           className="gap-2"
         >
-          <Save className="h-4 w-4" />
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save as Draft
         </Button>
         <Button
           onClick={() => handleSave(true)}
+          disabled={isLoading}
           className="gap-2"
         >
-          <Send className="h-4 w-4" />
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           Publish Pack
         </Button>
       </div>

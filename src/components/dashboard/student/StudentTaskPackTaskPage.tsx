@@ -118,7 +118,8 @@ const StudentTaskPackTaskPage = () => {
       title: "Task Completed!",
       description: "Your pack progress has been updated.",
     });
-    navigate(`/student/task-packs/${packId}`);
+    // Pass state to trigger celebration modal if pack is now complete
+    navigate(`/student/task-packs/${packId}`, { state: { taskCompleted: true } });
   };
 
   const formatDueDate = (dateStr: string) => {

@@ -2,9 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Package, Clock, Zap, BookOpen, CheckCircle, Loader2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Package, Clock, Zap, BookOpen, CheckCircle, Loader2, Award, Trophy } from "lucide-react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useStudentPackProgress } from "@/hooks/useStudentPackProgress";
+import { useState, useEffect, useRef } from "react";
+import PackCompletionCelebrationModal from "./PackCompletionCelebrationModal";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 
@@ -35,8 +39,100 @@ const getTaskCardColor = (index: number, isCompleted: boolean) => {
 
 const StudentTaskPackDetailPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { packId } = useParams<{ packId: string }>();
-  const { data: pack, isLoading } = useStudentPackProgress(packId);
+  const { data: pack, isLoading, refetch } = useStudentPackProgress(packId);
+  
+  const [showCelebrationModal, setShowCelebrationModal] = useState(false);
+  const [awardedRewards, setAwardedRewards] = useState<{ xp: number; badge: string | null } | null>(null);
+  const hasCheckedCompletion = useRef(false);
+  const previousProgressRef = useRef<number | null>(null);
+
+  // Check for new completion and award rewards
+  useEffect(() => {
+    const checkAndAwardCompletion = async () => {
+      if (!pack || hasCheckedCompletion.current) return;
+      
+      // Only trigger celebration if:
+      // 1. Pack just reached 100% (not already completed before)
+      // 2. Progress changed from < 100 to 100 (tracked via ref)
+      // 3. Coming from task submission (check location state)
+      const justCompletedTask = location.state?.taskCompleted === true;
+      const progressJustReached100 = pack.progressPercent === 100 && 
+        previousProgressRef.current !== null && 
+        previousProgressRef.current < 100;
+      
+      // Store current progress for future comparisons
+      if (previousProgressRef.current === null) {
+        previousProgressRef.current = pack.progressPercent;
+      }
+      
+      // Don't show modal if pack was already completed before
+      if (pack.isAlreadyCompleted) {
+        hasCheckedCompletion.current = true;
+        return;
+      }
+
+      // Check if this is a new completion
+      if (pack.progressPercent === 100 && (justCompletedTask || progressJustReached100)) {
+        hasCheckedCompletion.current = true;
+        
+        try {
+          // Get current student profile
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { data: studentProfile } = await supabase
+            .from("student_profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (!studentProfile) return;
+
+          // Award completion using RPC
+          const { error } = await supabase.rpc("award_pack_completion", {
+            p_student_id: studentProfile.id,
+            p_pack_id: packId,
+          });
+
+          if (error) {
+            // If already awarded, don't show modal
+            if (error.message.includes("already completed")) {
+              return;
+            }
+            throw error;
+          }
+
+          // Show celebration modal
+          setAwardedRewards({
+            xp: pack.rewardXp,
+            badge: pack.rewardBadge,
+          });
+          setShowCelebrationModal(true);
+          
+          // Refetch to update isAlreadyCompleted
+          refetch();
+        } catch (error) {
+          console.error("Error awarding pack completion:", error);
+          toast({
+            title: "Error",
+            description: "Failed to record pack completion. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    checkAndAwardCompletion();
+  }, [pack, packId, location.state, refetch]);
+
+  // Clear location state after processing
+  useEffect(() => {
+    if (location.state?.taskCompleted) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   if (isLoading) {
     return (
@@ -80,6 +176,7 @@ const StudentTaskPackDetailPage = () => {
 
   const difficulty = pack.packDifficulty as Difficulty;
   const hasStarted = pack.progressPercent > 0;
+  const isComplete = pack.progressPercent === 100;
 
   // Find next incomplete task
   const nextIncompleteTask = pack.tasks
@@ -88,6 +185,15 @@ const StudentTaskPackDetailPage = () => {
 
   return (
     <div className="space-y-6">
+      {/* Celebration Modal */}
+      <PackCompletionCelebrationModal
+        isOpen={showCelebrationModal}
+        onClose={() => setShowCelebrationModal(false)}
+        packName={pack.packName}
+        badgeName={awardedRewards?.badge}
+        xpAwarded={awardedRewards?.xp || 0}
+      />
+
       {/* Back Navigation */}
       <Button 
         variant="ghost" 
@@ -97,6 +203,37 @@ const StudentTaskPackDetailPage = () => {
         <ArrowLeft className="h-4 w-4" />
         Back to Task Packs
       </Button>
+
+      {/* Pack Completed Banner (shown when revisiting completed pack) */}
+      {pack.isAlreadyCompleted && (
+        <Card className="border-green-500/30 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-full bg-green-500/20">
+                <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-700 dark:text-green-300">
+                  Pack Completed!
+                </h3>
+                <p className="text-sm text-green-600/80 dark:text-green-400/80">
+                  You've already completed this pack and earned your rewards.
+                  {pack.rewardBadge && (
+                    <span className="ml-1">Badge: {pack.rewardBadge}</span>
+                  )}
+                  {pack.rewardXp > 0 && (
+                    <span className="ml-1">• XP: +{pack.rewardXp}</span>
+                  )}
+                </p>
+              </div>
+              <Badge className="bg-green-500 text-white shrink-0">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                100% Complete
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pack Header Section */}
       <Card>
@@ -125,9 +262,21 @@ const StudentTaskPackDetailPage = () => {
                     {pack.completedTasks} Completed
                   </Badge>
                 )}
+                {pack.rewardXp > 0 && (
+                  <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20">
+                    <Zap className="h-3 w-3 mr-1" />
+                    +{pack.rewardXp} XP Reward
+                  </Badge>
+                )}
+                {pack.rewardBadge && (
+                  <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+                    <Award className="h-3 w-3 mr-1" />
+                    {pack.rewardBadge}
+                  </Badge>
+                )}
               </div>
             </div>
-            {nextIncompleteTask && (
+            {nextIncompleteTask && !isComplete && (
               <Button 
                 className="shrink-0"
                 onClick={() => navigate(`/student/task-packs/${packId}/tasks/${nextIncompleteTask.taskId}`)}

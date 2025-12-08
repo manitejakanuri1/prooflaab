@@ -18,6 +18,9 @@ interface PackProgress {
   completedTasks: number;
   progressPercent: number;
   tasks: TaskProgress[];
+  rewardXp: number;
+  rewardBadge: string | null;
+  isAlreadyCompleted: boolean;
 }
 
 export const useStudentPackProgress = (packId?: string) => {
@@ -75,6 +78,21 @@ export const useStudentPackProgress = (packId?: string) => {
       const progressPercent =
         tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
+      // Check if pack was already completed (has entry in student_pack_completions)
+      const { data: existingCompletion } = await supabase
+        .from("student_pack_completions")
+        .select("id")
+        .eq("student_id", studentProfile.id)
+        .eq("pack_id", packId)
+        .maybeSingle();
+
+      // Fetch reward info from task_packs
+      const { data: packRewards } = await supabase
+        .from("task_packs")
+        .select("reward_xp, reward_badge")
+        .eq("id", packId)
+        .maybeSingle();
+
       return {
         packId: firstRow.pack_id,
         packName: firstRow.pack_name,
@@ -84,6 +102,9 @@ export const useStudentPackProgress = (packId?: string) => {
         completedTasks: completedCount,
         progressPercent,
         tasks,
+        rewardXp: packRewards?.reward_xp || 0,
+        rewardBadge: packRewards?.reward_badge || null,
+        isAlreadyCompleted: !!existingCompletion,
       } as PackProgress;
     },
     enabled: !!packId,

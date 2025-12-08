@@ -14,6 +14,7 @@ const getTabFromPath = (pathname: string): string => {
   if (pathname.match(/^\/student\/task-packs\/[^/]+\/tasks\/[^/]+$/)) return "task-pack-task";
   if (pathname.match(/^\/student\/task-packs\/[^/]+$/)) return "task-pack-detail";
   if (pathname === "/student/task-packs") return "task-packs";
+  if (pathname === "/student/pack-leaderboard") return "pack-leaderboard";
   return "feed";
 };
 

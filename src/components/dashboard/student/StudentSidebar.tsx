@@ -19,7 +19,8 @@ import {
   Building2,
   ClipboardList,
   Sparkles,
-  Package
+  Package,
+  Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ const menuItems: MenuItem[] = [
   { id: "uploads", label: "My Uploads", icon: Upload },
   { id: "portfolio", label: "My Portfolio", icon: User },
   { id: "progress", label: "Progress & XP", icon: TrendingUp },
+  { id: "pack-leaderboard", label: "Pack Leaderboard", icon: Trophy, route: "/student/pack-leaderboard" },
   { id: "learning", label: "Learning Resources", icon: BookOpen },
   { id: "jobs", label: "Job Opportunities", icon: Briefcase },
   { id: "notifications", label: "Notifications", icon: Bell },

@@ -114,6 +114,14 @@ const App = () => (
                 </RoleBasedProtectedRoute>
               } 
             />
+            <Route 
+              path="/student/pack-leaderboard" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['student']}>
+                  <StudentDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
             {/* Legacy proof route - redirects to post page */}
             <Route 
               path="/student/proof/:id" 

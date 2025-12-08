@@ -5,6 +5,7 @@ import StudentCreatedTasksPage from "./StudentCreatedTasksPage";
 import StudentTaskPacksPage from "./StudentTaskPacksPage";
 import StudentTaskPackDetailPage from "./StudentTaskPackDetailPage";
 import StudentTaskPackTaskPage from "./StudentTaskPackTaskPage";
+import StudentPackLeaderboardPage from "./StudentPackLeaderboardPage";
 import StudentApplicationsPage from "./StudentApplicationsPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 import StudentPortfolioPage from "./StudentPortfolioPage";
@@ -41,6 +42,8 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
         return <StudentTaskPackDetailPage />;
       case "task-pack-task":
         return <StudentTaskPackTaskPage />;
+      case "pack-leaderboard":
+        return <StudentPackLeaderboardPage />;
       case "create-task":
         return <StudentCreateTaskPage />;
       case "applications":

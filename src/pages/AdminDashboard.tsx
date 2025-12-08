@@ -18,6 +18,7 @@ import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import AdminTaskPacksPage from "@/components/dashboard/admin/AdminTaskPacksPage";
 import AdminTaskPackCreatePage from "@/components/dashboard/admin/AdminTaskPackCreatePage";
 import AdminTaskPackEditPage from "@/components/dashboard/admin/AdminTaskPackEditPage";
+import PackAnalyticsPage from "@/components/dashboard/shared/PackAnalyticsPage";
 
 const AdminDashboard = () => {
   const { userType, packId } = useParams();
@@ -31,7 +32,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     const path = location.pathname;
     
-    if (path.includes('/admin/task-packs')) {
+    if (path === '/admin/task-packs/analytics') {
+      setActiveTab('pack-analytics');
+    } else if (path.includes('/admin/task-packs')) {
       setActiveTab('task-packs');
     } else if (path.includes('/user-management/')) {
       if (userType === 'students') setActiveTab('students');
@@ -59,6 +62,9 @@ const AdminDashboard = () => {
     const path = location.pathname;
     
     // Handle task-packs routes
+    if (path === '/admin/task-packs/analytics') {
+      return <PackAnalyticsPage userRole="admin" />;
+    }
     if (path === '/admin/task-packs') {
       return <AdminTaskPacksPage />;
     }

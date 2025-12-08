@@ -10,6 +10,7 @@ import CollegeSettingsPage from "./CollegeSettingsPage";
 import { RecruiterLinksPage } from "./RecruiterLinksPage";
 import VerificationTrendsPage from "./VerificationTrendsPage";
 import VerificationSettingsPage from "./VerificationSettingsPage";
+import PackAnalyticsPage from "../shared/PackAnalyticsPage";
 
 interface CollegeDashboardContentProps {
   activeTab: string;
@@ -27,6 +28,8 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
         return <AssignTasks />;
       case "assign-pack":
         return <AssignPackPage />;
+      case "pack-analytics":
+        return <PackAnalyticsPage userRole="college" />;
       case "uploaded-proofs":
         return <UploadedProofs />;
       case "trust-scores":

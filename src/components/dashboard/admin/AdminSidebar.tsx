@@ -93,6 +93,13 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       route: "/admin/task-packs"
     },
     { 
+      id: "pack-analytics", 
+      label: "Pack Analytics", 
+      icon: BarChart3,
+      isRoute: true,
+      route: "/admin/task-packs/analytics"
+    },
+    { 
       id: "content-management", 
       label: "Content Management", 
       icon: FileText,

@@ -182,6 +182,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/admin/task-packs/analytics" 
+              element={
+                <RoleBasedProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleBasedProtectedRoute>
+              } 
+            />
+            <Route 
               path="/admin/task-packs/create" 
               element={
                 <RoleBasedProtectedRoute allowedRoles={['admin']}>

@@ -1398,6 +1398,48 @@ export type Database = {
         }
         Relationships: []
       }
+      student_pack_completions: {
+        Row: {
+          badge_awarded: string | null
+          completed_at: string
+          id: string
+          pack_id: string
+          student_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          badge_awarded?: string | null
+          completed_at?: string
+          id?: string
+          pack_id: string
+          student_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          badge_awarded?: string | null
+          completed_at?: string
+          id?: string
+          pack_id?: string
+          student_id?: string
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_pack_completions_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "task_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_pack_completions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_portfolios: {
         Row: {
           achievements: string | null
@@ -1761,6 +1803,8 @@ export type Database = {
           difficulty: string
           id: string
           name: string
+          reward_badge: string | null
+          reward_xp: number | null
           status: string
           updated_at: string
         }
@@ -1771,6 +1815,8 @@ export type Database = {
           difficulty?: string
           id?: string
           name: string
+          reward_badge?: string | null
+          reward_xp?: number | null
           status?: string
           updated_at?: string
         }
@@ -1781,6 +1827,8 @@ export type Database = {
           difficulty?: string
           id?: string
           name?: string
+          reward_badge?: string | null
+          reward_xp?: number | null
           status?: string
           updated_at?: string
         }
@@ -2186,6 +2234,10 @@ export type Database = {
       add_comment: {
         Args: { p_comment: string; p_post_id: string }
         Returns: string
+      }
+      award_pack_completion: {
+        Args: { p_pack_id: string; p_student_id: string }
+        Returns: boolean
       }
       check_rate_limit: {
         Args: {

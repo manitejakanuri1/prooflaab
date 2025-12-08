@@ -1,6 +1,7 @@
 import CollegeDashboardOverview from "./CollegeDashboardOverview";
 import StudentsManagement from "./StudentsManagement";
 import AssignTasks from "./AssignTasks";
+import AssignPackPage from "./AssignPackPage";
 import UploadedProofs from "./UploadedProofs";
 import TrustScoresSection from "./TrustScoresSection";
 import NotificationsSection from "./NotificationsSection";
@@ -24,6 +25,8 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
         return <StudentsManagement />;
       case "assign-tasks":
         return <AssignTasks />;
+      case "assign-pack":
+        return <AssignPackPage />;
       case "uploaded-proofs":
         return <UploadedProofs />;
       case "trust-scores":

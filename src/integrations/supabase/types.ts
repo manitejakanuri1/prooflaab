@@ -679,6 +679,60 @@ export type Database = {
           },
         ]
       }
+      pack_batch_assignments: {
+        Row: {
+          assigned_by: string
+          batch: string
+          branch: string | null
+          college_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          pack_id: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          batch: string
+          branch?: string | null
+          college_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          pack_id: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          batch?: string
+          branch?: string | null
+          college_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          pack_id?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pack_batch_assignments_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pack_batch_assignments_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "task_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_comments: {
         Row: {
           comment: string
@@ -2235,6 +2289,16 @@ export type Database = {
         Args: { p_comment: string; p_post_id: string }
         Returns: string
       }
+      assign_pack_to_batch: {
+        Args: {
+          p_batch: string
+          p_branch?: string
+          p_due_date?: string
+          p_pack_id: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
       award_pack_completion: {
         Args: { p_pack_id: string; p_student_id: string }
         Returns: boolean
@@ -2345,6 +2409,19 @@ export type Database = {
           rank: number
           total_xp: number
           trust_score: number
+        }[]
+      }
+      get_pack_assignment_summary: {
+        Args: { p_assignment_id: string }
+        Returns: {
+          average_progress: number
+          batch: string
+          branch: string
+          completed_count: number
+          pack_description: string
+          pack_name: string
+          total_students: number
+          total_tasks: number
         }[]
       }
       get_post_engagement_summary: {

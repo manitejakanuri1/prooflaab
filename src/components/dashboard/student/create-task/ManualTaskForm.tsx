@@ -8,14 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useStudentCredits } from "@/hooks/useStudentCredits";
 import { Loader2 } from "lucide-react";
 
 interface ManualTaskFormProps {
   studentId: string | undefined;
+  deductCredits: (amount?: number) => Promise<boolean>;
+  refreshCredits: () => Promise<void>;
 }
 
-const ManualTaskForm = ({ studentId }: ManualTaskFormProps) => {
+const ManualTaskForm = ({ studentId, deductCredits, refreshCredits }: ManualTaskFormProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [durationWeeks, setDurationWeeks] = useState("1");
@@ -24,7 +25,6 @@ const ManualTaskForm = ({ studentId }: ManualTaskFormProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { deductCredits } = useStudentCredits(studentId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

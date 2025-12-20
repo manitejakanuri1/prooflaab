@@ -8,14 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useStudentCredits } from "@/hooks/useStudentCredits";
 import { Loader2, Sparkles } from "lucide-react";
 
 interface AITaskGeneratorProps {
   studentId: string | undefined;
+  deductCredits: (amount?: number) => Promise<boolean>;
+  refreshCredits: () => Promise<void>;
 }
 
-const AITaskGenerator = ({ studentId }: AITaskGeneratorProps) => {
+const AITaskGenerator = ({ studentId, deductCredits, refreshCredits }: AITaskGeneratorProps) => {
   const [prompt, setPrompt] = useState("");
   const [generatedTitle, setGeneratedTitle] = useState("");
   const [generatedDescription, setGeneratedDescription] = useState("");
@@ -26,7 +27,6 @@ const AITaskGenerator = ({ studentId }: AITaskGeneratorProps) => {
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { deductCredits } = useStudentCredits(studentId);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {

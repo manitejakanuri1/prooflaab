@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const StudentCreateTaskPage = () => {
   const { profile } = useStudentProfile();
-  const { credits, loading: creditsLoading } = useStudentCredits(profile?.id);
+  const { credits, loading: creditsLoading, deductCredits, refreshCredits } = useStudentCredits(profile?.id);
   const [activeTab, setActiveTab] = useState("manual");
 
   return (
@@ -73,11 +73,19 @@ const StudentCreateTaskPage = () => {
             </TabsList>
 
             <TabsContent value="manual" className="mt-6">
-              <ManualTaskForm studentId={profile?.id} />
+              <ManualTaskForm 
+                studentId={profile?.id} 
+                deductCredits={deductCredits}
+                refreshCredits={refreshCredits}
+              />
             </TabsContent>
 
             <TabsContent value="ai" className="mt-6">
-              <AITaskGenerator studentId={profile?.id} />
+              <AITaskGenerator 
+                studentId={profile?.id}
+                deductCredits={deductCredits}
+                refreshCredits={refreshCredits}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

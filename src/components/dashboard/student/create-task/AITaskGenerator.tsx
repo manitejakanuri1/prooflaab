@@ -125,12 +125,37 @@ const AITaskGenerator = ({ studentId, deductCredits, refreshCredits }: AITaskGen
         description: "AI-generated task created successfully and sent for review.",
       });
 
+      await refreshCredits();
       navigate('/student/dashboard?tab=tasks');
     } catch (error) {
       console.error('Error creating task:', error);
+
+      // If task creation failed AFTER we deducted credits, refund them.
+      try {
+        const { data: currentCredits } = await supabase
+          .from('student_credits')
+          .select('credits_available, credits_used_today')
+          .eq('student_id', studentId)
+          .maybeSingle();
+
+        if (currentCredits) {
+          await supabase
+            .from('student_credits')
+            .update({
+              credits_available: currentCredits.credits_available + 10,
+              credits_used_today: Math.max(0, currentCredits.credits_used_today - 10),
+            })
+            .eq('student_id', studentId);
+        }
+      } catch (refundError) {
+        console.error('Error refunding credits:', refundError);
+      }
+
+      await refreshCredits();
+
       toast({
         title: "Error",
-        description: "Failed to create task. Please try again.",
+        description: "Failed to create task. Your credits were not deducted.",
         variant: "destructive",
       });
     } finally {

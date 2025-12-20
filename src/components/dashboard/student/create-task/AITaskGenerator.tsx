@@ -87,9 +87,12 @@ const AITaskGenerator = ({ studentId, deductCredits, refreshCredits }: AITaskGen
 
     setCreating(true);
 
+    const CREDIT_COST = 10;
+    let creditsDeducted = false;
+
     try {
       // Check and deduct credits
-      const creditsDeducted = await deductCredits(10);
+      creditsDeducted = await deductCredits(CREDIT_COST);
       if (!creditsDeducted) {
         setCreating(false);
         return;
@@ -130,25 +133,36 @@ const AITaskGenerator = ({ studentId, deductCredits, refreshCredits }: AITaskGen
     } catch (error) {
       console.error('Error creating task:', error);
 
-      // If task creation failed AFTER we deducted credits, refund them.
-      try {
-        const { data: currentCredits } = await supabase
-          .from('student_credits')
-          .select('credits_available, credits_used_today')
-          .eq('student_id', studentId)
-          .maybeSingle();
-
-        if (currentCredits) {
-          await supabase
+      // Refund credits ONLY if they were actually deducted.
+      if (creditsDeducted) {
+        try {
+          const { data: currentCredits, error: readCreditsError } = await supabase
             .from('student_credits')
-            .update({
-              credits_available: currentCredits.credits_available + 10,
-              credits_used_today: Math.max(0, currentCredits.credits_used_today - 10),
-            })
-            .eq('student_id', studentId);
+            .select('credits_available, credits_used_today')
+            .eq('student_id', studentId)
+            .maybeSingle();
+
+          if (readCreditsError) throw readCreditsError;
+
+          if (currentCredits) {
+            const { error: refundError } = await supabase
+              .from('student_credits')
+              .update({
+                credits_available: currentCredits.credits_available + CREDIT_COST,
+                credits_used_today: Math.max(0, currentCredits.credits_used_today - CREDIT_COST),
+              })
+              .eq('student_id', studentId);
+
+            if (refundError) throw refundError;
+          }
+        } catch (refundError) {
+          console.error('Error refunding credits:', refundError);
+          toast({
+            title: "Credit refund failed",
+            description: "Task creation failed and we couldn't auto-refund credits. Please contact support/admin.",
+            variant: "destructive",
+          });
         }
-      } catch (refundError) {
-        console.error('Error refunding credits:', refundError);
       }
 
       await refreshCredits();

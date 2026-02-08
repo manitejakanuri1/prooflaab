@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 
@@ -7,15 +6,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  // 🚨 DEVELOPMENT BYPASS - Set to false to enable auth
-  const BYPASS_AUTH = false;
-  
   const { user, loading } = useAuth();
-
-  // If bypassing auth, render children directly
-  if (BYPASS_AUTH) {
-    return <>{children}</>;
-  }
 
   if (loading) {
     return (

@@ -23,12 +23,6 @@ const OnboardingModal = ({ user, onComplete }: OnboardingModalProps) => {
 
     const checkOnboardingStatus = async () => {
       try {
-        // Skip onboarding for admin users
-        if (user.email === 'mohan.padavala@gmail.com') {
-          setIsLoading(false);
-          return;
-        }
-
         // Check if user has been onboarded from metadata
         const hasBeenOnboarded = user.user_metadata?.onboarded;
         

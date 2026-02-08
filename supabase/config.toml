@@ -13,22 +13,22 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.test-github-connection]
-verify_jwt = true
+verify_jwt = false
 
 [functions.verify-proof]
-verify_jwt = true
+verify_jwt = false
 
 [functions.github-check]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-authorship]
-verify_jwt = true
+verify_jwt = false
 
 [functions.question-generator]
-verify_jwt = true
+verify_jwt = false
 
 [functions.submit-conceptual-answers]
-verify_jwt = true
+verify_jwt = false
 
 [functions.response-evaluator]
 verify_jwt = false

@@ -14,22 +14,12 @@ export default function RoleBasedProtectedRoute({
   allowedRoles, 
   fallbackRoute = "/auth" 
 }: RoleBasedProtectedRouteProps) {
-  // 🚨 DEVELOPMENT BYPASS - Set to true to bypass auth temporarily
-  const BYPASS_AUTH = false;
-  
   const { user, loading } = useAuth();
-  const [userRole, setUserRole] = useState<string | null>(BYPASS_AUTH ? 'student' : null);
-  const [roleLoading, setRoleLoading] = useState(!BYPASS_AUTH);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (BYPASS_AUTH) {
-      // When bypassing auth, skip all database checks and allow access
-      setUserRole('student');
-      setRoleLoading(false);
-      return;
-    }
-
     const fetchUserRole = async () => {
       if (!user) {
         setRoleLoading(false);
@@ -52,20 +42,6 @@ export default function RoleBasedProtectedRoute({
             return;
           }
         } else {
-          // Special handling for mohan.padavala@gmail.com - make them admin
-          if (user.email === 'mohan.padavala@gmail.com') {
-            const { error } = await supabase.from('user_roles').insert({
-              user_id: user.id,
-              role: 'admin',
-              has_completed_wizard: true
-            });
-            if (!error) {
-              setUserRole('admin');
-              setRoleLoading(false);
-              return;
-            }
-          }
-          
           // Default to student if no role found
           await supabase.from('user_roles').insert({
             user_id: user.id,
@@ -85,11 +61,6 @@ export default function RoleBasedProtectedRoute({
 
     fetchUserRole();
   }, [user, navigate]);
-
-  // If bypassing auth, always allow access
-  if (BYPASS_AUTH) {
-    return <>{children}</>;
-  }
 
   if (loading || roleLoading) {
     return (

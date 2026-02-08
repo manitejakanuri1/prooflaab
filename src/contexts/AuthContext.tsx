@@ -3,9 +3,6 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import OnboardingModal from "@/components/OnboardingModal";
 
-// 🚨 DEVELOPMENT BYPASS - Set to false to enable auth
-const BYPASS_AUTH = false;
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -24,27 +21,12 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Mock user for development (using valid UUID format)
-  const MOCK_USER: User = {
-    id: "00000000-0000-0000-0000-000000000001", 
-    email: "college@example.com",
-    email_confirmed_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    app_metadata: {},
-    user_metadata: { full_name: "College Admin" },
-    aud: "authenticated",
-    role: "authenticated"
-  } as User;
-
-  const [user, setUser] = useState<User | null>(BYPASS_AUTH ? MOCK_USER : null);
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(!BYPASS_AUTH);
+  const [loading, setLoading] = useState(true);
 
   const createStudentProfileIfNeeded = async (user: User) => {
     try {
-      // Email verification is disabled, so proceed without confirmation check
-
       // Check if profile already exists
       const { data: existingProfile } = await supabase
         .from('student_profiles')
@@ -88,46 +70,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const getUserRole = async (userId: string) => {
-    try {
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-      
-      return roleData?.role || 'student';
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-      return 'student';
-    }
-  };
-
-  const redirectToDashboard = (role: string) => {
-    switch (role) {
-      case 'admin':
-        window.location.href = '/admin-dashboard';
-        break;
-      case 'college_admin':
-        window.location.href = '/college/dashboard';
-        break;
-      case 'startup':
-        window.location.href = '/startup/dashboard';
-        break;
-      case 'student':
-      default:
-        window.location.href = '/student/dashboard';
-        break;
-    }
-  };
-
   useEffect(() => {
-    if (BYPASS_AUTH) {
-      setLoading(false);
-      return;
-    }
-
-    // Set up auth state listener only when not bypassing
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         // Handle auth errors (like invalid refresh token)
@@ -143,14 +87,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Handle successful authentication - no email verification needed
+        // Handle successful authentication
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
-            // Only create student profile for non-admin users
-            if (session.user.email !== 'mohan.padavala@gmail.com') {
-              await createStudentProfileIfNeeded(session.user);
-            }
-            // Removed auto-redirect logic - let individual pages handle their own redirects
+            await createStudentProfileIfNeeded(session.user);
           }, 0);
         }
         
@@ -162,7 +102,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
-        // Clear invalid auth state
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
@@ -183,7 +122,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     }).catch(async (error) => {
       console.error('Failed to get session:', error);
-      // Clear invalid auth state
       await supabase.auth.signOut();
       setSession(null);
       setUser(null);
@@ -194,10 +132,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    if (BYPASS_AUTH) {
-      console.log('Auth bypassed - signOut disabled');
-      return;
-    }
     await supabase.auth.signOut();
   };
 
@@ -211,8 +145,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      {/* Show onboarding modal for authenticated users (disabled during bypass) */}
-      {user && !loading && !BYPASS_AUTH && (
+      {/* Show onboarding modal for authenticated users */}
+      {user && !loading && (
         <OnboardingModal 
           user={user} 
           onComplete={() => {

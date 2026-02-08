@@ -508,7 +508,7 @@ const Index = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-center mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                    <Star key={i} className="w-5 h-5 text-warning fill-current" />
                   ))}
                 </div>
                 <p className="text-lg italic">"I finally have proof of what I can do. No more random certificates."</p>
@@ -526,7 +526,7 @@ const Index = () => {
             
             <Card className="rounded-2xl p-8">
               <CardContent className="space-y-4">
-                <Shield className="w-12 h-12 text-green-500 mx-auto" />
+                <Shield className="w-12 h-12 text-success mx-auto" />
                 <h3 className="text-xl font-bold">100% Verified</h3>
                 <p>All proofs are reviewed</p>
               </CardContent>

@@ -1,6 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
   <head>
+    <script>
+      (function() {
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.remove('light');
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+          if (!theme) localStorage.setItem('theme', 'light');
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ProofLabAI – Verified Student Projects & Portfolios</title>

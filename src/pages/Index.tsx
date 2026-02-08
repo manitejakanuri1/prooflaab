@@ -564,8 +564,8 @@ const Index = () => {
             <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
               Ready to Build Your Proof?
             </h2>
-            <Button size="lg" className="rounded-2xl px-8 py-6 text-lg">
-              Start Now – It's Free
+            <Button asChild size="lg" className="rounded-2xl px-8 py-6 text-lg">
+              <Link to="/auth">Start Now – It's Free</Link>
             </Button>
             
             <div className="space-y-4">

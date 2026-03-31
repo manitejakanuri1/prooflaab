@@ -382,11 +382,24 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
-    // Check password strength for signup
-    if (mode === 'signup' && !isPasswordValid(password)) {
-      setError('Password is too weak. Please choose a stronger password.');
-      return;
+    // Validate inputs with zod before proceeding
+    try {
+      if (mode === 'signup') {
+        signupSchema.parse({ email, password, fullName });
+        if (!isPasswordValid(password)) {
+          setError('Password is too weak. Please choose a stronger password.');
+          return;
+        }
+      } else if (mode === 'login') {
+        loginSchema.parse({ email, password });
+      }
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setError(err.errors[0].message);
+        return;
+      }
     }
     
     if (mode === 'magic-link') {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,23 @@ import PasswordInput, { isPasswordValid } from './PasswordInput';
 import EmailVerificationScreen from './EmailVerificationScreen';
 import InviteCodeVerificationForm from './InviteCodeVerificationForm';
 import EmailConfirmationRequired from './EmailConfirmationRequired';
+
+const signupSchema = z.object({
+  email: z.string().trim().email('Invalid email format').max(255, 'Email too long'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password too long'),
+  fullName: z.string()
+    .trim()
+    .min(1, 'Name is required')
+    .max(100, 'Name must be less than 100 characters')
+    .regex(/^[a-zA-Z\s'.,-]+$/, 'Name contains invalid characters'),
+});
+
+const loginSchema = z.object({
+  email: z.string().trim().email('Invalid email format').max(255, 'Email too long'),
+  password: z.string().min(1, 'Password is required'),
+});
 
 type AuthMode = 'login' | 'signup' | 'magic-link' | 'forgot-password';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';

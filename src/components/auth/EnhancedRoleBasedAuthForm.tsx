@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,23 @@ import PasswordInput, { isPasswordValid } from './PasswordInput';
 import EmailVerificationScreen from './EmailVerificationScreen';
 import InviteCodeVerificationForm from './InviteCodeVerificationForm';
 import EmailConfirmationRequired from './EmailConfirmationRequired';
+
+const signupSchema = z.object({
+  email: z.string().trim().email('Invalid email format').max(255, 'Email too long'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password too long'),
+  fullName: z.string()
+    .trim()
+    .min(1, 'Name is required')
+    .max(100, 'Name must be less than 100 characters')
+    .regex(/^[a-zA-Z\s'.,-]+$/, 'Name contains invalid characters'),
+});
+
+const loginSchema = z.object({
+  email: z.string().trim().email('Invalid email format').max(255, 'Email too long'),
+  password: z.string().min(1, 'Password is required'),
+});
 
 type AuthMode = 'login' | 'signup' | 'magic-link' | 'forgot-password';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
@@ -364,11 +382,24 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
-    // Check password strength for signup
-    if (mode === 'signup' && !isPasswordValid(password)) {
-      setError('Password is too weak. Please choose a stronger password.');
-      return;
+    // Validate inputs with zod before proceeding
+    try {
+      if (mode === 'signup') {
+        signupSchema.parse({ email, password, fullName });
+        if (!isPasswordValid(password)) {
+          setError('Password is too weak. Please choose a stronger password.');
+          return;
+        }
+      } else if (mode === 'login') {
+        loginSchema.parse({ email, password });
+      }
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setError(err.issues[0].message);
+        return;
+      }
     }
     
     if (mode === 'magic-link') {

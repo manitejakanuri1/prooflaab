@@ -725,6 +725,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pack_batch_assignments_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pack_batch_assignments_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false
@@ -1232,6 +1239,13 @@ export type Database = {
             referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "recruiter_links_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       signup_rate_limits: {
@@ -1637,6 +1651,13 @@ export type Database = {
             referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "student_profiles_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       students: {
@@ -2039,6 +2060,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_tasks_created_by_college"
+            columns: ["created_by_college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false
@@ -2246,6 +2274,13 @@ export type Database = {
             referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "verification_settings_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: true
+            referencedRelation: "colleges_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       xp_logs: {
@@ -2282,7 +2317,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_users_safe: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          role: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          name?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          name?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      colleges_public: {
+        Row: {
+          id: string | null
+          name: string | null
+        }
+        Insert: {
+          id?: string | null
+          name?: string | null
+        }
+        Update: {
+          id?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_comment: {

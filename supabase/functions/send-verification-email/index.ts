@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +23,35 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, code }: VerificationEmailRequest = await req.json();
     
     console.log(`Processing verification email for: ${email}`);
+
+    if (!email || !code) {
+      return new Response(
+        JSON.stringify({ error: "Missing email or code" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Anti-spam: verify that this exact code was just stored in student_otps for this email.
+    // Prevents unauthenticated callers from sending arbitrary emails via our Resend account.
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: otpRow } = await supabase
+      .from("student_otps")
+      .select("id, created_at")
+      .eq("email", email)
+      .eq("otp_code", code)
+      .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!otpRow) {
+      return new Response(
+        JSON.stringify({ error: "Invalid verification request" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     

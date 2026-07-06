@@ -79,6 +79,27 @@ serve(async (req) => {
 
     const student_id = studentProfile.id;
 
+    // Ownership check: ensure the proof_id belongs to this student
+    const { data: proofOwner, error: proofOwnerError } = await supabase
+      .from('proof_uploads')
+      .select('student_id')
+      .eq('id', proof_id)
+      .single();
+
+    if (proofOwnerError || !proofOwner) {
+      return new Response(
+        JSON.stringify({ error: 'Proof not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (proofOwner.student_id !== student_id) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: proof does not belong to authenticated student' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Fetch conceptual test
     const { data: conceptualTest, error: fetchError } = await supabase
       .from('conceptual_tests')

@@ -76,6 +76,23 @@ serve(async (req) => {
       )
     }
 
+    // For college_admin callers, ensure they can only create students for their own college
+    const isAdmin = (roles ?? []).some((r: any) => r.role === 'admin')
+    if (!isAdmin) {
+      const { data: college } = await supabaseAdmin
+        .from('colleges')
+        .select('id')
+        .eq('user_id', userData.user.id)
+        .eq('id', college_id)
+        .maybeSingle()
+      if (!college) {
+        return new Response(JSON.stringify({ error: 'Forbidden: college_id does not belong to caller' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+    }
+
     const results = []
 
     for (const studentData of students) {

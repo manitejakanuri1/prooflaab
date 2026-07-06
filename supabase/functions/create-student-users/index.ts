@@ -25,6 +25,34 @@ serve(async (req) => {
       }
     )
 
+    // Require authenticated caller with college_admin or admin role
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token)
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    const { data: roles } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userData.user.id)
+    const allowed = (roles ?? []).some((r: any) => r.role === 'admin' || r.role === 'college_admin')
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     // Get request body
     const { students, college_id } = await req.json()
     
@@ -46,6 +74,23 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
+    }
+
+    // For college_admin callers, ensure they can only create students for their own college
+    const isAdmin = (roles ?? []).some((r: any) => r.role === 'admin')
+    if (!isAdmin) {
+      const { data: college } = await supabaseAdmin
+        .from('colleges')
+        .select('id')
+        .eq('user_id', userData.user.id)
+        .eq('id', college_id)
+        .maybeSingle()
+      if (!college) {
+        return new Response(JSON.stringify({ error: 'Forbidden: college_id does not belong to caller' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
     }
 
     const results = []

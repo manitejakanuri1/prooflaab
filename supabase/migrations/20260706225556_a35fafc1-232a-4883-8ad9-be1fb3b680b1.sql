@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "update_own_role" ON public.user_roles;

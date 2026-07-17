@@ -45,7 +45,7 @@ const StudentAssignedTasksPage = () => {
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
-  const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string } | null>(null);
+  const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string; review?: boolean } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Due Date (ASC)");
@@ -387,6 +387,23 @@ const StudentAssignedTasksPage = () => {
                                   </TooltipProvider>
                                 );
                               }
+                              if (conceptualTest && conceptualTest.status === 'graded') {
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setSelectedConceptualTest({
+                                      proofId: conceptualTest.proof_id,
+                                      taskId: task.id,
+                                      review: true
+                                    })}
+                                    className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400"
+                                  >
+                                    <Brain className="h-4 w-4 mr-1" />
+                                    Review Quiz
+                                  </Button>
+                                );
+                              }
                               return null;
                             })()}
                           </>
@@ -433,6 +450,7 @@ const StudentAssignedTasksPage = () => {
           onOpenChange={(open) => !open && setSelectedConceptualTest(null)}
           proofId={selectedConceptualTest.proofId}
           onSubmitSuccess={handleConceptualSuccess}
+          review={selectedConceptualTest.review}
         />
       )}
 

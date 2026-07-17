@@ -196,10 +196,15 @@ serve(async (req) => {
         });
     }
 
+    // Internal function-to-function calls authenticate with the webhook
+    // secret — the service-role key is not a user JWT and fails getUser()
+    const internalHeaders = { 'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '' };
+
     if (isMcqTest) {
       // Already graded above — go straight to trust computation
       const trustResult = await supabase.functions.invoke('trust-compute', {
-        body: { proof_id }
+        body: { proof_id },
+        headers: internalHeaders
       });
       if (trustResult.error) {
         console.error('Trust computation error:', trustResult.error);
@@ -208,7 +213,8 @@ serve(async (req) => {
       // Legacy free-text tests: AI evaluation, then trust computation
       console.log('Triggering automatic evaluation...');
       const evalResult = await supabase.functions.invoke('response-evaluator', {
-        body: { proof_id }
+        body: { proof_id },
+        headers: internalHeaders
       });
 
       if (evalResult.error) {
@@ -218,7 +224,8 @@ serve(async (req) => {
         console.log('Evaluation triggered successfully');
 
         const trustResult = await supabase.functions.invoke('trust-compute', {
-          body: { proof_id }
+          body: { proof_id },
+          headers: internalHeaders
         });
 
         if (trustResult.error) {

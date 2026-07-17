@@ -31,6 +31,8 @@ interface ConceptualQuestionsModalProps {
   onOpenChange: (open: boolean) => void;
   proofId: string;
   onSubmitSuccess?: () => void;
+  /** Show a read-only review of a graded quiz instead of running it */
+  review?: boolean;
 }
 
 // ponytail: correct_index/reinforce/teach ride along in the questions payload
@@ -41,13 +43,14 @@ const ConceptualQuestionsModal = ({
   open,
   onOpenChange,
   proofId,
-  onSubmitSuccess
+  onSubmitSuccess,
+  review = false
 }: ConceptualQuestionsModalProps) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selectedIndexes, setSelectedIndexes] = useState<Record<string, number | null>>({});
-  const [phase, setPhase] = useState<'question' | 'feedback' | 'results'>('question');
+  const [phase, setPhase] = useState<'question' | 'feedback' | 'results' | 'review'>('question');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -62,11 +65,11 @@ const ConceptualQuestionsModal = ({
       setCurrentIndex(0);
       setAnswers({});
       setSelectedIndexes({});
-      setPhase('question');
+      setPhase(review ? 'review' : 'question');
       setShowConfirmation(false);
       fetchQuestions();
     }
-  }, [open, proofId]);
+  }, [open, proofId, review]);
 
   // Lock the current MCQ answer and show feedback (called on pick or timeout)
   const lockMcqAnswer = useCallback((index: number | null) => {
@@ -103,7 +106,7 @@ const ConceptualQuestionsModal = ({
     try {
       const { data, error } = await supabase
         .from('conceptual_tests')
-        .select('questions')
+        .select('questions, student_answers')
         .eq('proof_id', proofId)
         .single();
 
@@ -111,6 +114,13 @@ const ConceptualQuestionsModal = ({
 
       if (data?.questions && Array.isArray(data.questions)) {
         setQuestions(data.questions as unknown as Question[]);
+      }
+      if (review && Array.isArray(data?.student_answers)) {
+        const past: Record<string, number | null> = {};
+        for (const a of data.student_answers as { question_id: string; selected_index?: number }[]) {
+          past[a.question_id] = typeof a.selected_index === 'number' && a.selected_index >= 0 ? a.selected_index : null;
+        }
+        setSelectedIndexes(past);
       }
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -270,6 +280,63 @@ const ConceptualQuestionsModal = ({
     const selected = selectedIndexes[currentQuestion.id];
     const isCorrect = typeof selected === 'number' && selected === currentQuestion.correct_index;
     const isLast = currentIndex === questions.length - 1;
+
+    if (phase === 'review') {
+      const correctCount = questions.filter(q => selectedIndexes[q.id] === q.correct_index).length;
+      return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto rounded-2xl shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Quiz Review — {correctCount} / {questions.length}
+              </DialogTitle>
+              <DialogDescription>
+                Reread what each question was really about — especially the ones you missed.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {questions.map((q, i) => {
+                const sel = selectedIndexes[q.id];
+                const right = sel === q.correct_index;
+                return (
+                  <div key={q.id} className="border rounded-lg p-4 space-y-2">
+                    <p className="font-medium flex items-start gap-2">
+                      {right
+                        ? <CheckCircle2 className="h-4 w-4 mt-1 text-green-600 shrink-0" />
+                        : <XCircle className="h-4 w-4 mt-1 text-red-600 shrink-0" />}
+                      <span>Q{i + 1}. {q.prompt}</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Your answer: {typeof sel === 'number'
+                        ? `${String.fromCharCode(65 + sel)}. ${q.options?.[sel]}`
+                        : 'No answer (time expired)'}
+                    </p>
+                    {!right && (
+                      <p className="text-sm">
+                        Correct: <span className="font-medium">
+                          {String.fromCharCode(65 + (q.correct_index ?? 0))}. {q.options?.[q.correct_index ?? 0]}
+                        </span>
+                      </p>
+                    )}
+                    {(right ? q.reinforce : q.teach) && (
+                      <div className="bg-muted/50 rounded-md p-3 text-sm text-muted-foreground whitespace-pre-line">
+                        {right ? q.reinforce : q.teach}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <div className="flex justify-end">
+                <Button onClick={() => onOpenChange(false)}>Done</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
+    }
 
     if (phase === 'results') {
       const correctCount = questions.filter(q => selectedIndexes[q.id] === q.correct_index).length;

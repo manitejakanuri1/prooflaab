@@ -60,7 +60,7 @@ const TrustXPModeration = () => {
   const { data: pendingReviews, isLoading: loadingPending } = useQuery({
     queryKey: ['pending-xp-reviews', statusFilter, collegeFilter],
     queryFn: async () => {
-      let query = supabase
+      const query = supabase
         .from('proof_uploads')
         .select(`
           *,

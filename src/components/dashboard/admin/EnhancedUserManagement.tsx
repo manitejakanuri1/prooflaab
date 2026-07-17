@@ -290,7 +290,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
   const confirmAction = () => {
     if (!selectedUser) return;
 
-    let updates: any = {};
+    const updates: any = {};
     
     if (activeTab === 'students') {
       if (actionType === 'block') updates.status = 'blocked';

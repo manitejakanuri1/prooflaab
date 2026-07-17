@@ -153,7 +153,7 @@ serve(async (req) => {
     // Calculate base cognitive_integrity_score
     // Updated CIS formula (v2.0) for fairer weighting and adaptive thresholds
     // Weights: 35% commit, 25% ai_authorship, 40% conceptual
-    let baseCIS = Math.round(
+    const baseCIS = Math.round(
       (commitAuthenticityScore * 0.35) +
       (aiAuthorshipScore * 0.25) +
       (conceptualUnderstandingScore * 0.40)

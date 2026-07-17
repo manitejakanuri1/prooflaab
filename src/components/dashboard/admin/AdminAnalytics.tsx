@@ -30,7 +30,7 @@ const AdminAnalytics = () => {
     queryKey: ['kpi-stats', dateRange],
     queryFn: async () => {
       const now = new Date();
-      let startDate = new Date();
+      const startDate = new Date();
       
       if (dateRange === "weekly") {
         startDate.setDate(now.getDate() - 7);

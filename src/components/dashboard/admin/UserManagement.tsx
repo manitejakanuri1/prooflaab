@@ -103,7 +103,7 @@ const UserManagement = ({ type }: UserManagementProps) => {
   const confirmAction = () => {
     if (!selectedUser) return;
 
-    let updates: any = {};
+    const updates: any = {};
     
     if (type === 'students') {
       updates.status = actionType === 'block' ? 'blocked' : 'active';

@@ -235,7 +235,7 @@ const AdminAssignTasks = () => {
 
   const fetchStudents = async () => {
     try {
-      let query = supabase
+      const query = supabase
         .from('student_profiles')
         .select(`
           id, full_name, email, branch, batch, year_of_study,
@@ -674,7 +674,7 @@ const AdminAssignTasks = () => {
         : selectedStudents;
 
       // Prepare request body based on mode
-      let requestBody: any = {
+      const requestBody: any = {
         mode: activeTab,
         due_date: confirmationData.dueDate.toISOString(),
         selected_students: targetStudents,

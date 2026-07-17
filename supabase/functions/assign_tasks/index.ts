@@ -239,7 +239,7 @@ serve(async (req) => {
     // Helper function to insert task
     async function insertTask(taskData: any) {
       // Determine approved_by_admin based on creator
-      let approvedByAdmin = true; // Default to true for all creators
+      const approvedByAdmin = true; // Default to true for all creators
       
       // Determine the correct source based on role if not provided
       const finalSource = taskData.source || source_based_on_role;

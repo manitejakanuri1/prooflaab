@@ -232,7 +232,7 @@ serve(async (req) => {
 
     const isGitHubLink = proof.file_url?.includes('github.com');
     let githubInfo: GitHubRepoInfo | null = null;
-    let aiVerification: any = null;
+    const aiVerification: any = null;
     let fileContent = '';
 
     // 2. GitHub Verification

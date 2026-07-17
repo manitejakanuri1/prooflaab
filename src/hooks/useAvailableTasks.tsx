@@ -110,7 +110,7 @@ export const useAvailableTasks = () => {
 
       // Fetch startup names for tasks created by startups
       const startupIds = tasks.filter(t => t.created_by_startup_id).map(t => t.created_by_startup_id);
-      let startupNames = new Map();
+      const startupNames = new Map();
       
       if (startupIds.length > 0) {
         const { data: startupsData } = await supabase

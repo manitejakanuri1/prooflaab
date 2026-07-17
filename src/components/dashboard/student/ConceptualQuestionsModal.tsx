@@ -47,7 +47,7 @@ const ConceptualQuestionsModal = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selectedIndexes, setSelectedIndexes] = useState<Record<string, number | null>>({});
-  const [phase, setPhase] = useState<'question' | 'feedback'>('question');
+  const [phase, setPhase] = useState<'question' | 'feedback' | 'results'>('question');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -133,10 +133,11 @@ const ConceptualQuestionsModal = ({
   };
 
   const handleFeedbackNext = () => {
-    setPhase('question');
     if (currentIndex < questions.length - 1) {
+      setPhase('question');
       setCurrentIndex(prev => prev + 1);
     } else {
+      setPhase('results');
       handleSubmit();
     }
   };
@@ -196,6 +197,12 @@ const ConceptualQuestionsModal = ({
       });
 
       if (response.error) throw response.error;
+
+      if (isMcq) {
+        // Results screen is already showing — just refresh parent data
+        onSubmitSuccess?.();
+        return;
+      }
 
       toast({
         title: "Success! 🎉",
@@ -263,6 +270,60 @@ const ConceptualQuestionsModal = ({
     const selected = selectedIndexes[currentQuestion.id];
     const isCorrect = typeof selected === 'number' && selected === currentQuestion.correct_index;
     const isLast = currentIndex === questions.length - 1;
+
+    if (phase === 'results') {
+      const correctCount = questions.filter(q => selectedIndexes[q.id] === q.correct_index).length;
+      return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-[600px] rounded-2xl shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                Quiz Results
+              </DialogTitle>
+              <DialogDescription>
+                {submitting ? "Saving your answers..." : "Your answers are saved — verification continues automatically."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="text-center py-2">
+                <p className="text-4xl font-bold">
+                  {correctCount} / {questions.length}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {correctCount === questions.length
+                    ? "Perfect — you know your code!"
+                    : correctCount > 0
+                      ? "Good — reread the explanations for the ones you missed."
+                      : "Go through your code once more — the explanations above tell you where to start."}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {questions.map((q, i) => {
+                  const right = selectedIndexes[q.id] === q.correct_index;
+                  return (
+                    <div key={q.id} className="flex items-start gap-2 text-sm p-2 rounded-md bg-muted/50">
+                      {right
+                        ? <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 shrink-0" />
+                        : <XCircle className="h-4 w-4 mt-0.5 text-red-600 shrink-0" />}
+                      <span className="text-muted-foreground">Q{i + 1}. {q.prompt}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={() => onOpenChange(false)} disabled={submitting}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
+    }
 
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>

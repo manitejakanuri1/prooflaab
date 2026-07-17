@@ -86,6 +86,7 @@ serve(async (req) => {
     };
 
     // Get repo tree (fall back to the repo's default branch if main is absent)
+    let treeBranch = 'main';
     let treeResponse = await ghFetch(
       `https://api.github.com/repos/${owner}/${cleanRepoName}/git/trees/main?recursive=1`
     );
@@ -94,6 +95,7 @@ serve(async (req) => {
       if (repoInfo.ok) {
         const { default_branch } = await repoInfo.json();
         if (default_branch && default_branch !== 'main') {
+          treeBranch = default_branch;
           treeResponse = await ghFetch(
             `https://api.github.com/repos/${owner}/${cleanRepoName}/git/trees/${default_branch}?recursive=1`
           );
@@ -129,6 +131,27 @@ serve(async (req) => {
       .map((c: any) => `- ${c.commit.message} (${c.sha.substring(0, 7)})`)
       .join('\n');
 
+    // Fetch actual source of a few key files so questions are grounded in
+    // real code, not guessed from file names and commit messages.
+    const codeExtensions = /\.(html|js|jsx|ts|tsx|py|css|json|md|java|c|cpp|go|rs)$/i;
+    const candidateFiles = fileStructure
+      .filter((p: string) => codeExtensions.test(p) && !/lock|min\.|node_modules|dist\//i.test(p))
+      .sort((a: string, b: string) => a.split('/').length - b.split('/').length)
+      .slice(0, 4);
+
+    const fileContents: string[] = [];
+    for (const path of candidateFiles) {
+      try {
+        const raw = await fetch(
+          `https://raw.githubusercontent.com/${owner}/${cleanRepoName}/${treeBranch}/${path}`
+        );
+        if (raw.ok) {
+          const text = await raw.text();
+          fileContents.push(`=== ${path} ===\n${text.slice(0, 3000)}`);
+        }
+      } catch (_e) { /* skip unreadable files */ }
+    }
+
     // Generate questions using Gemini
     const prompt = `You are an expert code reviewer analyzing a GitHub repository for educational assessment.
 
@@ -139,12 +162,16 @@ ${fileStructure.slice(0, 30).join('\n')}
 Recent commits:
 ${recentCommitMessages}
 
-Generate exactly ${top_n} multiple-choice questions to assess the developer's understanding of this codebase. Each question should:
-1. Focus on design choices, language/library purpose, or how the pieces fit together
-2. Reference specific files, commits, or patterns visible in the structure
-3. Be answerable in under 15 seconds by someone who truly wrote/understood the code
-4. Have exactly 4 options with exactly one correct answer; wrong options must be plausible
-5. Vary in difficulty (mix of easy and medium)
+Actual source code from the repository:
+${fileContents.join('\n\n') || '(no file contents available — base questions only on facts visible in the file structure)'}
+
+Generate exactly ${top_n} multiple-choice questions to assess the developer's understanding of this codebase. Each question MUST:
+1. Be based ONLY on the actual source code shown above — never guess or invent what a file, library, or commit might mean. If you are not certain a fact is true from the code, do not ask about it.
+2. Be ONE short, plain-English sentence (under 25 words). No commit hashes, no long quotes, no jargon without need.
+3. Test understanding of what the code DOES or WHY it is written that way — the kind of thing only someone who read their own code would know.
+4. Be answerable in under 15 seconds by someone who truly wrote/understood the code
+5. Have exactly 4 options with exactly one correct answer; wrong options must be plausible
+6. Vary in difficulty (mix of easy and medium)
 
 Each question also carries learning content shown to the student AFTER they answer:
 - "reinforce": 1-2 sentences shown when they answer correctly, confirming WHY that answer is right
@@ -169,22 +196,29 @@ Return ONLY the JSON array, no additional text.`;
 
     console.log('Calling Gemini API for question generation...');
 
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 4000,
-          }
-        })
-      }
-    );
+    // Gemini returns transient 429/503 under load — retry twice with backoff
+    let geminiResponse!: Response;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 4000,
+            }
+          })
+        }
+      );
+      if (geminiResponse.ok || ![429, 503].includes(geminiResponse.status)) break;
+      console.log(`Gemini ${geminiResponse.status}, retry ${attempt + 1}...`);
+      await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
+    }
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
@@ -227,6 +261,18 @@ Return ONLY the JSON array, no additional text.`;
 
     // Ensure we have the right number of questions
     questions = questions.slice(0, top_n);
+
+    // Shuffle option order — LLMs put the correct answer first far too often
+    for (const q of questions) {
+      if (Array.isArray(q.options) && typeof q.correct_index === 'number') {
+        const correctText = q.options[q.correct_index];
+        for (let i = q.options.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [q.options[i], q.options[j]] = [q.options[j], q.options[i]];
+        }
+        q.correct_index = q.options.indexOf(correctText);
+      }
+    }
 
     // Save to conceptual_tests table
     const { data: existingTest, error: fetchError } = await supabase

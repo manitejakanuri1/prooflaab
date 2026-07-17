@@ -126,15 +126,44 @@ serve(async (req) => {
     const timestampedAnswers = answers.map(answer => ({
       question_id: answer.question_id,
       answer_text: answer.answer_text,
+      ...(typeof answer.selected_index === 'number' ? { selected_index: answer.selected_index } : {}),
       answered_at: new Date().toISOString()
     }));
+
+    // MCQ tests carry their correct answers, so grade them here
+    // deterministically instead of calling the essay evaluator.
+    const questionList = (conceptualTest.questions ?? []) as any[];
+    const isMcqTest = questionList.length > 0 &&
+      questionList.every((q: any) => Array.isArray(q.options) && typeof q.correct_index === 'number');
+
+    let mcqScores: any[] | null = null;
+    if (isMcqTest) {
+      const questionsById = new Map(questionList.map((q: any) => [q.id, q]));
+      mcqScores = answers.map((a: any) => {
+        const q = questionsById.get(a.question_id);
+        const correct = !!q && a.selected_index === q.correct_index;
+        return {
+          question_id: a.question_id,
+          correctness_score: correct ? 100 : 0,
+          ai_likelihood_score: 0,
+          confidence: 100,
+          explanation: correct
+            ? (q?.reinforce ?? 'Correct answer selected')
+            : 'Wrong or no option selected within the time limit',
+          repo_context_bonus: 0,
+          final_score: correct ? 100 : 0
+        };
+      });
+    }
 
     // Update conceptual_tests
     const { error: updateError } = await supabase
       .from('conceptual_tests')
       .update({
         student_answers: timestampedAnswers,
-        status: 'submitted'
+        ...(mcqScores
+          ? { answer_scores: mcqScores, status: 'graded' }
+          : { status: 'submitted' })
       })
       .eq('proof_id', proof_id);
 
@@ -167,25 +196,34 @@ serve(async (req) => {
         });
     }
 
-    // Automatically trigger evaluation
-    console.log('Triggering automatic evaluation...');
-    const evalResult = await supabase.functions.invoke('response-evaluator', {
-      body: { proof_id }
-    });
-
-    if (evalResult.error) {
-      console.error('Evaluation error:', evalResult.error);
-      // Don't fail the submission even if evaluation fails
-    } else {
-      console.log('Evaluation triggered successfully');
-      
-      // Trigger trust computation after evaluation
+    if (isMcqTest) {
+      // Already graded above — go straight to trust computation
       const trustResult = await supabase.functions.invoke('trust-compute', {
         body: { proof_id }
       });
-      
       if (trustResult.error) {
         console.error('Trust computation error:', trustResult.error);
+      }
+    } else {
+      // Legacy free-text tests: AI evaluation, then trust computation
+      console.log('Triggering automatic evaluation...');
+      const evalResult = await supabase.functions.invoke('response-evaluator', {
+        body: { proof_id }
+      });
+
+      if (evalResult.error) {
+        console.error('Evaluation error:', evalResult.error);
+        // Don't fail the submission even if evaluation fails
+      } else {
+        console.log('Evaluation triggered successfully');
+
+        const trustResult = await supabase.functions.invoke('trust-compute', {
+          body: { proof_id }
+        });
+
+        if (trustResult.error) {
+          console.error('Trust computation error:', trustResult.error);
+        }
       }
     }
 

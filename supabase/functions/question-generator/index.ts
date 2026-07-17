@@ -126,31 +126,31 @@ ${fileStructure.slice(0, 30).join('\n')}
 Recent commits:
 ${recentCommitMessages}
 
-Generate exactly ${top_n} conceptual questions to assess the developer's understanding of this codebase. Each question should:
-1. Focus on design choices, architecture decisions, or edge case handling
+Generate exactly ${top_n} multiple-choice questions to assess the developer's understanding of this codebase. Each question should:
+1. Focus on design choices, language/library purpose, or how the pieces fit together
 2. Reference specific files, commits, or patterns visible in the structure
-3. Be answerable by someone who truly wrote/understood the code
-4. Not be trivial "what does X do?" questions
-5. Vary in difficulty (mix of medium and hard questions)
-6. Include context about where in the code the question applies
+3. Be answerable in under 15 seconds by someone who truly wrote/understood the code
+4. Have exactly 4 options with exactly one correct answer; wrong options must be plausible
+5. Vary in difficulty (mix of easy and medium)
+
+Each question also carries learning content shown to the student AFTER they answer:
+- "reinforce": 1-2 sentences shown when they answer correctly, confirming WHY that answer is right
+- "teach": shown when they answer wrongly. Written in simple, beginner-friendly English (no jargon without explanation). It must cover: what programming language/framework this part of the code uses and why it fits here, what the relevant dependency/library does, and the key syntax or concept the question tested — so the student understands the code they wrote or copied.
 
 Return a JSON array with this exact structure:
 [
   {
     "id": "q1",
     "prompt": "Question text here",
+    "options": ["option A", "option B", "option C", "option D"],
+    "correct_index": 0,
+    "reinforce": "Correct because ...",
+    "teach": "This project uses ... The library ... The syntax ... ",
     "context_references": ["file.js line 45", "commit abc123"],
-    "difficulty": "medium|hard",
-    "time_limit_seconds": 180
+    "difficulty": "easy|medium",
+    "time_limit_seconds": 15
   }
 ]
-
-Focus on questions about:
-- Why certain architectural patterns were chosen
-- How specific edge cases are handled
-- What tradeoffs were made in implementation
-- How different modules interact
-- Specific commit decisions and their rationale
 
 Return ONLY the JSON array, no additional text.`;
 
@@ -167,7 +167,7 @@ Return ONLY the JSON array, no additional text.`;
           }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 2000,
+            maxOutputTokens: 4000,
           }
         })
       }

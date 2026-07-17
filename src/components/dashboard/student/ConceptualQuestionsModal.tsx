@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Clock, Send, Brain } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Send, Brain, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
 
 interface Question {
   id: string;
   prompt: string;
+  options?: string[];
+  correct_index?: number;
+  reinforce?: string;
+  teach?: string;
   context_references?: string[];
   difficulty?: string;
   time_limit_seconds?: number;
@@ -29,55 +33,70 @@ interface ConceptualQuestionsModalProps {
   onSubmitSuccess?: () => void;
 }
 
-const ConceptualQuestionsModal = ({ 
-  open, 
-  onOpenChange, 
+// ponytail: correct_index/reinforce/teach ride along in the questions payload
+// the client fetches, so devtools can reveal answers mid-quiz. Ceiling accepted
+// for MVP; upgrade path = serve questions through a view that strips them and
+// grade purely server-side.
+const ConceptualQuestionsModal = ({
+  open,
+  onOpenChange,
   proofId,
-  onSubmitSuccess 
+  onSubmitSuccess
 }: ConceptualQuestionsModalProps) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [selectedIndexes, setSelectedIndexes] = useState<Record<string, number | null>>({});
+  const [phase, setPhase] = useState<'question' | 'feedback'>('question');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const { toast } = useToast();
 
+  const isMcq = questions.length > 0 && questions.every(q => Array.isArray(q.options) && typeof q.correct_index === 'number');
+
   // Fetch questions when modal opens
   useEffect(() => {
     if (open && proofId) {
+      setCurrentIndex(0);
+      setAnswers({});
+      setSelectedIndexes({});
+      setPhase('question');
+      setShowConfirmation(false);
       fetchQuestions();
     }
   }, [open, proofId]);
 
-  // Timer countdown
+  // Lock the current MCQ answer and show feedback (called on pick or timeout)
+  const lockMcqAnswer = useCallback((index: number | null) => {
+    const q = questions[currentIndex];
+    if (!q) return;
+    setSelectedIndexes(prev => ({ ...prev, [q.id]: index }));
+    setTimeLeft(null);
+    setPhase('feedback');
+  }, [questions, currentIndex]);
+
+  // Timer countdown; hitting zero on an MCQ question locks a "no answer"
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev === null || prev <= 1) {
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  // Start timer when question changes
-  useEffect(() => {
-    if (questions.length > 0 && currentIndex < questions.length) {
-      const currentQuestion = questions[currentIndex];
-      if (currentQuestion.time_limit_seconds) {
-        setTimeLeft(currentQuestion.time_limit_seconds);
-      } else {
-        setTimeLeft(120); // Default 2 minutes
-      }
+    if (timeLeft === null || phase !== 'question') return;
+    if (timeLeft <= 0) {
+      if (isMcq) lockMcqAnswer(null);
+      return;
     }
-  }, [currentIndex, questions]);
+    const timer = setInterval(() => {
+      setTimeLeft(prev => (prev === null ? null : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft, phase, isMcq, lockMcqAnswer]);
+
+  // Start timer when a question is shown
+  useEffect(() => {
+    if (questions.length > 0 && currentIndex < questions.length && phase === 'question') {
+      const currentQuestion = questions[currentIndex];
+      setTimeLeft(currentQuestion.time_limit_seconds ?? (isMcq ? 15 : 120));
+    }
+  }, [currentIndex, questions, phase, isMcq]);
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -113,6 +132,15 @@ const ConceptualQuestionsModal = ({
     }));
   };
 
+  const handleFeedbackNext = () => {
+    setPhase('question');
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      handleSubmit();
+    }
+  };
+
   const handleNext = () => {
     const currentAnswer = answers[questions[currentIndex].id] || "";
     if (currentAnswer.trim().length < 100) {
@@ -140,11 +168,20 @@ const ConceptualQuestionsModal = ({
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      // Prepare answers array
-      const answersArray = questions.map(q => ({
-        question_id: q.id,
-        answer_text: answers[q.id] || ""
-      }));
+      const answersArray = questions.map(q => {
+        if (isMcq) {
+          const sel = selectedIndexes[q.id];
+          return {
+            question_id: q.id,
+            answer_text: typeof sel === 'number' ? (q.options?.[sel] ?? '') : 'No answer (time expired)',
+            selected_index: typeof sel === 'number' ? sel : -1
+          };
+        }
+        return {
+          question_id: q.id,
+          answer_text: answers[q.id] || ""
+        };
+      });
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -221,9 +258,128 @@ const ConceptualQuestionsModal = ({
   const currentAnswer = answers[currentQuestion.id] || "";
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
+  // ---- MCQ flow: timed question, then instant feedback ----
+  if (isMcq) {
+    const selected = selectedIndexes[currentQuestion.id];
+    const isCorrect = typeof selected === 'number' && selected === currentQuestion.correct_index;
+    const isLast = currentIndex === questions.length - 1;
+
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[600px] rounded-2xl shadow-lg" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              🧠 Do You Know Your Code?
+            </DialogTitle>
+            <DialogDescription>
+              Quick questions about the code you submitted — {currentQuestion.time_limit_seconds ?? 15}s each
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">
+                  Question {currentIndex + 1} of {questions.length}
+                </span>
+                {phase === 'question' && timeLeft !== null && (
+                  <Badge variant={timeLeft <= 5 ? "destructive" : "secondary"} className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {timeLeft}s
+                  </Badge>
+                )}
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+
+            <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+              {currentQuestion.difficulty && (
+                <Badge variant="outline">{currentQuestion.difficulty}</Badge>
+              )}
+              <p className="font-medium text-foreground leading-relaxed">
+                {currentQuestion.prompt}
+              </p>
+            </div>
+
+            {phase === 'question' ? (
+              <div className="space-y-2">
+                {currentQuestion.options!.map((opt, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-3 whitespace-normal"
+                    onClick={() => lockMcqAnswer(idx)}
+                  >
+                    <span className="font-semibold mr-2">{String.fromCharCode(65 + idx)}.</span>
+                    {opt}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {isCorrect ? (
+                  <div className="border border-green-300 bg-green-50 dark:bg-green-950/20 p-4 rounded-lg space-y-2">
+                    <p className="flex items-center gap-2 font-medium text-green-700 dark:text-green-400">
+                      <CheckCircle2 className="h-5 w-5" />
+                      Correct!
+                    </p>
+                    {currentQuestion.reinforce && (
+                      <p className="text-sm text-foreground">{currentQuestion.reinforce}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="border border-red-300 bg-red-50 dark:bg-red-950/20 p-4 rounded-lg space-y-2">
+                      <p className="flex items-center gap-2 font-medium text-red-700 dark:text-red-400">
+                        <XCircle className="h-5 w-5" />
+                        {typeof selected === 'number' ? 'Not quite' : "Time's up"}
+                      </p>
+                      <p className="text-sm text-foreground">
+                        Correct answer: <span className="font-medium">
+                          {String.fromCharCode(65 + (currentQuestion.correct_index ?? 0))}. {currentQuestion.options![currentQuestion.correct_index ?? 0]}
+                        </span>
+                      </p>
+                    </div>
+                    {currentQuestion.teach && (
+                      <div className="border bg-muted/50 p-4 rounded-lg space-y-2">
+                        <p className="flex items-center gap-2 font-medium text-foreground">
+                          <GraduationCap className="h-5 w-5" />
+                          Understand your code
+                        </p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-line">{currentQuestion.teach}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <Button onClick={handleFeedbackNext} disabled={submitting}>
+                    {submitting ? "Submitting..." : isLast ? (
+                      <>
+                        <Send className="h-4 w-4 mr-1" />
+                        Finish
+                      </>
+                    ) : (
+                      <>
+                        Next Question
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // ---- Legacy free-text flow (older tests generated before MCQ) ----
   if (showConfirmation) {
     const allAnswered = questions.every(q => answers[q.id]?.trim().length >= 100);
-    
+
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-[600px] rounded-2xl shadow-lg">

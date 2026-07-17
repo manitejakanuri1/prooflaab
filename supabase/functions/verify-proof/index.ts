@@ -37,6 +37,9 @@ async function verifyGitHubRepo(repoUrl: string, githubPat: string): Promise<Git
     const cleanRepo = repo.replace('.git', '');
 
     // Get commit history
+    // ponytail: expired GITHUB_PAT turns public-repo calls into 401s; the
+    // question-generator has an unauthenticated fallback, this path still
+    // requires a valid PAT. Update the GITHUB_PAT secret if commits fail.
     const commitsResponse = await fetch(
       `https://api.github.com/repos/${owner}/${cleanRepo}/commits?per_page=100`,
       {

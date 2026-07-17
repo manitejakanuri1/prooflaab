@@ -98,6 +98,24 @@ export default function UploadProofModal({
         throw new Error('Student profile not found');
       }
 
+      // Block duplicate submissions while a proof is still under review
+      const { data: existingProof } = await supabase
+        .from('proof_uploads')
+        .select('id')
+        .eq('task_id', taskId)
+        .eq('student_id', profile.id)
+        .eq('status', 'Under Review')
+        .maybeSingle();
+
+      if (existingProof) {
+        toast({
+          title: "Already Submitted",
+          description: "Your proof for this task is already under review.",
+        });
+        onClose();
+        return;
+      }
+
       let fileUrl = linkUrl;
 
       // If uploading a file, we'll store the file info for now
@@ -139,9 +157,24 @@ export default function UploadProofModal({
         });
       }
 
+      // GitHub repo proofs: generate the conceptual quiz right away instead
+      // of waiting for a college/admin to run verification manually
+      const isGithubRepo = /github\.com\/[^/]+\/[^/]+/.test(fileUrl);
+      if (isGithubRepo) {
+        supabase.functions
+          .invoke('question-generator', {
+            body: { proof_id: proofData.id, repo_url: fileUrl, top_n: 3 }
+          })
+          .then(({ error: genError }) => {
+            if (genError) console.error('Quiz generation failed:', genError);
+          });
+      }
+
       toast({
         title: "Proof Submitted",
-        description: `Your proof for "${taskTitle}" has been submitted successfully!`,
+        description: isGithubRepo
+          ? `Proof for "${taskTitle}" submitted! Your "Do You Know Your Code?" quiz will be ready in about a minute.`
+          : `Your proof for "${taskTitle}" has been submitted successfully!`,
       });
 
       // Reset form

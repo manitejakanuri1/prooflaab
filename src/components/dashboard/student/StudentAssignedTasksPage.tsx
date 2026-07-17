@@ -41,7 +41,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const StudentAssignedTasksPage = () => {
-  const { tasks: allTasks, loading, startTask } = useAllStudentTasks();
+  const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
@@ -422,6 +422,7 @@ const StudentAssignedTasksPage = () => {
           onClose={() => setSelectedTaskId(null)}
           taskId={selectedTaskId}
           taskTitle={filteredAndSortedTasks.find(t => t.id === selectedTaskId)?.title || ''}
+          onSuccess={() => refetchTasks()}
         />
       )}
 

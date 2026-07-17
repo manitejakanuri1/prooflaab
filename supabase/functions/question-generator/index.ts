@@ -71,21 +71,35 @@ serve(async (req) => {
     const [, owner, repoName] = repoMatch;
     const cleanRepoName = repoName.replace(/\.git$/, '');
 
-    // Fetch repo structure and recent commits
-    const headers: Record<string, string> = {
+    // Fetch repo structure and recent commits. An expired GITHUB_PAT turns
+    // public-repo requests into 401s, so retry unauthenticated on failure.
+    const baseHeaders: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
       'User-Agent': 'Supabase-Edge-Function'
     };
+    const ghFetch = async (url: string) => {
+      if (githubPat) {
+        const authed = await fetch(url, { headers: { ...baseHeaders, 'Authorization': `token ${githubPat}` } });
+        if (authed.ok) return authed;
+      }
+      return fetch(url, { headers: baseHeaders });
+    };
 
-    if (githubPat) {
-      headers['Authorization'] = `token ${githubPat}`;
-    }
-
-    // Get repo tree
-    const treeResponse = await fetch(
-      `https://api.github.com/repos/${owner}/${cleanRepoName}/git/trees/main?recursive=1`,
-      { headers }
+    // Get repo tree (fall back to the repo's default branch if main is absent)
+    let treeResponse = await ghFetch(
+      `https://api.github.com/repos/${owner}/${cleanRepoName}/git/trees/main?recursive=1`
     );
+    if (!treeResponse.ok) {
+      const repoInfo = await ghFetch(`https://api.github.com/repos/${owner}/${cleanRepoName}`);
+      if (repoInfo.ok) {
+        const { default_branch } = await repoInfo.json();
+        if (default_branch && default_branch !== 'main') {
+          treeResponse = await ghFetch(
+            `https://api.github.com/repos/${owner}/${cleanRepoName}/git/trees/${default_branch}?recursive=1`
+          );
+        }
+      }
+    }
 
     if (!treeResponse.ok) {
       console.error('GitHub tree fetch failed:', await treeResponse.text());
@@ -98,9 +112,8 @@ serve(async (req) => {
     const treeData = await treeResponse.json();
 
     // Get recent commits
-    const commitsResponse = await fetch(
-      `https://api.github.com/repos/${owner}/${cleanRepoName}/commits?per_page=10`,
-      { headers }
+    const commitsResponse = await ghFetch(
+      `https://api.github.com/repos/${owner}/${cleanRepoName}/commits?per_page=10`
     );
 
     const commits = commitsResponse.ok ? await commitsResponse.json() : [];

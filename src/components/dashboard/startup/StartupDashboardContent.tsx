@@ -36,7 +36,7 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
 
   switch (activeTab) {
     case "post-task":
-      return <StartupPostTaskPage />;
+      return <StartupPostTaskPage onNavigateToApplications={() => onTabChange("view-applications")} />;
     case "view-tasks":
       return <StartupViewTasksPage onNavigateToPostTask={() => onTabChange("post-task")} />;
     case "view-applications":

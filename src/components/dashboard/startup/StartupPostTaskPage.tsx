@@ -38,7 +38,7 @@ const taskSchema = z.object({
 
 type TaskFormData = z.infer<typeof taskSchema>;
 
-export function StartupPostTaskPage() {
+export function StartupPostTaskPage({ onNavigateToApplications }: { onNavigateToApplications?: () => void } = {}) {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -482,10 +482,7 @@ export function StartupPostTaskPage() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              // TODO: Navigate to applicants view or open modal
-                              toast.info("Applicants view coming soon!");
-                            }}
+                            onClick={() => onNavigateToApplications?.()}
                           >
                             <Eye className="h-4 w-4 mr-2" />
                             View

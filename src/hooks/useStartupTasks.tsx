@@ -34,7 +34,8 @@ export function useStartupTasks() {
           description,
           due_date,
           status,
-          created_at
+          created_at,
+          task_applications(count)
         `)
         .eq("created_by_startup_id", user.id)
         .order("created_at", { ascending: false });
@@ -50,7 +51,7 @@ export function useStartupTasks() {
           deadline: task.due_date,
           status: task.status || 'Pending',
           created_at: task.created_at,
-          applicant_count: 0 // TODO: Count actual applicants when applications table is implemented
+          applicant_count: task.task_applications?.[0]?.count ?? 0
         })) || [];
         
         setTasks(transformedTasks);

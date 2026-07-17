@@ -3,12 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 // Lucide React icons for College Multi-Step Wizard
-import { ArrowLeft, ArrowRight, Upload, SkipForward } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
 
 interface CollegeMultiStepWizardProps {
   onComplete: () => void;
@@ -21,9 +20,6 @@ interface CollegeWizardData {
   contactPerson: string;
   email: string;
   contactNumber: string;
-  // Step 2
-  uploadOption: 'upload' | 'skip';
-  csvFile: File | null;
 }
 
 export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepWizardProps) {
@@ -35,9 +31,7 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
     location: "",
     contactPerson: "",
     email: user?.email || "",
-    contactNumber: "",
-    uploadOption: 'skip',
-    csvFile: null
+    contactNumber: ""
   });
 
   const handleNext = () => {
@@ -54,14 +48,8 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
     setCurrentStep(prev => prev - 1);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type === 'text/csv') {
-      setFormData(prev => ({ ...prev, csvFile: file }));
-    } else {
-      toast.error("Please upload a valid CSV file");
-    }
-  };
+  // ponytail: wizard CSV upload cut — it silently discarded the file. The
+  // working uploader lives in CollegeDashboardOverview (create-student-users).
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -76,12 +64,6 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
         });
 
       if (profileError) throw profileError;
-
-      // TODO: Handle CSV upload if selected
-      if (formData.uploadOption === 'upload' && formData.csvFile) {
-        // This would require a file upload mechanism and processing
-        console.log('CSV file to process:', formData.csvFile);
-      }
 
       // Mark wizard as completed
       const { error: roleError } = await supabase
@@ -171,57 +153,20 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Student Upload Option</h2>
-        <p className="text-gray-600">Upload student data or skip for now</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Student Data</h2>
+        <p className="text-gray-600">Add students after setup</p>
       </div>
 
-      <RadioGroup
-        value={formData.uploadOption}
-        onValueChange={(value: 'upload' | 'skip') => setFormData(prev => ({ ...prev, uploadOption: value }))}
-        className="space-y-4"
-      >
-        <div className="flex items-center space-x-2 p-4 border rounded-lg">
-          <RadioGroupItem value="upload" id="upload" />
-          <Label htmlFor="upload" className="flex-1">
-            <div className="flex items-center space-x-2">
-              <Upload className="h-5 w-5" />
-              <div>
-                <div className="font-medium">Upload CSV</div>
-                <div className="text-sm text-gray-500">Upload student data (Emails, Names, Roll numbers, Dept, etc.)</div>
-              </div>
-            </div>
-          </Label>
+      <div className="flex items-start space-x-3 p-4 border rounded-lg bg-gray-50">
+        <Upload className="h-5 w-5 mt-0.5 text-gray-500" />
+        <div>
+          <div className="font-medium">CSV upload from your dashboard</div>
+          <div className="text-sm text-gray-500">
+            Once your dashboard is ready, upload a CSV of students (Email, Name,
+            Roll Number, Department) from the overview page.
+          </div>
         </div>
-
-        <div className="flex items-center space-x-2 p-4 border rounded-lg">
-          <RadioGroupItem value="skip" id="skip" />
-          <Label htmlFor="skip" className="flex-1">
-            <div className="flex items-center space-x-2">
-              <SkipForward className="h-5 w-5" />
-              <div>
-                <div className="font-medium">Skip for now</div>
-                <div className="text-sm text-gray-500">Continue to dashboard, can upload later</div>
-              </div>
-            </div>
-          </Label>
-        </div>
-      </RadioGroup>
-
-      {formData.uploadOption === 'upload' && (
-        <div className="space-y-2">
-          <Label htmlFor="csvFile">Upload CSV File</Label>
-          <Input
-            id="csvFile"
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-            className="cursor-pointer"
-          />
-          <p className="text-sm text-gray-500">
-            CSV should contain columns: Email, Name, Roll Number, Department
-          </p>
-        </div>
-      )}
+      </div>
 
       <div className="flex space-x-4">
         <Button variant="outline" onClick={handleBack} className="flex-1">
@@ -256,11 +201,7 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
         <div>
           <h3 className="font-semibold text-gray-900">Student Data</h3>
           <div className="mt-2 text-sm text-gray-600">
-            {formData.uploadOption === 'upload' ? (
-              <p>CSV file will be processed: {formData.csvFile?.name || 'No file selected'}</p>
-            ) : (
-              <p>Student data upload skipped - can be added later from dashboard</p>
-            )}
+            <p>Students can be added from the dashboard after setup</p>
           </div>
         </div>
       </div>

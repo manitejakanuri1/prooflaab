@@ -343,11 +343,8 @@ const StudentFeedPage = () => {
     setShareModalOpen(true);
   };
 
-  // Handle edit
-  const handleEdit = (post: FeedPostWithProfile) => {
-    // TODO: Implement edit functionality
-    toast.info("Edit functionality coming soon");
-  };
+  // ponytail: post editing cut — was a dead "coming soon" toast. Re-add by
+  // passing onEdit to FeedPostCard with a real edit modal.
 
   // Handle delete
   const handleDelete = async (postId: string) => {
@@ -484,7 +481,6 @@ const StudentFeedPage = () => {
                       studentId={post.student_id}
                       currentStudentId={currentStudentId || undefined}
                       isPublic={post.visibility === 'public'}
-                      onEdit={() => handleEdit(post)}
                       onDelete={() => handleDelete(post.id)}
                     />
                   );

@@ -31,7 +31,6 @@ import {
   CheckCircle, 
   FileText,
   MoreVertical,
-  X,
   Target,
   Clock,
   Brain
@@ -223,9 +222,9 @@ const StudentTasksPage = () => {
     }
   };
 
-  const handleWithdraw = (taskId: string) => {
-    toast.info("Withdraw functionality coming soon");
-  };
+  // ponytail: withdraw cut — was a dead "coming soon" toast. Real version
+  // needs a DELETE RLS policy on task_applications (none exists) + a delete
+  // mutation here.
 
   return (
     <div className="space-y-6">
@@ -496,15 +495,6 @@ const StudentTasksPage = () => {
                               <DropdownMenuItem onClick={() => setSelectedTaskId(task.id)}>
                                 <Upload className="h-4 w-4 mr-2" />
                                 Submit Proof
-                              </DropdownMenuItem>
-                            )}
-                            {task.status === 'Applied' && (
-                              <DropdownMenuItem 
-                                onClick={() => handleWithdraw(task.id)}
-                                className="text-red-600"
-                              >
-                                <X className="h-4 w-4 mr-2" />
-                                Withdraw
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>

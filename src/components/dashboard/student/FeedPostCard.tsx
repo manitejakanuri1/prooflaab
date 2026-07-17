@@ -145,7 +145,7 @@ export const FeedPostCard = ({
             <DropdownMenuContent align="end">
               {isOwner && (
                 <>
-                  <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+                  {onEdit && <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>}
                   <DropdownMenuItem onClick={onDelete} className="text-destructive">
                     Delete
                   </DropdownMenuItem>

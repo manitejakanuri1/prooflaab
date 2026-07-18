@@ -64,6 +64,33 @@ serve(async (req) => {
       );
     }
 
+    // Ownership / role authorization: only the proof's owner or admin/college_admin may run this
+    const supabaseForAuthz = createClient(supabaseUrl, supabaseKey);
+    const callerId = claims.claims.sub;
+    const { data: proofRow, error: proofErr } = await supabaseForAuthz
+      .from('proof_uploads')
+      .select('id, student_profiles!inner(user_id)')
+      .eq('id', proof_id)
+      .maybeSingle();
+    if (proofErr || !proofRow) {
+      return new Response(
+        JSON.stringify({ error: 'Proof not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const ownerId = (proofRow as any).student_profiles?.user_id;
+    if (ownerId !== callerId) {
+      const { data: roles } = await supabaseForAuthz
+        .from('user_roles').select('role').eq('user_id', callerId);
+      const allowed = (roles ?? []).some((r: any) => r.role === 'admin' || r.role === 'college_admin');
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('Starting AI authorship analysis for proof:', proof_id);
 
     // Create cache key based on content hash using Web Crypto API

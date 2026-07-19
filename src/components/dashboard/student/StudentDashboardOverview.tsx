@@ -11,7 +11,11 @@ import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
-const StudentDashboardOverview = () => {
+interface StudentDashboardOverviewProps {
+  onNavigateTab?: (tab: string) => void;
+}
+
+const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewProps) => {
   const navigate = useNavigate();
   const { profile, rank, loading: profileLoading } = useStudentProfile();
   const { tasks, loading: tasksLoading, startTask } = useAssignedTasks();
@@ -212,6 +216,21 @@ const StudentDashboardOverview = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Pages moved off the sidebar in the 7-item cleanup stay reachable here */}
+      {onNavigateTab && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-foreground">Explore</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => onNavigateTab("progress")}>Progress & XP</Button>
+            <Button variant="outline" size="sm" onClick={() => onNavigateTab("portfolio")}>My Portfolio</Button>
+            <Button variant="outline" size="sm" onClick={() => onNavigateTab("feed")}>Community Feed</Button>
+            <Button variant="outline" size="sm" onClick={() => onNavigateTab("learning")}>Learning Resources</Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

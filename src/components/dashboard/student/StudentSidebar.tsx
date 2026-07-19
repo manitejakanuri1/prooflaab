@@ -1,17 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Home,
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   ListTodo,
   FileText,
-  Upload, 
-  User, 
-  TrendingUp, 
-  BookOpen,
+  Upload,
   Briefcase,
-  Bell, 
-  Settings, 
+  Bell,
+  Settings,
   LogOut,
   PlusSquare,
   ChevronDown,
@@ -41,28 +37,33 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
+// 7 top-level items; everything else nests under a group or is linked
+// from the Dashboard overview (Feed, Progress, Portfolio, Learning)
 const menuItems: MenuItem[] = [
-  { id: "feed", label: "Feed", icon: Home, route: "/student/dashboard" },
   { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
-  { 
-    id: "tasks", 
-    label: "Tasks", 
+  {
+    id: "tasks",
+    label: "Tasks",
     icon: ListTodo,
     children: [
-      { id: "tasks-opportunities", label: "Startup Opportunities", icon: Building2, route: "/student/tasks/opportunities" },
       { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList, route: "/student/tasks/assigned" },
       { id: "tasks-created", label: "My Created Tasks", icon: Sparkles, route: "/student/tasks/created" },
       { id: "task-packs", label: "Task Packs", icon: Package, route: "/student/task-packs" },
+      { id: "pack-leaderboard", label: "Pack Leaderboard", icon: Trophy, route: "/student/pack-leaderboard" },
+      { id: "create-task", label: "Create a Task", icon: PlusSquare },
     ]
   },
-  { id: "create-task", label: "Create a Task", icon: PlusSquare },
+  {
+    id: "opportunities",
+    label: "Opportunities",
+    icon: Briefcase,
+    children: [
+      { id: "tasks-opportunities", label: "Startup Tasks", icon: Building2, route: "/student/tasks/opportunities" },
+      { id: "jobs", label: "Job Openings", icon: Briefcase },
+    ]
+  },
   { id: "applications", label: "Applications", icon: FileText },
   { id: "uploads", label: "My Uploads", icon: Upload },
-  { id: "portfolio", label: "My Portfolio", icon: User },
-  { id: "progress", label: "Progress & XP", icon: TrendingUp },
-  { id: "pack-leaderboard", label: "Pack Leaderboard", icon: Trophy, route: "/student/pack-leaderboard" },
-  { id: "learning", label: "Learning Resources", icon: BookOpen },
-  { id: "jobs", label: "Job Opportunities", icon: Briefcase },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -71,12 +72,19 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Check if any tasks child is active to keep the group expanded
-  const isTasksChildActive = menuItems
-    .find(item => item.id === "tasks")
-    ?.children?.some(child => child.id === activeTab) || false;
-  
-  const [tasksExpanded, setTasksExpanded] = useState(isTasksChildActive || activeTab === "tasks");
+  // Keep whichever group holds the active tab expanded
+  const groupWithActiveChild = menuItems
+    .find(item => item.children?.some(child => child.id === activeTab))?.id ?? null;
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    () => (groupWithActiveChild ? { [groupWithActiveChild]: true } : {})
+  );
+
+  useEffect(() => {
+    if (groupWithActiveChild) {
+      setExpandedGroups(prev => ({ ...prev, [groupWithActiveChild]: true }));
+    }
+  }, [groupWithActiveChild]);
 
   const handleNavigation = (item: MenuItem) => {
     if (item.route) {
@@ -113,8 +121,8 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
       return (
         <Collapsible
           key={item.id}
-          open={tasksExpanded}
-          onOpenChange={setTasksExpanded}
+          open={expandedGroups[item.id] ?? false}
+          onOpenChange={(open) => setExpandedGroups(prev => ({ ...prev, [item.id]: open }))}
         >
           <CollapsibleTrigger asChild>
             <Button
@@ -128,7 +136,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
             >
               <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm flex-1">{item.label}</span>
-              {tasksExpanded ? (
+              {(expandedGroups[item.id] ?? false) ? (
                 <ChevronDown className="h-4 w-4 flex-shrink-0" />
               ) : (
                 <ChevronRight className="h-4 w-4 flex-shrink-0" />

@@ -15,7 +15,7 @@ const getTabFromPath = (pathname: string): string => {
   if (pathname.match(/^\/student\/task-packs\/[^/]+$/)) return "task-pack-detail";
   if (pathname === "/student/task-packs") return "task-packs";
   if (pathname === "/student/pack-leaderboard") return "pack-leaderboard";
-  return "feed";
+  return "dashboard";
 };
 
 const StudentDashboard = () => {
@@ -73,7 +73,7 @@ const StudentDashboard = () => {
         </div>
         
         <main className="flex-1 p-3 md:p-6 w-full min-w-0">
-          <StudentDashboardContent activeTab={activeTab} refreshProfile={refreshProfile} />
+          <StudentDashboardContent activeTab={activeTab} refreshProfile={refreshProfile} onTabChange={setActiveTab} />
         </main>
       </div>
     </div>

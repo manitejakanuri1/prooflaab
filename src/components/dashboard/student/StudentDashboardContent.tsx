@@ -20,15 +20,16 @@ import StudentFeedPage from "./StudentFeedPage";
 interface StudentDashboardContentProps {
   activeTab: string;
   refreshProfile?: () => void;
+  onTabChange?: (tab: string) => void;
 }
 
-const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboardContentProps) => {
+const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: StudentDashboardContentProps) => {
   const renderContent = () => {
     switch (activeTab) {
       case "feed":
         return <StudentFeedPage />;
       case "dashboard":
-        return <StudentDashboardOverview />;
+        return <StudentDashboardOverview onNavigateTab={onTabChange} />;
       // New task submenu routes
       case "tasks-opportunities":
         return <StudentStartupOpportunitiesPage />;

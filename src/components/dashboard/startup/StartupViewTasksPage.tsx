@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar, Clock, Users, Edit, Trash2 } from "lucide-react";
+import { Calendar, Clock, Users, Edit } from "lucide-react";
 import { useStartupTasks } from "@/hooks/useStartupTasks";
 import { format } from "date-fns";
 import { EditTaskDialog } from "./EditTaskDialog";
@@ -124,9 +124,9 @@ export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksP
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive" title="Delete task">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {/* ponytail: task delete removed — no DELETE RLS policy on tasks and
+                        proof_uploads/task_assignments FKs block it; re-add needs a migration
+                        (policy + cascade decision) before any UI. */}
                   </div>
                 </div>
               </CardContent>

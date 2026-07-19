@@ -9,8 +9,10 @@ import { useWeeklyWorkTime } from "@/hooks/useWeeklyWorkTime";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 const StudentDashboardOverview = () => {
+  const navigate = useNavigate();
   const { profile, rank, loading: profileLoading } = useStudentProfile();
   const { tasks, loading: tasksLoading, startTask } = useAssignedTasks();
   const { monthlyXP, loading: xpLoading } = useMonthlyXP();
@@ -169,6 +171,7 @@ const StudentDashboardOverview = () => {
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={() => navigate("/student/tasks/assigned")}
                         className="border-orange-500/20 text-orange-700 dark:text-orange-400 hover:bg-orange-500/10 w-full sm:w-auto text-xs sm:text-sm"
                       >
                         Continue

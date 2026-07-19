@@ -201,23 +201,17 @@ serve(async (req) => {
 
     console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (base: ${baseCIS}, adjustment: +${ethicalAdjustment}) (${suggestedAction}), trust delta: +${trustDelta}`);
 
-    // Fetch current trust score to calculate new total
-    const { data: currentTrustScore } = await supabase
-      .from('trust_scores')
-      .select('total')
-      .eq('student_id', student_id)
-      .single();
-
-    const currentTotal = currentTrustScore?.total || 0;
-    const newTotal = currentTotal + trustDelta;
-
-    // Update trust_scores table with new score and delta
+    // Update trust_scores (one row per student — unique_student_trust_score)
     const { error: trustScoreError } = await supabase
       .from('trust_scores')
       .upsert({
         student_id: student_id,
+        proof_id: proof_id,
         score: cognitiveIntegrityScore,
-        total: newTotal,
+        commit_authenticity_score: commitAuthenticityScore,
+        ai_authorship_score: aiAuthorshipScore,
+        conceptual_understanding_score: conceptualUnderstandingScore,
+        cognitive_integrity_score: cognitiveIntegrityScore,
         last_updated: new Date().toISOString()
       }, {
         onConflict: 'student_id'

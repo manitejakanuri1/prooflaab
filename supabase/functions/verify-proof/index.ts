@@ -161,7 +161,46 @@ Format your response as JSON:
 
 async function downloadFileContent(fileUrl: string): Promise<string> {
   try {
-    const response = await fetch(fileUrl);
+    // SSRF guard: only https, only public hostnames, block private/loopback/link-local ranges
+    let u: URL;
+    try { u = new URL(fileUrl); } catch { return ''; }
+    if (u.protocol !== 'https:') {
+      console.warn('downloadFileContent rejected non-https URL');
+      return '';
+    }
+    const host = u.hostname.toLowerCase();
+    // Block obvious internal hostnames
+    const blockedHosts = new Set([
+      'localhost', 'ip6-localhost', 'ip6-loopback',
+      'metadata.google.internal', 'metadata.goog',
+    ]);
+    if (blockedHosts.has(host) || host.endsWith('.internal') || host.endsWith('.local')) {
+      console.warn('downloadFileContent rejected internal host:', host);
+      return '';
+    }
+    // Block IP literals in private/loopback/link-local ranges
+    const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4) {
+      const [a, b] = [parseInt(ipv4[1], 10), parseInt(ipv4[2], 10)];
+      const isPrivate =
+        a === 10 ||
+        a === 127 ||
+        a === 0 ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168) ||
+        a >= 224; // multicast/reserved
+      if (isPrivate) {
+        console.warn('downloadFileContent rejected private IPv4:', host);
+        return '';
+      }
+    }
+    if (host.includes(':') || host === '[::1]' || host.startsWith('[fc') || host.startsWith('[fd') || host.startsWith('[fe80')) {
+      // Reject IPv6 literals conservatively
+      console.warn('downloadFileContent rejected IPv6 literal');
+      return '';
+    }
+    const response = await fetch(fileUrl, { redirect: 'error' });
     if (!response.ok) return '';
     return await response.text();
   } catch (error) {

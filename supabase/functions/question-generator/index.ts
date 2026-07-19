@@ -57,6 +57,38 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Ownership / role authorization + repo_url must match stored proof.file_url
+    const callerId = claims.claims.sub;
+    const { data: proofRow, error: proofErr } = await supabase
+      .from('proof_uploads')
+      .select('id, file_url, student_profiles!inner(user_id)')
+      .eq('id', proof_id)
+      .maybeSingle();
+    if (proofErr || !proofRow) {
+      return new Response(
+        JSON.stringify({ error: 'Proof not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const ownerId = (proofRow as any).student_profiles?.user_id;
+    if (ownerId !== callerId) {
+      const { data: roles } = await supabase
+        .from('user_roles').select('role').eq('user_id', callerId);
+      const allowed = (roles ?? []).some((r: any) => r.role === 'admin' || r.role === 'college_admin');
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    if (!proofRow.file_url || proofRow.file_url !== repo_url) {
+      return new Response(
+        JSON.stringify({ error: 'repo_url does not match the proof record' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Generating questions for proof:', proof_id, 'repo:', repo_url);
 
     // Extract owner and repo from URL

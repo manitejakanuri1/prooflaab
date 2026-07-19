@@ -264,8 +264,10 @@ serve(async (req) => {
           email,
           status: 'success',
           message: 'Student account created successfully',
-          userId: authData.user.id,
-          tempPassword // Include temp password in response (for testing only)
+          userId: authData.user.id
+          // Temporary password intentionally omitted from response.
+          // Deliver credentials to the student via send-onboarding-email
+          // or a password-reset link generated with supabase.auth.admin.generateLink.
         })
 
       } catch (error) {

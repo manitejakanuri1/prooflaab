@@ -115,13 +115,11 @@ export const useAllStudentTasks = () => {
         
         if (proofUploads.length > 0) {
           const latestProof = proofUploads[proofUploads.length - 1];
-          if (latestProof.status === 'Verified') {
-            status = 'Completed';
-          } else if (latestProof.status === 'Under Review') {
-            status = 'Under Review';
-          } else {
-            status = 'In Progress'; // Proof submitted but not verified
-          }
+          // Any submitted proof stays out of 'In Progress' — 'Rejected'/'needs_review'
+          // (set by trust-compute) must not re-show the Submit Proof button.
+          // ponytail: no resubmission path after rejection; upgrade = explicit
+          // 'Resubmission Requested' status set by admin.
+          status = latestProof.status === 'Verified' ? 'Completed' : 'Under Review';
         } else if (task.started_at) {
           status = 'In Progress'; // Task started but no proof yet
         }
@@ -160,16 +158,10 @@ export const useAllStudentTasks = () => {
 
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
-        
+
         if (proofUploads.length > 0) {
           const latestProof = proofUploads[proofUploads.length - 1];
-          if (latestProof.status === 'Verified') {
-            status = 'Completed';
-          } else if (latestProof.status === 'Under Review') {
-            status = 'Under Review';
-          } else {
-            status = 'In Progress'; // Proof submitted but not verified
-          }
+          status = latestProof.status === 'Verified' ? 'Completed' : 'Under Review';
         } else if (task.started_at) {
           status = 'In Progress'; // Task started but no proof yet
         }

@@ -98,19 +98,20 @@ export default function UploadProofModal({
         throw new Error('Student profile not found');
       }
 
-      // Block duplicate submissions while a proof is still under review
+      // One proof per task per student — blocks duplicates in ANY state
+      // ('Under Review', 'needs_review', 'Rejected', 'Verified'), not just under review.
       const { data: existingProof } = await supabase
         .from('proof_uploads')
         .select('id')
         .eq('task_id', taskId)
         .eq('student_id', profile.id)
-        .eq('status', 'Under Review')
+        .limit(1)
         .maybeSingle();
 
       if (existingProof) {
         toast({
           title: "Already Submitted",
-          description: "Your proof for this task is already under review.",
+          description: "You have already submitted proof for this task.",
         });
         onClose();
         return;

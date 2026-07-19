@@ -66,13 +66,9 @@ export const useAssignedTasks = () => {
         if (proofUploads.length > 0) {
           // If proof is uploaded, status should be based on proof status
           const latestProof = proofUploads[proofUploads.length - 1];
-          if (latestProof.status === 'Verified') {
-            currentStatus = 'Completed';
-          } else if (latestProof.status === 'Under Review') {
-            currentStatus = 'Under Review';
-          } else {
-            currentStatus = 'In Progress'; // Proof submitted but not verified
-          }
+          // Any submitted proof stays out of 'In Progress' — 'Rejected'/'needs_review'
+          // (set by trust-compute) must not re-show submit actions.
+          currentStatus = latestProof.status === 'Verified' ? 'Completed' : 'Under Review';
         } else if (task.started_at) {
           // Task has been started by student but no proof yet
           if (uploadDeadline && now > uploadDeadline) {

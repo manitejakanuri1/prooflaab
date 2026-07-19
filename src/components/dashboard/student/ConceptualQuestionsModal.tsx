@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Clock, Send, Brain, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Send, Brain, CheckCircle2, XCircle, GraduationCap, Loader2 } from "lucide-react";
 
 interface Question {
   id: string;
@@ -55,6 +55,7 @@ const ConceptualQuestionsModal = ({
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [verdict, setVerdict] = useState<{ ai_score: number | null; ai_summary: string | null; status: string } | null>(null);
   const { toast } = useToast();
 
   const isMcq = questions.length > 0 && questions.every(q => Array.isArray(q.options) && typeof q.correct_index === 'number');
@@ -67,9 +68,71 @@ const ConceptualQuestionsModal = ({
       setSelectedIndexes({});
       setPhase(review ? 'review' : 'question');
       setShowConfirmation(false);
+      setVerdict(null);
       fetchQuestions();
     }
   }, [open, proofId, review]);
+
+  // Show the verification verdict in the same window: results phase polls until
+  // trust-compute finishes (runs seconds after answers submit); review fetches once
+  useEffect(() => {
+    if (!open || (phase !== 'results' && phase !== 'review')) return;
+    let cancelled = false;
+    const startedAt = Date.now();
+    const poll = async () => {
+      while (!cancelled && Date.now() - startedAt < 90000) {
+        const { data } = await supabase
+          .from('proof_uploads')
+          .select('ai_score, ai_summary, status')
+          .eq('id', proofId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (data?.ai_score != null) {
+          setVerdict(data);
+          return;
+        }
+        if (phase === 'review') return; // old/ungraded proof — no panel
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [open, phase, proofId]);
+
+  const renderVerdict = (waiting: boolean) => {
+    if (!verdict || verdict.ai_score == null) {
+      if (!waiting) return null;
+      return (
+        <div className="rounded-lg border p-3 text-sm text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          Checking your work — your result will appear here in a few seconds…
+        </div>
+      );
+    }
+    const good = verdict.status === 'Verified';
+    const mid = verdict.status === 'needs_review';
+    return (
+      <div className={`rounded-lg border p-3 space-y-1 ${
+        good ? 'border-green-300 bg-green-50 dark:bg-green-900/20'
+        : mid ? 'border-amber-300 bg-amber-50 dark:bg-amber-900/20'
+        : 'border-red-300 bg-red-50 dark:bg-red-900/20'}`}>
+        <p className="text-sm font-semibold">
+          {good ? '✅ Verified — your work looks like your own. Score: '
+            : mid ? '🟡 Needs a manual look from a mentor. Score: '
+            : '❌ Not approved this time. Score: '}
+          {verdict.ai_score}/100
+        </p>
+        {verdict.ai_summary && (
+          <p className="text-xs text-muted-foreground">{verdict.ai_summary}</p>
+        )}
+        {!good && (
+          <p className="text-xs text-muted-foreground">
+            Open "Review Quiz" on the task any time — learn the code, and your next submission scores higher.
+          </p>
+        )}
+      </div>
+    );
+  };
 
   // Lock the current MCQ answer and show feedback (called on pick or timeout)
   const lockMcqAnswer = useCallback((index: number | null) => {
@@ -97,7 +160,7 @@ const ConceptualQuestionsModal = ({
   useEffect(() => {
     if (questions.length > 0 && currentIndex < questions.length && phase === 'question') {
       const currentQuestion = questions[currentIndex];
-      setTimeLeft(currentQuestion.time_limit_seconds ?? (isMcq ? 15 : 120));
+      setTimeLeft(currentQuestion.time_limit_seconds ?? (isMcq ? 30 : 120));
     }
   }, [currentIndex, questions, phase, isMcq]);
 
@@ -297,6 +360,8 @@ const ConceptualQuestionsModal = ({
             </DialogHeader>
 
             <div className="space-y-4 py-2">
+              {renderVerdict(false)}
+
               {questions.map((q, i) => {
                 const sel = selectedIndexes[q.id];
                 const right = sel === q.correct_index;
@@ -367,6 +432,8 @@ const ConceptualQuestionsModal = ({
                 </p>
               </div>
 
+              {renderVerdict(true)}
+
               <div className="space-y-2">
                 {questions.map((q, i) => {
                   const right = selectedIndexes[q.id] === q.correct_index;
@@ -401,7 +468,7 @@ const ConceptualQuestionsModal = ({
               🧠 Do You Know Your Code?
             </DialogTitle>
             <DialogDescription>
-              Quick questions about the code you submitted — {currentQuestion.time_limit_seconds ?? 15}s each
+              Quick questions about the code you submitted — {currentQuestion.time_limit_seconds ?? 30}s each
             </DialogDescription>
           </DialogHeader>
 

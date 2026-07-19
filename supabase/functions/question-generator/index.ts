@@ -220,7 +220,7 @@ Return a JSON array with this exact structure:
     "teach": "This project uses ... The library ... The syntax ... ",
     "context_references": ["file.js line 45", "commit abc123"],
     "difficulty": "easy|medium",
-    "time_limit_seconds": 15
+    "time_limit_seconds": 30
   }
 ]
 

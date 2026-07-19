@@ -16,7 +16,7 @@ interface UploadProofModalProps {
   onClose: () => void;
   taskId: string;
   taskTitle: string;
-  onSuccess?: () => void;
+  onSuccess?: (proofId?: string, quizPending?: boolean) => void;
 }
 
 export default function UploadProofModal({ 
@@ -182,7 +182,7 @@ export default function UploadProofModal({
       setLinkUrl('');
       setSelectedFile(null);
       setSubmissionNotes('');
-      onSuccess?.();
+      onSuccess?.(proofData.id, isGithubRepo);
       onClose();
     } catch (error) {
       console.error('Error submitting proof:', error);

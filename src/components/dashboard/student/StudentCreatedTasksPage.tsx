@@ -47,6 +47,7 @@ const StudentCreatedTasksPage = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string } | null>(null);
+  const [preparingQuiz, setPreparingQuiz] = useState<{ proofId: string; taskId: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Due Date (ASC)");
@@ -95,6 +96,37 @@ const StudentCreatedTasksPage = () => {
       supabase.removeChannel(channel);
     };
   }, [refetchConceptualTests]);
+
+  // After proof submission, wait for question-generator to finish and open the
+  // quiz automatically instead of making the student find the button
+  useEffect(() => {
+    if (!preparingQuiz) return;
+    let cancelled = false;
+    const startedAt = Date.now();
+    const poll = async () => {
+      while (!cancelled && Date.now() - startedAt < 120000) {
+        const { data } = await supabase
+          .from('conceptual_tests')
+          .select('id, status')
+          .eq('proof_id', preparingQuiz.proofId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (data?.status === 'pending') {
+          toast.success("Your quiz is ready!");
+          setSelectedConceptualTest({ proofId: preparingQuiz.proofId, taskId: preparingQuiz.taskId });
+          setPreparingQuiz(null);
+          return;
+        }
+        await new Promise(r => setTimeout(r, 4000));
+      }
+      if (!cancelled) {
+        setPreparingQuiz(null);
+        toast.info("Quiz is taking longer than usual — the Answer Questions button will appear on the task once it's ready.");
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [preparingQuiz]);
 
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {
@@ -435,7 +467,12 @@ const StudentCreatedTasksPage = () => {
           onClose={() => setSelectedTaskId(null)}
           taskId={selectedTaskId}
           taskTitle={filteredAndSortedTasks.find(t => t.id === selectedTaskId)?.title || ''}
-          onSuccess={() => refetchTasks()}
+          onSuccess={(proofId, quizPending) => {
+            refetchTasks();
+            if (proofId && quizPending && selectedTaskId) {
+              setPreparingQuiz({ proofId, taskId: selectedTaskId });
+            }
+          }}
         />
       )}
 

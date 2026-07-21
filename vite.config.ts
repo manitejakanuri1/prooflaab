@@ -18,6 +18,11 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Strip debug logging from production bundles. console.error/warn are kept so
+  // real failures still surface; console.log leaked user data and table shapes.
+  esbuild: mode === 'development' ? {} : {
+    pure: ['console.log', 'console.debug', 'console.info'],
+  },
   build: {
     // Optimize chunk splitting for better caching
     rollupOptions: {

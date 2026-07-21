@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Critical path - load immediately
 import Index from "./pages/Index";
@@ -16,6 +17,8 @@ const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const CollegeDashboard = lazy(() => import("./pages/CollegeDashboard"));
 const StartupDashboard = lazy(() => import("./pages/StartupDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const RoleLogin = lazy(() => import("./pages/RoleLogin"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const RecruiterView = lazy(() => import("./pages/RecruiterView"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
@@ -60,9 +63,14 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
             <Suspense fallback={<PageLoader />}>
+              <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/student/login" element={<RoleLogin configKey="student" />} />
+                <Route path="/college/login" element={<RoleLogin configKey="college" />} />
+                <Route path="/startup/login" element={<RoleLogin configKey="startup" />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/invite-verification" element={<InviteCodeVerification />} />
@@ -242,18 +250,24 @@ const App = () => (
                   } 
                 />
                 
-                {/* Review Proofs - Accessible by admins and college admins */}
-                <Route 
-                  path="/review-proofs" 
+                {/* Review Proofs - ADMIN ONLY.
+                    Despite the name this page renders the full admin console
+                    (user management, system settings, trust/XP moderation), so
+                    college_admin must NOT be allowed here — that was a privilege
+                    escalation. Colleges review their own students' proofs at
+                    College Dashboard -> "Uploaded Proofs", which is scoped correctly. */}
+                <Route
+                  path="/review-proofs"
                   element={
-                    <RoleBasedProtectedRoute allowedRoles={['admin', 'college_admin']}>
+                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
                       <ReviewProofs />
                     </RoleBasedProtectedRoute>
-                  } 
+                  }
                 />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </ErrorBoundary>
             </Suspense>
           </AuthProvider>
         </BrowserRouter>

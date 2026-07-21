@@ -44,46 +44,57 @@ export const FollowersFollowingModal = ({
     const fetchFollowData = async () => {
       setLoading(true);
       try {
-        // Fetch followers
-        const { data: followersData, error: followersError } = await supabase
-          .from('follows')
-          .select('follower_id')
-          .eq('following_id', userId);
+        // `user_follows` stores auth.users.id in BOTH columns (see migration
+        // 20260721000100). `userId` here is a student_profiles.id, so resolve
+        // it to the auth uid first, then map results back to profiles via
+        // student_profiles.user_id.
+        const { data: ownProfile } = await supabase
+          .from('student_profiles')
+          .select('user_id')
+          .eq('id', userId)
+          .maybeSingle();
 
-        if (followersError) throw followersError;
+        if (!ownProfile?.user_id) {
+          setFollowers([]);
+          setFollowing([]);
+          return;
+        }
 
-        const followerIds = followersData.map(f => f.follower_id);
+        const [followersRes, followingRes] = await Promise.all([
+          supabase
+            .from('user_follows')
+            .select('follower_id')
+            .eq('following_id', ownProfile.user_id),
+          supabase
+            .from('user_follows')
+            .select('following_id')
+            .eq('follower_id', ownProfile.user_id),
+        ]);
 
-        if (followerIds.length > 0) {
-          const { data: followerProfiles, error: followerProfilesError } = await supabase
+        if (followersRes.error) throw followersRes.error;
+        if (followingRes.error) throw followingRes.error;
+
+        const followerAuthIds = (followersRes.data ?? []).map(f => f.follower_id);
+        const followingAuthIds = (followingRes.data ?? []).map(f => f.following_id);
+
+        if (followerAuthIds.length > 0) {
+          const { data, error } = await supabase
             .from('student_profiles')
             .select('id, full_name, profile_photo_url, email')
-            .in('id', followerIds);
-
-          if (followerProfilesError) throw followerProfilesError;
-          setFollowers(followerProfiles || []);
+            .in('user_id', followerAuthIds);
+          if (error) throw error;
+          setFollowers(data || []);
         } else {
           setFollowers([]);
         }
 
-        // Fetch following
-        const { data: followingData, error: followingError } = await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', userId);
-
-        if (followingError) throw followingError;
-
-        const followingIds = followingData.map(f => f.following_id);
-
-        if (followingIds.length > 0) {
-          const { data: followingProfiles, error: followingProfilesError } = await supabase
+        if (followingAuthIds.length > 0) {
+          const { data, error } = await supabase
             .from('student_profiles')
             .select('id, full_name, profile_photo_url, email')
-            .in('id', followingIds);
-
-          if (followingProfilesError) throw followingProfilesError;
-          setFollowing(followingProfiles || []);
+            .in('user_id', followingAuthIds);
+          if (error) throw error;
+          setFollowing(data || []);
         } else {
           setFollowing([]);
         }

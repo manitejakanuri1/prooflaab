@@ -119,13 +119,25 @@ const StudentFeedPage = () => {
         setCurrentCollegeId(studentProfile.college_id);
       }
 
-      // Fetch list of users current student follows
+      // Fetch list of users current student follows. user_follows stores auth
+      // user ids, but the feed compares against post.student_id (a
+      // student_profiles.id), so map the ids across before storing them.
       const { data: followingData } = await supabase
         .from('user_follows')
         .select('following_id')
         .eq('follower_id', session.user.id);
-      
-      const followingIds = new Set(followingData?.map(f => f.following_id) || []);
+
+      const followingAuthIds = followingData?.map(f => f.following_id) || [];
+      let followingIds = new Set<string>();
+
+      if (followingAuthIds.length > 0) {
+        const { data: followedProfiles } = await supabase
+          .from('student_profiles')
+          .select('id')
+          .in('user_id', followingAuthIds);
+        followingIds = new Set(followedProfiles?.map(p => p.id) || []);
+      }
+
       setUserFollowingIds(followingIds);
 
       // Check if onboarding should be shown
@@ -176,7 +188,7 @@ const StudentFeedPage = () => {
     init();
 
     // Set up realtime subscription
-    const channel = supabase.channel('feed-realtime');
+    const channel = supabase.channel(`feed-realtime-${Math.random().toString(36).slice(2)}`);
 
     // Subscribe to new posts
     channel.on(
@@ -593,17 +605,29 @@ const StudentFeedPage = () => {
         open={showOnboarding}
         onComplete={() => {
           setShowOnboarding(false);
-          // Refresh following list after onboarding
-          supabase
-            .from('user_follows')
-            .select('following_id')
-            .eq('follower_id', currentUserId)
-            .then(({ data }) => {
-              const followingIds = new Set(data?.map(f => f.following_id) || []);
-              setUserFollowingIds(followingIds);
-              // Re-sort feed with new following list
-              setFeedPosts(prev => sortPostsByPriority(prev));
-            });
+          // Refresh following list after onboarding. Same auth-uid ->
+          // profile-id mapping as the initial load above.
+          (async () => {
+            const { data } = await supabase
+              .from('user_follows')
+              .select('following_id')
+              .eq('follower_id', currentUserId);
+
+            const followingAuthIds = data?.map(f => f.following_id) || [];
+            let followingIds = new Set<string>();
+
+            if (followingAuthIds.length > 0) {
+              const { data: followedProfiles } = await supabase
+                .from('student_profiles')
+                .select('id')
+                .in('user_id', followingAuthIds);
+              followingIds = new Set(followedProfiles?.map(p => p.id) || []);
+            }
+
+            setUserFollowingIds(followingIds);
+            // Re-sort feed with new following list
+            setFeedPosts(prev => sortPostsByPriority(prev));
+          })();
         }}
       />
     </div>

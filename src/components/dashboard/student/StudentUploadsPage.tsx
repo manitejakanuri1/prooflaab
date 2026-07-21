@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/table";
 import { useProofUploads } from "@/hooks/useProofUploads";
 import { format, isValid } from "date-fns";
-import { Download, Eye, FileText, Upload as UploadIcon, Search, Filter, CheckCircle, Clock, XCircle, Brain } from "lucide-react";
+import { Download, Eye, FileText, Upload as UploadIcon, Search, Filter, CheckCircle, Clock, XCircle, Brain, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import AppealSubmissionModal from "./AppealSubmissionModal";
+import VerificationSummaryModal from "../VerificationSummaryModal";
+import type { ProofUpload } from "@/hooks/useProofUploads";
 import { ReflectionModal } from "../ReflectionModal";
 import { useReflectionRequest } from "@/hooks/useReflectionRequest";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +36,8 @@ const StudentUploadsPage = () => {
   const [appealModalOpen, setAppealModalOpen] = useState(false);
   const [appealProofId, setAppealProofId] = useState<string | null>(null);
   const [studentProfileId, setStudentProfileId] = useState<string | null>(null);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [verificationProof, setVerificationProof] = useState<ProofUpload | null>(null);
   const [reflectionModalOpen, setReflectionModalOpen] = useState(false);
   const [reflectionProofData, setReflectionProofData] = useState<{
     proofId: string;
@@ -68,7 +72,7 @@ const StudentUploadsPage = () => {
   // Real-time subscription for conceptual test updates
   useEffect(() => {
     const channel = supabase
-      .channel('conceptual_tests_realtime')
+      .channel(`conceptual_tests_realtime-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -403,6 +407,22 @@ const StudentUploadsPage = () => {
                         </TableCell>
                         <TableCell className="text-right py-4">
                           <div className="flex justify-end gap-2 flex-wrap">
+                            {/* Students can review their own verification breakdown —
+                                the scores are developmental feedback, not just a verdict. */}
+                            {upload.status !== 'Under Review' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setVerificationProof(upload);
+                                  setVerificationModalOpen(true);
+                                }}
+                                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                              >
+                                <Shield className="h-4 w-4 mr-1" />
+                                View Report
+                              </Button>
+                            )}
                             {conceptualTests[upload.id]?.status === 'pending' && (
                               <Button
                                 size="sm"
@@ -484,6 +504,32 @@ const StudentUploadsPage = () => {
           onOpenChange={setModalOpen}
           proofId={selectedProofId}
           onSubmitSuccess={handleSubmitSuccess}
+        />
+      )}
+      {verificationProof && (
+        <VerificationSummaryModal
+          open={verificationModalOpen}
+          onOpenChange={(open) => {
+            setVerificationModalOpen(open);
+            if (!open) setVerificationProof(null);
+          }}
+          taskTitle={verificationProof.tasks?.title}
+          data={{
+            ai_score: verificationProof.ai_score ?? null,
+            ai_summary: verificationProof.ai_summary ?? null,
+            ai_feedback: verificationProof.ai_feedback ?? null,
+            authenticity_score:
+              verificationProof.github_verifications?.[0]?.authenticity_score ?? null,
+            commit_count:
+              verificationProof.github_verifications?.[0]?.commit_count ?? null,
+            unique_contributors:
+              verificationProof.github_verifications?.[0]?.unique_contributors ?? null,
+            // trust_change isn't stored per-proof; the student sees their live
+            // trust score on the dashboard instead.
+            trust_change: null,
+            status: verificationProof.status,
+            admin_review_status: verificationProof.admin_review_status ?? null,
+          }}
         />
       )}
       {appealProofId && studentProfileId && (

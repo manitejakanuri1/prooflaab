@@ -10,14 +10,29 @@ export interface ProofUpload {
   student_id: string;
   file_url: string | null;
   submission_notes: string | null;
-  status: 'Under Review' | 'Verified' | 'Rejected';
+  // Widened from a 3-value union: trust-compute also writes 'needs_review',
+  // so the old union did not match what the database actually stores.
+  status: string;
   submitted_at: string;
   is_public: boolean;
+  // Verification results the student is allowed to see for their own proofs.
+  ai_score: number | null;
+  ai_summary: string | null;
+  ai_feedback: string | null;
+  review_comment: string | null;
+  admin_review_status: string | null;
   tasks?: {
     title: string;
     xp_reward?: number;
     xp?: number;
   };
+  github_verifications?: {
+    authenticity_score: number | null;
+    commit_count: number | null;
+    unique_contributors: number | null;
+    first_commit_at: string | null;
+    last_commit_at: string | null;
+  }[];
 }
 
 export const useProofUploads = (currentDate: Date) => {
@@ -48,6 +63,13 @@ export const useProofUploads = (currentDate: Date) => {
             title,
             xp_reward,
             xp
+          ),
+          github_verifications (
+            authenticity_score,
+            commit_count,
+            unique_contributors,
+            first_commit_at,
+            last_commit_at
           )
         `)
         .eq('student_id', profile.id)

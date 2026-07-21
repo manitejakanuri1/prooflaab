@@ -1,5 +1,5 @@
 -- Create student credits table
-CREATE TABLE public.student_credits (
+CREATE TABLE IF NOT EXISTS public.student_credits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.student_profiles(id) ON DELETE CASCADE,
   credits_available INTEGER NOT NULL DEFAULT 10,
@@ -44,8 +44,8 @@ ADD COLUMN IF NOT EXISTS is_ai_generated BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS suggested_xp INTEGER DEFAULT 50;
 
 -- Create index for faster queries
-CREATE INDEX idx_tasks_created_by_type ON public.tasks(created_by_type);
-CREATE INDEX idx_student_credits_student_id ON public.student_credits(student_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_by_type ON public.tasks(created_by_type);
+CREATE INDEX IF NOT EXISTS idx_student_credits_student_id ON public.student_credits(student_id);
 
 -- Function to initialize credits for new students
 CREATE OR REPLACE FUNCTION public.initialize_student_credits()

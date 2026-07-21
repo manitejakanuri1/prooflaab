@@ -46,8 +46,11 @@ export function useAdminNotifications() {
   useEffect(() => {
     if (!user?.id) return;
 
+    // Unique channel name per mount: a fixed name collides with a not-yet
+    // removed channel (removeChannel is async) on StrictMode's double-mount,
+    // causing ".on() after subscribe()" — which crashes the admin header.
     const channel = supabase
-      .channel('admin-notifications-changes')
+      .channel(`admin-notifications-changes-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {

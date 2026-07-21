@@ -1,5 +1,5 @@
 -- Create recruiter_interests table
-CREATE TABLE public.recruiter_interests (
+CREATE TABLE IF NOT EXISTS public.recruiter_interests (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id uuid NOT NULL REFERENCES public.proof_posts(id) ON DELETE CASCADE,
   student_id uuid NOT NULL REFERENCES public.student_profiles(id) ON DELETE CASCADE,
@@ -56,5 +56,5 @@ FOR EACH ROW
 EXECUTE FUNCTION public.notify_student_recruiter_interest();
 
 -- Add index for performance
-CREATE INDEX idx_recruiter_interests_post_id ON public.recruiter_interests(post_id);
-CREATE INDEX idx_recruiter_interests_student_id ON public.recruiter_interests(student_id);
+CREATE INDEX IF NOT EXISTS idx_recruiter_interests_post_id ON public.recruiter_interests(post_id);
+CREATE INDEX IF NOT EXISTS idx_recruiter_interests_student_id ON public.recruiter_interests(student_id);

@@ -1,6 +1,6 @@
 
 -- Create xp_logs table to track XP earned by students
-CREATE TABLE public.xp_logs (
+CREATE TABLE IF NOT EXISTS public.xp_logs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID REFERENCES public.student_profiles(id) NOT NULL,
   xp_points INTEGER NOT NULL,

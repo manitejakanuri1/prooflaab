@@ -377,7 +377,7 @@ CREATE POLICY "Users can manage their own email verification" ON public.email_ve
 FOR ALL TO authenticated USING (email = (SELECT email FROM auth.users WHERE id = auth.uid()));
 
 -- Create audit log table for tracking sensitive operations
-CREATE TABLE public.audit_logs (
+CREATE TABLE IF NOT EXISTS public.audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id),
     action TEXT NOT NULL,

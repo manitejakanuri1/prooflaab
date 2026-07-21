@@ -11,8 +11,8 @@ SET source = CASE
 END;
 
 -- Create index for better query performance
-CREATE INDEX idx_student_profiles_source ON public.student_profiles(source);
-CREATE INDEX idx_student_profiles_last_active ON public.student_profiles(last_active);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_source ON public.student_profiles(source);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_last_active ON public.student_profiles(last_active);
 
 -- Create a function to update last_active when proof is uploaded
 CREATE OR REPLACE FUNCTION public.update_student_last_active()

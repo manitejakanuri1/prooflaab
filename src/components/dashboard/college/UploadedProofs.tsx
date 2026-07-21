@@ -49,7 +49,7 @@ const UploadedProofs = () => {
   // Real-time subscription for proof_uploads changes
   useEffect(() => {
     const channel = supabase
-      .channel('proof_uploads_changes')
+      .channel(`proof_uploads_changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {

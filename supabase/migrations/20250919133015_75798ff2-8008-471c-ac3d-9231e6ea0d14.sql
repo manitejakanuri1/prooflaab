@@ -12,7 +12,7 @@ ADD CONSTRAINT fk_tasks_created_by_college
 FOREIGN KEY (created_by_college_id) REFERENCES public.colleges(id) ON DELETE SET NULL;
 
 -- Create index for better performance on college tasks queries
-CREATE INDEX idx_tasks_created_by_college_id ON public.tasks(created_by_college_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_by_college_id ON public.tasks(created_by_college_id);
 
 -- Create function to update college last_active when they log in
 CREATE OR REPLACE FUNCTION public.update_college_last_active()

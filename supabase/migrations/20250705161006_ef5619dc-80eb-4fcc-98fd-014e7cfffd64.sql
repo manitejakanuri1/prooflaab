@@ -1,6 +1,6 @@
 
 -- Create table to store OTP codes for student verification
-CREATE TABLE public.student_otps (
+CREATE TABLE IF NOT EXISTS public.student_otps (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT NOT NULL,
   otp_code TEXT NOT NULL,
@@ -9,10 +9,10 @@ CREATE TABLE public.student_otps (
 );
 
 -- Add index on email for faster lookups
-CREATE INDEX idx_student_otps_email ON public.student_otps(email);
+CREATE INDEX IF NOT EXISTS idx_student_otps_email ON public.student_otps(email);
 
 -- Add index on created_at for cleanup queries
-CREATE INDEX idx_student_otps_created_at ON public.student_otps(created_at);
+CREATE INDEX IF NOT EXISTS idx_student_otps_created_at ON public.student_otps(created_at);
 
 -- Enable Row Level Security
 ALTER TABLE public.student_otps ENABLE ROW LEVEL SECURITY;

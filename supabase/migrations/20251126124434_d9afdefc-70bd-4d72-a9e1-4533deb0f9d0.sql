@@ -1,5 +1,5 @@
 -- Create user_follows table for the Follow system
-CREATE TABLE public.user_follows (
+CREATE TABLE IF NOT EXISTS public.user_follows (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   follower_id uuid NOT NULL,
   following_id uuid NOT NULL,
@@ -13,8 +13,8 @@ CREATE TABLE public.user_follows (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_user_follows_follower_id ON public.user_follows(follower_id);
-CREATE INDEX idx_user_follows_following_id ON public.user_follows(following_id);
+CREATE INDEX IF NOT EXISTS idx_user_follows_follower_id ON public.user_follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_user_follows_following_id ON public.user_follows(following_id);
 
 -- Enable RLS
 ALTER TABLE public.user_follows ENABLE ROW LEVEL SECURITY;

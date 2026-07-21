@@ -92,7 +92,7 @@ CREATE POLICY "Admins can manage all settings"
   WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
 
 -- Create indexes
-CREATE INDEX idx_proof_appeals_proof_id ON public.proof_appeals(proof_id);
-CREATE INDEX idx_proof_appeals_student_id ON public.proof_appeals(student_id);
-CREATE INDEX idx_proof_appeals_status ON public.proof_appeals(appeal_status);
-CREATE INDEX idx_verification_settings_college_id ON public.verification_settings(college_id);
+CREATE INDEX IF NOT EXISTS idx_proof_appeals_proof_id ON public.proof_appeals(proof_id);
+CREATE INDEX IF NOT EXISTS idx_proof_appeals_student_id ON public.proof_appeals(student_id);
+CREATE INDEX IF NOT EXISTS idx_proof_appeals_status ON public.proof_appeals(appeal_status);
+CREATE INDEX IF NOT EXISTS idx_verification_settings_college_id ON public.verification_settings(college_id);

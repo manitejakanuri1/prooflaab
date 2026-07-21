@@ -1,5 +1,5 @@
 -- Create announcements table
-CREATE TABLE public.announcements (
+CREATE TABLE IF NOT EXISTS public.announcements (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
@@ -9,7 +9,7 @@ CREATE TABLE public.announcements (
 );
 
 -- Create manual_adjustment_log table
-CREATE TABLE public.manual_adjustment_log (
+CREATE TABLE IF NOT EXISTS public.manual_adjustment_log (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID NOT NULL,
   admin_id UUID NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE public.manual_adjustment_log (
 );
 
 -- Create admin_users table
-CREATE TABLE public.admin_users (
+CREATE TABLE IF NOT EXISTS public.admin_users (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
@@ -88,10 +88,10 @@ FOR ALL
 USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- Create indexes for better performance
-CREATE INDEX idx_announcements_created_at ON public.announcements(created_at);
-CREATE INDEX idx_manual_adjustment_log_student_id ON public.manual_adjustment_log(student_id);
-CREATE INDEX idx_manual_adjustment_log_created_at ON public.manual_adjustment_log(created_at);
-CREATE INDEX idx_admin_users_email ON public.admin_users(email);
+CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON public.announcements(created_at);
+CREATE INDEX IF NOT EXISTS idx_manual_adjustment_log_student_id ON public.manual_adjustment_log(student_id);
+CREATE INDEX IF NOT EXISTS idx_manual_adjustment_log_created_at ON public.manual_adjustment_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
 
 -- Create updated_at trigger for announcements
 CREATE TRIGGER update_announcements_updated_at

@@ -67,7 +67,7 @@ const StudentCreatedTasksPage = () => {
   // Real-time subscription for proof_uploads and conceptual_tests changes
   useEffect(() => {
     const channel = supabase
-      .channel('student_created_verification_changes')
+      .channel(`student_created_verification_changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {

@@ -1,6 +1,6 @@
 
 -- Create student_portfolios table
-CREATE TABLE public.student_portfolios (
+CREATE TABLE IF NOT EXISTS public.student_portfolios (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID NOT NULL REFERENCES public.student_profiles(id) ON DELETE CASCADE,
   public_url_slug TEXT NOT NULL UNIQUE,
@@ -16,7 +16,7 @@ CREATE TABLE public.student_portfolios (
 ALTER TABLE public.student_portfolios ADD CONSTRAINT unique_student_portfolio UNIQUE (student_id);
 
 -- Create index on public_url_slug for faster lookups
-CREATE INDEX idx_portfolio_slug ON public.student_portfolios(public_url_slug);
+CREATE INDEX IF NOT EXISTS idx_portfolio_slug ON public.student_portfolios(public_url_slug);
 
 -- Enable Row Level Security
 ALTER TABLE public.student_portfolios ENABLE ROW LEVEL SECURITY;

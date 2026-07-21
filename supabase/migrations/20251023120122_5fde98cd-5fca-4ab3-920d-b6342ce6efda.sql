@@ -1,5 +1,5 @@
 -- Create recruiter_links table
-CREATE TABLE public.recruiter_links (
+CREATE TABLE IF NOT EXISTS public.recruiter_links (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   college_id UUID NOT NULL REFERENCES public.colleges(id) ON DELETE CASCADE,
   filters JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -10,7 +10,7 @@ CREATE TABLE public.recruiter_links (
 );
 
 -- Create recruiter_link_views table for analytics
-CREATE TABLE public.recruiter_link_views (
+CREATE TABLE IF NOT EXISTS public.recruiter_link_views (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   link_id UUID NOT NULL REFERENCES public.recruiter_links(id) ON DELETE CASCADE,
   viewed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -76,6 +76,6 @@ CREATE POLICY "College admins can view their link analytics"
   );
 
 -- Create index for faster lookups
-CREATE INDEX idx_recruiter_links_college_id ON public.recruiter_links(college_id);
-CREATE INDEX idx_recruiter_links_status ON public.recruiter_links(status);
-CREATE INDEX idx_recruiter_link_views_link_id ON public.recruiter_link_views(link_id);
+CREATE INDEX IF NOT EXISTS idx_recruiter_links_college_id ON public.recruiter_links(college_id);
+CREATE INDEX IF NOT EXISTS idx_recruiter_links_status ON public.recruiter_links(status);
+CREATE INDEX IF NOT EXISTS idx_recruiter_link_views_link_id ON public.recruiter_link_views(link_id);

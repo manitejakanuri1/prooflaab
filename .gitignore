@@ -26,3 +26,7 @@ dist-ssr
 # Environment files
 .env
 .env.local
+.vercel
+
+# Supabase CLI machine-local state (linked project ref, pooler url, versions)
+supabase/.temp/

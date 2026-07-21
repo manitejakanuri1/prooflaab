@@ -1,5 +1,5 @@
 -- Create proof_posts table for social feed
-CREATE TABLE public.proof_posts (
+CREATE TABLE IF NOT EXISTS public.proof_posts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id uuid NOT NULL REFERENCES public.student_profiles(id) ON DELETE CASCADE,
   proof_id uuid NOT NULL REFERENCES public.proof_uploads(id) ON DELETE CASCADE,
@@ -16,10 +16,10 @@ CREATE TABLE public.proof_posts (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_proof_posts_student_id ON public.proof_posts(student_id);
-CREATE INDEX idx_proof_posts_proof_id ON public.proof_posts(proof_id);
-CREATE INDEX idx_proof_posts_created_at ON public.proof_posts(created_at DESC);
-CREATE INDEX idx_proof_posts_visibility ON public.proof_posts(visibility);
+CREATE INDEX IF NOT EXISTS idx_proof_posts_student_id ON public.proof_posts(student_id);
+CREATE INDEX IF NOT EXISTS idx_proof_posts_proof_id ON public.proof_posts(proof_id);
+CREATE INDEX IF NOT EXISTS idx_proof_posts_created_at ON public.proof_posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_proof_posts_visibility ON public.proof_posts(visibility);
 
 -- Security definer function to check if a user owns a student profile
 CREATE OR REPLACE FUNCTION public.is_student_owner(_student_id uuid, _user_id uuid)

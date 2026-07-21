@@ -1,5 +1,5 @@
 -- Create social_notifications table for social feed notifications
-CREATE TABLE public.social_notifications (
+CREATE TABLE IF NOT EXISTS public.social_notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   triggered_by UUID,
@@ -11,9 +11,9 @@ CREATE TABLE public.social_notifications (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_social_notifications_user_id ON public.social_notifications(user_id);
-CREATE INDEX idx_social_notifications_read ON public.social_notifications(read);
-CREATE INDEX idx_social_notifications_created_at ON public.social_notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_social_notifications_user_id ON public.social_notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_social_notifications_read ON public.social_notifications(read);
+CREATE INDEX IF NOT EXISTS idx_social_notifications_created_at ON public.social_notifications(created_at DESC);
 
 -- Enable Row Level Security
 ALTER TABLE public.social_notifications ENABLE ROW LEVEL SECURITY;

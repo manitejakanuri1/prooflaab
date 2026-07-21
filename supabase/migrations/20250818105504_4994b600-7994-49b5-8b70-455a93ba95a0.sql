@@ -5,7 +5,7 @@ DROP TABLE IF EXISTS public.colleges CASCADE;
 DROP TABLE IF EXISTS public.startups CASCADE;
 
 -- Create students table
-CREATE TABLE public.students (
+CREATE TABLE IF NOT EXISTS public.students (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
   name TEXT NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE public.students (
 );
 
 -- Create colleges table with status tracking
-CREATE TABLE public.colleges (
+CREATE TABLE IF NOT EXISTS public.colleges (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
   name TEXT NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE public.colleges (
 );
 
 -- Create startups table with status tracking
-CREATE TABLE public.startups (
+CREATE TABLE IF NOT EXISTS public.startups (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
   name TEXT NOT NULL,

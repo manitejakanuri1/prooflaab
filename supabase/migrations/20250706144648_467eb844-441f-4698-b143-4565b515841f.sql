@@ -1,6 +1,6 @@
 
 -- Create enhanced student profiles table
-CREATE TABLE public.student_profiles (
+CREATE TABLE IF NOT EXISTS public.student_profiles (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users NOT NULL,
   full_name TEXT NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE public.student_profiles (
 );
 
 -- Create tasks table
-CREATE TABLE public.tasks (
+CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID REFERENCES public.student_profiles(id) NOT NULL,
   title TEXT NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE public.tasks (
 );
 
 -- Create proof uploads table
-CREATE TABLE public.proof_uploads (
+CREATE TABLE IF NOT EXISTS public.proof_uploads (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   task_id UUID REFERENCES public.tasks(id) NOT NULL,
   student_id UUID REFERENCES public.student_profiles(id) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE public.proof_uploads (
 );
 
 -- Create notifications table
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID REFERENCES public.student_profiles(id) NOT NULL,
   title TEXT NOT NULL,

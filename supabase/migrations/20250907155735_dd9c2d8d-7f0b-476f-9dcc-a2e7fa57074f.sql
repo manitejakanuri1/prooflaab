@@ -10,7 +10,7 @@ WHERE public.student_profiles.user_id = s.user_id
 AND s.college_id IS NOT NULL;
 
 -- Create index for better performance on college queries
-CREATE INDEX idx_student_profiles_college_id ON public.student_profiles(college_id);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_college_id ON public.student_profiles(college_id);
 
 -- Add RLS policy to ensure college admins can only see their students
 CREATE POLICY "College admins can view their students" 

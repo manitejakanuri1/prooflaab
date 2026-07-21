@@ -1,5 +1,5 @@
 -- Create table to track pack assignments to batches
-CREATE TABLE public.pack_batch_assignments (
+CREATE TABLE IF NOT EXISTS public.pack_batch_assignments (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   pack_id UUID NOT NULL REFERENCES public.task_packs(id) ON DELETE CASCADE,
   college_id UUID NOT NULL REFERENCES public.colleges(id) ON DELETE CASCADE,

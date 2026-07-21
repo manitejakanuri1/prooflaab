@@ -78,12 +78,12 @@ export default function OnboardingWizard() {
 
   const handleWizardComplete = async () => {
     if (userRole) {
-      // Mark wizard as completed in the database
+      // Mark wizard as completed in the database.
+      // Uses a SECURITY DEFINER RPC: user_roles has no UPDATE policy for
+      // non-admins (a direct update silently affects 0 rows under RLS), and
+      // the RPC only flips has_completed_wizard so roles can't be escalated.
       try {
-        const { error } = await supabase
-          .from('user_roles')
-          .update({ has_completed_wizard: true })
-          .eq('user_id', user?.id);
+        const { error } = await supabase.rpc('mark_wizard_completed');
 
         if (error) {
           console.error('Error updating wizard completion status:', error);

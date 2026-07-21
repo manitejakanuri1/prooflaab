@@ -1,5 +1,5 @@
 -- Create table for GitHub verifications
-CREATE TABLE public.github_verifications (
+CREATE TABLE IF NOT EXISTS public.github_verifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   proof_id UUID NOT NULL REFERENCES public.proof_uploads(id) ON DELETE CASCADE,
   repo_url TEXT,
@@ -11,7 +11,7 @@ CREATE TABLE public.github_verifications (
 );
 
 -- Create table for AI verifications
-CREATE TABLE public.ai_verifications (
+CREATE TABLE IF NOT EXISTS public.ai_verifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   proof_id UUID NOT NULL REFERENCES public.proof_uploads(id) ON DELETE CASCADE,
   ai_summary TEXT,
@@ -55,5 +55,5 @@ WITH CHECK (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_github_verifications_proof_id ON public.github_verifications(proof_id);
-CREATE INDEX idx_ai_verifications_proof_id ON public.ai_verifications(proof_id);
+CREATE INDEX IF NOT EXISTS idx_github_verifications_proof_id ON public.github_verifications(proof_id);
+CREATE INDEX IF NOT EXISTS idx_ai_verifications_proof_id ON public.ai_verifications(proof_id);

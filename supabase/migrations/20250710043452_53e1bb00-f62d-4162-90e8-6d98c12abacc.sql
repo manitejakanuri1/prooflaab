@@ -1,6 +1,6 @@
 
 -- Create activity_logs table to track user activity
-CREATE TABLE public.activity_logs (
+CREATE TABLE IF NOT EXISTS public.activity_logs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   date DATE NOT NULL,

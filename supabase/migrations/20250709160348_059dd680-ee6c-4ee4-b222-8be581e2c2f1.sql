@@ -1,6 +1,6 @@
 
 -- Create trust_scores table
-CREATE TABLE public.trust_scores (
+CREATE TABLE IF NOT EXISTS public.trust_scores (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID NOT NULL REFERENCES public.student_profiles(id) ON DELETE CASCADE,
   score INTEGER NOT NULL DEFAULT 0 CHECK (score >= 0 AND score <= 100),

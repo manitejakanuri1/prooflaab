@@ -1,5 +1,5 @@
 -- Create learning_resources table
-CREATE TABLE public.learning_resources (
+CREATE TABLE IF NOT EXISTS public.learning_resources (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
@@ -12,7 +12,7 @@ CREATE TABLE public.learning_resources (
 );
 
 -- Create job_opportunities table
-CREATE TABLE public.job_opportunities (
+CREATE TABLE IF NOT EXISTS public.job_opportunities (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   role TEXT NOT NULL,
   company_name TEXT NOT NULL,
@@ -72,10 +72,10 @@ FOR DELETE
 USING (true);
 
 -- Add indexes for better performance
-CREATE INDEX idx_learning_resources_branch ON public.learning_resources(branch);
-CREATE INDEX idx_learning_resources_platform ON public.learning_resources(platform);
-CREATE INDEX idx_learning_resources_is_premium ON public.learning_resources(is_premium);
+CREATE INDEX IF NOT EXISTS idx_learning_resources_branch ON public.learning_resources(branch);
+CREATE INDEX IF NOT EXISTS idx_learning_resources_platform ON public.learning_resources(platform);
+CREATE INDEX IF NOT EXISTS idx_learning_resources_is_premium ON public.learning_resources(is_premium);
 
-CREATE INDEX idx_job_opportunities_job_type ON public.job_opportunities(job_type);
-CREATE INDEX idx_job_opportunities_eligible_branch ON public.job_opportunities(eligible_branch);
-CREATE INDEX idx_job_opportunities_deadline ON public.job_opportunities(deadline);
+CREATE INDEX IF NOT EXISTS idx_job_opportunities_job_type ON public.job_opportunities(job_type);
+CREATE INDEX IF NOT EXISTS idx_job_opportunities_eligible_branch ON public.job_opportunities(eligible_branch);
+CREATE INDEX IF NOT EXISTS idx_job_opportunities_deadline ON public.job_opportunities(deadline);

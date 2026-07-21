@@ -1,5 +1,5 @@
 -- Create post_engagements table for tracking recruiter analytics
-CREATE TABLE public.post_engagements (
+CREATE TABLE IF NOT EXISTS public.post_engagements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id uuid NOT NULL REFERENCES public.proof_posts(id) ON DELETE CASCADE,
   post_owner_id uuid NOT NULL,
@@ -12,10 +12,10 @@ CREATE TABLE public.post_engagements (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_post_engagements_post_id ON public.post_engagements(post_id);
-CREATE INDEX idx_post_engagements_post_owner_id ON public.post_engagements(post_owner_id);
-CREATE INDEX idx_post_engagements_engagement_type ON public.post_engagements(engagement_type);
-CREATE INDEX idx_post_engagements_created_at ON public.post_engagements(created_at);
+CREATE INDEX IF NOT EXISTS idx_post_engagements_post_id ON public.post_engagements(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_engagements_post_owner_id ON public.post_engagements(post_owner_id);
+CREATE INDEX IF NOT EXISTS idx_post_engagements_engagement_type ON public.post_engagements(engagement_type);
+CREATE INDEX IF NOT EXISTS idx_post_engagements_created_at ON public.post_engagements(created_at);
 
 -- Enable RLS
 ALTER TABLE public.post_engagements ENABLE ROW LEVEL SECURITY;

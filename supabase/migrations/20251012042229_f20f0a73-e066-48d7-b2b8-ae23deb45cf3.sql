@@ -3,7 +3,7 @@ ALTER TABLE public.job_opportunities
 ADD COLUMN created_by uuid REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- Create index for better query performance
-CREATE INDEX idx_job_opportunities_created_by ON public.job_opportunities(created_by);
+CREATE INDEX IF NOT EXISTS idx_job_opportunities_created_by ON public.job_opportunities(created_by);
 
 -- Update RLS policies for job_opportunities
 DROP POLICY IF EXISTS "Startups can insert their own jobs" ON public.job_opportunities;

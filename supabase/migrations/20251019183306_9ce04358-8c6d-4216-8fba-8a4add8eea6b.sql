@@ -31,9 +31,9 @@ CREATE POLICY "Admins can delete their own notifications"
   USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- Create index for better performance
-CREATE INDEX idx_admin_notifications_user_id ON public.admin_notifications(admin_user_id);
-CREATE INDEX idx_admin_notifications_is_read ON public.admin_notifications(is_read);
-CREATE INDEX idx_admin_notifications_created_at ON public.admin_notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_user_id ON public.admin_notifications(admin_user_id);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_is_read ON public.admin_notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_created_at ON public.admin_notifications(created_at DESC);
 
 -- Function to create notification for all admins
 CREATE OR REPLACE FUNCTION public.notify_all_admins(

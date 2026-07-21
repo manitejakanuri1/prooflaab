@@ -43,7 +43,7 @@ CREATE TRIGGER audit_proof_uploads
     FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
 
 -- Add rate limiting table for authentication attempts
-CREATE TABLE public.auth_rate_limits (
+CREATE TABLE IF NOT EXISTS public.auth_rate_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     identifier TEXT NOT NULL, -- IP address or email
     attempt_count INTEGER DEFAULT 1,

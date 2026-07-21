@@ -1,6 +1,6 @@
 
 -- Create notifications table
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID NOT NULL REFERENCES public.student_profiles(id) ON DELETE CASCADE,
   type TEXT NOT NULL DEFAULT 'general',

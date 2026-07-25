@@ -21,7 +21,8 @@ import {
   ChevronDown,
   Plus,
   Bell,
-  Package
+  Package,
+  Gavel,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
@@ -83,6 +84,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       ]
     },
     { id: "proof-submissions", label: "Proof Review & Verification", icon: ClipboardCheck },
+    { id: "appeals", label: "Appeals Review", icon: Gavel },
     { id: "task-oversight", label: "Task Oversight", icon: Eye },
     { id: "assign-tasks", label: "Assign Tasks", icon: Plus },
     { 

@@ -3,6 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import AdminDashboardOverview from "@/components/dashboard/admin/AdminDashboardOverview";
 import ProofSubmissionsContent from "@/components/dashboard/admin/ProofSubmissionsContent";
+import AppealsReviewPage from "@/components/dashboard/shared/AppealsReviewPage";
 import UserManagement from "@/components/dashboard/admin/UserManagement";
 import EnhancedUserManagement from "@/components/dashboard/admin/EnhancedUserManagement";
 import TaskOversight from "@/components/dashboard/admin/TaskOversight";
@@ -23,6 +24,8 @@ const ReviewProofs = () => {
         return <AdminDashboardOverview onNavigate={setActiveTab} />;
       case "proof-submissions":
         return <ProofSubmissionsContent />;
+      case "appeals":
+        return <AppealsReviewPage userRole="admin" />;
       case "students":
       case "startups":
       case "colleges":

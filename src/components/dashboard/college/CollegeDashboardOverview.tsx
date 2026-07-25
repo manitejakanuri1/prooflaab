@@ -199,6 +199,7 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
       const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-student-users', {
         body: {
           college_id: collegeData.id,
+          origin: window.location.origin,
           students: studentsToProcess.map(record => ({
             name: record.name,
             email: record.email,

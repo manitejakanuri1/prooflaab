@@ -19,6 +19,7 @@ import AdminTaskPacksPage from "@/components/dashboard/admin/AdminTaskPacksPage"
 import AdminTaskPackCreatePage from "@/components/dashboard/admin/AdminTaskPackCreatePage";
 import AdminTaskPackEditPage from "@/components/dashboard/admin/AdminTaskPackEditPage";
 import PackAnalyticsPage from "@/components/dashboard/shared/PackAnalyticsPage";
+import AppealsReviewPage from "@/components/dashboard/shared/AppealsReviewPage";
 
 const AdminDashboard = () => {
   const { userType, packId } = useParams();
@@ -84,6 +85,8 @@ const AdminDashboard = () => {
         return <AdminDashboardOverview onNavigate={setActiveTab} />;
       case "proof-submissions":
         return <ProofSubmissionsContent />;
+      case "appeals":
+        return <AppealsReviewPage userRole="admin" />;
       case "students":
       case "startups":
       case "colleges":

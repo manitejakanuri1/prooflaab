@@ -345,7 +345,7 @@ serve(async (req) => {
           }
 
           if (resend) {
-            const loginUrl = baseUrl ? `${baseUrl}/student/login` : 'https://prooflabai-mvp.vercel.app/student/login'
+            const loginUrl = baseUrl ? `${baseUrl}/student/login` : 'https://prooflaab.vercel.app/student/login'
             const content = buildInviteEmail({
               name, email: email.toLowerCase(), password: tempPassword,
               setPasswordLink, loginUrl, collegeName,

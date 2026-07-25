@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+// xlsx is loaded on demand (see parseSpreadsheet / downloadCSVTemplate) so this
+// large library isn't part of the initial College dashboard bundle.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -46,83 +48,65 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === "text/csv") {
+    // Accept Excel (.xlsx/.xls) and CSV — validate by extension since browsers
+    // report inconsistent MIME types for spreadsheets.
+    const isSpreadsheet = file && /\.(xlsx|xls|csv)$/i.test(file.name);
+    if (isSpreadsheet) {
       setCsvFile(file);
       setUploadStatus("File selected: " + file.name);
       setResults([]); // Clear previous results
     } else {
-      setUploadStatus("Please select a valid CSV file");
+      setUploadStatus("Please select a valid Excel (.xlsx) or CSV file");
     }
   };
 
-  // Proper CSV parser that handles quoted fields
-  const parseCSVRow = (row: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < row.length; i++) {
-      const char = row[i];
-      const nextChar = row[i + 1];
-      
-      if (char === '"' && inQuotes && nextChar === '"') {
-        // Handle escaped quotes
-        current += '"';
-        i++; // Skip next quote
-      } else if (char === '"') {
-        // Toggle quote state
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        // End of field
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
+  // Parse an Excel (.xlsx/.xls) OR CSV file via SheetJS. Headers are matched
+  // case-insensitively and tolerate spaces or underscores (e.g. "Year of study"
+  // and "year_of_study" both work).
+  const parseSpreadsheet = async (file: File): Promise<StudentRecord[]> => {
+    const XLSX = await import("xlsx");
+    const buf = await file.arrayBuffer();
+    const workbook = XLSX.read(buf, { type: "array" });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!firstSheet) throw new Error("The file has no readable sheet");
+
+    // Row objects keyed by the header cells of the first row.
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, {
+      defval: "",
+      raw: false,
+    });
+    if (rows.length === 0) throw new Error("The file has no data rows");
+
+    // Normalise a header like "Year of study" / "Year_of_study" -> "year_of_study".
+    const norm = (k: string) => k.trim().toLowerCase().replace(/\s+/g, "_");
+
+    // Confirm the required identity columns exist.
+    const headerKeys = Object.keys(rows[0]).map(norm);
+    for (const required of ["name", "email"]) {
+      if (!headerKeys.includes(required)) {
+        throw new Error(`Missing required column: "${required}"`);
       }
     }
-    
-    // Add the last field
-    result.push(current.trim());
-    return result;
-  };
 
-  const parseCSV = (text: string): StudentRecord[] => {
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length === 0) throw new Error("CSV file is empty");
-    
-    const headers = parseCSVRow(lines[0]).map(h => h.trim().toLowerCase());
-    
-    // Validate headers
-    const requiredHeaders = ['name', 'email', 'branch', 'year_of_study', 'preferred_skills', 'key_interests', 'career_goals'];
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-    if (missingHeaders.length > 0) {
-      throw new Error(`Missing required columns: ${missingHeaders.join(', ')}`);
-    }
-
-    const records: StudentRecord[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVRow(lines[i]);
-      if (values.length >= headers.length) {
-        const nameIndex = headers.indexOf('name');
-        const emailIndex = headers.indexOf('email');
-        const branchIndex = headers.indexOf('branch');
-        const yearOfStudyIndex = headers.indexOf('year_of_study');
-        const preferredSkillsIndex = headers.indexOf('preferred_skills');
-        const keyInterestsIndex = headers.indexOf('key_interests');
-        const careerGoalsIndex = headers.indexOf('career_goals');
-
-        records.push({
-          name: values[nameIndex] || '',
-          email: values[emailIndex] || '',
-          branch: values[branchIndex] || '',
-          year_of_study: values[yearOfStudyIndex] || '',
-          preferred_skills: values[preferredSkillsIndex] || '',
-          key_interests: values[keyInterestsIndex] || '',
-          career_goals: values[careerGoalsIndex] || ''
-        });
+    const pick = (row: Record<string, unknown>, field: string): string => {
+      for (const key of Object.keys(row)) {
+        if (norm(key) === field) return String(row[key] ?? "").trim();
       }
-    }
-    return records;
+      return "";
+    };
+
+    return rows
+      .map((row) => ({
+        name: pick(row, "name"),
+        email: pick(row, "email"),
+        branch: pick(row, "branch"),
+        year_of_study: pick(row, "year_of_study"),
+        preferred_skills: pick(row, "preferred_skills"),
+        key_interests: pick(row, "key_interests"),
+        career_goals: pick(row, "career_goals"),
+      }))
+      // Drop completely blank rows (common trailing rows in spreadsheets).
+      .filter((r) => r.name || r.email);
   };
 
   const validateRecord = (record: StudentRecord): string | null => {
@@ -142,7 +126,7 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
     if (!csvFile) {
       toast({
         title: "Error",
-        description: "Please select a CSV file first",
+        description: "Please select an Excel or CSV file first",
         variant: "destructive"
       });
       return;
@@ -152,14 +136,10 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
     setResults([]);
 
     try {
-      console.log('Starting CSV processing...');
-      const text = await csvFile.text();
-      console.log('CSV text:', text);
-      const records = parseCSV(text);
-      console.log('Parsed records:', records);
-      
+      const records = await parseSpreadsheet(csvFile);
+
       if (records.length === 0) {
-        throw new Error("No valid records found in CSV");
+        throw new Error("No valid records found in the file");
       }
 
       // Process all valid records through Edge Function
@@ -260,14 +240,14 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
       const duplicateCount = processResults.filter(r => r.status === 'duplicate').length;
 
       toast({
-        title: "CSV Processing Complete",
+        title: "Upload Complete",
         description: `${successCount} created, ${duplicateCount} duplicates, ${errorCount} errors`,
       });
 
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process CSV",
+        description: error instanceof Error ? error.message : "Failed to process file",
         variant: "destructive"
       });
     } finally {
@@ -414,24 +394,20 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
     }
   };
 
-  const downloadCSVTemplate = () => {
-    const csvContent = `Name,Email,Branch,Year_of_study,Preferred_skills,Key_interests,Career_goals
-John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI Research,Machine Learning Engineer`;
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'student_onboarding_template.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
+  const downloadCSVTemplate = async () => {
+    const XLSX = await import("xlsx");
+    const rows = [
+      ["Name", "Email", "Branch", "Year_of_study", "Preferred_skills", "Key_interests", "Career_goals"],
+      ["John Doe", "john@example.com", "Computer Science", "Third Year", "Python, Web Development", "AI Research", "Machine Learning Engineer"],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+    XLSX.writeFile(workbook, "student_onboarding_template.xlsx");
+
     toast({
       title: "Template downloaded successfully ✅",
-      description: "Use this file to format your student list correctly.",
+      description: "Fill this Excel file with your student list and upload it.",
       duration: 3000,
     });
   };
@@ -484,7 +460,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
               <Upload className="h-4 w-4 md:h-5 md:w-5" />
-              <span>Student Onboarding - CSV Upload</span>
+              <span>Student Onboarding - Excel / CSV Upload</span>
             </CardTitle>
             <TooltipProvider>
               <Tooltip>
@@ -499,7 +475,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Download ready-made CSV template</p>
+                  <p>Download ready-made Excel template</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -526,12 +502,12 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
               Upload Student Records
             </h3>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3 md:mb-4">
-              Select a CSV file containing student information
+              Select an Excel (.xlsx) or CSV file containing student information
             </p>
-            
+
             <input
               type="file"
-              accept=".csv"
+              accept=".xlsx,.xls,.csv"
               onChange={handleFileUpload}
               className="hidden"
               id="csv-upload"
@@ -539,7 +515,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
             />
             <label htmlFor="csv-upload">
               <Button className="cursor-pointer bg-orange-600 hover:bg-orange-700 text-white" asChild disabled={isProcessing}>
-                <span>Choose CSV File</span>
+                <span>Choose Excel / CSV File</span>
               </Button>
             </label>
             

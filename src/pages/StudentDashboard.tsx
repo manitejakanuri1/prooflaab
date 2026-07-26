@@ -6,6 +6,7 @@ import StudentSidebar from "@/components/dashboard/student/StudentSidebar";
 import StudentDashboardContent from "@/components/dashboard/student/StudentDashboardContent";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 
 const getTabFromPath = (pathname: string): string => {
   if (pathname.startsWith("/student/tasks/opportunities")) return "tasks-opportunities";
@@ -24,10 +25,34 @@ const StudentDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { profile, loading, refreshProfile } = useStudentProfile();
+  const [resumeChecked, setResumeChecked] = useState(false);
 
   useEffect(() => {
     setActiveTab(getTabFromPath(location.pathname));
   }, [location.pathname]);
+
+  // First stop after login: if this student has never confirmed a resume,
+  // land them on Resume Check instead of the dashboard. Only steers the bare
+  // "/student/dashboard" landing — any other tab/link the student picked
+  // directly is left alone, and it only runs once per session.
+  useEffect(() => {
+    if (resumeChecked || !profile?.id) return;
+    if (location.pathname !== "/student/dashboard") {
+      setResumeChecked(true);
+      return;
+    }
+    supabase
+      .from('resume_claims')
+      .select('status')
+      .eq('student_id', profile.id)
+      .eq('status', 'confirmed')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) setActiveTab('resume');
+        setResumeChecked(true);
+      });
+  }, [profile?.id, location.pathname, resumeChecked]);
 
   if (loading) {
     return (

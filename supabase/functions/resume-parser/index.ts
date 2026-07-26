@@ -127,6 +127,10 @@ For each project listed, capture its name, a one-sentence description of what it
 
 If a target job role/title is not explicitly stated, infer the single most likely one from the resume's overall content (most recent role sought, objective line, or dominant skill area) rather than leaving it empty.
 
+Also score the resume itself on two separate dimensions:
+1. "resume_quality_score" (0-100): how well the resume is WRITTEN — clarity, structure, quantified impact (numbers/results, not just duties), action verbs, no fluff, appropriate length. This has nothing to do with how skilled the person is, only how well it's communicated.
+2. "ats_match_score" (0-100): how well the resume's keywords, skills, and phrasing would match a typical Applicant Tracking System scan for the inferred target role — standard section headers, keyword density for the role, no images/tables that break parsing (assume text-only scan).
+
 Return a JSON object with this exact structure:
 {
   "target_role": "string",
@@ -134,7 +138,11 @@ Return a JSON object with this exact structure:
   "certifications": ["cert1", "cert2"],
   "projects": [
     { "name": "string", "description": "string", "tech_stack": ["tech1", "tech2"] }
-  ]
+  ],
+  "resume_quality_score": 0,
+  "resume_quality_notes": "one or two sentences on what to improve",
+  "ats_match_score": 0,
+  "ats_match_notes": "one or two sentences on what to improve"
 }
 
 Return ONLY the JSON object, no additional text, no markdown code fences.`;
@@ -195,6 +203,10 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
       skills?: string[];
       certifications?: string[];
       projects?: { name: string; description: string; tech_stack: string[] }[];
+      resume_quality_score?: number;
+      resume_quality_notes?: string;
+      ats_match_score?: number;
+      ats_match_notes?: string;
     };
     try {
       const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
@@ -214,6 +226,12 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
     const certifications = Array.isArray(extraction.certifications) ? extraction.certifications : [];
     const projects = Array.isArray(extraction.projects) ? extraction.projects : [];
     const target_role = typeof extraction.target_role === 'string' ? extraction.target_role : null;
+    const clampScore = (v: unknown) =>
+      typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : null;
+    const resume_quality_score = clampScore(extraction.resume_quality_score);
+    const resume_quality_notes = typeof extraction.resume_quality_notes === 'string' ? extraction.resume_quality_notes : null;
+    const ats_match_score = clampScore(extraction.ats_match_score);
+    const ats_match_notes = typeof extraction.ats_match_notes === 'string' ? extraction.ats_match_notes : null;
 
     const { data: claimRow, error: insertError } = await supabase
       .from('resume_claims')
@@ -226,6 +244,10 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
         projects,
         raw_extraction: extraction,
         status: 'extracted',
+        resume_quality_score,
+        resume_quality_notes,
+        ats_match_score,
+        ats_match_notes,
       })
       .select('id')
       .single();
@@ -248,6 +270,10 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
         skills,
         certifications,
         projects,
+        resume_quality_score,
+        resume_quality_notes,
+        ats_match_score,
+        ats_match_notes,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

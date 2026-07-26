@@ -36,5 +36,11 @@ verify_jwt = false
 [functions.resume-parser]
 verify_jwt = false
 
+[functions.resume-question-generator]
+verify_jwt = false
+
+[functions.resume-assessment-submit]
+verify_jwt = false
+
 [functions.trust-compute]
 verify_jwt = false

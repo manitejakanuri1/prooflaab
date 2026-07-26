@@ -1248,14 +1248,69 @@ export type Database = {
           },
         ]
       }
+      resume_assessments: {
+        Row: {
+          answer_scores: Json | null
+          created_at: string
+          id: string
+          questions: Json
+          resume_claims_id: string
+          status: string
+          student_answers: Json
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer_scores?: Json | null
+          created_at?: string
+          id?: string
+          questions?: Json
+          resume_claims_id: string
+          status?: string
+          student_answers?: Json
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer_scores?: Json | null
+          created_at?: string
+          id?: string
+          questions?: Json
+          resume_claims_id?: string
+          status?: string
+          student_answers?: Json
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_assessments_resume_claims_id_fkey"
+            columns: ["resume_claims_id"]
+            isOneToOne: true
+            referencedRelation: "resume_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_assessments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_claims: {
         Row: {
+          ats_match_notes: string | null
+          ats_match_score: number | null
           certifications: string[]
           confirmed_at: string | null
           created_at: string
           id: string
           projects: Json
           raw_extraction: Json | null
+          resume_quality_notes: string | null
+          resume_quality_score: number | null
           skills: string[]
           status: string
           storage_path: string
@@ -1264,12 +1319,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ats_match_notes?: string | null
+          ats_match_score?: number | null
           certifications?: string[]
           confirmed_at?: string | null
           created_at?: string
           id?: string
           projects?: Json
           raw_extraction?: Json | null
+          resume_quality_notes?: string | null
+          resume_quality_score?: number | null
           skills?: string[]
           status?: string
           storage_path: string
@@ -1278,12 +1337,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ats_match_notes?: string | null
+          ats_match_score?: number | null
           certifications?: string[]
           confirmed_at?: string | null
           created_at?: string
           id?: string
           projects?: Json
           raw_extraction?: Json | null
+          resume_quality_notes?: string | null
+          resume_quality_score?: number | null
           skills?: string[]
           status?: string
           storage_path?: string
@@ -1294,6 +1357,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "resume_claims_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_scorecards: {
+        Row: {
+          assessment_id: string
+          ats_match_score: number | null
+          created_at: string
+          id: string
+          resume_claims_id: string
+          resume_quality_score: number | null
+          roadmap: string | null
+          skill_proof_score: number | null
+          student_id: string
+        }
+        Insert: {
+          assessment_id: string
+          ats_match_score?: number | null
+          created_at?: string
+          id?: string
+          resume_claims_id: string
+          resume_quality_score?: number | null
+          roadmap?: string | null
+          skill_proof_score?: number | null
+          student_id: string
+        }
+        Update: {
+          assessment_id?: string
+          ats_match_score?: number | null
+          created_at?: string
+          id?: string
+          resume_claims_id?: string
+          resume_quality_score?: number | null
+          roadmap?: string | null
+          skill_proof_score?: number | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_scorecards_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "resume_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_scorecards_resume_claims_id_fkey"
+            columns: ["resume_claims_id"]
+            isOneToOne: false
+            referencedRelation: "resume_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_scorecards_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student_profiles"

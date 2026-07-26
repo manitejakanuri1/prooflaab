@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2 } from "lucide-react";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import ResumeAssessmentModal, { ResumeScoreResult } from "./ResumeAssessmentModal";
 
 interface ProjectClaim {
   name: string;
@@ -23,6 +24,15 @@ interface ResumeClaimRow {
   certifications: string[];
   projects: ProjectClaim[];
   status: "extracted" | "confirmed";
+  resume_quality_score?: number | null;
+  ats_match_score?: number | null;
+}
+
+interface AssessmentQuestion {
+  id: string;
+  type: "mcq" | "short_answer";
+  prompt: string;
+  options?: string[];
 }
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
@@ -44,6 +54,12 @@ const StudentResumeCheckPage = () => {
   const [newSkill, setNewSkill] = useState("");
   const [newCert, setNewCert] = useState("");
 
+  const [generatingAssessment, setGeneratingAssessment] = useState(false);
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [scoreResult, setScoreResult] = useState<ResumeScoreResult | null>(null);
+
   const loadLatestClaim = useCallback(async () => {
     if (!user) return;
     const { data: profile } = await supabase
@@ -58,7 +74,7 @@ const StudentResumeCheckPage = () => {
 
     const { data, error } = await supabase
       .from("resume_claims")
-      .select("id, target_role, skills, certifications, projects, status")
+      .select("id, target_role, skills, certifications, projects, status, resume_quality_score, ats_match_score")
       .eq("student_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -73,6 +89,25 @@ const StudentResumeCheckPage = () => {
       setSkills(row.skills || []);
       setCertifications(row.certifications || []);
       setProjects((row.projects as ProjectClaim[]) || []);
+
+      // If this claim was already confirmed, pull in its latest scorecard too
+      if (row.status === "confirmed") {
+        const { data: scorecard } = await supabase
+          .from("resume_scorecards")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap")
+          .eq("resume_claims_id", row.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (scorecard) {
+          setScoreResult({
+            resume_quality_score: scorecard.resume_quality_score,
+            ats_match_score: scorecard.ats_match_score,
+            skill_proof_score: scorecard.skill_proof_score ?? 0,
+            roadmap: scorecard.roadmap || "",
+          });
+        }
+      }
     }
     setLoadingExisting(false);
   }, [user]);
@@ -182,6 +217,27 @@ const StudentResumeCheckPage = () => {
       toast({ title: "Couldn't save", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleStartAssessment = async () => {
+    if (!claim) return;
+    setGeneratingAssessment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-question-generator", {
+        body: { resume_claims_id: claim.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setAssessmentId(data.assessment_id);
+      setAssessmentQuestions(data.questions || []);
+      setModalOpen(true);
+    } catch (err: any) {
+      console.error("Error starting assessment:", err);
+      toast({ title: "Couldn't start assessment", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setGeneratingAssessment(false);
     }
   };
 
@@ -374,6 +430,75 @@ const StudentResumeCheckPage = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {claim?.status === "confirmed" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
+              Prove it
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!scoreResult ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  8 quick questions based only on what's above — 6 multiple choice, 2 short explanations.
+                </p>
+                <Button onClick={handleStartAssessment} disabled={generatingAssessment}>
+                  {generatingAssessment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
+                    </>
+                  ) : (
+                    "Start assessment"
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold">{scoreResult.resume_quality_score ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold">{scoreResult.ats_match_score ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground mt-1">ATS Match</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold">{scoreResult.skill_proof_score}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Your roadmap</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">{scoreResult.roadmap}</p>
+                </div>
+                <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment}>
+                  {generatingAssessment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
+                    </>
+                  ) : (
+                    "Retake assessment"
+                  )}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {assessmentId && (
+        <ResumeAssessmentModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          assessmentId={assessmentId}
+          questions={assessmentQuestions}
+          onGraded={setScoreResult}
+        />
       )}
     </div>
   );

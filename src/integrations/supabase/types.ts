@@ -1248,6 +1248,59 @@ export type Database = {
           },
         ]
       }
+      resume_claims: {
+        Row: {
+          certifications: string[]
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          projects: Json
+          raw_extraction: Json | null
+          skills: string[]
+          status: string
+          storage_path: string
+          student_id: string
+          target_role: string | null
+          updated_at: string
+        }
+        Insert: {
+          certifications?: string[]
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          projects?: Json
+          raw_extraction?: Json | null
+          skills?: string[]
+          status?: string
+          storage_path: string
+          student_id: string
+          target_role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          certifications?: string[]
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          projects?: Json
+          raw_extraction?: Json | null
+          skills?: string[]
+          status?: string
+          storage_path?: string
+          student_id?: string
+          target_role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_claims_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signup_rate_limits: {
         Row: {
           attempt_count: number | null

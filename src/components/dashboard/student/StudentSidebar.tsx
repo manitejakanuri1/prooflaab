@@ -16,7 +16,8 @@ import {
   ClipboardList,
   Sparkles,
   Package,
-  Trophy
+  Trophy,
+  FileCheck2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ interface MenuItem {
 // from the Dashboard overview (Feed, Progress, Portfolio, Learning)
 const menuItems: MenuItem[] = [
   { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
+  { id: "resume", label: "Resume Check", icon: FileCheck2 },
   {
     id: "tasks",
     label: "Tasks",

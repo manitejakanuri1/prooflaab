@@ -1,0 +1,382 @@
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+interface ProjectClaim {
+  name: string;
+  description: string;
+  tech_stack: string[];
+}
+
+interface ResumeClaimRow {
+  id: string;
+  target_role: string | null;
+  skills: string[];
+  certifications: string[];
+  projects: ProjectClaim[];
+  status: "extracted" | "confirmed";
+}
+
+const MAX_FILE_BYTES = 8 * 1024 * 1024;
+
+const StudentResumeCheckPage = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [loadingExisting, setLoadingExisting] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [claim, setClaim] = useState<ResumeClaimRow | null>(null);
+
+  // Editable draft fields, seeded from `claim` once it loads
+  const [targetRole, setTargetRole] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [certifications, setCertifications] = useState<string[]>([]);
+  const [projects, setProjects] = useState<ProjectClaim[]>([]);
+  const [newSkill, setNewSkill] = useState("");
+  const [newCert, setNewCert] = useState("");
+
+  const loadLatestClaim = useCallback(async () => {
+    if (!user) return;
+    const { data: profile } = await supabase
+      .from("student_profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+    if (!profile) {
+      setLoadingExisting(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("resume_claims")
+      .select("id, target_role, skills, certifications, projects, status")
+      .eq("student_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error loading resume claims:", error);
+    } else if (data) {
+      const row = data as unknown as ResumeClaimRow;
+      setClaim(row);
+      setTargetRole(row.target_role || "");
+      setSkills(row.skills || []);
+      setCertifications(row.certifications || []);
+      setProjects((row.projects as ProjectClaim[]) || []);
+    }
+    setLoadingExisting(false);
+  }, [user]);
+
+  useEffect(() => {
+    loadLatestClaim();
+  }, [loadLatestClaim]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file || !user) return;
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast({ title: "PDF only", description: "Please upload your resume as a PDF file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      toast({ title: "File too large", description: "Resume must be under 8MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const storagePath = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: uploadError } = await supabase.storage
+        .from("resumes")
+        .upload(storagePath, file, { upsert: false });
+      if (uploadError) throw uploadError;
+
+      const { data, error: parseError } = await supabase.functions.invoke("resume-parser", {
+        body: { storage_path: storagePath },
+      });
+      if (parseError) throw parseError;
+      if (data?.error) throw new Error(data.error);
+
+      setTargetRole(data.target_role || "");
+      setSkills(data.skills || []);
+      setCertifications(data.certifications || []);
+      setProjects(data.projects || []);
+      setClaim({
+        id: data.resume_claim_id,
+        target_role: data.target_role,
+        skills: data.skills,
+        certifications: data.certifications,
+        projects: data.projects,
+        status: "extracted",
+      });
+
+      toast({
+        title: "Resume analyzed",
+        description: "Review what we found below, edit anything that's wrong, then confirm.",
+      });
+    } catch (err: any) {
+      console.error("Resume upload/parse failed:", err);
+      toast({
+        title: "Couldn't process resume",
+        description: err.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const addSkill = () => {
+    const v = newSkill.trim();
+    if (v && !skills.includes(v)) setSkills([...skills, v]);
+    setNewSkill("");
+  };
+  const addCert = () => {
+    const v = newCert.trim();
+    if (v && !certifications.includes(v)) setCertifications([...certifications, v]);
+    setNewCert("");
+  };
+  const updateProject = (index: number, patch: Partial<ProjectClaim>) => {
+    setProjects(projects.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+  };
+  const removeProject = (index: number) => {
+    setProjects(projects.filter((_, i) => i !== index));
+  };
+  const addProject = () => {
+    setProjects([...projects, { name: "", description: "", tech_stack: [] }]);
+  };
+
+  const handleConfirm = async () => {
+    if (!claim) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("resume_claims")
+        .update({
+          target_role: targetRole || null,
+          skills,
+          certifications,
+          projects,
+          status: "confirmed",
+          confirmed_at: new Date().toISOString(),
+        })
+        .eq("id", claim.id);
+      if (error) throw error;
+
+      setClaim({ ...claim, status: "confirmed", target_role: targetRole, skills, certifications, projects });
+      toast({ title: "Confirmed", description: "Your resume claims are locked in. Assessment questions are next." });
+    } catch (err: any) {
+      console.error("Error confirming resume claims:", err);
+      toast({ title: "Couldn't save", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loadingExisting) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Resume Check</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse h-24 bg-muted rounded" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <FileCheck2 className="h-5 w-5" />
+            Resume Check
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Upload your resume. We'll pull out the skills, certifications, projects, and target role you've written —
+            you confirm or fix anything before it's used to test you.
+          </p>
+
+          <div>
+            <input
+              type="file"
+              accept=".pdf"
+              id="resume-file-input"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={uploading}
+            />
+            <label htmlFor="resume-file-input">
+              <Button asChild variant="default" disabled={uploading}>
+                <span>
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing resume...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" /> {claim ? "Upload a new resume" : "Upload resume (PDF)"}
+                    </>
+                  )}
+                </span>
+              </Button>
+            </label>
+          </div>
+
+          {claim?.status === "confirmed" && (
+            <Alert className="border-green-300 bg-green-50 dark:bg-green-950/30">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 dark:text-green-300">
+                Confirmed. This is what your assessment will be based on.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {claim && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {claim.status === "confirmed" ? "Confirmed details" : "Review what we found"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Target role</label>
+              <Input
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                placeholder="e.g. Backend Developer"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Skills</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {skills.map((s, i) => (
+                  <Badge key={`${s}-${i}`} variant="secondary" className="flex items-center gap-1">
+                    {s}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSkills(skills.filter((_, j) => j !== i))} />
+                  </Badge>
+                ))}
+                {skills.length === 0 && <span className="text-sm text-muted-foreground">None found</span>}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
+                  placeholder="Add a skill"
+                  className="max-w-xs"
+                />
+                <Button type="button" size="sm" variant="outline" onClick={addSkill}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Certifications</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {certifications.map((c, i) => (
+                  <Badge key={`${c}-${i}`} variant="secondary" className="flex items-center gap-1">
+                    {c}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setCertifications(certifications.filter((_, j) => j !== i))}
+                    />
+                  </Badge>
+                ))}
+                {certifications.length === 0 && <span className="text-sm text-muted-foreground">None found</span>}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newCert}
+                  onChange={(e) => setNewCert(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCert())}
+                  placeholder="Add a certification"
+                  className="max-w-xs"
+                />
+                <Button type="button" size="sm" variant="outline" onClick={addCert}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Projects</label>
+              <div className="space-y-3">
+                {projects.map((p, i) => (
+                  <div key={i} className="border rounded-lg p-3 space-y-2 relative">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => removeProject(i)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      value={p.name}
+                      onChange={(e) => updateProject(i, { name: e.target.value })}
+                      placeholder="Project name"
+                      className="font-medium"
+                    />
+                    <Textarea
+                      value={p.description}
+                      onChange={(e) => updateProject(i, { description: e.target.value })}
+                      placeholder="What does it do?"
+                      rows={2}
+                    />
+                    <Input
+                      value={(p.tech_stack || []).join(", ")}
+                      onChange={(e) =>
+                        updateProject(i, { tech_stack: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })
+                      }
+                      placeholder="Tech stack, comma separated"
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" className="mt-2" onClick={addProject}>
+                <Plus className="h-4 w-4 mr-1" /> Add project
+              </Button>
+            </div>
+
+            <Button onClick={handleConfirm} disabled={saving} className="w-full sm:w-auto">
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
+                </>
+              ) : claim.status === "confirmed" ? (
+                "Save changes"
+              ) : (
+                "Confirm & continue"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export default StudentResumeCheckPage;

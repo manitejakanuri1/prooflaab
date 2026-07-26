@@ -16,6 +16,7 @@ import StudentNotificationsPage from "./StudentNotificationsPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 import StudentCreateTaskPage from "./StudentCreateTaskPage";
 import StudentFeedPage from "./StudentFeedPage";
+import StudentResumeCheckPage from "./StudentResumeCheckPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -30,6 +31,8 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
         return <StudentFeedPage />;
       case "dashboard":
         return <StudentDashboardOverview onNavigateTab={onTabChange} />;
+      case "resume":
+        return <StudentResumeCheckPage />;
       // New task submenu routes
       case "tasks-opportunities":
         return <StudentStartupOpportunitiesPage />;

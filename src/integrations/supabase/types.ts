@@ -1251,6 +1251,8 @@ export type Database = {
       resume_assessments: {
         Row: {
           answer_scores: Json | null
+          coding_questions: Json
+          coding_results: Json | null
           created_at: string
           id: string
           questions: Json
@@ -1262,6 +1264,8 @@ export type Database = {
         }
         Insert: {
           answer_scores?: Json | null
+          coding_questions?: Json
+          coding_results?: Json | null
           created_at?: string
           id?: string
           questions?: Json
@@ -1273,6 +1277,8 @@ export type Database = {
         }
         Update: {
           answer_scores?: Json | null
+          coding_questions?: Json
+          coding_results?: Json | null
           created_at?: string
           id?: string
           questions?: Json
@@ -1377,6 +1383,7 @@ export type Database = {
         Row: {
           assessment_id: string
           ats_match_score: number | null
+          coding_score: number | null
           created_at: string
           id: string
           resume_claims_id: string
@@ -1390,6 +1397,7 @@ export type Database = {
         Insert: {
           assessment_id: string
           ats_match_score?: number | null
+          coding_score?: number | null
           created_at?: string
           id?: string
           resume_claims_id: string
@@ -1403,6 +1411,7 @@ export type Database = {
         Update: {
           assessment_id?: string
           ats_match_score?: number | null
+          coding_score?: number | null
           created_at?: string
           id?: string
           resume_claims_id?: string

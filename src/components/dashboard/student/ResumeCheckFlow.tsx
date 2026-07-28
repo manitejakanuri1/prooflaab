@@ -119,7 +119,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       if (row.status === "confirmed") {
         const { data: scorecard } = await supabase
           .from("resume_scorecards")
-          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes, coding_score")
           .eq("resume_claims_id", row.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -132,6 +132,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
             roadmap: scorecard.roadmap || "",
             voice_authenticity_score: scorecard.voice_authenticity_score,
             voice_notes: scorecard.voice_notes,
+            coding_score: scorecard.coding_score,
           });
         }
       }
@@ -668,6 +669,12 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                     <p className="text-sm text-muted-foreground">{scoreResult.voice_notes}</p>
                   </div>
                 )}
+                {scoreResult.coding_score != null && (
+                  <div className="border rounded-lg p-3 flex items-center justify-between">
+                    <p className="text-sm font-medium">Coding round</p>
+                    <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium mb-1">Your roadmap</p>
                   <p className="text-sm text-muted-foreground whitespace-pre-line">{scoreResult.roadmap}</p>
@@ -687,11 +694,12 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
         </Card>
       )}
 
-      {assessmentId && (
+      {assessmentId && claim && (
         <TimedResumeAssessment
           open={modalOpen}
           onOpenChange={setModalOpen}
           assessmentId={assessmentId}
+          resumeClaimsId={claim.id}
           questions={assessmentQuestions}
           onGraded={handleGraded}
         />

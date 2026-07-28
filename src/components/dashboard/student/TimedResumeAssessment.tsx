@@ -5,7 +5,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Clock, Mic, Square, Play } from "lucide-react";
+import { Loader2, Clock, Mic, Square, Play, Code2, CheckCircle2, XCircle } from "lucide-react";
+import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -13,12 +14,29 @@ import { blobToWav } from "@/lib/audioToWav";
 
 const SECONDS_PER_QUESTION = 15;
 const MAX_RECORDING_SECONDS = 90;
+const SECONDS_PER_CODING_PROBLEM = 300;
 
 interface Question {
   id: string;
   type: "mcq" | "short_answer";
   prompt: string;
   options?: string[];
+}
+
+interface CodingQuestion {
+  id: string;
+  language: string;
+  prompt: string;
+  starter_code: string;
+  sample_test: { stdin: string; expected_output: string } | null;
+}
+
+interface RunResult {
+  stdin: string;
+  expected: string;
+  actual: string;
+  stderr: string;
+  passed: boolean;
 }
 
 export interface ResumeScoreResult {
@@ -28,12 +46,14 @@ export interface ResumeScoreResult {
   roadmap: string;
   voice_authenticity_score?: number | null;
   voice_notes?: string | null;
+  coding_score?: number | null;
 }
 
 interface TimedResumeAssessmentProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   assessmentId: string;
+  resumeClaimsId: string;
   questions: Question[];
   onGraded: (result: ResumeScoreResult) => void;
 }
@@ -44,9 +64,9 @@ interface RecordedAnswer {
   selected_index?: number;
 }
 
-type Phase = "quiz" | "recording" | "analyzing";
+type Phase = "quiz" | "recording" | "analyzing" | "coding-loading" | "coding" | "coding-analyzing";
 
-const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, questions, onGraded }: TimedResumeAssessmentProps) => {
+const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsId, questions, onGraded }: TimedResumeAssessmentProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,8 +88,19 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, questions, on
   const streamRef = useRef<MediaStream | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [codingQuestions, setCodingQuestions] = useState<CodingQuestion[]>([]);
+  const [codingIndex, setCodingIndex] = useState(0);
+  const [code, setCode] = useState("");
+  const [codingTimeLeft, setCodingTimeLeft] = useState(SECONDS_PER_CODING_PROBLEM);
+  const [running, setRunning] = useState(false);
+  const [runResults, setRunResults] = useState<RunResult[] | null>(null);
+  const [submittingCode, setSubmittingCode] = useState(false);
+  const codingAdvancingRef = useRef(false);
+
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
+  const currentCodingQuestion = codingQuestions[codingIndex];
+  const isLastCodingQuestion = codingIndex === codingQuestions.length - 1;
 
   const submitAssessment = useCallback(async (finalAnswers: RecordedAnswer[]) => {
     setSubmitting(true);
@@ -178,6 +209,29 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, questions, on
     };
   }, []);
 
+  const startCodingRound = useCallback(async () => {
+    setPhase("coding-loading");
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-coding-generate", {
+        body: { resume_claims_id: resumeClaimsId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const qs: CodingQuestion[] = data.questions || [];
+      setCodingQuestions(qs);
+      setCodingIndex(0);
+      setCode(qs[0]?.starter_code || "");
+      setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
+      setRunResults(null);
+      setPhase("coding");
+    } catch (err: any) {
+      console.error("Coding round generation failed:", err);
+      toast({ title: "Couldn't load coding problems", description: err.message || "Please try again.", variant: "destructive" });
+      setPhase("recording");
+    }
+  }, [resumeClaimsId, toast]);
+
   const submitExplanation = async () => {
     if (!recordedBlob || !user || !scorecardId || !pendingResult) return;
     setPhase("analyzing");
@@ -195,12 +249,12 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, questions, on
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      onGraded({
-        ...pendingResult,
+      setPendingResult((prev) => prev && {
+        ...prev,
         voice_authenticity_score: data.voice_authenticity_score,
         voice_notes: data.voice_notes,
       });
-      onOpenChange(false);
+      startCodingRound();
     } catch (err: any) {
       console.error("Voice verification failed:", err);
       toast({ title: "Couldn't verify recording", description: err.message || "Please try again.", variant: "destructive" });
@@ -208,12 +262,77 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, questions, on
     }
   };
 
+  const runSample = async () => {
+    if (!currentCodingQuestion) return;
+    setRunning(true);
+    setRunResults(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-code-execute", {
+        body: { assessment_id: assessmentId, question_id: currentCodingQuestion.id, code, mode: "run" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setRunResults(data.results);
+    } catch (err: any) {
+      console.error("Code run failed:", err);
+      toast({ title: "Couldn't run code", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const advanceCoding = useCallback(async () => {
+    if (codingAdvancingRef.current || !currentCodingQuestion) return;
+    codingAdvancingRef.current = true;
+    setSubmittingCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-code-execute", {
+        body: { assessment_id: assessmentId, question_id: currentCodingQuestion.id, code, mode: "submit" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (isLastCodingQuestion) {
+        setPhase("coding-analyzing");
+        onGraded({
+          ...(pendingResult as ResumeScoreResult),
+          coding_score: data.coding_score,
+        });
+        onOpenChange(false);
+        return;
+      }
+
+      setCodingIndex((i) => i + 1);
+      setCode(codingQuestions[codingIndex + 1]?.starter_code || "");
+      setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
+      setRunResults(null);
+    } catch (err: any) {
+      console.error("Code submit failed:", err);
+      toast({ title: "Couldn't submit code", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSubmittingCode(false);
+      codingAdvancingRef.current = false;
+    }
+  }, [assessmentId, code, codingIndex, codingQuestions, currentCodingQuestion, isLastCodingQuestion, onGraded, onOpenChange, pendingResult]);
+
+  useEffect(() => {
+    if (!open || phase !== "coding" || submittingCode) return;
+    if (codingTimeLeft <= 0) {
+      advanceCoding();
+      return;
+    }
+    const timer = setTimeout(() => setCodingTimeLeft((t) => t - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [codingTimeLeft, open, phase, submittingCode, advanceCoding]);
+
   if (phase === "quiz" && !currentQuestion) return null;
+
+  const isWide = phase === "coding";
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className="max-w-2xl [&>button]:hidden"
+        className={`${isWide ? "max-w-4xl" : "max-w-2xl"} [&>button]:hidden`}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -320,6 +439,93 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, questions, on
           <div className="flex flex-col items-center gap-3 py-10">
             <Loader2 className="h-6 w-6 animate-spin" />
             <p className="text-sm text-muted-foreground">Analyzing your explanation...</p>
+          </div>
+        )}
+
+        {phase === "coding-loading" && (
+          <div className="flex flex-col items-center gap-3 py-10">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <p className="text-sm text-muted-foreground">Building your coding problems...</p>
+          </div>
+        )}
+
+        {phase === "coding" && currentCodingQuestion && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Code2 className="h-5 w-5" /> Coding round
+                </span>
+                <span className={`flex items-center gap-1 text-sm font-normal ${codingTimeLeft <= 30 ? "text-destructive" : "text-muted-foreground"}`}>
+                  <Clock className="h-4 w-4" /> {Math.floor(codingTimeLeft / 60)}:{(codingTimeLeft % 60).toString().padStart(2, "0")}
+                </span>
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-1 mb-2">
+              <Progress value={(codingIndex / codingQuestions.length) * 100} />
+              <p className="text-xs text-muted-foreground">Problem {codingIndex + 1} of {codingQuestions.length} — {currentCodingQuestion.language}</p>
+            </div>
+
+            <div className="space-y-3" key={currentCodingQuestion.id}>
+              <p className="text-sm">{currentCodingQuestion.prompt}</p>
+              {currentCodingQuestion.sample_test && (
+                <div className="text-xs bg-muted rounded p-2 font-mono">
+                  <div>sample input: {currentCodingQuestion.sample_test.stdin || "(none)"}</div>
+                  <div>expected output: {currentCodingQuestion.sample_test.expected_output}</div>
+                </div>
+              )}
+
+              <div className="border rounded-md overflow-hidden">
+                <Editor
+                  height="260px"
+                  language={currentCodingQuestion.language}
+                  value={code}
+                  onChange={(v) => setCode(v || "")}
+                  theme="vs-dark"
+                  options={{ minimap: { enabled: false }, fontSize: 13 }}
+                />
+              </div>
+
+              {runResults && (
+                <div className="space-y-1">
+                  {runResults.map((r, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs">
+                      {r.passed ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" /> : <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />}
+                      <div className="font-mono">
+                        <div>expected: {r.expected}</div>
+                        <div>got: {r.actual || "(empty)"}{r.stderr && ` — ${r.stderr}`}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" onClick={runSample} disabled={running || submittingCode} className="flex-1">
+                {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                Run sample
+              </Button>
+              <Button onClick={advanceCoding} disabled={submittingCode} className="flex-1">
+                {submittingCode ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...
+                  </>
+                ) : isLastCodingQuestion ? (
+                  "Finish"
+                ) : (
+                  "Submit & next"
+                )}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {phase === "coding-analyzing" && (
+          <div className="flex flex-col items-center gap-3 py-10">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <p className="text-sm text-muted-foreground">Finishing up...</p>
           </div>
         )}
       </DialogContent>

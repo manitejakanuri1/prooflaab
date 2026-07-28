@@ -40,14 +40,16 @@ Live at: `prooflabai.com` (Lovable) and `prooflabai-mvp.vercel.app` (Vercel, aut
 **8. Retest history**
 - Every retake already inserted a new `resume_scorecards` row. Added a table showing all past attempts with date + all 5 scores, so progress over time is visible.
 
-**9. Auth fixes (unrelated but blocking)**
+**9. Certification radar**
+- Scans target role + current skills + existing certs, suggests 4-6 real certifications (actual providers only, never invented) worth pursuing next, ranked by priority, skips anything they already have.
+
+**10. Auth fixes (unrelated but blocking)**
 - Fixed onboarding wizard stuck-loop bug: students had no RLS permission to mark their own wizard complete, so every new signup silently bounced back to onboarding forever. Fixed via a narrow `complete_own_wizard()` RPC.
 - Fixed Vercel deploy silently failing on every push (git commit email wasn't a verified GitHub email → Vercel's deploy protection blocked it).
 - Fixed SPA 404 on any route but `/` on Vercel (missing rewrite rule).
 
 ## Still open (from the original doc, not built)
 
-- Certification radar (suggests certs worth pursuing)
 - Opportunity tracker
 - Interview simulator
 - Recruiter-facing public proof profile showing these scores
@@ -63,5 +65,5 @@ Live at: `prooflabai.com` (Lovable) and `prooflabai-mvp.vercel.app` (Vercel, aut
 - Flow logic: `src/components/dashboard/student/ResumeCheckFlow.tsx` (shared by the dashboard tab and the onboarding page)
 - Onboarding entry: `src/pages/StudentResumeOnboarding.tsx`
 - Quiz + voice + coding UI: `src/components/dashboard/student/TimedResumeAssessment.tsx`
-- Edge functions: `supabase/functions/resume-*` (parser, improve, question-generator, assessment-submit, voice-verify, coding-generate, code-execute, jd-match)
+- Edge functions: `supabase/functions/resume-*` (parser, improve, question-generator, assessment-submit, voice-verify, coding-generate, code-execute, jd-match, cert-radar)
 - Migrations: `supabase/migrations/20260726*` through `20260728*`

@@ -2,13 +2,20 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useAuth } from "@/contexts/AuthContext";
 import ResumeCheckFlow from "@/components/dashboard/student/ResumeCheckFlow";
-import { Sparkles } from "lucide-react";
+import { Sparkles, LogOut } from "lucide-react";
 
 const StudentResumeOnboarding = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const { profile, loading: profileLoading } = useStudentProfile();
   const [checkingExisting, setCheckingExisting] = useState(true);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth", { replace: true });
+  };
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -42,6 +49,14 @@ const StudentResumeOnboarding = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-background dark:from-orange-950/20 dark:to-background">
       <div className="max-w-2xl mx-auto px-4 py-10">
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={handleSignOut}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <LogOut className="h-3 w-3" /> Sign out
+          </button>
+        </div>
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400 font-semibold text-sm mb-2">
             <Sparkles className="h-4 w-4" /> Let's build your proof

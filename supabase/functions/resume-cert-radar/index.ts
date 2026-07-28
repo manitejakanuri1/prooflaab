@@ -115,7 +115,7 @@ Return ONLY the JSON array, no additional text, no markdown fences.`;
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 1500 }
+            generationConfig: { temperature: 0.4, maxOutputTokens: 3000 }
           })
         }
       );

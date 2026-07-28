@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList } from "lucide-react";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,11 @@ interface ResumeClaimRow {
   projects: ProjectClaim[];
   status: "extracted" | "confirmed";
   resume_quality_score?: number | null;
+  resume_quality_notes?: string | null;
   ats_match_score?: number | null;
+  ats_match_notes?: string | null;
+  feedback_acknowledged?: boolean;
+  ai_improved_resume?: string | null;
 }
 
 interface AssessmentQuestion {
@@ -54,6 +58,10 @@ const StudentResumeCheckPage = () => {
   const [newSkill, setNewSkill] = useState("");
   const [newCert, setNewCert] = useState("");
 
+  const [improving, setImproving] = useState(false);
+  const [improvedResume, setImprovedResume] = useState<string | null>(null);
+  const [acknowledging, setAcknowledging] = useState(false);
+
   const [generatingAssessment, setGeneratingAssessment] = useState(false);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([]);
@@ -74,7 +82,9 @@ const StudentResumeCheckPage = () => {
 
     const { data, error } = await supabase
       .from("resume_claims")
-      .select("id, target_role, skills, certifications, projects, status, resume_quality_score, ats_match_score")
+      .select(
+        "id, target_role, skills, certifications, projects, status, resume_quality_score, resume_quality_notes, ats_match_score, ats_match_notes, feedback_acknowledged, ai_improved_resume"
+      )
       .eq("student_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -89,6 +99,7 @@ const StudentResumeCheckPage = () => {
       setSkills(row.skills || []);
       setCertifications(row.certifications || []);
       setProjects((row.projects as ProjectClaim[]) || []);
+      setImprovedResume(row.ai_improved_resume || null);
 
       // If this claim was already confirmed, pull in its latest scorecard too
       if (row.status === "confirmed") {
@@ -148,6 +159,8 @@ const StudentResumeCheckPage = () => {
       setSkills(data.skills || []);
       setCertifications(data.certifications || []);
       setProjects(data.projects || []);
+      setImprovedResume(null);
+      setScoreResult(null);
       setClaim({
         id: data.resume_claim_id,
         target_role: data.target_role,
@@ -155,11 +168,17 @@ const StudentResumeCheckPage = () => {
         certifications: data.certifications,
         projects: data.projects,
         status: "extracted",
+        resume_quality_score: data.resume_quality_score,
+        resume_quality_notes: data.resume_quality_notes,
+        ats_match_score: data.ats_match_score,
+        ats_match_notes: data.ats_match_notes,
+        feedback_acknowledged: false,
+        ai_improved_resume: null,
       });
 
       toast({
         title: "Resume analyzed",
-        description: "Review what we found below, edit anything that's wrong, then confirm.",
+        description: "Here's how it scores — check the feedback below.",
       });
     } catch (err: any) {
       console.error("Resume upload/parse failed:", err);
@@ -217,6 +236,53 @@ const StudentResumeCheckPage = () => {
       toast({ title: "Couldn't save", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImprove = async () => {
+    if (!claim) return;
+    setImproving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-improve", {
+        body: { resume_claims_id: claim.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setImprovedResume(data.improved_resume);
+    } catch (err: any) {
+      console.error("Error improving resume:", err);
+      toast({ title: "Couldn't generate a fix", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setImproving(false);
+    }
+  };
+
+  const downloadImprovedResume = () => {
+    if (!improvedResume) return;
+    const blob = new Blob([improvedResume], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "improved-resume.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleAcknowledge = async () => {
+    if (!claim) return;
+    setAcknowledging(true);
+    try {
+      const { error } = await supabase
+        .from("resume_claims")
+        .update({ feedback_acknowledged: true })
+        .eq("id", claim.id);
+      if (error) throw error;
+      setClaim({ ...claim, feedback_acknowledged: true });
+    } catch (err: any) {
+      console.error("Error acknowledging feedback:", err);
+      toast({ title: "Couldn't continue", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setAcknowledging(false);
     }
   };
 
@@ -306,7 +372,71 @@ const StudentResumeCheckPage = () => {
         </CardContent>
       </Card>
 
-      {claim && (
+      {claim && !claim.feedback_acknowledged && claim.status !== "confirmed" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Resume feedback</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="border rounded-lg p-3">
+                <div className="text-2xl font-bold">{claim.resume_quality_score ?? "—"}</div>
+                <div className="text-xs text-muted-foreground mt-1 mb-2">Resume Quality</div>
+                <p className="text-sm text-muted-foreground">{claim.resume_quality_notes}</p>
+              </div>
+              <div className="border rounded-lg p-3">
+                <div className="text-2xl font-bold">{claim.ats_match_score ?? "—"}</div>
+                <div className="text-xs text-muted-foreground mt-1 mb-2">ATS Match</div>
+                <p className="text-sm text-muted-foreground">{claim.ats_match_notes}</p>
+              </div>
+            </div>
+
+            {improvedResume && (
+              <div className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">AI-improved resume</p>
+                  <Button type="button" size="sm" variant="outline" onClick={downloadImprovedResume}>
+                    <Download className="h-4 w-4 mr-1" /> Download
+                  </Button>
+                </div>
+                <pre className="text-xs whitespace-pre-wrap max-h-64 overflow-y-auto">{improvedResume}</pre>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={handleImprove} disabled={improving}>
+                {improving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Fixing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" /> {improvedResume ? "Regenerate with AI" : "Auto-fix with AI"}
+                  </>
+                )}
+              </Button>
+              <label htmlFor="resume-file-input">
+                <Button asChild type="button" variant="outline">
+                  <span>Edit myself &amp; re-upload</span>
+                </Button>
+              </label>
+              <Button type="button" onClick={handleAcknowledge} disabled={acknowledging} className="ml-auto">
+                {acknowledging ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Continuing...
+                  </>
+                ) : (
+                  <>
+                    I'm satisfied, continue <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {claim && (claim.feedback_acknowledged || claim.status === "confirmed") && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">

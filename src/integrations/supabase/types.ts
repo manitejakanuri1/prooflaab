@@ -1301,11 +1301,13 @@ export type Database = {
       }
       resume_claims: {
         Row: {
+          ai_improved_resume: string | null
           ats_match_notes: string | null
           ats_match_score: number | null
           certifications: string[]
           confirmed_at: string | null
           created_at: string
+          feedback_acknowledged: boolean
           id: string
           projects: Json
           raw_extraction: Json | null
@@ -1319,11 +1321,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_improved_resume?: string | null
           ats_match_notes?: string | null
           ats_match_score?: number | null
           certifications?: string[]
           confirmed_at?: string | null
           created_at?: string
+          feedback_acknowledged?: boolean
           id?: string
           projects?: Json
           raw_extraction?: Json | null
@@ -1337,11 +1341,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_improved_resume?: string | null
           ats_match_notes?: string | null
           ats_match_score?: number | null
           certifications?: string[]
           confirmed_at?: string | null
           created_at?: string
+          feedback_acknowledged?: boolean
           id?: string
           projects?: Json
           raw_extraction?: Json | null

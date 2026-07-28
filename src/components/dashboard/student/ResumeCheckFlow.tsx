@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase } from "lucide-react";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +47,16 @@ interface JdMatchResult {
   matched_skills: string[];
   missing_skills: string[];
   suggestions: string;
+}
+
+interface HistoryEntry {
+  id: string;
+  created_at: string;
+  resume_quality_score: number | null;
+  ats_match_score: number | null;
+  skill_proof_score: number | null;
+  voice_authenticity_score: number | null;
+  coding_score: number | null;
 }
 
 type ScoreTier = "bad" | "good" | "excellent";
@@ -92,6 +102,9 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const [jdText, setJdText] = useState("");
   const [matchingJd, setMatchingJd] = useState(false);
   const [jdResult, setJdResult] = useState<JdMatchResult | null>(null);
+
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
   const tier = getTier(claim?.ats_match_score);
 
@@ -152,9 +165,37 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
     setLoadingExisting(false);
   }, [user]);
 
+  const loadHistory = useCallback(async () => {
+    if (!user) return;
+    const { data: profile } = await supabase
+      .from("student_profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+    if (!profile) {
+      setLoadingHistory(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("resume_scorecards")
+      .select("id, created_at, resume_quality_score, ats_match_score, skill_proof_score, voice_authenticity_score, coding_score")
+      .eq("student_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error("Error loading resume history:", error);
+    } else {
+      setHistory((data as HistoryEntry[]) || []);
+    }
+    setLoadingHistory(false);
+  }, [user]);
+
   useEffect(() => {
     loadLatestClaim();
-  }, [loadLatestClaim]);
+    loadHistory();
+  }, [loadLatestClaim, loadHistory]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -334,6 +375,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const handleGraded = (result: ResumeScoreResult) => {
     setScoreResult(result);
     onGraded?.(result);
+    loadHistory();
   };
 
   const handleMatchJd = async () => {
@@ -786,6 +828,47 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!loadingHistory && history.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Retest history
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground border-b">
+                    <th className="py-2 pr-4 font-medium">Date</th>
+                    <th className="py-2 px-3 font-medium">Quality</th>
+                    <th className="py-2 px-3 font-medium">ATS</th>
+                    <th className="py-2 px-3 font-medium">Skill Proof</th>
+                    <th className="py-2 px-3 font-medium">Voice</th>
+                    <th className="py-2 px-3 font-medium">Coding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h) => (
+                    <tr key={h.id} className="border-b last:border-0">
+                      <td className="py-2 pr-4 whitespace-nowrap">
+                        {new Date(h.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                      </td>
+                      <td className="py-2 px-3">{h.resume_quality_score ?? "—"}</td>
+                      <td className="py-2 px-3">{h.ats_match_score ?? "—"}</td>
+                      <td className="py-2 px-3">{h.skill_proof_score ?? "—"}</td>
+                      <td className="py-2 px-3">{h.voice_authenticity_score ?? "—"}</td>
+                      <td className="py-2 px-3">{h.coding_score ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}

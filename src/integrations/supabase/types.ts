@@ -2574,6 +2574,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_otps: { Args: never; Returns: undefined }
+      complete_own_wizard: { Args: never; Returns: undefined }
       create_proof_post: {
         Args: {
           p_description: string

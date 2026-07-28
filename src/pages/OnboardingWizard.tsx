@@ -78,12 +78,11 @@ export default function OnboardingWizard() {
 
   const handleWizardComplete = async () => {
     if (userRole) {
-      // Mark wizard as completed in the database
+      // Mark wizard as completed in the database. Students can't UPDATE their own
+      // user_roles row directly (RLS only allows admins), so this goes through a
+      // narrow RPC that flips just this one flag.
       try {
-        const { error } = await supabase
-          .from('user_roles')
-          .update({ has_completed_wizard: true })
-          .eq('user_id', user?.id);
+        const { error } = await supabase.rpc('complete_own_wizard');
 
         if (error) {
           console.error('Error updating wizard completion status:', error);
@@ -91,7 +90,7 @@ export default function OnboardingWizard() {
       } catch (error) {
         console.error('Error marking wizard as complete:', error);
       }
-      
+
       redirectToDashboard(userRole);
     }
   };

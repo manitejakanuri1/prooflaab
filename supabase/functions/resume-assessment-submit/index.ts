@@ -278,6 +278,7 @@ Write a short, specific, non-generic improvement roadmap (3-5 lines max). Name t
       JSON.stringify({
         success: true,
         assessment_id: assessment.id,
+        scorecard_id: scorecard.id,
         answer_scores: answerScores,
         skill_proof_score: skillProofScore,
         resume_quality_score: resumeClaim?.resume_quality_score ?? null,

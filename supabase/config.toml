@@ -39,6 +39,9 @@ verify_jwt = false
 [functions.resume-improve]
 verify_jwt = false
 
+[functions.resume-voice-verify]
+verify_jwt = false
+
 [functions.resume-question-generator]
 verify_jwt = false
 

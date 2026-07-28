@@ -119,7 +119,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       if (row.status === "confirmed") {
         const { data: scorecard } = await supabase
           .from("resume_scorecards")
-          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes")
           .eq("resume_claims_id", row.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -130,6 +130,8 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
             ats_match_score: scorecard.ats_match_score,
             skill_proof_score: scorecard.skill_proof_score ?? 0,
             roadmap: scorecard.roadmap || "",
+            voice_authenticity_score: scorecard.voice_authenticity_score,
+            voice_notes: scorecard.voice_notes,
           });
         }
       }
@@ -657,6 +659,15 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                     <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
                   </div>
                 </div>
+                {scoreResult.voice_authenticity_score != null && (
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-medium">Voice authenticity</p>
+                      <span className="text-lg font-bold">{scoreResult.voice_authenticity_score}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{scoreResult.voice_notes}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium mb-1">Your roadmap</p>
                   <p className="text-sm text-muted-foreground whitespace-pre-line">{scoreResult.roadmap}</p>

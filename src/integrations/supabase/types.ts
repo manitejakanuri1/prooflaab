@@ -1384,6 +1384,8 @@ export type Database = {
           roadmap: string | null
           skill_proof_score: number | null
           student_id: string
+          voice_authenticity_score: number | null
+          voice_notes: string | null
         }
         Insert: {
           assessment_id: string
@@ -1395,6 +1397,8 @@ export type Database = {
           roadmap?: string | null
           skill_proof_score?: number | null
           student_id: string
+          voice_authenticity_score?: number | null
+          voice_notes?: string | null
         }
         Update: {
           assessment_id?: string
@@ -1406,6 +1410,8 @@ export type Database = {
           roadmap?: string | null
           skill_proof_score?: number | null
           student_id?: string
+          voice_authenticity_score?: number | null
+          voice_notes?: string | null
         }
         Relationships: [
           {

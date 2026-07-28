@@ -48,6 +48,9 @@ verify_jwt = false
 [functions.resume-code-execute]
 verify_jwt = false
 
+[functions.resume-jd-match]
+verify_jwt = false
+
 [functions.resume-question-generator]
 verify_jwt = false
 

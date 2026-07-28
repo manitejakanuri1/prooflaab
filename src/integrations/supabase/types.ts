@@ -1379,6 +1379,60 @@ export type Database = {
           },
         ]
       }
+      resume_jd_matches: {
+        Row: {
+          created_at: string
+          id: string
+          jd_text: string
+          jd_title: string | null
+          match_score: number | null
+          matched_skills: string[]
+          missing_skills: string[]
+          resume_claims_id: string
+          student_id: string
+          suggestions: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jd_text: string
+          jd_title?: string | null
+          match_score?: number | null
+          matched_skills?: string[]
+          missing_skills?: string[]
+          resume_claims_id: string
+          student_id: string
+          suggestions?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jd_text?: string
+          jd_title?: string | null
+          match_score?: number | null
+          matched_skills?: string[]
+          missing_skills?: string[]
+          resume_claims_id?: string
+          student_id?: string
+          suggestions?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_jd_matches_resume_claims_id_fkey"
+            columns: ["resume_claims_id"]
+            isOneToOne: false
+            referencedRelation: "resume_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_jd_matches_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_scorecards: {
         Row: {
           assessment_id: string

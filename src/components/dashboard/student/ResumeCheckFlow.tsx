@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award } from "lucide-react";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,14 @@ interface AssessmentQuestion {
   type: "mcq" | "short_answer";
   prompt: string;
   options?: string[];
+}
+
+interface JdMatchResult {
+  jd_title: string | null;
+  match_score: number;
+  matched_skills: string[];
+  missing_skills: string[];
+  suggestions: string;
 }
 
 type ScoreTier = "bad" | "good" | "excellent";
@@ -80,6 +88,10 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [scoreResult, setScoreResult] = useState<ResumeScoreResult | null>(null);
+
+  const [jdText, setJdText] = useState("");
+  const [matchingJd, setMatchingJd] = useState(false);
+  const [jdResult, setJdResult] = useState<JdMatchResult | null>(null);
 
   const tier = getTier(claim?.ats_match_score);
 
@@ -322,6 +334,30 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const handleGraded = (result: ResumeScoreResult) => {
     setScoreResult(result);
     onGraded?.(result);
+  };
+
+  const handleMatchJd = async () => {
+    if (!claim || !jdText.trim()) return;
+    setMatchingJd(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-jd-match", {
+        body: { resume_claims_id: claim.id, jd_text: jdText },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setJdResult({
+        jd_title: data.jd_title,
+        match_score: data.match_score,
+        matched_skills: data.matched_skills || [],
+        missing_skills: data.missing_skills || [],
+        suggestions: data.suggestions || "",
+      });
+    } catch (err: any) {
+      console.error("JD match failed:", err);
+      toast({ title: "Couldn't check match", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setMatchingJd(false);
+    }
   };
 
   if (loadingExisting) {
@@ -689,6 +725,66 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                   )}
                 </Button>
               </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {claim?.status === "confirmed" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Match to a job
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Paste a real job description to see how your confirmed resume actually matches it — not just a generic ATS guess.
+            </p>
+            <Textarea
+              value={jdText}
+              onChange={(e) => setJdText(e.target.value)}
+              placeholder="Paste the job description here..."
+              rows={6}
+            />
+            <Button onClick={handleMatchJd} disabled={matchingJd || !jdText.trim()}>
+              {matchingJd ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Checking match...
+                </>
+              ) : (
+                "Check match"
+              )}
+            </Button>
+
+            {jdResult && (
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">{jdResult.jd_title || "This role"}</p>
+                  <span className="text-2xl font-bold">{jdResult.match_score}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Matched</p>
+                  <div className="flex flex-wrap gap-2">
+                    {jdResult.matched_skills.length > 0 ? jdResult.matched_skills.map((s, i) => (
+                      <Badge key={i} variant="secondary">{s}</Badge>
+                    )) : <span className="text-sm text-muted-foreground">None found</span>}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Missing</p>
+                  <div className="flex flex-wrap gap-2">
+                    {jdResult.missing_skills.length > 0 ? jdResult.missing_skills.map((s, i) => (
+                      <Badge key={i} variant="outline" className="border-destructive/40 text-destructive">{s}</Badge>
+                    )) : <span className="text-sm text-muted-foreground">Nothing major</span>}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">What to do</p>
+                  <p className="text-sm text-muted-foreground">{jdResult.suggestions}</p>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

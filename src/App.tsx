@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 
 // Lazy load all other routes for faster initial load
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
+const StudentResumeOnboarding = lazy(() => import("./pages/StudentResumeOnboarding"));
 const CollegeDashboard = lazy(() => import("./pages/CollegeDashboard"));
 const StartupDashboard = lazy(() => import("./pages/StartupDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -92,8 +93,16 @@ const App = () => (
                 <Route path="/recruiter/:linkId" element={<RecruiterView />} />
                 
                 {/* Student Routes */}
-                <Route 
-                  path="/student/dashboard" 
+                <Route
+                  path="/student/resume-onboarding"
+                  element={
+                    <RoleBasedProtectedRoute allowedRoles={['student']}>
+                      <StudentResumeOnboarding />
+                    </RoleBasedProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/dashboard"
                   element={
                     <RoleBasedProtectedRoute allowedRoles={['student']}>
                       <StudentDashboard />

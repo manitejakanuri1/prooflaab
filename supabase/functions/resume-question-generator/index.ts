@@ -105,7 +105,7 @@ Certifications claimed: ${certifications.join(', ') || 'none listed'}
 Projects claimed:
 ${projects.map((p, i) => `${i + 1}. ${p.name} — ${p.description} (tech: ${(p.tech_stack || []).join(', ')})`).join('\n') || 'none listed'}
 
-Generate exactly 6 multiple-choice questions and exactly 2 short-answer questions.
+Generate exactly 8 multiple-choice questions and exactly 2 short-answer questions (10 total). Each question will be shown one at a time with a 15-second timer, so keep every question short enough to read and answer that fast.
 
 Rules for ALL questions:
 - Base every question ONLY on the skills/certifications/projects listed above — never invent a skill or ask about something not claimed.
@@ -113,7 +113,8 @@ Rules for ALL questions:
 - Test real understanding, not trivia — the kind of thing only someone who actually used the skill or built the project would know.
 
 MCQ rules:
-- Mix skill-based, certification-based, and role-based questions.
+- Mix skill-based, certification-based, project-based, and role-based questions.
+- If a claimed skill is a programming language or framework, at least 2-3 of the MCQs should be code-reading style: show a short (1-3 line) code snippet using that language/framework in the prompt text and ask what it does or what's wrong with it.
 - Exactly 4 options, exactly one correct answer, wrong options plausible.
 - Vary difficulty (mix of easy and medium).
 
@@ -132,7 +133,7 @@ Return a JSON array with this exact structure:
     "difficulty": "easy|medium"
   },
   {
-    "id": "q7",
+    "id": "q9",
     "type": "short_answer",
     "prompt": "Question text"
   }
@@ -151,7 +152,7 @@ Return ONLY the JSON array, no additional text.`;
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.6, maxOutputTokens: 4000 }
+            generationConfig: { temperature: 0.6, maxOutputTokens: 5000 }
           })
         }
       );

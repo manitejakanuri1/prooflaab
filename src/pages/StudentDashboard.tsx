@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import StudentHeader from "@/components/dashboard/student/StudentHeader";
 import StudentSidebar from "@/components/dashboard/student/StudentSidebar";
 import StudentDashboardContent from "@/components/dashboard/student/StudentDashboardContent";
@@ -21,6 +21,7 @@ const getTabFromPath = (pathname: string): string => {
 
 const StudentDashboard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -31,10 +32,10 @@ const StudentDashboard = () => {
     setActiveTab(getTabFromPath(location.pathname));
   }, [location.pathname]);
 
-  // First stop after login: if this student has never confirmed a resume,
-  // land them on Resume Check instead of the dashboard. Only steers the bare
-  // "/student/dashboard" landing — any other tab/link the student picked
-  // directly is left alone, and it only runs once per session.
+  // A student who hasn't finished the mandatory resume-onboarding flow (upload,
+  // feedback, confirm, quiz) gets sent there instead of seeing the dashboard at
+  // all. Only steers the bare "/student/dashboard" landing, and only once per
+  // session, so a student mid-flow who navigates elsewhere isn't yanked back.
   useEffect(() => {
     if (resumeChecked || !profile?.id) return;
     if (location.pathname !== "/student/dashboard") {
@@ -42,17 +43,18 @@ const StudentDashboard = () => {
       return;
     }
     supabase
-      .from('resume_claims')
-      .select('status')
+      .from('resume_scorecards')
+      .select('id')
       .eq('student_id', profile.id)
-      .eq('status', 'confirmed')
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
-        if (!data) setActiveTab('resume');
+        if (!data) {
+          navigate('/student/resume-onboarding', { replace: true });
+        }
         setResumeChecked(true);
       });
-  }, [profile?.id, location.pathname, resumeChecked]);
+  }, [profile?.id, location.pathname, resumeChecked, navigate]);
 
   if (loading) {
     return (

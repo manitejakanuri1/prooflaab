@@ -1313,6 +1313,7 @@ export type Database = {
           raw_extraction: Json | null
           resume_quality_notes: string | null
           resume_quality_score: number | null
+          skill_relevance_notes: string | null
           skills: string[]
           status: string
           storage_path: string
@@ -1333,6 +1334,7 @@ export type Database = {
           raw_extraction?: Json | null
           resume_quality_notes?: string | null
           resume_quality_score?: number | null
+          skill_relevance_notes?: string | null
           skills?: string[]
           status?: string
           storage_path: string
@@ -1353,6 +1355,7 @@ export type Database = {
           raw_extraction?: Json | null
           resume_quality_notes?: string | null
           resume_quality_score?: number | null
+          skill_relevance_notes?: string | null
           skills?: string[]
           status?: string
           storage_path?: string

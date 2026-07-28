@@ -131,6 +131,8 @@ Also score the resume itself on two separate dimensions:
 1. "resume_quality_score" (0-100): how well the resume is WRITTEN — clarity, structure, quantified impact (numbers/results, not just duties), action verbs, no fluff, appropriate length. This has nothing to do with how skilled the person is, only how well it's communicated.
 2. "ats_match_score" (0-100): how well the resume's keywords, skills, and phrasing would match a typical Applicant Tracking System scan for the inferred target role — standard section headers, keyword density for the role, no images/tables that break parsing (assume text-only scan).
 
+Also write "skill_relevance_notes": regardless of the scores above, independently judge whether the specific skills and certifications claimed are actually valuable and relevant to the inferred target role right now (not outdated, not filler, not disconnected from what the role needs), and suggest what to focus on next. Two or three sentences. This is used only when the resume already scores very well, to tell a student who's already ATS-ready what to do next.
+
 Return a JSON object with this exact structure:
 {
   "target_role": "string",
@@ -142,7 +144,8 @@ Return a JSON object with this exact structure:
   "resume_quality_score": 0,
   "resume_quality_notes": "one or two sentences on what to improve",
   "ats_match_score": 0,
-  "ats_match_notes": "one or two sentences on what to improve"
+  "ats_match_notes": "one or two sentences on what to improve",
+  "skill_relevance_notes": "two or three sentences on whether the skills/certs are actually valuable and what to focus on next"
 }
 
 Return ONLY the JSON object, no additional text, no markdown code fences.`;
@@ -207,6 +210,7 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
       resume_quality_notes?: string;
       ats_match_score?: number;
       ats_match_notes?: string;
+      skill_relevance_notes?: string;
     };
     try {
       const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
@@ -232,6 +236,7 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
     const resume_quality_notes = typeof extraction.resume_quality_notes === 'string' ? extraction.resume_quality_notes : null;
     const ats_match_score = clampScore(extraction.ats_match_score);
     const ats_match_notes = typeof extraction.ats_match_notes === 'string' ? extraction.ats_match_notes : null;
+    const skill_relevance_notes = typeof extraction.skill_relevance_notes === 'string' ? extraction.skill_relevance_notes : null;
 
     const { data: claimRow, error: insertError } = await supabase
       .from('resume_claims')
@@ -248,6 +253,7 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
         resume_quality_notes,
         ats_match_score,
         ats_match_notes,
+        skill_relevance_notes,
       })
       .select('id')
       .single();
@@ -274,6 +280,7 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
         resume_quality_notes,
         ats_match_score,
         ats_match_notes,
+        skill_relevance_notes,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -51,6 +51,9 @@ verify_jwt = false
 [functions.resume-jd-match]
 verify_jwt = false
 
+[functions.resume-cert-radar]
+verify_jwt = false
+
 [functions.resume-question-generator]
 verify_jwt = false
 

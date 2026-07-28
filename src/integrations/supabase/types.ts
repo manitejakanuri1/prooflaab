@@ -1305,6 +1305,45 @@ export type Database = {
           },
         ]
       }
+      resume_cert_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          resume_claims_id: string
+          student_id: string
+          suggestions: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resume_claims_id: string
+          student_id: string
+          suggestions?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resume_claims_id?: string
+          student_id?: string
+          suggestions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_cert_suggestions_resume_claims_id_fkey"
+            columns: ["resume_claims_id"]
+            isOneToOne: false
+            referencedRelation: "resume_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_cert_suggestions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_claims: {
         Row: {
           ai_improved_resume: string | null

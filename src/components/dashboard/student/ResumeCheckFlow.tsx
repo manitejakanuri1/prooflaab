@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase, History } from "lucide-react";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase, History, Radar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +47,13 @@ interface JdMatchResult {
   matched_skills: string[];
   missing_skills: string[];
   suggestions: string;
+}
+
+interface CertSuggestion {
+  name: string;
+  provider: string;
+  priority: "high" | "medium" | "low";
+  why: string;
 }
 
 interface HistoryEntry {
@@ -105,6 +112,9 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+
+  const [scanningCerts, setScanningCerts] = useState(false);
+  const [certSuggestions, setCertSuggestions] = useState<CertSuggestion[] | null>(null);
 
   const tier = getTier(claim?.ats_match_score);
 
@@ -399,6 +409,24 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       toast({ title: "Couldn't check match", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setMatchingJd(false);
+    }
+  };
+
+  const handleScanCerts = async () => {
+    if (!claim) return;
+    setScanningCerts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-cert-radar", {
+        body: { resume_claims_id: claim.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCertSuggestions(data.suggestions || []);
+    } catch (err: any) {
+      console.error("Cert radar failed:", err);
+      toast({ title: "Couldn't scan certifications", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setScanningCerts(false);
     }
   };
 
@@ -826,6 +854,56 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                   <p className="text-sm font-medium mb-1">What to do</p>
                   <p className="text-sm text-muted-foreground">{jdResult.suggestions}</p>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {claim?.status === "confirmed" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Radar className="h-5 w-5" />
+              Certification radar
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Real certifications worth pursuing next for your target role — skips anything you already have.
+            </p>
+            <Button onClick={handleScanCerts} disabled={scanningCerts}>
+              {scanningCerts ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Scanning...
+                </>
+              ) : certSuggestions ? (
+                "Re-scan"
+              ) : (
+                "Scan for certifications"
+              )}
+            </Button>
+
+            {certSuggestions && (
+              <div className="space-y-2">
+                {certSuggestions.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No gaps found — your certifications already cover this role well.</p>
+                )}
+                {certSuggestions.map((c, i) => (
+                  <div key={i} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-medium text-sm">{c.name}</p>
+                      <Badge
+                        variant={c.priority === "high" ? "default" : "outline"}
+                        className={c.priority === "high" ? "" : c.priority === "medium" ? "border-amber-400 text-amber-600" : "border-muted-foreground/40 text-muted-foreground"}
+                      >
+                        {c.priority}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">{c.provider}</p>
+                    <p className="text-sm text-muted-foreground">{c.why}</p>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

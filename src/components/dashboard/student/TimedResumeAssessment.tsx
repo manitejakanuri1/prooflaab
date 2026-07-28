@@ -9,6 +9,7 @@ import { Loader2, Clock, Mic, Square, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { blobToWav } from "@/lib/audioToWav";
 
 const SECONDS_PER_QUESTION = 15;
 const MAX_RECORDING_SECONDS = 90;
@@ -181,14 +182,15 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, questions, on
     if (!recordedBlob || !user || !scorecardId || !pendingResult) return;
     setPhase("analyzing");
     try {
-      const storagePath = `${user.id}/${assessmentId}-${Date.now()}.webm`;
+      const wavBlob = await blobToWav(recordedBlob);
+      const storagePath = `${user.id}/${assessmentId}-${Date.now()}.wav`;
       const { error: uploadError } = await supabase.storage
         .from("voice-explanations")
-        .upload(storagePath, recordedBlob, { upsert: false, contentType: "audio/webm" });
+        .upload(storagePath, wavBlob, { upsert: false, contentType: "audio/wav" });
       if (uploadError) throw uploadError;
 
       const { data, error } = await supabase.functions.invoke("resume-voice-verify", {
-        body: { scorecard_id: scorecardId, storage_path: storagePath, mime_type: "audio/webm" },
+        body: { scorecard_id: scorecardId, storage_path: storagePath, mime_type: "audio/wav" },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

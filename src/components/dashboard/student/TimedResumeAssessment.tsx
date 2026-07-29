@@ -5,15 +5,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Clock, Mic, Square, Play, Code2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { blobToWav } from "@/lib/audioToWav";
 
 const SECONDS_PER_QUESTION = 15;
-const MAX_RECORDING_SECONDS = 90;
 const SECONDS_PER_CODING_PROBLEM = 300;
 
 interface Question {
@@ -64,10 +61,9 @@ interface RecordedAnswer {
   selected_index?: number;
 }
 
-type Phase = "quiz" | "recording" | "analyzing" | "coding-loading" | "coding" | "coding-analyzing";
+type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing";
 
 const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsId, questions, onGraded }: TimedResumeAssessmentProps) => {
-  const { user } = useAuth();
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION);
@@ -79,14 +75,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
 
   const [phase, setPhase] = useState<Phase>("quiz");
   const [pendingResult, setPendingResult] = useState<ResumeScoreResult | null>(null);
-  const [scorecardId, setScorecardId] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedSeconds, setRecordedSeconds] = useState(0);
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [codingGenError, setCodingGenError] = useState(false);
 
   const [codingQuestions, setCodingQuestions] = useState<CodingQuestion[]>([]);
   const [codingIndex, setCodingIndex] = useState(0);
@@ -101,6 +90,30 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
   const isLastQuestion = currentIndex === questions.length - 1;
   const currentCodingQuestion = codingQuestions[codingIndex];
   const isLastCodingQuestion = codingIndex === codingQuestions.length - 1;
+
+  const startCodingRound = useCallback(async () => {
+    setPhase("coding-loading");
+    setCodingGenError(false);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-coding-generate", {
+        body: { resume_claims_id: resumeClaimsId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const qs: CodingQuestion[] = data.questions || [];
+      setCodingQuestions(qs);
+      setCodingIndex(0);
+      setCode(qs[0]?.starter_code || "");
+      setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
+      setRunResults(null);
+      setPhase("coding");
+    } catch (err: any) {
+      console.error("Coding round generation failed:", err);
+      toast({ title: "Couldn't load coding problems", description: err.message || "Please try again.", variant: "destructive" });
+      setCodingGenError(true);
+    }
+  }, [resumeClaimsId, toast]);
 
   const submitAssessment = useCallback(async (finalAnswers: RecordedAnswer[]) => {
     setSubmitting(true);
@@ -117,15 +130,14 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
         ats_match_score: data.ats_match_score,
         roadmap: data.roadmap,
       });
-      setScorecardId(data.scorecard_id);
-      setPhase("recording");
+      startCodingRound();
     } catch (err: any) {
       console.error("Assessment submit failed:", err);
       toast({ title: "Couldn't submit", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
-  }, [assessmentId, toast]);
+  }, [assessmentId, toast, startCodingRound]);
 
   const advance = useCallback(() => {
     if (advancingRef.current || !currentQuestion) return;
@@ -162,105 +174,6 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearTimeout(timer);
   }, [timeLeft, open, submitting, phase, advance]);
-
-  const stopRecording = useCallback(() => {
-    mediaRecorderRef.current?.stop();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    setIsRecording(false);
-  }, []);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      chunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setRecordedBlob(blob);
-      };
-      recorder.start();
-      setRecordedBlob(null);
-      setRecordedSeconds(0);
-      setIsRecording(true);
-      recordingTimerRef.current = setInterval(() => {
-        setRecordedSeconds((s) => {
-          if (s + 1 >= MAX_RECORDING_SECONDS) {
-            stopRecording();
-          }
-          return s + 1;
-        });
-      }, 1000);
-    } catch (err) {
-      console.error("Microphone access failed:", err);
-      toast({ title: "Couldn't access microphone", description: "Please allow microphone access and try again.", variant: "destructive" });
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    };
-  }, []);
-
-  const startCodingRound = useCallback(async () => {
-    setPhase("coding-loading");
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-coding-generate", {
-        body: { resume_claims_id: resumeClaimsId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const qs: CodingQuestion[] = data.questions || [];
-      setCodingQuestions(qs);
-      setCodingIndex(0);
-      setCode(qs[0]?.starter_code || "");
-      setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
-      setRunResults(null);
-      setPhase("coding");
-    } catch (err: any) {
-      console.error("Coding round generation failed:", err);
-      toast({ title: "Couldn't load coding problems", description: err.message || "Please try again.", variant: "destructive" });
-      setPhase("recording");
-    }
-  }, [resumeClaimsId, toast]);
-
-  const submitExplanation = async () => {
-    if (!recordedBlob || !user || !scorecardId || !pendingResult) return;
-    setPhase("analyzing");
-    try {
-      const wavBlob = await blobToWav(recordedBlob);
-      const storagePath = `${user.id}/${assessmentId}-${Date.now()}.wav`;
-      const { error: uploadError } = await supabase.storage
-        .from("voice-explanations")
-        .upload(storagePath, wavBlob, { upsert: false, contentType: "audio/wav" });
-      if (uploadError) throw uploadError;
-
-      const { data, error } = await supabase.functions.invoke("resume-voice-verify", {
-        body: { scorecard_id: scorecardId, storage_path: storagePath, mime_type: "audio/wav" },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setPendingResult((prev) => prev && {
-        ...prev,
-        voice_authenticity_score: data.voice_authenticity_score,
-        voice_notes: data.voice_notes,
-      });
-      startCodingRound();
-    } catch (err: any) {
-      console.error("Voice verification failed:", err);
-      toast({ title: "Couldn't verify recording", description: err.message || "Please try again.", variant: "destructive" });
-      setPhase("recording");
-    }
-  };
 
   const runSample = async () => {
     if (!currentCodingQuestion) return;
@@ -394,58 +307,19 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
           </>
         )}
 
-        {phase === "recording" && (
-          <>
-            <DialogHeader>
-              <DialogTitle>Explain your answers</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              In your own voice, explain why you chose the answers you did. This is how we confirm they weren't a guess.
-            </p>
-
-            <div className="flex flex-col items-center gap-4 py-6">
-              {!isRecording && !recordedBlob && (
-                <Button onClick={startRecording} size="lg" className="rounded-full h-16 w-16 p-0">
-                  <Mic className="h-6 w-6" />
-                </Button>
-              )}
-              {isRecording && (
-                <>
-                  <Button onClick={stopRecording} size="lg" variant="destructive" className="rounded-full h-16 w-16 p-0 animate-pulse">
-                    <Square className="h-6 w-6" />
-                  </Button>
-                  <p className="text-sm text-muted-foreground">Recording... {recordedSeconds}s</p>
-                </>
-              )}
-              {!isRecording && recordedBlob && (
-                <>
-                  <audio controls src={URL.createObjectURL(recordedBlob)} className="w-full" />
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={startRecording}>
-                      <Mic className="h-4 w-4 mr-2" /> Re-record
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <Button onClick={submitExplanation} disabled={!recordedBlob} className="w-full">
-              <Play className="h-4 w-4 mr-2" /> Submit explanation
-            </Button>
-          </>
-        )}
-
-        {phase === "analyzing" && (
-          <div className="flex flex-col items-center gap-3 py-10">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <p className="text-sm text-muted-foreground">Analyzing your explanation...</p>
-          </div>
-        )}
-
         {phase === "coding-loading" && (
           <div className="flex flex-col items-center gap-3 py-10">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <p className="text-sm text-muted-foreground">Building your coding problems...</p>
+            {codingGenError ? (
+              <>
+                <p className="text-sm text-muted-foreground">Couldn't load coding problems.</p>
+                <Button onClick={startCodingRound}>Retry</Button>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p className="text-sm text-muted-foreground">Building your coding problems...</p>
+              </>
+            )}
           </div>
         )}
 

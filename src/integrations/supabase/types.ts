@@ -1255,6 +1255,7 @@ export type Database = {
           coding_results: Json | null
           created_at: string
           id: string
+          is_retest: boolean
           questions: Json
           resume_claims_id: string
           status: string
@@ -1268,6 +1269,7 @@ export type Database = {
           coding_results?: Json | null
           created_at?: string
           id?: string
+          is_retest?: boolean
           questions?: Json
           resume_claims_id: string
           status?: string
@@ -1281,6 +1283,7 @@ export type Database = {
           coding_results?: Json | null
           created_at?: string
           id?: string
+          is_retest?: boolean
           questions?: Json
           resume_claims_id?: string
           status?: string
@@ -1479,6 +1482,7 @@ export type Database = {
           coding_score: number | null
           created_at: string
           id: string
+          is_retest: boolean
           resume_claims_id: string
           resume_quality_score: number | null
           roadmap: string | null
@@ -1493,6 +1497,7 @@ export type Database = {
           coding_score?: number | null
           created_at?: string
           id?: string
+          is_retest?: boolean
           resume_claims_id: string
           resume_quality_score?: number | null
           roadmap?: string | null
@@ -1507,6 +1512,7 @@ export type Database = {
           coding_score?: number | null
           created_at?: string
           id?: string
+          is_retest?: boolean
           resume_claims_id?: string
           resume_quality_score?: number | null
           roadmap?: string | null

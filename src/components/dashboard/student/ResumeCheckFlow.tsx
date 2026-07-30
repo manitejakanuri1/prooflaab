@@ -5,12 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase, History, Radar } from "lucide-react";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase, History, Radar, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import TimedResumeAssessment, { ResumeScoreResult } from "./TimedResumeAssessment";
 import { downloadResumeAsPdf } from "@/lib/resumePdf";
+import { addDays, formatDistanceToNow } from "date-fns";
+
+// Mirrors COOLDOWN_DAYS in supabase/functions/resume-retest-generate — used
+// only to pre-disable the button before the round trip confirms it server-side.
+const RETEST_COOLDOWN_DAYS = 3;
 
 interface ProjectClaim {
   name: string;
@@ -64,6 +70,7 @@ interface HistoryEntry {
   skill_proof_score: number | null;
   voice_authenticity_score: number | null;
   coding_score: number | null;
+  is_retest: boolean;
 }
 
 type ScoreTier = "bad" | "good" | "excellent";
@@ -101,6 +108,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const [acknowledging, setAcknowledging] = useState(false);
 
   const [generatingAssessment, setGeneratingAssessment] = useState(false);
+  const [retesting, setRetesting] = useState(false);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -117,6 +125,10 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const [certSuggestions, setCertSuggestions] = useState<CertSuggestion[] | null>(null);
 
   const tier = getTier(claim?.ats_match_score);
+
+  const lastGradedAt = history[0]?.created_at ? new Date(history[0].created_at) : null;
+  const retestUnlockAt = lastGradedAt ? addDays(lastGradedAt, RETEST_COOLDOWN_DAYS) : null;
+  const retestLocked = !!retestUnlockAt && retestUnlockAt.getTime() > Date.now();
 
   const loadLatestClaim = useCallback(async () => {
     if (!user) return;
@@ -189,7 +201,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
 
     const { data, error } = await supabase
       .from("resume_scorecards")
-      .select("id, created_at, resume_quality_score, ats_match_score, skill_proof_score, voice_authenticity_score, coding_score")
+      .select("id, created_at, resume_quality_score, ats_match_score, skill_proof_score, voice_authenticity_score, coding_score, is_retest")
       .eq("student_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -379,6 +391,40 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       toast({ title: "Couldn't start assessment", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setGeneratingAssessment(false);
+    }
+  };
+
+  const handleRetestWeak = async () => {
+    if (!claim) return;
+    setRetesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resume-retest-generate", {
+        body: { resume_claims_id: claim.id },
+      });
+      if (error) {
+        // FunctionsHttpError only carries the raw Response — pull the real
+        // message our function set (e.g. the cooldown text) out of its body.
+        if (error instanceof FunctionsHttpError) {
+          const body = await error.context.json().catch(() => null);
+          throw new Error(body?.error || error.message);
+        }
+        throw error;
+      }
+      if (data?.error) throw new Error(data.error);
+
+      if (data.no_weak_topics) {
+        toast({ title: "Nothing to retest", description: "You scored solid across the board — no weak topics found." });
+        return;
+      }
+
+      setAssessmentId(data.assessment_id);
+      setAssessmentQuestions(data.questions || []);
+      setModalOpen(true);
+    } catch (err: any) {
+      console.error("Error starting retest:", err);
+      toast({ title: "Not ready yet", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setRetesting(false);
     }
   };
 
@@ -738,7 +784,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
             {!scoreResult ? (
               <>
                 <p className="text-sm text-muted-foreground">
-                  10 quick questions based only on what's above — 15 seconds each, no going back.
+                  A handful of quick questions based only on what's above — 15 seconds each, no going back.
                 </p>
                 <Button onClick={handleStartAssessment} disabled={generatingAssessment}>
                   {generatingAssessment ? (
@@ -785,15 +831,38 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                   <p className="text-sm font-medium mb-1">Your roadmap</p>
                   <p className="text-sm text-muted-foreground whitespace-pre-line">{scoreResult.roadmap}</p>
                 </div>
-                <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment}>
-                  {generatingAssessment ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
-                    </>
-                  ) : (
-                    "Retake assessment"
-                  )}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleRetestWeak}
+                    disabled={retesting || generatingAssessment || retestLocked}
+                    title={retestLocked && retestUnlockAt ? `Unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}` : undefined}
+                  >
+                    {retesting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building retest...
+                      </>
+                    ) : retestLocked && retestUnlockAt ? (
+                      `Retest unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}`
+                    ) : (
+                      "Retest weak topics"
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment || retesting}>
+                    {generatingAssessment ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
+                      </>
+                    ) : (
+                      "Retake full assessment"
+                    )}
+                  </Button>
+                </div>
+                {retestLocked && (
+                  <p className="text-xs text-muted-foreground">
+                    Use this time to work through your roadmap — instant retesting doesn't build real understanding.
+                  </p>
+                )}
               </>
             )}
           </CardContent>
@@ -919,11 +988,36 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {(() => {
+              const oldest = history[history.length - 1];
+              const latest = history[0];
+              const hasDelta = oldest.skill_proof_score != null && latest.skill_proof_score != null;
+              const netDelta = hasDelta ? latest.skill_proof_score! - oldest.skill_proof_score! : null;
+              const retestCount = history.filter((h) => h.is_retest).length;
+              return (
+                <p className="text-xs text-muted-foreground mb-3">
+                  First tested {new Date(oldest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                  {retestCount > 0 && (
+                    <> · latest retest {new Date(latest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</>
+                  )}
+                  {netDelta !== null && netDelta !== 0 && (
+                    <>
+                      {" · "}
+                      {netDelta > 0
+                        ? `net +${netDelta} skill proof — actual glow-up, not a fluke`
+                        : `net ${netDelta} skill proof — rough patch, roadmap's calling`}
+                    </>
+                  )}
+                  {netDelta === 0 && retestCount > 0 && <> · flat so far — same score, try again after more prep</>}
+                </p>
+              );
+            })()}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-muted-foreground border-b">
                     <th className="py-2 pr-4 font-medium">Date</th>
+                    <th className="py-2 px-3 font-medium">Type</th>
                     <th className="py-2 px-3 font-medium">Quality</th>
                     <th className="py-2 px-3 font-medium">ATS</th>
                     <th className="py-2 px-3 font-medium">Skill Proof</th>
@@ -932,18 +1026,51 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((h) => (
-                    <tr key={h.id} className="border-b last:border-0">
-                      <td className="py-2 pr-4 whitespace-nowrap">
-                        {new Date(h.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
-                      </td>
-                      <td className="py-2 px-3">{h.resume_quality_score ?? "—"}</td>
-                      <td className="py-2 px-3">{h.ats_match_score ?? "—"}</td>
-                      <td className="py-2 px-3">{h.skill_proof_score ?? "—"}</td>
-                      <td className="py-2 px-3">{h.voice_authenticity_score ?? "—"}</td>
-                      <td className="py-2 px-3">{h.coding_score ?? "—"}</td>
-                    </tr>
-                  ))}
+                  {history.map((h, i) => {
+                    const prev = history[i + 1];
+                    const delta =
+                      prev && h.skill_proof_score != null && prev.skill_proof_score != null
+                        ? h.skill_proof_score - prev.skill_proof_score
+                        : null;
+                    return (
+                      <tr key={h.id} className="border-b last:border-0">
+                        <td className="py-2 pr-4 whitespace-nowrap">
+                          {new Date(h.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                        </td>
+                        <td className="py-2 px-3">
+                          {h.is_retest ? (
+                            <Badge variant="outline" className="border-amber-400 text-amber-600">Retest</Badge>
+                          ) : (
+                            <Badge variant="secondary">Full</Badge>
+                          )}
+                        </td>
+                        <td className="py-2 px-3">{h.resume_quality_score ?? "—"}</td>
+                        <td className="py-2 px-3">{h.ats_match_score ?? "—"}</td>
+                        <td className="py-2 px-3">
+                          <span className="inline-flex items-center gap-1">
+                            {h.skill_proof_score ?? "—"}
+                            {delta !== null && delta > 0 && (
+                              <span className="inline-flex items-center text-emerald-600" title={`Up ${delta} vs last attempt`}>
+                                <TrendingUp className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                            {delta !== null && delta < 0 && (
+                              <span className="inline-flex items-center text-red-500" title={`Down ${Math.abs(delta)} vs last attempt`}>
+                                <TrendingDown className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                            {delta === 0 && (
+                              <span className="inline-flex items-center text-muted-foreground" title="Same as last attempt">
+                                <Minus className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">{h.voice_authenticity_score ?? "—"}</td>
+                        <td className="py-2 px-3">{h.coding_score ?? "—"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

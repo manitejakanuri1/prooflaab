@@ -1,15 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+type ConfidenceLevel = 'high' | 'medium' | 'low';
+
 interface AnswerInput {
   question_id: string;
   answer_text: string;
   selected_index?: number;
+  confidence?: ConfidenceLevel;
 }
 
 interface AnswerScore {
@@ -17,6 +21,19 @@ interface AnswerScore {
   correctness_score: number;
   explanation: string;
   final_score: number;
+  question_prompt: string;
+  question_type: 'mcq' | 'short_answer';
+  student_answer: string;
+  correct_answer?: string;
+  confidence?: ConfidenceLevel;
+  confidence_flag?: 'lucky_guess' | 'overconfident' | null;
+}
+
+function deriveConfidenceFlag(finalScore: number, confidence?: ConfidenceLevel): 'lucky_guess' | 'overconfident' | null {
+  if (!confidence) return null;
+  if (finalScore >= 70 && confidence === 'low') return 'lucky_guess';
+  if (finalScore < 50 && confidence === 'high') return 'overconfident';
+  return null;
 }
 
 serve(async (req) => {
@@ -28,14 +45,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
-    if (!geminiApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -82,7 +91,7 @@ serve(async (req) => {
 
     const { data: assessment, error: assessmentError } = await supabase
       .from('resume_assessments')
-      .select('id, student_id, resume_claims_id, questions, status')
+      .select('id, student_id, resume_claims_id, questions, status, is_retest')
       .eq('id', assessment_id)
       .maybeSingle();
 
@@ -111,6 +120,7 @@ serve(async (req) => {
       question_id: a.question_id,
       answer_text: a.answer_text ?? '',
       ...(typeof a.selected_index === 'number' ? { selected_index: a.selected_index } : {}),
+      ...(a.confidence ? { confidence: a.confidence } : {}),
       answered_at: new Date().toISOString(),
     }));
 
@@ -122,11 +132,18 @@ serve(async (req) => {
 
       if (question.type === 'mcq') {
         const correct = typeof answer.selected_index === 'number' && answer.selected_index === question.correct_index;
+        const finalScore = correct ? 100 : 0;
         answerScores.push({
           question_id: answer.question_id,
-          correctness_score: correct ? 100 : 0,
-          explanation: correct ? 'Correct answer selected' : 'Wrong or no option selected',
-          final_score: correct ? 100 : 0,
+          correctness_score: finalScore,
+          explanation: question.explanation || (correct ? 'Correct answer selected' : 'Wrong or no option selected'),
+          final_score: finalScore,
+          question_prompt: question.prompt,
+          question_type: 'mcq',
+          student_answer: answer.answer_text || '(no answer given)',
+          correct_answer: question.options?.[question.correct_index],
+          confidence: (answer as any).confidence,
+          confidence_flag: deriveConfidenceFlag(finalScore, (answer as any).confidence),
         });
         continue;
       }
@@ -140,7 +157,7 @@ Student's answer: ${answer.answer_text || '(no answer given)'}
 Return a JSON object:
 {
   "correctness_score": <0-100, does this show real understanding of what they claimed>,
-  "explanation": "<one sentence on why this score>"
+  "explanation": "<one sentence on why this score, written with real personality — quirky and funny, like a witty friend roasting or hyping them, never a dry textbook verdict>"
 }
 
 Guidelines: a vague, generic, or copy-pasted-sounding answer with no specifics scores low even if technically not wrong. A specific, concrete explanation referencing real details scores high.
@@ -148,33 +165,14 @@ Guidelines: a vague, generic, or copy-pasted-sounding answer with no specifics s
 Return ONLY the JSON object.`;
 
       let score = 0;
-      let explanation = 'Could not be graded';
+      let explanation = 'Could not be graded — the grading gremlins are on strike.';
       try {
-        let geminiResponse!: Response;
-        for (let attempt = 0; attempt < 2; attempt++) {
-          geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: evalPrompt }] }],
-                generationConfig: { temperature: 0.3, maxOutputTokens: 500 }
-              })
-            }
-          );
-          if (geminiResponse.ok || ![429, 503].includes(geminiResponse.status)) break;
-          await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
-        }
-        if (geminiResponse.ok) {
-          const geminiData = await geminiResponse.json();
-          const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            score = Math.max(0, Math.min(100, Math.round(parsed.correctness_score) || 0));
-            explanation = parsed.explanation || explanation;
-          }
+        const result = await generateText(evalPrompt, { temperature: 0.3, maxOutputTokens: 500 });
+        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          score = Math.max(0, Math.min(100, Math.round(parsed.correctness_score) || 0));
+          explanation = parsed.explanation || explanation;
         }
       } catch (e) {
         console.error('Short-answer grading failed:', e);
@@ -185,6 +183,11 @@ Return ONLY the JSON object.`;
         correctness_score: score,
         explanation,
         final_score: score,
+        question_prompt: question.prompt,
+        question_type: 'short_answer',
+        student_answer: answer.answer_text || '(no answer given)',
+        confidence: (answer as any).confidence,
+        confidence_flag: deriveConfidenceFlag(score, (answer as any).confidence),
       });
     }
 
@@ -220,31 +223,41 @@ Return ONLY the JSON object.`;
       answerScores.some((s) => s.question_id === q.id && s.final_score < 70)
     );
 
-    let roadmap = 'Solid performance across the board — keep your skills sharp with periodic re-checks.';
-    if (weakQuestions.length > 0) {
-      const roadmapPrompt = `A student targeting "${resumeClaim?.target_role || 'a role'}" with claimed skills [${(resumeClaim?.skills || []).join(', ')}] got these specific questions wrong or weak:
+    const luckyGuesses = answerScores.filter((s) => s.confidence_flag === 'lucky_guess');
+    const overconfident = answerScores.filter((s) => s.confidence_flag === 'overconfident');
 
-${weakQuestions.map((q: any, i: number) => `${i + 1}. ${q.prompt}`).join('\n')}
+    let roadmap = 'Clean sweep — nothing weak to roast here. Go touch grass, then come back for a re-check later to prove it wasn\'t a fluke.';
+    if (weakQuestions.length > 0 || luckyGuesses.length > 0 || overconfident.length > 0) {
+      const confidenceNotes = [
+        luckyGuesses.length > 0
+          ? `They marked themselves LOW confidence but nailed these anyway — call out the lucky guesses/undersold skill: ${luckyGuesses.map((s) => s.question_prompt).join(' | ')}`
+          : '',
+        overconfident.length > 0
+          ? `They marked themselves HIGH confidence but bombed these — gently roast the overconfidence: ${overconfident.map((s) => s.question_prompt).join(' | ')}`
+          : '',
+      ].filter(Boolean).join('\n');
 
-Write a short, specific, non-generic improvement roadmap (3-5 lines max). Name the exact weak topics implied by these questions and what to practice next. Do not say "learn everything from scratch." Plain English, encouraging tone.`;
+      const roadmapPrompt = `You are a witty, funny mentor giving a student direct, specific coaching after a skills-verification test. Think "roast with love" — a friend who's genuinely rooting for them but isn't afraid to be quirky, playful, and a little cheeky about it. NOT a boring corporate coach.
+
+Student is targeting: "${resumeClaim?.target_role || 'a role'}"
+Claimed skills: [${(resumeClaim?.skills || []).join(', ')}]
+
+They got these specific questions wrong or weak:
+${weakQuestions.map((q: any, i: number) => `${i + 1}. ${q.prompt}`).join('\n') || '(none — see confidence notes below)'}
+${confidenceNotes ? `\nConfidence-vs-performance mismatches to weave in:\n${confidenceNotes}` : ''}
+
+Write a detailed, funny-but-useful improvement plan. For EACH distinct weak topic you can identify from the questions above:
+- Name the exact topic (not a vague area — the specific concept the question was testing).
+- Say in one punchy, quirky sentence why it matters for the role "${resumeClaim?.target_role || 'a role'}" — inject personality, a fun analogy, or a light joke.
+- Give a concrete next action: a specific thing to practice, build, or re-read (e.g. "practice 5 problems on X on LeetCode/HackerRank", "rebuild the auth flow in your project using Y properly", "read the official docs section on Z"). Be concrete, not "study more" — but you can phrase it with flair.
+If there are confidence mismatches, add them as their own short, funny beat (e.g. calling out a "sneaky lucky guess" or "confident bluff") woven naturally into the plan.
+
+Format: one short paragraph per topic, topic name as a bold-ish lead-in phrase followed by a colon, separated by a blank line between topics. Do NOT use markdown headers (#) or bullet symbols (-, *). Plain text paragraphs only, separated by blank lines. Funny, quirky, encouraging tone throughout — never actually mean, never say "learn everything from scratch," never truly shame the student. End with one short, funny closing line of encouragement tying it back to their target role.`;
 
       try {
-        const roadmapResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: roadmapPrompt }] }],
-              generationConfig: { temperature: 0.5, maxOutputTokens: 400 }
-            })
-          }
-        );
-        if (roadmapResponse.ok) {
-          const roadmapData = await roadmapResponse.json();
-          const text = roadmapData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-          if (text) roadmap = text;
-        }
+        const result = await generateText(roadmapPrompt, { temperature: 0.6, maxOutputTokens: 2000 });
+        const text = result.text.trim();
+        if (text && !result.truncated) roadmap = text;
       } catch (e) {
         console.error('Roadmap generation failed:', e);
       }
@@ -260,6 +273,7 @@ Write a short, specific, non-generic improvement roadmap (3-5 lines max). Name t
         ats_match_score: resumeClaim?.ats_match_score ?? null,
         skill_proof_score: skillProofScore,
         roadmap,
+        is_retest: assessment.is_retest ?? false,
       })
       .select('id')
       .single();

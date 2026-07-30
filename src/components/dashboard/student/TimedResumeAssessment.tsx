@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,21 @@ interface RunResult {
   passed: boolean;
 }
 
+type ConfidenceLevel = "high" | "medium" | "low";
+
+export interface AnswerScore {
+  question_id: string;
+  correctness_score: number;
+  explanation: string;
+  final_score: number;
+  question_prompt: string;
+  question_type: "mcq" | "short_answer";
+  student_answer: string;
+  correct_answer?: string;
+  confidence?: ConfidenceLevel;
+  confidence_flag?: "lucky_guess" | "overconfident" | null;
+}
+
 export interface ResumeScoreResult {
   skill_proof_score: number;
   resume_quality_score: number | null;
@@ -44,6 +59,7 @@ export interface ResumeScoreResult {
   voice_authenticity_score?: number | null;
   voice_notes?: string | null;
   coding_score?: number | null;
+  answer_scores?: AnswerScore[];
 }
 
 interface TimedResumeAssessmentProps {
@@ -59,9 +75,16 @@ interface RecordedAnswer {
   question_id: string;
   answer_text: string;
   selected_index?: number;
+  confidence?: ConfidenceLevel;
 }
 
-type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing";
+const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string; emoji: string }[] = [
+  { value: "high", label: "Nailed it", emoji: "😎" },
+  { value: "medium", label: "Pretty sure", emoji: "🤔" },
+  { value: "low", label: "Total guess", emoji: "😬" },
+];
+
+type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing" | "results";
 
 const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsId, questions, onGraded }: TimedResumeAssessmentProps) => {
   const { toast } = useToast();
@@ -69,6 +92,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
   const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
+  const [confidence, setConfidence] = useState<ConfidenceLevel | null>(null);
   const [answers, setAnswers] = useState<RecordedAnswer[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const advancingRef = useRef(false);
@@ -129,6 +153,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
         resume_quality_score: data.resume_quality_score,
         ats_match_score: data.ats_match_score,
         roadmap: data.roadmap,
+        answer_scores: data.answer_scores,
       });
       startCodingRound();
     } catch (err: any) {
@@ -149,6 +174,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
         ? (selectedOption !== null ? currentQuestion.options?.[selectedOption] ?? "" : "")
         : textAnswer,
       ...(currentQuestion.type === "mcq" && selectedOption !== null ? { selected_index: selectedOption } : {}),
+      ...(confidence ? { confidence } : {}),
     };
     const nextAnswers = [...answers, recorded];
     setAnswers(nextAnswers);
@@ -161,9 +187,10 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     setCurrentIndex((i) => i + 1);
     setSelectedOption(null);
     setTextAnswer("");
+    setConfidence(null);
     setTimeLeft(SECONDS_PER_QUESTION);
     advancingRef.current = false;
-  }, [answers, currentQuestion, isLastQuestion, selectedOption, textAnswer, submitAssessment]);
+  }, [answers, confidence, currentQuestion, isLastQuestion, selectedOption, textAnswer, submitAssessment]);
 
   useEffect(() => {
     if (!open || submitting || phase !== "quiz") return;
@@ -207,11 +234,13 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
 
       if (isLastCodingQuestion) {
         setPhase("coding-analyzing");
-        onGraded({
+        const finalResult: ResumeScoreResult = {
           ...(pendingResult as ResumeScoreResult),
           coding_score: data.coding_score,
-        });
-        onOpenChange(false);
+        };
+        setPendingResult(finalResult);
+        onGraded(finalResult);
+        setPhase("results");
         return;
       }
 
@@ -291,6 +320,27 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                   autoFocus
                 />
               )}
+
+              <div className="space-y-1.5 pt-1">
+                <p className="text-xs text-muted-foreground">How sure are you, honestly?</p>
+                <div className="flex gap-2">
+                  {CONFIDENCE_OPTIONS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => setConfidence(c.value)}
+                      className={`flex-1 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                        confidence === c.value
+                          ? "border-primary bg-primary/10 font-medium"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      <span className="mr-1">{c.emoji}</span>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <Button onClick={advance} disabled={submitting} className="w-full mt-4">
@@ -401,6 +451,76 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
             <Loader2 className="h-6 w-6 animate-spin" />
             <p className="text-sm text-muted-foreground">Finishing up...</p>
           </div>
+        )}
+
+        {phase === "results" && pendingResult && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Assessment complete
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold">{pendingResult.resume_quality_score ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold">{pendingResult.ats_match_score ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">ATS Match</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold">{pendingResult.skill_proof_score}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold">{pendingResult.coding_score ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Coding</div>
+                </div>
+              </div>
+              {pendingResult.answer_scores && pendingResult.answer_scores.length > 0 && (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  <p className="text-sm font-medium">Question review</p>
+                  {pendingResult.answer_scores.map((s) => (
+                    <div key={s.question_id} className="border rounded-lg p-3 text-sm space-y-1">
+                      <div className="flex items-start gap-2">
+                        {s.final_score >= 70 ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                        )}
+                        <p className="font-medium">{s.question_prompt}</p>
+                      </div>
+                      {s.confidence_flag === "lucky_guess" && (
+                        <p className="flex items-center gap-1 text-xs text-amber-600">
+                          <Dices className="h-3.5 w-3.5" /> Called it a guess... and nailed it. Lucky!
+                        </p>
+                      )}
+                      {s.confidence_flag === "overconfident" && (
+                        <p className="flex items-center gap-1 text-xs text-amber-600">
+                          <Sparkles className="h-3.5 w-3.5" /> Felt confident, but this one wasn't it — worth a second look.
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">Your answer: {s.student_answer}</p>
+                      {s.question_type === "mcq" && s.final_score < 70 && s.correct_answer && (
+                        <p className="text-xs text-muted-foreground">Correct answer: {s.correct_answer}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">{s.explanation}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium mb-1">Your roadmap</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{pendingResult.roadmap}</p>
+              </div>
+              <Button className="w-full" onClick={() => onOpenChange(false)}>
+                Done
+              </Button>
+            </div>
+          </>
         )}
       </DialogContent>
     </Dialog>

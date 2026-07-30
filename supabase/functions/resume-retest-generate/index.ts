@@ -7,6 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Force a study gap before a retest unlocks — the point is to work through the
+// roadmap first, not immediately re-answer the same weak topics.
+const COOLDOWN_DAYS = 3;
+const COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -62,7 +67,7 @@ serve(async (req) => {
 
     const { data: resumeClaim, error: claimFetchError } = await supabase
       .from('resume_claims')
-      .select('id, student_id, status, target_role, skills, certifications, projects')
+      .select('id, student_id, status, target_role')
       .eq('id', resume_claims_id)
       .maybeSingle();
 
@@ -78,85 +83,100 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    if (resumeClaim.status !== 'confirmed') {
+
+    const { data: assessment, error: assessmentError } = await supabase
+      .from('resume_assessments')
+      .select('id, status, questions, answer_scores, updated_at')
+      .eq('resume_claims_id', resume_claims_id)
+      .maybeSingle();
+
+    if (assessmentError || !assessment) {
       return new Response(
-        JSON.stringify({ error: 'Confirm your resume claims before starting the assessment' }),
+        JSON.stringify({ error: 'No assessment found — complete an assessment before retesting weak topics.' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (assessment.status !== 'graded') {
+      return new Response(
+        JSON.stringify({ error: 'Finish grading the current assessment before retesting weak topics.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const skills: string[] = resumeClaim.skills || [];
-    const certifications: string[] = resumeClaim.certifications || [];
-    const projects: { name: string; description: string; tech_stack: string[] }[] = resumeClaim.projects || [];
+    const gradedAt = new Date(assessment.updated_at).getTime();
+    const msSinceGraded = Date.now() - gradedAt;
+    if (msSinceGraded < COOLDOWN_MS) {
+      const availableAt = new Date(gradedAt + COOLDOWN_MS).toISOString();
+      const daysRemaining = Math.ceil((COOLDOWN_MS - msSinceGraded) / (24 * 60 * 60 * 1000));
+      return new Response(
+        JSON.stringify({
+          error: `Work through your roadmap first — retest unlocks in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}.`,
+          cooldown_active: true,
+          available_at: availableAt,
+          days_remaining: daysRemaining,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const answerScores = (assessment.answer_scores ?? []) as any[];
+    const weakScores = answerScores.filter((s) => s.final_score < 70);
+
+    if (weakScores.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, no_weak_topics: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const targetRole = resumeClaim.target_role || 'the role they are targeting';
+    const questionCount = Math.min(weakScores.length, 6);
+    const retestTopics = weakScores.slice(0, questionCount);
 
-    // Deepened project-defense: one real claimed project gets the 5 specific
-    // sub-questions from the product doc instead of 2 generic ones, so the LLM
-    // only needs to cover MCQs here.
-    const richestProject = projects.length > 0
-      ? [...projects].sort((a, b) => (b.description || '').length - (a.description || '').length)[0]
-      : null;
-    const mcqCount = 5;
-    const fallbackShortAnswerCount = richestProject ? 0 : 2;
+    const prompt = `You are building a short retest for a student targeting "${targetRole}". They previously scored weak on the questions below — write ONE fresh question per item testing the SAME underlying concept, but not a rephrasing of the same question (so they can't just recall the earlier answer).
 
-    const prompt = `You are building a short assessment to check whether a student really understands what they claim on their resume — not a generic quiz, ONLY based on the exact items below.
+Weak questions from their last attempt:
+${retestTopics.map((s: any, i: number) => `${i + 1}. [${s.question_type}] "${s.question_prompt}" — they answered "${s.student_answer}" (scored ${s.final_score}/100: ${s.explanation})`).join('\n')}
 
-Target role: ${targetRole}
-Skills claimed: ${skills.join(', ') || 'none listed'}
-Certifications claimed: ${certifications.join(', ') || 'none listed'}
-Projects claimed:
-${projects.map((p, i) => `${i + 1}. ${p.name} — ${p.description} (tech: ${(p.tech_stack || []).join(', ')})`).join('\n') || 'none listed'}
-
-Generate exactly ${mcqCount} multiple-choice questions${fallbackShortAnswerCount > 0 ? ` and exactly ${fallbackShortAnswerCount} short-answer questions` : ''}. Each question will be shown one at a time with a 15-second timer, so keep every question short enough to read and answer that fast.
-
-Rules for ALL questions:
-- Base every question ONLY on the skills/certifications/projects listed above — never invent a skill or ask about something not claimed.
+Rules:
+- Generate exactly ${questionCount} questions, one per item above, in the same order.
+- Keep the same question type as the item it replaces (mcq stays mcq, short_answer stays short_answer).
 - One short, plain-English sentence (under 25 words) per question.
-- Test real understanding, not trivia — the kind of thing only someone who actually used the skill or built the project would know.
-
-MCQ rules:
-- Mix skill-based, certification-based, project-based, and role-based questions.
-- If a claimed skill is a programming language or framework, at least 1-2 of the MCQs should be code-reading style: show a short (1-3 line) code snippet using that language/framework in the prompt text and ask what it does or what's wrong with it.
-- Exactly 4 options, exactly one correct answer, wrong options plausible.
-- Vary difficulty (mix of easy and medium).
-${fallbackShortAnswerCount > 0 ? `
-Short-answer rules:
-- Ask general but specific skill-explanation questions ("explain how you would use X in a real scenario") — no project to defend here, so don't invent one.
-- These are graded by reading the student's typed explanation, so the question must require a real explanation, not a one-word answer.
-` : ''}
-Every MCQ also needs an "explanation" field: why the correct option is correct, but write it with actual personality — a quirky, funny one-liner (think witty friend, not a textbook footnote), under 25 words, that still nails the technical reason.
+- For mcq: exactly 4 options, exactly one correct answer, wrong options plausible, vary difficulty. If the topic is a programming language or framework, prefer a short (1-3 line) code-reading snippet in the prompt.
+- For short_answer: require a real typed explanation (not one word) about the same project/skill/concept as the original question.
+- Every mcq needs an "explanation" field: why the correct option is correct, written with real personality — a quirky, funny one-liner (witty friend, not a textbook footnote), under 25 words, that still nails the technical reason.
 
 Return a JSON array with this exact structure:
 [
   {
-    "id": "q1",
+    "id": "r1",
     "type": "mcq",
     "prompt": "Question text",
     "options": ["A", "B", "C", "D"],
     "correct_index": 0,
     "explanation": "A funny, quirky one-liner on why this option is correct",
     "difficulty": "easy|medium"
-  }${fallbackShortAnswerCount > 0 ? `,
+  },
   {
-    "id": "q6",
+    "id": "r2",
     "type": "short_answer",
     "prompt": "Question text"
-  }` : ''}
+  }
 ]
 
 Return ONLY the JSON array, no additional text.`;
 
-    console.log('Calling LLM for resume-based question generation...');
+    console.log('Calling LLM for weak-topic retest generation...');
 
     let generatedText: string;
     try {
-      const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 5000 });
+      const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 3000 });
       generatedText = result.text;
       console.log(`LLM (${result.provider}) response:`, generatedText);
     } catch (e) {
       console.error('LLM call failed:', e);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate assessment' }),
+        JSON.stringify({ error: 'Failed to generate retest' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -167,28 +187,11 @@ Return ONLY the JSON array, no additional text.`;
       if (!jsonMatch) throw new Error('No JSON array found in response');
       questions = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      console.error('Failed to parse Gemini response:', parseError);
+      console.error('Failed to parse retest response:', parseError);
       return new Response(
-        JSON.stringify({ error: 'Failed to parse generated assessment' }),
+        JSON.stringify({ error: 'Failed to parse generated retest' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    // Deepened project-defense: 5 fixed sub-questions on the richest claimed
-    // project, worded verbatim per the product doc — no LLM involved so the
-    // wording/coverage never drifts.
-    if (richestProject) {
-      const p = richestProject;
-      const defenseQuestions = [
-        `What problem did your "${p.name}" project solve?`,
-        `Why did you choose ${(p.tech_stack || []).join(', ') || 'that tech stack'} for "${p.name}"?`,
-        `What exactly was your own contribution to "${p.name}"?`,
-        `What was the toughest challenge you hit building "${p.name}", and how did you solve it?`,
-        `Why that particular database, API, framework, or model in "${p.name}"?`,
-      ];
-      defenseQuestions.forEach((prompt, i) => {
-        questions.push({ id: `q${mcqCount + 1 + i}`, type: 'short_answer', prompt });
-      });
     }
 
     // Shuffle MCQ option order — LLMs put the correct answer first far too often
@@ -203,7 +206,7 @@ Return ONLY the JSON array, no additional text.`;
       }
     }
 
-    const { data: assessment, error: upsertError } = await supabase
+    const { data: newAssessment, error: upsertError } = await supabase
       .from('resume_assessments')
       .upsert(
         {
@@ -213,30 +216,30 @@ Return ONLY the JSON array, no additional text.`;
           student_answers: [],
           answer_scores: null,
           status: 'pending',
-          is_retest: false,
+          is_retest: true,
         },
         { onConflict: 'resume_claims_id' }
       )
       .select('id')
       .single();
 
-    if (upsertError || !assessment) {
-      console.error('Error saving resume assessment:', upsertError);
+    if (upsertError || !newAssessment) {
+      console.error('Error saving retest assessment:', upsertError);
       return new Response(
-        JSON.stringify({ error: 'Failed to save assessment' }),
+        JSON.stringify({ error: 'Failed to save retest' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Successfully generated resume assessment:', assessment.id);
+    console.log('Successfully generated weak-topic retest:', newAssessment.id);
 
     return new Response(
-      JSON.stringify({ success: true, assessment_id: assessment.id, questions }),
+      JSON.stringify({ success: true, assessment_id: newAssessment.id, questions }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in resume-question-generator:', error);
+    console.error('Error in resume-retest-generate:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

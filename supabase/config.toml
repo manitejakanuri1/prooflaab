@@ -60,5 +60,8 @@ verify_jwt = false
 [functions.resume-assessment-submit]
 verify_jwt = false
 
+[functions.resume-retest-generate]
+verify_jwt = false
+
 [functions.trust-compute]
 verify_jwt = false

@@ -27,6 +27,8 @@ interface AnswerScore {
   correct_answer?: string;
   confidence?: ConfidenceLevel;
   confidence_flag?: 'lucky_guess' | 'overconfident' | null;
+  category: 'skill' | 'project_defense';
+  reasoning_clarity_score?: number;
 }
 
 function deriveConfidenceFlag(finalScore: number, confidence?: ConfidenceLevel): 'lucky_guess' | 'overconfident' | null {
@@ -130,6 +132,8 @@ serve(async (req) => {
       const question = questionsById.get(answer.question_id);
       if (!question) continue;
 
+      const category: 'skill' | 'project_defense' = question.category === 'project_defense' ? 'project_defense' : 'skill';
+
       if (question.type === 'mcq') {
         const correct = typeof answer.selected_index === 'number' && answer.selected_index === question.correct_index;
         const finalScore = correct ? 100 : 0;
@@ -144,6 +148,7 @@ serve(async (req) => {
           correct_answer: question.options?.[question.correct_index],
           confidence: (answer as any).confidence,
           confidence_flag: deriveConfidenceFlag(finalScore, (answer as any).confidence),
+          category,
         });
         continue;
       }
@@ -157,6 +162,7 @@ Student's answer: ${answer.answer_text || '(no answer given)'}
 Return a JSON object:
 {
   "correctness_score": <0-100, does this show real understanding of what they claimed>,
+  "reasoning_clarity_score": <0-100, separate from correctness — how clearly and logically they explained their thinking, regardless of whether the content itself was fully right>,
   "explanation": "<1-2 sentences, written with real personality — quirky and funny, like a witty friend roasting or hyping them, never a dry textbook verdict. If the score is below 70, it MUST name the specific thing missing or wrong in their answer (not just 'be more specific') so they know exactly what to fix. If 70+, name the specific thing they got right.>"
 }
 
@@ -165,6 +171,7 @@ Guidelines: a vague, generic, or copy-pasted-sounding answer with no specifics s
 Return ONLY the JSON object.`;
 
       let score = 0;
+      let reasoningClarityScore = 0;
       let explanation = 'Could not be graded — the grading gremlins are on strike.';
       try {
         const result = await generateText(evalPrompt, { temperature: 0.3, maxOutputTokens: 500 });
@@ -172,6 +179,7 @@ Return ONLY the JSON object.`;
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           score = Math.max(0, Math.min(100, Math.round(parsed.correctness_score) || 0));
+          reasoningClarityScore = Math.max(0, Math.min(100, Math.round(parsed.reasoning_clarity_score) || 0));
           explanation = parsed.explanation || explanation;
         }
       } catch (e) {
@@ -188,12 +196,24 @@ Return ONLY the JSON object.`;
         student_answer: answer.answer_text || '(no answer given)',
         confidence: (answer as any).confidence,
         confidence_flag: deriveConfidenceFlag(score, (answer as any).confidence),
+        category,
+        reasoning_clarity_score: reasoningClarityScore,
       });
     }
 
-    const skillProofScore = answerScores.length > 0
-      ? Math.round(answerScores.reduce((sum, s) => sum + s.final_score, 0) / answerScores.length)
+    const skillAnswers = answerScores.filter((s) => s.category === 'skill');
+    const projectAnswers = answerScores.filter((s) => s.category === 'project_defense');
+    const reasoningAnswers = answerScores.filter((s) => s.question_type === 'short_answer');
+
+    const skillProofScore = skillAnswers.length > 0
+      ? Math.round(skillAnswers.reduce((sum, s) => sum + s.final_score, 0) / skillAnswers.length)
       : 0;
+    const projectProofScore = projectAnswers.length > 0
+      ? Math.round(projectAnswers.reduce((sum, s) => sum + s.final_score, 0) / projectAnswers.length)
+      : null;
+    const reasoningScore = reasoningAnswers.length > 0
+      ? Math.round(reasoningAnswers.reduce((sum, s) => sum + (s.reasoning_clarity_score ?? 0), 0) / reasoningAnswers.length)
+      : null;
 
     const { error: updateError } = await supabase
       .from('resume_assessments')
@@ -269,6 +289,23 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       }
     }
 
+    // Interview Readiness Score: weighted composite per the product doc
+    // (20% resume quality, 20% ATS match, 30% skill proof, 15% project proof,
+    // 15% reasoning). Project proof / reasoning are null when nothing of that
+    // type was asked (e.g. no claimed project) — those weights get dropped and
+    // the rest renormalized rather than treating a null as a 0.
+    const readinessComponents: { score: number; weight: number }[] = [
+      ...(resumeClaim?.resume_quality_score != null ? [{ score: resumeClaim.resume_quality_score, weight: 20 }] : []),
+      ...(resumeClaim?.ats_match_score != null ? [{ score: resumeClaim.ats_match_score, weight: 20 }] : []),
+      { score: skillProofScore, weight: 30 },
+      ...(projectProofScore != null ? [{ score: projectProofScore, weight: 15 }] : []),
+      ...(reasoningScore != null ? [{ score: reasoningScore, weight: 15 }] : []),
+    ];
+    const readinessWeightSum = readinessComponents.reduce((sum, c) => sum + c.weight, 0);
+    const interviewReadinessScore = readinessWeightSum > 0
+      ? Math.round(readinessComponents.reduce((sum, c) => sum + c.score * c.weight, 0) / readinessWeightSum)
+      : null;
+
     const { data: scorecard, error: scorecardError } = await supabase
       .from('resume_scorecards')
       .insert({
@@ -278,6 +315,9 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
         resume_quality_score: resumeClaim?.resume_quality_score ?? null,
         ats_match_score: resumeClaim?.ats_match_score ?? null,
         skill_proof_score: skillProofScore,
+        project_proof_score: projectProofScore,
+        reasoning_score: reasoningScore,
+        interview_readiness_score: interviewReadinessScore,
         roadmap,
         is_retest: assessment.is_retest ?? false,
       })
@@ -301,6 +341,9 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
         scorecard_id: scorecard.id,
         answer_scores: answerScores,
         skill_proof_score: skillProofScore,
+        project_proof_score: projectProofScore,
+        reasoning_score: reasoningScore,
+        interview_readiness_score: interviewReadinessScore,
         resume_quality_score: resumeClaim?.resume_quality_score ?? null,
         ats_match_score: resumeClaim?.ats_match_score ?? null,
         roadmap,

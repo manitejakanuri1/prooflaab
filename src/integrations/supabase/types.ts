@@ -1482,7 +1482,10 @@ export type Database = {
           coding_score: number | null
           created_at: string
           id: string
+          interview_readiness_score: number | null
           is_retest: boolean
+          project_proof_score: number | null
+          reasoning_score: number | null
           resume_claims_id: string
           resume_quality_score: number | null
           roadmap: string | null
@@ -1497,7 +1500,10 @@ export type Database = {
           coding_score?: number | null
           created_at?: string
           id?: string
+          interview_readiness_score?: number | null
           is_retest?: boolean
+          project_proof_score?: number | null
+          reasoning_score?: number | null
           resume_claims_id: string
           resume_quality_score?: number | null
           roadmap?: string | null
@@ -1512,7 +1518,10 @@ export type Database = {
           coding_score?: number | null
           created_at?: string
           id?: string
+          interview_readiness_score?: number | null
           is_retest?: boolean
+          project_proof_score?: number | null
+          reasoning_score?: number | null
           resume_claims_id?: string
           resume_quality_score?: number | null
           roadmap?: string | null

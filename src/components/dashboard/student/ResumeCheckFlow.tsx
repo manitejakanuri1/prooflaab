@@ -157,7 +157,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       if (row.status === "confirmed") {
         const { data: scorecard } = await supabase
           .from("resume_scorecards")
-          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes, coding_score, created_at")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes, coding_score, project_proof_score, reasoning_score, interview_readiness_score, created_at")
           .eq("resume_claims_id", row.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -171,6 +171,9 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             voice_authenticity_score: scorecard.voice_authenticity_score,
             voice_notes: scorecard.voice_notes,
             coding_score: scorecard.coding_score,
+            project_proof_score: scorecard.project_proof_score,
+            reasoning_score: scorecard.reasoning_score,
+            interview_readiness_score: scorecard.interview_readiness_score,
           });
           setLastGradedAt(new Date(scorecard.created_at));
         }
@@ -777,7 +780,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="border rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold">{scoreResult.resume_quality_score ?? "—"}</div>
                 <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
@@ -789,6 +792,18 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               <div className="border rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold">{scoreResult.skill_proof_score}</div>
                 <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold">{scoreResult.project_proof_score ?? "—"}</div>
+                <div className="text-xs text-muted-foreground mt-1">Project Proof</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold">{scoreResult.reasoning_score ?? "—"}</div>
+                <div className="text-xs text-muted-foreground mt-1">Reasoning</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold">{scoreResult.interview_readiness_score ?? "—"}</div>
+                <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
               </div>
             </div>
             {scoreResult.voice_authenticity_score != null && (

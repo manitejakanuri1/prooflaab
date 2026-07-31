@@ -60,6 +60,9 @@ export interface ResumeScoreResult {
   voice_authenticity_score?: number | null;
   voice_notes?: string | null;
   coding_score?: number | null;
+  project_proof_score?: number | null;
+  reasoning_score?: number | null;
+  interview_readiness_score?: number | null;
   answer_scores?: AnswerScore[];
 }
 
@@ -190,6 +193,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       ats_match_score: data.ats_match_score,
       roadmap: data.roadmap,
       answer_scores: data.answer_scores,
+      project_proof_score: data.project_proof_score,
+      reasoning_score: data.reasoning_score,
+      interview_readiness_score: data.interview_readiness_score,
     });
     setSubmitting(false);
 
@@ -601,6 +607,18 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                 <div className="border rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold">{pendingResult.coding_score ?? "—"}</div>
                   <div className="text-xs text-muted-foreground mt-1">Coding</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold">{pendingResult.project_proof_score ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Project Proof</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold">{pendingResult.reasoning_score ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Reasoning</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center col-span-2 sm:col-span-2">
+                  <div className="text-2xl font-bold">{pendingResult.interview_readiness_score ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
                 </div>
               </div>
               {pendingResult.answer_scores && pendingResult.answer_scores.length > 0 && (

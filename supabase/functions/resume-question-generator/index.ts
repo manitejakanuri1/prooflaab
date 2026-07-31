@@ -187,7 +187,7 @@ Return ONLY the JSON array, no additional text.`;
         `Why that particular database, API, framework, or model in "${p.name}"?`,
       ];
       defenseQuestions.forEach((prompt, i) => {
-        questions.push({ id: `q${mcqCount + 1 + i}`, type: 'short_answer', prompt });
+        questions.push({ id: `q${mcqCount + 1 + i}`, type: 'short_answer', prompt, category: 'project_defense' });
       });
     }
 

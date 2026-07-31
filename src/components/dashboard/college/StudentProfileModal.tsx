@@ -57,6 +57,7 @@ const StudentProfileModal = ({ student, isOpen, onClose }: StudentProfileModalPr
     if (student && isOpen) {
       fetchStudentDetails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [student, isOpen]);
 
   const fetchStudentDetails = async () => {

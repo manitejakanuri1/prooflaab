@@ -319,6 +319,7 @@ const StudentFeedPage = () => {
     return () => {
       channel.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, currentUserId]);
 
   // Handle share

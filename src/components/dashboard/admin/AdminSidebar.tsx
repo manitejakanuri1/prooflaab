@@ -138,6 +138,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     if (groupToExpand && !expandedGroups.includes(groupToExpand.id)) {
       setExpandedGroups(prev => [...prev, groupToExpand.id]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const handleSignOut = async () => {

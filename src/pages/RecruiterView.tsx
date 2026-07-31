@@ -43,6 +43,7 @@ export default function RecruiterView() {
     if (linkId) {
       loadRecruiterData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkId]);
 
   const loadRecruiterData = async () => {

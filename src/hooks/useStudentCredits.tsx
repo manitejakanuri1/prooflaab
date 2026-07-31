@@ -231,6 +231,7 @@ export const useStudentCredits = (studentId: string | undefined) => {
 
   useEffect(() => {
     fetchCredits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
 
   return { credits, loading, deductCredits, refreshCredits: fetchCredits };

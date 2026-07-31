@@ -34,6 +34,7 @@ export const FollowButton = ({
     }
     
     fetchFollowState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetUserId, currentUserId, isOwner]);
 
   const fetchFollowState = async () => {

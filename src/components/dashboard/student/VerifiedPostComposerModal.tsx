@@ -93,6 +93,7 @@ const VerifiedPostComposerModal = ({
       fetchProofDetails();
       checkExistingPost();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, proofId]);
 
   const checkExistingPost = async () => {

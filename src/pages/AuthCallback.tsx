@@ -146,7 +146,7 @@ export default function AuthCallback() {
           case 'admin':
             navigate('/admin/dashboard', { replace: true });
             break;
-          case 'college_admin':
+          case 'college_admin': {
             // Check if college record exists and status
             const { data: collegeRecord } = await supabase
               .from('colleges')
@@ -160,7 +160,8 @@ export default function AuthCallback() {
               navigate('/college/dashboard', { replace: true });
             }
             break;
-          case 'startup':
+          }
+          case 'startup': {
             // Check if startup record exists and status
             const { data: startupRecord } = await supabase
               .from('startups')
@@ -174,6 +175,7 @@ export default function AuthCallback() {
               navigate('/startup/dashboard', { replace: true });
             }
             break;
+          }
           case 'student':
           default:
             navigate('/student/dashboard', { replace: true });

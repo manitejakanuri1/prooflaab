@@ -25,6 +25,7 @@ const TrustScoresSection = () => {
 
   useEffect(() => {
     fetchTrustScores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTrustScores = async () => {

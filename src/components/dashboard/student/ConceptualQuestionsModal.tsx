@@ -71,6 +71,7 @@ const ConceptualQuestionsModal = ({
       setVerdict(null);
       fetchQuestions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, proofId, review]);
 
   // Show the verification verdict in the same window: results phase polls until

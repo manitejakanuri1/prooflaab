@@ -63,6 +63,7 @@ const StudentUploadsPage = () => {
     if (uploads && uploads.length > 0) {
       fetchConceptualTests();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploads]);
 
   // Real-time subscription for conceptual test updates
@@ -86,6 +87,7 @@ const StudentUploadsPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchConceptualTests = async () => {
@@ -143,31 +145,34 @@ const StudentUploadsPage = () => {
     // Apply sorting
     const sortedUploads = [...filtered].sort((a, b) => {
       switch (sortBy) {
-        case "Status Priority":
+        case "Status Priority": {
           // Group by status: Under Review > Verified > Rejected
           const statusPriority = { "Under Review": 1, "Verified": 2, "Rejected": 3 };
           const priorityDiff = (statusPriority[a.status] || 4) - (statusPriority[b.status] || 4);
           if (priorityDiff !== 0) return priorityDiff;
           // Secondary sort by submission date (newest first)
           return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
-          
+        }
+
         case "Upload Date (ASC)":
           return new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
-          
+
         case "Upload Date (DESC)":
         case "Newest First":
           return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
-          
-        case "Task Name (A-Z)":
+
+        case "Task Name (A-Z)": {
           const aTitle = a.tasks?.title || '';
           const bTitle = b.tasks?.title || '';
           return aTitle.localeCompare(bTitle);
-          
-        case "Task Name (Z-A)":
+        }
+
+        case "Task Name (Z-A)": {
           const aTitleDesc = a.tasks?.title || '';
           const bTitleDesc = b.tasks?.title || '';
           return bTitleDesc.localeCompare(aTitleDesc);
-          
+        }
+
         default:
           return 0;
       }

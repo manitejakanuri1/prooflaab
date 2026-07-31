@@ -71,6 +71,7 @@ const AssignPackPage = () => {
     } else {
       setStudentsInSelection(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBatch, selectedBranch]);
 
   const fetchBatchesAndBranches = async () => {

@@ -147,15 +147,17 @@ const StudentAssignedTasksPage = () => {
     // Apply sorting
     const sortedTasks = [...filtered].sort((a, b) => {
       switch (sortBy) {
-        case "Due Date (ASC)":
+        case "Due Date (ASC)": {
           const aDate = a.deadline ? new Date(a.deadline) : new Date("9999-12-31");
           const bDate = b.deadline ? new Date(b.deadline) : new Date("9999-12-31");
           return aDate.getTime() - bDate.getTime();
-          
-        case "Due Date (DESC)":
+        }
+
+        case "Due Date (DESC)": {
           const aDateDesc = a.deadline ? new Date(a.deadline) : new Date("1970-01-01");
           const bDateDesc = b.deadline ? new Date(b.deadline) : new Date("1970-01-01");
           return bDateDesc.getTime() - aDateDesc.getTime();
+        }
           
         case "XP (ASC)":
           return (a.xp_reward || 0) - (b.xp_reward || 0);

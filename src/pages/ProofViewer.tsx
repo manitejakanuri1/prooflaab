@@ -52,6 +52,7 @@ const ProofViewer = () => {
     if (id) {
       fetchProof();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchProof = async () => {

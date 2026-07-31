@@ -363,7 +363,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       setSubmittingCode(false);
       codingAdvancingRef.current = false;
     }
-  }, [assessmentId, code, codingIndex, codingQuestions, currentCodingQuestion, isLastCodingQuestion, onGraded, onOpenChange, pendingResult]);
+  }, [assessmentId, code, codingIndex, codingQuestions, currentCodingQuestion, isLastCodingQuestion, onGraded, pendingResult, toast]);
 
   useEffect(() => {
     if (!open || phase !== "coding" || submittingCode) return;

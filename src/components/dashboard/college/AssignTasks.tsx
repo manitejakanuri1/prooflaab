@@ -196,10 +196,12 @@ const AssignTasks = () => {
   useEffect(() => {
     fetchStudents();
     fetchTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     filterStudents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [students, branchFilter, yearFilter, trustScoreMin, trustScoreMax, skillsFilter]);
 
   const fetchStudents = async () => {

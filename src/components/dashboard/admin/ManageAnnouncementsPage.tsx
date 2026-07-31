@@ -61,6 +61,7 @@ const ManageAnnouncementsPage = () => {
 
   useEffect(() => {
     fetchAnnouncements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAnnouncements = async () => {
@@ -224,6 +225,7 @@ const ManageAnnouncementsPage = () => {
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, announcements]);
 
   const clearFilters = () => {

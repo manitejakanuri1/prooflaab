@@ -56,6 +56,7 @@ export default function OnboardingWizard() {
     };
 
     fetchUserRole();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
   const redirectToDashboard = (role: UserRole) => {

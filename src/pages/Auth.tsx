@@ -83,6 +83,7 @@ export default function Auth() {
     };
     
     clearStaleSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const redirectToDashboard = (role: UserRole) => {

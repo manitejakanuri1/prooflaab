@@ -73,6 +73,7 @@ export function StartupJobsPage() {
     if (user) {
       fetchJobs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchJobs = async () => {

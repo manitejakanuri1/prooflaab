@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -214,33 +239,6 @@ export type Database = {
         }
         Relationships: []
       }
-      auth_rate_limits: {
-        Row: {
-          attempt_count: number | null
-          blocked_until: string | null
-          created_at: string
-          id: string
-          identifier: string
-          window_start: string
-        }
-        Insert: {
-          attempt_count?: number | null
-          blocked_until?: string | null
-          created_at?: string
-          id?: string
-          identifier: string
-          window_start?: string
-        }
-        Update: {
-          attempt_count?: number | null
-          blocked_until?: string | null
-          created_at?: string
-          id?: string
-          identifier?: string
-          window_start?: string
-        }
-        Relationships: []
-      }
       college_profiles: {
         Row: {
           branches_offered: string[] | null
@@ -354,30 +352,6 @@ export type Database = {
           },
         ]
       }
-      email_verifications: {
-        Row: {
-          code: string | null
-          created_at: string | null
-          email: string | null
-          id: string
-          is_verified: boolean | null
-        }
-        Insert: {
-          code?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          is_verified?: boolean | null
-        }
-        Update: {
-          code?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          is_verified?: boolean | null
-        }
-        Relationships: []
-      }
       follows: {
         Row: {
           created_at: string | null
@@ -478,39 +452,6 @@ export type Database = {
           id?: string
           is_used?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
-          used_by?: string | null
-        }
-        Relationships: []
-      }
-      invite_codes_validation: {
-        Row: {
-          account_type: Database["public"]["Enums"]["app_role"]
-          code: string
-          created_at: string | null
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          used_at: string | null
-          used_by: string | null
-        }
-        Insert: {
-          account_type: Database["public"]["Enums"]["app_role"]
-          code: string
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          used_at?: string | null
-          used_by?: string | null
-        }
-        Update: {
-          account_type?: Database["public"]["Enums"]["app_role"]
-          code?: string
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          used_at?: string | null
           used_by?: string | null
         }
         Relationships: []
@@ -725,13 +666,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pack_batch_assignments_college_id_fkey"
-            columns: ["college_id"]
-            isOneToOne: false
-            referencedRelation: "colleges_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "pack_batch_assignments_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false
@@ -891,6 +825,13 @@ export type Database = {
             columns: ["proof_id"]
             isOneToOne: false
             referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proof_appeals_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1138,6 +1079,7 @@ export type Database = {
           id: string
           message: string | null
           post_id: string
+          read_at: string | null
           recruiter_email: string
           student_id: string
         }
@@ -1146,6 +1088,7 @@ export type Database = {
           id?: string
           message?: string | null
           post_id: string
+          read_at?: string | null
           recruiter_email: string
           student_id: string
         }
@@ -1154,6 +1097,7 @@ export type Database = {
           id?: string
           message?: string | null
           post_id?: string
+          read_at?: string | null
           recruiter_email?: string
           student_id?: string
         }
@@ -1239,13 +1183,6 @@ export type Database = {
             referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "recruiter_links_college_id_fkey"
-            columns: ["college_id"]
-            isOneToOne: false
-            referencedRelation: "colleges_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       resume_assessments: {
@@ -1258,6 +1195,7 @@ export type Database = {
           is_retest: boolean
           questions: Json
           resume_claims_id: string
+          retest_notified_at: string | null
           status: string
           student_answers: Json
           student_id: string
@@ -1272,6 +1210,7 @@ export type Database = {
           is_retest?: boolean
           questions?: Json
           resume_claims_id: string
+          retest_notified_at?: string | null
           status?: string
           student_answers?: Json
           student_id: string
@@ -1286,6 +1225,7 @@ export type Database = {
           is_retest?: boolean
           questions?: Json
           resume_claims_id?: string
+          retest_notified_at?: string | null
           status?: string
           student_answers?: Json
           student_id?: string
@@ -1554,30 +1494,6 @@ export type Database = {
           },
         ]
       }
-      signup_rate_limits: {
-        Row: {
-          attempt_count: number | null
-          blocked_until: string | null
-          id: string
-          ip_address: unknown
-          window_start: string | null
-        }
-        Insert: {
-          attempt_count?: number | null
-          blocked_until?: string | null
-          id?: string
-          ip_address: unknown
-          window_start?: string | null
-        }
-        Update: {
-          attempt_count?: number | null
-          blocked_until?: string | null
-          id?: string
-          ip_address?: unknown
-          window_start?: string | null
-        }
-        Relationships: []
-      }
       social_notifications: {
         Row: {
           created_at: string
@@ -1747,30 +1663,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      student_otps: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          is_used: boolean
-          otp_code: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          is_used?: boolean
-          otp_code: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          is_used?: boolean
-          otp_code?: string
-        }
-        Relationships: []
       }
       student_pack_completions: {
         Row: {
@@ -1957,13 +1849,6 @@ export type Database = {
             referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "student_profiles_college_id_fkey"
-            columns: ["college_id"]
-            isOneToOne: false
-            referencedRelation: "colleges_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       students: {
@@ -1993,30 +1878,6 @@ export type Database = {
           name?: string
           updated_at?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      students_auth: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string
-          is_verified: boolean | null
-          verification_code: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          is_verified?: boolean | null
-          verification_code?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          is_verified?: boolean | null
-          verification_code?: string | null
         }
         Relationships: []
       }
@@ -2366,13 +2227,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_tasks_created_by_college"
-            columns: ["created_by_college_id"]
-            isOneToOne: false
-            referencedRelation: "colleges_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tasks_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false
@@ -2580,13 +2434,6 @@ export type Database = {
             referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "verification_settings_college_id_fkey"
-            columns: ["college_id"]
-            isOneToOne: true
-            referencedRelation: "colleges_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       xp_logs: {
@@ -2623,51 +2470,7 @@ export type Database = {
       }
     }
     Views: {
-      admin_users_safe: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          name: string | null
-          role: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          name?: string | null
-          role?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          name?: string | null
-          role?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      colleges_public: {
-        Row: {
-          id: string | null
-          name: string | null
-        }
-        Insert: {
-          id?: string | null
-          name?: string | null
-        }
-        Update: {
-          id?: string | null
-          name?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       add_comment: {
@@ -2688,15 +2491,6 @@ export type Database = {
         Args: { p_pack_id: string; p_student_id: string }
         Returns: boolean
       }
-      check_rate_limit: {
-        Args: {
-          _identifier: string
-          _max_attempts?: number
-          _window_minutes?: number
-        }
-        Returns: boolean
-      }
-      cleanup_expired_otps: { Args: never; Returns: undefined }
       complete_own_wizard: { Args: never; Returns: undefined }
       create_proof_post: {
         Args: {
@@ -2877,6 +2671,7 @@ export type Database = {
         Returns: boolean
       }
       like_post: { Args: { p_post_id: string }; Returns: undefined }
+      mark_wizard_completed: { Args: never; Returns: undefined }
       notify_all_admins: {
         Args: {
           notification_link?: string
@@ -2887,7 +2682,9 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_retest_unlocks: { Args: never; Returns: undefined }
       reset_daily_credits: { Args: never; Returns: undefined }
+      resolve_follow_target: { Args: { target_id: string }; Returns: string }
       same_college: {
         Args: { _student_id_1: string; _student_id_2: string }
         Returns: boolean
@@ -3068,6 +2865,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "college_admin", "startup", "student"],

@@ -9,6 +9,7 @@ import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices } f
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { RoadmapStages } from "./RoadmapStages";
 
 const SECONDS_PER_QUESTION = 15;
 const SECONDS_PER_CODING_PROBLEM = 300;
@@ -642,7 +643,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
               )}
               <div>
                 <p className="text-sm font-medium mb-1">Your roadmap</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{pendingResult.roadmap}</p>
+                <RoadmapStages roadmap={pendingResult.roadmap} />
               </div>
               <Button className="w-full" onClick={() => onOpenChange(false)}>
                 Done

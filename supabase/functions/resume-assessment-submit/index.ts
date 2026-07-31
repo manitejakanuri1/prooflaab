@@ -226,38 +226,44 @@ Return ONLY the JSON object.`;
     const luckyGuesses = answerScores.filter((s) => s.confidence_flag === 'lucky_guess');
     const overconfident = answerScores.filter((s) => s.confidence_flag === 'overconfident');
 
-    let roadmap = 'Clean sweep — nothing weak to roast here. Go touch grass, then come back for a re-check later to prove it wasn\'t a fluke.';
+    let roadmap = JSON.stringify([
+      { title: 'Clean sweep', why: "Nothing weak to roast here — you actually knew your stuff.", action: "Come back for a re-check later to prove it wasn't a fluke." },
+    ]);
     if (weakQuestions.length > 0 || luckyGuesses.length > 0 || overconfident.length > 0) {
       const confidenceNotes = [
         luckyGuesses.length > 0
-          ? `They marked themselves LOW confidence but nailed these anyway — call out the lucky guesses/undersold skill: ${luckyGuesses.map((s) => s.question_prompt).join(' | ')}`
+          ? `They marked themselves LOW confidence but nailed these anyway — fold in a "sneaky lucky guess" stage: ${luckyGuesses.map((s) => s.question_prompt).join(' | ')}`
           : '',
         overconfident.length > 0
-          ? `They marked themselves HIGH confidence but bombed these — gently roast the overconfidence: ${overconfident.map((s) => s.question_prompt).join(' | ')}`
+          ? `They marked themselves HIGH confidence but bombed these — fold in a "confident bluff" stage: ${overconfident.map((s) => s.question_prompt).join(' | ')}`
           : '',
       ].filter(Boolean).join('\n');
 
-      const roadmapPrompt = `You are a witty, funny mentor giving a student direct, specific coaching after a skills-verification test. Think "roast with love" — a friend who's genuinely rooting for them but isn't afraid to be quirky, playful, and a little cheeky about it. NOT a boring corporate coach.
+      const roadmapPrompt = `You are a witty, funny mentor giving a student direct, specific coaching after a skills-verification test. Think "roast with love" — a friend who's genuinely rooting for them but isn't afraid to be quirky, playful, and a little cheeky about it. NOT a boring corporate coach, and NOT a re-taught lesson — one punchy beat per stage, not paragraphs.
 
 Student is targeting: "${resumeClaim?.target_role || 'a role'}"
 Claimed skills: [${(resumeClaim?.skills || []).join(', ')}]
 
 They got these specific questions wrong or weak:
 ${weakQuestions.map((q: any, i: number) => `${i + 1}. ${q.prompt}`).join('\n') || '(none — see confidence notes below)'}
-${confidenceNotes ? `\nConfidence-vs-performance mismatches to weave in:\n${confidenceNotes}` : ''}
+${confidenceNotes ? `\nConfidence-vs-performance mismatches to fold in as their own stage:\n${confidenceNotes}` : ''}
 
-Write a detailed, funny-but-useful improvement plan. For EACH distinct weak topic you can identify from the questions above:
-- Name the exact topic (not a vague area — the specific concept the question was testing).
-- Say in one punchy, quirky sentence why it matters for the role "${resumeClaim?.target_role || 'a role'}" — inject personality, a fun analogy, or a light joke.
-- Give a concrete next action: a specific thing to practice, build, or re-read (e.g. "practice 5 problems on X on LeetCode/HackerRank", "rebuild the auth flow in your project using Y properly", "read the official docs section on Z"). Be concrete, not "study more" — but you can phrase it with flair.
-If there are confidence mismatches, add them as their own short, funny beat (e.g. calling out a "sneaky lucky guess" or "confident bluff") woven naturally into the plan.
+Return a JSON array, ordered from the most foundational/urgent gap first to the most polish-level gap last (a "from scratch to sharp" progression), one object per distinct weak topic (plus one per confidence mismatch, if any). Each object:
+{"title": "short punchy stage name (3-6 words, not the raw question)", "why": "ONE quirky sentence — a joke or fun analogy — on why it matters for the role, no lecture", "action": "ONE concrete next step: a specific thing to practice, build, or re-read (e.g. '5 problems on X on LeetCode', 'rebuild the auth flow in your project using Y properly'), phrased with flair, not 'study more'"}
 
-Format: one short paragraph per topic, topic name as a bold-ish lead-in phrase followed by a colon, separated by a blank line between topics. Do NOT use markdown headers (#) or bullet symbols (-, *). Plain text paragraphs only, separated by blank lines. Funny, quirky, encouraging tone throughout — never actually mean, never say "learn everything from scratch," never truly shame the student. End with one short, funny closing line of encouragement tying it back to their target role.`;
+Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never actually mean, never say "learn everything from scratch," never truly shame the student. Return ONLY the JSON array, no markdown fences, no commentary.`;
 
       try {
-        const result = await generateText(roadmapPrompt, { temperature: 0.6, maxOutputTokens: 2000 });
-        const text = result.text.trim();
-        if (text && !result.truncated) roadmap = text;
+        const result = await generateText(roadmapPrompt, { temperature: 0.6, maxOutputTokens: 1200 });
+        const jsonMatch = result.text.match(/\[[\s\S]*\]/);
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed.every((s) => typeof s?.title === 'string' && typeof s?.why === 'string' && typeof s?.action === 'string')
+        ) {
+          roadmap = JSON.stringify(parsed);
+        }
       } catch (e) {
         console.error('Roadmap generation failed:', e);
       }

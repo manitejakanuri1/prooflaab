@@ -11,6 +11,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import TimedResumeAssessment, { ResumeScoreResult } from "./TimedResumeAssessment";
+import { RoadmapStages } from "./RoadmapStages";
 import { downloadResumeAsPdf } from "@/lib/resumePdf";
 import { addDays, formatDistanceToNow } from "date-fns";
 
@@ -873,7 +874,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
                 )}
                 <div>
                   <p className="text-sm font-medium mb-1">Your roadmap</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">{scoreResult.roadmap}</p>
+                  <RoadmapStages roadmap={scoreResult.roadmap} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button

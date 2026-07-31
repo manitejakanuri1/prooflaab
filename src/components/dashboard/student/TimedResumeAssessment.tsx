@@ -64,6 +64,7 @@ export interface ResumeScoreResult {
   reasoning_score?: number | null;
   interview_readiness_score?: number | null;
   answer_scores?: AnswerScore[];
+  skill_gap?: { verified: string[]; needs_improvement: string[]; missing: string[] } | null;
 }
 
 interface TimedResumeAssessmentProps {
@@ -196,6 +197,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       project_proof_score: data.project_proof_score,
       reasoning_score: data.reasoning_score,
       interview_readiness_score: data.interview_readiness_score,
+      skill_gap: data.skill_gap,
     });
     setSubmitting(false);
 

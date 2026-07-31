@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TARGET_ROLES } from "@/lib/targetRoles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import TimedResumeAssessment, { ResumeScoreResult } from "./TimedResumeAssessment";
 import { RoadmapStages } from "./RoadmapStages";
+import { SkillGap } from "./SkillGap";
 import { downloadResumeAsPdf } from "@/lib/resumePdf";
 import { addDays, formatDistanceToNow } from "date-fns";
 
@@ -157,7 +160,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       if (row.status === "confirmed") {
         const { data: scorecard } = await supabase
           .from("resume_scorecards")
-          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes, coding_score, project_proof_score, reasoning_score, interview_readiness_score, created_at")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, skill_gap, voice_authenticity_score, voice_notes, coding_score, project_proof_score, reasoning_score, interview_readiness_score, created_at")
           .eq("resume_claims_id", row.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -168,6 +171,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             ats_match_score: scorecard.ats_match_score,
             skill_proof_score: scorecard.skill_proof_score ?? 0,
             roadmap: scorecard.roadmap || "",
+            skill_gap: scorecard.skill_gap as ResumeScoreResult["skill_gap"],
             voice_authenticity_score: scorecard.voice_authenticity_score,
             voice_notes: scorecard.voice_notes,
             coding_score: scorecard.coding_score,
@@ -618,11 +622,27 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           <CardContent className="space-y-6">
             <div>
               <label className="text-sm font-medium mb-1 block">Target role</label>
-              <Input
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
-                placeholder="e.g. Backend Developer"
-              />
+              <Select
+                value={TARGET_ROLES.includes(targetRole) ? targetRole : targetRole ? "Other" : ""}
+                onValueChange={(v) => setTargetRole(v === "Other" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your target role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TARGET_ROLES.map((role) => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(!TARGET_ROLES.includes(targetRole) || targetRole === "") && (
+                <Input
+                  className="mt-2"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  placeholder="Type your role, e.g. Embedded Systems Engineer"
+                />
+              )}
             </div>
 
             <div>
@@ -819,6 +839,12 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               <div className="border rounded-lg p-3 flex items-center justify-between">
                 <p className="text-sm font-medium">Coding round</p>
                 <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+              </div>
+            )}
+            {scoreResult.skill_gap && (
+              <div className="border rounded-lg p-3">
+                <p className="text-sm font-medium mb-2">Skill gap for {targetRole || "your target role"}</p>
+                <SkillGap skillGap={scoreResult.skill_gap} />
               </div>
             )}
             <div>

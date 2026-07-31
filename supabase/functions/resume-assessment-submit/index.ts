@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
+import { classifySkillGap } from "../_shared/role-skills.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -246,10 +247,19 @@ Return ONLY the JSON object.`;
     const luckyGuesses = answerScores.filter((s) => s.confidence_flag === 'lucky_guess');
     const overconfident = answerScores.filter((s) => s.confidence_flag === 'overconfident');
 
+    // Role-specific skill gap: verified/needs-improvement/missing against a static
+    // required-skills list for the target role. Unknown/custom roles → null, and
+    // the roadmap below just falls back to its old weak-question-only behavior.
+    const skillGap = classifySkillGap(
+      resumeClaim?.target_role,
+      resumeClaim?.skills || [],
+      weakQuestions.map((q: any) => q.prompt)
+    );
+
     let roadmap = JSON.stringify([
       { title: 'Clean sweep', why: "Nothing weak to roast here — you actually knew your stuff.", action: "Come back for a re-check later to prove it wasn't a fluke." },
     ]);
-    if (weakQuestions.length > 0 || luckyGuesses.length > 0 || overconfident.length > 0) {
+    if (weakQuestions.length > 0 || luckyGuesses.length > 0 || overconfident.length > 0 || (skillGap && skillGap.missing.length > 0)) {
       const confidenceNotes = [
         luckyGuesses.length > 0
           ? `They marked themselves LOW confidence but nailed these anyway — fold in a "sneaky lucky guess" stage: ${luckyGuesses.map((s) => s.question_prompt).join(' | ')}`
@@ -259,6 +269,10 @@ Return ONLY the JSON object.`;
           : '',
       ].filter(Boolean).join('\n');
 
+      const skillGapNotes = skillGap
+        ? `\nSkills required for "${resumeClaim?.target_role}" they haven't claimed at all — fold these in as their own foundational stage(s), even though no question tested them: ${skillGap.missing.join(', ') || '(none)'}\nClaimed skills that overlapped with weak answers above (already covered as weak-question stages, don't duplicate): ${skillGap.needs_improvement.join(', ') || '(none)'}`
+        : '';
+
       const roadmapPrompt = `You are a witty, funny mentor giving a student direct, specific coaching after a skills-verification test. Think "roast with love" — a friend who's genuinely rooting for them but isn't afraid to be quirky, playful, and a little cheeky about it. NOT a boring corporate coach, and NOT a re-taught lesson — one punchy beat per stage, not paragraphs.
 
 Student is targeting: "${resumeClaim?.target_role || 'a role'}"
@@ -267,8 +281,9 @@ Claimed skills: [${(resumeClaim?.skills || []).join(', ')}]
 They got these specific questions wrong or weak:
 ${weakQuestions.map((q: any, i: number) => `${i + 1}. ${q.prompt}`).join('\n') || '(none — see confidence notes below)'}
 ${confidenceNotes ? `\nConfidence-vs-performance mismatches to fold in as their own stage:\n${confidenceNotes}` : ''}
+${skillGapNotes}
 
-Return a JSON array, ordered from the most foundational/urgent gap first to the most polish-level gap last (a "from scratch to sharp" progression), one object per distinct weak topic (plus one per confidence mismatch, if any). Each object:
+Return a JSON array, ordered from the most foundational/urgent gap first to the most polish-level gap last (a "from scratch to sharp" progression), one object per distinct weak topic (plus one per confidence mismatch, plus one per missing required skill, if any). Each object:
 {"title": "short punchy stage name (3-6 words, not the raw question)", "why": "ONE quirky sentence — a joke or fun analogy — on why it matters for the role, no lecture", "action": "ONE concrete next step: a specific thing to practice, build, or re-read (e.g. '5 problems on X on LeetCode', 'rebuild the auth flow in your project using Y properly'), phrased with flair, not 'study more'"}
 
 Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never actually mean, never say "learn everything from scratch," never truly shame the student. Return ONLY the JSON array, no markdown fences, no commentary.`;
@@ -319,6 +334,7 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
         reasoning_score: reasoningScore,
         interview_readiness_score: interviewReadinessScore,
         roadmap,
+        skill_gap: skillGap,
         is_retest: assessment.is_retest ?? false,
       })
       .select('id')
@@ -347,6 +363,7 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
         resume_quality_score: resumeClaim?.resume_quality_score ?? null,
         ats_match_score: resumeClaim?.ats_match_score ?? null,
         roadmap,
+        skill_gap: skillGap,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

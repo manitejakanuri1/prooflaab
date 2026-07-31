@@ -122,7 +122,7 @@ serve(async (req) => {
     const currentTime = new Date().toISOString();
 
     // Helper function to call Gemini API
-    async function generateWithGemini(prompt: string, model: string = 'gemini-2.5-flash-lite'): Promise<{ title: string; description: string; model: string }> {
+    async function generateWithGemini(prompt: string, model: string = 'gemini-flash-latest'): Promise<{ title: string; description: string; model: string }> {
       if (!geminiApiKey) {
         console.error('GEMINI_API_KEY environment variable not set');
         throw new Error('AI generation failed, please retry. (API key not configured)');
@@ -369,7 +369,7 @@ Description: Build a dynamic web application that displays and filters product l
 
 Now generate a task for: ${keywords}`;
 
-        const { title, description, model } = await generateWithGemini(prompt, 'gemini-2.5-flash-lite');
+        const { title, description, model } = await generateWithGemini(prompt, 'gemini-flash-latest');
         
         const aiMetadata = {
           model: model,
@@ -486,7 +486,7 @@ Description: Build a comprehensive personal portfolio website using React.js tha
 Now generate a personalized mini-project for ${student.full_name}:`;
 
           try {
-            const { title, description, model } = await generateWithGemini(prompt, 'gemini-2.5-flash-lite');
+            const { title, description, model } = await generateWithGemini(prompt, 'gemini-flash-latest');
             
             const aiMetadata = {
               model: model,

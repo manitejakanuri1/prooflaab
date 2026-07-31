@@ -17,7 +17,10 @@ import {
   Sparkles,
   Package,
   Trophy,
-  FileCheck2
+  FileCheck2,
+  BriefcaseBusiness,
+  Radar,
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -42,7 +45,17 @@ interface MenuItem {
 // from the Dashboard overview (Feed, Progress, Portfolio, Learning)
 const menuItems: MenuItem[] = [
   { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
-  { id: "resume", label: "Resume Check", icon: FileCheck2 },
+  {
+    id: "resume-group",
+    label: "Resume",
+    icon: FileCheck2,
+    children: [
+      { id: "resume", label: "Resume Check", icon: FileCheck2 },
+      { id: "resume-jobmatch", label: "Match to a Job", icon: BriefcaseBusiness },
+      { id: "resume-certs", label: "Certification Radar", icon: Radar },
+      { id: "resume-history", label: "Retest History", icon: History },
+    ]
+  },
   {
     id: "tasks",
     label: "Tasks",

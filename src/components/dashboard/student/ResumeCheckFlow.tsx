@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Briefcase, History, Radar, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,32 +48,6 @@ interface AssessmentQuestion {
   options?: string[];
 }
 
-interface JdMatchResult {
-  jd_title: string | null;
-  match_score: number;
-  matched_skills: string[];
-  missing_skills: string[];
-  suggestions: string;
-}
-
-interface CertSuggestion {
-  name: string;
-  provider: string;
-  priority: "high" | "medium" | "low";
-  why: string;
-}
-
-interface HistoryEntry {
-  id: string;
-  created_at: string;
-  resume_quality_score: number | null;
-  ats_match_score: number | null;
-  skill_proof_score: number | null;
-  voice_authenticity_score: number | null;
-  coding_score: number | null;
-  is_retest: boolean;
-}
-
 type ScoreTier = "bad" | "good" | "excellent";
 
 const getTier = (ats: number | null | undefined): ScoreTier => {
@@ -107,9 +81,13 @@ const clearActiveAssessment = (claimId: string) => {
 
 interface ResumeCheckFlowProps {
   onGraded?: (result: ResumeScoreResult) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
-const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
+// Single section visible at a time — no stacked cards to scroll through.
+type Step = "upload" | "feedback" | "review" | "prove" | "results";
+
+const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -117,6 +95,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [claim, setClaim] = useState<ResumeClaimRow | null>(null);
+  const [editingDetails, setEditingDetails] = useState(false);
 
   const [targetRole, setTargetRole] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
@@ -136,19 +115,9 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [scoreResult, setScoreResult] = useState<ResumeScoreResult | null>(null);
 
-  const [jdText, setJdText] = useState("");
-  const [matchingJd, setMatchingJd] = useState(false);
-  const [jdResult, setJdResult] = useState<JdMatchResult | null>(null);
-
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-
-  const [scanningCerts, setScanningCerts] = useState(false);
-  const [certSuggestions, setCertSuggestions] = useState<CertSuggestion[] | null>(null);
+  const [lastGradedAt, setLastGradedAt] = useState<Date | null>(null);
 
   const tier = getTier(claim?.ats_match_score);
-
-  const lastGradedAt = history[0]?.created_at ? new Date(history[0].created_at) : null;
   const retestUnlockAt = lastGradedAt ? addDays(lastGradedAt, RETEST_COOLDOWN_DAYS) : null;
   const retestLocked = !!retestUnlockAt && retestUnlockAt.getTime() > Date.now();
 
@@ -188,7 +157,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       if (row.status === "confirmed") {
         const { data: scorecard } = await supabase
           .from("resume_scorecards")
-          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes, coding_score")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, voice_authenticity_score, voice_notes, coding_score, created_at")
           .eq("resume_claims_id", row.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -203,43 +172,16 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
             voice_notes: scorecard.voice_notes,
             coding_score: scorecard.coding_score,
           });
+          setLastGradedAt(new Date(scorecard.created_at));
         }
       }
     }
     setLoadingExisting(false);
   }, [user]);
 
-  const loadHistory = useCallback(async () => {
-    if (!user) return;
-    const { data: profile } = await supabase
-      .from("student_profiles")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
-    if (!profile) {
-      setLoadingHistory(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("resume_scorecards")
-      .select("id, created_at, resume_quality_score, ats_match_score, skill_proof_score, voice_authenticity_score, coding_score, is_retest")
-      .eq("student_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error("Error loading resume history:", error);
-    } else {
-      setHistory((data as HistoryEntry[]) || []);
-    }
-    setLoadingHistory(false);
-  }, [user]);
-
   useEffect(() => {
     loadLatestClaim();
-    loadHistory();
-  }, [loadLatestClaim, loadHistory]);
+  }, [loadLatestClaim]);
 
   // Reopen an in-progress assessment after a page reload once the claim it
   // belongs to has loaded.
@@ -295,6 +237,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       setProjects(data.projects || []);
       setImprovedResume(null);
       setScoreResult(null);
+      setEditingDetails(false);
       setClaim({
         id: data.resume_claim_id,
         target_role: data.target_role,
@@ -365,7 +308,8 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       if (error) throw error;
 
       setClaim({ ...claim, status: "confirmed", target_role: targetRole, skills, certifications, projects });
-      toast({ title: "Confirmed", description: "Your resume claims are locked in. Assessment questions are next." });
+      setEditingDetails(false);
+      toast({ title: "Confirmed", description: "Your resume claims are locked in." });
     } catch (err: any) {
       console.error("Error confirming resume claims:", err);
       toast({ title: "Couldn't save", description: err.message || "Please try again.", variant: "destructive" });
@@ -474,51 +418,9 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
 
   const handleGraded = (result: ResumeScoreResult) => {
     setScoreResult(result);
+    setLastGradedAt(new Date());
     onGraded?.(result);
-    loadHistory();
     if (claim) clearActiveAssessment(claim.id);
-  };
-
-  const handleMatchJd = async () => {
-    if (!claim || !jdText.trim()) return;
-    setMatchingJd(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-jd-match", {
-        body: { resume_claims_id: claim.id, jd_text: jdText },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setJdResult({
-        jd_title: data.jd_title,
-        match_score: data.match_score,
-        matched_skills: data.matched_skills || [],
-        missing_skills: data.missing_skills || [],
-        suggestions: data.suggestions || "",
-      });
-    } catch (err: any) {
-      console.error("JD match failed:", err);
-      toast({ title: "Couldn't check match", description: err.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setMatchingJd(false);
-    }
-  };
-
-  const handleScanCerts = async () => {
-    if (!claim) return;
-    setScanningCerts(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-cert-radar", {
-        body: { resume_claims_id: claim.id },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setCertSuggestions(data.suggestions || []);
-    } catch (err: any) {
-      console.error("Cert radar failed:", err);
-      toast({ title: "Couldn't scan certifications", description: err.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setScanningCerts(false);
-    }
   };
 
   if (loadingExisting) {
@@ -534,6 +436,16 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
     );
   }
 
+  const step: Step = !claim
+    ? "upload"
+    : !claim.feedback_acknowledged && claim.status !== "confirmed"
+    ? "feedback"
+    : editingDetails || claim.status !== "confirmed"
+    ? "review"
+    : !scoreResult
+    ? "prove"
+    : "results";
+
   return (
     <div className="space-y-6">
       <Card>
@@ -544,10 +456,12 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Upload your resume. We'll pull out the skills, certifications, projects, and target role you've written —
-            you confirm or fix anything before it's used to test you.
-          </p>
+          {step === "upload" && (
+            <p className="text-sm text-muted-foreground">
+              Upload your resume. We'll pull out the skills, certifications, projects, and target role you've written —
+              you confirm or fix anything before it's used to test you.
+            </p>
+          )}
 
           <div>
             <input
@@ -559,7 +473,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
               disabled={uploading}
             />
             <label htmlFor="resume-file-input">
-              <Button asChild variant="default" disabled={uploading}>
+              <Button asChild variant={step === "upload" ? "default" : "outline"} size={step === "upload" ? "default" : "sm"} disabled={uploading}>
                 <span>
                   {uploading ? (
                     <>
@@ -575,18 +489,18 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
             </label>
           </div>
 
-          {claim?.status === "confirmed" && (
-            <Alert className="border-green-300 bg-green-50 dark:bg-green-950/30">
+          {claim?.status === "confirmed" && step !== "upload" && (
+            <Alert className="border-green-300 bg-green-50 dark:bg-green-950/30 py-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800 dark:text-green-300">
-                Confirmed. This is what your assessment will be based on.
+              <AlertDescription className="text-green-800 dark:text-green-300 text-sm">
+                Confirmed. This is what your assessment is based on.
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
       </Card>
 
-      {claim && !claim.feedback_acknowledged && claim.status !== "confirmed" && tier !== "excellent" && (
+      {step === "feedback" && claim && tier !== "excellent" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Resume feedback</CardTitle>
@@ -653,7 +567,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
         </Card>
       )}
 
-      {claim && !claim.feedback_acknowledged && claim.status !== "confirmed" && tier === "excellent" && (
+      {step === "feedback" && claim && tier === "excellent" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -691,11 +605,11 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
         </Card>
       )}
 
-      {claim && (claim.feedback_acknowledged || claim.status === "confirmed") && (
+      {step === "review" && claim && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {claim.status === "confirmed" ? "Confirmed details" : "Review what we found"}
+              {claim.status === "confirmed" ? "Edit confirmed details" : "Review what we found"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -802,22 +716,29 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
               </Button>
             </div>
 
-            <Button onClick={handleConfirm} disabled={saving} className="w-full sm:w-auto">
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
-                </>
-              ) : claim.status === "confirmed" ? (
-                "Save changes"
-              ) : (
-                "Confirm & continue"
+            <div className="flex gap-2">
+              <Button onClick={handleConfirm} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
+                  </>
+                ) : claim.status === "confirmed" ? (
+                  "Save changes"
+                ) : (
+                  "Confirm & continue"
+                )}
+              </Button>
+              {claim.status === "confirmed" && (
+                <Button variant="ghost" onClick={() => setEditingDetails(false)} disabled={saving}>
+                  Cancel
+                </Button>
               )}
-            </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {claim?.status === "confirmed" && (
+      {step === "prove" && claim && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -826,299 +747,112 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!scoreResult ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  A handful of quick questions based only on what's above — 15 seconds each, no going back.
-                </p>
-                <Button onClick={handleStartAssessment} disabled={generatingAssessment}>
-                  {generatingAssessment ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
-                    </>
-                  ) : (
-                    "Start assessment"
-                  )}
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="border rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold">{scoreResult.resume_quality_score ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
-                  </div>
-                  <div className="border rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold">{scoreResult.ats_match_score ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground mt-1">ATS Match</div>
-                  </div>
-                  <div className="border rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold">{scoreResult.skill_proof_score}</div>
-                    <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
-                  </div>
-                </div>
-                {scoreResult.voice_authenticity_score != null && (
-                  <div className="border rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-medium">Voice authenticity</p>
-                      <span className="text-lg font-bold">{scoreResult.voice_authenticity_score}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{scoreResult.voice_notes}</p>
-                  </div>
-                )}
-                {scoreResult.coding_score != null && (
-                  <div className="border rounded-lg p-3 flex items-center justify-between">
-                    <p className="text-sm font-medium">Coding round</p>
-                    <span className="text-lg font-bold">{scoreResult.coding_score}</span>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium mb-1">Your roadmap</p>
-                  <RoadmapStages roadmap={scoreResult.roadmap} />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleRetestWeak}
-                    disabled={retesting || generatingAssessment || retestLocked}
-                    title={retestLocked && retestUnlockAt ? `Unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}` : undefined}
-                  >
-                    {retesting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building retest...
-                      </>
-                    ) : retestLocked && retestUnlockAt ? (
-                      `Retest unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}`
-                    ) : (
-                      "Retest weak topics"
-                    )}
-                  </Button>
-                  <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment || retesting}>
-                    {generatingAssessment ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
-                      </>
-                    ) : (
-                      "Retake full assessment"
-                    )}
-                  </Button>
-                </div>
-                {retestLocked && (
-                  <p className="text-xs text-muted-foreground">
-                    Use this time to work through your roadmap — instant retesting doesn't build real understanding.
-                  </p>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {claim?.status === "confirmed" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Briefcase className="h-5 w-5" />
-              Match to a job
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Paste a real job description to see how your confirmed resume actually matches it — not just a generic ATS guess.
+              A handful of quick questions based only on what's above — 15 seconds each, no going back.
             </p>
-            <Textarea
-              value={jdText}
-              onChange={(e) => setJdText(e.target.value)}
-              placeholder="Paste the job description here..."
-              rows={6}
-            />
-            <Button onClick={handleMatchJd} disabled={matchingJd || !jdText.trim()}>
-              {matchingJd ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Checking match...
-                </>
-              ) : (
-                "Check match"
-              )}
-            </Button>
-
-            {jdResult && (
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{jdResult.jd_title || "This role"}</p>
-                  <span className="text-2xl font-bold">{jdResult.match_score}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Matched</p>
-                  <div className="flex flex-wrap gap-2">
-                    {jdResult.matched_skills.length > 0 ? jdResult.matched_skills.map((s, i) => (
-                      <Badge key={i} variant="secondary">{s}</Badge>
-                    )) : <span className="text-sm text-muted-foreground">None found</span>}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Missing</p>
-                  <div className="flex flex-wrap gap-2">
-                    {jdResult.missing_skills.length > 0 ? jdResult.missing_skills.map((s, i) => (
-                      <Badge key={i} variant="outline" className="border-destructive/40 text-destructive">{s}</Badge>
-                    )) : <span className="text-sm text-muted-foreground">Nothing major</span>}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">What to do</p>
-                  <p className="text-sm text-muted-foreground">{jdResult.suggestions}</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {claim?.status === "confirmed" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Radar className="h-5 w-5" />
-              Certification radar
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Real certifications worth pursuing next for your target role — skips anything you already have.
-            </p>
-            <Button onClick={handleScanCerts} disabled={scanningCerts}>
-              {scanningCerts ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Scanning...
-                </>
-              ) : certSuggestions ? (
-                "Re-scan"
-              ) : (
-                "Scan for certifications"
-              )}
-            </Button>
-
-            {certSuggestions && (
-              <div className="space-y-2">
-                {certSuggestions.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No gaps found — your certifications already cover this role well.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleStartAssessment} disabled={generatingAssessment}>
+                {generatingAssessment ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
+                  </>
+                ) : (
+                  "Start assessment"
                 )}
-                {certSuggestions.map((c, i) => (
-                  <div key={i} className="border rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-sm">{c.name}</p>
-                      <Badge
-                        variant={c.priority === "high" ? "default" : "outline"}
-                        className={c.priority === "high" ? "" : c.priority === "medium" ? "border-amber-400 text-amber-600" : "border-muted-foreground/40 text-muted-foreground"}
-                      >
-                        {c.priority}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-1">{c.provider}</p>
-                    <p className="text-sm text-muted-foreground">{c.why}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {!loadingHistory && history.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <History className="h-5 w-5" />
-              Retest history
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const oldest = history[history.length - 1];
-              const latest = history[0];
-              const hasDelta = oldest.skill_proof_score != null && latest.skill_proof_score != null;
-              const netDelta = hasDelta ? latest.skill_proof_score! - oldest.skill_proof_score! : null;
-              const retestCount = history.filter((h) => h.is_retest).length;
-              return (
-                <p className="text-xs text-muted-foreground mb-3">
-                  First tested {new Date(oldest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
-                  {retestCount > 0 && (
-                    <> · latest retest {new Date(latest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</>
-                  )}
-                  {netDelta !== null && netDelta !== 0 && (
-                    <>
-                      {" · "}
-                      {netDelta > 0
-                        ? `net +${netDelta} skill proof — actual glow-up, not a fluke`
-                        : `net ${netDelta} skill proof — rough patch, roadmap's calling`}
-                    </>
-                  )}
-                  {netDelta === 0 && retestCount > 0 && <> · flat so far — same score, try again after more prep</>}
-                </p>
-              );
-            })()}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-muted-foreground border-b">
-                    <th className="py-2 pr-4 font-medium">Date</th>
-                    <th className="py-2 px-3 font-medium">Type</th>
-                    <th className="py-2 px-3 font-medium">Quality</th>
-                    <th className="py-2 px-3 font-medium">ATS</th>
-                    <th className="py-2 px-3 font-medium">Skill Proof</th>
-                    <th className="py-2 px-3 font-medium">Voice</th>
-                    <th className="py-2 px-3 font-medium">Coding</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((h, i) => {
-                    const prev = history[i + 1];
-                    const delta =
-                      prev && h.skill_proof_score != null && prev.skill_proof_score != null
-                        ? h.skill_proof_score - prev.skill_proof_score
-                        : null;
-                    return (
-                      <tr key={h.id} className="border-b last:border-0">
-                        <td className="py-2 pr-4 whitespace-nowrap">
-                          {new Date(h.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
-                        </td>
-                        <td className="py-2 px-3">
-                          {h.is_retest ? (
-                            <Badge variant="outline" className="border-amber-400 text-amber-600">Retest</Badge>
-                          ) : (
-                            <Badge variant="secondary">Full</Badge>
-                          )}
-                        </td>
-                        <td className="py-2 px-3">{h.resume_quality_score ?? "—"}</td>
-                        <td className="py-2 px-3">{h.ats_match_score ?? "—"}</td>
-                        <td className="py-2 px-3">
-                          <span className="inline-flex items-center gap-1">
-                            {h.skill_proof_score ?? "—"}
-                            {delta !== null && delta > 0 && (
-                              <span className="inline-flex items-center text-emerald-600" title={`Up ${delta} vs last attempt`}>
-                                <TrendingUp className="h-3.5 w-3.5" />
-                              </span>
-                            )}
-                            {delta !== null && delta < 0 && (
-                              <span className="inline-flex items-center text-red-500" title={`Down ${Math.abs(delta)} vs last attempt`}>
-                                <TrendingDown className="h-3.5 w-3.5" />
-                              </span>
-                            )}
-                            {delta === 0 && (
-                              <span className="inline-flex items-center text-muted-foreground" title="Same as last attempt">
-                                <Minus className="h-3.5 w-3.5" />
-                              </span>
-                            )}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3">{h.voice_authenticity_score ?? "—"}</td>
-                        <td className="py-2 px-3">{h.coding_score ?? "—"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              </Button>
+              <Button variant="outline" onClick={() => setEditingDetails(true)}>
+                <Pencil className="h-4 w-4 mr-2" /> Edit details
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === "results" && claim && scoreResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
+              Your results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold">{scoreResult.resume_quality_score ?? "—"}</div>
+                <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold">{scoreResult.ats_match_score ?? "—"}</div>
+                <div className="text-xs text-muted-foreground mt-1">ATS Match</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold">{scoreResult.skill_proof_score}</div>
+                <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
+              </div>
+            </div>
+            {scoreResult.voice_authenticity_score != null && (
+              <div className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium">Voice authenticity</p>
+                  <span className="text-lg font-bold">{scoreResult.voice_authenticity_score}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{scoreResult.voice_notes}</p>
+              </div>
+            )}
+            {scoreResult.coding_score != null && (
+              <div className="border rounded-lg p-3 flex items-center justify-between">
+                <p className="text-sm font-medium">Coding round</p>
+                <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium mb-1">Your roadmap</p>
+              <RoadmapStages roadmap={scoreResult.roadmap} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={handleRetestWeak}
+                disabled={retesting || generatingAssessment || retestLocked}
+                title={retestLocked && retestUnlockAt ? `Unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}` : undefined}
+              >
+                {retesting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building retest...
+                  </>
+                ) : retestLocked && retestUnlockAt ? (
+                  `Retest unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}`
+                ) : (
+                  "Retest weak topics"
+                )}
+              </Button>
+              <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment || retesting}>
+                {generatingAssessment ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
+                  </>
+                ) : (
+                  "Retake full assessment"
+                )}
+              </Button>
+              <Button variant="ghost" onClick={() => setEditingDetails(true)}>
+                <Pencil className="h-4 w-4 mr-2" /> Edit details
+              </Button>
+            </div>
+            {retestLocked && (
+              <p className="text-xs text-muted-foreground">
+                Use this time to work through your roadmap — instant retesting doesn't build real understanding.
+              </p>
+            )}
+
+            {onNavigateTab && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t">
+                <Button variant="outline" size="sm" onClick={() => onNavigateTab("resume-jobmatch")}>Match to a Job</Button>
+                <Button variant="outline" size="sm" onClick={() => onNavigateTab("resume-certs")}>Certification Radar</Button>
+                <Button variant="outline" size="sm" onClick={() => onNavigateTab("resume-history")}>Retest History</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

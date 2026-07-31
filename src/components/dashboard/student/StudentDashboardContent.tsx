@@ -17,6 +17,9 @@ import StudentSettingsPage from "./StudentSettingsPage";
 import StudentCreateTaskPage from "./StudentCreateTaskPage";
 import StudentFeedPage from "./StudentFeedPage";
 import StudentResumeCheckPage from "./StudentResumeCheckPage";
+import StudentResumeJobMatchPage from "./StudentResumeJobMatchPage";
+import StudentResumeCertsPage from "./StudentResumeCertsPage";
+import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -32,7 +35,13 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
       case "dashboard":
         return <StudentDashboardOverview onNavigateTab={onTabChange} />;
       case "resume":
-        return <StudentResumeCheckPage />;
+        return <StudentResumeCheckPage onNavigateTab={onTabChange} />;
+      case "resume-jobmatch":
+        return <StudentResumeJobMatchPage />;
+      case "resume-certs":
+        return <StudentResumeCertsPage />;
+      case "resume-history":
+        return <StudentResumeHistoryPage />;
       // New task submenu routes
       case "tasks-opportunities":
         return <StudentStartupOpportunitiesPage />;

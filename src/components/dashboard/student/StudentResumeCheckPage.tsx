@@ -1,7 +1,11 @@
 import ResumeCheckFlow from "./ResumeCheckFlow";
 
-const StudentResumeCheckPage = () => {
-  return <ResumeCheckFlow />;
+interface StudentResumeCheckPageProps {
+  onNavigateTab?: (tab: string) => void;
+}
+
+const StudentResumeCheckPage = ({ onNavigateTab }: StudentResumeCheckPageProps) => {
+  return <ResumeCheckFlow onNavigateTab={onNavigateTab} />;
 };
 
 export default StudentResumeCheckPage;

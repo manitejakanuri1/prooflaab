@@ -2,6 +2,9 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { usePortfolioProjects } from "@/hooks/usePortfolioProjects";
+import { usePublicScorecard } from "@/hooks/usePublicScorecard";
+import { RoadmapStages } from "@/components/dashboard/student/RoadmapStages";
+import { ShieldCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +38,7 @@ const Portfolio = () => {
     portfolio?.student_id || ""
   );
   const { followerCount, followingCount, loading: countsLoading } = useFollowCounts(portfolio?.student_id);
+  const { scorecard } = usePublicScorecard(portfolio?.student_id);
 
   // Get current user ID and check if they're a student
   useEffect(() => {
@@ -346,6 +350,37 @@ const Portfolio = () => {
             </div>
           </div>
             </div>
+
+            {/* Verified Skill Scorecard */}
+            {scorecard && (
+              <div className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <ShieldCheck className="h-7 w-7 text-primary" />
+                  <h2 className="text-3xl font-bold">Verified Skill Scorecard</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                  {[
+                    ["Resume Quality", scorecard.resume_quality_score],
+                    ["ATS Match", scorecard.ats_match_score],
+                    ["Skill Proof", scorecard.skill_proof_score],
+                    ["Project Proof", scorecard.project_proof_score],
+                    ["Reasoning", scorecard.reasoning_score],
+                    ["Interview Readiness", scorecard.interview_readiness_score],
+                  ].map(([label, value]) => (
+                    <div key={label as string} className="border rounded-xl p-4 text-center bg-card">
+                      <div className="text-2xl font-bold">{value ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{label}</div>
+                    </div>
+                  ))}
+                </div>
+                {scorecard.roadmap && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Improvement roadmap</p>
+                    <RoadmapStages roadmap={scorecard.roadmap} />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Projects Section */}
             <div>

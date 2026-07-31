@@ -2470,7 +2470,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_resume_scorecards: {
+        Row: {
+          ats_match_score: number | null
+          created_at: string | null
+          interview_readiness_score: number | null
+          project_proof_score: number | null
+          reasoning_score: number | null
+          resume_quality_score: number | null
+          roadmap: string | null
+          skill_proof_score: number | null
+          student_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_scorecards_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_comment: {

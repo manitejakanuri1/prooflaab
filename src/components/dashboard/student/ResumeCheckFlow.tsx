@@ -83,6 +83,27 @@ const getTier = (ats: number | null | undefined): ScoreTier => {
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
+// Points a reload back at the in-progress assessment so the modal can
+// reopen with the same assessment_id/questions — the assessment's own
+// question/answer progress is then restored by TimedResumeAssessment itself.
+const activeAssessmentKey = (claimId: string) => `resume-assessment-active-${claimId}`;
+
+const saveActiveAssessment = (claimId: string, assessmentId: string, questions: AssessmentQuestion[]) => {
+  try {
+    localStorage.setItem(activeAssessmentKey(claimId), JSON.stringify({ assessmentId, questions }));
+  } catch {
+    // storage full/unavailable — reload-resume just won't work, not fatal
+  }
+};
+
+const clearActiveAssessment = (claimId: string) => {
+  try {
+    localStorage.removeItem(activeAssessmentKey(claimId));
+  } catch {
+    // ignore
+  }
+};
+
 interface ResumeCheckFlowProps {
   onGraded?: (result: ResumeScoreResult) => void;
 }
@@ -218,6 +239,26 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
     loadLatestClaim();
     loadHistory();
   }, [loadLatestClaim, loadHistory]);
+
+  // Reopen an in-progress assessment after a page reload once the claim it
+  // belongs to has loaded.
+  useEffect(() => {
+    if (!claim || assessmentId) return;
+    try {
+      const raw = localStorage.getItem(activeAssessmentKey(claim.id));
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved?.assessmentId && saved?.questions) {
+          setAssessmentId(saved.assessmentId);
+          setAssessmentQuestions(saved.questions);
+          setModalOpen(true);
+        }
+      }
+    } catch {
+      // corrupt/old pointer — ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claim?.id]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -386,6 +427,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       setAssessmentId(data.assessment_id);
       setAssessmentQuestions(data.questions || []);
       setModalOpen(true);
+      saveActiveAssessment(claim.id, data.assessment_id, data.questions || []);
     } catch (err: any) {
       console.error("Error starting assessment:", err);
       toast({ title: "Couldn't start assessment", description: err.message || "Please try again.", variant: "destructive" });
@@ -420,6 +462,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
       setAssessmentId(data.assessment_id);
       setAssessmentQuestions(data.questions || []);
       setModalOpen(true);
+      saveActiveAssessment(claim.id, data.assessment_id, data.questions || []);
     } catch (err: any) {
       console.error("Error starting retest:", err);
       toast({ title: "Not ready yet", description: err.message || "Please try again.", variant: "destructive" });
@@ -432,6 +475,7 @@ const ResumeCheckFlow = ({ onGraded }: ResumeCheckFlowProps) => {
     setScoreResult(result);
     onGraded?.(result);
     loadHistory();
+    if (claim) clearActiveAssessment(claim.id);
   };
 
   const handleMatchJd = async () => {

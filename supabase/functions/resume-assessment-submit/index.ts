@@ -157,7 +157,7 @@ Student's answer: ${answer.answer_text || '(no answer given)'}
 Return a JSON object:
 {
   "correctness_score": <0-100, does this show real understanding of what they claimed>,
-  "explanation": "<one sentence on why this score, written with real personality — quirky and funny, like a witty friend roasting or hyping them, never a dry textbook verdict>"
+  "explanation": "<1-2 sentences, written with real personality — quirky and funny, like a witty friend roasting or hyping them, never a dry textbook verdict. If the score is below 70, it MUST name the specific thing missing or wrong in their answer (not just 'be more specific') so they know exactly what to fix. If 70+, name the specific thing they got right.>"
 }
 
 Guidelines: a vague, generic, or copy-pasted-sounding answer with no specifics scores low even if technically not wrong. A specific, concrete explanation referencing real details scores high.

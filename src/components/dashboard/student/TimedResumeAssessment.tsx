@@ -99,7 +99,6 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
 
   const [phase, setPhase] = useState<Phase>("quiz");
   const [pendingResult, setPendingResult] = useState<ResumeScoreResult | null>(null);
-  const [codingGenError, setCodingGenError] = useState(false);
 
   const [codingQuestions, setCodingQuestions] = useState<CodingQuestion[]>([]);
   const [codingIndex, setCodingIndex] = useState(0);
@@ -110,12 +109,29 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
   const [submittingCode, setSubmittingCode] = useState(false);
   const codingAdvancingRef = useRef(false);
 
+  const [codingGenError, setCodingGenError] = useState(false);
+
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+  const skipNextScrollRef = useRef(false);
+
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
   const currentCodingQuestion = codingQuestions[codingIndex];
   const isLastCodingQuestion = codingIndex === codingQuestions.length - 1;
 
-  const startCodingRound = useCallback(async () => {
+  const applyCodingQuestions = (qs: CodingQuestion[]) => {
+    setCodingQuestions(qs);
+    setCodingIndex(0);
+    setCode(qs[0]?.starter_code || "");
+    setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
+    setRunResults(null);
+    setPhase("coding");
+  };
+
+  // Regenerates just the coding round. Used both as the initial fetch (fired
+  // alongside grading in submitAssessment) and as the retry action if that
+  // fetch fails — retrying never re-submits the already-graded quiz answers.
+  const retryCodingGen = useCallback(async () => {
     setPhase("coding-loading");
     setCodingGenError(false);
     try {
@@ -124,14 +140,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
-      const qs: CodingQuestion[] = data.questions || [];
-      setCodingQuestions(qs);
-      setCodingIndex(0);
-      setCode(qs[0]?.starter_code || "");
-      setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
-      setRunResults(null);
-      setPhase("coding");
+      applyCodingQuestions(data.questions || []);
     } catch (err: any) {
       console.error("Coding round generation failed:", err);
       toast({ title: "Couldn't load coding problems", description: err.message || "Please try again.", variant: "destructive" });
@@ -139,30 +148,65 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     }
   }, [resumeClaimsId, toast]);
 
+  // Grading and coding-problem generation don't depend on each other's output,
+  // so they're fired together instead of back-to-back — halves the wait after
+  // the last question instead of stacking two sequential LLM round trips.
+  // They're tracked independently (allSettled, not all) so a coding-gen failure
+  // never throws away a grading result that already succeeded.
   const submitAssessment = useCallback(async (finalAnswers: RecordedAnswer[]) => {
     setSubmitting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-assessment-submit", {
-        body: { assessment_id: assessmentId, answers: finalAnswers },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+    setPhase("coding-loading");
+    setCodingGenError(false);
 
-      setPendingResult({
-        skill_proof_score: data.skill_proof_score,
-        resume_quality_score: data.resume_quality_score,
-        ats_match_score: data.ats_match_score,
-        roadmap: data.roadmap,
-        answer_scores: data.answer_scores,
-      });
-      startCodingRound();
-    } catch (err: any) {
-      console.error("Assessment submit failed:", err);
-      toast({ title: "Couldn't submit", description: err.message || "Please try again.", variant: "destructive" });
-    } finally {
+    const [submitOutcome, codingOutcome] = await Promise.allSettled([
+      supabase.functions.invoke("resume-assessment-submit", {
+        body: { assessment_id: assessmentId, answers: finalAnswers },
+      }),
+      supabase.functions.invoke("resume-coding-generate", {
+        body: { resume_claims_id: resumeClaimsId },
+      }),
+    ]);
+
+    const submitErr =
+      submitOutcome.status === "rejected" ? submitOutcome.reason
+      : submitOutcome.value.error ? submitOutcome.value.error
+      : submitOutcome.value.data?.error ? new Error(submitOutcome.value.data.error)
+      : null;
+
+    if (submitErr) {
+      console.error("Assessment submit failed:", submitErr);
+      toast({ title: "Couldn't submit", description: submitErr.message || "Please try again.", variant: "destructive" });
+      setPhase("quiz");
+      advancingRef.current = false;
       setSubmitting(false);
+      return;
     }
-  }, [assessmentId, toast, startCodingRound]);
+
+    const data = (submitOutcome as PromiseFulfilledResult<any>).value.data;
+    setPendingResult({
+      skill_proof_score: data.skill_proof_score,
+      resume_quality_score: data.resume_quality_score,
+      ats_match_score: data.ats_match_score,
+      roadmap: data.roadmap,
+      answer_scores: data.answer_scores,
+    });
+    setSubmitting(false);
+
+    const codingErr =
+      codingOutcome.status === "rejected" ? codingOutcome.reason
+      : codingOutcome.value.error ? codingOutcome.value.error
+      : codingOutcome.value.data?.error ? new Error(codingOutcome.value.data.error)
+      : null;
+
+    if (codingErr) {
+      console.error("Coding round generation failed:", codingErr);
+      toast({ title: "Couldn't load coding problems", description: codingErr.message || "Please try again.", variant: "destructive" });
+      setCodingGenError(true);
+      return;
+    }
+
+    applyCodingQuestions((codingOutcome as PromiseFulfilledResult<any>).value.data.questions || []);
+  }, [assessmentId, resumeClaimsId, toast]);
 
   const advance = useCallback(() => {
     if (advancingRef.current || !currentQuestion) return;
@@ -191,6 +235,63 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     setTimeLeft(SECONDS_PER_QUESTION);
     advancingRef.current = false;
   }, [answers, confidence, currentQuestion, isLastQuestion, selectedOption, textAnswer, submitAssessment]);
+
+  // Reload-resume: this component fully remounts on a page reload, so progress
+  // (question index, recorded answers, coding round state) is snapshotted to
+  // localStorage and restored on mount, keyed per-assessment. Timers reset to
+  // full rather than being restored, so a reload never silently burns time.
+  const progressStorageKey = `resume-assessment-progress-${assessmentId}`;
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(progressStorageKey);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.phase && saved.phase !== "results") {
+          setAnswers(saved.answers || []);
+          setPendingResult(saved.pendingResult ?? null);
+          if (saved.phase === "coding" && saved.codingQuestions?.length) {
+            skipNextScrollRef.current = true;
+            setCodingQuestions(saved.codingQuestions);
+            setCodingIndex(saved.codingIndex || 0);
+            setCode(saved.code || "");
+            setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
+            setPhase("coding");
+          } else if (saved.phase === "coding-loading" && saved.pendingResult) {
+            // Grading already succeeded before the reload — only the coding
+            // round is missing, so fetch just that instead of redoing the quiz.
+            retryCodingGen();
+          } else {
+            skipNextScrollRef.current = true;
+            setCurrentIndex(Math.min(saved.currentIndex ?? 0, Math.max(questions.length - 1, 0)));
+            setTimeLeft(SECONDS_PER_QUESTION);
+            setPhase("quiz");
+          }
+        }
+      }
+    } catch {
+      // corrupt/old snapshot — ignore, start fresh
+    }
+    setHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || phase === "results") return;
+    const snapshot = { phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code };
+    try {
+      localStorage.setItem(progressStorageKey, JSON.stringify(snapshot));
+    } catch {
+      // storage full/unavailable — progress just won't resume, not fatal
+    }
+  }, [hydrated, phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, progressStorageKey]);
+
+  useEffect(() => {
+    if (phase === "results") {
+      try { localStorage.removeItem(progressStorageKey); } catch { /* ignore */ }
+    }
+  }, [phase, progressStorageKey]);
 
   useEffect(() => {
     if (!open || submitting || phase !== "quiz") return;
@@ -267,6 +368,18 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     return () => clearTimeout(timer);
   }, [codingTimeLeft, open, phase, submittingCode, advanceCoding]);
 
+  // New question/coding-problem renders should always start at the top of the
+  // dialog — otherwise leftover scroll position from a longer previous question
+  // hides the new one below the fold. Skipped once right after a reload-restore,
+  // since that jump is a resume, not a fresh question the student needs pointed out.
+  useEffect(() => {
+    if (skipNextScrollRef.current) {
+      skipNextScrollRef.current = false;
+      return;
+    }
+    dialogContentRef.current?.scrollTo({ top: 0 });
+  }, [currentIndex, codingIndex, phase]);
+
   if (phase === "quiz" && !currentQuestion) return null;
 
   const isWide = phase === "coding";
@@ -274,7 +387,8 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className={`${isWide ? "max-w-4xl" : "max-w-2xl"} [&>button]:hidden`}
+        ref={dialogContentRef}
+        className={`${isWide ? "max-w-4xl" : "max-w-2xl"} max-h-[85vh] overflow-y-auto [&>button]:hidden`}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -322,16 +436,20 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
               )}
 
               <div className="space-y-1.5 pt-1">
-                <p className="text-xs text-muted-foreground">How sure are you, honestly?</p>
+                <p className="text-xs text-muted-foreground">
+                  How sure are you, honestly?
+                  {confidence && <span className="ml-1 text-primary">— saved ✓</span>}
+                </p>
                 <div className="flex gap-2">
                   {CONFIDENCE_OPTIONS.map((c) => (
                     <button
                       key={c.value}
                       type="button"
+                      aria-pressed={confidence === c.value}
                       onClick={() => setConfidence(c.value)}
-                      className={`flex-1 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                      className={`flex-1 rounded-md border-2 px-2 py-1.5 text-xs transition-colors ${
                         confidence === c.value
-                          ? "border-primary bg-primary/10 font-medium"
+                          ? "border-primary bg-primary text-primary-foreground font-semibold shadow-sm"
                           : "border-border hover:bg-muted"
                       }`}
                     >
@@ -361,13 +479,17 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
           <div className="flex flex-col items-center gap-3 py-10">
             {codingGenError ? (
               <>
-                <p className="text-sm text-muted-foreground">Couldn't load coding problems.</p>
-                <Button onClick={startCodingRound}>Retry</Button>
+                <p className="text-sm text-muted-foreground">
+                  Your score is saved — just couldn't load the coding problems.
+                </p>
+                <Button onClick={retryCodingGen}>Retry</Button>
               </>
             ) : (
               <>
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <p className="text-sm text-muted-foreground">Building your coding problems...</p>
+                <p className="text-sm text-muted-foreground">
+                  {pendingResult ? "Building your coding problems..." : "Grading your answers & building your coding problems..."}
+                </p>
               </>
             )}
           </div>
@@ -493,6 +615,12 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                         )}
                         <p className="font-medium">{s.question_prompt}</p>
                       </div>
+                      {s.confidence && (
+                        <p className="text-xs text-muted-foreground">
+                          You said: {CONFIDENCE_OPTIONS.find((c) => c.value === s.confidence)?.emoji}{" "}
+                          {CONFIDENCE_OPTIONS.find((c) => c.value === s.confidence)?.label}
+                        </p>
+                      )}
                       {s.confidence_flag === "lucky_guess" && (
                         <p className="flex items-center gap-1 text-xs text-amber-600">
                           <Dices className="h-3.5 w-3.5" /> Called it a guess... and nailed it. Lucky!
@@ -507,7 +635,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                       {s.question_type === "mcq" && s.final_score < 70 && s.correct_answer && (
                         <p className="text-xs text-muted-foreground">Correct answer: {s.correct_answer}</p>
                       )}
-                      <p className="text-xs text-muted-foreground">{s.explanation}</p>
+                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Why: </span>{s.explanation}</p>
                     </div>
                   ))}
                 </div>

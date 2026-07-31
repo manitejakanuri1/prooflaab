@@ -124,6 +124,14 @@ serve(async (req) => {
       );
     }
 
+    const existingResults = (assessment.coding_results || {}) as Record<string, any>;
+    if (mode === 'submit' && existingResults[question_id]) {
+      return new Response(
+        JSON.stringify({ error: 'This question has already been submitted' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const testCases: TestCase[] = mode === 'run'
       ? [question.test_cases[0]]
       : question.test_cases;
@@ -149,7 +157,6 @@ serve(async (req) => {
     // submit mode: persist this question's result, and if all coding questions
     // are now submitted, compute the final coding score onto the scorecard.
     const passCount = results.filter(r => r.passed).length;
-    const existingResults = (assessment.coding_results || {}) as Record<string, any>;
     const updatedResults = {
       ...existingResults,
       [question_id]: { pass_count: passCount, total: results.length, results },

@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.trust-compute]
 verify_jwt = false
+
+[functions.app-guide-chat]
+verify_jwt = false

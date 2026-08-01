@@ -5,6 +5,7 @@
 interface GenOptions {
   temperature?: number;
   maxOutputTokens?: number;
+  json?: boolean; // defaults true — every existing caller expects a JSON blob back
 }
 
 export interface GenResult {
@@ -33,7 +34,7 @@ async function callGemini(prompt: string, apiKey: string, opts: GenOptions) {
         generationConfig: {
           temperature: opts.temperature ?? 0.5,
           maxOutputTokens: opts.maxOutputTokens ?? 2000,
-          responseMimeType: 'application/json',
+          ...(opts.json !== false ? { responseMimeType: 'application/json' } : {}),
         },
       }),
     }

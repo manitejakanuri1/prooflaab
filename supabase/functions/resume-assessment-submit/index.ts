@@ -348,6 +348,29 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       );
     }
 
+    // Turn each roadmap stage into a real task the student can start/upload
+    // proof for, instead of leaving the roadmap as read-only text.
+    try {
+      const stages = JSON.parse(roadmap) as { title: string; why: string; action: string }[];
+      const isFallback = stages.length === 1 && stages[0].title === 'Clean sweep';
+      if (!isFallback) {
+        const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        const taskRows = stages.map((s, i) => ({
+          student_id: profile.id,
+          title: `Roadmap: ${s.title}`,
+          description: `${s.why}\n\nAction: ${s.action}`,
+          due_date: dueDate,
+          xp_reward: 30,
+          roadmap_scorecard_id: scorecard.id,
+          roadmap_stage_index: i,
+        }));
+        const { error: taskInsertError } = await supabase.from('tasks').insert(taskRows);
+        if (taskInsertError) console.error('Roadmap task creation failed:', taskInsertError);
+      }
+    } catch (e) {
+      console.error('Roadmap task creation failed:', e);
+    }
+
     console.log('Assessment graded, scorecard saved:', scorecard.id);
 
     return new Response(

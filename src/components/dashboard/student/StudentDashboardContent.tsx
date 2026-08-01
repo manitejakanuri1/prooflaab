@@ -2,10 +2,6 @@ import StudentDashboardOverview from "./StudentDashboardOverview";
 import StudentStartupOpportunitiesPage from "./StudentStartupOpportunitiesPage";
 import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
 import StudentCreatedTasksPage from "./StudentCreatedTasksPage";
-import StudentTaskPacksPage from "./StudentTaskPacksPage";
-import StudentTaskPackDetailPage from "./StudentTaskPackDetailPage";
-import StudentTaskPackTaskPage from "./StudentTaskPackTaskPage";
-import StudentPackLeaderboardPage from "./StudentPackLeaderboardPage";
 import StudentApplicationsPage from "./StudentApplicationsPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 import StudentPortfolioPage from "./StudentPortfolioPage";
@@ -20,6 +16,7 @@ import StudentResumeCheckPage from "./StudentResumeCheckPage";
 import StudentResumeJobMatchPage from "./StudentResumeJobMatchPage";
 import StudentResumeCertsPage from "./StudentResumeCertsPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
+import StudentRoadmapPage from "./StudentRoadmapPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -42,6 +39,8 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
         return <StudentResumeCertsPage />;
       case "resume-history":
         return <StudentResumeHistoryPage />;
+      case "resume-roadmap":
+        return <StudentRoadmapPage />;
       // New task submenu routes
       case "tasks-opportunities":
         return <StudentStartupOpportunitiesPage />;
@@ -49,14 +48,6 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
         return <StudentAssignedTasksPage />;
       case "tasks-created":
         return <StudentCreatedTasksPage />;
-      case "task-packs":
-        return <StudentTaskPacksPage />;
-      case "task-pack-detail":
-        return <StudentTaskPackDetailPage />;
-      case "task-pack-task":
-        return <StudentTaskPackTaskPage />;
-      case "pack-leaderboard":
-        return <StudentPackLeaderboardPage />;
       case "create-task":
         return <StudentCreateTaskPage />;
       case "applications":

@@ -29,3 +29,6 @@ dist-ssr
 
 # Supabase CLI local link cache
 supabase/.temp/
+
+.vercel
+.env*

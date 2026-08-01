@@ -15,12 +15,11 @@ import {
   Building2,
   ClipboardList,
   Sparkles,
-  Package,
-  Trophy,
   FileCheck2,
   BriefcaseBusiness,
   Radar,
-  History
+  History,
+  Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -53,6 +52,7 @@ const menuItems: MenuItem[] = [
       { id: "resume", label: "Resume Check", icon: FileCheck2 },
       { id: "resume-jobmatch", label: "Match to a Job", icon: BriefcaseBusiness },
       { id: "resume-certs", label: "Certification Radar", icon: Radar },
+      { id: "resume-roadmap", label: "My Roadmap", icon: Map, route: "/student/roadmap" },
       { id: "resume-history", label: "Retest History", icon: History },
     ]
   },
@@ -63,8 +63,6 @@ const menuItems: MenuItem[] = [
     children: [
       { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList, route: "/student/tasks/assigned" },
       { id: "tasks-created", label: "My Created Tasks", icon: Sparkles, route: "/student/tasks/created" },
-      { id: "task-packs", label: "Task Packs", icon: Package, route: "/student/task-packs" },
-      { id: "pack-leaderboard", label: "Pack Leaderboard", icon: Trophy, route: "/student/pack-leaderboard" },
       { id: "create-task", label: "Create a Task", icon: PlusSquare },
     ]
   },

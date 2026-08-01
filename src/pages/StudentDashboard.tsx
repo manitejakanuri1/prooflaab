@@ -12,10 +12,7 @@ const getTabFromPath = (pathname: string): string => {
   if (pathname.startsWith("/student/tasks/opportunities")) return "tasks-opportunities";
   if (pathname.startsWith("/student/tasks/assigned")) return "tasks-assigned";
   if (pathname.startsWith("/student/tasks/created")) return "tasks-created";
-  if (pathname.match(/^\/student\/task-packs\/[^/]+\/tasks\/[^/]+$/)) return "task-pack-task";
-  if (pathname.match(/^\/student\/task-packs\/[^/]+$/)) return "task-pack-detail";
-  if (pathname === "/student/task-packs") return "task-packs";
-  if (pathname === "/student/pack-leaderboard") return "pack-leaderboard";
+  if (pathname === "/student/roadmap") return "resume-roadmap";
   return "dashboard";
 };
 

@@ -20,8 +20,7 @@ import {
   LogOut,
   ChevronDown,
   Plus,
-  Bell,
-  Package
+  Bell
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
@@ -85,21 +84,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: "proof-submissions", label: "Proof Review & Verification", icon: ClipboardCheck },
     { id: "task-oversight", label: "Task Oversight", icon: Eye },
     { id: "assign-tasks", label: "Assign Tasks", icon: Plus },
-    { 
-      id: "task-packs", 
-      label: "Task Packs", 
-      icon: Package,
-      isRoute: true,
-      route: "/admin/task-packs"
-    },
-    { 
-      id: "pack-analytics", 
-      label: "Pack Analytics", 
-      icon: BarChart3,
-      isRoute: true,
-      route: "/admin/task-packs/analytics"
-    },
-    { 
+    {
       id: "content-management", 
       label: "Content Management", 
       icon: FileText,

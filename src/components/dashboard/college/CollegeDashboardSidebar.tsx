@@ -10,9 +10,7 @@ import {
   LogOut,
   Link2,
   TrendingUp,
-  Sliders,
-  Package,
-  BarChart3
+  Sliders
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,8 +28,6 @@ const menuItems = [
   { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
   { id: "students", label: "Students", icon: Users },
   { id: "assign-tasks", label: "Assign Tasks", icon: ClipboardList },
-  { id: "assign-pack", label: "Assign Task Pack", icon: Package },
-  { id: "pack-analytics", label: "Pack Analytics", icon: BarChart3 },
   { id: "uploaded-proofs", label: "Uploaded Proofs", icon: Upload },
   { id: "trust-scores", label: "Trust Scores", icon: Shield },
   { id: "verification-trends", label: "Verification Trends", icon: TrendingUp },

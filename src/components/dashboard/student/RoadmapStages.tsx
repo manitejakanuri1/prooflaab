@@ -1,12 +1,12 @@
 import { Flag } from "lucide-react";
 
-interface RoadmapStage {
+export interface RoadmapStage {
   title: string;
   why: string;
   action: string;
 }
 
-function parseStages(roadmap: string): RoadmapStage[] | null {
+export function parseStages(roadmap: string): RoadmapStage[] | null {
   try {
     const parsed = JSON.parse(roadmap);
     if (

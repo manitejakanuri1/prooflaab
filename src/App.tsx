@@ -121,37 +121,13 @@ const App = () => (
                     </RoleBasedProtectedRoute>
                   } 
                 />
-                <Route 
-                  path="/student/task-packs" 
+                <Route
+                  path="/student/roadmap"
                   element={
                     <RoleBasedProtectedRoute allowedRoles={['student']}>
                       <StudentDashboard />
                     </RoleBasedProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/student/task-packs/:packId" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['student']}>
-                      <StudentDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/student/task-packs/:packId/tasks/:taskId" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['student']}>
-                      <StudentDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/student/pack-leaderboard" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['student']}>
-                      <StudentDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
+                  }
                 />
                 {/* Legacy proof route - redirects to post page */}
                 <Route 
@@ -204,47 +180,6 @@ const App = () => (
                     </RoleBasedProtectedRoute>
                   } 
                 />
-                <Route 
-                  path="/admin/task-packs" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/task-packs/analytics" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/task-packs/create" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/task-packs/:packId/edit" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/task-packs/:packId" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                
                 {/* Legacy Routes - redirect to proper paths */}
                 <Route 
                   path="/college" 

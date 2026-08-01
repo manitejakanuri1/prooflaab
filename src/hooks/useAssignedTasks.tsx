@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -121,6 +122,29 @@ export const useAssignedTasks = () => {
     },
     enabled: !!user,
   });
+
+  // College assigning a task or trust-compute verifying a proof happens
+  // outside this tab — react-query's 5min staleTime won't pick it up on its
+  // own, so push a refetch on any change to the tables this query reads.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`assigned-tasks-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proof_uploads' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const { data, isLoading: loading, error } = query;
 

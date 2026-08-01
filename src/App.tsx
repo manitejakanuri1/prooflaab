@@ -46,9 +46,12 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      // Was 5min + no focus refetch, so trust score/XP/tasks/etc only ever
+      // updated on a full remount — a college assigning a task or a proof
+      // getting verified elsewhere never showed up on an open dashboard.
+      staleTime: 1000 * 60, // 1 minute
       gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
       retry: 1,
     },
   },

@@ -134,13 +134,21 @@ export default function AuthCallback() {
       if (currentRole) {
         console.log('Existing role found:', currentRole);
         console.log('Wizard completed:', hasCompletedWizard);
-        
+
+        // Students go straight to their own intake flow: the blocking welcome
+        // screen, then "upload resume vs skip". /student/start forwards to the
+        // dashboard by itself once intake is already done.
+        if (currentRole === 'student') {
+          navigate('/student/start', { replace: true });
+          return;
+        }
+
         // If wizard not completed, redirect to onboarding wizard
         if (!hasCompletedWizard) {
           navigate('/onboarding-wizard', { replace: true });
           return;
         }
-        
+
         // Wizard completed, redirect to appropriate dashboard
         switch (currentRole) {
           case 'admin':
@@ -213,12 +221,15 @@ export default function AuthCallback() {
           // Startup record will be created in onboarding
         }
         
-        // All new users go to onboarding wizard first
-        navigate('/onboarding-wizard', { replace: true });
+        // New students land on the welcome screen; other roles keep the wizard.
+        navigate(roleToCreate === 'student' ? '/student/start' : '/onboarding-wizard', {
+          replace: true,
+        });
       } catch (error) {
         console.error('Error in role creation:', error);
-        // Fallback to onboarding wizard
-        navigate('/onboarding-wizard', { replace: true });
+        navigate(roleToCreate === 'student' ? '/student/start' : '/onboarding-wizard', {
+          replace: true,
+        });
       }
     };
 

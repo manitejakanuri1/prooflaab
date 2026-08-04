@@ -59,7 +59,9 @@ const getTier = (ats: number | null | undefined): ScoreTier => {
   return "excellent";
 };
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+// Must stay in sync with resume-parser's own size/type checks.
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_EXTENSIONS = [".pdf", ".docx"];
 
 // Points a reload back at the in-progress assessment so the modal can
 // reopen with the same assessment_id/questions — the assessment's own
@@ -215,12 +217,12 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
     e.target.value = "";
     if (!file || !user) return;
 
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      toast({ title: "PDF only", description: "Please upload your resume as a PDF file.", variant: "destructive" });
+    if (!ACCEPTED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext))) {
+      toast({ title: "PDF or DOCX only", description: "Please upload your resume as a PDF or DOCX file.", variant: "destructive" });
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      toast({ title: "File too large", description: "Resume must be under 8MB.", variant: "destructive" });
+      toast({ title: "File too large", description: "Resume must be under 5MB.", variant: "destructive" });
       return;
     }
 
@@ -473,7 +475,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           <div>
             <input
               type="file"
-              accept=".pdf"
+              accept=".pdf,.docx"
               id="resume-file-input"
               className="hidden"
               onChange={handleFileChange}

@@ -54,14 +54,16 @@ export default function Auth() {
                   .maybeSingle();
                 
                 if (roleData) {
-                  if (roleData.has_completed_wizard) {
+                  if (roleData.role === 'student') {
+                    // Students are gated by intake, not the wizard flag.
+                    // /student/start forwards on if intake is already done.
+                    navigate('/student/start', { replace: true });
+                  } else if (roleData.has_completed_wizard) {
                     redirectToDashboard(roleData.role);
                   } else {
                     // Redirect to role-specific onboarding
                     const role = roleData.role;
-                    if (role === 'student') {
-                      navigate('/onboarding/student', { replace: true });
-                    } else if (role === 'college_admin') {
+                    if (role === 'college_admin') {
                       navigate('/onboarding/college', { replace: true });
                     } else if (role === 'startup') {
                       navigate('/onboarding/startup', { replace: true });

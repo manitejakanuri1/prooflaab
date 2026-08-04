@@ -57,7 +57,10 @@ const Index = () => {
           }
           
           if (roleData) {
-            if (!roleData.has_completed_wizard && roleData.role !== 'admin') {
+            if (roleData.role === 'student') {
+              // Students are gated by intake, not the wizard flag.
+              navigate('/student/start', { replace: true });
+            } else if (!roleData.has_completed_wizard && roleData.role !== 'admin') {
               navigate('/onboarding-wizard', { replace: true });
             } else {
               const role = roleData.role;

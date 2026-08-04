@@ -1731,6 +1731,36 @@ export type Database = {
           },
         ]
       }
+      student_intake: {
+        Row: {
+          created_at: string
+          has_seen_welcome: boolean
+          intake_completed_at: string | null
+          task_source: string | null
+          updated_at: string
+          user_id: string
+          welcome_seen_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          has_seen_welcome?: boolean
+          intake_completed_at?: string | null
+          task_source?: string | null
+          updated_at?: string
+          user_id: string
+          welcome_seen_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          has_seen_welcome?: boolean
+          intake_completed_at?: string | null
+          task_source?: string | null
+          updated_at?: string
+          user_id?: string
+          welcome_seen_at?: string | null
+        }
+        Relationships: []
+      }
       student_profiles: {
         Row: {
           ai_personalization_enabled: boolean | null

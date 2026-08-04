@@ -1,12 +1,50 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { unzipSync } from "https://esm.sh/fflate@0.8.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_RESUME_BYTES = 8 * 1024 * 1024; // 8MB — well under Gemini's inline-data limit
+// 5MB — matches the client-side limit shown to students on the upload screen.
+const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
+const XML_ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&apos;': "'",
+};
+
+/**
+ * Pull the visible text out of a .docx.
+ *
+ * Gemini's inline_data does not accept the DOCX mime type, so unlike a PDF
+ * (which is passed through as bytes) a DOCX has to be turned into plain text
+ * first. A .docx is a ZIP whose word/document.xml holds the body, where <w:p>
+ * is a paragraph and <w:tab/> a tab.
+ */
+function extractDocxText(bytes: Uint8Array): string {
+  const files = unzipSync(bytes);
+  const documentXml = files['word/document.xml'];
+  if (!documentXml) {
+    throw new Error('DOCX is missing word/document.xml');
+  }
+
+  const xml = new TextDecoder().decode(documentXml);
+
+  return xml
+    .replace(/<w:tab\b[^>]*\/>/g, '\t')
+    .replace(/<\/w:p>/g, '\n')
+    .replace(/<w:br\b[^>]*\/>/g, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&(amp|lt|gt|quot|apos);/g, (m) => XML_ENTITIES[m] ?? m)
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 function bytesToBase64(bytes: Uint8Array): string {
   // btoa(String.fromCharCode(...bytes)) blows the call stack on large files —
@@ -76,9 +114,11 @@ serve(async (req) => {
       );
     }
 
-    if (!/\.pdf$/i.test(storage_path)) {
+    const isPdf = /\.pdf$/i.test(storage_path);
+    const isDocx = /\.docx$/i.test(storage_path);
+    if (!isPdf && !isDocx) {
       return new Response(
-        JSON.stringify({ error: 'Only PDF resumes are supported right now' }),
+        JSON.stringify({ error: 'Only PDF or DOCX resumes are supported' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -111,15 +151,38 @@ serve(async (req) => {
 
     if (fileBlob.size > MAX_RESUME_BYTES) {
       return new Response(
-        JSON.stringify({ error: 'Resume file is too large (8MB max)' }),
+        JSON.stringify({ error: 'Resume file is too large (5MB max)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
-    const base64File = bytesToBase64(fileBytes);
 
-    const prompt = `You are analyzing a student's resume (attached as a PDF) to extract exactly what they claim about themselves — no more, no less.
+    // A PDF goes to Gemini as bytes; a DOCX has to be flattened to text first.
+    let resumePart: Record<string, unknown>;
+    if (isPdf) {
+      resumePart = { inline_data: { mime_type: 'application/pdf', data: bytesToBase64(fileBytes) } };
+    } else {
+      let docxText: string;
+      try {
+        docxText = extractDocxText(fileBytes);
+      } catch (err) {
+        console.error('DOCX extraction failed:', err);
+        return new Response(
+          JSON.stringify({ error: 'Could not read that DOCX. Try exporting it as a PDF.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (docxText.length < 30) {
+        return new Response(
+          JSON.stringify({ error: 'That DOCX appears to be empty. Try exporting it as a PDF.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      resumePart = { text: `Resume text:\n\n${docxText}` };
+    }
+
+    const prompt = `You are analyzing a student's resume to extract exactly what they claim about themselves — no more, no less.
 
 Read the resume and return ONLY the skills, certifications, projects, and target role that are actually written in it. Do not invent, assume, or add anything not present in the document.
 
@@ -163,7 +226,7 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
           body: JSON.stringify({
             contents: [{
               parts: [
-                { inline_data: { mime_type: 'application/pdf', data: base64File } },
+                resumePart,
                 { text: prompt }
               ]
             }],

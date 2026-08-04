@@ -5,8 +5,8 @@ import StudentHeader from "@/components/dashboard/student/StudentHeader";
 import StudentSidebar from "@/components/dashboard/student/StudentSidebar";
 import StudentDashboardContent from "@/components/dashboard/student/StudentDashboardContent";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useStudentIntake } from "@/hooks/useStudentIntake";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
 
 const getTabFromPath = (pathname: string): string => {
   if (pathname.startsWith("/student/tasks/opportunities")) return "tasks-opportunities";
@@ -23,35 +23,23 @@ const StudentDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { profile, loading, refreshProfile } = useStudentProfile();
-  const [resumeChecked, setResumeChecked] = useState(false);
+  const { loading: intakeLoading, intakeComplete, degraded: intakeDegraded } = useStudentIntake();
 
   useEffect(() => {
     setActiveTab(getTabFromPath(location.pathname));
   }, [location.pathname]);
 
-  // A student who hasn't finished the mandatory resume-onboarding flow (upload,
-  // feedback, confirm, quiz) gets sent there instead of seeing the dashboard at
-  // all. Only steers the bare "/student/dashboard" landing, and only once per
-  // session, so a student mid-flow who navigates elsewhere isn't yanked back.
+  // A student who hasn't finished intake (welcome + "upload resume vs skip")
+  // gets sent back to it instead of seeing the dashboard.
+  //
+  // Gated on intake_completed_at, NOT on having a resume scorecard: a student
+  // who chose "Skip — send me a general task" never produces a scorecard, and
+  // the old check would have bounced them back into resume onboarding on every
+  // new session.
   useEffect(() => {
-    if (resumeChecked || !profile?.id) return;
-    if (location.pathname !== "/student/dashboard") {
-      setResumeChecked(true);
-      return;
-    }
-    supabase
-      .from('resume_scorecards')
-      .select('id')
-      .eq('student_id', profile.id)
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data) {
-          navigate('/student/resume-onboarding', { replace: true });
-        }
-        setResumeChecked(true);
-      });
-  }, [profile?.id, location.pathname, resumeChecked, navigate]);
+    if (intakeLoading || intakeComplete || intakeDegraded) return;
+    navigate('/student/start', { replace: true });
+  }, [intakeLoading, intakeComplete, intakeDegraded, navigate]);
 
   if (loading) {
     return (

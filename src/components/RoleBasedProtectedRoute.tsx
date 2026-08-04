@@ -36,8 +36,15 @@ export default function RoleBasedProtectedRoute({
         if (roleData) {
           setUserRole(roleData.role);
           
-          // Skip wizard completion check for admin users
-          if (!roleData.has_completed_wizard && roleData.role !== 'admin') {
+          // Admins skip onboarding entirely. Students are gated by their own
+          // intake flow (/student/start) rather than the generic wizard, so the
+          // wizard check must not fire for them or it would pre-empt the
+          // welcome screen and trap them after intake.
+          if (
+            !roleData.has_completed_wizard &&
+            roleData.role !== 'admin' &&
+            roleData.role !== 'student'
+          ) {
             navigate('/onboarding-wizard', { replace: true });
             return;
           }
@@ -48,7 +55,7 @@ export default function RoleBasedProtectedRoute({
             role: 'student'
           });
           setUserRole('student');
-          navigate('/onboarding-wizard', { replace: true });
+          navigate('/student/start', { replace: true });
           return;
         }
       } catch (error) {

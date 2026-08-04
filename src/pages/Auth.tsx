@@ -119,11 +119,16 @@ export default function Auth() {
         .eq('user_id', user.id)
         .single();
 
+      // Students are gated by intake (/student/start), never the wizard flag.
+      // /student/start forwards to the dashboard by itself once intake is done.
+      if (role === 'student') {
+        navigate('/student/start', { replace: true });
+        return;
+      }
+
       if (roleData && !roleData.has_completed_wizard) {
         // Redirect to role-specific onboarding
-        if (role === 'student') {
-          navigate('/onboarding/student', { replace: true });
-        } else if (role === 'college_admin') {
+        if (role === 'college_admin') {
           navigate('/onboarding/college', { replace: true });
         } else if (role === 'startup') {
           navigate('/onboarding/startup', { replace: true });
@@ -136,7 +141,7 @@ export default function Auth() {
     } catch (error) {
       // If no record or error, go to role-specific onboarding
       if (role === 'student') {
-        navigate('/onboarding/student', { replace: true });
+        navigate('/student/start', { replace: true });
       } else if (role === 'college_admin') {
         navigate('/onboarding/college', { replace: true });
       } else if (role === 'startup') {

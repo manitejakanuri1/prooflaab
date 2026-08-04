@@ -29,6 +29,13 @@ export default function OnboardingWizard() {
           .single();
 
         if (roleData) {
+          // Safety net: students never use this wizard, they use the intake flow.
+          // Anything that still routes a student here gets bounced, so no path
+          // can bypass the welcome screen.
+          if (roleData.role === 'student') {
+            navigate('/student/start', { replace: true });
+            return;
+          }
           if (roleData.has_completed_wizard) {
             // Already completed wizard, redirect to appropriate dashboard
             redirectToDashboard(roleData.role);
@@ -41,11 +48,12 @@ export default function OnboardingWizard() {
             user_id: user.id,
             role: 'student'
           });
-          
+
           if (error) {
             console.error('Error creating default role:', error);
           }
-          setUserRole('student');
+          navigate('/student/start', { replace: true });
+          return;
         }
       } catch (error) {
         console.error('Error fetching user role:', error);

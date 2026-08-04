@@ -83,8 +83,57 @@ function wordsToText(words: Word[], pageWidth: number): string {
 export interface PdfExtractResult {
   text: string;
   pages: number;
-  /** True when the PDF carries no real text layer — i.e. it is a scan and needs OCR. */
-  likelyScanned: boolean;
+  /** True when the PDF carried no real text layer, so the text came from OCR. */
+  usedOcr: boolean;
+}
+
+/** OCR is slow, so cap how much of a long scan we process. */
+const MAX_OCR_PAGES = 5;
+/** Upscale before OCR — Tesseract is markedly more accurate above ~200 DPI. */
+const OCR_SCALE = 2;
+
+/**
+ * Read a scanned PDF by rasterising each page and running OCR over it.
+ *
+ * Only reached when the PDF has no text layer at all. Tesseract and its language
+ * data are a large download, so this module is imported dynamically and the
+ * cost falls solely on students who upload a photo or scan.
+ */
+async function ocrPdf(
+  doc: pdfjsLib.PDFDocumentProxy,
+  onProgress?: (msg: string) => void
+): Promise<string> {
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("eng");
+
+  try {
+    const pageCount = Math.min(doc.numPages, MAX_OCR_PAGES);
+    const out: string[] = [];
+
+    for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+      onProgress?.(`Reading page ${pageNum} of ${pageCount}…`);
+
+      const page = await doc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: OCR_SCALE });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Could not create a canvas to read the scan");
+
+      await page.render({ canvas, canvasContext: context, viewport }).promise;
+      const { data } = await worker.recognize(canvas);
+      out.push(data.text.trim());
+
+      canvas.width = 0;
+      canvas.height = 0;
+      page.cleanup();
+    }
+
+    return out.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+  } finally {
+    await worker.terminate();
+  }
 }
 
 /**
@@ -94,7 +143,10 @@ export interface PdfExtractResult {
  * cost, and no server time limit. The extracted text is what gets sent on for
  * analysis, which is also what lets a text-only model handle PDFs at all.
  */
-export async function extractPdfText(file: File): Promise<PdfExtractResult> {
+export async function extractPdfText(
+  file: File,
+  onProgress?: (message: string) => void
+): Promise<PdfExtractResult> {
   const buffer = await file.arrayBuffer();
   const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
 
@@ -120,12 +172,18 @@ export async function extractPdfText(file: File): Promise<PdfExtractResult> {
     page.cleanup();
   }
 
-  await doc.destroy();
+  const pages = doc.numPages;
+  let text = pageTexts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+  let usedOcr = false;
 
-  const text = pageTexts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
-  return {
-    text,
-    pages: doc.numPages,
-    likelyScanned: text.replace(/\s/g, "").length < MIN_USEFUL_CHARS,
-  };
+  // No text layer means a scan. Fall back to OCR rather than giving up — this
+  // is what removes the last dependency on a model that can read images.
+  if (text.replace(/\s/g, "").length < MIN_USEFUL_CHARS) {
+    onProgress?.("This looks like a scan — reading it with OCR…");
+    text = await ocrPdf(doc, onProgress);
+    usedOcr = true;
+  }
+
+  await doc.destroy();
+  return { text, pages, usedOcr };
 }

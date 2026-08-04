@@ -22,10 +22,9 @@ const XML_ENTITIES: Record<string, string> = {
 /**
  * Pull the visible text out of a .docx.
  *
- * Gemini's inline_data does not accept the DOCX mime type, so unlike a PDF
- * (which is passed through as bytes) a DOCX has to be turned into plain text
- * first. A .docx is a ZIP whose word/document.xml holds the body, where <w:p>
- * is a paragraph and <w:tab/> a tab.
+ * PDFs are read in the browser by pdf.js, but a DOCX arriving without text has
+ * to be flattened here. A .docx is a ZIP whose word/document.xml holds the body,
+ * where <w:p> is a paragraph and <w:tab/> a tab.
  */
 function extractDocxText(bytes: Uint8Array): string {
   const files = unzipSync(bytes);
@@ -47,16 +46,6 @@ function extractDocxText(bytes: Uint8Array): string {
     .trim();
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  // btoa(String.fromCharCode(...bytes)) blows the call stack on large files —
-  // build the binary string in chunks instead.
-  const CHUNK = 8192;
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -67,14 +56,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
-    if (!geminiApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Provider keys are resolved inside the shared helper (DeepSeek -> Gemini -> Kimi).
 
     // Authenticate the caller
     const authHeader = req.headers.get('Authorization');
@@ -183,15 +165,13 @@ serve(async (req) => {
       }
     }
 
-    if (!resumeText && isDocx) {
+    if (resumeText.length < 30) {
       return new Response(
-        JSON.stringify({ error: 'That DOCX appears to be empty. Try exporting it as a PDF.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    if (!resumeText && !fileBytes) {
-      return new Response(
-        JSON.stringify({ error: 'Could not read that resume. Try exporting it as a PDF.' }),
+        JSON.stringify({
+          error: isDocx
+            ? 'That DOCX appears to be empty.'
+            : 'Could not read any text from that resume. Try a clearer file.',
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -227,65 +207,23 @@ Return a JSON object with this exact structure:
 
 Return ONLY the JSON object, no additional text, no markdown code fences.`;
 
+    // Everything arrives here as plain text — PDFs are read (and scans OCR'd) in
+    // the browser, DOCX is unzipped above. Nothing needs a model that can see
+    // images, so this runs entirely through the shared helper.
     let generatedText = '';
-
-    if (resumeText) {
-      // Plain text path — goes through the shared helper, so DeepSeek first.
-      try {
-        const result = await generateText(`${prompt}\n\nRESUME TEXT:\n${resumeText}`, {
-          temperature: 0.2,
-          maxOutputTokens: 4000,
-        });
-        generatedText = result.text;
-        console.log(`Resume extracted via ${result.provider}`);
-      } catch (llmError) {
-        console.error('All LLM providers failed:', llmError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to analyze resume' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    } else {
-      // Last resort: a PDF with no text sent from the browser. Only a multimodal
-      // model can read the raw bytes, so this branch still needs Gemini.
-      const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-      if (!geminiApiKey) {
-        return new Response(
-          JSON.stringify({
-            error: 'This PDF has no readable text (it may be a scan). Try a different file.',
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { inline_data: { mime_type: 'application/pdf', data: bytesToBase64(fileBytes!) } },
-                { text: prompt },
-              ],
-            }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 4000 },
-          }),
-        }
+    try {
+      const result = await generateText(`${prompt}\n\nRESUME TEXT:\n${resumeText}`, {
+        temperature: 0.2,
+        maxOutputTokens: 4000,
+      });
+      generatedText = result.text;
+      console.log(`Resume extracted via ${result.provider}`);
+    } catch (llmError) {
+      console.error('All LLM providers failed:', llmError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to analyze resume' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-
-      if (!geminiResponse.ok) {
-        console.error('Gemini fallback failed:', await geminiResponse.text());
-        return new Response(
-          JSON.stringify({ error: 'Failed to analyze resume' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const geminiData = await geminiResponse.json();
-      generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      console.log('Resume extracted via gemini (PDF bytes fallback)');
     }
 
     let extraction: {

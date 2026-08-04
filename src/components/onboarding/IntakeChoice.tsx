@@ -25,6 +25,8 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
   const [uploading, setUploading] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [extracted, setExtracted] = useState<string[] | null>(null);
+  // OCR on a scan takes tens of seconds, so the student needs to see progress.
+  const [progress, setProgress] = useState<string | null>(null);
 
   const busy = uploading || skipping;
 
@@ -62,19 +64,16 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
         .upload(storagePath, file, { upsert: false });
       if (uploadError) throw uploadError;
 
-      // Read the PDF here in the browser. The analysis model is text-only, so
-      // this is what lets it handle PDFs — and it costs nothing to run.
+      // Read the PDF here in the browser — including OCR if it turns out to be a
+      // scan. The analysis model is text-only, so this is what lets it handle
+      // PDFs at all, and it costs nothing to run.
       let resumeTextValue: string | undefined;
       if (name.endsWith(".pdf")) {
-        try {
-          const { extractPdfText } = await import("@/lib/pdfText");
-          const extracted = await extractPdfText(file);
-          if (!extracted.likelyScanned) resumeTextValue = extracted.text;
-        } catch (err) {
-          // Fall through with no text; the function reads the file itself.
-          console.error("PDF text extraction failed:", err);
-        }
+        const { extractPdfText } = await import("@/lib/pdfText");
+        const extracted = await extractPdfText(file, setProgress);
+        resumeTextValue = extracted.text;
       }
+      setProgress(null);
 
       const { data, error: parseError } = await supabase.functions.invoke("resume-parser", {
         body: { storage_path: storagePath, resume_text: resumeTextValue },
@@ -94,6 +93,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
       });
     } finally {
       setUploading(false);
+      setProgress(null);
     }
   };
 
@@ -164,7 +164,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
                 {uploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Reading your resume…
+                    {progress ?? "Reading your resume…"}
                   </>
                 ) : (
                   <>

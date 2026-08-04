@@ -62,9 +62,22 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
         .upload(storagePath, file, { upsert: false });
       if (uploadError) throw uploadError;
 
-      // Extraction only — no scoring at this stage.
+      // Read the PDF here in the browser. The analysis model is text-only, so
+      // this is what lets it handle PDFs — and it costs nothing to run.
+      let resumeTextValue: string | undefined;
+      if (name.endsWith(".pdf")) {
+        try {
+          const { extractPdfText } = await import("@/lib/pdfText");
+          const extracted = await extractPdfText(file);
+          if (!extracted.likelyScanned) resumeTextValue = extracted.text;
+        } catch (err) {
+          // Fall through with no text; the function reads the file itself.
+          console.error("PDF text extraction failed:", err);
+        }
+      }
+
       const { data, error: parseError } = await supabase.functions.invoke("resume-parser", {
-        body: { storage_path: storagePath },
+        body: { storage_path: storagePath, resume_text: resumeTextValue },
       });
       if (parseError) throw parseError;
       if (data?.error) throw new Error(data.error);

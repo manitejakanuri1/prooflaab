@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { unzipSync } from "https://esm.sh/fflate@0.8.2";
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -97,7 +98,10 @@ serve(async (req) => {
     }
     const callerId = claims.claims.sub;
 
-    const { storage_path } = await req.json();
+    // resume_text is extracted in the browser by pdf.js and passed in. That is
+    // what lets a text-only model (DeepSeek) handle PDFs at all — it cannot read
+    // a PDF itself. Without it we fall back to reading the file server-side.
+    const { storage_path, resume_text } = await req.json();
     if (!storage_path || typeof storage_path !== 'string') {
       return new Response(
         JSON.stringify({ error: 'storage_path is required' }),
@@ -137,49 +141,59 @@ serve(async (req) => {
       );
     }
 
-    const { data: fileBlob, error: downloadError } = await supabase
-      .storage
-      .from('resumes')
-      .download(storage_path);
-    if (downloadError || !fileBlob) {
-      console.error('Resume download failed:', downloadError);
-      return new Response(
-        JSON.stringify({ error: 'Could not read uploaded resume' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Resolve the resume down to plain text. Preference order:
+    //   1. resume_text from the browser (pdf.js) — no download needed at all
+    //   2. DOCX unzipped server-side
+    //   3. PDF bytes handed to a multimodal model as a last resort
+    let resumeText = typeof resume_text === 'string' ? resume_text.trim() : '';
+    let fileBytes: Uint8Array | null = null;
+
+    if (!resumeText) {
+      const { data: fileBlob, error: downloadError } = await supabase
+        .storage
+        .from('resumes')
+        .download(storage_path);
+      if (downloadError || !fileBlob) {
+        console.error('Resume download failed:', downloadError);
+        return new Response(
+          JSON.stringify({ error: 'Could not read uploaded resume' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (fileBlob.size > MAX_RESUME_BYTES) {
+        return new Response(
+          JSON.stringify({ error: 'Resume file is too large (5MB max)' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
+
+      if (isDocx) {
+        try {
+          resumeText = extractDocxText(fileBytes);
+        } catch (err) {
+          console.error('DOCX extraction failed:', err);
+          return new Response(
+            JSON.stringify({ error: 'Could not read that DOCX. Try exporting it as a PDF.' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
     }
 
-    if (fileBlob.size > MAX_RESUME_BYTES) {
+    if (!resumeText && isDocx) {
       return new Response(
-        JSON.stringify({ error: 'Resume file is too large (5MB max)' }),
+        JSON.stringify({ error: 'That DOCX appears to be empty. Try exporting it as a PDF.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
-
-    // A PDF goes to Gemini as bytes; a DOCX has to be flattened to text first.
-    let resumePart: Record<string, unknown>;
-    if (isPdf) {
-      resumePart = { inline_data: { mime_type: 'application/pdf', data: bytesToBase64(fileBytes) } };
-    } else {
-      let docxText: string;
-      try {
-        docxText = extractDocxText(fileBytes);
-      } catch (err) {
-        console.error('DOCX extraction failed:', err);
-        return new Response(
-          JSON.stringify({ error: 'Could not read that DOCX. Try exporting it as a PDF.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (docxText.length < 30) {
-        return new Response(
-          JSON.stringify({ error: 'That DOCX appears to be empty. Try exporting it as a PDF.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      resumePart = { text: `Resume text:\n\n${docxText}` };
+    if (!resumeText && !fileBytes) {
+      return new Response(
+        JSON.stringify({ error: 'Could not read that resume. Try exporting it as a PDF.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const prompt = `You are analyzing a student's resume to extract exactly what they claim about themselves — no more, no less.
@@ -213,12 +227,38 @@ Return a JSON object with this exact structure:
 
 Return ONLY the JSON object, no additional text, no markdown code fences.`;
 
-    console.log('Calling Gemini API for resume extraction...');
+    let generatedText = '';
 
-    // Gemini returns transient 429/503 under load — retry twice with backoff
-    let geminiResponse!: Response;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      geminiResponse = await fetch(
+    if (resumeText) {
+      // Plain text path — goes through the shared helper, so DeepSeek first.
+      try {
+        const result = await generateText(`${prompt}\n\nRESUME TEXT:\n${resumeText}`, {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+        });
+        generatedText = result.text;
+        console.log(`Resume extracted via ${result.provider}`);
+      } catch (llmError) {
+        console.error('All LLM providers failed:', llmError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to analyze resume' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // Last resort: a PDF with no text sent from the browser. Only a multimodal
+      // model can read the raw bytes, so this branch still needs Gemini.
+      const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+      if (!geminiApiKey) {
+        return new Response(
+          JSON.stringify({
+            error: 'This PDF has no readable text (it may be a scan). Try a different file.',
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const geminiResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
@@ -226,43 +266,27 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
           body: JSON.stringify({
             contents: [{
               parts: [
-                resumePart,
-                { text: prompt }
-              ]
+                { inline_data: { mime_type: 'application/pdf', data: bytesToBase64(fileBytes!) } },
+                { text: prompt },
+              ],
             }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 4000,
-            }
-          })
+            generationConfig: { temperature: 0.2, maxOutputTokens: 4000 },
+          }),
         }
       );
-      if (geminiResponse.ok || ![429, 503].includes(geminiResponse.status)) break;
-      console.log(`Gemini ${geminiResponse.status}, retry ${attempt + 1}...`);
-      await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
-    }
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', errorText);
-
-      if (geminiResponse.status === 429) {
+      if (!geminiResponse.ok) {
+        console.error('Gemini fallback failed:', await geminiResponse.text());
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Failed to analyze resume' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      return new Response(
-        JSON.stringify({ error: 'Failed to analyze resume' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const geminiData = await geminiResponse.json();
+      generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('Resume extracted via gemini (PDF bytes fallback)');
     }
-
-    const geminiData = await geminiResponse.json();
-    const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    console.log('Gemini response:', generatedText);
 
     let extraction: {
       target_role?: string;

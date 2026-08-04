@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +17,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const githubPat = Deno.env.get('GITHUB_PAT');
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
     // Authenticate the caller
     const authHeader = req.headers.get('Authorization');
@@ -48,12 +48,8 @@ serve(async (req) => {
       );
     }
 
-    if (!geminiApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // No per-provider key check here: the shared helper picks whichever of
+    // DeepSeek/Gemini/Kimi is configured and throws only if all are missing.
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -226,53 +222,22 @@ Return a JSON array with this exact structure:
 
 Return ONLY the JSON array, no additional text.`;
 
-    console.log('Calling Gemini API for question generation...');
+    console.log('Generating questions...');
 
-    // Gemini returns transient 429/503 under load — retry twice with backoff
-    let geminiResponse!: Response;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 4000,
-            }
-          })
-        }
-      );
-      if (geminiResponse.ok || ![429, 503].includes(geminiResponse.status)) break;
-      console.log(`Gemini ${geminiResponse.status}, retry ${attempt + 1}...`);
-      await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
-    }
-
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', errorText);
-      
-      if (geminiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+    // Provider choice, key handling and retry/backoff all live in the shared
+    // helper: DeepSeek -> Gemini -> Kimi.
+    let generatedText: string;
+    try {
+      const result = await generateText(prompt, { temperature: 0.7, maxOutputTokens: 4000 });
+      generatedText = result.text;
+      console.log(`Questions generated via ${result.provider}`);
+    } catch (llmError) {
+      console.error('All LLM providers failed:', llmError);
       return new Response(
         JSON.stringify({ error: 'Failed to generate questions' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const geminiData = await geminiResponse.json();
-    const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    console.log('Gemini response:', generatedText);
 
     // Parse questions from response
     let questions;

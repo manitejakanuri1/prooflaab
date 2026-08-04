@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useStudentIntake, type TaskSource } from "@/hooks/useStudentIntake";
 import WelcomeScreen from "@/components/onboarding/WelcomeScreen";
 import IntakeChoice from "@/components/onboarding/IntakeChoice";
+import StudentWizard from "@/components/onboarding/StudentWizard";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -44,6 +45,10 @@ const ensureStudentProfile = async () => {
  *
  *   1.1 Welcome (once)  ->  2.2 Upload resume | Skip  ->  dashboard
  *
+ * Skipping detours through the profile form first: without a resume there is
+ * nothing to pick tasks from, so branch/year/interests become the only signal
+ * we have. The resume path already carries that signal, so it goes straight on.
+ *
  * A student who has already finished intake is sent straight to the dashboard,
  * so this route can never trap anyone.
  */
@@ -59,6 +64,8 @@ const StudentStart = () => {
     completeIntake,
   } = useStudentIntake();
   const [starting, setStarting] = useState(false);
+  // Set when the student picks Skip: collect branch/year/interests before going in.
+  const [collectingProfile, setCollectingProfile] = useState(false);
 
   // `degraded` means the intake row could not be read at all. Showing a blocking
   // welcome we cannot dismiss would strand the student, so pass them through.
@@ -89,7 +96,27 @@ const StudentStart = () => {
   };
 
   const handleIntakeDone = async (source: TaskSource) => {
+    // No resume means no skills to match tasks against, so ask for the profile
+    // details instead. Intake is only marked complete once that form is done.
+    if (source === "general") {
+      setCollectingProfile(true);
+      return;
+    }
     await completeIntake(source);
+    navigate("/student/dashboard", { replace: true });
+  };
+
+  const handleProfileComplete = async () => {
+    try {
+      await completeIntake("general");
+    } catch (err) {
+      toast({
+        title: "Something went wrong",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
     navigate("/student/dashboard", { replace: true });
   };
 
@@ -103,6 +130,10 @@ const StudentStart = () => {
 
   if (!hasSeenWelcome) {
     return <WelcomeScreen onStart={handleStart} starting={starting} />;
+  }
+
+  if (collectingProfile) {
+    return <StudentWizard onComplete={handleProfileComplete} />;
   }
 
   return (

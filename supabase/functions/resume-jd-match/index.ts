@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,14 +18,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
-    if (!geminiApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Provider keys are resolved inside the shared helper (DeepSeek -> Gemini -> Kimi).
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -115,34 +109,17 @@ Rules:
 
 Return ONLY the JSON object, no additional text, no markdown fences.`;
 
-    let geminiResponse!: Response;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 1500 }
-          })
-        }
-      );
-      if (geminiResponse.ok || ![429, 503].includes(geminiResponse.status)) break;
-      await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
-    }
-
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', errorText);
+    let generatedText: string;
+    try {
+      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1500 });
+      generatedText = result.text;
+    } catch (llmError) {
+      console.error('All LLM providers failed:', llmError);
       return new Response(
         JSON.stringify({ error: 'Failed to analyze job match' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const geminiData = await geminiResponse.json();
-    const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     let parsed: any;
     try {

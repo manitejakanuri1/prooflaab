@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,8 +27,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const geminiKey = Deno.env.get('GEMINI_API_KEY');
-
     // Authenticate the caller
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -47,10 +46,6 @@ serve(async (req) => {
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    if (!geminiKey) {
-      throw new Error('GEMINI_API_KEY secret not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -172,60 +167,16 @@ Return your analysis in JSON format with:
   ]
 }`;
 
-    console.log('Calling Gemini API for authorship analysis');
+    console.log('Analyzing authorship...');
 
-    // Call Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: analysisPrompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.2, // Lower temperature for more consistent analysis
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-          },
-        }),
-      }
-    );
+    const { text: responseText, provider } = await generateText(analysisPrompt, {
+      temperature: 0.2, // Lower temperature for more consistent analysis
+      maxOutputTokens: 2048,
+    });
+    console.log(`Authorship analysis via ${provider}`);
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', errorText);
-      
-      // Handle rate limiting
-      if (geminiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Rate limit exceeded. Please try again later.',
-            retry_after: geminiResponse.headers.get('Retry-After') || '60'
-          }),
-          { 
-            status: 429, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      
-      throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
-    }
-
-    const geminiData = await geminiResponse.json();
-    console.log('Gemini response received');
-
-    // Extract the response text
-    const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!responseText) {
-      throw new Error('No response text from Gemini API');
+      throw new Error('No response text from the language model');
     }
 
     // Parse the JSON response from Gemini

@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,8 +38,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
-
     // Create Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -121,65 +120,27 @@ serve(async (req) => {
     const assignments: any[] = [];
     const currentTime = new Date().toISOString();
 
-    // Helper function to call Gemini API
-    async function generateWithGemini(prompt: string, model: string = 'gemini-flash-latest'): Promise<{ title: string; description: string; model: string }> {
-      if (!geminiApiKey) {
-        console.error('GEMINI_API_KEY environment variable not set');
-        throw new Error('AI generation failed, please retry. (API key not configured)');
-      }
+    // Generates a task via the shared helper (DeepSeek -> Gemini -> Kimi).
+    // json: false — the reply is parsed as "Title:/Description:" prose.
+    async function generateWithGemini(prompt: string, model = 'shared'): Promise<{ title: string; description: string; model: string }> {
+      console.log('Generating task, prompt length:', prompt.length);
 
-      console.log(`Making Gemini API request with model: ${model}, prompt length:`, prompt.length);
-      
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-      
-      const requestBody = {
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          maxOutputTokens: 1000,
-          topK: 40,
-          topP: 0.95
-        }
-      };
-      
-      console.log('Making Gemini API call to:', apiUrl);
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      console.log('Gemini API response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API error response:', errorText);
+      let text = '';
+      try {
+        const result = await generateText(prompt, { maxOutputTokens: 1000, json: false });
+        text = result.text;
+        model = result.provider;
+      } catch (llmError) {
+        console.error('All LLM providers failed:', llmError);
         throw new Error('AI generation failed, please retry.');
       }
 
-      const data = await response.json();
-      console.log('Gemini API response received');
-      
-      // Check for safety ratings or blocked content
-      if (data.promptFeedback?.blockReason) {
-        console.error('Content was blocked:', data.promptFeedback.blockReason);
-        throw new Error('AI generation failed, please retry. (Content blocked by safety filters)');
-      }
-      
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
       if (!text) {
         console.error('No text content in response');
         throw new Error('AI generation failed, please retry.');
       }
 
-      console.log('Generated text from Gemini:', text);
+      console.log(`Generated text via ${model}`);
 
       // Parse Title and Description
       let title = '';

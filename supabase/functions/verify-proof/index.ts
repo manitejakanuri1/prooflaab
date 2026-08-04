@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,7 +82,7 @@ async function verifyGitHubRepo(repoUrl: string, githubPat: string): Promise<Git
   }
 }
 
-async function analyzeWithGemini(codeContent: string, repoSummary: string, geminiKey: string): Promise<{ originality_score: number; ai_summary: string; ai_comments: string }> {
+async function analyzeWithGemini(codeContent: string, repoSummary: string): Promise<{ originality_score: number; ai_summary: string; ai_comments: string }> {
   try {
     console.log('Analyzing code with Gemini AI...');
 
@@ -104,32 +105,19 @@ Format your response as JSON:
   "comments": "<text>"
 }`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }]
-        })
-      }
-    );
-
-    if (!response.ok) {
-      console.error('Gemini API error:', response.status);
+    let aiResponse: string;
+    try {
+      const result = await generateText(prompt, { maxOutputTokens: 2000 });
+      aiResponse = result.text || '{}';
+      console.log(`Proof verification via ${result.provider}`);
+    } catch (llmError) {
+      console.error('All LLM providers failed:', llmError);
       return {
         originality_score: 50,
         ai_summary: 'AI analysis unavailable',
         ai_comments: 'Could not complete AI verification'
       };
     }
-
-    const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    
-    console.log('Gemini raw response:', aiResponse);
 
     // Try to parse JSON from response
     let parsedResponse;
@@ -219,8 +207,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const githubPat = Deno.env.get('GITHUB_PAT');
-    const geminiKey = Deno.env.get('GEMINI_API_KEY');
-
     // Authenticate the caller
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -242,7 +228,9 @@ serve(async (req) => {
       );
     }
 
-    if (!githubPat || !geminiKey) {
+    // Only GITHUB_PAT is required up front; the LLM provider is resolved inside
+    // the shared helper, which falls back to a neutral score if none respond.
+    if (!githubPat) {
       return new Response(
         JSON.stringify({ error: 'Required API keys not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -308,7 +296,7 @@ serve(async (req) => {
       : 'Direct file upload';
 
     const codeToAnalyze = fileContent || proof.submission_notes || 'No code content available';
-    const aiResult = await analyzeWithGemini(codeToAnalyze, repoSummary, geminiKey);
+    const aiResult = await analyzeWithGemini(codeToAnalyze, repoSummary);
 
     const { error: aiInsertError } = await supabase
       .from('ai_verifications')

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,14 +39,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
-    if (!geminiApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Provider keys are resolved inside the shared helper (DeepSeek -> Gemini -> Kimi).
 
     // Check for webhook secret (for internal/scheduled calls)
     const webhookSecret = req.headers.get('x-webhook-secret');
@@ -160,51 +154,18 @@ Scoring guidelines:
 - AI likelihood indicators: Generic language, overly formal, lacks specificity, no personal insights
 - Human indicators: Specific references to their code, casual language, personal observations, typos`;
 
-      let retryCount = 0;
-      let geminiResponse;
-      
       try {
-        // Try with retry logic
-        while (retryCount <= 1) {
-          geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [{ text: evaluationPrompt }]
-                }],
-                generationConfig: {
-                  temperature: 0.3,
-                  maxOutputTokens: 1000,
-                }
-              })
-            }
-          );
-          
-          if (geminiResponse.ok) break;
-          retryCount++;
-          if (retryCount <= 1) {
-            console.log(`Gemini API failed, retrying... (attempt ${retryCount + 1})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
+        // Provider selection and retry/backoff live in the shared helper.
+        const { text: responseText } = await generateText(evaluationPrompt, {
+          temperature: 0.3,
+          maxOutputTokens: 1000,
+        });
 
-        if (!geminiResponse.ok) {
-          const errorText = await geminiResponse.text();
-          console.error('Gemini API error:', errorText);
-          throw new Error(`Gemini API error: ${geminiResponse.status}`);
-        }
-
-        const geminiData = await geminiResponse.json();
-        const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        
         // Extract JSON from response
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-          console.error('No JSON found in Gemini response:', responseText);
-          throw new Error('Invalid Gemini response format');
+          console.error('No JSON found in model response:', responseText);
+          throw new Error('Invalid model response format');
         }
 
         const evaluation = JSON.parse(jsonMatch[0]);

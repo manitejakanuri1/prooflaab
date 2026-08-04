@@ -201,12 +201,15 @@ const App = () => (
                 
                 {/* Review Proofs - Accessible by admins and college admins */}
                 <Route 
-                  path="/review-proofs" 
+                  path="/review-proofs"
                   element={
-                    <RoleBasedProtectedRoute allowedRoles={['admin', 'college_admin']}>
+                    // Admin-only: this page is a full Admin Dashboard duplicate and
+                    // includes TrustXPModeration, which WRITES trust scores. Allowing
+                    // college_admin here was a privilege escalation.
+                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
                       <ReviewProofs />
                     </RoleBasedProtectedRoute>
-                  } 
+                  }
                 />
                 
                 <Route path="*" element={<NotFound />} />

@@ -107,7 +107,7 @@ Format your response as JSON:
 
     let aiResponse: string;
     try {
-      const result = await generateText(prompt, { maxOutputTokens: 2000 });
+      const result = await generateText(prompt, { maxOutputTokens: 2000 }, { feature: 'verify-proof' });
       aiResponse = result.text || '{}';
       console.log(`Proof verification via ${result.provider}`);
     } catch (llmError) {

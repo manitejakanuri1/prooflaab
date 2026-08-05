@@ -170,7 +170,7 @@ Return ONLY the JSON array, no additional text.`;
 
     let generatedText: string;
     try {
-      const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 3000 });
+      const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 3000 }, { feature: 'resume-retest-generate' });
       generatedText = result.text;
       console.log(`LLM (${result.provider}) response:`, generatedText);
     } catch (e) {

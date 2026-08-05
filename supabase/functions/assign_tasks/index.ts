@@ -127,7 +127,7 @@ serve(async (req) => {
 
       let text = '';
       try {
-        const result = await generateText(prompt, { maxOutputTokens: 1000, json: false });
+        const result = await generateText(prompt, { maxOutputTokens: 1000, json: false }, { feature: 'assign_tasks' });
         text = result.text;
         model = result.provider;
       } catch (llmError) {

@@ -73,7 +73,7 @@ ${transcript ? `Conversation so far:\n${transcript}\n` : ''}
 Student: ${message}
 Guide: Reply with plain text only, no JSON, no markdown fences.`;
 
-    const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 300, json: false });
+    const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 300, json: false }, { feature: 'app-guide-chat' });
 
     return new Response(
       JSON.stringify({ reply: result.text.trim() }),

@@ -51,7 +51,7 @@ User's learning goal: ${prompt}
 
 Keep the title under 100 characters and the description focused and actionable.`,
       { temperature: 0.7, maxOutputTokens: 500, json: false }
-    );
+    , { feature: 'generate-task-ai' });
 
     console.log(`Task generated via ${provider}`);
 

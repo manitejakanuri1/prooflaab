@@ -175,7 +175,7 @@ Return ONLY the JSON object.`;
       let reasoningClarityScore = 0;
       let explanation = 'Could not be graded — the grading gremlins are on strike.';
       try {
-        const result = await generateText(evalPrompt, { temperature: 0.3, maxOutputTokens: 500 });
+        const result = await generateText(evalPrompt, { temperature: 0.3, maxOutputTokens: 500 }, { feature: 'resume-assessment-submit' });
         const jsonMatch = result.text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);

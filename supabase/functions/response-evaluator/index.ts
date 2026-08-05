@@ -159,7 +159,7 @@ Scoring guidelines:
         const { text: responseText } = await generateText(evaluationPrompt, {
           temperature: 0.3,
           maxOutputTokens: 1000,
-        });
+        }, { feature: 'response-evaluator' });
 
         // Extract JSON from response
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);

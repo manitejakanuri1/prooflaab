@@ -172,7 +172,7 @@ Return your analysis in JSON format with:
     const { text: responseText, provider } = await generateText(analysisPrompt, {
       temperature: 0.2, // Lower temperature for more consistent analysis
       maxOutputTokens: 2048,
-    });
+    }, { feature: 'ai-authorship' });
     console.log(`Authorship analysis via ${provider}`);
 
     if (!responseText) {

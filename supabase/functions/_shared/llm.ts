@@ -170,8 +170,10 @@ async function callKimi(prompt: string, apiKey: string, opts: GenOptions) {
 // Retries a given key twice on 429/503 (rate limit / overload) before giving up on it;
 // any other error status moves straight to the next key.
 function finish(result: GenResult, track?: UsageContext): GenResult {
-  // Fire and forget: the caller should not wait on accounting.
-  if (track) void logUsage(track, result);
+  // Logged unconditionally: every model call must be accounted for, even from a
+  // caller that forgot to identify itself. Such calls land under 'unattributed'
+  // rather than vanishing. Fire and forget - the caller never waits on this.
+  void logUsage(track ?? { feature: 'unattributed' }, result);
   return result;
 }
 

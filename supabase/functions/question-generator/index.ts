@@ -228,7 +228,7 @@ Return ONLY the JSON array, no additional text.`;
     // helper: DeepSeek -> Gemini -> Kimi.
     let generatedText: string;
     try {
-      const result = await generateText(prompt, { temperature: 0.7, maxOutputTokens: 4000 });
+      const result = await generateText(prompt, { temperature: 0.7, maxOutputTokens: 4000 }, { feature: 'question-generator' });
       generatedText = result.text;
       console.log(`Questions generated via ${result.provider}`);
     } catch (llmError) {

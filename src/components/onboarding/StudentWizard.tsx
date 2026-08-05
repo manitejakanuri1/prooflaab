@@ -25,10 +25,20 @@ const INTERESTS = [
   "Blockchain", "IoT", "Robotics"
 ];
 
-const SKILLS = [
-  "JavaScript", "Python", "Java", "React", "Node.js", "SQL", "HTML/CSS", 
-  "Git", "Docker", "AWS", "MongoDB", "TypeScript", "C++", "PHP", "Angular", "Vue.js"
-];
+const INTEREST_SKILLS: Record<string, string[]> = {
+  "Web Development":    ["HTML/CSS", "JavaScript", "TypeScript", "React", "Vue.js", "Angular", "Node.js", "Next.js", "PHP"],
+  "Mobile Development": ["Kotlin", "Swift", "Java", "Dart", "Flutter", "React Native", "Firebase"],
+  "Data Science":       ["Python", "Pandas", "NumPy", "SQL", "R", "Matplotlib", "Jupyter", "Excel"],
+  "Machine Learning":   ["Python", "scikit-learn", "TensorFlow", "PyTorch", "Pandas", "NumPy"],
+  "Cybersecurity":      ["Linux", "Networking", "Wireshark", "Nmap", "Burp Suite", "Python", "Cryptography"],
+  "Cloud Computing":    ["AWS", "Azure", "GCP", "Docker", "Kubernetes", "Terraform", "Linux"],
+  "DevOps":             ["Linux", "Docker", "Kubernetes", "Git", "CI/CD", "Jenkins", "Terraform", "Bash"],
+  "UI/UX Design":       ["Figma", "Wireframing", "Prototyping", "Design Systems", "User Research", "HTML/CSS"],
+  "Game Development":   ["Unity", "Unreal", "C#", "C++", "Blender"],
+  "Blockchain":         ["Solidity", "Ethereum", "Web3.js", "Smart Contracts", "Cryptography", "JavaScript"],
+  "IoT":                ["C", "C++", "Python", "Arduino", "Raspberry Pi", "MQTT", "Embedded Systems"],
+  "Robotics":           ["Python", "C++", "ROS", "Arduino", "Control Systems", "Computer Vision"],
+};
 
 export default function StudentWizard({ onComplete }: StudentWizardProps) {
   const { user } = useAuth();
@@ -48,6 +58,12 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
         : [...prev.keyInterests, interest]
     }));
   };
+
+  // Only show skills that belong to the interests they picked - a flat list
+  // made most interests impossible to cover.
+  const visibleSkills = [...new Set(
+    formData.keyInterests.flatMap(i => INTEREST_SKILLS[i] ?? [])
+  )];
 
   const handleSkillToggle = (skill: string) => {
     setFormData(prev => ({
@@ -155,7 +171,7 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
               <div className="space-y-3">
                 <Label>Preferred Skills</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {SKILLS.map(skill => (
+                  {visibleSkills.map(skill => (
                     <div key={skill} className="flex items-center space-x-2">
                       <Checkbox
                         id={skill}

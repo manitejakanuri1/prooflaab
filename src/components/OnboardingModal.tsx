@@ -31,22 +31,25 @@ const OnboardingModal = ({ user, onComplete }: OnboardingModalProps) => {
           return;
         }
 
-        // Determine user type - check student_profiles first
+        // maybeSingle, not single: a student who has just signed up has no
+        // profile row yet, and PostgREST answers single() with 406 when the
+        // count is not exactly one. That fired on every page for every new
+        // account, because this modal is mounted globally in AuthContext.
         const { data: studentProfile } = await supabase
           .from('student_profiles')
           .select('id, profile_completed')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (studentProfile) {
-          // If student profile exists and is completed, skip wizard
-          if (studentProfile.profile_completed) {
-            setIsLoading(false);
-            return;
-          }
-          
-          setUserType('student');
-          setIsOpen(true);
+          // Students are deliberately left alone. Their onboarding lives in
+          // StudentStart now — welcome, then resume or skip, then the
+          // assessment — and this modal opening on top of it is the "old
+          // wizard keeps coming back" problem: it triggers on
+          // profile_completed being false, which is exactly the state a
+          // student is in from signup until they finish the new flow.
+          setIsLoading(false);
+          return;
         } else {
           // Check user metadata for other types
           const metaUserType = user.user_metadata?.user_type;

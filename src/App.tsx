@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppGuideChatbot from "@/components/AppGuideChatbot";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Critical path - load immediately
 import Index from "./pages/Index";
@@ -65,6 +66,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+            {/* Inside the router and the providers, so the crash screen still
+                has them and a reload lands back on the same URL. */}
+            <ErrorBoundary area="page">
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -215,6 +219,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            </ErrorBoundary>
             <AppGuideChatbot />
           </AuthProvider>
         </BrowserRouter>

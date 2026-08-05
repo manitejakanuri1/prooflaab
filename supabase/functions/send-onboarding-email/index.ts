@@ -3,7 +3,19 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { guard } from '../_shared/rate-limit.ts';
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+/**
+ * Built per request, not once at module load.
+ *
+ * RESEND_API_KEY is not configured, and constructing the client at the top level
+ * threw while the module was still loading — so the function never started and
+ * every request died with it, including the CORS preflight. A browser that
+ * cannot complete OPTIONS reports a CORS failure, which points at the wrong
+ * thing entirely and hides a missing environment variable behind it.
+ */
+function getResend(): Resend | null {
+  const key = Deno.env.get("RESEND_API_KEY");
+  return key ? new Resend(key) : null;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -184,6 +196,17 @@ const handler = async (req: Request): Promise<Response> => {
     const finalName = name || email.split('@')[0];
 
     const emailContent = getEmailContent(finalUserType, finalName, origin);
+
+    const resend = getResend();
+    if (!resend) {
+      // Signup already succeeded by the time this runs, so a missing key must
+      // not read as a failed signup. Reported plainly and logged loudly.
+      console.error('RESEND_API_KEY is not configured — onboarding email skipped');
+      return new Response(
+        JSON.stringify({ success: false, skipped: true, error: 'Email sending is not configured' }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     const emailResponse = await resend.emails.send({
       from: "Learning Platform <onboarding@resend.dev>",

@@ -106,7 +106,14 @@ const StudentStart = () => {
       return;
     }
     await completeIntake(source);
-    navigate("/student/dashboard", { replace: true });
+    // Not the dashboard. Uploading a resume produces claims the student has not
+    // seen, agreed to, or been tested on — dropping them on the dashboard here
+    // ended the flow at its halfway point and left the whole point of the upload
+    // sitting behind a tab they had no reason to open. This route carries on:
+    // resume feedback, confirm the claims, then the same quiz and coding round
+    // the Skip path runs. It sends them to the dashboard itself once a scorecard
+    // exists, so a student who has already finished is never sent back round.
+    navigate("/student/resume-onboarding", { replace: true });
   };
 
   // Pickers done -> move to the review screen. Intake is NOT completed here:

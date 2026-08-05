@@ -43,6 +43,33 @@ const GODBOLT_COMPILER: Record<string, string> = {
   go: 'gl194',
 };
 
+/**
+ * Third runner, and the only one that covers Java, JavaScript and PHP.
+ *
+ * Off unless GLOT_API_TOKEN is set, because Glot requires a (free) account and
+ * an unauthenticated call just returns "a valid access token is required". With
+ * no token the chain behaves exactly as before: Wandbox, then Godbolt where it
+ * fits, then an honest "the runner is down".
+ *
+ * NOT YET EXERCISED against a real token — every code path here is written from
+ * Glot's documented shape, not from a live response. It is deliberately last in
+ * the chain and fails into the same honest refusal, so an unexpected shape costs
+ * a retry rather than a wrong score.
+ */
+const GLOT_URL = 'https://glot.io/api/run';
+
+const GLOT_LANGUAGE: Record<string, { lang: string; file: string }> = {
+  javascript: { lang: 'javascript', file: 'main.js' },
+  // Glot compiles by filename; Java needs the public class to match.
+  java: { lang: 'java', file: 'Main.java' },
+  php: { lang: 'php', file: 'main.php' },
+  python: { lang: 'python', file: 'main.py' },
+  c: { lang: 'c', file: 'main.c' },
+  cpp: { lang: 'cpp', file: 'main.cpp' },
+  go: { lang: 'go', file: 'main.go' },
+  ruby: { lang: 'ruby', file: 'main.rb' },
+};
+
 interface TestCase {
   stdin: string;
   expected_output: string;
@@ -133,6 +160,28 @@ async function runOnGodbolt(language: string, code: string, stdin: string): Prom
   return { ok: true, stdout: join(data.stdout), stderr: join(data.stderr) };
 }
 
+async function runOnGlot(language: string, code: string, stdin: string): Promise<RunResult> {
+  const token = Deno.env.get('GLOT_API_TOKEN');
+  if (!token) return { ok: false, reason: 'glot not configured' };
+
+  const target = GLOT_LANGUAGE[language];
+  if (!target) return { ok: false, reason: 'glot has no runtime for this language' };
+
+  const res = await fetch(`${GLOT_URL}/${target.lang}/latest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Token ${token}` },
+    body: JSON.stringify({ stdin, files: [{ name: target.file, content: code }] }),
+  });
+  if (!res.ok) return { ok: false, reason: `glot http ${res.status}` };
+
+  const data = await res.json();
+  // Glot puts its own failures in `error`; compile and runtime output come back
+  // as stdout/stderr, which are the student's business rather than ours.
+  if (data.error) return { ok: false, reason: `glot: ${data.error}` };
+
+  return { ok: true, stdout: data.stdout ?? '', stderr: data.stderr ?? '' };
+}
+
 /**
  * Runs one test case, trying hard to get an honest answer before giving up.
  *
@@ -159,6 +208,16 @@ async function runCode(language: string, code: string, stdin: string): Promise<R
     const fallback = await runOnGodbolt(language, code, stdin);
     if (fallback.ok) return fallback;
     lastReason = `${lastReason}; ${fallback.reason}`;
+  } catch (e) {
+    lastReason = `${lastReason}; ${String(e)}`;
+  }
+
+  // Last, and the only route for Java, JavaScript and PHP. Skips itself when no
+  // token is configured.
+  try {
+    const glot = await runOnGlot(language, code, stdin);
+    if (glot.ok) return glot;
+    lastReason = `${lastReason}; ${glot.reason}`;
   } catch (e) {
     lastReason = `${lastReason}; ${String(e)}`;
   }

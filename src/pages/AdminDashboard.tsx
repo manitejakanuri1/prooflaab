@@ -9,6 +9,7 @@ import EnhancedUserManagement from "@/components/dashboard/admin/EnhancedUserMan
 import TaskOversight from "@/components/dashboard/admin/TaskOversight";
 import ContentManagement from "@/components/dashboard/admin/ContentManagement";
 import AdminAnalytics from "@/components/dashboard/admin/AdminAnalytics";
+import TokenUsage from "@/components/dashboard/admin/TokenUsage";
 import TrustXPModeration from "@/components/dashboard/admin/TrustXPModeration";
 import CollegeOversight from "@/components/dashboard/admin/CollegeOversight";
 import StudentOversight from "@/components/dashboard/admin/StudentOversight";
@@ -72,6 +73,8 @@ const AdminDashboard = () => {
         return <ContentManagement type="announcements" />;
       case "analytics":
         return <AdminAnalytics />;
+      case "token-usage":
+        return <TokenUsage />;
       case "xp-moderation":
         return <TrustXPModeration />;
       case "college-oversight":

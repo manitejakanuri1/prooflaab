@@ -21,6 +21,8 @@ import {
   ChevronDown,
   Plus,
   Bell
+,
+  Coins,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
@@ -95,6 +97,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       ]
     },
     { id: "analytics", label: "Reports & Analytics", icon: BarChart3 },
+    { id: "token-usage", label: "Token Usage", icon: Coins },
     { id: "xp-moderation", label: "Trust & XP Moderation", icon: Shield },
     { id: "college-oversight", label: "College Oversight", icon: School },
     { id: "student-oversight", label: "Student Oversight", icon: Users },

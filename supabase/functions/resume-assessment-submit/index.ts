@@ -3,6 +3,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { classifySkillGap } from "../_shared/role-skills.ts";
 
+/** Must match the countdown in TimedResumeAssessment. */
+const SECONDS_PER_QUESTION = 15;
+/**
+ * Slack on top of the per-question budget, covering page load, a reload that
+ * resumes from local storage, and a slow connection. Generous on purpose: the
+ * cost of refusing an honest attempt is far higher than the cost of allowing a
+ * slightly slow one.
+ */
+const TIME_GRACE_SECONDS = 600;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -94,7 +104,7 @@ serve(async (req) => {
 
     const { data: assessment, error: assessmentError } = await supabase
       .from('resume_assessments')
-      .select('id, student_id, resume_claims_id, questions, status, is_retest')
+      .select('id, student_id, resume_claims_id, questions, status, is_retest, started_at')
       .eq('id', assessment_id)
       .maybeSingle();
 
@@ -118,6 +128,38 @@ serve(async (req) => {
     }
 
     const questions = (assessment.questions ?? []) as any[];
+
+    // Timing is checked here because the client cannot be asked to police
+    // itself: the countdown lives in the browser, and the browser is the thing
+    // being tested. Without this the endpoint accepted answers any time, so the
+    // 15-second limit could be ignored by anyone willing to open the console.
+    //
+    // The allowance is deliberately loose. The modal can be reloaded and resumed
+    // from local storage, pages take time to load, and a student who genuinely
+    // took the test should never be refused. What this stops is the hour-long
+    // attempt, not the slow one.
+    const elapsedSeconds = assessment.started_at
+      ? Math.round((Date.now() - new Date(assessment.started_at).getTime()) / 1000)
+      : null;
+    const allowanceSeconds = questions.length * SECONDS_PER_QUESTION + TIME_GRACE_SECONDS;
+
+    if (elapsedSeconds !== null && elapsedSeconds > allowanceSeconds) {
+      await supabase
+        .from('resume_assessments')
+        .update({ status: 'expired', elapsed_seconds: elapsedSeconds })
+        .eq('id', assessment_id);
+
+      return new Response(
+        JSON.stringify({
+          error: 'This attempt ran well over the time limit, so it cannot be scored. You can start a fresh attempt.',
+          time_exceeded: true,
+          elapsed_seconds: elapsedSeconds,
+          allowed_seconds: allowanceSeconds,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const questionsById = new Map(questions.map((q: any) => [q.id, q]));
     const timestampedAnswers = (answers as AnswerInput[]).map((a) => ({
       question_id: a.question_id,
@@ -222,6 +264,9 @@ Return ONLY the JSON object.`;
         student_answers: timestampedAnswers,
         answer_scores: answerScores,
         status: 'graded',
+        // Recorded even when within the allowance, so a pattern of attempts that
+        // sit just under the line is visible rather than invisible.
+        elapsed_seconds: elapsedSeconds,
       })
       .eq('id', assessment_id);
 

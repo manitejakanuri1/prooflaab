@@ -222,6 +222,10 @@ Return ONLY the JSON array, no additional text.`;
           answer_scores: null,
           status: 'pending',
           is_retest: true,
+          // Fresh clock per attempt; the row is upserted, so created_at still
+          // points at the first one.
+          started_at: new Date().toISOString(),
+          elapsed_seconds: null,
         },
         { onConflict: 'resume_claims_id' }
       )
@@ -239,7 +243,14 @@ Return ONLY the JSON array, no additional text.`;
     console.log('Successfully generated weak-topic retest:', newAssessment.id);
 
     return new Response(
-      JSON.stringify({ success: true, assessment_id: newAssessment.id, questions }),
+      // Answers stripped for the same reason as the first-attempt generator:
+      // grading reads correct_index from the saved row, so sending it to the
+      // browser only ever let someone read the answer before choosing.
+      JSON.stringify({
+        success: true,
+        assessment_id: newAssessment.id,
+        questions: questions.map(({ correct_index: _omit, explanation: _also, ...rest }: any) => rest),
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

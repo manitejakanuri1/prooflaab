@@ -208,6 +208,22 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       : null;
 
     if (submitErr) {
+      // An attempt refused for running over time is not a failure to retry:
+      // sending the same answers again will be refused again. Say so, and close
+      // so the student starts a clean attempt rather than sitting on a dead one.
+      const body = await readFunctionError(submitErr);
+      if (body?.time_exceeded) {
+        toast({
+          title: "This attempt took too long",
+          description: String(body.error ?? "Please start a fresh attempt."),
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        advancingRef.current = false;
+        onOpenChange(false);
+        return;
+      }
+
       console.error("Assessment submit failed:", submitErr);
       toast({ title: "Couldn't submit", description: submitErr.message || "Please try again.", variant: "destructive" });
       setPhase("quiz");
@@ -244,7 +260,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     }
 
     applyCodingQuestions((codingOutcome as PromiseFulfilledResult<any>).value.data.questions || []);
-  }, [assessmentId, resumeClaimsId, toast]);
+  }, [assessmentId, resumeClaimsId, toast, onOpenChange]);
 
   const advance = useCallback(() => {
     if (advancingRef.current || !currentQuestion) return;

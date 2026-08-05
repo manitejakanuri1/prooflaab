@@ -223,6 +223,10 @@ Return ONLY the JSON array, no additional text.`;
           answer_scores: null,
           status: 'pending',
           is_retest: false,
+          // Stamped here rather than taken from created_at: this row is upserted
+          // on resume_claims_id, so created_at still holds the first attempt.
+          started_at: new Date().toISOString(),
+          elapsed_seconds: null,
         },
         { onConflict: 'resume_claims_id' }
       )
@@ -239,8 +243,17 @@ Return ONLY the JSON array, no additional text.`;
 
     console.log('Successfully generated resume assessment:', assessment.id);
 
+    // The browser is sent the question without its answer.
+    //
+    // correct_index used to ride along in this payload, so anyone could open the
+    // network tab and read the right option before choosing one. On a platform
+    // whose claim is that a build-log beats a certificate, a score you can look
+    // up is a certificate. Grading reads correct_index from the row saved above,
+    // never from what the client sends back, so nothing needs it here.
+    const publicQuestions = questions.map(({ correct_index: _omit, explanation: _also, ...rest }: any) => rest);
+
     return new Response(
-      JSON.stringify({ success: true, assessment_id: assessment.id, questions }),
+      JSON.stringify({ success: true, assessment_id: assessment.id, questions: publicQuestions }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

@@ -30,6 +30,8 @@ interface InterestReviewProps {
  */
 const InterestReview = ({ onDone }: InterestReviewProps) => {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  // Their own choices, echoed back so the judgement is readable against them.
+  const [picked, setPicked] = useState<{ interests: string[]; skills: string[] }>({ interests: [], skills: [] });
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
@@ -48,6 +50,11 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
         .select("key_interests, preferred_skills, career_goals")
         .eq("user_id", user.id)
         .maybeSingle();
+
+      setPicked({
+        interests: profile?.key_interests ?? [],
+        skills: profile?.preferred_skills ?? [],
+      });
 
       const { data, error: fnError } = await supabase.functions.invoke("interests-analyze", {
         body: {
@@ -131,12 +138,40 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
         </CardHeader>
 
         <CardContent className="space-y-5">
+          <div className="space-y-3 pb-4 border-b">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">You picked</p>
+              <div className="flex flex-wrap gap-2">
+                {picked.interests.map((s, i) => (
+                  <Badge key={`int-${s}-${i}`}>{s}</Badge>
+                ))}
+                {picked.interests.length === 0 && (
+                  <span className="text-sm text-muted-foreground">nothing selected</span>
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">You said you can already do</p>
+              <div className="flex flex-wrap gap-2">
+                {picked.skills.map((s, i) => (
+                  <Badge key={`skl-${s}-${i}`} variant="secondary">{s}</Badge>
+                ))}
+                {picked.skills.length === 0 && (
+                  <span className="text-sm text-muted-foreground">nothing selected</span>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div>
             <p className="text-sm text-muted-foreground mb-1">Closest role</p>
             <p className="font-medium">{analysis.target_role}</p>
           </div>
 
-          <p className="text-sm leading-relaxed">{analysis.explanation}</p>
+          <div>
+            <p className="text-sm font-medium mb-1">What this means</p>
+            <p className="text-sm leading-relaxed">{analysis.explanation}</p>
+          </div>
 
           {analysis.matched_skills.length > 0 && (
             <div>

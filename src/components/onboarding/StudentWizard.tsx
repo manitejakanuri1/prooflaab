@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -16,20 +14,10 @@ interface StudentWizardProps {
 }
 
 interface StudentWizardData {
-  fullName: string;
-  branch: string;
-  yearOfStudy: string;
   keyInterests: string[];
   preferredSkills: string[];
   careerGoals: string;
 }
-
-const BRANCHES = [
-  "Computer Science", "Information Technology", "Electronics", "Mechanical", 
-  "Civil", "Electrical", "Chemical", "Biotechnology", "Other"
-];
-
-const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Graduate"];
 
 const INTERESTS = [
   "Web Development", "Mobile Development", "Data Science", "Machine Learning", 
@@ -47,9 +35,6 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<StudentWizardData>({
-    fullName: "",
-    branch: "",
-    yearOfStudy: "",
     keyInterests: [],
     preferredSkills: [],
     careerGoals: ""
@@ -74,11 +59,9 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
   };
 
   const handleNext = () => {
-    if (currentStep === 1) {
-      if (!formData.fullName || !formData.branch || !formData.yearOfStudy) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
+    if (currentStep === 1 && formData.keyInterests.length === 0) {
+      toast.error("Please select at least one interest");
+      return;
     }
     setCurrentStep(2);
   };
@@ -91,22 +74,18 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
 
     setLoading(true);
     try {
-      // Create or update student profile
+      // update, not upsert: StudentStart already created the row, and an upsert
+      // would have to send full_name (NOT NULL) — which this form no longer
+      // collects, so it would blank the name taken from the sign-up.
       const { error: profileError } = await supabase
         .from('student_profiles')
-        .upsert({
-          user_id: user?.id,
-          full_name: formData.fullName,
-          email: user?.email || '',
-          branch: formData.branch,
-          year_of_study: formData.yearOfStudy,
+        .update({
           key_interests: formData.keyInterests,
           preferred_skills: formData.preferredSkills,
           career_goals: formData.careerGoals,
           profile_completed: true
-        }, {
-          onConflict: 'user_id'
-        });
+        })
+        .eq('user_id', user?.id);
 
       if (profileError) throw profileError;
 
@@ -146,44 +125,6 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
         <CardContent className="space-y-6">
           {currentStep === 1 && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name *</Label>
-                <Input
-                  id="fullName"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  placeholder="Enter your full name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="branch">Branch *</Label>
-                <Select value={formData.branch} onValueChange={(value) => setFormData(prev => ({ ...prev, branch: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BRANCHES.map(branch => (
-                      <SelectItem key={branch} value={branch}>{branch}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="year">Year of Study *</Label>
-                <Select value={formData.yearOfStudy} onValueChange={(value) => setFormData(prev => ({ ...prev, yearOfStudy: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {YEARS.map(year => (
-                      <SelectItem key={year} value={year}>{year}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="space-y-3">
                 <Label>Key Interests</Label>
                 <div className="grid grid-cols-2 gap-2">

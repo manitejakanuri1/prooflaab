@@ -93,7 +93,14 @@ export function matchSkills(interests: string[], skills: string[]): MatchResult 
 
     perInterest.push({ interest, covered, matched, missing });
     matched.forEach((m) => allMatched.add(m));
-    if (!covered) missing.slice(0, 6).forEach((m) => allMissing.add(m));
+
+    // Collected whether or not the interest is covered. Covering a track with
+    // two skills does not mean there is nothing left to learn, and the review
+    // screen has a "Worth adding next" list for exactly this case — which never
+    // rendered while this was gated on !covered, so a student whose picks lined
+    // up was shown nothing to aim at. Only the "There's a gap here" wording is
+    // conditional; the list itself is useful either way.
+    missing.slice(0, 6).forEach((m) => allMissing.add(m));
   }
 
   // Name the role after an interest they can actually back up; otherwise after

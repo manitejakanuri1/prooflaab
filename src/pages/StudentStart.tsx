@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStudentIntake, type TaskSource } from "@/hooks/useStudentIntake";
 import WelcomeScreen from "@/components/onboarding/WelcomeScreen";
@@ -78,7 +78,20 @@ const StudentStart = () => {
     ensureStudentProfile();
   }, []);
 
+  /**
+   * Set once this component has deliberately sent the student somewhere.
+   *
+   * Completing intake flips intakeComplete, which re-renders and fires the
+   * effect below — so finishing the resume upload and then navigating raced
+   * against that effect, and the effect won. The upload appeared to redirect
+   * straight to the dashboard no matter where it was told to go. A ref, not
+   * state, because this must take effect before the next render rather than
+   * causing one.
+   */
+  const leavingRef = useRef(false);
+
   useEffect(() => {
+    if (leavingRef.current) return;
     if (!loading && passThrough) {
       navigate("/student/dashboard", { replace: true });
     }
@@ -105,6 +118,9 @@ const StudentStart = () => {
       setCollectingProfile(true);
       return;
     }
+    // Claimed before completeIntake, so the redirect effect cannot fire on the
+    // re-render that completing intake causes.
+    leavingRef.current = true;
     await completeIntake(source);
     // Not the dashboard. Uploading a resume produces claims the student has not
     // seen, agreed to, or been tested on — dropping them on the dashboard here

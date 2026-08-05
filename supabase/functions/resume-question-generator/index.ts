@@ -131,6 +131,7 @@ Return a JSON array with this exact structure:
   {
     "id": "q1",
     "type": "mcq",
+    "topic": "Short subject heading, e.g. 'React - State' or 'SQL - Joins'",
     "prompt": "Question text",
     "options": ["A", "B", "C", "D"],
     "correct_index": 0,
@@ -140,9 +141,12 @@ Return a JSON array with this exact structure:
   {
     "id": "q6",
     "type": "short_answer",
+    "topic": "Short subject heading",
     "prompt": "Question text"
   }` : ''}
 ]
+
+Every question needs a "topic": a short subject heading (under 6 words) naming the technology and the specific concept being tested, so the student can see what area they are being asked about before they read the question.
 
 Return ONLY the JSON array, no additional text.`;
 

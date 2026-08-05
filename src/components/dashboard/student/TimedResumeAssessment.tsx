@@ -19,6 +19,8 @@ interface Question {
   type: "mcq" | "short_answer";
   prompt: string;
   options?: string[];
+  /** Subject heading shown above the question. Absent on older saved questions. */
+  topic?: string;
 }
 
 interface CodingQuestion {
@@ -418,6 +420,13 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
             </div>
 
             <div className="space-y-4" key={currentQuestion.id}>
+              {/* Names the subject before the question, so a student can see
+                  which area is being tested rather than guessing from wording. */}
+              {currentQuestion.topic && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  {currentQuestion.topic}
+                </p>
+              )}
               <p className="font-medium">{currentQuestion.prompt}</p>
 
               {currentQuestion.type === "mcq" ? (

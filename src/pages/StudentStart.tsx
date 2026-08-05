@@ -4,6 +4,7 @@ import { useStudentIntake, type TaskSource } from "@/hooks/useStudentIntake";
 import WelcomeScreen from "@/components/onboarding/WelcomeScreen";
 import IntakeChoice from "@/components/onboarding/IntakeChoice";
 import StudentWizard from "@/components/onboarding/StudentWizard";
+import InterestReview from "@/components/onboarding/InterestReview";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -66,6 +67,8 @@ const StudentStart = () => {
   const [starting, setStarting] = useState(false);
   // Set when the student picks Skip: collect branch/year/interests before going in.
   const [collectingProfile, setCollectingProfile] = useState(false);
+  // After the pickers: show the skills-vs-interests judgement, then the assessment.
+  const [reviewingInterests, setReviewingInterests] = useState(false);
 
   // `degraded` means the intake row could not be read at all. Showing a blocking
   // welcome we cannot dismiss would strand the student, so pass them through.
@@ -106,7 +109,15 @@ const StudentStart = () => {
     navigate("/student/dashboard", { replace: true });
   };
 
-  const handleProfileComplete = async () => {
+  // Pickers done -> move to the review screen. Intake is NOT completed here:
+  // the student still has the assessment ahead, and marking it done early would
+  // let the dashboard gate wave them straight past it.
+  const handleProfileComplete = () => {
+    setCollectingProfile(false);
+    setReviewingInterests(true);
+  };
+
+  const handleReviewDone = async () => {
     try {
       await completeIntake("general");
     } catch (err) {
@@ -134,6 +145,14 @@ const StudentStart = () => {
 
   if (collectingProfile) {
     return <StudentWizard onComplete={handleProfileComplete} />;
+  }
+
+  if (reviewingInterests) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6 py-16">
+        <InterestReview onDone={handleReviewDone} />
+      </div>
+    );
   }
 
   return (

@@ -11,17 +11,17 @@
  * The model still writes the explanation; it just no longer decides the verdict.
  */
 export const INTEREST_SKILLS: Record<string, string[]> = {
-  'Web Development':    ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Tailwind', 'Node.js', 'Express', 'SQL', 'PostgreSQL', 'MongoDB', 'REST APIs', 'JWT Auth', 'Next.js', 'Vercel'],
-  'Cloud Computing':    ['AWS', 'EC2', 'S3', 'IAM', 'VPC', 'Lambda', 'Linux', 'Networking', 'Docker', 'Terraform', 'Python', 'Bash'],
+  'Web Development':    ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Tailwind', 'Node.js', 'Express', 'SQL', 'PostgreSQL', 'MongoDB', 'REST APIs', 'JWT Auth', 'Next.js', 'Vercel', 'Vue.js', 'Angular'],
+  'Cloud Computing':    ['AWS', 'EC2', 'S3', 'IAM', 'VPC', 'Lambda', 'Linux', 'Networking', 'Docker', 'Terraform', 'Python', 'Bash', 'Kubernetes', 'Azure', 'GCP'],
   'Data Science':       ['Python', 'Pandas', 'NumPy', 'SQL', 'Statistics', 'Matplotlib', 'Seaborn', 'Excel', 'Power BI', 'Tableau', 'Jupyter'],
-  'Machine Learning':   ['Python', 'Pandas', 'NumPy', 'SQL', 'scikit-learn', 'PyTorch', 'Linear Algebra', 'Probability', 'Feature Engineering', 'FastAPI', 'Docker', 'Transformers', 'LLM APIs', 'RAG'],
-  'Mobile Development': ['Kotlin', 'Jetpack Compose', 'Swift', 'SwiftUI', 'Flutter', 'Dart', 'REST APIs', 'JSON', 'Room', 'SQLite', 'Firebase', 'App Store Publishing'],
+  'Machine Learning':   ['Python', 'Pandas', 'NumPy', 'SQL', 'scikit-learn', 'PyTorch', 'Linear Algebra', 'Probability', 'Feature Engineering', 'FastAPI', 'Docker', 'Transformers', 'LLM APIs', 'RAG', 'TensorFlow'],
+  'Mobile Development': ['Kotlin', 'Jetpack Compose', 'Swift', 'SwiftUI', 'Flutter', 'Dart', 'REST APIs', 'JSON', 'Room', 'SQLite', 'Firebase', 'App Store Publishing', 'Java', 'React Native'],
   'Cybersecurity':      ['Linux', 'Networking', 'Windows', 'Active Directory', 'Splunk', 'Wazuh', 'Log Analysis', 'Wireshark', 'Nmap', 'Burp Suite', 'Python', 'OWASP Top 10', 'Security+'],
   'UI/UX Design':       ['Figma', 'Auto Layout', 'Design Systems', 'Wireframing', 'Prototyping', 'User Research', 'Usability Testing', 'Accessibility (WCAG)', 'HTML/CSS'],
-  'DevOps':             ['Linux', 'Bash', 'Python', 'Docker', 'Kubernetes', 'Git', 'CI/CD', 'GitHub Actions', 'Terraform', 'Prometheus', 'Grafana', 'AWS'],
+  'DevOps':             ['Linux', 'Bash', 'Python', 'Docker', 'Kubernetes', 'Git', 'CI/CD', 'GitHub Actions', 'Terraform', 'Prometheus', 'Grafana', 'AWS', 'Jenkins'],
   'IoT':                ['C', 'C++', 'ESP32', 'STM32', 'I2C/SPI/UART', 'FreeRTOS', 'MQTT', 'Sensors', 'Circuits/PCB', 'Python'],
   'Game Development':   ['Unity', 'C#', 'Unreal', 'C++', '3D Maths', 'Physics', 'Blender'],
-  'Blockchain':         ['Solidity', 'Foundry', 'Hardhat', 'ethers.js', 'viem', 'EVM Internals', 'Smart Contract Security', 'React'],
+  'Blockchain':         ['Solidity', 'Foundry', 'Hardhat', 'ethers.js', 'viem', 'EVM Internals', 'Smart Contract Security', 'React', 'JavaScript'],
   'Robotics':           ['Python', 'C++', 'ROS 2', 'Control Systems', 'OpenCV', 'Embedded Systems', 'Gazebo', 'Linear Algebra'],
 };
 

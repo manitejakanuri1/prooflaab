@@ -37,6 +37,9 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<unknown[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  // Set once grading returns, so closing the modal afterwards means "done
+  // reading my score" rather than "abandoned the test".
+  const [graded, setGraded] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -93,9 +96,27 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
     }
   };
 
+  /**
+   * Grading finished — do NOT close the modal here.
+   *
+   * TimedResumeAssessment switches to its own "results" phase at this point,
+   * and that phase is where the score breakdown and the roadmap are shown.
+   * Closing on this callback tore the modal down before any of it rendered, so
+   * the Skip path went straight from the last coding question to the dashboard
+   * and the student never saw what they scored. The resume path leaves the modal
+   * alone for exactly this reason.
+   */
   const handleGraded = (_result: ResumeScoreResult) => {
-    setModalOpen(false);
-    onDone();
+    setGraded(true);
+  };
+
+  /**
+   * Closing the results is the student saying they have finished reading, so
+   * that — not grading — is what moves them on to the dashboard.
+   */
+  const handleModalOpenChange = (next: boolean) => {
+    setModalOpen(next);
+    if (!next && graded) onDone();
   };
 
   if (error) {
@@ -221,7 +242,7 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
       {assessmentId && (
         <TimedResumeAssessment
           open={modalOpen}
-          onOpenChange={setModalOpen}
+          onOpenChange={handleModalOpenChange}
           assessmentId={assessmentId}
           resumeClaimsId={analysis.resume_claim_id}
           questions={questions as never}

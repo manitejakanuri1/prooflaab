@@ -68,3 +68,5 @@ verify_jwt = false
 
 [functions.app-guide-chat]
 verify_jwt = false
+[functions.security-log]
+verify_jwt = false

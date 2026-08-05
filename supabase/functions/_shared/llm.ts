@@ -12,6 +12,7 @@
 // audio); DeepSeek has no equivalent input, so those cannot use this helper.
 
 import { checkRateLimit, RateLimitError } from './rate-limit.ts';
+import { logSecurityEvent } from './audit.ts';
 
 interface GenOptions {
   temperature?: number;
@@ -220,6 +221,14 @@ async function enforceLlmRateLimit(track?: UsageContext): Promise<void> {
   const decision = await checkRateLimit(bucket, subject, limit, RATE_WINDOW_SECONDS);
   if (!decision.allowed) {
     console.warn(`Rate limit hit: ${bucket}/${subject} (${decision.hits}/${limit})`);
+    // No Request object reaches this far down, so the IP is not recorded here;
+    // the identity that matters for AI spend is the user, and that is.
+    logSecurityEvent(null, {
+      eventType: 'ai_rate_limited',
+      severity: 'warning',
+      userId: track?.userId ?? null,
+      detail: { feature, bucket, hits: decision.hits, limit },
+    });
     throw new RateLimitError(
       identity
         ? 'You have used a lot of AI features in the last hour. Please try again shortly.'

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { logAuthEvent, classifyAuthError } from '@/lib/securityLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -190,6 +191,9 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       });
 
       if (error) throw error;
+      // Logged on success only: a reset request that failed reveals nothing,
+      // but one that succeeded means a reset link is now in somebody's inbox.
+      logAuthEvent('password_reset_requested', email);
       setMessage('Password reset email sent! Check your inbox for the reset link.');
     } catch (error: any) {
       console.error('Forgot password error:', error);
@@ -218,9 +222,16 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          logAuthEvent('login_failed', email, classifyAuthError(error.message));
+          throw error;
+        }
 
         if (data.user) {
+          // Recorded too: a burst of failures matters far less if you cannot
+          // see whether any of them eventually worked.
+          logAuthEvent('login_succeeded', email);
+
           // Check if email is confirmed
           if (!data.user.email_confirmed_at) {
             setError('Please confirm your email address before logging in. Check your inbox for the confirmation email.');
@@ -257,6 +268,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         });
         
         if (error) {
+          logAuthEvent('signup_failed', email, classifyAuthError(error.message));
           // Handle specific signup errors
           if (error.message?.includes('User already registered')) {
             throw new Error('Email already registered. Please login instead.');

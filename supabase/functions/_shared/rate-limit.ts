@@ -7,6 +7,8 @@
 // Called through the service role key, the same way logUsage is, so a function
 // does not need to wire up a client just to be rate limited.
 
+import { logSecurityEvent } from './audit.ts';
+
 export interface RateLimitDecision {
   allowed: boolean;
   hits: number;
@@ -113,6 +115,15 @@ export async function guard(req: Request, opts: GuardOptions): Promise<Response 
   const subject = subjectFor(req, opts.userId);
   const decision = await checkRateLimit(opts.bucket, subject, opts.limit, opts.windowSeconds);
   if (decision.allowed) return null;
+
+  // Someone hitting a cap is the clearest signal of abuse this system produces,
+  // so it is recorded rather than only refused.
+  logSecurityEvent(req, {
+    eventType: 'rate_limited',
+    severity: 'warning',
+    userId: opts.userId ?? null,
+    detail: { bucket: opts.bucket, hits: decision.hits, limit: decision.limit },
+  });
 
   return new Response(
     JSON.stringify({

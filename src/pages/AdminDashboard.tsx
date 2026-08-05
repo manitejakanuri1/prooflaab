@@ -10,6 +10,7 @@ import TaskOversight from "@/components/dashboard/admin/TaskOversight";
 import ContentManagement from "@/components/dashboard/admin/ContentManagement";
 import AdminAnalytics from "@/components/dashboard/admin/AdminAnalytics";
 import TokenUsage from "@/components/dashboard/admin/TokenUsage";
+import SecurityEvents from "@/components/dashboard/admin/SecurityEvents";
 import TrustXPModeration from "@/components/dashboard/admin/TrustXPModeration";
 import CollegeOversight from "@/components/dashboard/admin/CollegeOversight";
 import StudentOversight from "@/components/dashboard/admin/StudentOversight";
@@ -75,6 +76,8 @@ const AdminDashboard = () => {
         return <AdminAnalytics />;
       case "token-usage":
         return <TokenUsage />;
+      case "security-events":
+        return <SecurityEvents />;
       case "xp-moderation":
         return <TrustXPModeration />;
       case "college-oversight":

@@ -148,42 +148,53 @@ export async function extractPdfText(
   onProgress?: (message: string) => void
 ): Promise<PdfExtractResult> {
   const buffer = await file.arrayBuffer();
-  const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+  // The loading task is kept, not discarded, because it owns the teardown.
+  // PDFDocumentProxy has no destroy() in pdf.js 6 — calling doc.destroy() threw
+  // "destroy is not a function" after the text had already been read, so a
+  // perfectly good extraction was reported to the student as an unreadable
+  // resume, and the upload never reached the server.
+  const loadingTask = pdfjsLib.getDocument({ data: buffer });
+  const doc = await loadingTask.promise;
 
-  const pageTexts: string[] = [];
-  for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-    const page = await doc.getPage(pageNum);
-    const content = await page.getTextContent();
-    const viewport = page.getViewport({ scale: 1 });
+  try {
+    const pageTexts: string[] = [];
+    for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+      const page = await doc.getPage(pageNum);
+      const content = await page.getTextContent();
+      const viewport = page.getViewport({ scale: 1 });
 
-    const words: Word[] = [];
-    for (const item of content.items) {
-      // Ignore the structural markers pdf.js interleaves with real text runs.
-      if (!("str" in item) || !item.str.trim()) continue;
-      words.push({
-        text: item.str,
-        x: item.transform[4],
-        y: item.transform[5],
-        width: item.width ?? 0,
-      });
+      const words: Word[] = [];
+      for (const item of content.items) {
+        // Ignore the structural markers pdf.js interleaves with real text runs.
+        if (!("str" in item) || !item.str.trim()) continue;
+        words.push({
+          text: item.str,
+          x: item.transform[4],
+          y: item.transform[5],
+          width: item.width ?? 0,
+        });
+      }
+
+      pageTexts.push(wordsToText(words, viewport.width));
+      page.cleanup();
     }
 
-    pageTexts.push(wordsToText(words, viewport.width));
-    page.cleanup();
+    const pages = doc.numPages;
+    let text = pageTexts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+    let usedOcr = false;
+
+    // No text layer means a scan. Fall back to OCR rather than giving up — this
+    // is what removes the last dependency on a model that can read images.
+    if (text.replace(/\s/g, "").length < MIN_USEFUL_CHARS) {
+      onProgress?.("This looks like a scan — reading it with OCR…");
+      text = await ocrPdf(doc, onProgress);
+      usedOcr = true;
+    }
+
+    return { text, pages, usedOcr };
+  } finally {
+    // finally, so a failure part-way through still releases the worker rather
+    // than leaking it for the rest of the session.
+    await loadingTask.destroy();
   }
-
-  const pages = doc.numPages;
-  let text = pageTexts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
-  let usedOcr = false;
-
-  // No text layer means a scan. Fall back to OCR rather than giving up — this
-  // is what removes the last dependency on a model that can read images.
-  if (text.replace(/\s/g, "").length < MIN_USEFUL_CHARS) {
-    onProgress?.("This looks like a scan — reading it with OCR…");
-    text = await ocrPdf(doc, onProgress);
-    usedOcr = true;
-  }
-
-  await doc.destroy();
-  return { text, pages, usedOcr };
 }

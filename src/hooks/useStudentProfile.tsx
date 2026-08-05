@@ -51,7 +51,10 @@ export const useStudentProfile = () => {
             .from('student_profiles')
             .select('*')
             .eq('user_id', user.id)
-            .single();
+            // A student has no profile row between signing up and StudentStart
+            // creating it. single() reported that gap as a 406, which this hook
+            // then surfaced as an error on the dashboard.
+            .maybeSingle();
 
           if (profileError) {
             setError(profileError.message);

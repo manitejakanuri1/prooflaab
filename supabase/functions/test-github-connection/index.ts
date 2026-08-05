@@ -83,18 +83,21 @@ serve(async (req) => {
       );
     }
 
-    const userData = await response.json();
-    
+    // Named apart from the userData holding the Supabase caller above. Two
+    // `const userData` in one scope is a SyntaxError, so the module never
+    // parsed and this function was dead rather than merely wrong.
+    const githubUser = await response.json();
+
     // Get OAuth scopes from response headers
     const scopes = response.headers.get('X-OAuth-Scopes') || 'unknown';
-    
-    console.log('GitHub connection successful:', userData.login);
+
+    console.log('GitHub connection successful:', githubUser.login);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
-        username: userData.login,
-        name: userData.name,
+        username: githubUser.login,
+        name: githubUser.name,
         scopes: scopes,
         message: 'GitHub token is valid and working'
       }),

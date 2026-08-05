@@ -26,7 +26,8 @@ export default function OnboardingWizard() {
           .from('user_roles')
           .select('role, has_completed_wizard')
           .eq('user_id', user.id)
-          .single();
+          // Absent role is a real state; see RoleBasedProtectedRoute.
+          .maybeSingle();
 
         if (roleData) {
           // Safety net: students never use this wizard, they use the intake flow.

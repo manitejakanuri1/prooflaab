@@ -31,7 +31,10 @@ export default function RoleBasedProtectedRoute({
           .from('user_roles')
           .select('role, has_completed_wizard')
           .eq('user_id', user.id)
-          .single();
+          // maybeSingle: a role row can be absent if signup's role insert failed,
+          // and single() turns that into a 406 the caller reads as a broken query
+          // rather than as "no role yet".
+          .maybeSingle();
 
         if (roleData) {
           setUserRole(roleData.role);

@@ -117,7 +117,8 @@ export default function Auth() {
         .from('user_roles')
         .select('has_completed_wizard')
         .eq('user_id', user.id)
-        .single();
+        // See RoleBasedProtectedRoute: no role row is a real state, not an error.
+        .maybeSingle();
 
       // Students are gated by intake (/student/start), never the wizard flag.
       // /student/start forwards to the dashboard by itself once intake is done.

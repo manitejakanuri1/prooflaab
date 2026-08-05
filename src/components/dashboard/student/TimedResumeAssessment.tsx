@@ -55,13 +55,32 @@ interface CodingQuestion {
   sample_test: { stdin: string; expected_output: string } | null;
 }
 
+type Verdict = "accepted" | "wrong_answer" | "runtime_error" | "compile_error" | "time_limit";
+
 interface RunResult {
   stdin: string;
   expected: string;
   actual: string;
   stderr: string;
   passed: boolean;
+  /** Absent on results graded before verdicts existed. */
+  verdict?: Verdict;
 }
+
+/**
+ * What each outcome should teach.
+ *
+ * A single red cross for every kind of failure tells a student only that they
+ * are wrong, which they can already see. Naming the failure is the difference
+ * between "you are bad at this" and "you have a typo on line 4".
+ */
+const VERDICT_LABEL: Record<Verdict, { title: string; hint: string }> = {
+  accepted: { title: "Passed", hint: "" },
+  wrong_answer: { title: "Wrong answer", hint: "It ran fine — the logic is off." },
+  runtime_error: { title: "Crashed", hint: "It started, then threw. The error is below." },
+  compile_error: { title: "Won't build", hint: "A syntax problem — nothing ran yet." },
+  time_limit: { title: "Too slow", hint: "It may be correct, but it took too long." },
+};
 
 type ConfidenceLevel = "high" | "medium" | "low";
 
@@ -625,15 +644,36 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
 
               {runResults && (
                 <div className="space-y-1">
-                  {runResults.map((r, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs">
-                      {r.passed ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" /> : <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />}
-                      <div className="font-mono">
-                        <div>expected: {r.expected}</div>
-                        <div>got: {r.actual || "(empty)"}{r.stderr && ` — ${r.stderr}`}</div>
+                  {runResults.map((r, i) => {
+                    const verdict: Verdict = r.verdict ?? (r.passed ? "accepted" : "wrong_answer");
+                    const label = VERDICT_LABEL[verdict];
+                    // Only a wrong answer is about the output. A crash or a
+                    // build failure makes "expected vs got" noise around the
+                    // one line that actually explains it.
+                    const compareOutput = verdict === "accepted" || verdict === "wrong_answer";
+                    return (
+                      <div key={i} className="flex items-start gap-2 text-xs">
+                        {r.passed
+                          ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                          : <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />}
+                        <div className="space-y-0.5">
+                          <div className="font-medium not-italic">
+                            {label.title}
+                            {label.hint && <span className="font-normal text-muted-foreground"> — {label.hint}</span>}
+                          </div>
+                          {compareOutput && (
+                            <div className="font-mono">
+                              <div>expected: {r.expected}</div>
+                              <div>got: {r.actual || "(empty)"}</div>
+                            </div>
+                          )}
+                          {r.stderr && (
+                            <pre className="font-mono whitespace-pre-wrap text-destructive/90">{r.stderr}</pre>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

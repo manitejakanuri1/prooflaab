@@ -82,9 +82,37 @@ interface TestCase {
  * Keeping these apart is the whole point. Treating them the same is what scored
  * a student 0 out of 6 for six containers that never started.
  */
+/**
+ * How the run ended, when it ended at all.
+ *
+ * "It failed" is not feedback. A wrong answer means the logic is off, a crash
+ * means something threw, a timeout means the logic may be right but too slow,
+ * and a compile error is usually a typo. Collapsing four different lessons into
+ * one red cross teaches none of them.
+ */
+type ExecStatus = 'ok' | 'compile_error' | 'runtime_error' | 'time_limit';
+
 type RunResult =
-  | { ok: true; stdout: string; stderr: string }
+  | { ok: true; status: ExecStatus; stdout: string; stderr: string }
   | { ok: false; reason: string };
+
+/** What a single test case ended up being worth, once compared. */
+type Verdict = 'accepted' | 'wrong_answer' | 'runtime_error' | 'compile_error' | 'time_limit';
+
+function verdictFor(status: ExecStatus, stdout: string, expected: string): Verdict {
+  if (status === 'compile_error') return 'compile_error';
+  if (status === 'runtime_error') return 'runtime_error';
+  if (status === 'time_limit') return 'time_limit';
+  return stdout.trim() === expected.trim() ? 'accepted' : 'wrong_answer';
+}
+
+/** Runners signal a killed process in prose rather than in a field. */
+const TIMEOUT_PATTERNS = ['timeout', 'timed out', 'killed', 'terminated', 'sigkill', 'sigxcpu'];
+
+function looksLikeTimeout(text: string): boolean {
+  const t = text.toLowerCase();
+  return TIMEOUT_PATTERNS.some((p) => t.includes(p));
+}
 
 /**
  * Signs that the runner itself failed rather than the code.
@@ -127,7 +155,24 @@ async function runOnWandbox(language: string, code: string, stdin: string): Prom
     return { ok: false, reason: combined.trim() || 'runner could not start' };
   }
 
-  return { ok: true, stdout: data.program_output ?? '', stderr };
+  const compilerError = String(data.compiler_error ?? '');
+  const programError = String(data.program_error ?? '');
+  const exitCode = String(data.status ?? '0');
+
+  let status: ExecStatus = 'ok';
+  if (data.signal || looksLikeTimeout(programError)) {
+    status = 'time_limit';
+  } else if (compilerError.trim()) {
+    // Only compiled languages report here. A Python or JavaScript syntax error
+    // arrives as a non-zero exit instead, which is why the runner's own message
+    // is always passed through — "SyntaxError: line 4" says more than any label
+    // this could invent.
+    status = 'compile_error';
+  } else if (exitCode !== '0') {
+    status = 'runtime_error';
+  }
+
+  return { ok: true, status, stdout: data.program_output ?? '', stderr };
 }
 
 async function runOnGodbolt(language: string, code: string, stdin: string): Promise<RunResult> {
@@ -150,14 +195,31 @@ async function runOnGodbolt(language: string, code: string, stdin: string): Prom
   if (!res.ok) return { ok: false, reason: `godbolt http ${res.status}` };
 
   const data = await res.json();
+  const join = (parts: unknown) =>
+    Array.isArray(parts) ? parts.map((p: { text?: string }) => p?.text ?? '').join('\n') : '';
+
+  // Godbolt separates the build from the run, so a compile failure is a fact
+  // here rather than something to infer from the text.
+  const buildCode = data.buildResult?.code;
+  if (typeof buildCode === 'number' && buildCode !== 0) {
+    return {
+      ok: true,
+      status: 'compile_error',
+      stdout: '',
+      stderr: join(data.buildResult?.stderr) || 'compilation failed',
+    };
+  }
+
   if (data.didExecute !== true) {
     return { ok: false, reason: 'fallback runner could not execute' };
   }
 
-  const join = (parts: unknown) =>
-    Array.isArray(parts) ? parts.map((p: { text?: string }) => p?.text ?? '').join('\n') : '';
+  const stderr = join(data.stderr);
+  let status: ExecStatus = 'ok';
+  if (data.timedOut === true) status = 'time_limit';
+  else if (typeof data.code === 'number' && data.code !== 0) status = 'runtime_error';
 
-  return { ok: true, stdout: join(data.stdout), stderr: join(data.stderr) };
+  return { ok: true, status, stdout: join(data.stdout), stderr };
 }
 
 async function runOnGlot(language: string, code: string, stdin: string): Promise<RunResult> {
@@ -175,11 +237,22 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
   if (!res.ok) return { ok: false, reason: `glot http ${res.status}` };
 
   const data = await res.json();
-  // Glot puts its own failures in `error`; compile and runtime output come back
-  // as stdout/stderr, which are the student's business rather than ours.
-  if (data.error) return { ok: false, reason: `glot: ${data.error}` };
+  const stderr = String(data.stderr ?? '');
+  const glotError = String(data.error ?? '');
 
-  return { ok: true, stdout: data.stdout ?? '', stderr: data.stderr ?? '' };
+  // Glot reports a killed process through `error`. Anything else in there is a
+  // failure of the service, not of the code.
+  if (glotError && looksLikeTimeout(glotError)) {
+    return { ok: true, status: 'time_limit', stdout: data.stdout ?? '', stderr };
+  }
+  if (glotError) return { ok: false, reason: `glot: ${glotError}` };
+
+  // Glot does not separate build from run, so a crash and a failed compile look
+  // alike here. Reported as a runtime error with the real message attached
+  // rather than guessed at from the text.
+  const status: ExecStatus = stderr.trim() && !String(data.stdout ?? '').trim() ? 'runtime_error' : 'ok';
+
+  return { ok: true, status, stdout: data.stdout ?? '', stderr };
 }
 
 /**
@@ -346,14 +419,20 @@ serve(async (req) => {
         );
       }
 
-      const passed = run.stdout.trim() === tc.expected_output.trim();
+      const verdict = verdictFor(run.status, run.stdout, tc.expected_output);
       results.push({
         stdin: tc.stdin,
         expected: tc.expected_output,
         actual: run.stdout.trim(),
         stderr: run.stderr.trim(),
-        passed,
+        verdict,
+        passed: verdict === 'accepted',
       });
+
+      // Code that will not build will not build for the next case either.
+      // Reported once, the way a compiler reports it, instead of repeating the
+      // same message per test and spending runs to say nothing new.
+      if (verdict === 'compile_error') break;
     }
 
     if (mode === 'run') {

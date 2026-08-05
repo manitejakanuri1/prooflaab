@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
-import { matchSkills, INTEREST_SKILLS } from "../_shared/skill-map.ts";
+import { matchSkills, INTEREST_SKILLS, CORE_SKILLS } from "../_shared/skill-map.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,7 +19,7 @@ const ALLOWED_INTERESTS = new Set([
 
 // Every skill named anywhere in the interest map, so the picker and the
 // matcher can never drift apart.
-const ALLOWED_SKILLS = new Set(Object.values(INTEREST_SKILLS).flat());
+const ALLOWED_SKILLS = new Set([...Object.values(INTEREST_SKILLS).flat(), ...CORE_SKILLS]);
 
 const MAX_ITEMS = 20;
 const MAX_GOAL_CHARS = 600;

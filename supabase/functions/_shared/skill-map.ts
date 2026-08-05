@@ -11,19 +11,22 @@
  * The model still writes the explanation; it just no longer decides the verdict.
  */
 export const INTEREST_SKILLS: Record<string, string[]> = {
-  'Web Development':    ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Vue.js', 'Angular', 'Node.js', 'Next.js', 'PHP'],
-  'Mobile Development': ['Kotlin', 'Swift', 'Java', 'Dart', 'Flutter', 'React Native', 'Firebase'],
-  'Data Science':       ['Python', 'Pandas', 'NumPy', 'SQL', 'R', 'Matplotlib', 'Jupyter', 'Excel'],
-  'Machine Learning':   ['Python', 'scikit-learn', 'TensorFlow', 'PyTorch', 'Pandas', 'NumPy'],
-  'Cybersecurity':      ['Linux', 'Networking', 'Wireshark', 'Nmap', 'Burp Suite', 'Python', 'Cryptography'],
-  'Cloud Computing':    ['AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'Linux'],
-  'DevOps':             ['Linux', 'Docker', 'Kubernetes', 'Git', 'CI/CD', 'Jenkins', 'Terraform', 'Bash'],
-  'UI/UX Design':       ['Figma', 'Wireframing', 'Prototyping', 'Design Systems', 'User Research', 'HTML/CSS'],
-  'Game Development':   ['Unity', 'Unreal', 'C#', 'C++', 'Blender'],
-  'Blockchain':         ['Solidity', 'Ethereum', 'Web3.js', 'Smart Contracts', 'Cryptography', 'JavaScript'],
-  'IoT':                ['C', 'C++', 'Python', 'Arduino', 'Raspberry Pi', 'MQTT', 'Embedded Systems'],
-  'Robotics':           ['Python', 'C++', 'ROS', 'Arduino', 'Control Systems', 'Computer Vision'],
+  'Web Development':    ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Tailwind', 'Node.js', 'Express', 'SQL', 'PostgreSQL', 'MongoDB', 'REST APIs', 'JWT Auth', 'Next.js', 'Vercel'],
+  'Cloud Computing':    ['AWS', 'EC2', 'S3', 'IAM', 'VPC', 'Lambda', 'Linux', 'Networking', 'Docker', 'Terraform', 'Python', 'Bash'],
+  'Data Science':       ['Python', 'Pandas', 'NumPy', 'SQL', 'Statistics', 'Matplotlib', 'Seaborn', 'Excel', 'Power BI', 'Tableau', 'Jupyter'],
+  'Machine Learning':   ['Python', 'Pandas', 'NumPy', 'SQL', 'scikit-learn', 'PyTorch', 'Linear Algebra', 'Probability', 'Feature Engineering', 'FastAPI', 'Docker', 'Transformers', 'LLM APIs', 'RAG'],
+  'Mobile Development': ['Kotlin', 'Jetpack Compose', 'Swift', 'SwiftUI', 'Flutter', 'Dart', 'REST APIs', 'JSON', 'Room', 'SQLite', 'Firebase', 'App Store Publishing'],
+  'Cybersecurity':      ['Linux', 'Networking', 'Windows', 'Active Directory', 'Splunk', 'Wazuh', 'Log Analysis', 'Wireshark', 'Nmap', 'Burp Suite', 'Python', 'OWASP Top 10', 'Security+'],
+  'UI/UX Design':       ['Figma', 'Auto Layout', 'Design Systems', 'Wireframing', 'Prototyping', 'User Research', 'Usability Testing', 'Accessibility (WCAG)', 'HTML/CSS'],
+  'DevOps':             ['Linux', 'Bash', 'Python', 'Docker', 'Kubernetes', 'Git', 'CI/CD', 'GitHub Actions', 'Terraform', 'Prometheus', 'Grafana', 'AWS'],
+  'IoT':                ['C', 'C++', 'ESP32', 'STM32', 'I2C/SPI/UART', 'FreeRTOS', 'MQTT', 'Sensors', 'Circuits/PCB', 'Python'],
+  'Game Development':   ['Unity', 'C#', 'Unreal', 'C++', '3D Maths', 'Physics', 'Blender'],
+  'Blockchain':         ['Solidity', 'Foundry', 'Hardhat', 'ethers.js', 'viem', 'EVM Internals', 'Smart Contract Security', 'React'],
+  'Robotics':           ['Python', 'C++', 'ROS 2', 'Control Systems', 'OpenCV', 'Embedded Systems', 'Gazebo', 'Linear Algebra'],
 };
+
+/** Expected on every track, so they are offered alongside each interest's own set. */
+export const CORE_SKILLS = ['Git & GitHub', 'DSA', 'Linux Basics'];
 
 /** Job title each interest points at, so the role follows the goal not the skills. */
 export const INTEREST_ROLE: Record<string, string> = {

@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices } from "lucide-react";
+import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,30 @@ import { RoadmapStages } from "./RoadmapStages";
 
 const SECONDS_PER_QUESTION = 15;
 const SECONDS_PER_CODING_PROBLEM = 300;
+/**
+ * Time handed back when the executor is unreachable.
+ *
+ * An auto-submit fires at zero seconds. Without this the timer stays at zero,
+ * the effect watching it calls straight back into a runner already known to be
+ * down, and the student sits in a retry loop they cannot break.
+ */
+const RUNNER_RETRY_SECONDS = 90;
+
+/**
+ * Reads the JSON body of a failed edge function call.
+ *
+ * supabase-js reports a non-2xx as an error and leaves data null, so the
+ * server's explanation is only reachable through the attached response.
+ */
+const readFunctionError = async (error: unknown): Promise<Record<string, unknown> | null> => {
+  const context = (error as { context?: Response })?.context;
+  if (!context || typeof context.json !== "function") return null;
+  try {
+    return await context.clone().json();
+  } catch {
+    return null;
+  }
+};
 
 interface Question {
   id: string;
@@ -114,6 +138,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
   const [running, setRunning] = useState(false);
   const [runResults, setRunResults] = useState<RunResult[] | null>(null);
   const [submittingCode, setSubmittingCode] = useState(false);
+  // Set when the executor itself is down, so the student is told it is not their
+  // code rather than shown six silently failed test cases.
+  const [runnerBusy, setRunnerBusy] = useState<string | null>(null);
   const codingAdvancingRef = useRef(false);
 
   const [codingGenError, setCodingGenError] = useState(false);
@@ -324,8 +351,14 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      setRunnerBusy(null);
       setRunResults(data.results);
     } catch (err: any) {
+      const body = await readFunctionError(err);
+      if (body?.runner_unavailable) {
+        setRunnerBusy(String(body.error ?? "The code runner is busy."));
+        return;
+      }
       console.error("Code run failed:", err);
       toast({ title: "Couldn't run code", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
@@ -343,6 +376,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      setRunnerBusy(null);
 
       if (isLastCodingQuestion) {
         setPhase("coding-analyzing");
@@ -361,6 +395,15 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       setCodingTimeLeft(SECONDS_PER_CODING_PROBLEM);
       setRunResults(null);
     } catch (err: any) {
+      const body = await readFunctionError(err);
+      if (body?.runner_unavailable) {
+        // Nothing was recorded server-side, so the question is still open. Hand
+        // back time so the auto-submit at zero does not fire straight back into
+        // a runner that is already down.
+        setRunnerBusy(String(body.error ?? "The code runner is busy."));
+        setCodingTimeLeft((t) => Math.max(t, RUNNER_RETRY_SECONDS));
+        return;
+      }
       console.error("Code submit failed:", err);
       toast({ title: "Couldn't submit code", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
@@ -550,6 +593,19 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                   options={{ minimap: { enabled: false }, fontSize: 13 }}
                 />
               </div>
+
+              {runnerBusy && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Your code did not run</p>
+                    <p className="text-muted-foreground">{runnerBusy}</p>
+                    <p className="text-muted-foreground mt-1">
+                      Nothing has been marked wrong and this question is still open.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {runResults && (
                 <div className="space-y-1">

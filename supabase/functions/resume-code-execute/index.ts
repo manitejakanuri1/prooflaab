@@ -22,26 +22,149 @@ const WANDBOX_COMPILER: Record<string, string> = {
   php: 'php-8.3.12',
 };
 
+const GODBOLT_URL = 'https://godbolt.org/api/compiler';
+
+/**
+ * Second runner, used only when Wandbox cannot start a container.
+ *
+ * Deliberately incomplete. Verified to execute with stdin and match Wandbox's
+ * behaviour for these five. Java would not execute at all, Godbolt's JavaScript
+ * is a bare V8 shell with no require or Node APIs, and PHP is not offered — so
+ * correct student code would fail there for reasons that have nothing to do with
+ * the student. Falling back into a subtly different environment would recreate
+ * exactly the bug this is meant to fix, so those languages have no fallback and
+ * report the runner as unavailable instead.
+ */
+const GODBOLT_COMPILER: Record<string, string> = {
+  python: 'python313',
+  cpp: 'g152',
+  c: 'cg152',
+  ruby: 'ruby405',
+  go: 'gl194',
+};
+
 interface TestCase {
   stdin: string;
   expected_output: string;
 }
 
-async function runCode(language: string, code: string, stdin: string): Promise<{ stdout: string; stderr: string }> {
+/**
+ * A run that produced a result — the code executed, whatever it printed — or an
+ * infrastructure failure where it never ran at all.
+ *
+ * Keeping these apart is the whole point. Treating them the same is what scored
+ * a student 0 out of 6 for six containers that never started.
+ */
+type RunResult =
+  | { ok: true; stdout: string; stderr: string }
+  | { ok: false; reason: string };
+
+/**
+ * Signs that the runner itself failed rather than the code.
+ *
+ * "Resource temporarily unavailable" from clone() means the host had no process
+ * slots left. Exit 126 is the shell's "command cannot execute". None of these
+ * can be caused by anything a student types.
+ */
+const INFRA_PATTERNS = [
+  'oci runtime',
+  'crun',
+  'resource temporarily unavailable',
+  'cannot allocate memory',
+  'too many open files',
+  'no space left on device',
+  'container',
+];
+
+function looksLikeInfraFailure(text: string): boolean {
+  const t = text.toLowerCase();
+  return INFRA_PATTERNS.some((p) => t.includes(p));
+}
+
+async function runOnWandbox(language: string, code: string, stdin: string): Promise<RunResult> {
   const compiler = WANDBOX_COMPILER[language] || WANDBOX_COMPILER.python;
   const res = await fetch(WANDBOX_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code, compiler, stdin }),
   });
-  if (!res.ok) {
-    throw new Error(`Code execution failed: ${res.status}`);
-  }
+  if (!res.ok) return { ok: false, reason: `wandbox http ${res.status}` };
+
   const data = await res.json();
-  return {
-    stdout: data.program_output ?? '',
-    stderr: data.compiler_error || data.program_error || '',
-  };
+  const stderr = data.compiler_error || data.program_error || '';
+  const combined = `${stderr} ${data.compiler_message ?? ''}`;
+
+  // 126 is "cannot execute". Wandbox reports the container failure here, not as
+  // an HTTP error, so a plain res.ok check sails straight past it.
+  if (String(data.status) === '126' || looksLikeInfraFailure(combined)) {
+    return { ok: false, reason: combined.trim() || 'runner could not start' };
+  }
+
+  return { ok: true, stdout: data.program_output ?? '', stderr };
+}
+
+async function runOnGodbolt(language: string, code: string, stdin: string): Promise<RunResult> {
+  const compiler = GODBOLT_COMPILER[language];
+  if (!compiler) return { ok: false, reason: 'no fallback runner for this language' };
+
+  const res = await fetch(`${GODBOLT_URL}/${compiler}/compile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      source: code,
+      options: {
+        userArguments: '',
+        executeParameters: { args: [], stdin },
+        compilerOptions: { executorRequest: true },
+        filters: { execute: true },
+      },
+    }),
+  });
+  if (!res.ok) return { ok: false, reason: `godbolt http ${res.status}` };
+
+  const data = await res.json();
+  if (data.didExecute !== true) {
+    return { ok: false, reason: 'fallback runner could not execute' };
+  }
+
+  const join = (parts: unknown) =>
+    Array.isArray(parts) ? parts.map((p: { text?: string }) => p?.text ?? '').join('\n') : '';
+
+  return { ok: true, stdout: join(data.stdout), stderr: join(data.stderr) };
+}
+
+/**
+ * Runs one test case, trying hard to get an honest answer before giving up.
+ *
+ * Wandbox first and twice, because "temporarily unavailable" often is. Then the
+ * fallback, where one exists for the language. Only when every route fails does
+ * this report a failure of the runner, which the caller treats as "not graded"
+ * rather than "wrong".
+ */
+async function runCode(language: string, code: string, stdin: string): Promise<RunResult> {
+  let lastReason = 'runner unavailable';
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await runOnWandbox(language, code, stdin);
+      if (result.ok) return result;
+      lastReason = result.reason;
+    } catch (e) {
+      lastReason = String(e);
+    }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+  }
+
+  try {
+    const fallback = await runOnGodbolt(language, code, stdin);
+    if (fallback.ok) return fallback;
+    lastReason = `${lastReason}; ${fallback.reason}`;
+  } catch (e) {
+    lastReason = `${lastReason}; ${String(e)}`;
+  }
+
+  console.error(`Both runners failed for ${language}: ${lastReason}`);
+  return { ok: false, reason: lastReason };
 }
 
 serve(async (req) => {
@@ -148,13 +271,30 @@ serve(async (req) => {
 
     const results = [];
     for (const tc of testCases) {
-      try {
-        const { stdout, stderr } = await runCode(question.language, code, tc.stdin);
-        const passed = stdout.trim() === tc.expected_output.trim();
-        results.push({ stdin: tc.stdin, expected: tc.expected_output, actual: stdout.trim(), stderr: stderr.trim(), passed });
-      } catch (e) {
-        results.push({ stdin: tc.stdin, expected: tc.expected_output, actual: '', stderr: String(e), passed: false });
+      const run = await runCode(question.language, code, tc.stdin);
+
+      // The runner never started. Stop here rather than recording a failure the
+      // student did not earn — and stop immediately, because if one container
+      // could not start the next five will not either.
+      if (!run.ok) {
+        return new Response(
+          JSON.stringify({
+            error: 'The code runner is busy right now. This is not a problem with your code — please try again in a moment.',
+            runner_unavailable: true,
+            detail: run.reason,
+          }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+
+      const passed = run.stdout.trim() === tc.expected_output.trim();
+      results.push({
+        stdin: tc.stdin,
+        expected: tc.expected_output,
+        actual: run.stdout.trim(),
+        stderr: run.stderr.trim(),
+        passed,
+      });
     }
 
     if (mode === 'run') {

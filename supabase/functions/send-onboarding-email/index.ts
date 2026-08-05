@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { guard } from '../_shared/rate-limit.ts';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -131,6 +132,16 @@ const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Tight cap: an unthrottled send endpoint is a way to mail arbitrary people
+  // from your domain, which costs the sending reputation, not just the credits.
+  const limited = await guard(req, {
+    bucket: 'send-onboarding-email',
+    limit: 10,
+    windowSeconds: 3600,
+    corsHeaders,
+  });
+  if (limited) return limited;
 
   try {
     // Require authenticated caller; only allow sending to caller's own email

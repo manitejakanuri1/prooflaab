@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { guard } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,18 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Guarded here rather than through the LLM helper: this function sends audio
+  // straight to the multimodal provider and never calls generateText, so the
+  // shared cap would not see it. Keyed on IP because the check runs before the
+  // caller is identified.
+  const limited = await guard(req, {
+    bucket: 'resume-voice-verify',
+    limit: 20,
+    windowSeconds: 3600,
+    corsHeaders,
+  });
+  if (limited) return limited;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { matchSkills, INTEREST_SKILLS, CORE_SKILLS } from "../_shared/skill-map.ts";
+import { rateLimitResponse } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -158,6 +159,10 @@ Return ONLY a JSON object:
       parsed = JSON.parse(jsonMatch[0]);
     } catch (llmError) {
       console.error('Interest analysis failed:', llmError);
+      // Over-budget callers get a 429 with Retry-After, not a generic failure,
+      // so the client can tell 'wait' apart from 'broken'.
+      const limited = rateLimitResponse(llmError, corsHeaders);
+      if (limited) return limited;
       return new Response(
         JSON.stringify({ error: 'Could not analyse your choices. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

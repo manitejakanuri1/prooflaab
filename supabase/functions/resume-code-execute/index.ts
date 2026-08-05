@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { guard } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,6 +48,15 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Runs submitted code against a third-party executor; worth capping on its own.
+  const limited = await guard(req, {
+    bucket: 'resume-code-execute',
+    limit: 60,
+    windowSeconds: 3600,
+    corsHeaders,
+  });
+  if (limited) return limited;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

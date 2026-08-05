@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
+import { rateLimitResponse } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -233,6 +234,10 @@ Return ONLY the JSON array, no additional text.`;
       console.log(`Questions generated via ${result.provider}`);
     } catch (llmError) {
       console.error('All LLM providers failed:', llmError);
+      // Over-budget callers get a 429 with Retry-After, not a generic failure,
+      // so the client can tell 'wait' apart from 'broken'.
+      const limited = rateLimitResponse(llmError, corsHeaders);
+      if (limited) return limited;
       return new Response(
         JSON.stringify({ error: 'Failed to generate questions' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

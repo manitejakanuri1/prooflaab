@@ -11,10 +11,14 @@
 // multimodal callers (resume-parser sends a PDF, resume-voice-verify sends
 // audio); DeepSeek has no equivalent input, so those cannot use this helper.
 
+import { checkRateLimit, RateLimitError } from './rate-limit.ts';
+
 interface GenOptions {
   temperature?: number;
   maxOutputTokens?: number;
   json?: boolean; // defaults true — every existing caller expects a JSON blob back
+  /** Opt out of the shared cap. For internal batch work only. */
+  skipRateLimit?: boolean;
 }
 
 export interface TokenUsage {
@@ -177,7 +181,58 @@ function finish(result: GenResult, track?: UsageContext): GenResult {
   return result;
 }
 
+const RATE_WINDOW_SECONDS = 3600;
+
+/**
+ * One shared allowance per signed-in caller across every AI feature.
+ *
+ * Deliberately not per feature: a per-feature cap of 30 across eighteen
+ * features is a 540/hour cap, which is not a cap. What needs protecting is the
+ * provider bill, and the bill does not care which feature spent it.
+ */
+const PER_USER_HOURLY = 60;
+
+/**
+ * Ceiling for calls that arrive without a user — cron runs, webhook-authorised
+ * internal calls, and any caller that forgot to identify itself. Per feature,
+ * and generous, because legitimate batch work lives here; it exists to stop a
+ * runaway loop, not to pace normal use.
+ */
+const ANON_HOURLY: Record<string, number> = {
+  'app-guide-chat': 200,
+  'unattributed': 200,
+};
+const ANON_HOURLY_DEFAULT = 500;
+
+/**
+ * Refuses the call before any provider is contacted when the caller is over
+ * budget. Placed here rather than in each function so a new AI feature is
+ * covered the moment it calls generateText.
+ */
+async function enforceLlmRateLimit(track?: UsageContext): Promise<void> {
+  const identity = track?.userId ?? track?.studentId ?? null;
+  const feature = track?.feature ?? 'unattributed';
+
+  const [bucket, subject, limit] = identity
+    ? ['llm:user', `user:${identity}`, PER_USER_HOURLY]
+    : ['llm:anon', `feature:${feature}`, ANON_HOURLY[feature] ?? ANON_HOURLY_DEFAULT];
+
+  const decision = await checkRateLimit(bucket, subject, limit, RATE_WINDOW_SECONDS);
+  if (!decision.allowed) {
+    console.warn(`Rate limit hit: ${bucket}/${subject} (${decision.hits}/${limit})`);
+    throw new RateLimitError(
+      identity
+        ? 'You have used a lot of AI features in the last hour. Please try again shortly.'
+        : 'This feature is busy right now. Please try again shortly.',
+      decision.retry_after,
+      limit,
+    );
+  }
+}
+
 export async function generateText(prompt: string, opts: GenOptions = {}, track?: UsageContext): Promise<GenResult> {
+  if (!opts.skipRateLimit) await enforceLlmRateLimit(track);
+
   const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
   if (deepseekKey) {
     for (let attempt = 0; attempt < 2; attempt++) {

@@ -111,7 +111,7 @@ Return ONLY the JSON object, no additional text, no markdown fences.`;
 
     let generatedText: string;
     try {
-      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1500 });
+      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1500 }, { feature: 'resume-jd-match', userId: callerId, studentId: profile.id });
       generatedText = result.text;
     } catch (llmError) {
       console.error('All LLM providers failed:', llmError);

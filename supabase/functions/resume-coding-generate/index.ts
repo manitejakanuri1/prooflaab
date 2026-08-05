@@ -137,7 +137,7 @@ Return ONLY the JSON array, no additional text, no markdown fences.`;
 
     let generatedText: string;
     try {
-      const result = await generateText(prompt, { temperature: 0.5, maxOutputTokens: 3000 });
+      const result = await generateText(prompt, { temperature: 0.5, maxOutputTokens: 3000 }, { feature: 'resume-coding-generate', userId: callerId, studentId: profile.id });
       generatedText = result.text;
     } catch (e) {
       console.error('LLM call failed:', e);

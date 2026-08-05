@@ -154,7 +154,7 @@ Return ONLY the JSON array, no additional text.`;
 
     let generatedText: string;
     try {
-      const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 5000 });
+      const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 5000 }, { feature: 'resume-question-generator', userId: callerId, studentId: profile.id });
       generatedText = result.text;
       console.log(`LLM (${result.provider}) response:`, generatedText);
     } catch (e) {

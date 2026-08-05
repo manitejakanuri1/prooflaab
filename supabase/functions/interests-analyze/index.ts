@@ -152,7 +152,7 @@ Rules:
       explanation?: string;
     };
     try {
-      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1200 });
+      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1200 }, { feature: 'interests-analyze', userId: callerId, studentId: profile.id });
       console.log(`Interest analysis via ${result.provider}`);
       const jsonMatch = result.text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No JSON object found');

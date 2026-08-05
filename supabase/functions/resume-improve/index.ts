@@ -105,7 +105,7 @@ Return ONLY the resume text, nothing else.`;
         temperature: 0.4,
         maxOutputTokens: 2000,
         json: false,
-      });
+      }, { feature: 'resume-improve', userId: callerId, studentId: profile.id });
       improvedResume = (result.text || '').trim();
     } catch (llmError) {
       console.error('All LLM providers failed:', llmError);

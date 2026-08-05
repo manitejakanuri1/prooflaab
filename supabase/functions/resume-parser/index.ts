@@ -215,7 +215,7 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
       const result = await generateText(`${prompt}\n\nRESUME TEXT:\n${resumeText}`, {
         temperature: 0.2,
         maxOutputTokens: 4000,
-      });
+      }, { feature: 'resume-parser', userId: callerId, studentId: profile.id });
       generatedText = result.text;
       console.log(`Resume extracted via ${result.provider}`);
     } catch (llmError) {

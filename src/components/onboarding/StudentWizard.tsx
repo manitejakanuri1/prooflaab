@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
 
 interface StudentWizardProps {
   onComplete: () => void;
@@ -41,6 +42,7 @@ const INTEREST_SKILLS: Record<string, string[]> = {
 };
 
 // Expected on every track, so they are always offered.
+const ALL_SKILLS_UNSORTED = Object.values(INTEREST_SKILLS).flat();
 const CORE_SKILLS = ["Git & GitHub", "DSA", "Linux Basics"];
 
 export default function StudentWizard({ onComplete }: StudentWizardProps) {
@@ -68,6 +70,19 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
     ...formData.keyInterests.flatMap(i => INTEREST_SKILLS[i] ?? []),
     ...CORE_SKILLS,
   ])];
+
+  const [showOther, setShowOther] = useState(false);
+  const [skillQuery, setSkillQuery] = useState("");
+
+  // Everything in the system, so a student who genuinely knows something outside
+  // their chosen tracks can still claim it rather than being unable to say so.
+  const allSkills = [...new Set([...ALL_SKILLS_UNSORTED, ...CORE_SKILLS])].sort();
+  const otherMatches = skillQuery.trim()
+    ? allSkills
+        .filter((s) => !visibleSkills.includes(s))
+        .filter((s) => s.toLowerCase().includes(skillQuery.trim().toLowerCase()))
+        .slice(0, 12)
+    : [];
 
   const handleSkillToggle = (skill: string) => {
     setFormData(prev => ({
@@ -186,6 +201,48 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                {!showOther ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowOther(true)}>
+                    <Plus className="h-4 w-4 mr-1" /> Other skills
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        autoFocus
+                        value={skillQuery}
+                        onChange={(e) => setSkillQuery(e.target.value)}
+                        placeholder="Search any skill, e.g. Python, Figma, Solidity"
+                        className="pl-9"
+                      />
+                    </div>
+                    {skillQuery.trim() && otherMatches.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No skill matches that.</p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {otherMatches.map((skill) => (
+                        <Button
+                          key={skill}
+                          type="button"
+                          size="sm"
+                          variant={formData.preferredSkills.includes(skill) ? "default" : "outline"}
+                          onClick={() => handleSkillToggle(skill)}
+                        >
+                          {skill}
+                        </Button>
+                      ))}
+                    </div>
+                    {formData.preferredSkills.filter((s) => !visibleSkills.includes(s)).length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Also selected: {formData.preferredSkills.filter((s) => !visibleSkills.includes(s)).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

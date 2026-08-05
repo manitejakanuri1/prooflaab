@@ -178,9 +178,6 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
                   analysis.match ? "Start the test" : "Start anyway"
                 )}
               </Button>
-              <Button variant="ghost" onClick={onDone} disabled={starting}>
-                Later
-              </Button>
             </div>
           </div>
         </CardContent>

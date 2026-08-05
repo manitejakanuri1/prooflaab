@@ -231,15 +231,9 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
 
   const res = await fetch(`${GLOT_URL}/${target.lang}/latest`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Both forms are sent because Glot answers a bad token with the same
-      // message whichever header carried it, so there is no way to tell from
-      // outside which one it reads. Sending both costs nothing and removes a
-      // guess that would otherwise only reveal itself as a silent failure.
-      Authorization: `Token ${token}`,
-      'X-Access-Token': token,
-    },
+    // Confirmed against a live token: Authorization is the header Glot reads,
+    // and X-Access-Token returns 401 on its own.
+    headers: { 'Content-Type': 'application/json', Authorization: `Token ${token}` },
     body: JSON.stringify({ stdin, files: [{ name: target.file, content: code }] }),
   });
   if (!res.ok) return { ok: false, reason: `glot http ${res.status}` };

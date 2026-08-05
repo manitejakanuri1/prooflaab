@@ -60,7 +60,6 @@ const GLOT_URL = 'https://glot.io/api/run';
 
 const GLOT_LANGUAGE: Record<string, { lang: string; file: string }> = {
   javascript: { lang: 'javascript', file: 'main.js' },
-  // Glot compiles by filename; Java needs the public class to match.
   java: { lang: 'java', file: 'Main.java' },
   php: { lang: 'php', file: 'main.php' },
   python: { lang: 'python', file: 'main.py' },
@@ -69,6 +68,18 @@ const GLOT_LANGUAGE: Record<string, { lang: string; file: string }> = {
   go: { lang: 'go', file: 'main.go' },
   ruby: { lang: 'ruby', file: 'main.rb' },
 };
+
+/**
+ * Java compiles by filename, and the generated starter code declares
+ * `class Solution` rather than Main. Submitting it as Main.java produced a
+ * Solution.class with no Main to run, so every Java submission came back as
+ * "Exit code: 1" no matter how correct it was.
+ */
+function glotFileName(language: string, code: string, fallback: string): string {
+  if (language !== 'java') return fallback;
+  const named = code.match(/(?:public\s+)?class\s+([A-Za-z_]\w*)/);
+  return named ? `${named[1]}.java` : fallback;
+}
 
 interface TestCase {
   stdin: string;
@@ -234,7 +245,10 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
     // Confirmed against a live token: Authorization is the header Glot reads,
     // and X-Access-Token returns 401 on its own.
     headers: { 'Content-Type': 'application/json', Authorization: `Token ${token}` },
-    body: JSON.stringify({ stdin, files: [{ name: target.file, content: code }] }),
+    body: JSON.stringify({
+      stdin,
+      files: [{ name: glotFileName(language, code, target.file), content: code }],
+    }),
   });
   if (!res.ok) return { ok: false, reason: `glot http ${res.status}` };
 
@@ -242,17 +256,23 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
   const stderr = String(data.stderr ?? '');
   const glotError = String(data.error ?? '');
 
-  // Glot reports a killed process through `error`. Anything else in there is a
-  // failure of the service, not of the code.
   if (glotError && looksLikeTimeout(glotError)) {
     return { ok: true, status: 'time_limit', stdout: data.stdout ?? '', stderr };
   }
-  if (glotError) return { ok: false, reason: `glot: ${glotError}` };
+
+  // "Exit code: N" is the student's program failing, not Glot failing. Treating
+  // it as an outage reported perfectly ordinary compile errors as "the runner is
+  // busy", which is both wrong and unhelpful — the compiler message in stderr is
+  // exactly what the student needs to see.
+  if (glotError && !/^exit code:/i.test(glotError.trim())) {
+    return { ok: false, reason: `glot: ${glotError}` };
+  }
 
   // Glot does not separate build from run, so a crash and a failed compile look
   // alike here. Reported as a runtime error with the real message attached
   // rather than guessed at from the text.
-  const status: ExecStatus = stderr.trim() && !String(data.stdout ?? '').trim() ? 'runtime_error' : 'ok';
+  const failed = Boolean(glotError) || (stderr.trim() && !String(data.stdout ?? '').trim());
+  const status: ExecStatus = failed ? 'runtime_error' : 'ok';
 
   return { ok: true, status, stdout: data.stdout ?? '', stderr };
 }

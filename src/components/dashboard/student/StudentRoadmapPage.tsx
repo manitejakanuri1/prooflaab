@@ -7,6 +7,7 @@ import { Map, Flag, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseStages, type RoadmapStage } from "./RoadmapStages";
+import LevelMap from "./LevelMap";
 
 interface StageTask {
   roadmap_stage_index: number;
@@ -72,49 +73,79 @@ const StudentRoadmapPage = () => {
     })();
   }, [user]);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="animate-pulse h-32 bg-muted rounded" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!hasScorecard) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Map className="h-5 w-5" />
-            My Roadmap
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Take a Resume Check assessment first — your personalized roadmap shows up here right after it's graded.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const hasTaskStages = stages && stages.length > 0 && Object.keys(taskStatusByStage).length > 0;
   const doneCount = Object.values(taskStatusByStage).filter((s) => s === "Completed").length;
 
+  // Two different questions, so two sections rather than one replacing the other.
+  // The level map answers "where am I and what's next" — an ordered path that
+  // exists whether or not they have ever taken a test. The card below answers
+  // "what did I just get wrong", which only the assessment can tell them. Losing
+  // either one would be a step backwards.
+  return (
+    <div className="space-y-6">
+      <LevelMap />
+
+      {loading ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="animate-pulse h-24 bg-muted rounded" />
+          </CardContent>
+        </Card>
+      ) : !hasScorecard ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Map className="h-4 w-4" />
+              From your assessment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Take a Resume Check and the specific things you got wrong show up here, on top of the
+              path above.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <RoadmapFromAssessment
+          stages={stages}
+          hasTaskStages={!!hasTaskStages}
+          doneCount={doneCount}
+          taskStatusByStage={taskStatusByStage}
+          onGoToTasks={() => navigate("/student/tasks/assigned")}
+        />
+      )}
+    </div>
+  );
+};
+
+interface RoadmapFromAssessmentProps {
+  stages: RoadmapStage[] | null;
+  hasTaskStages: boolean;
+  doneCount: number;
+  taskStatusByStage: Record<number, StageTask["status"]>;
+  onGoToTasks: () => void;
+}
+
+const RoadmapFromAssessment = ({
+  stages,
+  hasTaskStages,
+  doneCount,
+  taskStatusByStage,
+  onGoToTasks,
+}: RoadmapFromAssessmentProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Map className="h-5 w-5" />
-          My Roadmap
+        <CardTitle className="text-base flex items-center gap-2">
+          <Map className="h-4 w-4" />
+          From your assessment
         </CardTitle>
-        {hasTaskStages && (
-          <p className="text-xs text-muted-foreground">
-            {doneCount} of {stages!.length} stages done — finish each one via its linked task to level up your score.
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          {hasTaskStages
+            ? `${doneCount} of ${stages!.length} stages done — the specific things your last test caught.`
+            : "The specific things your last test caught."}
+        </p>
       </CardHeader>
       <CardContent>
         {!stages ? (
@@ -155,7 +186,7 @@ const StudentRoadmapPage = () => {
                         size="sm"
                         variant="outline"
                         className="mt-2"
-                        onClick={() => navigate("/student/tasks/assigned")}
+                        onClick={onGoToTasks}
                       >
                         {status === "Pending" ? "Start this stage" : "Continue in Assigned Tasks"}
                       </Button>

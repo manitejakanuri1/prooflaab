@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity_logs: {
@@ -211,6 +236,48 @@ export type Database = {
           record_id?: string | null
           table_name?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      auth_users_backup_20260804: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          raw_user_meta_data: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          raw_user_meta_data?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          raw_user_meta_data?: Json | null
+        }
+        Relationships: []
+      }
+      auth_users_backup_20260805: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          raw_user_meta_data: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          raw_user_meta_data?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          raw_user_meta_data?: Json | null
         }
         Relationships: []
       }
@@ -520,6 +587,150 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      level_content: {
+        Row: {
+          explanation: string
+          generated_at: string
+          level_id: string
+          proof_brief: string
+          proof_title: string
+          quiz: Json
+        }
+        Insert: {
+          explanation: string
+          generated_at?: string
+          level_id: string
+          proof_brief: string
+          proof_title: string
+          quiz: Json
+        }
+        Update: {
+          explanation?: string
+          generated_at?: string
+          level_id?: string
+          proof_brief?: string
+          proof_title?: string
+          quiz?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "level_content_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: true
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      level_tracks: {
+        Row: {
+          emoji: string
+          interest: string
+          name: string
+          role: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          emoji?: string
+          interest: string
+          name: string
+          role: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          emoji?: string
+          interest?: string
+          name?: string
+          role?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      levels: {
+        Row: {
+          id: string
+          level_number: number
+          skill: string
+          title: string
+          track_slug: string
+        }
+        Insert: {
+          id?: string
+          level_number: number
+          skill: string
+          title: string
+          track_slug: string
+        }
+        Update: {
+          id?: string
+          level_number?: number
+          skill?: string
+          title?: string
+          track_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "levels_track_slug_fkey"
+            columns: ["track_slug"]
+            isOneToOne: false
+            referencedRelation: "level_tracks"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      llm_usage: {
+        Row: {
+          completion_tokens: number
+          created_at: string
+          feature: string
+          id: string
+          model: string | null
+          prompt_tokens: number
+          provider: string
+          student_id: string | null
+          total_tokens: number
+          truncated: boolean
+          user_id: string | null
+        }
+        Insert: {
+          completion_tokens?: number
+          created_at?: string
+          feature: string
+          id?: string
+          model?: string | null
+          prompt_tokens?: number
+          provider: string
+          student_id?: string | null
+          total_tokens?: number
+          truncated?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          completion_tokens?: number
+          created_at?: string
+          feature?: string
+          id?: string
+          model?: string | null
+          prompt_tokens?: number
+          provider?: string
+          student_id?: string | null
+          total_tokens?: number
+          truncated?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "llm_usage_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       manual_adjustment_log: {
         Row: {
@@ -1048,6 +1259,27 @@ export type Database = {
           },
         ]
       }
+      rate_limit_counters: {
+        Row: {
+          bucket: string
+          hits: number
+          subject: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          subject: string
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          subject?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       recruiter_interests: {
         Row: {
           created_at: string
@@ -1166,11 +1398,13 @@ export type Database = {
           coding_questions: Json
           coding_results: Json | null
           created_at: string
+          elapsed_seconds: number | null
           id: string
           is_retest: boolean
           questions: Json
           resume_claims_id: string
           retest_notified_at: string | null
+          started_at: string | null
           status: string
           student_answers: Json
           student_id: string
@@ -1181,11 +1415,13 @@ export type Database = {
           coding_questions?: Json
           coding_results?: Json | null
           created_at?: string
+          elapsed_seconds?: number | null
           id?: string
           is_retest?: boolean
           questions?: Json
           resume_claims_id: string
           retest_notified_at?: string | null
+          started_at?: string | null
           status?: string
           student_answers?: Json
           student_id: string
@@ -1196,11 +1432,13 @@ export type Database = {
           coding_questions?: Json
           coding_results?: Json | null
           created_at?: string
+          elapsed_seconds?: number | null
           id?: string
           is_retest?: boolean
           questions?: Json
           resume_claims_id?: string
           retest_notified_at?: string | null
+          started_at?: string | null
           status?: string
           student_answers?: Json
           student_id?: string
@@ -1335,6 +1573,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      resume_claims_backup_20260804: {
+        Row: {
+          ai_improved_resume: string | null
+          ats_match_notes: string | null
+          ats_match_score: number | null
+          certifications: string[] | null
+          confirmed_at: string | null
+          created_at: string | null
+          feedback_acknowledged: boolean | null
+          id: string | null
+          projects: Json | null
+          raw_extraction: Json | null
+          resume_quality_notes: string | null
+          resume_quality_score: number | null
+          skill_relevance_notes: string | null
+          skills: string[] | null
+          status: string | null
+          storage_path: string | null
+          student_id: string | null
+          target_role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_improved_resume?: string | null
+          ats_match_notes?: string | null
+          ats_match_score?: number | null
+          certifications?: string[] | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          feedback_acknowledged?: boolean | null
+          id?: string | null
+          projects?: Json | null
+          raw_extraction?: Json | null
+          resume_quality_notes?: string | null
+          resume_quality_score?: number | null
+          skill_relevance_notes?: string | null
+          skills?: string[] | null
+          status?: string | null
+          storage_path?: string | null
+          student_id?: string | null
+          target_role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_improved_resume?: string | null
+          ats_match_notes?: string | null
+          ats_match_score?: number | null
+          certifications?: string[] | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          feedback_acknowledged?: boolean | null
+          id?: string | null
+          projects?: Json | null
+          raw_extraction?: Json | null
+          resume_quality_notes?: string | null
+          resume_quality_score?: number | null
+          skill_relevance_notes?: string | null
+          skills?: string[] | null
+          status?: string | null
+          storage_path?: string | null
+          student_id?: string | null
+          target_role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      resume_claims_backup_20260805: {
+        Row: {
+          ai_improved_resume: string | null
+          ats_match_notes: string | null
+          ats_match_score: number | null
+          certifications: string[] | null
+          confirmed_at: string | null
+          created_at: string | null
+          feedback_acknowledged: boolean | null
+          id: string | null
+          projects: Json | null
+          raw_extraction: Json | null
+          resume_quality_notes: string | null
+          resume_quality_score: number | null
+          skill_relevance_notes: string | null
+          skills: string[] | null
+          status: string | null
+          storage_path: string | null
+          student_id: string | null
+          target_role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_improved_resume?: string | null
+          ats_match_notes?: string | null
+          ats_match_score?: number | null
+          certifications?: string[] | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          feedback_acknowledged?: boolean | null
+          id?: string | null
+          projects?: Json | null
+          raw_extraction?: Json | null
+          resume_quality_notes?: string | null
+          resume_quality_score?: number | null
+          skill_relevance_notes?: string | null
+          skills?: string[] | null
+          status?: string | null
+          storage_path?: string | null
+          student_id?: string | null
+          target_role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_improved_resume?: string | null
+          ats_match_notes?: string | null
+          ats_match_score?: number | null
+          certifications?: string[] | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          feedback_acknowledged?: boolean | null
+          id?: string | null
+          projects?: Json | null
+          raw_extraction?: Json | null
+          resume_quality_notes?: string | null
+          resume_quality_score?: number | null
+          skill_relevance_notes?: string | null
+          skills?: string[] | null
+          status?: string | null
+          storage_path?: string | null
+          student_id?: string | null
+          target_role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       resume_jd_matches: {
         Row: {
@@ -1471,6 +1841,165 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      resume_scorecards_backup_20260804: {
+        Row: {
+          assessment_id: string | null
+          ats_match_score: number | null
+          coding_score: number | null
+          created_at: string | null
+          id: string | null
+          interview_readiness_score: number | null
+          is_retest: boolean | null
+          project_proof_score: number | null
+          reasoning_score: number | null
+          resume_claims_id: string | null
+          resume_quality_score: number | null
+          roadmap: string | null
+          skill_gap: Json | null
+          skill_proof_score: number | null
+          student_id: string | null
+          voice_authenticity_score: number | null
+          voice_notes: string | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          ats_match_score?: number | null
+          coding_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          interview_readiness_score?: number | null
+          is_retest?: boolean | null
+          project_proof_score?: number | null
+          reasoning_score?: number | null
+          resume_claims_id?: string | null
+          resume_quality_score?: number | null
+          roadmap?: string | null
+          skill_gap?: Json | null
+          skill_proof_score?: number | null
+          student_id?: string | null
+          voice_authenticity_score?: number | null
+          voice_notes?: string | null
+        }
+        Update: {
+          assessment_id?: string | null
+          ats_match_score?: number | null
+          coding_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          interview_readiness_score?: number | null
+          is_retest?: boolean | null
+          project_proof_score?: number | null
+          reasoning_score?: number | null
+          resume_claims_id?: string | null
+          resume_quality_score?: number | null
+          roadmap?: string | null
+          skill_gap?: Json | null
+          skill_proof_score?: number | null
+          student_id?: string | null
+          voice_authenticity_score?: number | null
+          voice_notes?: string | null
+        }
+        Relationships: []
+      }
+      resume_scorecards_backup_20260805: {
+        Row: {
+          assessment_id: string | null
+          ats_match_score: number | null
+          coding_score: number | null
+          created_at: string | null
+          id: string | null
+          interview_readiness_score: number | null
+          is_retest: boolean | null
+          project_proof_score: number | null
+          reasoning_score: number | null
+          resume_claims_id: string | null
+          resume_quality_score: number | null
+          roadmap: string | null
+          skill_gap: Json | null
+          skill_proof_score: number | null
+          student_id: string | null
+          voice_authenticity_score: number | null
+          voice_notes: string | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          ats_match_score?: number | null
+          coding_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          interview_readiness_score?: number | null
+          is_retest?: boolean | null
+          project_proof_score?: number | null
+          reasoning_score?: number | null
+          resume_claims_id?: string | null
+          resume_quality_score?: number | null
+          roadmap?: string | null
+          skill_gap?: Json | null
+          skill_proof_score?: number | null
+          student_id?: string | null
+          voice_authenticity_score?: number | null
+          voice_notes?: string | null
+        }
+        Update: {
+          assessment_id?: string | null
+          ats_match_score?: number | null
+          coding_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          interview_readiness_score?: number | null
+          is_retest?: boolean | null
+          project_proof_score?: number | null
+          reasoning_score?: number | null
+          resume_claims_id?: string | null
+          resume_quality_score?: number | null
+          roadmap?: string | null
+          skill_gap?: Json | null
+          skill_proof_score?: number | null
+          student_id?: string | null
+          voice_authenticity_score?: number | null
+          voice_notes?: string | null
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          detail: Json
+          email: string | null
+          event_type: string
+          id: string
+          ip: string | null
+          severity: string
+          source: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          email?: string | null
+          event_type: string
+          id?: string
+          ip?: string | null
+          severity?: string
+          source?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          email?: string | null
+          event_type?: string
+          id?: string
+          ip?: string | null
+          severity?: string
+          source?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       social_notifications: {
         Row: {
@@ -1642,6 +2171,100 @@ export type Database = {
           },
         ]
       }
+      student_intake: {
+        Row: {
+          created_at: string
+          has_seen_welcome: boolean
+          intake_completed_at: string | null
+          task_source: string | null
+          updated_at: string
+          user_id: string
+          welcome_seen_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          has_seen_welcome?: boolean
+          intake_completed_at?: string | null
+          task_source?: string | null
+          updated_at?: string
+          user_id: string
+          welcome_seen_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          has_seen_welcome?: boolean
+          intake_completed_at?: string | null
+          task_source?: string | null
+          updated_at?: string
+          user_id?: string
+          welcome_seen_at?: string | null
+        }
+        Relationships: []
+      }
+      student_levels: {
+        Row: {
+          attempts: number
+          best_score: number
+          cleared_at: string | null
+          created_at: string
+          id: string
+          level_id: string
+          mastered_at: string | null
+          status: string
+          student_id: string
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          best_score?: number
+          cleared_at?: string | null
+          created_at?: string
+          id?: string
+          level_id: string
+          mastered_at?: string | null
+          status?: string
+          student_id: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          best_score?: number
+          cleared_at?: string | null
+          created_at?: string
+          id?: string
+          level_id?: string
+          mastered_at?: string | null
+          status?: string
+          student_id?: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_levels_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_levels_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_levels_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_pack_completions: {
         Row: {
           badge_awarded: string | null
@@ -1730,36 +2353,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      student_intake: {
-        Row: {
-          created_at: string
-          has_seen_welcome: boolean
-          intake_completed_at: string | null
-          task_source: string | null
-          updated_at: string
-          user_id: string
-          welcome_seen_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          has_seen_welcome?: boolean
-          intake_completed_at?: string | null
-          task_source?: string | null
-          updated_at?: string
-          user_id: string
-          welcome_seen_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          has_seen_welcome?: boolean
-          intake_completed_at?: string | null
-          task_source?: string | null
-          updated_at?: string
-          user_id?: string
-          welcome_seen_at?: string | null
-        }
-        Relationships: []
       }
       student_profiles: {
         Row: {
@@ -1856,6 +2449,234 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "colleges"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_profiles_backup_20260804: {
+        Row: {
+          ai_personalization_enabled: boolean | null
+          batch: string | null
+          branch: string | null
+          career_goals: string | null
+          college_id: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          github_url: string | null
+          id: string | null
+          key_interests: string[] | null
+          last_active: string | null
+          linkedin_url: string | null
+          preferred_skills: string[] | null
+          profile_completed: boolean | null
+          profile_photo_url: string | null
+          profile_visibility: string | null
+          resume_url: string | null
+          slug: string | null
+          source: string | null
+          status: string | null
+          temporary_user_id: string | null
+          total_xp: number | null
+          trust_score: number | null
+          updated_at: string | null
+          user_id: string | null
+          year_of_study: string | null
+        }
+        Insert: {
+          ai_personalization_enabled?: boolean | null
+          batch?: string | null
+          branch?: string | null
+          career_goals?: string | null
+          college_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string | null
+          key_interests?: string[] | null
+          last_active?: string | null
+          linkedin_url?: string | null
+          preferred_skills?: string[] | null
+          profile_completed?: boolean | null
+          profile_photo_url?: string | null
+          profile_visibility?: string | null
+          resume_url?: string | null
+          slug?: string | null
+          source?: string | null
+          status?: string | null
+          temporary_user_id?: string | null
+          total_xp?: number | null
+          trust_score?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          year_of_study?: string | null
+        }
+        Update: {
+          ai_personalization_enabled?: boolean | null
+          batch?: string | null
+          branch?: string | null
+          career_goals?: string | null
+          college_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string | null
+          key_interests?: string[] | null
+          last_active?: string | null
+          linkedin_url?: string | null
+          preferred_skills?: string[] | null
+          profile_completed?: boolean | null
+          profile_photo_url?: string | null
+          profile_visibility?: string | null
+          resume_url?: string | null
+          slug?: string | null
+          source?: string | null
+          status?: string | null
+          temporary_user_id?: string | null
+          total_xp?: number | null
+          trust_score?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          year_of_study?: string | null
+        }
+        Relationships: []
+      }
+      student_profiles_backup_20260805: {
+        Row: {
+          ai_personalization_enabled: boolean | null
+          batch: string | null
+          branch: string | null
+          career_goals: string | null
+          college_id: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          github_url: string | null
+          id: string | null
+          key_interests: string[] | null
+          last_active: string | null
+          linkedin_url: string | null
+          preferred_skills: string[] | null
+          profile_completed: boolean | null
+          profile_photo_url: string | null
+          profile_visibility: string | null
+          resume_url: string | null
+          slug: string | null
+          source: string | null
+          status: string | null
+          temporary_user_id: string | null
+          total_xp: number | null
+          trust_score: number | null
+          updated_at: string | null
+          user_id: string | null
+          year_of_study: string | null
+        }
+        Insert: {
+          ai_personalization_enabled?: boolean | null
+          batch?: string | null
+          branch?: string | null
+          career_goals?: string | null
+          college_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string | null
+          key_interests?: string[] | null
+          last_active?: string | null
+          linkedin_url?: string | null
+          preferred_skills?: string[] | null
+          profile_completed?: boolean | null
+          profile_photo_url?: string | null
+          profile_visibility?: string | null
+          resume_url?: string | null
+          slug?: string | null
+          source?: string | null
+          status?: string | null
+          temporary_user_id?: string | null
+          total_xp?: number | null
+          trust_score?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          year_of_study?: string | null
+        }
+        Update: {
+          ai_personalization_enabled?: boolean | null
+          batch?: string | null
+          branch?: string | null
+          career_goals?: string | null
+          college_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string | null
+          key_interests?: string[] | null
+          last_active?: string | null
+          linkedin_url?: string | null
+          preferred_skills?: string[] | null
+          profile_completed?: boolean | null
+          profile_photo_url?: string | null
+          profile_visibility?: string | null
+          resume_url?: string | null
+          slug?: string | null
+          source?: string | null
+          status?: string | null
+          temporary_user_id?: string | null
+          total_xp?: number | null
+          trust_score?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          year_of_study?: string | null
+        }
+        Relationships: []
+      }
+      student_tracks: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          placed_at_level: number
+          student_id: string
+          track_slug: string
+          unlocked_through: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          placed_at_level?: number
+          student_id: string
+          track_slug: string
+          unlocked_through?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          placed_at_level?: number
+          student_id?: string
+          track_slug?: string
+          unlocked_through?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_tracks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_tracks_track_slug_fkey"
+            columns: ["track_slug"]
+            isOneToOne: false
+            referencedRelation: "level_tracks"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -2149,9 +2970,12 @@ export type Database = {
           id: string
           is_ai_generated: boolean | null
           is_paid: boolean | null
+          level_id: string | null
           pack_id: string | null
           posted_at: string | null
           required_skills: string[] | null
+          roadmap_scorecard_id: string | null
+          roadmap_stage_index: number | null
           source: string | null
           started_at: string | null
           status: string | null
@@ -2180,9 +3004,12 @@ export type Database = {
           id?: string
           is_ai_generated?: boolean | null
           is_paid?: boolean | null
+          level_id?: string | null
           pack_id?: string | null
           posted_at?: string | null
           required_skills?: string[] | null
+          roadmap_scorecard_id?: string | null
+          roadmap_stage_index?: number | null
           source?: string | null
           started_at?: string | null
           status?: string | null
@@ -2211,9 +3038,12 @@ export type Database = {
           id?: string
           is_ai_generated?: boolean | null
           is_paid?: boolean | null
+          level_id?: string | null
           pack_id?: string | null
           posted_at?: string | null
           required_skills?: string[] | null
+          roadmap_scorecard_id?: string | null
+          roadmap_stage_index?: number | null
           source?: string | null
           started_at?: string | null
           status?: string | null
@@ -2235,10 +3065,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false
             referencedRelation: "task_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_roadmap_scorecard_id_fkey"
+            columns: ["roadmap_scorecard_id"]
+            isOneToOne: false
+            referencedRelation: "resume_scorecards"
             referencedColumns: ["id"]
           },
           {
@@ -2478,6 +3322,29 @@ export type Database = {
       }
     }
     Views: {
+      llm_usage_by_student: {
+        Row: {
+          calls: number | null
+          completion_tokens: number | null
+          email: string | null
+          feature: string | null
+          full_name: string | null
+          last_used: string | null
+          prompt_tokens: number | null
+          provider: string | null
+          student_id: string | null
+          total_tokens: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "llm_usage_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_resume_scorecards: {
         Row: {
           ats_match_score: number | null
@@ -2490,15 +3357,7 @@ export type Database = {
           skill_proof_score: number | null
           student_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "resume_scorecards_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "student_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
@@ -2519,6 +3378,15 @@ export type Database = {
       award_pack_completion: {
         Args: { p_pack_id: string; p_student_id: string }
         Returns: boolean
+      }
+      check_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_limit: number
+          p_subject: string
+          p_window_seconds: number
+        }
+        Returns: Json
       }
       complete_own_wizard: { Args: never; Returns: undefined }
       create_proof_post: {
@@ -2700,6 +3568,19 @@ export type Database = {
         Returns: boolean
       }
       like_post: { Args: { p_post_id: string }; Returns: undefined }
+      log_security_event: {
+        Args: {
+          p_detail?: Json
+          p_email?: string
+          p_event_type: string
+          p_ip?: string
+          p_severity?: string
+          p_source?: string
+          p_user_agent?: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       mark_wizard_completed: { Args: never; Returns: undefined }
       notify_all_admins: {
         Args: {
@@ -2894,6 +3775,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "college_admin", "startup", "student"],

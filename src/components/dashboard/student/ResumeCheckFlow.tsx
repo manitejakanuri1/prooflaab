@@ -9,6 +9,7 @@ import { TARGET_ROLES } from "@/lib/targetRoles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, ArrowRight, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -318,7 +319,10 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           target_role: targetRole || null,
           skills,
           certifications,
-          projects,
+          // ProjectClaim is a fixed shape; the column is jsonb, which the
+          // generated types describe as an open-ended Json. The cast says
+          // "this really is JSON-serialisable" — it is, it goes over the wire.
+          projects: projects as unknown as Json,
           status: "confirmed",
           confirmed_at: new Date().toISOString(),
         })

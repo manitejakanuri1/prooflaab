@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { classifySkillGap } from "../_shared/role-skills.ts";
+import { normSkill, placeStudent } from "../_shared/levels.ts";
 
 /** Must match the countdown in TimedResumeAssessment. */
 const SECONDS_PER_QUESTION = 15;
@@ -416,11 +417,41 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       console.error('Roadmap task creation failed:', e);
     }
 
+    // Put them on the level map.
+    //
+    // The roadmap above says what they just got wrong. This says where they are:
+    // "level 7 of 16" instead of "here are four mistakes". A skill they claimed
+    // and did not fumble counts as proved and gets ticked off, so the path starts
+    // at the first real gap rather than at level 1 for everybody.
+    let placements: Awaited<ReturnType<typeof placeStudent>> = [];
+    try {
+      const weakSkillText = weakQuestions.map((q: any) => normSkill(q.prompt)).join(' | ');
+      const provedSkills = ((resumeClaim?.skills as string[] | null) ?? []).filter(
+        (s) => !weakSkillText.includes(normSkill(s)),
+      );
+
+      const { data: levelProfile } = await supabase
+        .from('student_profiles')
+        .select('key_interests')
+        .eq('id', profile.id)
+        .maybeSingle();
+
+      placements = await placeStudent(supabase, profile.id, {
+        interests: (levelProfile?.key_interests as string[] | null) ?? [],
+        skills: provedSkills,
+      });
+    } catch (e) {
+      // A failed placement must not cost them the scorecard they just earned —
+      // the map can place them on their next visit.
+      console.error('Level placement failed:', e);
+    }
+
     console.log('Assessment graded, scorecard saved:', scorecard.id);
 
     return new Response(
       JSON.stringify({
         success: true,
+        level_placements: placements,
         assessment_id: assessment.id,
         scorecard_id: scorecard.id,
         answer_scores: answerScores,

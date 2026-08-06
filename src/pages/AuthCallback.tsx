@@ -184,7 +184,7 @@ export default function AuthCallback() {
             }
             break;
           }
-          case 'student':
+          // No 'student' case: students return early to /student/start above.
           default:
             navigate('/student/dashboard', { replace: true });
             break;

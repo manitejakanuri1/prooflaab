@@ -103,12 +103,38 @@ export default {
 					'100%': {
 						transform: 'translateY(0px)'
 					}
+				},
+				// The level map: nodes drop in one after another so the path reads
+				// as a path rather than appearing all at once.
+				'level-in': {
+					from: { opacity: '0', transform: 'translateY(8px)' },
+					to: { opacity: '1', transform: 'translateY(0)' }
+				},
+				// The one level they are on. A halo rather than a bounce — it has to
+				// sit on screen indefinitely without becoming annoying.
+				'level-pulse': {
+					'0%, 100%': { boxShadow: '0 0 0 0 hsl(var(--primary) / 0.45)' },
+					'50%': { boxShadow: '0 0 0 10px hsl(var(--primary) / 0)' }
+				},
+				'pop-in': {
+					'0%': { opacity: '0', transform: 'scale(0.94)' },
+					'70%': { transform: 'scale(1.02)' },
+					'100%': { opacity: '1', transform: 'scale(1)' }
+				},
+				'cheer': {
+					'0%, 100%': { transform: 'rotate(0deg)' },
+					'25%': { transform: 'rotate(-12deg)' },
+					'75%': { transform: 'rotate(12deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'float-emoji': 'float-emoji 3s ease-in-out infinite'
+				'float-emoji': 'float-emoji 3s ease-in-out infinite',
+				'level-in': 'level-in 0.35s ease-out both',
+				'level-pulse': 'level-pulse 2.4s ease-out infinite',
+				'pop-in': 'pop-in 0.3s ease-out both',
+				'cheer': 'cheer 0.6s ease-in-out 2'
 			}
 		}
 	},

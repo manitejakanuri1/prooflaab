@@ -323,7 +323,7 @@ function validQuiz(quiz: unknown): quiz is Omit<QuizQuestion, 'id'>[] {
 export async function ensureLevelContent(
   supabase: any,
   level: LevelRow,
-  ctx: { userId?: string | null; studentId?: string | null },
+  ctx: { userId?: string | null; studentId?: string | null; skipRateLimit?: boolean },
 ): Promise<LevelContentRow> {
   const { data: cached } = await supabase
     .from('level_content')
@@ -359,7 +359,10 @@ export async function ensureLevelContent(
 
   const result = await generateText(
     prompt,
-    { temperature: 0.8, maxOutputTokens: 2000 },
+    // skipRateLimit is for the warm-up job only: writing 36 levels in one run is
+    // legitimate batch work, and counting it against a student-sized hourly cap
+    // would stop the job halfway and leave half the tracks cold.
+    { temperature: 0.8, maxOutputTokens: 2000, skipRateLimit: ctx.skipRateLimit },
     { feature: 'level-content', userId: ctx.userId ?? null, studentId: ctx.studentId ?? null },
   );
 

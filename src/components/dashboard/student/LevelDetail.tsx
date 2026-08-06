@@ -183,7 +183,21 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
           )}
 
           {phase === "read" && data && (
-            <div className="space-y-5">
+            <div className="space-y-5 animate-level-in">
+              {/* Placement ticked this off from their resume without ever asking a
+                  question about it. Saying so out loud is the difference between
+                  a map they trust and one that quietly claims things for them. */}
+              {data.status === "placed" && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                  <p className="text-sm">
+                    <span className="font-semibold">You skipped this one.</span> Your resume said you
+                    know {data.level.skill}, so we took your word for it — no question was ever
+                    asked. Read it and take the quiz whenever you want; passing turns the tick into a
+                    real one.
+                  </p>
+                </div>
+              )}
+
               {/* Paragraphs, not a lesson page. The whole thing is under 200 words
                   on purpose — this is the explanation, the quiz is the teaching. */}
               <div className="space-y-3">
@@ -212,9 +226,11 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
           )}
 
           {phase === "quiz" && data && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-level-in">
               <p className="text-sm text-muted-foreground">
-                Three questions. Get 2 right and the next level opens.
+                {data.status === "placed"
+                  ? "Three questions. Pass and this level counts as properly proved."
+                  : "Three questions. Get 2 right and the next level opens."}
               </p>
               {data.quiz.map((q, qi) => (
                 <div key={q.id} className="space-y-2">
@@ -248,7 +264,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
           {phase === "result" && result && data && (
             <div className="space-y-5">
               <div
-                className={`rounded-lg border p-4 ${
+                className={`rounded-lg border p-4 animate-pop-in ${
                   result.passed
                     ? "border-emerald-500/40 bg-emerald-500/10"
                     : "border-amber-500/40 bg-amber-500/10"
@@ -256,7 +272,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
               >
                 <p className="font-semibold flex items-center gap-2">
                   {result.passed ? (
-                    <PartyPopper className="h-5 w-5 text-emerald-600" />
+                    <PartyPopper className="h-5 w-5 text-emerald-600 animate-cheer" />
                   ) : (
                     <RotateCcw className="h-5 w-5 text-amber-600" />
                   )}

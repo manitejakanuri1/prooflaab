@@ -134,15 +134,22 @@ serve(async (req) => {
     // ---- record -----------------------------------------------------------
     const attempts = (progress?.attempts ?? 0) + 1;
     const bestScore = Math.max(progress?.best_score ?? 0, score);
-    // Never demote: a student who clears a level and then retakes the quiz for
-    // fun should not lose the level, and a mastered level outranks a cleared one.
+    // Status only ever moves up.
+    //
+    // Passing upgrades a 'placed' level to 'cleared', which is the honest answer
+    // to "how do you actually know they know Git?" — placement assumed it from
+    // their resume, and taking the quiz is how that assumption becomes a fact.
+    // Failing never demotes: a student who revisits a skipped level and stumbles
+    // should not be pushed backwards for having checked.
     const newStatus = progress?.status === 'mastered'
       ? 'mastered'
-      : passed || alreadyDone
-        ? progress?.status === 'placed' ? 'placed' : 'cleared'
+      : passed
+        ? 'cleared'
         : progress?.status ?? 'opened';
 
-    const firstClear = passed && !alreadyDone;
+    // Counted the first time a level is genuinely earned, including a placed
+    // level they have now proved rather than merely been credited with.
+    const firstClear = passed && !['cleared', 'mastered'].includes(progress?.status ?? '');
 
     const row = {
       student_id: profile.id,

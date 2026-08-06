@@ -93,7 +93,7 @@ serve(async (req) => {
 
     const { data: progress } = await supabase
       .from('student_levels')
-      .select('status, best_score, attempts, task_id')
+      .select('status, best_score, attempts, task_id, evidence')
       .eq('student_id', profile.id)
       .eq('level_id', level.id)
       .maybeSingle();
@@ -157,6 +157,9 @@ serve(async (req) => {
       quiz: quizForStudent(content.quiz),
       proof: { title: content.proof_title, brief: content.proof_brief },
       status: progress?.status ?? 'opened',
+      // Only meaningful on a placed level — it is the line from their resume
+      // that earned the tick.
+      evidence: progress?.evidence ?? null,
       best_score: progress?.best_score ?? 0,
       attempts: progress?.attempts ?? 0,
       task_id: progress?.task_id ?? null,

@@ -281,7 +281,7 @@ Return ONLY the JSON object.`;
 
     const { data: resumeClaim } = await supabase
       .from('resume_claims')
-      .select('resume_quality_score, ats_match_score, skills, target_role')
+      .select('resume_quality_score, ats_match_score, skills, target_role, projects, certifications')
       .eq('id', assessment.resume_claims_id)
       .maybeSingle();
 
@@ -439,6 +439,11 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       placements = await placeStudent(supabase, profile.id, {
         interests: (levelProfile?.key_interests as string[] | null) ?? [],
         skills: provedSkills,
+        resume: {
+          skills: (resumeClaim?.skills as string[] | null) ?? [],
+          projects: (resumeClaim?.projects as any[] | null) ?? [],
+          certifications: (resumeClaim?.certifications as string[] | null) ?? [],
+        },
       });
     } catch (e) {
       // A failed placement must not cost them the scorecard they just earned —

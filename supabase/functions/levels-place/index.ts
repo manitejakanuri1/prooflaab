@@ -61,7 +61,7 @@ serve(async (req) => {
     // second — self-reported, but better than pretending they know nothing.
     const { data: claim } = await supabase
       .from('resume_claims')
-      .select('skills')
+      .select('skills, projects, certifications, target_role')
       .eq('student_id', profile.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -76,6 +76,11 @@ serve(async (req) => {
       trackSlugs: requestedTrack ? [requestedTrack] : undefined,
       interests: (profile.key_interests as string[] | null) ?? [],
       skills,
+      resume: {
+        skills,
+        projects: (claim?.projects as any[] | null) ?? [],
+        certifications: (claim?.certifications as string[] | null) ?? [],
+      },
     });
 
     if (placements.length === 0) {

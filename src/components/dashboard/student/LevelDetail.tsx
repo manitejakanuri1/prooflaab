@@ -30,6 +30,8 @@ interface LevelPayload {
   quiz: QuizQuestion[];
   proof: { title: string; brief: string };
   status: string;
+  /** On a placed level: the line from their resume that earned the tick. */
+  evidence: string | null;
   best_score: number;
   attempts: number;
 }
@@ -188,12 +190,14 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                   question about it. Saying so out loud is the difference between
                   a map they trust and one that quietly claims things for them. */}
               {data.status === "placed" && (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1">
                   <p className="text-sm">
-                    <span className="font-semibold">You skipped this one.</span> Your resume said you
-                    know {data.level.skill}, so we took your word for it — no question was ever
-                    asked. Read it and take the quiz whenever you want; passing turns the tick into a
-                    real one.
+                    <span className="font-semibold">We ticked this off for you.</span>{" "}
+                    {data.evidence ?? `Your resume says you know ${data.level.skill}.`}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    That is a claim, not a test — nobody asked you a question about it. Take the quiz
+                    and the tick becomes a real one.
                   </p>
                 </div>
               )}

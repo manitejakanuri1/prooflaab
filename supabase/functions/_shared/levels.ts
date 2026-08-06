@@ -97,6 +97,47 @@ export async function advanceUnlock(
   return unlockedThrough;
 }
 
+/** The parts of a parsed resume that can justify crediting a skill. */
+export interface ResumeEvidenceSource {
+  skills?: string[];
+  projects?: { name?: string; description?: string; tech_stack?: string[] }[];
+  certifications?: string[];
+}
+
+/**
+ * Say, in one sentence, what in their resume made us tick this level off.
+ *
+ * Deliberately a lookup and not a model call. It runs for every matched skill of
+ * every placed student, it has an exactly correct answer sitting in the resume
+ * already, and paying a model to restate a string it was handed is the clearest
+ * possible waste of tokens.
+ */
+export function evidenceForSkill(
+  skill: string,
+  source: ResumeEvidenceSource,
+): string | null {
+  const target = normSkill(skill);
+  const parts: string[] = [];
+
+  const listed = (source.skills ?? []).find((s) => normSkill(s) === target);
+  if (listed) parts.push(`listed in your skills as "${listed}"`);
+
+  const project = (source.projects ?? []).find((p) =>
+    [...(p.tech_stack ?? []), p.name ?? '', p.description ?? ''].some((field) =>
+      normSkill(String(field)).includes(target),
+    ),
+  );
+  if (project?.name) parts.push(`used in your project "${project.name}"`);
+
+  const cert = (source.certifications ?? []).find((c) => normSkill(c).includes(target));
+  if (cert) parts.push(`covered by your "${cert}" certificate`);
+
+  if (parts.length === 0) return null;
+  const joined =
+    parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
+  return `${joined.charAt(0).toUpperCase()}${joined.slice(1)}.`;
+}
+
 export interface PlacementResult {
   track_slug: string;
   track_name: string;
@@ -121,7 +162,13 @@ export interface PlacementResult {
 export async function placeStudent(
   supabase: any,
   studentId: string,
-  opts: { interests?: string[]; skills?: string[]; trackSlugs?: string[] },
+  opts: {
+    interests?: string[];
+    skills?: string[];
+    trackSlugs?: string[];
+    /** Used only to explain each tick back to the student. */
+    resume?: ResumeEvidenceSource;
+  },
 ): Promise<PlacementResult[]> {
   const skills = (opts.skills ?? []).filter(Boolean);
   const have = new Set(skills.map(normSkill));
@@ -181,9 +228,15 @@ export async function placeStudent(
         student_id: studentId,
         level_id: l.id,
         status: 'placed',
-        // No quiz was taken for these, so no score is claimed. The assessment
-        // is the evidence, and it lives on the scorecard.
+        // No quiz was taken for these, so no score is claimed.
         best_score: 0,
+        // What in the resume earned the tick, so the student can check our
+        // working rather than being told "you know this" and having to take it
+        // on faith. Falls back to the skill list they gave us if there is no
+        // parsed resume behind it.
+        evidence:
+          evidenceForSkill(l.skill, opts.resume ?? { skills }) ??
+          `You told us you know ${l.skill}.`,
       }));
 
     if (toInsert.length > 0) {
@@ -247,50 +300,23 @@ function buildContentPrompt(
   before: string[],
   after: string[],
 ): string {
-  return `You are writing ONE level of a game-style learning path for an engineering student who wants to become a ${role}.
+  // Kept deliberately tight. Every word here is paid for on all 137 levels, and
+  // the long version of this prompt was mostly restating the same rule three
+  // ways — which cost tokens without improving a single generated level.
+  return `Write ONE level of a game-style learning path for a student becoming a ${role}.
 
-Path: "${trackName}"
-This is level ${level.level_number} of ${totalLevels}.
-The level teaches: ${level.skill}
-The level is called: "${level.title}"
-Levels they already finished: ${before.length ? before.join(', ') : '(this is the first one)'}
-Levels that come after: ${after.length ? after.join(', ') : '(this is the last one)'}
+Path "${trackName}", level ${level.level_number}/${totalLevels}. Teaches: ${level.skill}. Called: "${level.title}".
+Just covered: ${before.length ? before.join(', ') : 'nothing, this is level 1'}. Coming next: ${after.length ? after.join(', ') : 'nothing, this is the last'}.
 
-Return a JSON object exactly like this:
-{
-  "explanation": "...",
-  "quiz": [
-    {"prompt": "...", "options": ["...", "...", "...", "..."], "correct_index": 0, "explanation": "..."},
-    {"prompt": "...", "options": ["...", "...", "...", "..."], "correct_index": 2, "explanation": "..."},
-    {"prompt": "...", "options": ["...", "...", "...", "..."], "correct_index": 1, "explanation": "..."}
-  ],
-  "proof_title": "...",
-  "proof_brief": "..."
-}
+Return JSON: {"explanation":"...","quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},{...},{...}],"proof_title":"...","proof_brief":"..."}
 
-RULES FOR "explanation" — this is the most important part:
-- 130 to 180 words TOTAL. It is a message from a funny senior who already has the job, not a lecture and not a textbook page.
-- Start with ONE joke or everyday analogy that makes the idea actually click.
-- Then say plainly what ${level.skill} really is, in words a second-year student understands.
-- Then name the ONE thing beginners always get wrong about it.
-- End with one line on why a ${role} cannot skip this.
-- Plain sentences separated by blank lines. NO headings, NO bullet points, NO markdown, NO code blocks, NO emoji spam.
-- Funny, warm, slightly cheeky. Never mean, never patronising, never "Hey there, champ!".
+explanation — 130-180 words, a message from a funny senior who has the job, not a lecture. In order: one joke or everyday analogy that makes it click; what ${level.skill} actually is in plain words; the one thing beginners get wrong; one line on why a ${role} can't skip it. Plain sentences, blank lines between them. No headings, bullets, markdown, code blocks or emoji. Funny and warm, never patronising, never "Hey champ!".
 
-RULES FOR "quiz":
-- Exactly 3 multiple-choice questions about ${level.skill}.
-- Answerable by someone who genuinely understood the explanation above — no trivia, no memorised syntax, no version numbers.
-- Test whether they get the IDEA. At least one question should be a realistic "what happens if..." or "why did this break" situation.
-- Exactly 4 options each. Exactly one correct. Wrong options must be genuinely tempting, not obviously silly.
-- Vary which index is correct across the three questions.
-- Each "explanation" is ONE short sentence saying why the right answer is right, in the same funny voice.
+quiz — exactly 3 questions on ${level.skill}, answerable by someone who understood the explanation. Test the idea, not trivia or memorised syntax. At least one realistic "what happens if" or "why did this break". Exactly 4 options, one correct, wrong ones genuinely tempting. Vary which index is correct. Each explanation is one short sentence in the same voice.
 
-RULES FOR "proof_title" and "proof_brief":
-- A small real thing they build or do to prove they got it — finishable in 30 to 90 minutes.
-- Something with an artefact at the end: a repo, a link, a screenshot, a short recording.
-- "proof_brief" is 2 to 3 sentences: what to build, and what counts as done. Specific and checkable, not "practice more".
+proof — a real thing finishable in 30-90 minutes that ends in an artefact (repo, link, screenshot, recording). proof_brief is 2-3 sentences: what to build and what counts as done. Specific and checkable.
 
-Return ONLY the JSON object.`;
+Return ONLY the JSON.`;
 }
 
 function validQuiz(quiz: unknown): quiz is Omit<QuizQuestion, 'id'>[] {
@@ -345,7 +371,13 @@ export async function ensureLevelContent(
     .order('level_number', { ascending: true });
 
   const all = (siblings ?? []) as { level_number: number; skill: string }[];
-  const before = all.filter((l) => l.level_number < level.level_number).map((l) => l.skill);
+  // Only the immediate neighbours. The model needs to know what it can assume
+  // and what not to steal from the next level — the full history of fifteen
+  // earlier skills told it nothing extra and grew the prompt with every level.
+  const before = all
+    .filter((l) => l.level_number < level.level_number)
+    .slice(-3)
+    .map((l) => l.skill);
   const after = all.filter((l) => l.level_number > level.level_number).slice(0, 3).map((l) => l.skill);
 
   const prompt = buildContentPrompt(
@@ -362,7 +394,9 @@ export async function ensureLevelContent(
     // skipRateLimit is for the warm-up job only: writing 36 levels in one run is
     // legitimate batch work, and counting it against a student-sized hourly cap
     // would stop the job halfway and leave half the tracks cold.
-    { temperature: 0.8, maxOutputTokens: 2000, skipRateLimit: ctx.skipRateLimit },
+    // 1200, not 2000: measured completions land around 680 tokens, so this is
+    // still ample headroom while capping what a rambling response can cost.
+    { temperature: 0.8, maxOutputTokens: 1200, skipRateLimit: ctx.skipRateLimit },
     { feature: 'level-content', userId: ctx.userId ?? null, studentId: ctx.studentId ?? null },
   );
 

@@ -32,6 +32,15 @@ interface LevelProgress {
   status: string;
   best_score: number;
   attempts: number;
+  evidence: string | null;
+}
+
+/** What their resume actually said — the basis for every tick they did not earn. */
+interface ResumeSummary {
+  target_role: string | null;
+  skills: string[];
+  projects: number;
+  certifications: number;
 }
 
 type LevelState = "mastered" | "cleared" | "placed" | "current" | "locked";
@@ -67,6 +76,7 @@ const LevelMap = () => {
   const [allTracks, setAllTracks] = useState<{ slug: string; name: string; emoji: string }[]>([]);
   const [openLevel, setOpenLevel] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [resume, setResume] = useState<ResumeSummary | null>(null);
 
   const loadProgress = useCallback(async (sid: string) => {
     const { data: myTracks } = await supabase
@@ -88,13 +98,18 @@ const LevelMap = () => {
 
     const { data: rows } = await supabase
       .from("student_levels")
-      .select("level_id, status, best_score, attempts")
+      .select("level_id, status, best_score, attempts, evidence")
       .eq("student_id", sid);
     setProgress(
       Object.fromEntries(
         (rows ?? []).map((r: any) => [
           r.level_id,
-          { status: r.status, best_score: r.best_score, attempts: r.attempts },
+          {
+            status: r.status,
+            best_score: r.best_score,
+            attempts: r.attempts,
+            evidence: r.evidence ?? null,
+          },
         ]),
       ),
     );
@@ -117,6 +132,26 @@ const LevelMap = () => {
         return;
       }
       setStudentId(profile.id);
+
+      // The ticks they did not earn all trace back to this one row. Showing it
+      // in a line means "we assumed you know Git" is checkable at a glance,
+      // instead of being an opinion the app formed about them in private.
+      const { data: claim } = await supabase
+        .from("resume_claims")
+        .select("target_role, skills, projects, certifications")
+        .eq("student_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (claim) {
+        setResume({
+          target_role: claim.target_role,
+          skills: (claim.skills as string[] | null) ?? [],
+          projects: Array.isArray(claim.projects) ? claim.projects.length : 0,
+          certifications: ((claim.certifications as string[] | null) ?? []).length,
+        });
+      }
 
       let summaries = await loadProgress(profile.id);
 
@@ -381,11 +416,26 @@ const LevelMap = () => {
 
         <CardContent>
           {assumedCount > 0 && (
-            <p className="text-xs text-muted-foreground mb-4 rounded-md bg-muted/50 px-3 py-2">
-              {assumedCount} {assumedCount === 1 ? "level is" : "levels are"} ticked because your
-              resume said so — we didn't test them. Not sure about one? Open it, read it, take the
-              quiz. Passing turns the tick into a real one.
-            </p>
+            <div className="mb-4 rounded-md bg-muted/50 px-3 py-2.5 space-y-1">
+              <p className="text-xs font-medium">
+                {assumedCount} {assumedCount === 1 ? "level is" : "levels are"} ticked from your
+                resume, not from a test.
+              </p>
+              {resume && (
+                <p className="text-xs text-muted-foreground">
+                  We read {resume.skills.length} skills
+                  {resume.projects > 0 &&
+                    ` and ${resume.projects} project${resume.projects === 1 ? "" : "s"}`}
+                  {resume.certifications > 0 &&
+                    `, ${resume.certifications} certificate${resume.certifications === 1 ? "" : "s"}`}
+                  {resume.target_role && ` — aiming at ${resume.target_role}`}. Every tick below says
+                  which line earned it.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Not sure about one? Open it and take the quiz — passing makes the tick real.
+              </p>
+            </div>
           )}
 
           <div className="relative">
@@ -481,6 +531,11 @@ const LevelMap = () => {
                         <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                       )}
                     </p>
+                    {state === "placed" && info?.evidence && (
+                      <p className="text-xs text-muted-foreground/80 mt-0.5 italic">
+                        {info.evidence}
+                      </p>
+                    )}
                   </button>
                 </div>
               );

@@ -102,7 +102,10 @@ Return ONLY the JSON array, no additional text, no markdown fences.`;
 
     let generatedText: string;
     try {
-      const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 3000 }, { feature: 'resume-cert-radar' });
+      // Cached: which certificates are worth doing for a given role and skill
+      // set does not change between students. This is the same question asked
+      // over and over by different people.
+      const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 3000, cache: true }, { feature: 'resume-cert-radar' });
       generatedText = result.text;
     } catch (e) {
       console.error('LLM call failed:', e);

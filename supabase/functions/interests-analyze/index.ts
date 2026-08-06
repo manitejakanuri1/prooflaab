@@ -152,7 +152,11 @@ Return ONLY a JSON object:
       explanation?: string;
     };
     try {
-      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1200 }, { feature: 'interests-analyze', userId: callerId, studentId: profile.id });
+      // Cached: the verdict itself is decided in code (skill-map), so this call
+      // only writes the explanation of a fixed input. Two students with the same
+      // interests and the same skills deserve the same answer, and paying twice
+      // for it was buying nothing.
+      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1200, cache: true }, { feature: 'interests-analyze', userId: callerId, studentId: profile.id });
       console.log(`Interest analysis via ${result.provider}`);
       const jsonMatch = result.text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No JSON object found');

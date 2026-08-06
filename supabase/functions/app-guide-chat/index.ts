@@ -74,7 +74,10 @@ ${transcript ? `Conversation so far:\n${transcript}\n` : ''}
 Student: ${message}
 Guide: Reply with plain text only, no JSON, no markdown fences.`;
 
-    const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 300, json: false }, { feature: 'app-guide-chat' });
+    // Cached: this answers questions about how the app works, and "where do I
+    // upload my resume" has one right answer no matter who asks it. The second
+    // student to ask gets the same reply for free.
+    const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 300, json: false, cache: true }, { feature: 'app-guide-chat' });
 
     return new Response(
       JSON.stringify({ reply: result.text.trim() }),

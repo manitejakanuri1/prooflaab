@@ -218,7 +218,10 @@ Return ONLY the JSON object.`;
       let reasoningClarityScore = 0;
       let explanation = 'Could not be graded — the grading gremlins are on strike.';
       try {
-        const result = await generateText(evalPrompt, { temperature: 0.3, maxOutputTokens: 500 }, { feature: 'resume-assessment-submit' });
+        // Cached: identical answer to an identical question must get an identical
+        // grade. That is a fairness requirement before it is a saving — two
+        // students who write the same sentence should not be marked differently.
+        const result = await generateText(evalPrompt, { temperature: 0.3, maxOutputTokens: 500, cache: true }, { feature: 'resume-assessment-submit' });
         const jsonMatch = result.text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
@@ -335,7 +338,15 @@ Return a JSON array, ordered from the most foundational/urgent gap first to the 
 Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never actually mean, never say "learn everything from scratch," never truly shame the student. Return ONLY the JSON array, no markdown fences, no commentary.`;
 
       try {
-        const result = await generateText(roadmapPrompt, { temperature: 0.6, maxOutputTokens: 1200 });
+        // Tagged, unlike before: this was the whole of the 'unattributed' line in
+        // the usage table, so the roadmap's spend was invisible next to every
+        // other feature's. Not cached — it is written from one student's specific
+        // wrong answers and should never be handed to somebody else.
+        const result = await generateText(
+          roadmapPrompt,
+          { temperature: 0.6, maxOutputTokens: 1200 },
+          { feature: 'resume-roadmap', userId: callerId, studentId: profile.id },
+        );
         const jsonMatch = result.text.match(/\[[\s\S]*\]/);
         const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
         if (

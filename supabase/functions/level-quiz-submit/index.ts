@@ -215,11 +215,15 @@ serve(async (req) => {
 
     const unlockedThrough = await advanceUnlock(supabase, profile.id, level.track_slug);
 
+    // The level they actually go to next, which is the wall — not simply the one
+    // after this. Levels above this one can already be ticked from placement, and
+    // pointing at "next up: React" when React is already done sends them to a
+    // level they have no reason to open.
     const { data: nextLevel } = await supabase
       .from('levels')
       .select('level_number, skill, title')
       .eq('track_slug', level.track_slug)
-      .eq('level_number', level.level_number + 1)
+      .eq('level_number', unlockedThrough)
       .maybeSingle();
 
     return json({

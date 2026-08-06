@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Calendar, ArrowRight, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { hasOpenableProof, resolveProofFile } from "@/lib/proofFile";
+import { toast } from "@/hooks/use-toast";
 
 interface PublicProjectCardProps {
   emojiCode: string;
@@ -10,6 +13,9 @@ interface PublicProjectCardProps {
   skills: string[];
   submittedAt: string;
   fileUrl: string | null;
+  /** Set when the proof is an uploaded file, which needs a signed URL. */
+  filePath?: string | null;
+  fileName?: string | null;
   proofId: string;
   postId?: string | null;
   aiSummary?: string | null;
@@ -23,11 +29,31 @@ export const PublicProjectCard = ({
   skills,
   submittedAt,
   fileUrl,
+  filePath,
+  fileName,
   proofId,
   postId,
   aiSummary,
   reflectionSummary,
 }: PublicProjectCardProps) => {
+  const [opening, setOpening] = useState(false);
+  const proofRef = { id: proofId, file_url: fileUrl, file_path: filePath, file_name: fileName };
+
+  const handleOpen = async () => {
+    setOpening(true);
+    const result = await resolveProofFile(proofRef);
+    setOpening(false);
+    if (result.url) {
+      window.open(result.url, "_blank", "noopener,noreferrer");
+    } else {
+      toast({
+        title: "Couldn't open this project",
+        description: result.error ?? "There is no file attached.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getEmoji = (code: string) => {
     try {
       return String.fromCodePoint(parseInt(code, 16));
@@ -107,16 +133,19 @@ export const PublicProjectCard = ({
             <span>View Project</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
-        ) : fileUrl ? (
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-xs font-medium"
+        ) : hasOpenableProof(proofRef) ? (
+          // Not an <a href>: an uploaded proof lives in a private bucket and has
+          // no static URL, so the link has to be signed at the moment of the
+          // click. Pasted links still open directly.
+          <button
+            type="button"
+            disabled={opening}
+            onClick={handleOpen}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-xs font-medium disabled:opacity-60"
           >
-            <span>View Project</span>
+            <span>{opening ? "Opening…" : "View Project"}</span>
             <ArrowRight className="w-3.5 h-3.5" />
-          </a>
+          </button>
         ) : null}
       </div>
     </article>

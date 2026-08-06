@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Download, ExternalLink, User, Search, Filter, CheckCircle, X } from "lucide-react";
 import { useStartupSubmissions, useReviewSubmission } from "@/hooks/useStartupSubmissions";
 import { format } from "date-fns";
+import ProofFileButton from "@/components/proof/ProofFileButton";
+import { hasOpenableProof } from "@/lib/proofFile";
 
 export function StartupSubmissionsPage() {
   const { data: submissions = [], isLoading } = useStartupSubmissions();
@@ -176,13 +178,8 @@ export function StartupSubmissionsPage() {
                     </div>
                     
                     <div className="flex gap-2">
-                      {submission.file_url && (
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={submission.file_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            View Proof
-                          </a>
-                        </Button>
+                      {hasOpenableProof(submission) && (
+                        <ProofFileButton proof={submission} label="View Proof" />
                       )}
                       
                       {submission.status === "Under Review" && (

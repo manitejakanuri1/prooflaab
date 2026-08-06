@@ -682,6 +682,39 @@ export type Database = {
           },
         ]
       }
+      llm_cache: {
+        Row: {
+          created_at: string
+          feature: string
+          hits: number
+          last_used_at: string
+          model: string
+          prompt_hash: string
+          response: string
+          saved_tokens: number
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          hits?: number
+          last_used_at?: string
+          model: string
+          prompt_hash: string
+          response: string
+          saved_tokens?: number
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          hits?: number
+          last_used_at?: string
+          model?: string
+          prompt_hash?: string
+          response?: string
+          saved_tokens?: number
+        }
+        Relationships: []
+      }
       llm_usage: {
         Row: {
           completion_tokens: number
@@ -1145,6 +1178,10 @@ export type Database = {
           ai_summary: string | null
           declaration_acknowledged: boolean | null
           declaration_text: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
           file_url: string | null
           id: string
           is_public: boolean
@@ -1180,6 +1217,10 @@ export type Database = {
           ai_summary?: string | null
           declaration_acknowledged?: boolean | null
           declaration_text?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
           file_url?: string | null
           id?: string
           is_public?: boolean
@@ -1215,6 +1256,10 @@ export type Database = {
           ai_summary?: string | null
           declaration_acknowledged?: boolean | null
           declaration_text?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
           file_url?: string | null
           id?: string
           is_public?: boolean
@@ -2207,6 +2252,7 @@ export type Database = {
           best_score: number
           cleared_at: string | null
           created_at: string
+          evidence: string | null
           id: string
           level_id: string
           mastered_at: string | null
@@ -2220,6 +2266,7 @@ export type Database = {
           best_score?: number
           cleared_at?: string | null
           created_at?: string
+          evidence?: string | null
           id?: string
           level_id: string
           mastered_at?: string | null
@@ -2233,6 +2280,7 @@ export type Database = {
           best_score?: number
           cleared_at?: string | null
           created_at?: string
+          evidence?: string | null
           id?: string
           level_id?: string
           mastered_at?: string | null
@@ -3379,6 +3427,7 @@ export type Database = {
         Args: { p_pack_id: string; p_student_id: string }
         Returns: boolean
       }
+      bump_llm_cache_hit: { Args: { p_hash: string }; Returns: undefined }
       check_rate_limit: {
         Args: {
           p_bucket: string

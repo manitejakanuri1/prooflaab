@@ -18,6 +18,8 @@ import VerificationPanel from '@/components/dashboard/VerificationPanel';
 import VerificationSummaryModal from '@/components/dashboard/VerificationSummaryModal';
 import VerificationDropdown from '@/components/dashboard/VerificationDropdown';
 import { format } from 'date-fns';
+import ProofFileButton from '@/components/proof/ProofFileButton';
+import { proofFileLabel } from '@/lib/proofFile';
 import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Search, FileIcon, Shield, Brain, Github, Play } from 'lucide-react';
 
 interface ProofSubmission {
@@ -25,6 +27,8 @@ interface ProofSubmission {
   student_id: string;
   task_id: string;
   file_url: string | null;
+  file_path: string | null;
+  file_name: string | null;
   submission_notes: string | null;
   status: string;
   submitted_at: string;
@@ -490,12 +494,15 @@ const ProofSubmissionsContent = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {submission.file_url ? (
+                          {/* Reads file_path, not file_url: an uploaded file no
+                              longer writes anything into file_url, so keying off
+                              that labelled every real upload as a "Link". */}
+                          {submission.file_path ? (
                             <FileText className="h-4 w-4 text-blue-600" />
                           ) : (
                             <ExternalLink className="h-4 w-4 text-green-600" />
                           )}
-                          <span className="text-sm">{submission.file_url ? 'File' : 'Link'}</span>
+                          <span className="text-sm">{submission.file_path ? 'File' : 'Link'}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -643,18 +650,16 @@ const ProofSubmissionsContent = () => {
                 </div>
               )}
 
-              {selectedSubmission.file_url && (
+              {(selectedSubmission.file_url || selectedSubmission.file_path) && (
                 <div className="border-t pt-4">
                   <label className="text-sm font-medium text-muted-foreground">Submitted File/Repo</label>
-                  <a 
-                    href={selectedSubmission.file_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:text-primary/80 text-sm flex items-center space-x-1 mt-2 hover:underline"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>Open in New Tab</span>
-                  </a>
+                  <p className="text-sm mt-1 break-all">{proofFileLabel(selectedSubmission)}</p>
+                  <div className="flex gap-2 mt-2">
+                    <ProofFileButton proof={selectedSubmission} label="Open" />
+                    {selectedSubmission.file_path && (
+                      <ProofFileButton proof={selectedSubmission} download label="Download" />
+                    )}
+                  </div>
                 </div>
               )}
 

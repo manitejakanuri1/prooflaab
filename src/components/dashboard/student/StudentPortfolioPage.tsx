@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
+import ProofFileButton from "@/components/proof/ProofFileButton";
+import { hasOpenableProof } from "@/lib/proofFile";
 
 const StudentPortfolioPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
@@ -334,15 +336,8 @@ const StudentPortfolioPage = () => {
                         </Button>
                       )}
                       
-                      {upload.file_url && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(upload.file_url!, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                      {hasOpenableProof(upload) && (
+                        <ProofFileButton proof={upload} label="View" />
                       )}
                     </div>
                   </div>

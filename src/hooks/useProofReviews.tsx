@@ -7,6 +7,10 @@ export interface ProofReview {
   student_id: string;
   task_id: string;
   file_url: string | null;
+  // Uploaded proofs live in a private bucket; file_path is where, file_url is a
+  // link the student pasted. They are never both set.
+  file_path: string | null;
+  file_name: string | null;
   submission_notes: string | null;
   status: 'Under Review' | 'Verified' | 'Rejected';
   submitted_at: string;

@@ -28,6 +28,8 @@ import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import { ContactStudentModal } from "@/components/public/ContactStudentModal";
 import { RecruiterInterestBox } from "@/components/public/RecruiterInterestBox";
 import { usePostEngagement, usePostEngagementStats } from "@/hooks/usePostEngagement";
+import ProofFileButton from "@/components/proof/ProofFileButton";
+import { hasOpenableProof } from "@/lib/proofFile";
 
 interface PostData {
   id: string;
@@ -65,6 +67,8 @@ interface PostData {
     is_public: boolean;
     status: string | null;
     file_url: string | null;
+    file_path: string | null;
+    file_name: string | null;
   } | null;
 }
 
@@ -277,7 +281,7 @@ const PostPage = () => {
         if (postData.proof_id) {
           const { data: proof } = await supabase
             .from("proof_uploads")
-            .select("is_public, status, file_url")
+            .select("is_public, status, file_url, file_path, file_name")
             .eq("id", postData.proof_id)
             .single();
           
@@ -900,13 +904,14 @@ const PostPage = () => {
 
         {/* Action Button */}
         <div className="flex flex-wrap gap-3 mb-8">
-          {isInternalPost && post.proof_id && post.proof_upload?.file_url ? (
-            <a href={post.proof_upload.file_url} target="_blank" rel="noopener noreferrer">
-              <Button className="gap-2">
-                <Shield className="w-4 h-4" />
-                View Project Files
-              </Button>
-            </a>
+          {isInternalPost && post.proof_id && hasOpenableProof({ id: post.proof_id, ...post.proof_upload }) ? (
+            <ProofFileButton
+              proof={{ id: post.proof_id, ...post.proof_upload }}
+              size="default"
+              variant="default"
+              label="View Project Files"
+              className="gap-2"
+            />
           ) : post.external_link ? (
             <a href={post.external_link} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="gap-2">

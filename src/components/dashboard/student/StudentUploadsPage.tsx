@@ -21,6 +21,8 @@ import AppealSubmissionModal from "./AppealSubmissionModal";
 import { ReflectionModal } from "../ReflectionModal";
 import { useReflectionRequest } from "@/hooks/useReflectionRequest";
 import { useAuth } from "@/contexts/AuthContext";
+import ProofFileButton from "@/components/proof/ProofFileButton";
+import { hasOpenableProof, proofFileLabel } from "@/lib/proofFile";
 
 const StudentUploadsPage = () => {
   const currentDate = new Date();
@@ -382,11 +384,11 @@ const StudentUploadsPage = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="py-4">
-                          {upload.file_url ? (
+                          {upload.file_url || upload.file_path ? (
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-muted-foreground" />
                               <span className="text-sm text-foreground max-w-[150px] truncate">
-                                {getFileName(upload.file_url)}
+                                {proofFileLabel(upload)}
                               </span>
                             </div>
                           ) : (
@@ -444,31 +446,21 @@ const StudentUploadsPage = () => {
                                 Appeal
                               </Button>
                             )}
-                            {upload.file_url && (
+                            {hasOpenableProof(upload) && (
                               <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => window.open(upload.file_url!, '_blank')}
+                                <ProofFileButton
+                                  proof={upload}
+                                  label="View"
                                   className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  View
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const link = document.createElement('a');
-                                    link.href = upload.file_url!;
-                                    link.download = getFileName(upload.file_url!);
-                                    link.click();
-                                  }}
-                                  className="border-green-300 text-green-700 hover:bg-green-50"
-                                >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  Download
-                                </Button>
+                                />
+                                {upload.file_path && (
+                                  <ProofFileButton
+                                    proof={upload}
+                                    download
+                                    label="Download"
+                                    className="border-green-300 text-green-700 hover:bg-green-50"
+                                  />
+                                )}
                               </>
                             )}
                           </div>

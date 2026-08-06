@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import ProofFileButton from "@/components/proof/ProofFileButton";
+import { hasOpenableProof } from "@/lib/proofFile";
 
 interface ProofData {
   id: string;
@@ -268,16 +270,14 @@ const ProofViewer = () => {
                 </div>
               )}
 
-              {proof.file_url && (
+              {hasOpenableProof(proof) && (
                 <div>
-                  <Button
-                    variant="outline"
+                  <ProofFileButton
+                    proof={proof}
+                    size="default"
+                    label="View Submitted File"
                     className="w-full"
-                    onClick={() => window.open(proof.file_url!, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Submitted File
-                  </Button>
+                  />
                 </div>
               )}
             </CardContent>

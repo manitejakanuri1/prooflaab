@@ -8,6 +8,8 @@ interface PortfolioProject {
   submitted_at: string;
   status: string;
   file_url: string | null;
+  file_path: string | null;
+  file_name: string | null;
   submission_notes: string | null;
   ai_summary: string | null;
   reflection_answers: any;
@@ -45,6 +47,8 @@ export const usePortfolioProjects = (studentId: string) => {
             submitted_at,
             status,
             file_url,
+            file_path,
+            file_name,
             submission_notes,
             ai_summary,
             reflection_answers,
@@ -86,6 +90,8 @@ export const usePortfolioProjects = (studentId: string) => {
           submitted_at: item.submitted_at,
           status: item.status || 'Under Review',
           file_url: item.file_url,
+          file_path: item.file_path,
+          file_name: item.file_name,
           submission_notes: item.submission_notes,
           ai_summary: item.ai_summary,
           reflection_answers: item.reflection_answers,

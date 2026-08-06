@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Shield } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ProofFileButton from "@/components/proof/ProofFileButton";
+import { hasOpenableProof } from "@/lib/proofFile";
 
 interface StudentData {
   id: string;
@@ -17,6 +19,10 @@ interface StudentData {
   verified_proofs: Array<{
     id: string;
     file_url: string | null;
+    // Selected explicitly, unlike the views that use select('*'): without these
+    // the recruiter page would fetch a proof it can never open.
+    file_path: string | null;
+    file_name: string | null;
     submitted_at: string;
     task_title: string;
   }>;
@@ -133,6 +139,8 @@ export default function RecruiterView() {
             .select(`
               id,
               file_url,
+              file_path,
+              file_name,
               submitted_at,
               tasks!inner(title)
             `)
@@ -147,6 +155,8 @@ export default function RecruiterView() {
               .select(`
                 id,
                 file_url,
+                file_path,
+                file_name,
                 submitted_at,
                 tasks!inner(title)
               `)
@@ -161,6 +171,8 @@ export default function RecruiterView() {
             verified_proofs: (proofs || []).map(p => ({
               id: p.id,
               file_url: p.file_url,
+              file_path: p.file_path,
+              file_name: p.file_name,
               submitted_at: p.submitted_at,
               task_title: (p.tasks as any)?.title || "Unknown Task",
             })),
@@ -279,14 +291,8 @@ export default function RecruiterView() {
                         {student.verified_proofs.slice(0, 3).map((proof) => (
                           <div key={proof.id} className="flex items-center justify-between text-sm">
                             <span className="truncate flex-1">{proof.task_title}</span>
-                            {proof.file_url && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => window.open(proof.file_url!, '_blank')}
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </Button>
+                            {hasOpenableProof(proof) && (
+                              <ProofFileButton proof={proof} variant="ghost" label="" />
                             )}
                           </div>
                         ))}

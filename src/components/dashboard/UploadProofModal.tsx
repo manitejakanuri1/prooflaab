@@ -43,11 +43,50 @@ export default function UploadProofModal({
     'text/plain': ['.txt']
   };
 
+  /**
+   * Matches the bucket's allowed_mime_types exactly.
+   *
+   * Storage refuses anything outside this list, so a mismatch here would mean a
+   * student picks a file, waits, and is told "upload failed" with no reason.
+   * The bucket is the real gate; this is so the message arrives before the wait.
+   */
+  const ALLOWED_MIME_TYPES = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+  ];
+
+  /** The 10MB the UI has always promised, now actually enforced. */
+  const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
+    // Cleared so picking the same file again after an error still fires onChange.
+    event.target.value = '';
+    if (!file) return;
+
+    if (file.size > MAX_FILE_BYTES) {
+      toast({
+        title: "File too large",
+        description: `That file is ${(file.size / 1024 / 1024).toFixed(1)}MB. The limit is 10MB.`,
+        variant: "destructive",
+      });
+      return;
     }
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      toast({
+        title: "That file type isn't supported",
+        description: "Please upload an image, video, PDF, Word document or text file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
   };
 
   const handleSubmit = async () => {
@@ -117,14 +156,32 @@ export default function UploadProofModal({
         return;
       }
 
-      let fileUrl = linkUrl;
+      // A link submission keeps file_url; a file submission uploads for real and
+      // records where it landed. These were the same field before, which is how
+      // "[FILE: report.pdf]" ended up being served to reviewers as the proof.
+      let fileUrl: string | null = uploadType === 'link' ? linkUrl.trim() : null;
+      let filePath: string | null = null;
 
-      // If uploading a file, we'll store the file info for now
-      // In a real implementation, you'd upload to Supabase Storage
       if (uploadType === 'file' && selectedFile) {
-        // For now, we'll store file details as a JSON string
-        // In production, upload to Supabase Storage and get the public URL
-        fileUrl = `[FILE: ${selectedFile.name} (${selectedFile.type}, ${selectedFile.size} bytes)]`;
+        // Foldered by user id because that is what the storage policy checks.
+        // The name is sanitised so a file called "../../x" or one with spaces
+        // cannot produce a path the policy reads differently from this code.
+        const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const candidate = `${user.id}/${taskId}/${Date.now()}-${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('proofs')
+          .upload(candidate, selectedFile, {
+            upsert: false,
+            contentType: selectedFile.type || 'application/octet-stream',
+          });
+
+        if (uploadError) {
+          // Thrown rather than swallowed: a proof row with no file behind it is
+          // exactly the bug this replaces.
+          throw new Error(`Could not upload your file: ${uploadError.message}`);
+        }
+        filePath = candidate;
       }
 
       // Insert proof upload record with declaration
@@ -134,6 +191,10 @@ export default function UploadProofModal({
           task_id: taskId,
           student_id: profile.id,
           file_url: fileUrl,
+          file_path: filePath,
+          file_name: selectedFile?.name ?? null,
+          file_size: selectedFile?.size ?? null,
+          file_type: selectedFile?.type ?? null,
           submission_notes: submissionNotes.trim() || null,
           declaration_acknowledged: declaration.acknowledged,
           declaration_text: declaration.text || null,
@@ -142,7 +203,15 @@ export default function UploadProofModal({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // The file is already in the bucket at this point. Leaving it there
+        // would orphan it and, worse, the next attempt would hit the same path
+        // guard, so clean up before surfacing the failure.
+        if (filePath) {
+          await supabase.storage.from('proofs').remove([filePath]);
+        }
+        throw error;
+      }
 
       // Log declaration in audit logs
       if (declaration.acknowledged) {
@@ -160,7 +229,7 @@ export default function UploadProofModal({
 
       // GitHub repo proofs: generate the conceptual quiz right away instead
       // of waiting for a college/admin to run verification manually
-      const isGithubRepo = /github\.com\/[^/]+\/[^/]+/.test(fileUrl);
+      const isGithubRepo = !!fileUrl && /github\.com\/[^/]+\/[^/]+/.test(fileUrl);
       if (isGithubRepo) {
         supabase.functions
           .invoke('question-generator', {
@@ -188,7 +257,12 @@ export default function UploadProofModal({
       console.error('Error submitting proof:', error);
       toast({
         title: "Error",
-        description: "Failed to submit proof. Please try again.",
+        // The real reason, not "please try again" — a file over the limit or of
+        // the wrong type is something the student can actually act on.
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to submit proof. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -285,7 +359,11 @@ export default function UploadProofModal({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit Proof"}
+            {isSubmitting
+              ? uploadType === 'file'
+                ? "Uploading…"
+                : "Submitting…"
+              : "Submit Proof"}
           </Button>
         </div>
       </DialogContent>

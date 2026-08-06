@@ -425,6 +425,8 @@ const Portfolio = () => {
                         skills={project.task?.required_skills || []}
                         submittedAt={project.submitted_at}
                         fileUrl={project.file_url}
+                        filePath={project.file_path}
+                        fileName={project.file_name}
                         proofId={project.id}
                         postId={project.post_id}
                         aiSummary={project.ai_summary}

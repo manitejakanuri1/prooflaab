@@ -30,6 +30,8 @@ import EnhancedVerificationModal from "@/components/dashboard/EnhancedVerificati
 import VerificationDropdown from "@/components/dashboard/VerificationDropdown";
 import { CheckCircle, XCircle, FileText, ExternalLink, Brain, Github, Shield, Play, Eye } from "lucide-react";
 import { format } from "date-fns";
+import ProofFileButton from "@/components/proof/ProofFileButton";
+import { hasOpenableProof, proofFileLabel } from "@/lib/proofFile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -314,15 +316,8 @@ const UploadedProofs = () => {
                         <div className="font-medium text-sm">{proof.task.title}</div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        {proof.file_url ? (
-                          <a 
-                            href={proof.file_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-primary hover:underline text-xs md:text-sm"
-                          >
-                            View <ExternalLink className="h-3 w-3" />
-                          </a>
+                        {hasOpenableProof(proof) ? (
+                          <ProofFileButton proof={proof} variant="link" size="sm" label="View" className="h-auto p-0" />
                         ) : (
                           <span className="text-muted-foreground text-xs">No file</span>
                         )}
@@ -456,18 +451,8 @@ const UploadedProofs = () => {
                             </>
                           )}
                           
-                          {proof.file_url && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              asChild
-                              className="h-7 text-xs"
-                            >
-                              <a href={proof.file_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                <span className="hidden sm:inline">View</span>
-                              </a>
-                            </Button>
+                          {hasOpenableProof(proof) && (
+                            <ProofFileButton proof={proof} size="sm" className="h-7 text-xs" label="View" />
                           )}
                         </div>
                       </TableCell>
@@ -548,18 +533,16 @@ const UploadedProofs = () => {
                 </div>
               )}
 
-              {selectedProof.file_url && (
+              {(selectedProof.file_url || selectedProof.file_path) && (
                 <div className="border-t pt-4">
                   <label className="text-sm font-medium text-muted-foreground">Submitted File/Repo</label>
-                  <a 
-                    href={selectedProof.file_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:text-primary/80 text-sm flex items-center space-x-1 mt-2 hover:underline"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>Open in New Tab</span>
-                  </a>
+                  <p className="text-sm mt-1 break-all">{proofFileLabel(selectedProof)}</p>
+                  <div className="flex gap-2 mt-2">
+                    <ProofFileButton proof={selectedProof} label="Open" />
+                    {selectedProof.file_path && (
+                      <ProofFileButton proof={selectedProof} download label="Download" />
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -526,7 +526,7 @@ const LevelMap = () => {
                   <span className="h-2.5 w-2.5 rounded-full bg-rung-pass" /> passed
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full border border-dashed border-rung-pass bg-card" />{" "}
+                  <span className="h-2.5 w-2.5 rounded-full border border-dashed border-rung-pass bg-space-glass" />{" "}
                   from resume
                 </span>
                 <span className="flex items-center gap-1.5">

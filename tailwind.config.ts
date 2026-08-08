@@ -66,6 +66,11 @@ export default {
 					bottom: 'hsl(var(--board-bottom))',
 					top: 'hsl(var(--board-top))'
 				},
+				space: {
+					ink: 'hsl(var(--space-ink))',
+					dim: 'hsl(var(--space-ink-dim))',
+					glass: 'hsl(var(--space-glass))'
+				},
 				trail: {
 					done: 'hsl(var(--trail-done))',
 					todo: 'hsl(var(--trail-todo))'

@@ -20,51 +20,53 @@ interface LevelPathProps {
 }
 
 /**
- * The roadmap as a board you climb rather than a list you scroll.
+ * The roadmap as a night sky you climb rather than a list you scroll.
  *
  * Level 1 sits at the bottom and the goal at the top. The design carries the
  * meaning rather than decorating it:
  *
- *   · temperature — ground you have covered is warm and lit, ground ahead is
- *     cool and grey, so "how far am I" is answerable without reading a word
- *   · one hero — only the level you are on wears the brand orange, and it is
+ *   · temperature — where they started is a warm nebula, close and lit; where
+ *     they are heading is cold violet void, so "how far am I" is answerable
+ *     without reading a word
+ *   · one hero — only the level they are on wears the brand orange, and it is
  *     the only thing on the board with a glow, so the eye lands there first
- *   · solid vs dotted trail — walked road is a filled rope, road ahead is
- *     dotted, the same way a map draws a route you have not taken yet
+ *   · solid vs dotted trail — walked road is a lit rope, road ahead is dotted,
+ *     the same way a map draws a route not yet taken
  *   · hollow vs filled — a level ticked from a resume is an outline, because
  *     nothing has actually been filled in yet
  *
- * Every colour comes from the tokens in index.css, so the board themes with
- * the rest of the app instead of carrying its own palette.
+ * Every colour comes from the tokens in index.css. The board is one committed
+ * world in both themes: a window onto space does not repaint at dusk.
  */
 
-const ROW = 128; // vertical distance between two levels
-const PAD_BOTTOM = 84; // room for the opening plaque
-const PAD_TOP = 118; // room for the destination sign
-const BANNER_GAP = 66; // extra space where a chapter plaque sits
+const ROW = 92; // vertical distance between two levels
+const PAD_BOTTOM = 62; // room for the opening plaque
+const PAD_TOP = 92; // room for the destination sign
+const BANNER_GAP = 50; // extra space where a chapter plaque sits
 const CHAPTER = 4; // levels per chapter
 
 /** Depth cue only — the further from the wall, the smaller the rung. */
 const SIZE: Record<LevelState, number> = {
-  current: 68,
-  mastered: 56,
-  cleared: 54,
-  placed: 54,
-  locked: 46,
+  current: 60,
+  mastered: 50,
+  cleared: 48,
+  placed: 48,
+  locked: 40,
 };
 
 const FACE: Record<LevelState, string> = {
   mastered:
-    "bg-rung-gold text-white ring-1 ring-inset ring-white/45 shadow-[0_4px_0_0_hsl(var(--rung-gold-deep))]",
+    "bg-rung-gold text-[hsl(32_88%_16%)] ring-1 ring-inset ring-white/45 shadow-[0_4px_0_0_hsl(var(--rung-gold-deep)),0_0_22px_0_hsl(var(--rung-gold)/0.45)]",
   cleared:
     "bg-rung-pass text-white ring-1 ring-inset ring-white/35 shadow-[0_4px_0_0_hsl(var(--rung-pass-deep))]",
   // Hollow on purpose: the tick came from a resume line, not from work.
   placed:
-    "bg-card text-rung-pass border-2 border-dashed border-rung-pass/70 shadow-[0_3px_0_0_hsl(var(--rung-pass)/0.3)]",
+    "bg-space-glass text-rung-pass border-2 border-dashed border-rung-pass/70 shadow-[0_3px_0_0_hsl(var(--rung-pass)/0.25)]",
   current:
-    "bg-primary text-primary-foreground ring-1 ring-inset ring-white/40 shadow-[0_5px_0_0_hsl(var(--rung-now-deep))]",
+    "bg-primary text-primary-foreground ring-1 ring-inset ring-white/40 shadow-[0_5px_0_0_hsl(var(--rung-now-deep)),0_0_30px_0_hsl(var(--primary)/0.6)]",
+  // An unlit body. Visible, but nothing is switched on inside it yet.
   locked:
-    "bg-rung-idle text-muted-foreground/70 ring-1 ring-inset ring-white/25 shadow-[0_3px_0_0_hsl(var(--rung-idle-deep))]",
+    "bg-rung-idle text-space-dim/60 ring-1 ring-inset ring-white/10 shadow-[0_3px_0_0_hsl(var(--rung-idle-deep))]",
 };
 
 const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
@@ -85,7 +87,7 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
 
   const geo = useMemo(() => {
     // Keep every rung and its label inside the board on narrow phones.
-    const amp = Math.max(0, Math.min(width * 0.28, width / 2 - 68));
+    const amp = Math.max(0, Math.min(width * 0.3, width / 2 - 60));
     const cx = width / 2;
     const nodes: { level: PathLevel; x: number; y: number; i: number }[] = [];
     const banners: { y: number; chapter: number; label: string }[] = [];
@@ -106,6 +108,29 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
 
   /** y is measured from the bottom; SVG counts from the top. */
   const flip = (y: number) => geo.total - y;
+
+  /**
+   * The starfield. Seeded rather than Math.random, so the sky does not
+   * reshuffle itself every time progress refreshes — a constellation that
+   * moves when you clear a level looks like a bug, not like space.
+   */
+  const stars = useMemo(() => {
+    if (!width) return [];
+    let seed = 20260808;
+    const rnd = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const count = Math.min(200, Math.round((width * geo.total) / 6400));
+    return Array.from({ length: count }, (_, i) => ({
+      i,
+      x: rnd() * width,
+      y: rnd() * geo.total,
+      r: 0.4 + rnd() * 1.4,
+      o: 0.2 + rnd() * 0.65,
+      twinkle: rnd() < 0.12,
+    }));
+  }, [width, geo.total]);
 
   const buildPath = (points: { x: number; y: number }[]) => {
     if (points.length < 2) return "";
@@ -136,15 +161,29 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
   }, [width, geo, walkedTo]);
 
   const plaque =
-    "rounded-full border border-border/70 bg-card/85 px-3.5 py-1 shadow-sm backdrop-blur-sm";
+    "rounded-full border border-white/10 bg-space-glass/80 px-3.5 py-1 shadow-sm backdrop-blur-sm";
 
   return (
     <div
       ref={scrollRef}
-      className="relative overflow-y-auto overflow-x-hidden rounded-xl border bg-gradient-to-t from-board-bottom to-board-top"
+      className="relative overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-board-top"
       style={{ maxHeight: "min(70vh, 620px)" }}
     >
-      <div className="relative" style={{ height: geo.total }}>
+      <div
+        className="relative"
+        style={{
+          height: geo.total,
+          // Nebula. Four clouds over the base gradient, placed so the warm one
+          // sits where they started and the cold ones sit where they are going.
+          backgroundImage: [
+            "radial-gradient(62% 26% at 22% 90%, hsl(var(--nebula-warm) / 0.30), transparent 70%)",
+            "radial-gradient(52% 20% at 80% 68%, hsl(var(--nebula-violet) / 0.28), transparent 72%)",
+            "radial-gradient(48% 18% at 28% 44%, hsl(var(--nebula-cyan) / 0.16), transparent 72%)",
+            "radial-gradient(70% 24% at 68% 14%, hsl(var(--nebula-violet) / 0.20), transparent 75%)",
+            "linear-gradient(to top, hsl(var(--board-bottom)), hsl(var(--board-top)))",
+          ].join(", "),
+        }}
+      >
         {width > 0 && (
           <svg
             className="pointer-events-none absolute inset-0"
@@ -153,6 +192,27 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
             viewBox={`0 0 ${width} ${geo.total}`}
             aria-hidden
           >
+            {stars.map((s) => (
+              <circle
+                key={s.i}
+                cx={s.x}
+                cy={s.y}
+                r={s.r}
+                fill="hsl(var(--star))"
+                opacity={s.o}
+                className={s.twinkle ? "animate-star-twinkle" : undefined}
+                style={
+                  s.twinkle
+                    ? {
+                        transformBox: "fill-box",
+                        transformOrigin: "center",
+                        animationDelay: `${(s.i % 9) * 320}ms`,
+                      }
+                    : undefined
+                }
+              />
+            ))}
+
             {/* Ahead: dotted, the way a map draws a route not yet taken. */}
             <path
               d={aheadPath}
@@ -162,14 +222,15 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
               strokeLinecap="round"
               strokeDasharray="0.1 22"
             />
-            {/* Walked: a filled rope with a lit core running down the middle. */}
+            {/* Walked: a lit rope. The wide soft pass under it is the glow the
+                dark sky needs to make the trail feel like it is burning. */}
             <path
               d={walkedPath}
               fill="none"
               stroke="hsl(var(--trail-done))"
-              strokeWidth={17}
+              strokeWidth={24}
               strokeLinecap="round"
-              opacity={0.28}
+              opacity={0.22}
             />
             <path
               d={walkedPath}
@@ -190,11 +251,11 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
 
         {/* Destination */}
         <div className="absolute inset-x-0 flex flex-col items-center gap-1.5" style={{ top: 18 }}>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-rung-gold/40 bg-rung-gold/15">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-rung-gold/40 bg-rung-gold/15">
             <span className="animate-float-emoji inline-block text-2xl">🏆</span>
           </div>
           <div className={plaque}>
-            <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/70">
+            <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.16em] text-space-ink/85">
               {role || "Your goal"}
             </p>
           </div>
@@ -207,13 +268,13 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
             className="animate-pop-in absolute inset-x-0 z-10 flex -translate-y-1/2 items-center gap-3 px-5"
             style={{ top: flip(b.y) }}
           >
-            <span className="h-px flex-1 bg-border" />
+            <span className="h-px flex-1 bg-white/10" />
             <span className={plaque}>
-              <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-space-dim">
                 Chapter {b.chapter} · {b.label}
               </span>
             </span>
-            <span className="h-px flex-1 bg-border" />
+            <span className="h-px flex-1 bg-white/10" />
           </div>
         ))}
 
@@ -240,12 +301,12 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
                 {isNow && (
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,hsl(var(--primary)/0.3),transparent_68%)]"
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,hsl(var(--primary)/0.38),transparent_70%)]"
                   />
                 )}
 
                 {level.state === "mastered" && (
-                  <div className="pointer-events-none absolute -top-3.5 left-1/2 flex -translate-x-1/2 gap-0.5">
+                  <div className="pointer-events-none absolute -top-3 left-1/2 flex -translate-x-1/2 gap-0.5">
                     {[0, 1, 2].map((s) => (
                       <Star
                         key={s}
@@ -257,7 +318,7 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
                 )}
 
                 {isNow && (
-                  <div className="animate-marker-bob pointer-events-none absolute -top-11 left-1/2 select-none text-2xl">
+                  <div className="animate-marker-bob pointer-events-none absolute -top-9 left-1/2 select-none text-xl">
                     {trackEmoji}
                   </div>
                 )}
@@ -274,7 +335,7 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
                       ? "cursor-pointer hover:-translate-y-0.5 active:translate-y-1 active:shadow-none"
                       : "cursor-not-allowed"
                   }`}
-                  style={{ width: size, height: size, fontSize: isNow ? 21 : 16 }}
+                  style={{ width: size, height: size, fontSize: isNow ? 19 : 15 }}
                 >
                   {/* Gloss. Two pixels of work, and the rung stops looking flat.
                       Skipped on the hollow rung, which has no face to catch it. */}
@@ -285,30 +346,30 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
                     />
                   )}
                   {level.state === "mastered" ? (
-                    <Star className="h-6 w-6 fill-current" />
+                    <Star className="h-5 w-5 fill-current" />
                   ) : level.state === "locked" ? (
-                    <Lock className="h-4 w-4" />
+                    <Lock className="h-3.5 w-3.5" />
                   ) : level.state === "cleared" || level.state === "placed" ? (
-                    <Check className="h-6 w-6" strokeWidth={3.5} />
+                    <Check className="h-5 w-5" strokeWidth={3.5} />
                   ) : (
                     level.level_number
                   )}
                 </button>
 
-                <div className="pointer-events-none absolute left-1/2 top-full mt-2 w-[124px] -translate-x-1/2 text-center">
+                <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[112px] -translate-x-1/2 text-center">
                   <p
-                    className={`line-clamp-2 text-[12px] font-semibold leading-tight ${
-                      level.state === "locked" ? "text-foreground/35" : "text-foreground/90"
+                    className={`line-clamp-2 text-[11px] font-semibold leading-tight ${
+                      level.state === "locked" ? "text-space-ink/35" : "text-space-ink/90"
                     }`}
                   >
                     {level.skill}
                   </p>
                   {level.shaky ? (
-                    <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-rung-gold-deep">
+                    <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-rung-gold">
                       revisit
                     </p>
                   ) : level.state === "placed" ? (
-                    <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-rung-pass/80">
+                    <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-rung-pass">
                       from resume
                     </p>
                   ) : isNow ? (
@@ -324,13 +385,13 @@ const LevelPath = ({ levels, trackEmoji, role, onOpen }: LevelPathProps) => {
         {/* Opening plaque — same treatment as the chapter rules, so the board
             reads as one system top to bottom. */}
         <div className="absolute inset-x-0 z-10 flex items-center gap-3 px-5" style={{ bottom: 22 }}>
-          <span className="h-px flex-1 bg-border" />
+          <span className="h-px flex-1 bg-white/10" />
           <span className={plaque}>
-            <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-space-dim">
               Chapter 1 · Start
             </span>
           </span>
-          <span className="h-px flex-1 bg-border" />
+          <span className="h-px flex-1 bg-white/10" />
         </div>
       </div>
     </div>

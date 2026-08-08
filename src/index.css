@@ -60,21 +60,34 @@ All colors MUST be HSL.
 
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Learning-path board.
-       The climb reads as temperature: the ground you have covered is warm and
-       lit, the ground ahead is cool and grey. Only the level you are on gets
-       the brand orange, so there is exactly one place for the eye to land. */
-    --board-bottom: 33 100% 95%;
-    --board-top: 214 32% 95%;
-    --trail-done: 28 90% 55%;
-    --trail-todo: 220 13% 80%;
-    --rung-gold: 43 96% 56%;
-    --rung-gold-deep: 32 90% 42%;
-    --rung-pass: 142 58% 45%;
-    --rung-pass-deep: 142 68% 28%;
-    --rung-now-deep: 22 92% 38%;
-    --rung-idle: 220 16% 89%;
-    --rung-idle-deep: 220 12% 71%;
+    /* Learning-path board — a night sky the student climbs.
+       Deliberately one world in both themes: the board is a window onto space,
+       not a panel that repaints. It therefore lives only here in :root and is
+       inherited by .dark unchanged.
+
+       The climb still reads as temperature. Where they started is a warm
+       nebula, close and lit; where they are heading is cold violet void. Only
+       the level they are on gets the brand orange, so there is exactly one
+       place for the eye to land. */
+    --board-bottom: 258 44% 13%;
+    --board-top: 252 52% 6%;
+    --nebula-warm: 22 92% 52%;
+    --nebula-violet: 284 72% 54%;
+    --nebula-cyan: 194 85% 52%;
+    --star: 250 40% 92%;
+    --space-ink: 250 30% 96%;
+    --space-ink-dim: 250 16% 66%;
+    --space-glass: 252 38% 16%;
+
+    --trail-done: 28 92% 58%;
+    --trail-todo: 250 20% 38%;
+    --rung-gold: 43 96% 58%;
+    --rung-gold-deep: 32 88% 38%;
+    --rung-pass: 152 62% 45%;
+    --rung-pass-deep: 152 70% 24%;
+    --rung-now-deep: 20 92% 36%;
+    --rung-idle: 252 26% 22%;
+    --rung-idle-deep: 252 32% 12%;
   }
 
   .dark {
@@ -121,18 +134,7 @@ All colors MUST be HSL.
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Learning-path board — same temperature story, dialled for a dark room. */
-    --board-bottom: 24 34% 10%;
-    --board-top: 222 26% 10%;
-    --trail-done: 28 90% 55%;
-    --trail-todo: 220 10% 31%;
-    --rung-gold: 43 88% 52%;
-    --rung-gold-deep: 32 84% 32%;
-    --rung-pass: 142 52% 41%;
-    --rung-pass-deep: 142 60% 21%;
-    --rung-now-deep: 22 88% 33%;
-    --rung-idle: 220 12% 26%;
-    --rung-idle-deep: 220 12% 15%;
+    /* No board tokens here on purpose — space looks the same at any hour. */
   }
 }
 

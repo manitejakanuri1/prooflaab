@@ -14,6 +14,8 @@ import StudentResumeJobMatchPage from "./StudentResumeJobMatchPage";
 import StudentResumeCertsPage from "./StudentResumeCertsPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
 import StudentRoadmapPage from "./StudentRoadmapPage";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -27,7 +29,7 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
       case "feed":
         return <StudentFeedPage />;
       case "dashboard":
-        return <StudentDashboardOverview />;
+        return <StudentDashboardOverview onNavigateTab={onTabChange} />;
       case "resume":
         return <ResumeCheckFlow onNavigateTab={onTabChange} />;
       case "resume-jobmatch":
@@ -64,6 +66,17 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
 
   return (
     <div className={activeTab === "portfolio" ? "w-full" : "max-w-7xl mx-auto"}>
+      {activeTab !== "dashboard" && onTabChange && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onTabChange("dashboard")}
+          className="mb-3 gap-1.5 -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      )}
       {renderContent()}
     </div>
   );

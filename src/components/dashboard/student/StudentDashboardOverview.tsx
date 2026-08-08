@@ -1,4 +1,9 @@
-import { Clock, Award, Shield, Trophy } from "lucide-react";
+import {
+  Clock, Award, Shield, Trophy,
+  FileCheck2, BriefcaseBusiness, Radar, Map, History,
+  ClipboardList, Sparkles, PlusSquare, Building2,
+  Upload, FolderKanban, TrendingUp, Rss, Bell, Settings
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +16,47 @@ import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
-const StudentDashboardOverview = () => {
+interface StudentDashboardOverviewProps {
+  onNavigateTab?: (tab: string) => void;
+}
+
+// Every destination a student can reach, grouped the way the sidebar used to
+// group them. Dashboard is the hub now: click a card, it redirects into that
+// tab — nothing else stacks inline here. See memory: feedback-dashboard-ui-pattern.
+const navGroups: { label: string; items: { id: string; label: string; icon: typeof FileCheck2 }[] }[] = [
+  {
+    label: "Resume",
+    items: [
+      { id: "resume", label: "Resume Check", icon: FileCheck2 },
+      { id: "resume-jobmatch", label: "Match to a Job", icon: BriefcaseBusiness },
+      { id: "resume-certs", label: "Certification Radar", icon: Radar },
+      { id: "resume-roadmap", label: "My Roadmap", icon: Map },
+      { id: "resume-history", label: "Retest History", icon: History },
+    ],
+  },
+  {
+    label: "Tasks & Opportunities",
+    items: [
+      { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList },
+      { id: "tasks-created", label: "My Created Tasks", icon: Sparkles },
+      { id: "create-task", label: "Create a Task", icon: PlusSquare },
+      { id: "tasks-opportunities", label: "Startup Tasks", icon: Building2 },
+    ],
+  },
+  {
+    label: "More",
+    items: [
+      { id: "uploads", label: "My Uploads", icon: Upload },
+      { id: "portfolio", label: "My Portfolio", icon: FolderKanban },
+      { id: "progress", label: "Progress & XP", icon: TrendingUp },
+      { id: "feed", label: "Community Feed", icon: Rss },
+      { id: "notifications", label: "Notifications", icon: Bell },
+      { id: "settings", label: "Settings", icon: Settings },
+    ],
+  },
+];
+
+const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewProps) => {
   const navigate = useNavigate();
   const { profile, rank, loading: profileLoading } = useStudentProfile();
   const { tasks, loading: tasksLoading, startTask } = useAssignedTasks();
@@ -98,6 +143,36 @@ const StudentDashboardOverview = () => {
         </h1>
         <p className="text-gray-600 dark:text-gray-300">Here's your progress overview</p>
       </div>
+
+      {/* Everything else lives here — click a card, it takes you there */}
+      {onNavigateTab && (
+        <div className="space-y-4">
+          {navGroups.map((group) => (
+            <Card key={group.label} className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{group.label}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onNavigateTab(item.id)}
+                      className="gap-1.5"
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

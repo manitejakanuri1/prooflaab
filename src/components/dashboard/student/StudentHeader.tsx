@@ -1,4 +1,4 @@
-import { Menu, Bell, CheckCheck, Trash2, User } from "lucide-react";
+import { Bell, CheckCheck, Trash2, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,23 +10,38 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
 import { getInitials } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentHeaderProps {
   studentName: string;
   profilePhoto?: string | null;
-  onMenuClick: () => void;
-  showMenuButton: boolean;
+  onHomeClick: () => void;
 }
 
-const StudentHeader = ({ 
-  studentName, 
-  profilePhoto, 
-  onMenuClick, 
-  showMenuButton 
+const StudentHeader = ({
+  studentName,
+  profilePhoto,
+  onHomeClick,
 }: StudentHeaderProps) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const navigate = useNavigate();
-  
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleNotificationClick = (notification: any) => {
     if (!notification.is_read) {
@@ -40,27 +55,19 @@ const StudentHeader = ({
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-sm border-b border-border px-3 sm:px-6 py-3 sm:py-4 dark:bg-card/90">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
-        {/* Logo and Menu */}
+        {/* Logo (click = home) */}
         <div className="flex items-center space-x-2 md:space-x-6">
-          {showMenuButton && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMenuClick}
-              className="p-1.5 sm:p-2"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
-          
-          <div className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
+          <button
+            onClick={onHomeClick}
+            className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3 hover:bg-accent/50 transition-colors"
+          >
             <Logo className="h-8 w-8 md:h-12 md:w-12" />
             <span className="hidden sm:inline">ProofLabAI</span>
-          </div>
-          
-          <h1 className="text-xl font-bold hidden sm:block lg:ml-52">Students Dashboard</h1>
+          </button>
+
+          <h1 className="text-xl font-bold hidden sm:block">Students Dashboard</h1>
         </div>
-        
+
         {/* User Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
@@ -179,6 +186,14 @@ const StudentHeader = ({
               {getInitials(studentName)}
             </AvatarFallback>
           </Avatar>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSignOut}
+            className="p-1.5 sm:p-2 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300"
+          >
+            <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+          </Button>
         </div>
       </div>
     </header>

@@ -2,11 +2,9 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import StudentHeader from "@/components/dashboard/student/StudentHeader";
-import StudentSidebar from "@/components/dashboard/student/StudentSidebar";
 import StudentDashboardContent from "@/components/dashboard/student/StudentDashboardContent";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentIntake } from "@/hooks/useStudentIntake";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const getTabFromPath = (pathname: string): string => {
   if (pathname.startsWith("/student/tasks/opportunities")) return "tasks-opportunities";
@@ -20,8 +18,6 @@ const StudentDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isMobile = useIsMobile();
   const { profile, loading, refreshProfile } = useStudentProfile();
   const { loading: intakeLoading, intakeComplete, degraded: intakeDegraded } = useStudentIntake();
 
@@ -51,43 +47,15 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <StudentHeader 
+      <StudentHeader
         studentName={profile?.full_name || "Student"}
         profilePhoto={profile?.profile_photo_url}
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-        showMenuButton={isMobile}
+        onHomeClick={() => setActiveTab("dashboard")}
       />
-      
-      <div className="flex relative">
-        {/* Mobile overlay */}
-        {isMobile && sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        
-        {/* Sidebar */}
-        <div className={`
-          ${isMobile ? 'fixed' : 'sticky top-0'} 
-          ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-          ${isMobile ? 'z-50' : ''}
-          ${isMobile ? 'h-screen' : 'h-screen'}
-          transition-transform duration-300 ease-in-out
-        `}>
-          <StudentSidebar 
-            activeTab={activeTab} 
-            onTabChange={(tab) => {
-              setActiveTab(tab);
-              if (isMobile) setSidebarOpen(false);
-            }}
-          />
-        </div>
-        
-        <main className="flex-1 p-3 md:p-6 w-full min-w-0">
-          <StudentDashboardContent activeTab={activeTab} refreshProfile={refreshProfile} onTabChange={setActiveTab} />
-        </main>
-      </div>
+
+      <main className="p-3 md:p-6 w-full min-w-0">
+        <StudentDashboardContent activeTab={activeTab} refreshProfile={refreshProfile} onTabChange={setActiveTab} />
+      </main>
     </div>
   );
 };

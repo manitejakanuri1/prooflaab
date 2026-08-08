@@ -2,17 +2,14 @@ import StudentDashboardOverview from "./StudentDashboardOverview";
 import StudentStartupOpportunitiesPage from "./StudentStartupOpportunitiesPage";
 import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
 import StudentCreatedTasksPage from "./StudentCreatedTasksPage";
-import StudentApplicationsPage from "./StudentApplicationsPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 import StudentPortfolioPage from "./StudentPortfolioPage";
 import StudentProgressPage from "./StudentProgressPage";
-import StudentLearningResourcesPage from "./StudentLearningResourcesPage";
-import StudentJobOpportunitiesPage from "./StudentJobOpportunitiesPage";
 import StudentNotificationsPage from "./StudentNotificationsPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 import StudentCreateTaskPage from "./StudentCreateTaskPage";
 import StudentFeedPage from "./StudentFeedPage";
-import StudentResumeCheckPage from "./StudentResumeCheckPage";
+import ResumeCheckFlow from "./ResumeCheckFlow";
 import StudentResumeJobMatchPage from "./StudentResumeJobMatchPage";
 import StudentResumeCertsPage from "./StudentResumeCertsPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
@@ -30,9 +27,9 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
       case "feed":
         return <StudentFeedPage />;
       case "dashboard":
-        return <StudentDashboardOverview onNavigateTab={onTabChange} />;
+        return <StudentDashboardOverview />;
       case "resume":
-        return <StudentResumeCheckPage onNavigateTab={onTabChange} />;
+        return <ResumeCheckFlow onNavigateTab={onTabChange} />;
       case "resume-jobmatch":
         return <StudentResumeJobMatchPage />;
       case "resume-certs":
@@ -50,18 +47,12 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
         return <StudentCreatedTasksPage />;
       case "create-task":
         return <StudentCreateTaskPage />;
-      case "applications":
-        return <StudentApplicationsPage />;
       case "uploads":
         return <StudentUploadsPage />;
       case "portfolio":
         return <StudentPortfolioPage />;
       case "progress":
         return <StudentProgressPage />;
-      case "learning":
-        return <StudentLearningResourcesPage />;
-      case "jobs":
-        return <StudentJobOpportunitiesPage />;
       case "notifications":
         return <StudentNotificationsPage />;
       case "settings":

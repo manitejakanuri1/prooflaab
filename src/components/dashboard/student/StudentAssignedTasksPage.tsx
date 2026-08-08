@@ -51,14 +51,18 @@ const StudentAssignedTasksPage = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Due Date (ASC)");
 
-  // Filter only assigned tasks (from admin/college, not student-created or startup applications)
-  const assignedTasks = useMemo(() => {
-    return allTasks.filter(task => {
-      const source = task.source?.toLowerCase() || '';
-      // Include tasks from college, admin, or direct assignments (not student-created or startup)
-      return source === 'college' || source === 'admin' || source === 'assigned';
-    });
-  }, [allTasks]);
+  // Every task the student has any relationship with: direct/college/admin
+  // assignments plus startup task applications (pending, accepted, or rejected).
+  const assignedTasks = allTasks;
+
+  // Applications sit in a separate status track (Pending Review/Rejected) until
+  // accepted; everything else uses the assignment status.
+  const getEffectiveStatus = (task: (typeof allTasks)[number]) => {
+    if (task.application_status === 'Pending Review' || task.application_status === 'Rejected') {
+      return task.application_status;
+    }
+    return task.status;
+  };
 
   // Fetch conceptual tests for all student proofs
   const { data: conceptualTests = {}, refetch: refetchConceptualTests } = useConceptualTests();
@@ -141,7 +145,7 @@ const StudentAssignedTasksPage = () => {
 
     // Apply status filter
     if (statusFilter !== "All") {
-      filtered = filtered.filter(task => task.status === statusFilter);
+      filtered = filtered.filter(task => getEffectiveStatus(task) === statusFilter);
     }
 
     // Apply sorting
@@ -178,7 +182,7 @@ const StudentAssignedTasksPage = () => {
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold mb-2">Assigned Tasks</h2>
-          <p className="text-muted-foreground">Tasks assigned to you by colleges and admins</p>
+          <p className="text-muted-foreground">Tasks assigned to you and tasks you've applied for</p>
         </div>
         <Card>
           <CardContent className="p-6">
@@ -197,6 +201,7 @@ const StudentAssignedTasksPage = () => {
     const normalizedSource = source?.toLowerCase() || '';
     if (normalizedSource === 'college') return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400';
     if (normalizedSource === 'admin') return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400';
+    if (normalizedSource === 'startup') return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400';
     return 'bg-muted text-muted-foreground border-border';
   };
 
@@ -210,6 +215,10 @@ const StudentAssignedTasksPage = () => {
         return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400';
       case 'Under Review':
         return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'Pending Review':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'Rejected':
+        return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400';
       case 'Overdue':
         return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400';
       default:
@@ -249,14 +258,14 @@ const StudentAssignedTasksPage = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2">Assigned Tasks</h2>
-        <p className="text-muted-foreground">Tasks assigned to you by colleges and admins</p>
+        <p className="text-muted-foreground">Tasks assigned to you and tasks you've applied for</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
-            Your Assignments
+            Your Tasks
             <Badge variant="outline" className="ml-auto">
               {filteredAndSortedTasks.length} tasks
             </Badge>
@@ -282,9 +291,12 @@ const StudentAssignedTasksPage = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-background border border-border z-50">
                   <SelectItem value="All">All Status</SelectItem>
+                  <SelectItem value="Pending Review">Pending Review</SelectItem>
+                  <SelectItem value="Applied">Applied</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
                   <SelectItem value="Under Review">Under Review</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -309,8 +321,8 @@ const StudentAssignedTasksPage = () => {
                 {assignedTasks.length === 0 ? "No assigned tasks yet" : "No tasks match your filters"}
               </h3>
               <p className="text-muted-foreground mb-6">
-                {assignedTasks.length === 0 
-                  ? "Tasks assigned by your college or admin will appear here."
+                {assignedTasks.length === 0
+                  ? "Tasks assigned to you and tasks you've applied for will appear here."
                   : "Try adjusting your search or filter criteria."
                 }
               </p>
@@ -334,11 +346,11 @@ const StudentAssignedTasksPage = () => {
                             >
                               {task.source || 'Unknown'}
                             </Badge>
-                            <Badge 
-                              variant="outline" 
-                              className={getStatusColor(task.status)}
+                            <Badge
+                              variant="outline"
+                              className={getStatusColor(getEffectiveStatus(task))}
                             >
-                              {task.status}
+                              {getEffectiveStatus(task)}
                             </Badge>
                           </div>
                         </div>
@@ -347,6 +359,23 @@ const StudentAssignedTasksPage = () => {
                           <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                             {task.description}
                           </p>
+                        )}
+
+                        {task.application_id && (task.application_note || task.rejection_reason) && (
+                          <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                            {task.application_note && (
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                <span className="font-medium text-foreground">Your application: </span>
+                                {task.application_note}
+                              </p>
+                            )}
+                            {task.application_status === 'Rejected' && task.rejection_reason && (
+                              <p className="text-xs sm:text-sm text-red-700 dark:text-red-400">
+                                <span className="font-medium">Rejection reason: </span>
+                                {task.rejection_reason}
+                              </p>
+                            )}
+                          </div>
                         )}
 
                         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">

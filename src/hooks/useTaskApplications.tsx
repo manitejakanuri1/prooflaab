@@ -36,45 +36,6 @@ interface ApplicationData {
   portfolioLink?: string;
 }
 
-// Hook for students to view their applications
-export const useStudentApplications = () => {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ['student-applications', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-
-      const { data: profile } = await supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return [];
-
-      const { data, error } = await supabase
-        .from('task_applications')
-        .select(`
-          *,
-          tasks:task_id (
-            title,
-            description,
-            xp_reward,
-            category,
-            created_by_startup_id
-          )
-        `)
-        .eq('student_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user,
-  });
-};
-
 // Hook for startups to view applications for their tasks
 export const useStartupApplications = () => {
   const { user } = useAuth();
@@ -155,7 +116,7 @@ export const useApplyToTask = () => {
     },
     onSuccess: () => {
       toast.success('Application submitted successfully!');
-      queryClient.invalidateQueries({ queryKey: ['student-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['all-student-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['available-tasks'] });
     },
     onError: (error: any) => {

@@ -5,7 +5,6 @@ import {
   ListTodo,
   FileText,
   Upload,
-  Briefcase,
   Bell,
   Settings,
   LogOut,
@@ -19,7 +18,10 @@ import {
   BriefcaseBusiness,
   Radar,
   History,
-  Map
+  Map,
+  Rss,
+  FolderKanban,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,10 +42,9 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
-// 7 top-level items; everything else nests under a group or is linked
-// from the Dashboard overview (Feed, Progress, Portfolio, Learning)
 const menuItems: MenuItem[] = [
   { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
+  { id: "feed", label: "Community Feed", icon: Rss },
   {
     id: "resume-group",
     label: "Resume",
@@ -64,19 +65,12 @@ const menuItems: MenuItem[] = [
       { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList, route: "/student/tasks/assigned" },
       { id: "tasks-created", label: "My Created Tasks", icon: Sparkles, route: "/student/tasks/created" },
       { id: "create-task", label: "Create a Task", icon: PlusSquare },
-    ]
-  },
-  {
-    id: "opportunities",
-    label: "Opportunities",
-    icon: Briefcase,
-    children: [
       { id: "tasks-opportunities", label: "Startup Tasks", icon: Building2, route: "/student/tasks/opportunities" },
-      { id: "jobs", label: "Job Openings", icon: Briefcase },
     ]
   },
-  { id: "applications", label: "Applications", icon: FileText },
   { id: "uploads", label: "My Uploads", icon: Upload },
+  { id: "portfolio", label: "My Portfolio", icon: FolderKanban },
+  { id: "progress", label: "Progress & XP", icon: TrendingUp },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "settings", label: "Settings", icon: Settings },
 ];

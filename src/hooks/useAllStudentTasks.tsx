@@ -14,6 +14,9 @@ interface StudentTask {
   created_by_startup_id: string | null;
   application_status?: string;
   application_id?: string;
+  application_note?: string | null;
+  portfolio_link?: string | null;
+  rejection_reason?: string | null;
   proof_submitted?: boolean;
   can_start?: boolean;
 }
@@ -90,6 +93,9 @@ export const useAllStudentTasks = () => {
           id,
           status,
           created_at,
+          application_note,
+          portfolio_link,
+          rejection_reason,
           tasks (
             id,
             title,
@@ -226,6 +232,9 @@ export const useAllStudentTasks = () => {
             created_by_startup_id: app.tasks.created_by_startup_id,
             application_status: app.status,
             application_id: app.id,
+            application_note: app.application_note,
+            portfolio_link: app.portfolio_link,
+            rejection_reason: app.rejection_reason,
             proof_submitted: false,
             can_start: app.status === 'Accepted', // Can only start if accepted
           });

@@ -13,6 +13,7 @@ import {
   X
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { getInitials } from "@/lib/utils";
 
 interface StudentInfo {
   id: string;
@@ -51,14 +52,6 @@ export const ContactStudentModal = ({
 }: ContactStudentModalProps) => {
   if (!student) return null;
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const getTrustScoreColor = (score: number) => {
     if (score >= 80) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";

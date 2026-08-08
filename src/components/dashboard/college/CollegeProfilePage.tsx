@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Save, Building } from "lucide-react";
 import ProfilePhotoModalUniversal from "../ProfilePhotoModalUniversal";
+import { getInitials } from "@/lib/utils";
 
 const CollegeProfilePage = () => {
   const { toast } = useToast();
@@ -79,14 +80,6 @@ const CollegeProfilePage = () => {
     loadCollegeProfile();
   }, [toast]);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const handleProfileUpdate = async () => {
     setSaving(true);

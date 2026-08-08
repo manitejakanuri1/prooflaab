@@ -9,6 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
+import { getInitials } from "@/lib/utils";
 
 interface StudentHeaderProps {
   studentName: string;
@@ -26,14 +27,6 @@ const StudentHeader = ({
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const navigate = useNavigate();
   
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const handleNotificationClick = (notification: any) => {
     if (!notification.is_read) {

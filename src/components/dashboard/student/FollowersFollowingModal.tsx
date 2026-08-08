@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { FollowButton } from "./FollowButton";
 import { Users } from "lucide-react";
+import { getInitials } from "@/lib/utils";
 
 interface FollowUser {
   id: string;
@@ -99,14 +100,6 @@ export const FollowersFollowingModal = ({
     fetchFollowData();
   }, [open, userId]);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const renderUserList = (users: FollowUser[]) => {
     if (loading) {

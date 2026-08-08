@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Lock, Bell, Eye, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ProfilePhotoModal from "../ProfilePhotoModal";
+import { getInitials } from "@/lib/utils";
 
 interface StudentSettingsPageProps {
   refreshProfile?: () => void;
@@ -151,14 +152,6 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
     );
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const handleProfileUpdate = async () => {
     setSaving(true);

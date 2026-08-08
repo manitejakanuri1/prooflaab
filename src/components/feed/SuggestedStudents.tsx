@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Award, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getInitials } from "@/lib/utils";
 
 interface SuggestedStudent {
   student_id: string;
@@ -103,14 +104,6 @@ const SuggestedStudents = () => {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   if (isLoading) {
     return (

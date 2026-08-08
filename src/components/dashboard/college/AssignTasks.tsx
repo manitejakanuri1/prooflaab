@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Sliders, Upload, X, Link, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { filterStudents as applyStudentFilters } from "@/lib/studentFilters";
 
 interface Student {
   id: string;
@@ -261,31 +262,17 @@ const AssignTasks = () => {
   };
 
   const filterStudents = () => {
-    let filtered = [...students];
-
-    if (branchFilter && branchFilter !== "all-branches") {
-      filtered = filtered.filter(s => s.branch === branchFilter);
-    }
-    if (yearFilter && yearFilter !== "all-years") {
-      filtered = filtered.filter(s => s.year_of_study === yearFilter);
-    }
-    if (trustScoreMin) {
-      filtered = filtered.filter(s => s.trust_score >= parseInt(trustScoreMin));
-    }
-    if (trustScoreMax) {
-      filtered = filtered.filter(s => s.trust_score <= parseInt(trustScoreMax));
-    }
-    if (skillsFilter.length > 0) {
-      filtered = filtered.filter(s => 
-        s.preferred_skills?.some(skill => 
-          skillsFilter.some(filter => skill.toLowerCase().includes(filter.toLowerCase()))
-        )
-      );
-    }
+    const filtered = applyStudentFilters(students, {
+      branch: branchFilter,
+      year: yearFilter,
+      trustScoreMin,
+      trustScoreMax,
+      skills: skillsFilter,
+    });
 
     setFilteredStudents(filtered);
     // Clear invalid selections
-    setSelectedStudents(prev => 
+    setSelectedStudents(prev =>
       prev.filter(id => filtered.some(s => s.id === id))
     );
   };

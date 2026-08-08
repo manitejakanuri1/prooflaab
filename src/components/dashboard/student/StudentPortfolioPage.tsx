@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import ProofFileButton from "@/components/proof/ProofFileButton";
 import { hasOpenableProof } from "@/lib/proofFile";
+import { getInitials } from "@/lib/utils";
 
 const StudentPortfolioPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
@@ -101,14 +102,6 @@ const StudentPortfolioPage = () => {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const handleShare = () => {
     if (!portfolio?.slug) {

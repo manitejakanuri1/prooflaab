@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Check } from "lucide-react";
+import { getInitials } from "@/lib/utils";
 
 interface SuggestedStudent {
   student_id: string;
@@ -115,14 +116,6 @@ const OnboardingFollowSuggestions = ({ open, onComplete }: OnboardingFollowSugge
     });
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>

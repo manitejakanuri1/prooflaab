@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getInitials } from "@/lib/utils";
 
 interface SuggestedStudent {
   student_id: string;
@@ -114,14 +115,6 @@ const PublicSuggestedStudents = ({
     navigate(`/portfolio/${slug}`);
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   if (isLoading) {
     return (

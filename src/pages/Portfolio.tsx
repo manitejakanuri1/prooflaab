@@ -16,14 +16,15 @@ import PublicSuggestedStudents from "@/components/feed/PublicSuggestedStudents";
 import { useFollowCounts } from "@/hooks/useFollowCounts";
 import { supabase } from "@/integrations/supabase/client";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
-import { 
-  Mail, 
-  Trophy, 
+import {
+  Mail,
+  Trophy,
   XCircle,
   Star,
   Briefcase,
   Users
 } from "lucide-react";
+import { getInitials } from "@/lib/utils";
 
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -223,14 +224,6 @@ const Portfolio = () => {
     return 'Building Trust';
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   // Generate emoji code from string (for project cards)
   const generateEmojiCode = (str: string) => {

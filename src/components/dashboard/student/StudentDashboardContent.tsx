@@ -14,6 +14,8 @@ import StudentResumeJobMatchPage from "./StudentResumeJobMatchPage";
 import StudentResumeCertsPage from "./StudentResumeCertsPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
 import StudentRoadmapPage from "./StudentRoadmapPage";
+import StudentTasksHub from "./StudentTasksHub";
+import StudentUpdatesHub from "./StudentUpdatesHub";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
@@ -40,6 +42,10 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
         return <StudentResumeHistoryPage />;
       case "resume-roadmap":
         return <StudentRoadmapPage />;
+      case "tasks-hub":
+        return <StudentTasksHub />;
+      case "updates-hub":
+        return <StudentUpdatesHub />;
       // New task submenu routes
       case "tasks-opportunities":
         return <StudentStartupOpportunitiesPage />;

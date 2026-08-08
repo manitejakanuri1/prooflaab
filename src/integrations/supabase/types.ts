@@ -178,6 +178,53 @@ export type Database = {
         }
         Relationships: []
       }
+      coding_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_active_date: string | null
+          last_synced_at: string | null
+          longest_streak: number
+          platform: string
+          student_id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          last_synced_at?: string | null
+          longest_streak?: number
+          platform: string
+          student_id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          last_synced_at?: string | null
+          longest_streak?: number
+          platform?: string
+          student_id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coding_streaks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       college_profiles: {
         Row: {
           branches_offered: string[] | null

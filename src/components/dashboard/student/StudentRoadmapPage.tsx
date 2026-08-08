@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, Flag, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseStages, type RoadmapStage } from "./RoadmapStages";
 import LevelMap from "./LevelMap";
+import ResumeCheckFlow from "./ResumeCheckFlow";
+import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
 
 interface StageTask {
   roadmap_stage_index: number;
@@ -82,40 +85,56 @@ const StudentRoadmapPage = () => {
   // "what did I just get wrong", which only the assessment can tell them. Losing
   // either one would be a step backwards.
   return (
-    <div className="space-y-6">
-      <LevelMap />
+    <Tabs defaultValue="roadmap" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
+        <TabsTrigger value="resume-check">Resume Check</TabsTrigger>
+        <TabsTrigger value="history">Retest History</TabsTrigger>
+      </TabsList>
 
-      {loading ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="animate-pulse h-24 bg-muted rounded" />
-          </CardContent>
-        </Card>
-      ) : !hasScorecard ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Map className="h-4 w-4" />
-              From your assessment
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Take a Resume Check and the specific things you got wrong show up here, on top of the
-              path above.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <RoadmapFromAssessment
-          stages={stages}
-          hasTaskStages={!!hasTaskStages}
-          doneCount={doneCount}
-          taskStatusByStage={taskStatusByStage}
-          onGoToTasks={() => navigate("/student/tasks/assigned")}
-        />
-      )}
-    </div>
+      <TabsContent value="roadmap" className="space-y-6">
+        <LevelMap />
+
+        {loading ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="animate-pulse h-24 bg-muted rounded" />
+            </CardContent>
+          </Card>
+        ) : !hasScorecard ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Map className="h-4 w-4" />
+                From your assessment
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Take a Resume Check and the specific things you got wrong show up here, on top of the
+                path above.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <RoadmapFromAssessment
+            stages={stages}
+            hasTaskStages={!!hasTaskStages}
+            doneCount={doneCount}
+            taskStatusByStage={taskStatusByStage}
+            onGoToTasks={() => navigate("/student/tasks/assigned")}
+          />
+        )}
+      </TabsContent>
+
+      <TabsContent value="resume-check">
+        <ResumeCheckFlow />
+      </TabsContent>
+
+      <TabsContent value="history">
+        <StudentResumeHistoryPage />
+      </TabsContent>
+    </Tabs>
   );
 };
 

@@ -1,9 +1,4 @@
-import {
-  Clock, Award, Shield, Trophy,
-  FileCheck2, BriefcaseBusiness, Radar, Map, History,
-  ClipboardList, Sparkles, PlusSquare, Building2,
-  Upload, FolderKanban, TrendingUp, Rss, Bell, Settings
-} from "lucide-react";
+import { Clock, Award, Shield, Trophy, Map, ListTodo, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,40 +15,16 @@ interface StudentDashboardOverviewProps {
   onNavigateTab?: (tab: string) => void;
 }
 
-// Every destination a student can reach, grouped the way the sidebar used to
-// group them. Dashboard is the hub now: click a card, it redirects into that
-// tab — nothing else stacks inline here. See memory: feedback-dashboard-ui-pattern.
-const navGroups: { label: string; items: { id: string; label: string; icon: typeof FileCheck2 }[] }[] = [
-  {
-    label: "Resume",
-    items: [
-      { id: "resume", label: "Resume Check", icon: FileCheck2 },
-      { id: "resume-jobmatch", label: "Match to a Job", icon: BriefcaseBusiness },
-      { id: "resume-certs", label: "Certification Radar", icon: Radar },
-      { id: "resume-roadmap", label: "My Roadmap", icon: Map },
-      { id: "resume-history", label: "Retest History", icon: History },
-    ],
-  },
-  {
-    label: "Tasks & Opportunities",
-    items: [
-      { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList },
-      { id: "tasks-created", label: "My Created Tasks", icon: Sparkles },
-      { id: "create-task", label: "Create a Task", icon: PlusSquare },
-      { id: "tasks-opportunities", label: "Startup Tasks", icon: Building2 },
-    ],
-  },
-  {
-    label: "More",
-    items: [
-      { id: "uploads", label: "My Uploads", icon: Upload },
-      { id: "portfolio", label: "My Portfolio", icon: FolderKanban },
-      { id: "progress", label: "Progress & XP", icon: TrendingUp },
-      { id: "feed", label: "Community Feed", icon: Rss },
-      { id: "notifications", label: "Notifications", icon: Bell },
-      { id: "settings", label: "Settings", icon: Settings },
-    ],
-  },
+// Everything a student needs lives behind exactly 3 doors. Resume Check,
+// Certification Radar, Match a Job, and Retest History live inside Resume
+// Roadmap; assigned/created/outside tasks live inside Tasks; notifications,
+// cert radar, job match, and coding streaks live inside Updates & Reminders.
+// My Uploads/Portfolio/Feed/Settings still work, just not linked from here
+// anymore. See memory: feedback-dashboard-ui-pattern.
+const navCards: { id: string; label: string; description: string; icon: typeof Map }[] = [
+  { id: "resume-roadmap", label: "Resume Roadmap", description: "Your path, resume check, retest history", icon: Map },
+  { id: "tasks-hub", label: "Tasks", description: "Assigned, outside tasks, create your own", icon: ListTodo },
+  { id: "updates-hub", label: "Updates & Reminders", description: "Notifications, certs, job match, coding streaks", icon: Bell },
 ];
 
 const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewProps) => {
@@ -144,33 +115,32 @@ const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewPro
         <p className="text-gray-600 dark:text-gray-300">Here's your progress overview</p>
       </div>
 
-      {/* Everything else lives here — click a card, it takes you there */}
+      {/* The 3 doors — click one, it redirects there */}
       {onNavigateTab && (
-        <div className="space-y-4">
-          {navGroups.map((group) => (
-            <Card key={group.label} className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{group.label}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Button
-                      key={item.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onNavigateTab(item.id)}
-                      className="gap-1.5"
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {navCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card
+                key={card.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onNavigateTab(card.id)}
+                onKeyDown={(e) => { if (e.key === "Enter") onNavigateTab(card.id); }}
+                className="bg-card border-border cursor-pointer transition-all hover:shadow-md hover:border-primary/40"
+              >
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold text-foreground">{card.label}</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">{card.description}</p>
+                  </div>
+                </CardHeader>
+              </Card>
+            );
+          })}
         </div>
       )}
 

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activity_logs: {
@@ -63,42 +38,6 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      admin_notifications: {
-        Row: {
-          admin_user_id: string
-          created_at: string | null
-          id: string
-          is_read: boolean | null
-          link: string | null
-          message: string
-          metadata: Json | null
-          title: string
-          type: string
-        }
-        Insert: {
-          admin_user_id: string
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          link?: string | null
-          message: string
-          metadata?: Json | null
-          title: string
-          type: string
-        }
-        Update: {
-          admin_user_id?: string
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          link?: string | null
-          message?: string
-          metadata?: Json | null
-          title?: string
-          type?: string
         }
         Relationships: []
       }
@@ -239,48 +178,6 @@ export type Database = {
         }
         Relationships: []
       }
-      auth_users_backup_20260804: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          raw_user_meta_data: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          raw_user_meta_data?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          raw_user_meta_data?: Json | null
-        }
-        Relationships: []
-      }
-      auth_users_backup_20260805: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          raw_user_meta_data: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          raw_user_meta_data?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          raw_user_meta_data?: Json | null
-        }
-        Relationships: []
-      }
       college_profiles: {
         Row: {
           branches_offered: string[] | null
@@ -393,27 +290,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      follows: {
-        Row: {
-          created_at: string | null
-          follower_id: string
-          following_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string | null
-          follower_id: string
-          following_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string | null
-          follower_id?: string
-          following_id?: string
-          id?: string
-        }
-        Relationships: []
       }
       github_verifications: {
         Row: {
@@ -797,44 +673,59 @@ export type Database = {
       }
       notifications: {
         Row: {
-          created_at: string | null
+          actor_id: string | null
+          audience: string
+          created_at: string
           id: string
-          is_read: boolean | null
+          is_read: boolean
           link: string | null
           message: string
+          metadata: Json | null
+          post_id: string | null
           read_at: string | null
-          student_id: string
+          source: string
           title: string
-          type: string | null
+          type: string
+          user_id: string
         }
         Insert: {
-          created_at?: string | null
+          actor_id?: string | null
+          audience?: string
+          created_at?: string
           id?: string
-          is_read?: boolean | null
+          is_read?: boolean
           link?: string | null
           message: string
+          metadata?: Json | null
+          post_id?: string | null
           read_at?: string | null
-          student_id: string
-          title: string
-          type?: string | null
+          source?: string
+          title?: string
+          type?: string
+          user_id: string
         }
         Update: {
-          created_at?: string | null
+          actor_id?: string | null
+          audience?: string
+          created_at?: string
           id?: string
-          is_read?: boolean | null
+          is_read?: boolean
           link?: string | null
           message?: string
+          metadata?: Json | null
+          post_id?: string | null
           read_at?: string | null
-          student_id?: string
+          source?: string
           title?: string
-          type?: string | null
+          type?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "notifications_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "notifications_unified_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: "student_profiles"
+            referencedRelation: "proof_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -1619,138 +1510,6 @@ export type Database = {
           },
         ]
       }
-      resume_claims_backup_20260804: {
-        Row: {
-          ai_improved_resume: string | null
-          ats_match_notes: string | null
-          ats_match_score: number | null
-          certifications: string[] | null
-          confirmed_at: string | null
-          created_at: string | null
-          feedback_acknowledged: boolean | null
-          id: string | null
-          projects: Json | null
-          raw_extraction: Json | null
-          resume_quality_notes: string | null
-          resume_quality_score: number | null
-          skill_relevance_notes: string | null
-          skills: string[] | null
-          status: string | null
-          storage_path: string | null
-          student_id: string | null
-          target_role: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          ai_improved_resume?: string | null
-          ats_match_notes?: string | null
-          ats_match_score?: number | null
-          certifications?: string[] | null
-          confirmed_at?: string | null
-          created_at?: string | null
-          feedback_acknowledged?: boolean | null
-          id?: string | null
-          projects?: Json | null
-          raw_extraction?: Json | null
-          resume_quality_notes?: string | null
-          resume_quality_score?: number | null
-          skill_relevance_notes?: string | null
-          skills?: string[] | null
-          status?: string | null
-          storage_path?: string | null
-          student_id?: string | null
-          target_role?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          ai_improved_resume?: string | null
-          ats_match_notes?: string | null
-          ats_match_score?: number | null
-          certifications?: string[] | null
-          confirmed_at?: string | null
-          created_at?: string | null
-          feedback_acknowledged?: boolean | null
-          id?: string | null
-          projects?: Json | null
-          raw_extraction?: Json | null
-          resume_quality_notes?: string | null
-          resume_quality_score?: number | null
-          skill_relevance_notes?: string | null
-          skills?: string[] | null
-          status?: string | null
-          storage_path?: string | null
-          student_id?: string | null
-          target_role?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      resume_claims_backup_20260805: {
-        Row: {
-          ai_improved_resume: string | null
-          ats_match_notes: string | null
-          ats_match_score: number | null
-          certifications: string[] | null
-          confirmed_at: string | null
-          created_at: string | null
-          feedback_acknowledged: boolean | null
-          id: string | null
-          projects: Json | null
-          raw_extraction: Json | null
-          resume_quality_notes: string | null
-          resume_quality_score: number | null
-          skill_relevance_notes: string | null
-          skills: string[] | null
-          status: string | null
-          storage_path: string | null
-          student_id: string | null
-          target_role: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          ai_improved_resume?: string | null
-          ats_match_notes?: string | null
-          ats_match_score?: number | null
-          certifications?: string[] | null
-          confirmed_at?: string | null
-          created_at?: string | null
-          feedback_acknowledged?: boolean | null
-          id?: string | null
-          projects?: Json | null
-          raw_extraction?: Json | null
-          resume_quality_notes?: string | null
-          resume_quality_score?: number | null
-          skill_relevance_notes?: string | null
-          skills?: string[] | null
-          status?: string | null
-          storage_path?: string | null
-          student_id?: string | null
-          target_role?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          ai_improved_resume?: string | null
-          ats_match_notes?: string | null
-          ats_match_score?: number | null
-          certifications?: string[] | null
-          confirmed_at?: string | null
-          created_at?: string | null
-          feedback_acknowledged?: boolean | null
-          id?: string | null
-          projects?: Json | null
-          raw_extraction?: Json | null
-          resume_quality_notes?: string | null
-          resume_quality_score?: number | null
-          skill_relevance_notes?: string | null
-          skills?: string[] | null
-          status?: string | null
-          storage_path?: string | null
-          student_id?: string | null
-          target_role?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       resume_jd_matches: {
         Row: {
           created_at: string
@@ -1887,126 +1646,6 @@ export type Database = {
           },
         ]
       }
-      resume_scorecards_backup_20260804: {
-        Row: {
-          assessment_id: string | null
-          ats_match_score: number | null
-          coding_score: number | null
-          created_at: string | null
-          id: string | null
-          interview_readiness_score: number | null
-          is_retest: boolean | null
-          project_proof_score: number | null
-          reasoning_score: number | null
-          resume_claims_id: string | null
-          resume_quality_score: number | null
-          roadmap: string | null
-          skill_gap: Json | null
-          skill_proof_score: number | null
-          student_id: string | null
-          voice_authenticity_score: number | null
-          voice_notes: string | null
-        }
-        Insert: {
-          assessment_id?: string | null
-          ats_match_score?: number | null
-          coding_score?: number | null
-          created_at?: string | null
-          id?: string | null
-          interview_readiness_score?: number | null
-          is_retest?: boolean | null
-          project_proof_score?: number | null
-          reasoning_score?: number | null
-          resume_claims_id?: string | null
-          resume_quality_score?: number | null
-          roadmap?: string | null
-          skill_gap?: Json | null
-          skill_proof_score?: number | null
-          student_id?: string | null
-          voice_authenticity_score?: number | null
-          voice_notes?: string | null
-        }
-        Update: {
-          assessment_id?: string | null
-          ats_match_score?: number | null
-          coding_score?: number | null
-          created_at?: string | null
-          id?: string | null
-          interview_readiness_score?: number | null
-          is_retest?: boolean | null
-          project_proof_score?: number | null
-          reasoning_score?: number | null
-          resume_claims_id?: string | null
-          resume_quality_score?: number | null
-          roadmap?: string | null
-          skill_gap?: Json | null
-          skill_proof_score?: number | null
-          student_id?: string | null
-          voice_authenticity_score?: number | null
-          voice_notes?: string | null
-        }
-        Relationships: []
-      }
-      resume_scorecards_backup_20260805: {
-        Row: {
-          assessment_id: string | null
-          ats_match_score: number | null
-          coding_score: number | null
-          created_at: string | null
-          id: string | null
-          interview_readiness_score: number | null
-          is_retest: boolean | null
-          project_proof_score: number | null
-          reasoning_score: number | null
-          resume_claims_id: string | null
-          resume_quality_score: number | null
-          roadmap: string | null
-          skill_gap: Json | null
-          skill_proof_score: number | null
-          student_id: string | null
-          voice_authenticity_score: number | null
-          voice_notes: string | null
-        }
-        Insert: {
-          assessment_id?: string | null
-          ats_match_score?: number | null
-          coding_score?: number | null
-          created_at?: string | null
-          id?: string | null
-          interview_readiness_score?: number | null
-          is_retest?: boolean | null
-          project_proof_score?: number | null
-          reasoning_score?: number | null
-          resume_claims_id?: string | null
-          resume_quality_score?: number | null
-          roadmap?: string | null
-          skill_gap?: Json | null
-          skill_proof_score?: number | null
-          student_id?: string | null
-          voice_authenticity_score?: number | null
-          voice_notes?: string | null
-        }
-        Update: {
-          assessment_id?: string | null
-          ats_match_score?: number | null
-          coding_score?: number | null
-          created_at?: string | null
-          id?: string | null
-          interview_readiness_score?: number | null
-          is_retest?: boolean | null
-          project_proof_score?: number | null
-          reasoning_score?: number | null
-          resume_claims_id?: string | null
-          resume_quality_score?: number | null
-          roadmap?: string | null
-          skill_gap?: Json | null
-          skill_proof_score?: number | null
-          student_id?: string | null
-          voice_authenticity_score?: number | null
-          voice_notes?: string | null
-        }
-        Relationships: []
-      }
       security_events: {
         Row: {
           created_at: string
@@ -2043,69 +1682,6 @@ export type Database = {
           source?: string
           user_agent?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      social_notifications: {
-        Row: {
-          created_at: string
-          id: string
-          message: string
-          post_id: string | null
-          read: boolean
-          triggered_by: string | null
-          type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message: string
-          post_id?: string | null
-          read?: boolean
-          triggered_by?: string | null
-          type: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message?: string
-          post_id?: string | null
-          read?: boolean
-          triggered_by?: string | null
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      startup_notifications: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_read: boolean | null
-          message: string
-          startup_user_id: string
-          title: string
-          type: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          message: string
-          startup_user_id: string
-          title: string
-          type?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          message?: string
-          startup_user_id?: string
-          title?: string
-          type?: string | null
         }
         Relationships: []
       }
@@ -2500,186 +2076,6 @@ export type Database = {
           },
         ]
       }
-      student_profiles_backup_20260804: {
-        Row: {
-          ai_personalization_enabled: boolean | null
-          batch: string | null
-          branch: string | null
-          career_goals: string | null
-          college_id: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string | null
-          github_url: string | null
-          id: string | null
-          key_interests: string[] | null
-          last_active: string | null
-          linkedin_url: string | null
-          preferred_skills: string[] | null
-          profile_completed: boolean | null
-          profile_photo_url: string | null
-          profile_visibility: string | null
-          resume_url: string | null
-          slug: string | null
-          source: string | null
-          status: string | null
-          temporary_user_id: string | null
-          total_xp: number | null
-          trust_score: number | null
-          updated_at: string | null
-          user_id: string | null
-          year_of_study: string | null
-        }
-        Insert: {
-          ai_personalization_enabled?: boolean | null
-          batch?: string | null
-          branch?: string | null
-          career_goals?: string | null
-          college_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          github_url?: string | null
-          id?: string | null
-          key_interests?: string[] | null
-          last_active?: string | null
-          linkedin_url?: string | null
-          preferred_skills?: string[] | null
-          profile_completed?: boolean | null
-          profile_photo_url?: string | null
-          profile_visibility?: string | null
-          resume_url?: string | null
-          slug?: string | null
-          source?: string | null
-          status?: string | null
-          temporary_user_id?: string | null
-          total_xp?: number | null
-          trust_score?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-          year_of_study?: string | null
-        }
-        Update: {
-          ai_personalization_enabled?: boolean | null
-          batch?: string | null
-          branch?: string | null
-          career_goals?: string | null
-          college_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          github_url?: string | null
-          id?: string | null
-          key_interests?: string[] | null
-          last_active?: string | null
-          linkedin_url?: string | null
-          preferred_skills?: string[] | null
-          profile_completed?: boolean | null
-          profile_photo_url?: string | null
-          profile_visibility?: string | null
-          resume_url?: string | null
-          slug?: string | null
-          source?: string | null
-          status?: string | null
-          temporary_user_id?: string | null
-          total_xp?: number | null
-          trust_score?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-          year_of_study?: string | null
-        }
-        Relationships: []
-      }
-      student_profiles_backup_20260805: {
-        Row: {
-          ai_personalization_enabled: boolean | null
-          batch: string | null
-          branch: string | null
-          career_goals: string | null
-          college_id: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string | null
-          github_url: string | null
-          id: string | null
-          key_interests: string[] | null
-          last_active: string | null
-          linkedin_url: string | null
-          preferred_skills: string[] | null
-          profile_completed: boolean | null
-          profile_photo_url: string | null
-          profile_visibility: string | null
-          resume_url: string | null
-          slug: string | null
-          source: string | null
-          status: string | null
-          temporary_user_id: string | null
-          total_xp: number | null
-          trust_score: number | null
-          updated_at: string | null
-          user_id: string | null
-          year_of_study: string | null
-        }
-        Insert: {
-          ai_personalization_enabled?: boolean | null
-          batch?: string | null
-          branch?: string | null
-          career_goals?: string | null
-          college_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          github_url?: string | null
-          id?: string | null
-          key_interests?: string[] | null
-          last_active?: string | null
-          linkedin_url?: string | null
-          preferred_skills?: string[] | null
-          profile_completed?: boolean | null
-          profile_photo_url?: string | null
-          profile_visibility?: string | null
-          resume_url?: string | null
-          slug?: string | null
-          source?: string | null
-          status?: string | null
-          temporary_user_id?: string | null
-          total_xp?: number | null
-          trust_score?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-          year_of_study?: string | null
-        }
-        Update: {
-          ai_personalization_enabled?: boolean | null
-          batch?: string | null
-          branch?: string | null
-          career_goals?: string | null
-          college_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          github_url?: string | null
-          id?: string | null
-          key_interests?: string[] | null
-          last_active?: string | null
-          linkedin_url?: string | null
-          preferred_skills?: string[] | null
-          profile_completed?: boolean | null
-          profile_photo_url?: string | null
-          profile_visibility?: string | null
-          resume_url?: string | null
-          slug?: string | null
-          source?: string | null
-          status?: string | null
-          temporary_user_id?: string | null
-          total_xp?: number | null
-          trust_score?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-          year_of_study?: string | null
-        }
-        Relationships: []
-      }
       student_tracks: {
         Row: {
           created_at: string
@@ -2727,36 +2123,6 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
-      }
-      students: {
-        Row: {
-          college_id: string | null
-          created_at: string | null
-          email: string
-          id: string
-          name: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          college_id?: string | null
-          created_at?: string | null
-          email: string
-          id?: string
-          name: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          college_id?: string | null
-          created_at?: string | null
-          email?: string
-          id?: string
-          name?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
       }
       task_applications: {
         Row: {
@@ -3413,6 +2779,16 @@ export type Database = {
         Args: { p_comment: string; p_post_id: string }
         Returns: string
       }
+      admin_notify_student: {
+        Args: {
+          p_link?: string
+          p_message: string
+          p_student_id: string
+          p_title: string
+          p_type: string
+        }
+        Returns: boolean
+      }
       assign_pack_to_batch: {
         Args: {
           p_batch: string
@@ -3824,9 +3200,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "college_admin", "startup", "student"],

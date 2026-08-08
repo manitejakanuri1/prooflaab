@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface StartupNotification {
   id: string;
-  startup_user_id: string;
+  user_id: string;
   title: string;
   message: string;
   type: string | null;
@@ -21,10 +21,12 @@ export function useStartupNotifications() {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      // startup_notifications was merged into notifications.
       const { data, error } = await supabase
-        .from('startup_notifications')
+        .from('notifications')
         .select('*')
-        .eq('startup_user_id', user.id)
+        .eq('user_id', user.id)
+        .eq('audience', 'startup')
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -41,8 +43,8 @@ export function useStartupNotifications() {
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
-        .from('startup_notifications')
-        .update({ is_read: true })
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
 
       if (error) throw error;

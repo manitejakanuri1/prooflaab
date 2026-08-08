@@ -136,18 +136,21 @@ const EnhancedVerificationModal = ({
           }
         });
 
-      // Send notification to student
-      await supabase
-        .from('notifications')
-        .insert({
-          student_id: data.student_id,
-          type: 'review',
-          title: action === 'verified' ? 'Proof Manually Approved ✅' : 'Proof Rejected ❌',
-          message: action === 'verified' 
-            ? `Your proof was manually reviewed and approved by ${reviewerName}.`
-            : `Your proof was rejected by ${reviewerName}. Reason: ${overrideReason}`,
-          is_read: false
-        });
+      // Send notification to student.
+      //
+      // This used to insert straight into the notifications table from the
+      // browser, which quietly did nothing: there was no INSERT policy, so the
+      // student was never told. It goes through a function that checks the
+      // caller is an admin and resolves the student's account itself.
+      await supabase.rpc('admin_notify_student', {
+        p_student_id: data.student_id,
+        p_type: 'review',
+        p_title: action === 'verified' ? 'Proof Manually Approved ✅' : 'Proof Rejected ❌',
+        p_message: action === 'verified'
+          ? `Your proof was manually reviewed and approved by ${reviewerName}.`
+          : `Your proof was rejected by ${reviewerName}. Reason: ${overrideReason}`,
+        p_link: '/student/uploads',
+      });
 
       toast.success(`Proof ${action === 'verified' ? 'approved' : 'rejected'} successfully`, {
         description: `Manual override logged for audit trail`
@@ -176,26 +179,15 @@ const EnhancedVerificationModal = ({
 
       if (error) throw error;
 
-      // Notify admins
-      const { data: admins } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'admin');
-
-      if (admins) {
-        const notifications = admins.map(admin => ({
-          admin_user_id: admin.user_id,
-          type: 'proof',
-          title: '⚠️ Manual Review Required',
-          message: `${studentName} submission needs manual review (Trust Score: ${trustScore}/100)`,
-          link: '/admin/proof-submissions',
-          is_read: false
-        }));
-
-        await supabase
-          .from('admin_notifications')
-          .insert(notifications);
-      }
+      // Notify admins. Same story as above: listing every admin from the
+      // browser and inserting a row each never worked. notify_all_admins does
+      // the fan-out server-side and refuses a caller who is not an admin.
+      await supabase.rpc('notify_all_admins', {
+        notification_type: 'proof',
+        notification_title: '⚠️ Manual Review Required',
+        notification_message: `${studentName} submission needs manual review (Trust Score: ${trustScore}/100)`,
+        notification_link: '/admin/proof-submissions',
+      });
 
       toast.success('Sent to manual review queue', {
         description: 'Admins have been notified'

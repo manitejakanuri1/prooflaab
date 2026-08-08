@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 interface AdminNotification {
   id: string;
-  admin_user_id: string;
-  type: 'proof' | 'task' | 'user' | 'system';
+  user_id: string;
+  type: string;
   title: string;
   message: string;
   link: string | null;
@@ -25,10 +25,14 @@ export function useAdminNotifications() {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      // admin_notifications was merged into notifications. The old table's
+      // policies only checked that the caller was an admin, not that the row
+      // was theirs, so every admin could read every other admin's inbox.
       const { data, error } = await supabase
-        .from('admin_notifications')
+        .from('notifications')
         .select('*')
-        .eq('admin_user_id', user.id)
+        .eq('user_id', user.id)
+        .eq('audience', 'admin')
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -53,13 +57,17 @@ export function useAdminNotifications() {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'admin_notifications',
-          filter: `admin_user_id=eq.${user.id}`,
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
           console.log('New notification received:', payload);
-          const newNotification = payload.new as AdminNotification;
-          
+          const newNotification = payload.new as AdminNotification & { audience?: string };
+
+          // One table now carries every audience, so an admin who is also a
+          // student would otherwise get their student notifications toasted here.
+          if (newNotification.audience !== 'admin') return;
+
           // Show toast for new notification
           toast(newNotification.title, {
             description: newNotification.message,
@@ -83,8 +91,8 @@ export function useAdminNotifications() {
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
-        .from('admin_notifications')
-        .update({ is_read: true })
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
 
       if (error) throw error;
@@ -99,9 +107,10 @@ export function useAdminNotifications() {
       if (!user?.id) return;
 
       const { error } = await supabase
-        .from('admin_notifications')
-        .update({ is_read: true })
-        .eq('admin_user_id', user.id)
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('audience', 'admin')
         .eq('is_read', false);
 
       if (error) throw error;
@@ -114,7 +123,7 @@ export function useAdminNotifications() {
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
-        .from('admin_notifications')
+        .from('notifications')
         .delete()
         .eq('id', notificationId);
 

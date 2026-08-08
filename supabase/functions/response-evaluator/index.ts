@@ -248,17 +248,27 @@ Scoring guidelines:
       );
     }
 
-    // Send notification to student
-    await supabase
-      .from('notifications')
-      .insert({
-        student_id: proofData.student_id,
-        type: 'verification',
-        title: 'Conceptual Evaluation Complete ✅',
-        message: `You scored ${conceptualUnderstandingScore}/100 on your conceptual test.`,
-        link: `/student/uploads`,
-        is_read: false
-      });
+    // Send notification to student. The notifications table is keyed on the
+    // auth user id since the four notification tables were merged, so the
+    // student profile id has to be resolved first.
+    const { data: studentAccount } = await supabase
+      .from('student_profiles')
+      .select('user_id')
+      .eq('id', proofData.student_id)
+      .maybeSingle();
+
+    if (studentAccount?.user_id) {
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: studentAccount.user_id,
+          audience: 'student',
+          type: 'verification',
+          title: 'Conceptual Evaluation Complete ✅',
+          message: `You scored ${conceptualUnderstandingScore}/100 on your conceptual test.`,
+          link: `/student/uploads`
+        });
+    }
 
     // Log to audit_logs
     await supabase

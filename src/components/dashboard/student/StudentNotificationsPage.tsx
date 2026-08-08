@@ -306,10 +306,10 @@ const StudentNotificationsPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="text-sm font-medium text-gray-900">
-                            {notification.source === 'social' && notification.triggered_by_name 
-                              ? `${notification.triggered_by_name} ${notification.message.toLowerCase().replace('someone ', '')}`
-                              : notification.title || 'Notification'
-                            }
+                            {/* The social message already names the person. */}
+                            {notification.source === 'social'
+                              ? notification.message
+                              : notification.title || 'Notification'}
                           </h4>
                           <Badge className={getNotificationColor(notification.type)}>
                             {notification.type}

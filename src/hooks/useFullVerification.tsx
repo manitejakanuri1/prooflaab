@@ -73,16 +73,16 @@ export const useFullVerification = () => {
           .single();
 
         if (proofData) {
-          await supabase
-            .from('notifications')
-            .insert({
-              student_id: proofData.student_id,
-              type: 'verification',
-              title: 'Conceptual Questions Ready',
-              message: 'Please answer the conceptual questions for your proof submission to complete verification.',
-              link: `/student/uploads`,
-              is_read: false
-            });
+          // notifications is keyed on the auth user id now, and a browser
+          // cannot insert a row addressed to someone else. This admin-only
+          // function resolves the student's account and writes it server-side.
+          await supabase.rpc('admin_notify_student', {
+            p_student_id: proofData.student_id,
+            p_type: 'verification',
+            p_title: 'Conceptual Questions Ready',
+            p_message: 'Please answer the conceptual questions for your proof submission to complete verification.',
+            p_link: '/student/uploads',
+          });
         }
 
         results.status = 'awaiting_student_answers';

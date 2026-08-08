@@ -182,18 +182,27 @@ serve(async (req) => {
       .eq('id', proof_id)
       .single();
 
-    // Create notification for student
+    // Create notification for student. notifications is keyed on the auth user
+    // id now, not the student profile id.
     if (proofData) {
-      await supabase
-        .from('notifications')
-        .insert({
-          student_id: proofData.student_id,
-          type: 'verification',
-          title: 'Answers Submitted ✅',
-          message: 'Your conceptual answers have been submitted and are being evaluated.',
-          link: `/student/uploads`,
-          is_read: false
-        });
+      const { data: studentAccount } = await supabase
+        .from('student_profiles')
+        .select('user_id')
+        .eq('id', proofData.student_id)
+        .maybeSingle();
+
+      if (studentAccount?.user_id) {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: studentAccount.user_id,
+            audience: 'student',
+            type: 'verification',
+            title: 'Answers Submitted ✅',
+            message: 'Your conceptual answers have been submitted and are being evaluated.',
+            link: `/student/uploads`
+          });
+      }
     }
 
     // Internal function-to-function calls authenticate with the webhook

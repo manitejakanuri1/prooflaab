@@ -137,10 +137,12 @@ const StudentHeader = ({
                           <div className="flex-1 space-y-1">
                             <div className="flex items-start justify-between gap-2">
                               <p className={`text-sm ${!notification.is_read ? 'font-semibold' : 'font-normal'}`}>
-                                {notification.source === 'social' && notification.triggered_by_name 
-                                  ? `${notification.triggered_by_name} ${notification.message.toLowerCase().replace('someone ', '')}`
-                                  : notification.title
-                                }
+                                {/* A social message already reads "Asha liked
+                                    your post". Gluing the name on again gave
+                                    "Asha asha liked your post". */}
+                                {notification.source === 'social'
+                                  ? notification.message
+                                  : notification.title}
                               </p>
                               {!notification.is_read && (
                                 <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />

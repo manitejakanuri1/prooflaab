@@ -1,4 +1,4 @@
-import { Clock, Award, Shield, Trophy, Map, ListTodo, Bell } from "lucide-react";
+import { Clock, Award, Shield, Trophy, Map, ListTodo, Bell, FileCheck2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,16 +15,17 @@ interface StudentDashboardOverviewProps {
   onNavigateTab?: (tab: string) => void;
 }
 
-// Everything a student needs lives behind exactly 3 doors. Resume Check,
-// Certification Radar, Match a Job, and Retest History live inside Resume
-// Roadmap; assigned/created/outside tasks live inside Tasks; notifications,
-// cert radar, job match, and coding streaks live inside Updates & Reminders.
+// Everything a student needs lives behind 4 doors. Resume Check, Certification
+// Radar, and Match a Job live inside Resume; the level map lives inside
+// Roadmap; assigned/created/outside tasks + upload history live inside Tasks;
+// notifications and coding streaks live inside Updates & Reminders.
 // My Uploads/Portfolio/Feed/Settings still work, just not linked from here
 // anymore. See memory: feedback-dashboard-ui-pattern.
 const navCards: { id: string; label: string; description: string; icon: typeof Map }[] = [
-  { id: "resume-roadmap", label: "Resume Roadmap", description: "Your path, resume check, retest history", icon: Map },
+  { id: "resume-hub", label: "Resume", description: "Resume check, certification radar, job match", icon: FileCheck2 },
+  { id: "resume-roadmap", label: "Roadmap", description: "Your level-by-level path", icon: Map },
   { id: "tasks-hub", label: "Tasks", description: "Assigned, outside tasks, create your own", icon: ListTodo },
-  { id: "updates-hub", label: "Updates & Reminders", description: "Notifications, certs, job match, coding streaks", icon: Bell },
+  { id: "updates-hub", label: "Updates & Reminders", description: "Notifications, coding streaks", icon: Bell },
 ];
 
 const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewProps) => {
@@ -117,7 +118,7 @@ const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewPro
 
       {/* The 3 doors — click one, it redirects there */}
       {onNavigateTab && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {navCards.map((card) => {
             const Icon = card.icon;
             return (

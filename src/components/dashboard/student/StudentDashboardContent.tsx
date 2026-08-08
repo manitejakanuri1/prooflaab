@@ -14,6 +14,7 @@ import StudentResumeJobMatchPage from "./StudentResumeJobMatchPage";
 import StudentResumeCertsPage from "./StudentResumeCertsPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
 import StudentRoadmapPage from "./StudentRoadmapPage";
+import StudentResumeHub from "./StudentResumeHub";
 import StudentTasksHub from "./StudentTasksHub";
 import StudentUpdatesHub from "./StudentUpdatesHub";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,8 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
         return <StudentResumeHistoryPage />;
       case "resume-roadmap":
         return <StudentRoadmapPage />;
+      case "resume-hub":
+        return <StudentResumeHub />;
       case "tasks-hub":
         return <StudentTasksHub />;
       case "updates-hub":

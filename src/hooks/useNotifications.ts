@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,12 @@ interface Notification {
 export const useNotifications = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // The header's notification bell and StudentNotificationsPage can both be
+  // mounted at once, both calling this hook. A channel name keyed only on
+  // user id collided between them — the second subscribe() crashed with
+  // "cannot add postgres_changes callbacks... after subscribe()". Each
+  // hook instance now gets its own channel name via useId.
+  const instanceId = useId();
 
   // One table, one query. This used to read `notifications` and
   // `social_notifications` separately, map two different row shapes into one,
@@ -132,7 +138,7 @@ export const useNotifications = () => {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(`notifications-${user.id}-${instanceId}`)
       .on(
         'postgres_changes',
         {
@@ -150,7 +156,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, queryClient]);
+  }, [user?.id, queryClient, instanceId]);
 
   const markAsRead = (notificationId: string) => {
     markAsReadMutation.mutate(notificationId);

@@ -308,13 +308,10 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             // Create role-specific records based on user type
             try {
               if (role === 'student') {
-                // Create student record
-                const { error: studentError } = await supabase.from('students').insert({
-                  user_id: data.user.id,
-                  name: fullName,
-                  email: email
-                });
-                if (studentError) throw studentError;
+                // Nothing to write here. The student's row in student_profiles
+                // is created by ensureStudentProfile() as soon as the session
+                // lands, which is the one place that owns it. This used to also
+                // insert into `students`, a second table nothing reads.
               } else if (role === 'college_admin') {
                 // Create college record with pending status
                 const { error: collegeError } = await supabase.from('colleges').insert({

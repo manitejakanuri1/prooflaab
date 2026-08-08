@@ -14,9 +14,14 @@ import { Users } from "lucide-react";
 
 interface FollowUser {
   id: string;
+  user_id: string;
   full_name: string;
   profile_photo_url: string | null;
-  email: string;
+  // Deliberately no email. A follower list is a directory, not a contact
+  // export — the previous version handed every follower's address to anyone
+  // who could open this dialog.
+  branch: string | null;
+  batch: string | null;
 }
 
 interface FollowersFollowingModalProps {
@@ -44,49 +49,46 @@ export const FollowersFollowingModal = ({
     const fetchFollowData = async () => {
       setLoading(true);
       try {
-        // Fetch followers
-        const { data: followersData, error: followersError } = await supabase
-          .from('follows')
-          .select('follower_id')
-          .eq('following_id', userId);
+        // This dialog used to read `follows`, which nothing writes to, so it
+        // was permanently empty. Everything that creates a follow —
+        // follow_user(), the feed, FollowButton — writes to `user_follows`.
+        //
+        // `user_follows` stores auth user ids, not profile ids, so the lookup
+        // below matches on user_id. The prop can be either kind of id
+        // depending on the caller, so it is resolved first.
+        const { data: subject } = await supabase
+          .from('student_profiles')
+          .select('user_id')
+          .or(`id.eq.${userId},user_id.eq.${userId}`)
+          .maybeSingle();
 
-        if (followersError) throw followersError;
+        const subjectUserId = subject?.user_id ?? userId;
 
-        const followerIds = followersData.map(f => f.follower_id);
+        const loadSide = async (
+          match: 'following_id' | 'follower_id',
+          take: 'follower_id' | 'following_id',
+        ): Promise<FollowUser[]> => {
+          const { data: edges, error } = await supabase
+            .from('user_follows')
+            .select(take)
+            .eq(match, subjectUserId);
 
-        if (followerIds.length > 0) {
-          const { data: followerProfiles, error: followerProfilesError } = await supabase
+          if (error) throw error;
+
+          const ids = (edges ?? []).map((e: Record<string, string>) => e[take]).filter(Boolean);
+          if (ids.length === 0) return [];
+
+          const { data: profiles, error: profileError } = await supabase
             .from('student_profiles')
-            .select('id, full_name, profile_photo_url, email')
-            .in('id', followerIds);
+            .select('id, user_id, full_name, profile_photo_url, branch, batch')
+            .in('user_id', ids);
 
-          if (followerProfilesError) throw followerProfilesError;
-          setFollowers(followerProfiles || []);
-        } else {
-          setFollowers([]);
-        }
+          if (profileError) throw profileError;
+          return profiles ?? [];
+        };
 
-        // Fetch following
-        const { data: followingData, error: followingError } = await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', userId);
-
-        if (followingError) throw followingError;
-
-        const followingIds = followingData.map(f => f.following_id);
-
-        if (followingIds.length > 0) {
-          const { data: followingProfiles, error: followingProfilesError } = await supabase
-            .from('student_profiles')
-            .select('id, full_name, profile_photo_url, email')
-            .in('id', followingIds);
-
-          if (followingProfilesError) throw followingProfilesError;
-          setFollowing(followingProfiles || []);
-        } else {
-          setFollowing([]);
-        }
+        setFollowers(await loadSide('following_id', 'follower_id'));
+        setFollowing(await loadSide('follower_id', 'following_id'));
       } catch (error) {
         console.error('Error fetching follow data:', error);
       } finally {
@@ -148,12 +150,14 @@ export const FollowersFollowingModal = ({
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-foreground truncate">{user.full_name}</p>
-                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {[user.branch, user.batch].filter(Boolean).join(" · ")}
+                </p>
               </div>
             </div>
             <div className="flex-shrink-0">
               <FollowButton
-                targetUserId={user.id}
+                targetUserId={user.user_id}
                 currentUserId={currentUserId}
                 size="sm"
                 variant="profile"

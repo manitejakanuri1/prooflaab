@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentProfile } from "@/lib/ensureStudentProfile";
 import OnboardingModal from "@/components/OnboardingModal";
 
 interface AuthContextType {
@@ -25,51 +26,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const createStudentProfileIfNeeded = async (user: User) => {
-    try {
-      // Check if profile already exists
-      const { data: existingProfile } = await supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!existingProfile) {
-        // Get user role to determine if this is a student
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        // Only create student profile for students
-        if (roleData?.role === 'student') {
-          const { error } = await supabase
-            .from('student_profiles')
-            .upsert([
-              {
-                user_id: user.id,
-                full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'Student',
-                email: user.email || '',
-                total_xp: 0,
-                trust_score: 0,
-              }
-            ], {
-              onConflict: 'user_id'
-            });
-          
-          if (error) {
-            console.error('Error creating student profile:', error);
-          } else {
-            console.log('Student profile created successfully');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error checking/creating student profile:', error);
-    }
-  };
-
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -90,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Handle successful authentication
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
-            await createStudentProfileIfNeeded(session.user);
+            await ensureStudentProfile(session.user);
           }, 0);
         }
         
@@ -115,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Create student profile if user exists and profile doesn't exist
       if (session?.user) {
         setTimeout(() => {
-          createStudentProfileIfNeeded(session.user);
+          ensureStudentProfile(session.user);
         }, 0);
       }
       

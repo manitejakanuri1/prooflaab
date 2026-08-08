@@ -210,11 +210,9 @@ export default function AuthCallback() {
 
         // Create appropriate profile record and redirect to wizard
         if (roleToCreate === 'student') {
-          await supabase.from('students').insert({
-            user_id: user.id,
-            name: user.user_metadata?.full_name || '',
-            email: user.email || ''
-          });
+          // The student_profiles row is created by ensureStudentProfile() on
+          // the auth listener, which fires for this session. This used to
+          // insert into `students` as well — a second table nothing reads.
         } else if (roleToCreate === 'college_admin') {
           // College record will be created in onboarding
         } else if (roleToCreate === 'startup') {

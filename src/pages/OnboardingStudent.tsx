@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureStudentProfile } from '@/lib/ensureStudentProfile';
 import { toast } from 'sonner';
 
 export default function OnboardingStudent() {
@@ -15,28 +16,30 @@ export default function OnboardingStudent() {
         return;
       }
 
-      // Check if student record already exists
-      const { data: studentRecord } = await supabase
-        .from('students')
+      // This page used to read and write `students`, a second table that
+      // duplicated name/email and that nothing else in the app ever read.
+      // student_profiles is the real record.
+      const { data: existingProfile } = await supabase
+        .from('student_profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (studentRecord) {
-        // Student already onboarded, redirect to dashboard
+      if (existingProfile) {
+        // Already onboarded, redirect to dashboard
         navigate('/student/dashboard', { replace: true });
         return;
       }
 
-      // Create student record if it doesn't exist
-      const { error } = await supabase.from('students').insert({
-        user_id: user.id,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Student',
-        email: user.email || ''
-      });
+      await ensureStudentProfile(user);
 
-      if (error && !error.message.includes('duplicate')) {
-        console.error('Error creating student record:', error);
+      const { data: created } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!created) {
         toast.error('Failed to set up student profile');
         return;
       }

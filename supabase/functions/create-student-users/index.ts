@@ -181,25 +181,10 @@ serve(async (req) => {
           console.error('Role error:', roleError)
         }
 
-        // Create student entry in students table
-        const { error: studentError } = await supabaseAdmin
-          .from('students')
-          .insert({
-            user_id: authData.user.id,
-            name: name,
-            email: email.toLowerCase(),
-            college_id: college_id
-          })
-
-        if (studentError) {
-          console.error('Students table error:', studentError)
-          results.push({
-            email,
-            status: 'error',
-            message: `Students table creation failed: ${studentError.message}`
-          })
-          continue
-        }
+        // The `students` insert that used to sit here has been removed. It
+        // wrote a second copy of name/email/college that nothing ever read
+        // back, and a failure on it aborted the whole record even though the
+        // student_profiles write below is the one that matters.
 
         // Create or update student profile
         if (profileNeedsAuth && existingProfile) {

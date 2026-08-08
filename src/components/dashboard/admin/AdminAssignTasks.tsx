@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock, Upload, X, Link, Building2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { filterStudents as applyStudentFilters, filterStudentsByColleges } from "@/lib/studentFilters";
+import { useTaskForms, type PersonalizedTask } from "@/components/dashboard/assignTasks/useTaskForms";
 
 interface Student {
   id: string;
@@ -67,17 +68,6 @@ interface FormErrors {
   dueDate?: string;
 }
 
-interface PersonalizedTask {
-  id: string;
-  studentId: string;
-  studentName: string;
-  studentBranch: string | null;
-  studentYear: string | null;
-  title: string;
-  description: string;
-  selected: boolean;
-  isEditing: boolean;
-}
 
 const AdminAssignTasks = () => {
   // Core state
@@ -89,48 +79,20 @@ const AdminAssignTasks = () => {
   const [activeTab, setActiveTab] = useState("manual");
   const { toast } = useToast();
 
-  // Separate form states for each tab
-  const [manualForm, setManualForm] = useState({
-    title: "",
-    description: "",
-    xpReward: "",
-    dueDate: undefined as Date | undefined,
-    category: "Coding",
-    visibility: "Public",
-    attachmentType: 'url' as 'url' | 'file',
-    attachmentUrl: "",
-    attachmentFile: null as File | null
-  });
-
-  const [aiForm, setAiForm] = useState({
-    selectedBranch: "",
-    topicArea: "",
-    dueDate: undefined as Date | undefined,
-    visibility: "Public",
-    title: "",
-    description: "",
-    xpReward: "",
-    generated: false
-  });
-
-  const [templateForm, setTemplateForm] = useState({
-    selectedTemplate: "",
-    title: "",
-    description: "",
-    xpReward: "",
-    dueDate: undefined as Date | undefined,
-    category: "Coding",
-    visibility: "Public"
-  });
-
-  const [personalForm, setPersonalForm] = useState({
-    title: "",
-    description: "",
-    xpReward: "",
-    dueDate: undefined as Date | undefined,
-    category: "Coding",
-    visibility: "Public"
-  });
+  // The four tab drafts, their accessors and the clear buttons live in
+  // useTaskForms — they were byte-identical in this file and the other
+  // assign-tasks screen.
+  const {
+    manualForm, setManualForm,
+    aiForm, setAiForm,
+    templateForm, setTemplateForm,
+    personalForm, setPersonalForm,
+    getActiveForm, updateActiveForm,
+    title, description, xpReward, dueDate, visibility, category,
+    selectedBranch, topicArea, selectedTemplate,
+    attachmentType, attachmentUrl, attachmentFile,
+    clearManualTask, clearAITask, clearTemplate, clearPersonalForm,
+  } = useTaskForms(activeTab);
 
   // Personalized tasks state
   const [personalizedTasks, setPersonalizedTasks] = useState<PersonalizedTask[]>([]);
@@ -139,51 +101,6 @@ const AdminAssignTasks = () => {
   // Template state
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [aiGenerating, setAiGenerating] = useState(false);
-
-  // Helper functions to get and update active form
-  const getActiveForm = () => {
-    switch (activeTab) {
-      case 'manual': return manualForm;
-      case 'ai': return aiForm;
-      case 'template': return templateForm;
-      case 'personalized': return personalForm;
-      default: return manualForm;
-    }
-  };
-
-  const updateActiveForm = (updates: Partial<any>) => {
-    switch (activeTab) {
-      case 'manual':
-        setManualForm(prev => ({ ...prev, ...updates }));
-        break;
-      case 'ai':
-        setAiForm(prev => ({ ...prev, ...updates }));
-        break;
-      case 'template':
-        setTemplateForm(prev => ({ ...prev, ...updates }));
-        break;
-      case 'personalized':
-        setPersonalForm(prev => ({ ...prev, ...updates }));
-        break;
-    }
-  };
-
-  // Get current form values - safely handle different form types
-  const currentForm = getActiveForm();
-  const title = currentForm.title || "";
-  const description = currentForm.description || "";
-  const xpReward = currentForm.xpReward || "";
-  const dueDate = currentForm.dueDate;
-  const visibility = currentForm.visibility || "Public";
-  const category = ('category' in currentForm) ? currentForm.category : "Coding";
-  
-  // Tab-specific accessors
-  const selectedBranch = aiForm.selectedBranch;
-  const topicArea = aiForm.topicArea;
-  const selectedTemplate = templateForm.selectedTemplate;
-  const attachmentType = manualForm.attachmentType;
-  const attachmentUrl = manualForm.attachmentUrl;
-  const attachmentFile = manualForm.attachmentFile;
 
   // Audience filters - Admin specific: college selection
   const [audienceType, setAudienceType] = useState("custom"); // all, college, custom
@@ -375,43 +292,11 @@ const AdminAssignTasks = () => {
     });
   };
 
-  const clearTemplate = () => {
-    setTemplateForm(prev => ({
-      ...prev,
-      selectedTemplate: "",
-      title: "",
-      description: "",
-      xpReward: "",
-      category: ""
-    }));
-  };
 
-  const clearManualTask = () => {
-    setManualForm(prev => ({
-      ...prev,
-      title: "",
-      description: "",
-      xpReward: ""
-    }));
-  };
 
-  const clearAITask = () => {
-    setAiForm(prev => ({
-      ...prev,
-      title: "",
-      description: "",
-      xpReward: "",
-      generated: false
-    }));
-  };
 
   const clearPersonalTask = () => {
-    setPersonalForm(prev => ({
-      ...prev,
-      title: "",
-      description: "",
-      xpReward: ""
-    }));
+    clearPersonalForm();
     setPersonalizedTasks([]);
     setShowPersonalPreview(false);
   };

@@ -239,19 +239,23 @@ const AdminAssignTasks = () => {
     try {
       const query = supabase
         .from('student_profiles')
+        // email lives in student_contact now, so that a signed-in student
+        // cannot read every other student's address off the directory.
         .select(`
-          id, full_name, email, branch, batch, year_of_study,
+          id, full_name, branch, batch, year_of_study,
           key_interests, preferred_skills, trust_score, college_id, total_xp,
-          colleges!student_profiles_college_id_fkey (name)
+          colleges!student_profiles_college_id_fkey (name),
+          student_contact (email)
         `)
         .eq('status', 'active');
 
       const { data, error } = await query.order('full_name');
 
       if (error) throw error;
-      
+
       const studentsWithCollegeName = (data || []).map(s => ({
         ...s,
+        email: (s as any).student_contact?.email ?? '',
         college_name: (s as any).colleges?.name || "Direct Registration"
       }));
       

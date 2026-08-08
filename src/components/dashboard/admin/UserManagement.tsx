@@ -50,13 +50,16 @@ const UserManagement = ({ type }: UserManagementProps) => {
   const { data: users, isLoading } = useQuery({
     queryKey: [`admin-${type}`, searchTerm],
     queryFn: async () => {
-      let query = supabase.from(
-        type === 'students' ? 'student_profiles' : type
-      ).select('*');
+      // The table is chosen at runtime, which is more than the generated
+      // types can follow, hence the any.
+      let query: any = supabase
+        .from(type === 'students' ? 'student_profiles' : type)
+        .select(type === 'students' ? '*, student_contact (email)' : '*');
 
       if (searchTerm) {
         if (type === 'students') {
-          query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+          // email lives in student_contact now, so students match on name.
+          query = query.ilike('full_name', `%${searchTerm}%`);
         } else {
           query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
         }
@@ -214,7 +217,9 @@ const UserManagement = ({ type }: UserManagementProps) => {
                   <TableCell className="font-medium">
                     {type === 'students' ? (user as any).full_name : (user as any).name}
                   </TableCell>
-                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    {(user as any).student_contact?.email ?? (user as any).email}
+                  </TableCell>
                   {type === 'students' && (
                     <>
                       <TableCell>{(user as any).trust_score || 0}</TableCell>

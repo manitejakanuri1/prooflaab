@@ -85,7 +85,7 @@ const StudentsManagement = () => {
         .select(`
           id,
           full_name,
-          email,
+          student_contact (email),
           branch,
           batch,
           trust_score,
@@ -115,17 +115,21 @@ const StudentsManagement = () => {
             .select('id')
             .eq('student_id', student.id);
 
+          // email comes back nested from student_contact; flatten it so the
+          // rest of this screen keeps reading student.email.
+          const email = (student as any).student_contact?.email ?? '';
+
           if (tasksError) {
             console.error('Error fetching tasks for student:', student.id, tasksError);
-            return { ...student, task_count: 0 };
+            return { ...student, email, task_count: 0 };
           }
 
-          return { ...student, task_count: tasks?.length || 0 };
+          return { ...student, email, task_count: tasks?.length || 0 };
         })
       );
 
-      setStudents(studentsWithTaskCounts);
-      setFilteredStudents(studentsWithTaskCounts);
+      setStudents(studentsWithTaskCounts as Student[]);
+      setFilteredStudents(studentsWithTaskCounts as Student[]);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast({

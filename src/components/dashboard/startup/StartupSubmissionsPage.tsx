@@ -28,8 +28,7 @@ export function StartupSubmissionsPage() {
   const filteredSubmissions = submissions.filter(submission => {
     const matchesSearch = !searchQuery.trim() || 
       submission.tasks?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.student_profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.student_profiles?.email.toLowerCase().includes(searchQuery.toLowerCase());
+      submission.student_profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === "All" || submission.status === statusFilter;
     
@@ -168,7 +167,7 @@ export function StartupSubmissionsPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        {submission.student_profiles?.email || 'No email'}
+                        {submission.student_profiles?.full_name || 'Unknown student'}
                       </div>
                       {submission.tasks?.xp_reward && (
                         <div className="flex items-center gap-1">

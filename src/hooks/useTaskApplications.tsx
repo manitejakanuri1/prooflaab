@@ -109,7 +109,6 @@ export const useStartupApplications = () => {
           ),
           student_profiles:student_id (
             full_name,
-            email,
             profile_photo_url
           )
         `)

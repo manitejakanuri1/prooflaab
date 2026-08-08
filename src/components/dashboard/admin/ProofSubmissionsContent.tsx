@@ -59,7 +59,7 @@ interface ProofSubmission {
   }>;
   student_profiles?: {
     full_name: string;
-    email: string;
+    student_contact: { email: string | null } | null;
   };
   tasks?: {
     title: string;
@@ -146,7 +146,7 @@ const ProofSubmissionsContent = () => {
           *,
           student_profiles:student_id (
             full_name,
-            email
+            student_contact (email)
           ),
           tasks:task_id (
             title,
@@ -177,7 +177,9 @@ const ProofSubmissionsContent = () => {
       }
 
       if (searchQuery) {
-        query = query.or(`student_profiles.email.ilike.%${searchQuery}%,student_profiles.full_name.ilike.%${searchQuery}%,tasks.title.ilike.%${searchQuery}%`);
+        // email lives in student_contact now and cannot be reached from a
+        // filter on the parent row.
+        query = query.or(`student_profiles.full_name.ilike.%${searchQuery}%,tasks.title.ilike.%${searchQuery}%`);
       }
 
       query = query.order(sortBy, { ascending: false });
@@ -185,7 +187,7 @@ const ProofSubmissionsContent = () => {
       const { data: proofData, error } = await query;
       if (error) throw error;
 
-      return (proofData || []) as ProofSubmission[];
+      return (proofData || []) as unknown as ProofSubmission[];
     },
   });
 
@@ -479,7 +481,7 @@ const ProofSubmissionsContent = () => {
                           </Avatar>
                           <div>
                             <div className="font-medium text-foreground">{submission.student_profiles?.full_name}</div>
-                            <div className="text-sm text-muted-foreground">{submission.student_profiles?.email}</div>
+                            <div className="text-sm text-muted-foreground">{submission.student_profiles?.student_contact?.email}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -607,7 +609,7 @@ const ProofSubmissionsContent = () => {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Student</label>
                   <p className="text-sm text-foreground mt-1 font-medium">{selectedSubmission.student_profiles?.full_name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedSubmission.student_profiles?.email}</p>
+                  <p className="text-xs text-muted-foreground">{selectedSubmission.student_profiles?.student_contact?.email}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Task</label>

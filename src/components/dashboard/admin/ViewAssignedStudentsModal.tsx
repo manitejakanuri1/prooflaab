@@ -62,7 +62,7 @@ export function ViewAssignedStudentsModal({ task, open, onClose }: ViewAssignedS
                   </Avatar>
                   <div>
                     <h4 className="font-semibold">{assignment.student_profiles?.full_name || 'Unknown'}</h4>
-                    <p className="text-sm text-muted-foreground">{assignment.student_profiles?.email || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">{assignment.student_profiles?.student_contact?.email || 'N/A'}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Assigned: {new Date(assignment.assigned_at).toLocaleDateString()}
                     </p>

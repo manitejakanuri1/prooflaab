@@ -219,15 +219,23 @@ const AssignTasks = () => {
 
       const { data: studentsData, error } = await supabase
         .from('student_profiles')
+        // email moved to student_contact. A college can still read it for its
+        // own students; that is what the policy on that table allows.
         .select(`
-          id, full_name, email, branch, batch, year_of_study,
-          key_interests, preferred_skills, trust_score, college_id
+          id, full_name, branch, batch, year_of_study,
+          key_interests, preferred_skills, trust_score, college_id,
+          student_contact (email)
         `)
         .eq('college_id', collegeData.id)
         .order('full_name');
 
       if (error) throw error;
-      setStudents(studentsData || []);
+      setStudents(
+        (studentsData ?? []).map((s: any) => ({
+          ...s,
+          email: s.student_contact?.email ?? '',
+        })),
+      );
     } catch (error) {
       console.error('Error fetching students:', error);
       toast({

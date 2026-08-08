@@ -7,6 +7,7 @@ import StudentWizard from "@/components/onboarding/StudentWizard";
 import InterestReview from "@/components/onboarding/InterestReview";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentProfile } from "@/lib/ensureStudentProfile";
 
 /**
  * A self-signup student gets an auth.users row but no student_profiles row —
@@ -15,30 +16,13 @@ import { supabase } from "@/integrations/supabase/client";
  * would fail for every new signup. Create it before the student can reach the
  * upload button.
  */
-const ensureStudentProfile = async () => {
+const createProfileIfMissing = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-
-  const { data: existing } = await supabase
-    .from("student_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (existing) return;
-
-  const { error } = await supabase.from("student_profiles").insert({
-    user_id: user.id,
-    email: user.email ?? "",
-    full_name:
-      (user.user_metadata?.full_name as string | undefined) ||
-      user.email?.split("@")[0] ||
-      "Student",
-    profile_completed: false,
-  });
-  // A duplicate just means a parallel path already created it.
-  if (error && !error.message.toLowerCase().includes("duplicate")) {
-    console.error("Could not create student profile:", error.message);
-  }
+  // This used to be a fifth private copy of the same logic, and the only one
+  // that still wrote the email column. ensureStudentProfile is the one place
+  // that owns creating a profile.
+  await ensureStudentProfile(user);
 };
 
 /**
@@ -75,7 +59,7 @@ const StudentStart = () => {
   const passThrough = intakeComplete || degraded;
 
   useEffect(() => {
-    ensureStudentProfile();
+    createProfileIfMissing();
   }, []);
 
   /**

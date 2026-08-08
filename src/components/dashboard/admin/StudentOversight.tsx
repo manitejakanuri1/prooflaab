@@ -57,38 +57,53 @@ const StudentOversight = () => {
   const { data: students, isLoading } = useQuery({
     queryKey: ['student-oversight', searchTerm],
     queryFn: async () => {
+      // email moved to student_contact. It has to be pulled in explicitly now,
+      // and the search can only match on the name — PostgREST cannot filter a
+      // parent row by a column on an embedded table.
       let query = supabase
         .from('student_profiles')
         .select(`
           *,
+          student_contact (email),
           tasks:tasks!tasks_student_id_fkey(count)
         `);
 
       if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        query = query.ilike('full_name', `%${searchTerm}%`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return (data ?? []).map((s: any) => ({
+        ...s,
+        email: s.student_contact?.email ?? '',
+      }));
     }
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase
+      // The email is no longer a column on the profile, so this is two writes:
+      // the directory row, then the contact row keyed to it.
+      const { data: created, error } = await supabase
         .from('student_profiles')
         .insert([{
           full_name: data.full_name,
-          email: data.email,
           status: data.status,
           branch: data.branch,
           batch: data.batch,
           user_id: 'temp-user-id', // Replace with actual user creation logic
           total_xp: 0,
           trust_score: 50
-        }]);
+        }])
+        .select('id')
+        .single();
       if (error) throw error;
+
+      const { error: contactError } = await supabase
+        .from('student_contact')
+        .upsert({ student_id: created.id, email: data.email }, { onConflict: 'student_id' });
+      if (contactError) throw contactError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['student-oversight'] });
@@ -109,11 +124,22 @@ const StudentOversight = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
+      // The form still has one email field, but it belongs to a different
+      // table now, so the update splits in two.
+      const { email, ...profileFields } = data;
+
       const { error } = await supabase
         .from('student_profiles')
-        .update(data)
+        .update(profileFields)
         .eq('id', id);
       if (error) throw error;
+
+      if (email !== undefined) {
+        const { error: contactError } = await supabase
+          .from('student_contact')
+          .upsert({ student_id: id, email }, { onConflict: 'student_id' });
+        if (contactError) throw contactError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['student-oversight'] });

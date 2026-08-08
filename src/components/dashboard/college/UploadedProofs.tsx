@@ -309,7 +309,7 @@ const UploadedProofs = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium text-sm">{proof.student.full_name}</div>
-                          <div className="text-xs text-muted-foreground truncate max-w-[150px]">{proof.student.email}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[150px]">{proof.student.student_contact?.email}</div>
                         </div>
                       </TableCell>
                       <TableCell>

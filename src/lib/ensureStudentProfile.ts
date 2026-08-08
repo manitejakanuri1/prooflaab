@@ -31,13 +31,15 @@ export const ensureStudentProfile = async (user: User): Promise<void> => {
 
     if (roleData?.role !== "student") return;
 
+    // No email here. It moved to student_contact, and a trigger on
+    // student_profiles copies it across from the auth account, which is where
+    // it was really coming from all along.
     const { error } = await supabase.from("student_profiles").upsert(
       [
         {
           user_id: user.id,
           full_name:
             user.user_metadata?.full_name || user.email?.split("@")[0] || "Student",
-          email: user.email || "",
           total_xp: 0,
           trust_score: 0,
         },

@@ -247,7 +247,7 @@ serve(async (req) => {
       .from('proof_uploads')
       .select(`
         *, 
-        student_profiles!inner(full_name, email, college_id, user_id)
+        student_profiles!inner(full_name, college_id, user_id)
       `)
       .eq('id', proofId)
       .single();

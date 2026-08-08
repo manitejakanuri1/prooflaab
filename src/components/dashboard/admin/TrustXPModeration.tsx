@@ -64,7 +64,7 @@ const TrustXPModeration = () => {
         .from('proof_uploads')
         .select(`
           *,
-          student:student_profiles!inner(id, full_name, email, college_id),
+          student:student_profiles!inner(id, full_name, college_id, student_contact (email)),
           task:tasks!inner(id, title, xp_reward)
         `)
         .in('status', ['Under Review', 'Pending']);
@@ -104,10 +104,12 @@ const TrustXPModeration = () => {
     queryFn: async () => {
       let query = supabase
         .from('student_profiles')
-        .select('*, college_id');
+        .select('*, college_id, student_contact (email)');
 
       if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        // email lives in student_contact now, and PostgREST cannot filter a
+        // parent row by a column on an embedded table, so this matches names.
+        query = query.ilike('full_name', `%${searchTerm}%`);
       }
 
       if (collegeFilter && collegeFilter !== 'all') {
@@ -163,10 +165,16 @@ const TrustXPModeration = () => {
       const studentIds = logs?.map(log => log.student_id);
       const { data: students } = await supabase
         .from('student_profiles')
-        .select('id, full_name, email')
+        // email moved to student_contact
+        .select('id, full_name, student_contact (email)')
         .in('id', studentIds || []);
-      
-      const studentMap = new Map(students?.map(s => [s.id, s]));
+
+      const studentMap = new Map(
+        (students ?? []).map((s: any) => [
+          s.id,
+          { id: s.id, full_name: s.full_name, email: s.student_contact?.email ?? '' },
+        ]),
+      );
       
       return logs?.map(log => ({
         ...log,
@@ -251,11 +259,20 @@ const TrustXPModeration = () => {
   // Manual XP Adjustment
   const manualMutation = useMutation({
     mutationFn: async () => {
-      // Find student by email
+      // Find student by email. The address lives in student_contact now, so
+      // the lookup starts there and comes back to the profile.
+      const { data: contact, error: contactError } = await supabase
+        .from('student_contact')
+        .select('student_id')
+        .ilike('email', manualStudent)
+        .maybeSingle();
+
+      if (contactError || !contact) throw new Error('Student not found');
+
       const { data: student, error: studentError } = await supabase
         .from('student_profiles')
         .select('id, total_xp, trust_score')
-        .eq('email', manualStudent)
+        .eq('id', contact.student_id)
         .single();
 
       if (studentError) throw new Error('Student not found');
@@ -445,7 +462,7 @@ const TrustXPModeration = () => {
                     <TableRow key={proof.id}>
                       <TableCell className="font-medium">
                         {proof.student.full_name}
-                        <div className="text-xs text-muted-foreground">{proof.student.email}</div>
+                        <div className="text-xs text-muted-foreground">{proof.student.student_contact?.email}</div>
                       </TableCell>
                       <TableCell>{proof.student.collegeName}</TableCell>
                       <TableCell>{proof.task.title}</TableCell>
@@ -519,7 +536,7 @@ const TrustXPModeration = () => {
                     <TableRow key={student.id}>
                       <TableCell className="font-medium">
                         {student.full_name}
-                        <div className="text-xs text-muted-foreground">{student.email}</div>
+                        <div className="text-xs text-muted-foreground">{student.student_contact?.email}</div>
                       </TableCell>
                       <TableCell>{student.collegeName}</TableCell>
                       <TableCell>

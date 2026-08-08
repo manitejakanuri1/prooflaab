@@ -105,12 +105,14 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
           .from('student_profiles')
           .select(`
             *,
+            student_contact (email),
             colleges!student_profiles_college_id_fkey(name),
             proof_uploads(count)
           `);
 
         if (searchTerm) {
-          query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+          // email lives in student_contact now, so students match on name.
+          query = query.ilike('full_name', `%${searchTerm}%`);
         }
 
         if (statusFilter !== 'all') {

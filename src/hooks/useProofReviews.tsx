@@ -50,7 +50,7 @@ export interface ProofReview {
   }[];
   student: {
     full_name: string;
-    email: string;
+    student_contact: { email: string | null } | null;
   };
   task: {
     title: string;
@@ -69,7 +69,7 @@ export const useProofReviews = () => {
             *,
             student_profiles!inner (
               full_name,
-              email
+              student_contact (email)
             ),
             tasks!inner (
               title,

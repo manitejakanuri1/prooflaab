@@ -56,12 +56,8 @@ interface PostData {
     slug: string | null;
     branch: string | null;
     college_id: string | null;
-    email: string | null;
     total_xp: number | null;
     trust_score: number | null;
-    linkedin_url: string | null;
-    github_url: string | null;
-    resume_url: string | null;
   } | null;
   proof_upload: {
     is_public: boolean;
@@ -121,6 +117,16 @@ const PostPage = () => {
   
   // Contact modal state
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  // Contact details are no longer a column on the profile. They come from
+  // get_public_contact(), which hands them over only when the student has set
+  // their profile to public — so a recruiter can reach someone who chose to be
+  // reachable, and nobody else can scrape the directory for addresses.
+  const [contact, setContact] = useState<{
+    email: string | null;
+    linkedin_url: string | null;
+    github_url: string | null;
+    resume_url: string | null;
+  } | null>(null);
   
   // Engagement analytics state
   const [engagementStats, setEngagementStats] = useState<{
@@ -241,12 +247,8 @@ const PostPage = () => {
               slug,
               branch,
               college_id,
-              email,
               total_xp,
-              trust_score,
-              linkedin_url,
-              github_url,
-              resume_url
+              trust_score
             )
           `)
           .eq("id", postId)
@@ -846,7 +848,20 @@ const PostPage = () => {
                 {/* Contact Student Button - Show in Recruiter Mode */}
                 {isRecruiterMode && post.student && (
                   <button
-                    onClick={() => setContactModalOpen(true)}
+                    onClick={async () => {
+                      if (!contact && post.student) {
+                        const { data } = await supabase.rpc('get_public_contact', {
+                          p_student_id: post.student.id,
+                        });
+                        setContact(data?.[0] ?? {
+                          email: null,
+                          linkedin_url: null,
+                          github_url: null,
+                          resume_url: null,
+                        });
+                      }
+                      setContactModalOpen(true);
+                    }}
                     className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
                   >
                     <Mail className="w-4 h-4" />
@@ -1141,11 +1156,11 @@ const PostPage = () => {
             branch: post.student.branch,
             total_xp: post.student.total_xp,
             trust_score: post.student.trust_score,
-            email: post.student.email,
             slug: post.student.slug,
-            linkedin_url: post.student.linkedin_url,
-            github_url: post.student.github_url,
-            resume_url: post.student.resume_url,
+            email: contact?.email ?? null,
+            linkedin_url: contact?.linkedin_url ?? null,
+            github_url: contact?.github_url ?? null,
+            resume_url: contact?.resume_url ?? null,
           }}
           postTitle={post.title}
           onEmailClick={trackEmailClick}

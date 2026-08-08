@@ -154,8 +154,8 @@ const TaskOversight = () => {
               student_profiles:student_id (
                 id,
                 full_name,
-                email,
-                profile_photo_url
+                profile_photo_url,
+                student_contact (email)
               )
             `)
             .eq('task_id', task.id);
@@ -165,14 +165,17 @@ const TaskOversight = () => {
           if (task.student_id) {
             const { data: student, error: studentError } = await supabase
               .from('student_profiles')
-              .select('id, full_name, email, profile_photo_url')
+              // email moved to student_contact
+              .select('id, full_name, profile_photo_url, student_contact (email)')
               .eq('id', task.student_id)
               .maybeSingle();
-            
+
             if (studentError) {
               console.error('Error fetching student:', studentError, 'for task:', task.id);
             }
-            enrichedTask.student_profiles = student;
+            enrichedTask.student_profiles = student
+              ? { ...student, email: (student as any).student_contact?.email ?? '' }
+              : student;
           }
           
           // Fetch proof uploads
@@ -576,7 +579,7 @@ const TaskOversight = () => {
                                     </div>
                                     <div>
                                       <p className="font-medium text-sm">{assignment.student_profiles?.full_name || 'Unknown'}</p>
-                                      <p className="text-xs text-muted-foreground">{assignment.student_profiles?.email || 'N/A'}</p>
+                                      <p className="text-xs text-muted-foreground">{assignment.student_profiles?.student_contact?.email || 'N/A'}</p>
                                     </div>
                                   </div>
                                   <Badge variant="secondary">{assignment.status || 'Assigned'}</Badge>

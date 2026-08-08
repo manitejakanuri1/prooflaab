@@ -21,13 +21,18 @@ export function ReassignTaskModal({ task, open, onClose, onSuccess }: ReassignTa
   const { data: students } = useQuery({
     queryKey: ['students-for-reassign'],
     queryFn: async () => {
+      // email moved to student_contact; admins can still read it there.
       const { data, error } = await supabase
         .from('student_profiles')
-        .select('id, full_name, email')
+        .select('id, full_name, student_contact (email)')
         .order('full_name');
-      
+
       if (error) throw error;
-      return data;
+      return (data ?? []).map((s: any) => ({
+        id: s.id,
+        full_name: s.full_name,
+        email: s.student_contact?.email ?? '',
+      }));
     },
     enabled: open
   });

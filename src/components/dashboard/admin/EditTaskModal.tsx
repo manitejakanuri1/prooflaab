@@ -169,7 +169,7 @@ export function EditTaskModal({ task, open, onClose, onSuccess }: EditTaskModalP
                       </div>
                       <div>
                         <p className="text-sm font-medium">{assignment.student_profiles?.full_name || 'Unknown'}</p>
-                        <p className="text-xs text-muted-foreground">{assignment.student_profiles?.email || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">{assignment.student_profiles?.student_contact?.email || 'N/A'}</p>
                       </div>
                     </div>
                     <Badge variant="outline" className="text-xs">{assignment.status || 'Assigned'}</Badge>

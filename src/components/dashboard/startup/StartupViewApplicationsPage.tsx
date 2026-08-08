@@ -30,8 +30,7 @@ const StartupViewApplicationsPage = () => {
     if (searchQuery.trim()) {
       filtered = filtered.filter(app =>
         app.tasks?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.student_profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.student_profiles?.email.toLowerCase().includes(searchQuery.toLowerCase())
+        app.student_profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -162,7 +161,7 @@ const StartupViewApplicationsPage = () => {
                               {application.student_profiles?.full_name || 'Unknown Student'}
                             </h3>
                             <span className="text-sm text-muted-foreground">
-                              {application.student_profiles?.email}
+                              {application.tasks?.title}
                             </span>
                           </div>
                           <p className="text-sm text-muted-foreground mb-2">

@@ -49,7 +49,11 @@ export const useStudentProfile = () => {
           // Fetch student profile
           const { data: profileData, error: profileError } = await supabase
             .from('student_profiles')
-            .select('*')
+            // email, resume and social links moved to student_contact so that
+            // one signed-in student cannot read another's. Your own row is
+            // always readable, and it is flattened back onto the profile below
+            // so the screens that show profile.email keep working.
+            .select('*, student_contact (email, resume_url, linkedin_url, github_url)')
             .eq('user_id', user.id)
             // A student has no profile row between signing up and StudentStart
             // creating it. single() reported that gap as a 406, which this hook
@@ -62,7 +66,17 @@ export const useStudentProfile = () => {
             return;
           }
 
-          setProfile(profileData);
+          setProfile(
+            (profileData
+              ? {
+                  ...profileData,
+                  email: (profileData as any).student_contact?.email ?? '',
+                  resume_url: (profileData as any).student_contact?.resume_url ?? null,
+                  linkedin_url: (profileData as any).student_contact?.linkedin_url ?? null,
+                  github_url: (profileData as any).student_contact?.github_url ?? null,
+                }
+              : profileData) as any,
+          );
 
           // Fetch leaderboard rank using secure function
           const { data: leaderboardData, error: leaderboardError } = await supabase

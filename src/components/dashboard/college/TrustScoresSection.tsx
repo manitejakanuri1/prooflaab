@@ -53,7 +53,8 @@ const TrustScoresSection = () => {
       // Fetch student profiles belonging to this college only
       const { data: studentsData, error: studentsError } = await supabase
         .from('student_profiles')
-        .select('id, full_name, email, trust_score, total_xp, college_id')
+        // email moved to student_contact
+        .select('id, full_name, trust_score, total_xp, college_id, student_contact (email)')
         .eq('college_id', collegeData.id)
         .order('trust_score', { ascending: false });
 
@@ -84,6 +85,7 @@ const TrustScoresSection = () => {
 
           return {
             ...student,
+            email: (student as any).student_contact?.email ?? '',
             task_count: tasks?.length || 0,
             verified_proofs: proofs?.length || 0,
           };

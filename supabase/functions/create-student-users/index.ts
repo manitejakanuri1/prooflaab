@@ -132,12 +132,22 @@ serve(async (req) => {
           continue
         }
 
-        // Check if student profile exists
-        const { data: existingProfile } = await supabaseAdmin
-          .from('student_profiles')
-          .select('id, user_id')
-          .eq('email', email.toLowerCase())
+        // Check if student profile exists. The email moved to student_contact
+        // so that a signed-in student cannot read every other student's
+        // address off the directory, so the lookup starts there.
+        const { data: existingContact } = await supabaseAdmin
+          .from('student_contact')
+          .select('student_id')
+          .ilike('email', email.toLowerCase())
           .maybeSingle()
+
+        const { data: existingProfile } = existingContact
+          ? await supabaseAdmin
+              .from('student_profiles')
+              .select('id, user_id')
+              .eq('id', existingContact.student_id)
+              .maybeSingle()
+          : { data: null }
 
         let profileNeedsAuth = false
         if (existingProfile && !existingProfile.user_id) {
@@ -216,11 +226,10 @@ serve(async (req) => {
           }
         } else if (!existingProfile) {
           // Create new student profile
-          const { error: profileError } = await supabaseAdmin
+          const { data: newProfile, error: profileError } = await supabaseAdmin
             .from('student_profiles')
             .insert({
               user_id: authData.user.id,
-              email: email.toLowerCase(),
               full_name: name,
               branch: branch || '',
               year_of_study: year_of_study || '',
@@ -233,6 +242,8 @@ serve(async (req) => {
               college_id: college_id,
               source: 'College'
             })
+            .select('id')
+            .single()
 
           if (profileError) {
             console.error('Profile error:', profileError)
@@ -242,6 +253,19 @@ serve(async (req) => {
               message: `Profile creation failed: ${profileError.message}`
             })
             continue
+          }
+
+          // A trigger already copies the address across from the auth account;
+          // this makes sure it matches the one the college supplied.
+          const { error: contactError } = await supabaseAdmin
+            .from('student_contact')
+            .upsert(
+              { student_id: newProfile.id, email: email.toLowerCase() },
+              { onConflict: 'student_id' }
+            )
+
+          if (contactError) {
+            console.error('Contact error:', contactError)
           }
         }
 

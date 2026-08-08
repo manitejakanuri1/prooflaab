@@ -17,8 +17,8 @@ interface Portfolio {
 
 interface PortfolioWithProfile extends Portfolio {
   student_profiles: {
+    // No email. The portfolio page is public and the address is not.
     full_name: string;
-    email: string;
     profile_photo_url: string | null;
     total_xp: number;
     trust_score: number;
@@ -45,7 +45,6 @@ export const usePortfolio = (slug?: string) => {
               *,
               student_profiles!inner(
                 full_name,
-                email,
                 profile_photo_url,
                 total_xp,
                 trust_score
@@ -87,7 +86,6 @@ export const usePortfolio = (slug?: string) => {
               *,
               student_profiles!inner(
                 full_name,
-                email,
                 profile_photo_url,
                 total_xp,
                 trust_score
@@ -112,7 +110,6 @@ export const usePortfolio = (slug?: string) => {
                 *,
                 student_profiles!inner(
                   full_name,
-                  email,
                   profile_photo_url,
                   total_xp,
                   trust_score

@@ -1751,6 +1751,41 @@ export type Database = {
         }
         Relationships: []
       }
+      student_contact: {
+        Row: {
+          email: string | null
+          github_url: string | null
+          linkedin_url: string | null
+          resume_url: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          email?: string | null
+          github_url?: string | null
+          linkedin_url?: string | null
+          resume_url?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          email?: string | null
+          github_url?: string | null
+          linkedin_url?: string | null
+          resume_url?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_contact_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_credits: {
         Row: {
           created_at: string
@@ -1986,18 +2021,14 @@ export type Database = {
           career_goals: string | null
           college_id: string | null
           created_at: string | null
-          email: string
           full_name: string
-          github_url: string | null
           id: string
           key_interests: string[] | null
           last_active: string | null
-          linkedin_url: string | null
           preferred_skills: string[] | null
           profile_completed: boolean
           profile_photo_url: string | null
           profile_visibility: string | null
-          resume_url: string | null
           slug: string | null
           source: string | null
           status: string | null
@@ -2015,18 +2046,14 @@ export type Database = {
           career_goals?: string | null
           college_id?: string | null
           created_at?: string | null
-          email: string
           full_name: string
-          github_url?: string | null
           id?: string
           key_interests?: string[] | null
           last_active?: string | null
-          linkedin_url?: string | null
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string | null
-          resume_url?: string | null
           slug?: string | null
           source?: string | null
           status?: string | null
@@ -2044,18 +2071,14 @@ export type Database = {
           career_goals?: string | null
           college_id?: string | null
           created_at?: string | null
-          email?: string
           full_name?: string
-          github_url?: string | null
           id?: string
           key_interests?: string[] | null
           last_active?: string | null
-          linkedin_url?: string | null
           preferred_skills?: string[] | null
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string | null
-          resume_url?: string | null
           slug?: string | null
           source?: string | null
           status?: string | null
@@ -2934,6 +2957,15 @@ export type Database = {
           linkedin_clicks: number
           resume_clicks: number
           views_count: number
+        }[]
+      }
+      get_public_contact: {
+        Args: { p_student_id: string }
+        Returns: {
+          email: string
+          github_url: string
+          linkedin_url: string
+          resume_url: string
         }[]
       }
       get_task_pack_with_tasks: {

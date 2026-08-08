@@ -340,7 +340,7 @@ const Portfolio = () => {
                 
                 {/* Contact Button - Show for recruiters with different label */}
                 <a
-                  href={`mailto:${portfolio?.student_profiles?.email || "contact@prooflab.ai"}?subject=Interest in ${portfolio?.student_profiles?.full_name || "Student"}'s Profile`}
+                  href={`mailto:contact@prooflab.ai?subject=Interest in ${portfolio?.student_profiles?.full_name || "Student"}'s Profile`}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium"
                 >
                   <Mail className="h-4 w-4" />

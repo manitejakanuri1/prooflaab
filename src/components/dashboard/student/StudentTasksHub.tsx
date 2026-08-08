@@ -1,13 +1,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
 import StudentCreatedTasksPage from "./StudentCreatedTasksPage";
-import StudentCreateTaskPage from "./StudentCreateTaskPage";
 import StudentStartupOpportunitiesPage from "./StudentStartupOpportunitiesPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 
 // One hub for everything task-related: what's assigned to you (college/admin/
-// startup, including applications you've made), what you created for yourself,
-// outside opportunities you can apply to, and the full history/review of
+// startup, including applications you've made), outside opportunities you can
+// apply to, what you created for yourself (with a "+ Create New" button —
+// folded in there instead of its own tab), and the full history/review of
 // everything you've submitted.
 const StudentTasksHub = () => {
   return (
@@ -16,7 +16,6 @@ const StudentTasksHub = () => {
         <TabsTrigger value="assigned">Assigned</TabsTrigger>
         <TabsTrigger value="opportunities">Outside Tasks</TabsTrigger>
         <TabsTrigger value="created">My Created</TabsTrigger>
-        <TabsTrigger value="create">Create a Task</TabsTrigger>
         <TabsTrigger value="uploads">My Uploads</TabsTrigger>
       </TabsList>
 
@@ -28,9 +27,6 @@ const StudentTasksHub = () => {
       </TabsContent>
       <TabsContent value="created">
         <StudentCreatedTasksPage />
-      </TabsContent>
-      <TabsContent value="create">
-        <StudentCreateTaskPage />
       </TabsContent>
       <TabsContent value="uploads">
         <StudentUploadsPage />

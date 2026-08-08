@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import StudentCreateTaskPage from "./StudentCreateTaskPage";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Tooltip,
@@ -38,12 +40,11 @@ import {
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import TaskDetailsDialog from "./TaskDetailsDialog";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const StudentCreatedTasksPage = () => {
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
-  const navigate = useNavigate();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string } | null>(null);
@@ -247,7 +248,7 @@ const StudentCreatedTasksPage = () => {
           <p className="text-muted-foreground">Tasks you've created using AI task generation</p>
         </div>
         <Button 
-          onClick={() => navigate("/student/dashboard")}
+          onClick={() => setCreateDialogOpen(true)}
           className="bg-primary hover:bg-primary/90"
         >
           <PlusSquare className="h-4 w-4 mr-2" />
@@ -319,7 +320,7 @@ const StudentCreatedTasksPage = () => {
               </p>
               {createdTasks.length === 0 && (
                 <Button
-                  onClick={() => navigate("/student/dashboard")}
+                  onClick={() => setCreateDialogOpen(true)}
                   className="bg-primary hover:bg-primary/90"
                 >
                   <PlusSquare className="h-4 w-4 mr-2" />
@@ -496,6 +497,24 @@ const StudentCreatedTasksPage = () => {
           onClose={() => setSelectedTaskForDetails(null)}
         />
       )}
+
+      {/* Create Task — was its own tab, folded in here since this list is the
+          natural place to land after creating one. Refetches on close rather
+          than needing a success callback threaded through both create forms. */}
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) refetchTasks();
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Create a Task</DialogTitle>
+          </DialogHeader>
+          <StudentCreateTaskPage />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

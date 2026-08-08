@@ -516,25 +516,28 @@ export type Database = {
           explanation: string
           generated_at: string
           level_id: string
-          proof_brief: string
-          proof_title: string
+          proof_brief: string | null
+          proof_title: string | null
           quiz: Json
+          sandbox: Json | null
         }
         Insert: {
           explanation: string
           generated_at?: string
           level_id: string
-          proof_brief: string
-          proof_title: string
-          quiz: Json
+          proof_brief?: string | null
+          proof_title?: string | null
+          quiz?: Json
+          sandbox?: Json | null
         }
         Update: {
           explanation?: string
           generated_at?: string
           level_id?: string
-          proof_brief?: string
-          proof_title?: string
+          proof_brief?: string | null
+          proof_title?: string | null
           quiz?: Json
+          sandbox?: Json | null
         }
         Relationships: [
           {
@@ -576,22 +579,28 @@ export type Database = {
       levels: {
         Row: {
           id: string
+          kind: string
           level_number: number
           skill: string
+          sub_level: number
           title: string
           track_slug: string
         }
         Insert: {
           id?: string
+          kind?: string
           level_number: number
           skill: string
+          sub_level?: number
           title: string
           track_slug: string
         }
         Update: {
           id?: string
+          kind?: string
           level_number?: number
           skill?: string
+          sub_level?: number
           title?: string
           track_slug?: string
         }

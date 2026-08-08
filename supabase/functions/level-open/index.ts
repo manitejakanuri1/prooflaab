@@ -2,23 +2,27 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import {
   advanceUnlock,
-  ensureLevelContent,
+  ensureTopicSteps,
   quizForStudent,
   type LevelRow,
 } from "../_shared/levels.ts";
 
 /**
- * Open one level: its explanation, its quiz, and the proof it asks for.
+ * Open one topic and serve whichever of its steps is next for this student.
  *
- * Everything a student is allowed to see about a level comes from here, because
- * the alternative — letting the browser read level_content directly — would hand
- * over the answer key with it.
+ * A topic is now several rows (levels.sub_level 1..N are explanation steps,
+ * the last is the checkpoint quiz). Reading a step does not clear it on its
+ * own — that would mean a page refresh mid-read silently skips ahead. Clearing
+ * only happens when the caller explicitly passes advance_step: true, which the
+ * "Got it, next" button sends for the step currently on screen.
  */
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const DONE_STATUSES = new Set(['placed', 'cleared', 'mastered']);
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -46,7 +50,7 @@ serve(async (req) => {
     if (claimsError || !claims?.claims?.sub) return json({ error: 'Unauthorized' }, 401);
     const callerId = claims.claims.sub as string;
 
-    const { track_slug, level_number } = await req.json();
+    const { track_slug, level_number, advance_step } = await req.json();
     if (typeof track_slug !== 'string' || !Number.isInteger(level_number)) {
       return json({ error: 'track_slug and level_number are required' }, 400);
     }
@@ -60,13 +64,17 @@ serve(async (req) => {
       .maybeSingle();
     if (!profile) return json({ error: 'Student profile not found' }, 404);
 
-    const { data: level } = await supabase
+    // The seed row (sub_level=1) always exists — it's what the original
+    // curriculum migration/seed created. ensureTopicSteps expands it into the
+    // full step set the first time anyone opens this topic.
+    const { data: seed } = await supabase
       .from('levels')
-      .select('id, track_slug, level_number, skill, title')
+      .select('id, track_slug, level_number, sub_level, kind, skill, title')
       .eq('track_slug', track_slug)
       .eq('level_number', level_number)
+      .eq('sub_level', 1)
       .maybeSingle();
-    if (!level) return json({ error: 'That level does not exist' }, 404);
+    if (!seed) return json({ error: 'That topic does not exist' }, 404);
 
     // Joining a track is not a privilege — the map is public and picking a new
     // path should not need a separate round trip. What is gated is how far in
@@ -91,20 +99,69 @@ serve(async (req) => {
       track = created;
     }
 
-    const { data: progress } = await supabase
-      .from('student_levels')
-      .select('status, best_score, attempts, task_id, evidence')
-      .eq('student_id', profile.id)
-      .eq('level_id', level.id)
-      .maybeSingle();
+    let steps: LevelRow[];
+    let contentByLevelId: Record<string, any>;
+    try {
+      const ensured = await ensureTopicSteps(supabase, seed as LevelRow, {
+        userId: callerId,
+        studentId: profile.id,
+      });
+      steps = ensured.levels;
+      contentByLevelId = ensured.contentByLevelId;
+    } catch (err) {
+      console.error('Topic content generation failed:', err);
+      return json(
+        {
+          error: 'This topic is still being written. Give it a few seconds and try again.',
+          content_unavailable: true,
+        },
+        503,
+      );
+    }
 
-    // A level they have already finished stays readable — going back to reread
-    // something you passed is not cheating.
-    const alreadyDone = ['placed', 'cleared', 'mastered'].includes(progress?.status ?? '');
+    const { data: progressRows } = await supabase
+      .from('student_levels')
+      .select('level_id, status, best_score, attempts, task_id, evidence')
+      .eq('student_id', profile.id)
+      .in('level_id', steps.map((s) => s.id));
+
+    const progressById = new Map<string, any>((progressRows ?? []).map((p: any) => [p.level_id, p]));
+
+    const pickTarget = () => {
+      for (const s of steps) {
+        if (!DONE_STATUSES.has(progressById.get(s.id)?.status ?? '')) return s;
+      }
+      return steps[steps.length - 1]; // everything done — reopen the last for review
+    };
+
+    let target = pickTarget();
+
+    // Explicit advance: the step currently on screen is done, mark it and move on.
+    if (advance_step === true && target.kind === 'explanation') {
+      const already = progressById.get(target.id);
+      if (!DONE_STATUSES.has(already?.status ?? '')) {
+        const { error } = await supabase.from('student_levels').upsert(
+          {
+            student_id: profile.id,
+            level_id: target.id,
+            status: 'cleared',
+            cleared_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'student_id,level_id' },
+        );
+        if (error) console.error('Could not advance step:', error.message);
+        else progressById.set(target.id, { ...already, status: 'cleared' });
+      }
+      target = pickTarget();
+    }
+
+    const progress = progressById.get(target.id);
+    const alreadyDone = DONE_STATUSES.has(progress?.status ?? '');
     if (level_number > track!.unlocked_through && !alreadyDone) {
       return json(
         {
-          error: 'This level is still locked. Finish the one before it first.',
+          error: 'This topic is still locked. Finish the one before it first.',
           locked: true,
           unlocked_through: track!.unlocked_through,
         },
@@ -112,53 +169,42 @@ serve(async (req) => {
       );
     }
 
-    let content;
-    try {
-      content = await ensureLevelContent(supabase, level as LevelRow, {
-        userId: callerId,
-        studentId: profile.id,
-      });
-    } catch (err) {
-      // Generation is the one part of this that depends on an outside service.
-      // Say so plainly instead of showing an empty level: an empty level looks
-      // like the student's fault, and a retry actually fixes this one.
-      console.error('Level content generation failed:', err);
-      return json(
-        {
-          error: 'This level is still being written. Give it a few seconds and try again.',
-          content_unavailable: true,
-        },
-        503,
-      );
-    }
+    const content = contentByLevelId[target.id];
 
-    // Mark it opened, but never downgrade a level they have already finished.
+    // Mark it opened, but never downgrade a step they have already finished.
     if (!progress) {
       const { error: openError } = await supabase.from('student_levels').insert({
         student_id: profile.id,
-        level_id: level.id,
+        level_id: target.id,
         status: 'opened',
       });
       if (openError) console.error('Could not record level open:', openError.message);
     }
 
-    // Placement may have ticked levels above this one; keep the wall honest.
     const unlockedThrough = await advanceUnlock(supabase, profile.id, track_slug);
+
+    const explanationSteps = steps.filter((s) => s.kind === 'explanation');
+    const stepIndex = target.kind === 'explanation'
+      ? explanationSteps.findIndex((s) => s.id === target.id) + 1
+      : null;
 
     return json({
       level: {
-        id: level.id,
-        track_slug: level.track_slug,
-        level_number: level.level_number,
-        skill: level.skill,
-        title: level.title,
+        id: target.id,
+        track_slug: target.track_slug,
+        level_number: target.level_number,
+        sub_level: target.sub_level,
+        kind: target.kind,
+        skill: target.skill,
+        title: target.title,
       },
-      explanation: content.explanation,
-      quiz: quizForStudent(content.quiz),
-      proof: { title: content.proof_title, brief: content.proof_brief },
-      status: progress?.status ?? 'opened',
-      // Only meaningful on a placed level — it is the line from their resume
-      // that earned the tick.
+      step_index: stepIndex,
+      total_steps: explanationSteps.length,
+      explanation: content?.explanation ?? '',
+      sandbox: content?.sandbox ?? null,
+      quiz: target.kind === 'checkpoint' ? quizForStudent(content?.quiz ?? []) : [],
+      proof: content?.proof_title ? { title: content.proof_title, brief: content.proof_brief } : null,
+      status: progressById.get(target.id)?.status ?? 'opened',
       evidence: progress?.evidence ?? null,
       best_score: progress?.best_score ?? 0,
       attempts: progress?.attempts ?? 0,

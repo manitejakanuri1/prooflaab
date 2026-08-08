@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
-import { ensureLevelContent, type LevelRow } from "../_shared/levels.ts";
+import { ensureTopicSteps, type LevelRow } from "../_shared/levels.ts";
 
 /**
  * Write level content ahead of time, so no student is the one who waits.
@@ -77,9 +77,12 @@ serve(async (req) => {
       ? Math.min(MAX_BATCH, Math.max(1, body.batch))
       : DEFAULT_BATCH;
 
+    // Only seed rows (sub_level=1) — a topic is regenerated as a whole, and
+    // ensureTopicSteps expects the seed row, not one of its expanded steps.
     let query = supabase
       .from('levels')
-      .select('id, track_slug, level_number, skill, title')
+      .select('id, track_slug, level_number, sub_level, kind, skill, title')
+      .eq('sub_level', 1)
       .lte('level_number', upTo)
       .order('track_slug')
       .order('level_number');
@@ -100,11 +103,12 @@ serve(async (req) => {
 
     for (const level of batch) {
       try {
-        await ensureLevelContent(supabase, level as LevelRow, {
+        const { levels: steps } = await ensureTopicSteps(supabase, level as LevelRow, {
           userId: callerId,
           skipRateLimit: true,
         });
-        generated.push(`${level.track_slug} L${level.level_number} — ${level.skill}`);
+        const stepCount = steps.filter((s) => s.kind === 'explanation').length;
+        generated.push(`${level.track_slug} L${level.level_number} — ${level.skill} (${stepCount} steps)`);
       } catch (err) {
         // One bad level must not abandon the other thirty-five. Failures are
         // reported so they can be retried, and the level still generates on

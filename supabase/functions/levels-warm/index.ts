@@ -90,10 +90,25 @@ serve(async (req) => {
 
     const { data: levels } = await query;
 
-    // Skip anything already written — this endpoint is meant to be safe to run
-    // again after a partial failure without paying for the same level twice.
-    const { data: existing } = await supabase.from('level_content').select('level_id');
-    const written = new Set((existing ?? []).map((r: any) => r.level_id));
+    // Skip anything already expanded into sub-steps — this endpoint is meant
+    // to be safe to run again after a partial failure without paying for the
+    // same topic twice. NOT the same as "has level_content": a topic that
+    // still has its old single-blob content (pre-sub-stepping) has a row in
+    // level_content already but is still exactly 1 row in `levels`, so it
+    // needs regenerating same as one that has never been opened at all.
+    const { data: allRows } = await supabase
+      .from('levels')
+      .select('track_slug, level_number');
+    const rowCountByTopic = new Map<string, number>();
+    for (const r of (allRows ?? []) as { track_slug: string; level_number: number }[]) {
+      const key = `${r.track_slug}:${r.level_number}`;
+      rowCountByTopic.set(key, (rowCountByTopic.get(key) ?? 0) + 1);
+    }
+    const written = new Set(
+      (levels ?? [])
+        .filter((l: any) => (rowCountByTopic.get(`${l.track_slug}:${l.level_number}`) ?? 1) > 1)
+        .map((l: any) => l.id),
+    );
 
     const pending = (levels ?? []).filter((l: any) => !written.has(l.id));
     const batch = pending.slice(0, batchSize);

@@ -3,10 +3,12 @@ import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
 import StudentCreatedTasksPage from "./StudentCreatedTasksPage";
 import StudentCreateTaskPage from "./StudentCreateTaskPage";
 import StudentStartupOpportunitiesPage from "./StudentStartupOpportunitiesPage";
+import StudentUploadsPage from "./StudentUploadsPage";
 
 // One hub for everything task-related: what's assigned to you (college/admin/
 // startup, including applications you've made), what you created for yourself,
-// and outside opportunities you can apply to.
+// outside opportunities you can apply to, and the full history/review of
+// everything you've submitted.
 const StudentTasksHub = () => {
   return (
     <Tabs defaultValue="assigned" className="space-y-4">
@@ -15,6 +17,7 @@ const StudentTasksHub = () => {
         <TabsTrigger value="opportunities">Outside Tasks</TabsTrigger>
         <TabsTrigger value="created">My Created</TabsTrigger>
         <TabsTrigger value="create">Create a Task</TabsTrigger>
+        <TabsTrigger value="uploads">My Uploads</TabsTrigger>
       </TabsList>
 
       <TabsContent value="assigned">
@@ -28,6 +31,9 @@ const StudentTasksHub = () => {
       </TabsContent>
       <TabsContent value="create">
         <StudentCreateTaskPage />
+      </TabsContent>
+      <TabsContent value="uploads">
+        <StudentUploadsPage />
       </TabsContent>
     </Tabs>
   );

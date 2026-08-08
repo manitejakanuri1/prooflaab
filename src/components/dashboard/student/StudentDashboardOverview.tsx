@@ -1,15 +1,11 @@
 import { Clock, Award, Shield, Trophy, Map, ListTodo, Bell, FileCheck2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { useAssignedTasks } from "@/hooks/useAssignedTasks";
 import { useMonthlyXP } from "@/hooks/useMonthlyXP";
 import { useWeeklyWorkTime } from "@/hooks/useWeeklyWorkTime";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
 
 interface StudentDashboardOverviewProps {
   onNavigateTab?: (tab: string) => void;
@@ -29,17 +25,15 @@ const navCards: { id: string; label: string; description: string; icon: typeof M
 ];
 
 const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewProps) => {
-  const navigate = useNavigate();
   const { profile, rank, loading: profileLoading } = useStudentProfile();
-  const { tasks, loading: tasksLoading, startTask } = useAssignedTasks();
   const { monthlyXP, loading: xpLoading } = useMonthlyXP();
   const { workTime, loading: workTimeLoading } = useWeeklyWorkTime();
   const { activities, loading: activityLoading } = useRecentActivity();
-  
+
   // Track user activity for work time calculation
   useActivityTracking();
 
-  if (profileLoading || tasksLoading || xpLoading || workTimeLoading || activityLoading) {
+  if (profileLoading || xpLoading || workTimeLoading || activityLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -57,10 +51,6 @@ const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewPro
       </div>
     );
   }
-
-  const ongoingTasks = tasks.filter(task => 
-    task.status === 'In Progress' || task.status === 'Pending'
-  );
 
   const summaryCards = [
     {
@@ -92,19 +82,6 @@ const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewPro
       bgColor: "bg-orange-500/10 dark:bg-orange-500/20",
     },
   ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20';
-      case 'In Progress':
-        return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20';
-      case 'Completed':
-        return 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20';
-      default:
-        return 'bg-muted text-muted-foreground border border-border';
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -166,70 +143,6 @@ const StudentDashboardOverview = ({ onNavigateTab }: StudentDashboardOverviewPro
           );
         })}
       </div>
-
-      {/* Ongoing Tasks */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-foreground">Ongoing Tasks Timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {ongoingTasks.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No ongoing tasks. Great job staying on top of your work! 🎉
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {ongoingTasks.slice(0, 5).map((task) => (
-                <div
-                  key={task.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border border-border"
-                >
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-foreground text-sm sm:text-base truncate">{task.title}</h4>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
-                      <span className="text-xs sm:text-sm text-muted-foreground">
-                        {task.due_date ? (
-                          (() => {
-                            const deadlineDate = new Date(task.due_date);
-                            return !isNaN(deadlineDate.getTime()) 
-                              ? `Due ${formatDistanceToNow(deadlineDate, { addSuffix: true })}`
-                              : task.deadline || 'No due date';
-                          })()
-                        ) : (
-                          task.deadline || 'No due date'
-                        )}
-                      </span>
-                      <Badge className={getStatusColor(task.status)}>
-                        {task.status}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 sm:ml-2">
-                    {task.status === 'Pending' ? (
-                      <Button
-                        size="sm"
-                        onClick={() => startTask(task.id)}
-                        className="bg-orange-600 hover:bg-orange-700 w-full sm:w-auto text-xs sm:text-sm"
-                      >
-                        Start Task
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate("/student/tasks/assigned")}
-                        className="border-orange-500/20 text-orange-700 dark:text-orange-400 hover:bg-orange-500/10 w-full sm:w-auto text-xs sm:text-sm"
-                      >
-                        Continue
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Recent Activity Feed */}
       <Card className="bg-card border-border">

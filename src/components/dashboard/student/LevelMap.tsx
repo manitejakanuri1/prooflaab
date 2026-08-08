@@ -8,7 +8,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import LevelDetail from "./LevelDetail";
-import { Check, ChevronRight, Loader2, Lock, Play, Search, Star, X } from "lucide-react";
+import LevelPath, { type LevelState, type PathLevel } from "./LevelPath";
+import {
+  Check,
+  ChevronRight,
+  List,
+  Loader2,
+  Lock,
+  Map as MapIcon,
+  Play,
+  Search,
+  Star,
+  X,
+} from "lucide-react";
 
 interface Level {
   id: string;
@@ -43,7 +55,7 @@ interface ResumeSummary {
   certifications: number;
 }
 
-type LevelState = "mastered" | "cleared" | "placed" | "current" | "locked";
+const CONFETTI = ["⭐", "🎉", "✨", "🏅", "💫", "🎊"];
 
 const STATE_STYLE: Record<LevelState, { ring: string; line: string }> = {
   mastered: { ring: "border-amber-400 bg-amber-400/15 text-amber-600", line: "bg-amber-400" },
@@ -77,6 +89,10 @@ const LevelMap = () => {
   const [openLevel, setOpenLevel] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [resume, setResume] = useState<ResumeSummary | null>(null);
+  // The board is the point of this screen, but the list carries the resume
+  // evidence line under each level, which will not fit on a game node.
+  const [view, setView] = useState<"map" | "list">("map");
+  const [celebrating, setCelebrating] = useState(false);
 
   const loadProgress = useCallback(async (sid: string) => {
     const { data: myTracks } = await supabase
@@ -216,6 +232,10 @@ const LevelMap = () => {
 
   const refresh = useCallback(() => {
     if (studentId) loadProgress(studentId);
+    // Clearing a level is the one moment on this screen worth a noise. It fires
+    // only on a real clear, so it never becomes wallpaper.
+    setCelebrating(true);
+    window.setTimeout(() => setCelebrating(false), 1600);
   }, [studentId, loadProgress]);
 
   const activeTrack = tracks.find((t) => t.track_slug === activeSlug) ?? tracks[0];
@@ -239,6 +259,23 @@ const LevelMap = () => {
     },
     [progress],
   );
+
+  /** The same levels, flattened for the game board. */
+  const pathLevels: PathLevel[] = useMemo(() => {
+    if (!activeTrack) return [];
+    return levels.map((level) => {
+      const state = stateOf(level, activeTrack);
+      const info = progress[level.id];
+      return {
+        id: level.id,
+        level_number: level.level_number,
+        skill: level.skill,
+        title: level.title,
+        state,
+        shaky: state === "placed" && (info?.attempts ?? 0) > 0 && (info?.best_score ?? 0) < 2,
+      };
+    });
+  }, [levels, activeTrack, stateOf, progress]);
 
   /**
    * "I'm confused about Git — where do I go?"
@@ -334,12 +371,41 @@ const LevelMap = () => {
         </div>
       )}
 
-      <Card className="animate-pop-in">
+      <Card className="animate-pop-in overflow-hidden">
+        {/* HUD — the one strip that stays true no matter where they scroll. */}
+        <div className="flex items-center gap-3 border-b bg-gradient-to-r from-primary/10 via-card to-card px-4 py-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-xl">
+            <span className="animate-float-emoji inline-block">{activeTrack.emoji}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold leading-tight tracking-tight">
+              {activeTrack.name}
+            </p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              Level {Math.min(activeTrack.unlocked_through, levels.length)} of {levels.length} ·{" "}
+              {activeTrack.role}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-rung-gold/40 bg-rung-gold/10 px-2.5 py-1">
+            <Star className="h-3.5 w-3.5 fill-rung-gold text-rung-gold-deep" />
+            <span className="text-xs font-bold tabular-nums text-rung-gold-deep">{provedCount}</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-rung-pass/40 bg-rung-pass/10 px-2.5 py-1">
+            <Check className="h-3.5 w-3.5 text-rung-pass" strokeWidth={3} />
+            <span className="text-xs font-bold tabular-nums text-rung-pass">{doneCount}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 shrink-0 gap-1.5 px-2"
+            onClick={() => setView(view === "map" ? "list" : "map")}
+          >
+            {view === "map" ? <List className="h-4 w-4" /> : <MapIcon className="h-4 w-4" />}
+            <span className="hidden text-xs sm:inline">{view === "map" ? "List" : "Map"}</span>
+          </Button>
+        </div>
+
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <span className="text-xl animate-float-emoji inline-block">{activeTrack.emoji}</span>
-            {activeTrack.name}
-          </CardTitle>
           <p className="text-sm text-muted-foreground">
             {doneCount === levels.length && levels.length > 0
               ? "Every level done. Now go prove the ones you skipped."
@@ -438,6 +504,37 @@ const LevelMap = () => {
             </div>
           )}
 
+          {view === "map" ? (
+            <div className="space-y-2">
+              <LevelPath
+                // Remount per track, so switching paths re-centres the board on
+                // that track's current level instead of keeping the old scroll.
+                key={activeTrack.track_slug}
+                levels={pathLevels}
+                trackEmoji={activeTrack.emoji}
+                role={activeTrack.role}
+                onOpen={(n) => setOpenLevel(n)}
+              />
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary" /> you are here
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rung-gold" /> proved
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rung-pass" /> passed
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full border border-dashed border-rung-pass bg-card" />{" "}
+                  from resume
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rung-idle" /> locked
+                </span>
+              </div>
+            </div>
+          ) : (
           <div className="relative">
             {levels.map((level, i) => {
               const state = stateOf(level, activeTrack);
@@ -541,8 +638,26 @@ const LevelMap = () => {
               );
             })}
           </div>
+          )}
         </CardContent>
       </Card>
+
+      {celebrating && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center gap-6">
+          {Array.from({ length: 14 }).map((_, i) => (
+            <span
+              key={i}
+              className="animate-confetti-fall text-2xl"
+              style={{
+                animationDelay: `${i * 55}ms`,
+                marginTop: `${(i % 4) * 12}px`,
+              }}
+            >
+              {CONFETTI[i % CONFETTI.length]}
+            </span>
+          ))}
+        </div>
+      )}
 
       {activeSlug && (
         <LevelDetail

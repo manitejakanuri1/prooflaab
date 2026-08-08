@@ -60,6 +60,25 @@ export default {
 					DEFAULT: 'hsl(var(--warning))',
 					foreground: 'hsl(var(--warning-foreground))'
 				},
+				// Learning-path board. Kept out of the generic scale on purpose:
+				// these read as "earned / not earned", not as decoration.
+				board: {
+					bottom: 'hsl(var(--board-bottom))',
+					top: 'hsl(var(--board-top))'
+				},
+				trail: {
+					done: 'hsl(var(--trail-done))',
+					todo: 'hsl(var(--trail-todo))'
+				},
+				rung: {
+					gold: 'hsl(var(--rung-gold))',
+					'gold-deep': 'hsl(var(--rung-gold-deep))',
+					pass: 'hsl(var(--rung-pass))',
+					'pass-deep': 'hsl(var(--rung-pass-deep))',
+					'now-deep': 'hsl(var(--rung-now-deep))',
+					idle: 'hsl(var(--rung-idle))',
+					'idle-deep': 'hsl(var(--rung-idle-deep))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -125,6 +144,27 @@ export default {
 					'0%, 100%': { transform: 'rotate(0deg)' },
 					'25%': { transform: 'rotate(-12deg)' },
 					'75%': { transform: 'rotate(12deg)' }
+				},
+				// Game board: a node lands with a little overshoot, the way a board
+				// piece drops onto its square. The centring translate is baked into
+				// the keyframe because the node carries a transform of its own.
+				'node-pop': {
+					'0%': { opacity: '0', transform: 'translate(-50%, -50%) scale(0.3)' },
+					'60%': { transform: 'translate(-50%, -50%) scale(1.12)' },
+					'100%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' }
+				},
+				// The marker sitting on the level they are playing right now.
+				'marker-bob': {
+					'0%, 100%': { transform: 'translateX(-50%) translateY(0)' },
+					'50%': { transform: 'translateX(-50%) translateY(-7px)' }
+				},
+				'star-twinkle': {
+					'0%, 100%': { opacity: '1', transform: 'scale(1)' },
+					'50%': { opacity: '0.55', transform: 'scale(0.82)' }
+				},
+				'confetti-fall': {
+					'0%': { opacity: '1', transform: 'translateY(-12px) rotate(0deg)' },
+					'100%': { opacity: '0', transform: 'translateY(260px) rotate(540deg)' }
 				}
 			},
 			animation: {
@@ -134,7 +174,11 @@ export default {
 				'level-in': 'level-in 0.35s ease-out both',
 				'level-pulse': 'level-pulse 2.4s ease-out infinite',
 				'pop-in': 'pop-in 0.3s ease-out both',
-				'cheer': 'cheer 0.6s ease-in-out 2'
+				'cheer': 'cheer 0.6s ease-in-out 2',
+				'node-pop': 'node-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+				'marker-bob': 'marker-bob 1.6s ease-in-out infinite',
+				'star-twinkle': 'star-twinkle 2s ease-in-out infinite',
+				'confetti-fall': 'confetti-fall 1.5s ease-in forwards'
 			}
 		}
 	},

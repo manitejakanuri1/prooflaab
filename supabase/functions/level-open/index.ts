@@ -50,7 +50,7 @@ serve(async (req) => {
     if (claimsError || !claims?.claims?.sub) return json({ error: 'Unauthorized' }, 401);
     const callerId = claims.claims.sub as string;
 
-    const { track_slug, level_number, advance_step } = await req.json();
+    const { track_slug, level_number, advance_step, skip_to_checkpoint } = await req.json();
     if (typeof track_slug !== 'string' || !Number.isInteger(level_number)) {
       return json({ error: 'track_slug and level_number are required' }, 400);
     }
@@ -154,6 +154,31 @@ serve(async (req) => {
         else progressById.set(target.id, { ...already, status: 'cleared' });
       }
       target = pickTarget();
+    }
+
+    // "I already know this" lane: mark every remaining explanation step
+    // cleared in one shot and land straight on the checkpoint, instead of
+    // clicking "Got it, next" N times. Same DB effect as reading them one by
+    // one — no shortcut around the checkpoint quiz itself.
+    if (skip_to_checkpoint === true) {
+      while (target.kind === 'explanation') {
+        const already = progressById.get(target.id);
+        if (!DONE_STATUSES.has(already?.status ?? '')) {
+          const { error } = await supabase.from('student_levels').upsert(
+            {
+              student_id: profile.id,
+              level_id: target.id,
+              status: 'cleared',
+              cleared_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'student_id,level_id' },
+          );
+          if (error) console.error('Could not skip step:', error.message);
+          else progressById.set(target.id, { ...already, status: 'cleared' });
+        }
+        target = pickTarget();
+      }
     }
 
     const progress = progressById.get(target.id);

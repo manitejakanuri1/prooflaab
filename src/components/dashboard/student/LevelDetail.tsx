@@ -91,14 +91,20 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const [result, setResult] = useState<SubmitPayload | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const open = levelNumber !== null;
 
-  const fetchStep = async (advanceStep: boolean) => {
+  const fetchStep = async (advanceStep: boolean, skipToCheckpoint = false) => {
     const { data: payload, error } = await supabase.functions.invoke("level-open", {
-      body: { track_slug: trackSlug, level_number: levelNumber, advance_step: advanceStep },
+      body: {
+        track_slug: trackSlug,
+        level_number: levelNumber,
+        advance_step: advanceStep,
+        skip_to_checkpoint: skipToCheckpoint,
+      },
     });
     if (error) {
       const body = await readFunctionError(error);
@@ -138,6 +144,12 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
     setAdvancing(true);
     await fetchStep(true);
     setAdvancing(false);
+  };
+
+  const handleSkipToCheckpoint = async () => {
+    setSkipping(true);
+    await fetchStep(false, true);
+    setSkipping(false);
   };
 
   const handleSubmit = async () => {
@@ -386,11 +398,34 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
             )}
 
             {phase === "read" && !isCheckpoint && (
-              <Button onClick={handleNextStep} disabled={advancing} className="gap-2">
-                {advancing && <Loader2 className="h-4 w-4 animate-spin" />}
-                Got it — next
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSkipToCheckpoint}
+                    disabled={skipping || advancing}
+                    className="gap-1.5 text-muted-foreground"
+                  >
+                    {skipping && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Skip to check
+                  </Button>
+                  <Button onClick={handleNextStep} disabled={advancing || skipping} className="gap-2">
+                    {advancing && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Got it — next
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                {/* Legally not legal advice, just a nudge: skipping is one click, so
+                    make the click cost something — a joke they'll half-remember
+                    the next time they're stuck and wish they hadn't skipped. */}
+                <p className="text-[11px] text-muted-foreground/70 italic max-w-xs text-right">
+                  ⚠️ Skipping voids the "I definitely learned this" warranty. Side
+                  effects may include blank stares in interviews. Reading it once
+                  now is cheaper than re-learning it live, in front of someone
+                  judging you.
+                </p>
+              </div>
             )}
 
             {phase === "read" && isCheckpoint && (

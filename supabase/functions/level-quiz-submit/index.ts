@@ -118,7 +118,19 @@ serve(async (req) => {
       }
     }
 
-    const results = quiz.map((q) => {
+    // Grade only the questions this attempt actually served, not the whole
+    // pool a topic's checkpoint stores — level-open hands out a random
+    // QUIZ_LENGTH subset of up to QUIZ_POOL_SIZE questions per attempt, so
+    // "everything in content.quiz" is the wrong denominator once pools are
+    // bigger than what's shown. Ordered by the submitted answers, which is
+    // the order the student was shown them in — not content.quiz's storage
+    // order, which the shuffle at serve time no longer matches.
+    const quizById = new Map(quiz.map((q) => [q.id, q]));
+    const presented = [...selectedById.keys()]
+      .map((id) => quizById.get(id))
+      .filter((q): q is (typeof quiz)[number] => !!q);
+
+    const results = presented.map((q) => {
       const selected = selectedById.has(q.id) ? selectedById.get(q.id)! : null;
       const correct = selected === q.correct_index;
       return {
@@ -235,7 +247,7 @@ serve(async (req) => {
     return json({
       passed,
       score,
-      out_of: quiz.length,
+      out_of: presented.length,
       pass_mark: QUIZ_PASS_MARK,
       attempts,
       best_score: bestScore,

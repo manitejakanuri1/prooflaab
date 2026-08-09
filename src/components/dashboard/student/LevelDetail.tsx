@@ -366,7 +366,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                     {!r.correct && (
                       <p className="text-sm mt-2 pl-6">
                         <span className="text-muted-foreground">Right answer: </span>
-                        {data.quiz[i]?.options[r.correct_index]}
+                        {data.quiz.find((q) => q.id === r.question_id)?.options[r.correct_index]}
                       </p>
                     )}
                     <p className="text-sm text-muted-foreground mt-1 pl-6">{r.explanation}</p>

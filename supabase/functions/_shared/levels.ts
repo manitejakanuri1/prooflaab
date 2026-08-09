@@ -12,10 +12,13 @@ import { generateText } from './llm.ts';
 /** Out of five, for the one checkpoint quiz at the end of a topic. */
 export const QUIZ_PASS_MARK = 3;
 export const QUIZ_LENGTH = 5;
+/** Generated once per topic; each attempt serves a random QUIZ_LENGTH of these,
+ * so retaking a failed checkpoint isn't just memorising the same 5 answers. */
+export const QUIZ_POOL_SIZE = 10;
 
 /** A topic's explanation steps, not counting its checkpoint. */
-export const MIN_TOPIC_STEPS = 3;
-export const MAX_TOPIC_STEPS = 8;
+export const MIN_TOPIC_STEPS = 4;
+export const MAX_TOPIC_STEPS = 10;
 
 /** XP for clearing a topic's checkpoint quiz. The proof task carries its own, larger reward. */
 export const LEVEL_CLEAR_XP = 15;
@@ -334,14 +337,14 @@ Just covered: ${before.length ? before.join(', ') : 'nothing, this is the first 
 Return JSON:
 {"steps":[{"title":"...","explanation":"...","needs_sandbox":false,"sandbox_template":null,"sandbox_files":null},...],"quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},...],"proof_title":"...","proof_brief":"..."}
 
-steps — between ${MIN_TOPIC_STEPS} and ${MAX_TOPIC_STEPS} of them, however many the topic actually needs (a small topic gets fewer, a broad one gets more — you decide). Each step:
+steps — between ${MIN_TOPIC_STEPS} and ${MAX_TOPIC_STEPS} of them, however many the topic actually needs (a small topic gets fewer, a broad one gets more — you decide, but do not undershoot: this has to actually teach the topic, not tease it). Each step:
 - title: short, specific (e.g. "Reading a Stack Trace", not "Debugging Part 1").
-- explanation: 80-120 words, a message from a funny senior who has the job, not a lecture. Plain sentences, blank lines between them, one idea per step — don't try to cover the whole topic in step 1. No headings, bullets, markdown, code blocks or emoji. Funny and warm, never patronising, never "Hey champ!".
+- explanation: 150-220 words, a message from a funny senior who has the job, not a lecture — but a funny voice is not an excuse to be vague. Use the REAL terminology a working ${role} would actually say out loud (the exact keyword, flag, HTTP verb, command, or concept name), then immediately explain what that term means in plain words the first time it shows up — teach the vocabulary, don't dodge it. Plain sentences, blank lines between them, one idea per step — don't try to cover the whole topic in step 1. No headings, bullets, markdown, code blocks or emoji. Funny and warm, never patronising, never "Hey champ!".
 - needs_sandbox: true ONLY if this step teaches something runnable as plain HTML/CSS/JS in a browser (a web page, DOM manipulation, a JS snippet). False for anything else — conceptual topics (networking, soft skills, architecture), and any language that isn't HTML/CSS/JS (Python, SQL, shell commands etc. have no sandbox here, "what is X").
 - sandbox_template: "html" for a page/markup/CSS step, "javascript" for a JS-logic step, when needs_sandbox is true, else null.
 - sandbox_files: when needs_sandbox is true, an object of {filename: starter code} — a minimal, runnable starting point illustrating THIS step, not a finished solution (e.g. {"index.html": "<!doctype html>..."}). Else null.
 
-quiz — exactly ${QUIZ_LENGTH} questions covering the WHOLE topic (draw from across the steps, not just the last one), answerable by someone who went through all the steps. Test understanding, not trivia. At least one realistic "what happens if" or "why did this break". Exactly 4 options, one correct, wrong ones genuinely tempting. Vary which index is correct. Each explanation is one short sentence in the same voice.
+quiz — exactly ${QUIZ_POOL_SIZE} questions covering the WHOLE topic (draw from across every step, not just the last one), answerable by someone who went through all the steps. This is a POOL: each attempt only shows the student ${QUIZ_LENGTH} of these at random, so the ${QUIZ_POOL_SIZE} must be genuinely different questions, not near-duplicates reworded — vary which step, which term, which "what happens if" each one targets. Test understanding and real terminology, not trivia. At least 3 of them should be a realistic "what happens if" or "why did this break" rather than a definition lookup. Exactly 4 options, one correct, wrong ones genuinely tempting (a common misconception or an almost-right term). Vary which index is correct. Each explanation is one short sentence in the same voice.
 
 proof — a real thing finishable in 30-90 minutes that ends in an artefact (repo, link, screenshot, recording), and that needs what MULTIPLE steps taught, not just one. proof_brief is 2-3 sentences: what to build and what counts as done. Specific and checkable.
 
@@ -363,7 +366,7 @@ function validSandbox(s: any): s is SandboxSpec {
 function validQuiz(quiz: unknown): quiz is Omit<QuizQuestion, 'id'>[] {
   return (
     Array.isArray(quiz) &&
-    quiz.length === QUIZ_LENGTH &&
+    quiz.length === QUIZ_POOL_SIZE &&
     quiz.every(
       (q: any) =>
         typeof q?.prompt === 'string' &&
@@ -474,9 +477,9 @@ export async function ensureTopicSteps(
 
   const result = await generateText(
     prompt,
-    // A whole topic (up to 8 steps + a 5-question quiz) needs more headroom
-    // than the old single-level call did.
-    { temperature: 0.8, maxOutputTokens: 3000, skipRateLimit: ctx.skipRateLimit },
+    // Up to 10 steps at 150-220 words each plus a 10-question pool needs real
+    // headroom — this got cut short at 3000 once steps and pool size both grew.
+    { temperature: 0.8, maxOutputTokens: 4500, skipRateLimit: ctx.skipRateLimit },
     { feature: 'level-content', userId: ctx.userId ?? null, studentId: ctx.studentId ?? null },
   );
 
@@ -585,7 +588,14 @@ export async function ensureTopicSteps(
  * correct_index and the per-question explanation stay on the server until the
  * answers are in. Sending the whole question object is how the earlier
  * assessment leaked its own answer key to anyone who opened the network tab.
+ *
+ * Also where the pool becomes a quiz: a topic's checkpoint stores up to
+ * QUIZ_POOL_SIZE questions, and each open serves a random QUIZ_LENGTH of them
+ * — so failing and reading the explanations, then retaking, is a real retake
+ * and not just re-answering the same 5 from memory. Pools smaller than
+ * QUIZ_LENGTH (older, pre-pool topics) just serve everything they have.
  */
 export function quizForStudent(quiz: QuizQuestion[]) {
-  return quiz.map((q) => ({ id: q.id, prompt: q.prompt, options: q.options }));
+  const shuffled = [...quiz].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, QUIZ_LENGTH).map((q) => ({ id: q.id, prompt: q.prompt, options: q.options }));
 }

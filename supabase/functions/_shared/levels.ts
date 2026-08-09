@@ -47,6 +47,13 @@ export interface SandboxSpec {
   files: Record<string, string>;
 }
 
+/** A read-only highlighted code snippet for a step whose language can't run
+ * in the browser sandbox (Python, SQL, Java, ...). */
+export interface CodeExampleSpec {
+  language: string;
+  code: string;
+}
+
 export interface LevelContentRow {
   level_id: string;
   explanation: string;
@@ -54,6 +61,7 @@ export interface LevelContentRow {
   proof_title: string | null;
   proof_brief: string | null;
   sandbox: SandboxSpec | null;
+  code_example: CodeExampleSpec | null;
 }
 
 /** Same normalisation as skill-map, so "Node.js" and "nodejs" are one skill. */
@@ -334,15 +342,18 @@ function buildTopicPrompt(
 Path "${trackName}", topic ${topic.level_number}/${totalTopics}. Teaches: ${topic.skill}. Called: "${topic.title}".
 Just covered: ${before.length ? before.join(', ') : 'nothing, this is the first topic'}. Coming next: ${after.length ? after.join(', ') : 'nothing, this is the last'}.
 
+If "${topic.skill}" is itself a broad, whole-language/whole-tool skill (Python, SQL, Git, Java, and similar — not a narrow concept like "REST APIs" or "Git & GitHub" workflow basics), do NOT try to survey the whole language. Structure the steps as: first, the small set of fundamentals every developer needs regardless of role (syntax, variables, control flow, functions — whatever is truly universal for this skill); then, for the remaining steps, cover ONLY the parts of "${topic.skill}" a working ${role} actually reaches for on the job for "${trackName}" — skip the corners of the language a ${role} would never touch. This is a path, not a reference manual: depth on what matters for this role, not coverage of everything the language can do.
+
 Return JSON:
-{"steps":[{"title":"...","explanation":"...","needs_sandbox":false,"sandbox_template":null,"sandbox_files":null},...],"quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},...],"proof_title":"...","proof_brief":"..."}
+{"steps":[{"title":"...","explanation":"...","needs_sandbox":false,"sandbox_template":null,"sandbox_files":null,"code_language":null,"code_example":null},...],"quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},...],"proof_title":"...","proof_brief":"..."}
 
 steps — between ${MIN_TOPIC_STEPS} and ${MAX_TOPIC_STEPS} of them, however many the topic actually needs (a small topic gets fewer, a broad one gets more — you decide, but do not undershoot: this has to actually teach the topic, not tease it). Each step:
 - title: short, specific (e.g. "Reading a Stack Trace", not "Debugging Part 1").
-- explanation: 150-220 words, a message from a funny senior who has the job, not a lecture — but a funny voice is not an excuse to be vague. Use the REAL terminology a working ${role} would actually say out loud (the exact keyword, flag, HTTP verb, command, or concept name), then immediately explain what that term means in plain words the first time it shows up — teach the vocabulary, don't dodge it. Plain sentences, blank lines between them, one idea per step — don't try to cover the whole topic in step 1. No headings, bullets, markdown, code blocks or emoji. Funny and warm, never patronising, never "Hey champ!".
-- needs_sandbox: true ONLY if this step teaches something runnable as plain HTML/CSS/JS in a browser (a web page, DOM manipulation, a JS snippet). False for anything else — conceptual topics (networking, soft skills, architecture), and any language that isn't HTML/CSS/JS (Python, SQL, shell commands etc. have no sandbox here, "what is X").
+- explanation: 150-220 words, a message from a funny senior who has the job, not a lecture — but a funny voice is not an excuse to be vague. Use the REAL terminology a working ${role} would actually say out loud (the exact keyword, flag, HTTP verb, command, or concept name), then immediately explain what that term means in plain words the first time it shows up — teach the vocabulary, don't dodge it. Plain sentences, blank lines between them, one idea per step — don't try to cover the whole topic in step 1. No headings, bullets, markdown, code blocks or emoji IN the explanation text itself — code goes in code_example below, not inline.
+- needs_sandbox: true ONLY if this step teaches something runnable as plain HTML/CSS/JS in a browser (a web page, DOM manipulation, a JS snippet). False for anything else.
 - sandbox_template: "html" for a page/markup/CSS step, "javascript" for a JS-logic step, when needs_sandbox is true, else null.
 - sandbox_files: when needs_sandbox is true, an object of {filename: starter code} — a minimal, runnable starting point illustrating THIS step, not a finished solution (e.g. {"index.html": "<!doctype html>..."}). Else null.
+- code_language / code_example: when needs_sandbox is FALSE but a short real code snippet would make the step concrete (a Python function, a SQL query, a shell command, a Java class, a git command sequence — anything that isn't HTML/CSS/JS but the step is still specifically about writing or reading code/commands), set code_language to that language (e.g. "python", "sql", "bash", "java") and code_example to a short (3-15 line) realistic, runnable-looking snippet that illustrates exactly what this step just explained. This is shown read-only, not executed, so it can use anything real code would. For conceptual steps with no code to show (soft skills, architecture, "what is X"), leave both null.
 
 quiz — exactly ${QUIZ_POOL_SIZE} questions covering the WHOLE topic (draw from across every step, not just the last one), answerable by someone who went through all the steps. This is a POOL: each attempt only shows the student ${QUIZ_LENGTH} of these at random, so the ${QUIZ_POOL_SIZE} must be genuinely different questions, not near-duplicates reworded — vary which step, which term, which "what happens if" each one targets. Test understanding and real terminology, not trivia. At least 3 of them should be a realistic "what happens if" or "why did this break" rather than a definition lookup. Exactly 4 options, one correct, wrong ones genuinely tempting (a common misconception or an almost-right term). Vary which index is correct. Each explanation is one short sentence in the same voice.
 
@@ -360,6 +371,15 @@ function validSandbox(s: any): s is SandboxSpec {
     typeof s.files === 'object' &&
     Object.keys(s.files).length > 0 &&
     Object.values(s.files).every((v) => typeof v === 'string')
+  );
+}
+
+function validCodeExample(language: unknown, code: unknown): code is string {
+  return (
+    typeof language === 'string' &&
+    language.trim().length > 0 &&
+    typeof code === 'string' &&
+    code.trim().length > 0
   );
 }
 
@@ -386,6 +406,7 @@ interface ParsedStep {
   title: string;
   explanation: string;
   sandbox: SandboxSpec | null;
+  codeExample: CodeExampleSpec | null;
 }
 
 function validSteps(steps: unknown): steps is ParsedStep[] {
@@ -435,7 +456,7 @@ export async function ensureTopicSteps(
     // Already expanded. Just fetch content for each row.
     const { data: contentRows } = await supabase
       .from('level_content')
-      .select('level_id, explanation, quiz, proof_title, proof_brief, sandbox')
+      .select('level_id, explanation, quiz, proof_title, proof_brief, sandbox, code_example')
       .in('level_id', rows.map((r) => r.id));
     const contentByLevelId: Record<string, LevelContentRow> = {};
     for (const c of contentRows ?? []) contentByLevelId[c.level_id] = c as LevelContentRow;
@@ -504,6 +525,11 @@ export async function ensureTopicSteps(
     sandbox: s.needs_sandbox && validSandbox({ template: s.sandbox_template, files: s.sandbox_files })
       ? { template: s.sandbox_template, files: s.sandbox_files }
       : null,
+    // Sandbox and code_example are mutually exclusive by construction — a
+    // step either runs live (HTML/JS) or gets a read-only snapshot, never both.
+    codeExample: !s.needs_sandbox && validCodeExample(s.code_language, s.code_example)
+      ? { language: String(s.code_language).trim(), code: String(s.code_example).trim() }
+      : null,
   }));
 
   // Row 1 reuses the seed's id (preserves any existing progress/content on
@@ -557,10 +583,12 @@ export async function ensureTopicSteps(
     proof_title: null,
     proof_brief: null,
     sandbox: steps[i].sandbox,
+    code_example: steps[i].codeExample,
   }));
   contentRows.push({
     level_id: checkpoint.id,
     explanation: `You've been through ${steps.length} steps on ${seed.skill}. Let's see what stuck.`,
+    code_example: null,
     quiz: parsed.quiz.map((q: any, i: number) => ({
       id: `${checkpoint.id}-q${i + 1}`,
       prompt: q.prompt.trim(),

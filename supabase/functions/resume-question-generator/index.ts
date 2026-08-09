@@ -98,6 +98,9 @@ serve(async (req) => {
       ? [...projects].sort((a, b) => (b.description || '').length - (a.description || '').length)[0]
       : null;
     const mcqCount = 5;
+    // Always exactly 2 descriptive questions now — the assessment is
+    // 5 MCQ + 2 descriptive + 2 coding (added separately after this round),
+    // 9 questions total, not "5 or 5-project-defense-instead".
     const fallbackShortAnswerCount = richestProject ? 0 : 2;
 
     const prompt = `You are building a short assessment to check whether a student really understands what they claim on their resume — not a generic quiz, ONLY based on the exact items below.
@@ -108,7 +111,7 @@ Certifications claimed: ${certifications.join(', ') || 'none listed'}
 Projects claimed:
 ${projects.map((p, i) => `${i + 1}. ${p.name} — ${p.description} (tech: ${(p.tech_stack || []).join(', ')})`).join('\n') || 'none listed'}
 
-Generate exactly ${mcqCount} multiple-choice questions${fallbackShortAnswerCount > 0 ? ` and exactly ${fallbackShortAnswerCount} short-answer questions` : ''}. Each question will be shown one at a time with a 15-second timer, so keep every question short enough to read and answer that fast.
+Generate exactly ${mcqCount} multiple-choice questions${fallbackShortAnswerCount > 0 ? ` and exactly ${fallbackShortAnswerCount} short-answer questions` : ''}. Each MCQ gets 45 seconds and each short-answer question gets 60 seconds on a timer, so keep every question short enough to read and answer within that.
 
 Rules for ALL questions:
 - Base every question ONLY on the skills/certifications/projects listed above — never invent a skill or ask about something not claimed.
@@ -183,17 +186,15 @@ Return ONLY the JSON array, no additional text.`;
       );
     }
 
-    // Deepened project-defense: 5 fixed sub-questions on the richest claimed
-    // project, worded verbatim per the product doc — no LLM involved so the
-    // wording/coverage never drifts.
+    // Project-defense: 2 fixed sub-questions on the richest claimed project,
+    // worded verbatim per the product doc — no LLM involved so the
+    // wording/coverage never drifts. Picks the two that are hardest to fake:
+    // what you actually built, and what went wrong while building it.
     if (richestProject) {
       const p = richestProject;
       const defenseQuestions = [
-        `What problem did your "${p.name}" project solve?`,
-        `Why did you choose ${(p.tech_stack || []).join(', ') || 'that tech stack'} for "${p.name}"?`,
         `What exactly was your own contribution to "${p.name}"?`,
         `What was the toughest challenge you hit building "${p.name}", and how did you solve it?`,
-        `Why that particular database, API, framework, or model in "${p.name}"?`,
       ];
       defenseQuestions.forEach((prompt, i) => {
         questions.push({ id: `q${mcqCount + 1 + i}`, type: 'short_answer', prompt, category: 'project_defense' });

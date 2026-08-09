@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { readFunctionError } from "@/lib/functionError";
 import CodeSandboxEmbed from "./CodeSandboxEmbed";
+import CodeSnapshot from "./CodeSnapshot";
 import {
   ArrowRight,
   Check,
@@ -31,6 +32,11 @@ interface SandboxSpec {
   files: Record<string, string>;
 }
 
+interface CodeExampleSpec {
+  language: string;
+  code: string;
+}
+
 interface LevelPayload {
   level: {
     id: string;
@@ -45,6 +51,7 @@ interface LevelPayload {
   total_steps: number;
   explanation: string;
   sandbox: SandboxSpec | null;
+  code_example: CodeExampleSpec | null;
   quiz: QuizQuestion[];
   proof: { title: string; brief: string } | null;
   status: string;
@@ -260,6 +267,13 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground">Try it yourself</p>
                   <CodeSandboxEmbed template={data.sandbox.template} files={data.sandbox.files} />
+                </div>
+              )}
+
+              {data.code_example && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">In code</p>
+                  <CodeSnapshot language={data.code_example.language} code={data.code_example.code} />
                 </div>
               )}
 

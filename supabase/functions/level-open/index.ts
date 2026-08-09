@@ -227,6 +227,7 @@ serve(async (req) => {
       total_steps: explanationSteps.length,
       explanation: content?.explanation ?? '',
       sandbox: content?.sandbox ?? null,
+      code_example: content?.code_example ?? null,
       quiz: target.kind === 'checkpoint' ? quizForStudent(content?.quiz ?? []) : [],
       proof: content?.proof_title ? { title: content.proof_title, brief: content.proof_brief } : null,
       status: progressById.get(target.id)?.status ?? 'opened',

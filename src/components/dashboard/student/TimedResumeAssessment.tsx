@@ -11,8 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RoadmapStages } from "./RoadmapStages";
 
-const SECONDS_PER_QUESTION = 15;
-const SECONDS_PER_CODING_PROBLEM = 300;
+// 5 MCQ @ 45s + 2 descriptive @ 60s + 2 coding @ 180s = 9 questions total.
+const SECONDS_PER_MCQ = 45;
+const SECONDS_PER_DESCRIPTIVE = 60;
+const SECONDS_PER_CODING_PROBLEM = 180;
+const secondsFor = (q: Question | undefined) => (q?.type === "mcq" ? SECONDS_PER_MCQ : SECONDS_PER_DESCRIPTIVE);
 /**
  * Time handed back when the executor is unreachable.
  *
@@ -139,7 +142,7 @@ type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing" | "result
 const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsId, questions, onGraded }: TimedResumeAssessmentProps) => {
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION);
+  const [timeLeft, setTimeLeft] = useState(() => secondsFor(questions[0]));
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [confidence, setConfidence] = useState<ConfidenceLevel | null>(null);
@@ -305,9 +308,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     setSelectedOption(null);
     setTextAnswer("");
     setConfidence(null);
-    setTimeLeft(SECONDS_PER_QUESTION);
+    setTimeLeft(secondsFor(questions[currentIndex + 1]));
     advancingRef.current = false;
-  }, [answers, confidence, currentQuestion, isLastQuestion, selectedOption, textAnswer, submitAssessment]);
+  }, [answers, confidence, currentIndex, currentQuestion, isLastQuestion, questions, selectedOption, textAnswer, submitAssessment]);
 
   // Reload-resume: this component fully remounts on a page reload, so progress
   // (question index, recorded answers, coding round state) is snapshotted to
@@ -337,8 +340,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
             retryCodingGen();
           } else {
             skipNextScrollRef.current = true;
-            setCurrentIndex(Math.min(saved.currentIndex ?? 0, Math.max(questions.length - 1, 0)));
-            setTimeLeft(SECONDS_PER_QUESTION);
+            const restoredIndex = Math.min(saved.currentIndex ?? 0, Math.max(questions.length - 1, 0));
+            setCurrentIndex(restoredIndex);
+            setTimeLeft(secondsFor(questions[restoredIndex]));
             setPhase("quiz");
           }
         }

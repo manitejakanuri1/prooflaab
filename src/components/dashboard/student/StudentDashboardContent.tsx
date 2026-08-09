@@ -69,7 +69,7 @@ const StudentDashboardContent = ({ activeTab, refreshProfile, onTabChange }: Stu
       case "settings":
         return <StudentSettingsPage refreshProfile={refreshProfile} />;
       default:
-        return <StudentFeedPage />;
+        return <StudentDashboardOverview onNavigateTab={onTabChange} />;
     }
   };
 

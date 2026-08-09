@@ -83,7 +83,7 @@ const StudentRoadmapPage = () => {
   // either one would be a step backwards.
   return (
     <div className="space-y-6">
-      <LevelMap />
+      <LevelMap assessmentStages={stages ?? undefined} />
 
       {loading ? (
         <Card>
@@ -161,7 +161,7 @@ const RoadmapFromAssessment = ({
               const meta = statusMeta[status];
               const StatusIcon = meta.icon;
               return (
-                <div key={i} className="flex gap-3">
+                <div key={i} id={`assessment-stage-${i}`} className="flex gap-3 scroll-mt-24">
                   <div className="flex flex-col items-center">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                       {i + 1}

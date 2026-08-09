@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,7 @@ interface SubmitPayload {
   xp_awarded: number;
   next_level: { level_number: number; sub_level: number; skill: string; title: string } | null;
   track_complete: boolean;
+  task_id: string | null;
 }
 
 interface LevelDetailProps {
@@ -85,6 +87,7 @@ type Phase = "loading" | "read" | "quiz" | "result" | "error";
 
 const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelDetailProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorText, setErrorText] = useState("");
   const [data, setData] = useState<LevelPayload | null>(null);
@@ -377,9 +380,23 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">{result.proof.brief}</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    It's waiting in Assigned Tasks. Finishing it earns this topic its star —
-                    knowing it is good, proving it is the point.
+                    Finishing it earns this topic its star — knowing it is good, proving it is
+                    the point.
                   </p>
+                  {result.task_id && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 gap-1.5"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate('/student/tasks/assigned');
+                      }}
+                    >
+                      Go to this task
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

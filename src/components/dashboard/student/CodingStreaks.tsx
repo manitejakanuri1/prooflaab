@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Loader2, RefreshCw } from "lucide-react";
+import { ArrowRight, Flame, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -22,11 +23,13 @@ const yesterdayStr = () => new Date(Date.now() - 86400000).toISOString().slice(0
 const CodingStreaks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [studentId, setStudentId] = useState<string | null>(null);
   const [rows, setRows] = useState<Record<string, StreakRow>>({});
   const [leetcodeUsername, setLeetcodeUsername] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [nextTopic, setNextTopic] = useState<{ title: string; skill: string } | null>(null);
 
   const loadStreaks = async (sid: string) => {
     const { data } = await supabase
@@ -45,6 +48,25 @@ const CodingStreaks = () => {
       if (!profile) return;
       setStudentId(profile.id);
       loadStreaks(profile.id);
+
+      // The streak habit and the roadmap are the same "keep going" muscle —
+      // point one at the other instead of leaving them as two unrelated cards.
+      const { data: track } = await supabase
+        .from("student_tracks")
+        .select("track_slug, unlocked_through")
+        .eq("student_id", profile.id)
+        .eq("is_primary", true)
+        .maybeSingle();
+      if (track) {
+        const { data: level } = await supabase
+          .from("levels")
+          .select("title, skill")
+          .eq("track_slug", track.track_slug)
+          .eq("level_number", track.unlocked_through)
+          .eq("sub_level", 1)
+          .maybeSingle();
+        if (level) setNextTopic(level);
+      }
     })();
   }, [user]);
 
@@ -99,9 +121,23 @@ const CodingStreaks = () => {
   const leetcode = rows.leetcode;
   const hackerrank = rows.hackerrank;
   const checkedInToday = hackerrank?.last_active_date === todayStr();
+  const hasStreak = (leetcode?.current_streak ?? 0) > 0 || (hackerrank?.current_streak ?? 0) > 0;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="space-y-4">
+      {hasStreak && nextTopic && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm">
+            Streak's warm — next roadmap topic: <span className="font-semibold">{nextTopic.title}</span>{" "}
+            <span className="text-muted-foreground">({nextTopic.skill})</span>
+          </p>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/student/roadmap")}>
+            Continue
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -154,6 +190,7 @@ const CodingStreaks = () => {
           </Button>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

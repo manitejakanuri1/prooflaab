@@ -1,4 +1,5 @@
-import { Bell, CheckCheck, Trash2, User, LogOut } from "lucide-react";
+import { Bell, CheckCheck, Trash2, User, LogOut, Menu } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,7 @@ const StudentHeader = ({
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { toggleSidebar, isMobile } = useSidebar();
 
   const handleSignOut = async () => {
     try {
@@ -57,6 +59,11 @@ const StudentHeader = ({
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo (click = home) */}
         <div className="flex items-center space-x-2 md:space-x-6">
+          {isMobile && (
+            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
           <button
             onClick={onHomeClick}
             className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3 hover:bg-accent/50 transition-colors"

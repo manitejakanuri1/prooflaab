@@ -104,6 +104,9 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
   const [editingDetails, setEditingDetails] = useState(false);
 
   const [targetRole, setTargetRole] = useState("");
+  // Picked once at onboarding, locked from here on — this page used to ask
+  // the same question again on every resume check.
+  const [lockedRoles, setLockedRoles] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [certifications, setCertifications] = useState<string[]>([]);
   const [projects, setProjects] = useState<ProjectClaim[]>([]);
@@ -131,13 +134,17 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
     if (!user) return;
     const { data: profile } = await supabase
       .from("student_profiles")
-      .select("id")
+      .select("id, target_roles")
       .eq("user_id", user.id)
       .single();
     if (!profile) {
       setLoadingExisting(false);
       return;
     }
+    const roles = ((profile as { target_roles?: string[] | null }).target_roles ?? []).filter(
+      (r) => r && r !== "Other",
+    );
+    setLockedRoles(roles);
 
     const { data, error } = await supabase
       .from("resume_claims")
@@ -154,7 +161,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
     } else if (data) {
       const row = data as unknown as ResumeClaimRow;
       setClaim(row);
-      setTargetRole(row.target_role || "");
+      setTargetRole(row.target_role || roles[0] || "");
       setSkills(row.skills || []);
       setCertifications(row.certifications || []);
       setProjects((row.projects as ProjectClaim[]) || []);
@@ -250,7 +257,13 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       if (parseError) throw parseError;
       if (data?.error) throw new Error(data.error);
 
-      setTargetRole(data.target_role || "");
+      // Parser guesses a role from the resume text, but it must not drift
+      // outside what was locked at onboarding.
+      setTargetRole(
+        lockedRoles.length === 0
+          ? data.target_role || ""
+          : lockedRoles.includes(data.target_role) ? data.target_role : lockedRoles[0],
+      );
       setSkills(data.skills || []);
       setCertifications(data.certifications || []);
       setProjects(data.projects || []);
@@ -637,26 +650,44 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           <CardContent className="space-y-6">
             <div>
               <label className="text-sm font-medium mb-1 block">Target role</label>
-              <Select
-                value={TARGET_ROLES.includes(targetRole) ? targetRole : targetRole ? "Other" : ""}
-                onValueChange={(v) => setTargetRole(v === "Other" ? "" : v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your target role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TARGET_ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
+              {lockedRoles.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {lockedRoles.map((role) => (
+                    <Button
+                      key={role}
+                      type="button"
+                      size="sm"
+                      variant={targetRole === role ? "default" : "outline"}
+                      onClick={() => setTargetRole(role)}
+                    >
+                      {role}
+                    </Button>
                   ))}
-                </SelectContent>
-              </Select>
-              {(!TARGET_ROLES.includes(targetRole) || targetRole === "") && (
-                <Input
-                  className="mt-2"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  placeholder="Type your role, e.g. Embedded Systems Engineer"
-                />
+                </div>
+              ) : (
+                <>
+                  <Select
+                    value={TARGET_ROLES.includes(targetRole) ? targetRole : targetRole ? "Other" : ""}
+                    onValueChange={(v) => setTargetRole(v === "Other" ? "" : v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your target role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TARGET_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(!TARGET_ROLES.includes(targetRole) || targetRole === "") && (
+                    <Input
+                      className="mt-2"
+                      value={targetRole}
+                      onChange={(e) => setTargetRole(e.target.value)}
+                      placeholder="Type your role, e.g. Embedded Systems Engineer"
+                    />
+                  )}
+                </>
               )}
             </div>
 

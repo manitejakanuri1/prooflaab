@@ -9,22 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
+import { TARGET_ROLES, TARGET_ROLE_TO_INTEREST, MAX_TARGET_ROLES } from "@/lib/targetRoles";
 
 interface StudentWizardProps {
   onComplete: () => void;
 }
 
 interface StudentWizardData {
-  keyInterests: string[];
+  targetRoles: string[];
   preferredSkills: string[];
   careerGoals: string;
 }
-
-const INTERESTS = [
-  "Web Development", "Mobile Development", "Data Science", "Machine Learning", 
-  "Cybersecurity", "Cloud Computing", "DevOps", "UI/UX Design", "Game Development", 
-  "Blockchain", "IoT", "Robotics"
-];
 
 const INTEREST_SKILLS: Record<string, string[]> = {
   "Web Development":    ["HTML/CSS", "JavaScript", "TypeScript", "React", "Tailwind", "Node.js", "Express", "SQL", "PostgreSQL", "MongoDB", "REST APIs", "JWT Auth", "Next.js", "Vercel", "Vue.js", "Angular"],
@@ -50,24 +45,32 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<StudentWizardData>({
-    keyInterests: [],
+    targetRoles: [],
     preferredSkills: [],
     careerGoals: ""
   });
 
-  const handleInterestToggle = (interest: string) => {
-    setFormData(prev => ({
-      ...prev,
-      keyInterests: prev.keyInterests.includes(interest)
-        ? prev.keyInterests.filter(i => i !== interest)
-        : [...prev.keyInterests, interest]
-    }));
+  const handleRoleToggle = (role: string) => {
+    setFormData(prev => {
+      if (prev.targetRoles.includes(role)) {
+        return { ...prev, targetRoles: prev.targetRoles.filter(r => r !== role) };
+      }
+      if (prev.targetRoles.length >= MAX_TARGET_ROLES) return prev;
+      return { ...prev, targetRoles: [...prev.targetRoles, role] };
+    });
   };
+
+  // Each role maps to a track's interest bucket (a few roles share one), so
+  // picking roles is what actually enrols them on the level paths — the
+  // student never has to separately name "Web Development" too.
+  const derivedInterests = [...new Set(
+    formData.targetRoles.map(r => TARGET_ROLE_TO_INTEREST[r]).filter((i): i is string => !!i),
+  )];
 
   // Only show skills that belong to the interests they picked - a flat list
   // made most interests impossible to cover.
   const visibleSkills = [...new Set([
-    ...formData.keyInterests.flatMap(i => INTEREST_SKILLS[i] ?? []),
+    ...derivedInterests.flatMap(i => INTEREST_SKILLS[i] ?? []),
     ...CORE_SKILLS,
   ])];
 
@@ -94,16 +97,16 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
   };
 
   const handleNext = () => {
-    if (currentStep === 1 && formData.keyInterests.length === 0) {
-      toast.error("Please select at least one interest");
+    if (currentStep === 1 && formData.targetRoles.length === 0) {
+      toast.error("Pick at least one target role");
       return;
     }
     setCurrentStep(2);
   };
 
   const handleSubmit = async () => {
-    if (formData.keyInterests.length === 0) {
-      toast.error("Please select at least one interest");
+    if (formData.targetRoles.length === 0) {
+      toast.error("Pick at least one target role");
       return;
     }
 
@@ -115,7 +118,8 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
       const { error: profileError } = await supabase
         .from('student_profiles')
         .update({
-          key_interests: formData.keyInterests,
+          target_roles: formData.targetRoles,
+          key_interests: derivedInterests,
           preferred_skills: formData.preferredSkills,
           career_goals: formData.careerGoals,
           profile_completed: true
@@ -161,19 +165,32 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
           {currentStep === 1 && (
             <>
               <div className="space-y-3">
-                <Label>Key Interests</Label>
+                <Label>
+                  Target roles — pick up to {MAX_TARGET_ROLES}. This sets your roadmap and locks
+                  in once you continue.
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {INTERESTS.map(interest => (
-                    <div key={interest} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={interest}
-                        checked={formData.keyInterests.includes(interest)}
-                        onCheckedChange={() => handleInterestToggle(interest)}
-                      />
-                      <Label htmlFor={interest} className="text-sm">{interest}</Label>
-                    </div>
-                  ))}
+                  {TARGET_ROLES.map(role => {
+                    const checked = formData.targetRoles.includes(role);
+                    const disabled = !checked && formData.targetRoles.length >= MAX_TARGET_ROLES;
+                    return (
+                      <div key={role} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={role}
+                          checked={checked}
+                          disabled={disabled}
+                          onCheckedChange={() => handleRoleToggle(role)}
+                        />
+                        <Label htmlFor={role} className={`text-sm ${disabled ? "text-muted-foreground" : ""}`}>
+                          {role}
+                        </Label>
+                      </div>
+                    );
+                  })}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {formData.targetRoles.length} of {MAX_TARGET_ROLES} picked
+                </p>
               </div>
 
               <div className="flex justify-end">

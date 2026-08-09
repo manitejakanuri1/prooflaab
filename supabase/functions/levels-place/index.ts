@@ -67,17 +67,19 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const skills = [
-      ...((claim?.skills as string[] | null) ?? []),
-      ...((profile.preferred_skills as string[] | null) ?? []),
-    ];
+    // Only resume-verified skills grant a free tick. Self-reported onboarding
+    // checkboxes route them to the right track (via interests, below) but
+    // must not skip content on their own — unverified boxes insta-clearing
+    // most of a track is what turned "picked a few skills" into "finished
+    // the whole path in under an hour" with nothing actually taught.
+    const resumeSkills = (claim?.skills as string[] | null) ?? [];
 
     const placements = await placeStudent(supabase, profile.id, {
       trackSlugs: requestedTrack ? [requestedTrack] : undefined,
       interests: (profile.key_interests as string[] | null) ?? [],
-      skills,
+      skills: resumeSkills,
       resume: {
-        skills,
+        skills: resumeSkills,
         projects: (claim?.projects as any[] | null) ?? [],
         certifications: (claim?.certifications as string[] | null) ?? [],
       },

@@ -12,7 +12,6 @@ import LevelPath, { type LevelState, type PathLevel } from "./LevelPath";
 import {
   Check,
   ChevronRight,
-  Flag,
   List,
   Loader2,
   Lock,
@@ -29,11 +28,6 @@ interface Level {
   level_number: number;
   skill: string;
   title: string;
-}
-
-interface LevelMapProps {
-  /** From the resume-assessment card below this one — searched alongside track skills. */
-  assessmentStages?: { title: string; why: string }[];
 }
 
 interface TrackSummary {
@@ -80,7 +74,7 @@ const STATE_STYLE: Record<LevelState, { ring: string; line: string }> = {
   },
 };
 
-const LevelMap = ({ assessmentStages = [] }: LevelMapProps) => {
+const LevelMap = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -312,21 +306,6 @@ const LevelMap = ({ assessmentStages = [] }: LevelMapProps) => {
       .slice(0, 8);
   }, [search, tracks, levelsByTrack]);
 
-  /** Same search box, but also over "what your assessment caught" — a student
-   *  stuck on something their test flagged shouldn't need to know it lives on
-   *  a different card to find it. */
-  const assessmentMatches = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (query.length < 2) return [];
-    return assessmentStages
-      .map((stage, index) => ({ stage, index }))
-      .filter(
-        ({ stage }) =>
-          stage.title.toLowerCase().includes(query) || stage.why.toLowerCase().includes(query),
-      )
-      .slice(0, 4);
-  }, [search, assessmentStages]);
-
   if (loading) {
     return (
       <Card>
@@ -470,32 +449,12 @@ const LevelMap = ({ assessmentStages = [] }: LevelMapProps) => {
 
           {search.trim().length >= 2 && (
             <div className="pt-2 space-y-1 animate-level-in">
-              {matches.length === 0 && assessmentMatches.length === 0 ? (
+              {matches.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nothing on your paths teaches that yet.
                 </p>
               ) : (
                 <>
-                {assessmentMatches.map(({ stage, index }) => (
-                  <button
-                    key={`assessment-${index}`}
-                    type="button"
-                    onClick={() => {
-                      document
-                        .getElementById(`assessment-stage-${index}`)
-                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      setSearch('');
-                    }}
-                    className="w-full text-left text-sm rounded-md border px-3 py-2 flex items-center gap-2 transition-colors hover:bg-muted/60 cursor-pointer"
-                  >
-                    <Flag className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="font-medium">{stage.title}</span>
-                    <span className="text-muted-foreground truncate">— {stage.why}</span>
-                    <span className="ml-auto text-xs text-muted-foreground shrink-0">
-                      from your test
-                    </span>
-                  </button>
-                ))}
                 {matches.map(({ level, track }) => {
                   const state = stateOf(level, track);
                   return (
@@ -714,6 +673,10 @@ const LevelMap = ({ assessmentStages = [] }: LevelMapProps) => {
           levelNumber={openLevel}
           onOpenChange={(open) => !open && setOpenLevel(null)}
           onCleared={refresh}
+          onContinue={(nextLevelNumber) => {
+            refresh();
+            setOpenLevel(nextLevelNumber);
+          }}
         />
       )}
     </div>

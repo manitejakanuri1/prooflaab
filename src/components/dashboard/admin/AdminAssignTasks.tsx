@@ -544,8 +544,6 @@ const AdminAssignTasks = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      let insertedTasks;
-
       // Determine target students
       const targetStudents = audienceType === "all" 
         ? filteredStudents.map(s => s.id)
@@ -585,8 +583,6 @@ const AdminAssignTasks = () => {
       if (!data || !data.success) {
         throw new Error(data?.error || 'Failed to assign tasks');
       }
-
-      insertedTasks = data.tasks || [];
 
       // Get college count for success message
       const totalColleges = [...new Set(

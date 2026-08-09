@@ -405,28 +405,12 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       );
     }
 
-    // Turn each roadmap stage into a real task the student can start/upload
-    // proof for, instead of leaving the roadmap as read-only text.
-    try {
-      const stages = JSON.parse(roadmap) as { title: string; why: string; action: string }[];
-      const isFallback = stages.length === 1 && stages[0].title === 'Clean sweep';
-      if (!isFallback) {
-        const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-        const taskRows = stages.map((s, i) => ({
-          student_id: profile.id,
-          title: `Roadmap: ${s.title}`,
-          description: `${s.why}\n\nAction: ${s.action}`,
-          due_date: dueDate,
-          xp_reward: 30,
-          roadmap_scorecard_id: scorecard.id,
-          roadmap_stage_index: i,
-        }));
-        const { error: taskInsertError } = await supabase.from('tasks').insert(taskRows);
-        if (taskInsertError) console.error('Roadmap task creation failed:', taskInsertError);
-      }
-    } catch (e) {
-      console.error('Roadmap task creation failed:', e);
-    }
+    // Roadmap stages used to also spawn their own `tasks` rows here, a second
+    // task pipeline running parallel to the Level Map's checkpoint-quiz ->
+    // proof-task flow. Two systems handing out work under the same "roadmap"
+    // name is what made it look like tasks kept reappearing from nowhere.
+    // Level Map is the one path now; this scorecard's roadmap stays
+    // read-only feedback, shown right after the test and in resume history.
 
     // Put them on the level map.
     //

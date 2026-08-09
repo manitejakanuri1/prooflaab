@@ -159,7 +159,7 @@ export default function UploadProofModal({
       // A link submission keeps file_url; a file submission uploads for real and
       // records where it landed. These were the same field before, which is how
       // "[FILE: report.pdf]" ended up being served to reviewers as the proof.
-      let fileUrl: string | null = uploadType === 'link' ? linkUrl.trim() : null;
+      const fileUrl: string | null = uploadType === 'link' ? linkUrl.trim() : null;
       let filePath: string | null = null;
 
       if (uploadType === 'file' && selectedFile) {

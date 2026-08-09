@@ -81,11 +81,13 @@ interface LevelDetailProps {
   onOpenChange: (open: boolean) => void;
   /** Called after a pass, so the map can redraw with the new unlock. */
   onCleared: () => void;
+  /** Jump straight into the next topic instead of closing back to the map. */
+  onContinue: (levelNumber: number) => void;
 }
 
 type Phase = "loading" | "read" | "quiz" | "result" | "error";
 
-const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelDetailProps) => {
+const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContinue }: LevelDetailProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("loading");
@@ -474,8 +476,31 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                     Read it again
                   </Button>
                 )}
-                <Button onClick={() => onOpenChange(false)}>
-                  {result.passed ? "Back to the map" : "Close"}
+                {result.passed && result.next_level && (
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    Back to the map
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    if (result.passed && result.next_level) {
+                      onContinue(result.next_level.level_number);
+                    } else {
+                      onOpenChange(false);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  {result.passed && result.next_level ? (
+                    <>
+                      Continue: {result.next_level.skill}
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  ) : result.passed ? (
+                    "Back to the map"
+                  ) : (
+                    "Close"
+                  )}
                 </Button>
               </div>
             )}

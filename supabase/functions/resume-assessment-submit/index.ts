@@ -105,7 +105,7 @@ serve(async (req) => {
 
     const { data: assessment, error: assessmentError } = await supabase
       .from('resume_assessments')
-      .select('id, student_id, resume_claims_id, questions, status, is_retest, started_at')
+      .select('id, student_id, resume_claims_id, student_interest_id, questions, status, is_retest, started_at')
       .eq('id', assessment_id)
       .maybeSingle();
 
@@ -282,11 +282,32 @@ Return ONLY the JSON object.`;
       );
     }
 
-    const { data: resumeClaim } = await supabase
-      .from('resume_claims')
-      .select('resume_quality_score, ats_match_score, skills, target_role, projects, certifications')
-      .eq('id', assessment.resume_claims_id)
-      .maybeSingle();
+    // A skip-path assessment has no resume behind it, so the two resume-only
+    // scores stay null and there are no projects or certificates to weigh.
+    // Everything downstream already treats those as optional.
+    const { data: resumeClaim } = assessment.resume_claims_id
+      ? await supabase
+          .from('resume_claims')
+          .select('resume_quality_score, ats_match_score, skills, target_role, projects, certifications')
+          .eq('id', assessment.resume_claims_id)
+          .maybeSingle()
+      : await supabase
+          .from('student_interests')
+          .select('target_role, skills')
+          .eq('id', assessment.student_interest_id)
+          .maybeSingle()
+          .then(({ data }) => ({
+            data: data
+              ? {
+                  resume_quality_score: null,
+                  ats_match_score: null,
+                  skills: data.skills || [],
+                  target_role: data.target_role,
+                  projects: [],
+                  certifications: [],
+                }
+              : null,
+          }));
 
     // Build a short, targeted roadmap from whichever questions scored low
     const weakQuestions = questions.filter((q: any) =>
@@ -383,6 +404,7 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       .insert({
         student_id: profile.id,
         resume_claims_id: assessment.resume_claims_id,
+        student_interest_id: assessment.student_interest_id,
         assessment_id: assessment.id,
         resume_quality_score: resumeClaim?.resume_quality_score ?? null,
         ats_match_score: resumeClaim?.ats_match_score ?? null,

@@ -53,10 +53,12 @@ serve(async (req) => {
     }
     const callerId = claims.claims.sub;
 
-    const { resume_claims_id } = await req.json();
-    if (!resume_claims_id) {
+    // Same two ways in as the quiz: a resume, or the interests a student picked
+    // after pressing Skip. Exactly one.
+    const { resume_claims_id, student_interest_id } = await req.json();
+    if (!resume_claims_id === !student_interest_id) {
       return new Response(
-        JSON.stringify({ error: 'resume_claims_id is required' }),
+        JSON.stringify({ error: 'send exactly one of resume_claims_id or student_interest_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -75,15 +77,36 @@ serve(async (req) => {
       );
     }
 
-    const { data: resumeClaim } = await supabase
-      .from('resume_claims')
-      .select('id, student_id, skills, target_role, projects')
-      .eq('id', resume_claims_id)
-      .maybeSingle();
+    const fromResume = Boolean(resume_claims_id);
+
+    const { data: resumeClaim } = fromResume
+      ? await supabase
+          .from('resume_claims')
+          .select('id, student_id, skills, target_role, projects')
+          .eq('id', resume_claims_id)
+          .maybeSingle()
+      : await supabase
+          .from('student_interests')
+          .select('id, student_id, skills, interests, target_role')
+          .eq('id', student_interest_id)
+          .maybeSingle()
+          .then(({ data }) => ({
+            data: data
+              ? {
+                  id: data.id,
+                  student_id: data.student_id,
+                  // Interests are the skills for this student — pickLanguage
+                  // reads this list to choose the coding language.
+                  skills: [...(data.skills || []), ...(data.interests || [])],
+                  target_role: data.target_role,
+                  projects: [],
+                }
+              : null,
+          }));
 
     if (!resumeClaim || resumeClaim.student_id !== profile.id) {
       return new Response(
-        JSON.stringify({ error: 'Resume claim not found' }),
+        JSON.stringify({ error: fromResume ? 'Resume claim not found' : 'Interests not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -91,7 +114,7 @@ serve(async (req) => {
     const { data: assessment } = await supabase
       .from('resume_assessments')
       .select('id, student_id')
-      .eq('resume_claims_id', resume_claims_id)
+      .eq(fromResume ? 'resume_claims_id' : 'student_interest_id', fromResume ? resume_claims_id : student_interest_id)
       .maybeSingle();
 
     if (!assessment || assessment.student_id !== profile.id) {

@@ -1,3 +1,0 @@
--- One-off test-data script, applied to production at the timestamp in this filename.
--- Contents redacted: contained real users' email addresses and IDs (PII).
--- Intentionally a no-op on fresh databases.

@@ -22,6 +22,20 @@ import {
   X,
 } from "lucide-react";
 
+/** One ranked track, with the evidence that put it there. */
+interface TrackSuggestion {
+  slug: string;
+  name: string;
+  emoji: string;
+  role: string | null;
+  total_steps: number;
+  matched_steps: number;
+  match_pct: number;
+  matched_skills: string[];
+  from_interest: boolean;
+  reason: string;
+}
+
 interface Level {
   id: string;
   track_slug: string;
@@ -86,6 +100,8 @@ const LevelMap = () => {
   const [levelsByTrack, setLevelsByTrack] = useState<Record<string, Level[]>>({});
   const [progress, setProgress] = useState<Record<string, LevelProgress>>({});
   const [allTracks, setAllTracks] = useState<{ slug: string; name: string; emoji: string }[]>([]);
+  const [suggestions, setSuggestions] = useState<TrackSuggestion[]>([]);
+  const [showAllTracks, setShowAllTracks] = useState(false);
   const [openLevel, setOpenLevel] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [resume, setResume] = useState<ResumeSummary | null>(null);
@@ -179,10 +195,15 @@ const LevelMap = () => {
       }
 
       if (summaries.length === 0) {
-        const { data: everything } = await supabase
-          .from("level_tracks")
-          .select("slug, name, emoji")
-          .order("sort_order");
+        // Two suggestions, ranked against what this student has actually
+        // claimed and proved, instead of twelve identical buttons. The full
+        // list is still loaded, behind a link, for anyone deliberately
+        // changing direction.
+        const [{ data: suggested }, { data: everything }] = await Promise.all([
+          supabase.rpc("my_suggested_tracks", { _limit: 2 }),
+          supabase.from("level_tracks").select("slug, name, emoji").order("sort_order"),
+        ]);
+        setSuggestions((suggested ?? []) as TrackSuggestion[]);
         setAllTracks((everything ?? []) as any);
       }
 
@@ -316,27 +337,83 @@ const LevelMap = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Pick where you're heading</CardTitle>
+          <CardTitle className="text-lg">
+            {suggestions.length > 0 ? "Here's where you already stand" : "Pick where you're heading"}
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Choose one and we'll lay out the levels from wherever you already are — not from zero.
+            {suggestions.length > 0
+              ? "Read from your resume and the skills you picked. Choose one and we'll lay out the levels from wherever you already are — not from zero."
+              : "Choose one and we'll lay out the levels from wherever you already are — not from zero."}
           </p>
         </CardHeader>
-        <CardContent className="grid gap-2 sm:grid-cols-2">
-          {allTracks.map((t, i) => (
-            <Button
-              key={t.slug}
-              variant="outline"
-              disabled={placing}
-              style={{ animationDelay: `${i * 40}ms` }}
-              className="justify-start gap-2 h-auto py-3 animate-level-in"
-              onClick={() => startTrack(t.slug)}
+        <CardContent className="space-y-3">
+          {/* The two suggestions, each showing WHY it is being suggested. A
+              student who disagrees can still see every track below. */}
+          {!showAllTracks &&
+            suggestions.map((t, i) => (
+              <button
+                key={t.slug}
+                type="button"
+                disabled={placing}
+                style={{ animationDelay: `${i * 60}ms` }}
+                onClick={() => startTrack(t.slug)}
+                className="w-full text-left rounded-lg border-2 p-4 transition-colors animate-level-in hover:border-primary disabled:opacity-60"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl leading-none">{t.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="font-semibold">{t.name}</span>
+                      {t.role && <span className="text-xs text-muted-foreground">{t.role}</span>}
+                      {t.matched_steps > 0 && (
+                        <span className="ml-auto text-xs font-medium text-primary">
+                          {t.match_pct}% already covered
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{t.reason}</p>
+                    {t.matched_steps > 0 && (
+                      <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${t.match_pct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+
+          {(showAllTracks || suggestions.length === 0) && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {allTracks.map((t, i) => (
+                <Button
+                  key={t.slug}
+                  variant="outline"
+                  disabled={placing}
+                  style={{ animationDelay: `${i * 40}ms` }}
+                  className="justify-start gap-2 h-auto py-3 animate-level-in"
+                  onClick={() => startTrack(t.slug)}
+                >
+                  <span className="text-lg">{t.emoji}</span>
+                  {t.name}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {suggestions.length > 0 && allTracks.length > suggestions.length && (
+            <button
+              type="button"
+              onClick={() => setShowAllTracks((v) => !v)}
+              className="text-xs text-muted-foreground underline hover:text-foreground"
             >
-              <span className="text-lg">{t.emoji}</span>
-              {t.name}
-            </Button>
-          ))}
+              {showAllTracks
+                ? "Back to what suits you"
+                : `Something else? Show all ${allTracks.length} paths`}
+            </button>
+          )}
+
           {placing && (
-            <p className="text-sm text-muted-foreground flex items-center gap-2 col-span-full">
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               Working out where you start…
             </p>

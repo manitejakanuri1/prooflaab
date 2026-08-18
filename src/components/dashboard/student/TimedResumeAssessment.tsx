@@ -38,6 +38,16 @@ const readFunctionError = async (error: unknown): Promise<Record<string, unknown
   }
 };
 
+/**
+ * Refuses copy, cut, paste and drop.
+ *
+ * A question that can be copied is a question that can be pasted into an AI,
+ * and an answer box that accepts a paste accepts someone else's work. This does
+ * not stop a determined person with a second phone — it stops the easy version,
+ * which is most of it.
+ */
+const blockClipboard = (e: React.ClipboardEvent | React.DragEvent) => e.preventDefault();
+
 interface Question {
   id: string;
   type: "mcq" | "short_answer";
@@ -116,7 +126,12 @@ interface TimedResumeAssessmentProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   assessmentId: string;
-  resumeClaimsId: string;
+  /**
+   * Which side of the intake this test came from. Passed straight through as
+   * the request body, so the edge functions receive exactly one of the two
+   * source ids — the same rule the database enforces on the assessment row.
+   */
+  source: { resume_claims_id: string } | { student_interest_id: string };
   questions: Question[];
   onGraded: (result: ResumeScoreResult) => void;
 }
@@ -136,7 +151,7 @@ const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string; emoji: string
 
 type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing" | "results";
 
-const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsId, questions, onGraded }: TimedResumeAssessmentProps) => {
+const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, questions, onGraded }: TimedResumeAssessmentProps) => {
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION);
@@ -189,7 +204,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     setCodingGenError(false);
     try {
       const { data, error } = await supabase.functions.invoke("resume-coding-generate", {
-        body: { resume_claims_id: resumeClaimsId },
+        body: source,
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -199,7 +214,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
       toast({ title: "Couldn't load coding problems", description: err.message || "Please try again.", variant: "destructive" });
       setCodingGenError(true);
     }
-  }, [resumeClaimsId, toast]);
+  }, [source, toast]);
 
   // Grading and coding-problem generation don't depend on each other's output,
   // so they're fired together instead of back-to-back — halves the wait after
@@ -216,7 +231,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
         body: { assessment_id: assessmentId, answers: finalAnswers },
       }),
       supabase.functions.invoke("resume-coding-generate", {
-        body: { resume_claims_id: resumeClaimsId },
+        body: source,
       }),
     ]);
 
@@ -279,7 +294,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
     }
 
     applyCodingQuestions((codingOutcome as PromiseFulfilledResult<any>).value.data.questions || []);
-  }, [assessmentId, resumeClaimsId, toast, onOpenChange]);
+  }, [assessmentId, source, toast, onOpenChange]);
 
   const advance = useCallback(() => {
     if (advancingRef.current || !currentQuestion) return;
@@ -505,7 +520,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                   {currentQuestion.topic}
                 </p>
               )}
-              <p className="font-medium">{currentQuestion.prompt}</p>
+              <p className="font-medium select-none" onCopy={blockClipboard} onCut={blockClipboard}>
+                {currentQuestion.prompt}
+              </p>
 
               {currentQuestion.type === "mcq" ? (
                 <RadioGroup
@@ -515,7 +532,12 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                   {currentQuestion.options?.map((opt, idx) => (
                     <div key={idx} className="flex items-center space-x-2">
                       <RadioGroupItem value={idx.toString()} id={`opt-${idx}`} />
-                      <Label htmlFor={`opt-${idx}`} className="text-sm font-normal cursor-pointer">
+                      <Label
+                        htmlFor={`opt-${idx}`}
+                        className="text-sm font-normal cursor-pointer select-none"
+                        onCopy={blockClipboard}
+                        onCut={blockClipboard}
+                      >
                         {opt}
                       </Label>
                     </div>
@@ -525,6 +547,8 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                 <Textarea
                   value={textAnswer}
                   onChange={(e) => setTextAnswer(e.target.value)}
+                  onPaste={blockClipboard}
+                  onDrop={blockClipboard}
                   placeholder="Explain in your own words..."
                   rows={4}
                   autoFocus
@@ -549,8 +573,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                           : "border-border hover:bg-muted"
                       }`}
                     >
-                      <span className="mr-1">{c.emoji}</span>
-                      {c.label}
+                      <span className="text-lg" title={c.label} aria-label={c.label}>
+                        {c.emoji}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -563,9 +588,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Grading...
                 </>
               ) : isLastQuestion ? (
-                "Finish"
+                "Submit & finish"
               ) : (
-                "Next"
+                "Submit"
               )}
             </Button>
           </>
@@ -626,6 +651,13 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                   onChange={(v) => setCode(v || "")}
                   theme="vs-dark"
                   options={{ minimap: { enabled: false }, fontSize: 13 }}
+                  // Monaco owns its own DOM, so a React onPaste never fires.
+                  // The paste has to be refused on the editor's own input area.
+                  onMount={(editor) => {
+                    const dom = editor.getDomNode();
+                    dom?.addEventListener("paste", (e) => e.preventDefault(), true);
+                    dom?.addEventListener("drop", (e) => e.preventDefault(), true);
+                  }}
                 />
               </div>
 
@@ -683,7 +715,15 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, resumeClaimsI
                 {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
                 Run sample
               </Button>
-              <Button onClick={advanceCoding} disabled={submittingCode} className="flex-1">
+              {/* You cannot submit code you have never run. Submitting blind is
+                  how a pasted answer gets through without the student ever
+                  seeing whether it works. */}
+              <Button
+                onClick={advanceCoding}
+                disabled={submittingCode || runResults === null}
+                title={runResults === null ? "Run your code first" : undefined}
+                className="flex-1"
+              >
                 {submittingCode ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...

@@ -1,3 +1,0 @@
--- One-off user data cleanup, applied to production 2025-09-07.
--- Contents redacted: contained a real user's email address and ID (PII).
--- Intentionally a no-op on fresh databases.

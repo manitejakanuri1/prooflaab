@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import ResumeCheckFlow from "@/components/dashboard/student/ResumeCheckFlow";
-import { Sparkles, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sparkles, LogOut, ArrowRight } from "lucide-react";
 
 const StudentResumeOnboarding = () => {
   const navigate = useNavigate();
@@ -34,9 +35,10 @@ const StudentResumeOnboarding = () => {
       });
   }, [profile?.id, navigate]);
 
-  const handleGraded = () => {
-    setTimeout(() => navigate("/student/dashboard", { replace: true }), 1500);
-  };
+  // The student decides when to leave, not a timer. This used to jump to the
+  // dashboard 1.5 seconds after the scorecard appeared — long enough to see
+  // that numbers existed, nowhere near long enough to read them.
+  const [graded, setGraded] = useState(false);
 
   if (profileLoading || checkingExisting) {
     return (
@@ -67,7 +69,20 @@ const StudentResumeOnboarding = () => {
           </p>
         </div>
 
-        <ResumeCheckFlow onGraded={handleGraded} />
+        <ResumeCheckFlow onGraded={() => setGraded(true)} />
+
+        {graded && (
+          <div className="mt-8 flex justify-center">
+            <Button
+              size="lg"
+              className="min-w-56 text-base"
+              onClick={() => navigate("/student/dashboard", { replace: true })}
+            >
+              Continue to dashboard
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -276,53 +276,59 @@ Return ONLY the JSON array, no additional text.`;
       }
     }
 
-    // Save to conceptual_tests table
-    const { data: existingTest, error: fetchError } = await supabase
+    // Split the answers out before anything is stored.
+    //
+    // correct_index used to be saved inside conceptual_tests.questions, and the
+    // browser reads that table with select('*'). So the right answer arrived on
+    // the student's machine at the same moment as the question. This quiz is
+    // 40% of the Cognitive Integrity Score and is meant to be the part that
+    // cannot be faked, so the key now lives in conceptual_answer_keys — a table
+    // with row level security on and no policy, which means no signed-in
+    // request can return a row from it.
+    const answerKey = questions
+      .filter((q: any) => typeof q.correct_index === 'number')
+      .map((q: any) => ({ id: q.id, correct_index: q.correct_index }));
+
+    const publicQuestions = questions.map((q: any) => {
+      const { correct_index: _omit, ...rest } = q;
+      return rest;
+    });
+
+    const { data: savedTest, error: saveError } = await supabase
       .from('conceptual_tests')
-      .select('id')
-      .eq('proof_id', proof_id)
-      .single();
-
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('Error checking existing test:', fetchError);
-    }
-
-    if (existingTest) {
-      // Update existing test
-      const { error: updateError } = await supabase
-        .from('conceptual_tests')
-        .update({
-          questions,
-          status: 'pending',
-        })
-        .eq('proof_id', proof_id);
-
-      if (updateError) {
-        console.error('Error updating conceptual test:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to save questions' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    } else {
-      // Create new test
-      const { error: insertError } = await supabase
-        .from('conceptual_tests')
-        .insert({
+      .upsert(
+        {
           proof_id,
-          questions,
+          questions: publicQuestions,
           status: 'pending',
           student_answers: [],
-          answer_scores: []
-        });
+          answer_scores: [],
+        },
+        { onConflict: 'proof_id' }
+      )
+      .select('id')
+      .single();
 
-      if (insertError) {
-        console.error('Error creating conceptual test:', insertError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to save questions' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (saveError || !savedTest) {
+      console.error('Error saving conceptual test:', saveError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to save questions' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { error: keyError } = await supabase
+      .from('conceptual_answer_keys')
+      .upsert({ test_id: savedTest.id, answers: answerKey }, { onConflict: 'test_id' });
+
+    if (keyError) {
+      // Without a key the submission cannot be graded, so this is fatal rather
+      // than a warning — better to fail here than to hand out a wrong score.
+      console.error('Error saving answer key:', keyError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to save questions' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Successfully generated and saved questions');
@@ -330,7 +336,7 @@ Return ONLY the JSON array, no additional text.`;
     return new Response(
       JSON.stringify({
         success: true,
-        questions,
+        questions: publicQuestions,
         proof_id
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

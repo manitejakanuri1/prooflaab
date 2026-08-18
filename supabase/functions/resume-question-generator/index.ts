@@ -39,13 +39,18 @@ serve(async (req) => {
     }
     const callerId = claims.claims.sub;
 
-    const { resume_claims_id } = await req.json();
-    if (!resume_claims_id) {
+    // Two ways in, one assessment. A student who uploaded a resume sends
+    // resume_claims_id; a student who pressed Skip sends student_interest_id.
+    // Exactly one, never both — the same rule the database enforces on the row
+    // this ends up writing.
+    const { resume_claims_id, student_interest_id } = await req.json();
+    if (!resume_claims_id === !student_interest_id) {
       return new Response(
-        JSON.stringify({ error: 'resume_claims_id is required' }),
+        JSON.stringify({ error: 'send exactly one of resume_claims_id or student_interest_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    const fromResume = Boolean(resume_claims_id);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -61,44 +66,104 @@ serve(async (req) => {
       );
     }
 
-    const { data: resumeClaim, error: claimFetchError } = await supabase
-      .from('resume_claims')
-      .select('id, student_id, status, target_role, skills, certifications, projects')
-      .eq('id', resume_claims_id)
-      .maybeSingle();
+    // Both sources are flattened to the same shape so everything below this
+    // point — the prompt, the shuffle, the upsert — stays one code path. An
+    // interests row simply has no certifications and no projects, which the
+    // prompt already handles with its "none listed" wording.
+    let source: {
+      student_id: string;
+      ready: boolean;
+      target_role: string | null;
+      skills: string[];
+      certifications: string[];
+      projects: { name: string; description: string; tech_stack: string[] }[];
+    } | null = null;
 
-    if (claimFetchError || !resumeClaim) {
+    if (fromResume) {
+      const { data: row } = await supabase
+        .from('resume_claims')
+        .select('student_id, status, target_role, skills, certifications, projects')
+        .eq('id', resume_claims_id)
+        .maybeSingle();
+      if (row) {
+        source = {
+          student_id: row.student_id,
+          ready: row.status === 'confirmed',
+          target_role: row.target_role,
+          skills: row.skills || [],
+          certifications: row.certifications || [],
+          projects: row.projects || [],
+        };
+      }
+    } else {
+      const { data: row } = await supabase
+        .from('student_interests')
+        .select('student_id, confirmed_at, target_role, skills, interests')
+        .eq('id', student_interest_id)
+        .maybeSingle();
+      if (row) {
+        // Interests are what this student says they want to work in, so they
+        // are the skills being tested. Nothing else is claimed, so there is
+        // nothing else to ask about.
+        source = {
+          student_id: row.student_id,
+          ready: Boolean(row.confirmed_at),
+          target_role: row.target_role,
+          skills: [...(row.skills || []), ...(row.interests || [])],
+          certifications: [],
+          projects: [],
+        };
+      }
+    }
+
+    if (!source) {
       return new Response(
-        JSON.stringify({ error: 'Resume claim not found' }),
+        JSON.stringify({ error: fromResume ? 'Resume claim not found' : 'Interests not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    if (resumeClaim.student_id !== profile.id) {
+    if (source.student_id !== profile.id) {
       return new Response(
         JSON.stringify({ error: 'Forbidden' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    if (resumeClaim.status !== 'confirmed') {
+    if (!source.ready) {
       return new Response(
-        JSON.stringify({ error: 'Confirm your resume claims before starting the assessment' }),
+        JSON.stringify({
+          error: fromResume
+            ? 'Confirm your resume claims before starting the assessment'
+            : 'Confirm your interests before starting the assessment',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (source.skills.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Nothing to build questions from — no skills listed' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const skills: string[] = resumeClaim.skills || [];
-    const certifications: string[] = resumeClaim.certifications || [];
-    const projects: { name: string; description: string; tech_stack: string[] }[] = resumeClaim.projects || [];
-    const targetRole = resumeClaim.target_role || 'the role they are targeting';
+    const skills: string[] = source.skills;
+    const certifications: string[] = source.certifications;
+    const projects: { name: string; description: string; tech_stack: string[] }[] = source.projects;
+    const targetRole = source.target_role || 'the role they are targeting';
 
-    // Deepened project-defense: one real claimed project gets the 5 specific
-    // sub-questions from the product doc instead of 2 generic ones, so the LLM
-    // only needs to cover MCQs here.
-    const richestProject = projects.length > 0
-      ? [...projects].sort((a, b) => (b.description || '').length - (a.description || '').length)[0]
-      : null;
+    // Project defence used to put all five of its questions on the single
+    // richest project, so a resume listing three projects and eight skills was
+    // half-examined on one of them. Coverage is spread instead: up to three
+    // projects get two questions each, and the MCQs are told to touch every
+    // skill and certification rather than clustering.
+    const MAX_DEFENDED_PROJECTS = 3;
+    const QUESTIONS_PER_PROJECT = 2;
+
+    const defendedProjects = [...projects]
+      .sort((a, b) => (b.description || '').length - (a.description || '').length)
+      .slice(0, MAX_DEFENDED_PROJECTS);
+
     const mcqCount = 5;
-    const fallbackShortAnswerCount = richestProject ? 0 : 2;
+    const fallbackShortAnswerCount = defendedProjects.length > 0 ? 0 : 2;
 
     const prompt = `You are building a short assessment to check whether a student really understands what they claim on their resume — not a generic quiz, ONLY based on the exact items below.
 
@@ -116,6 +181,7 @@ Rules for ALL questions:
 - Test real understanding, not trivia — the kind of thing only someone who actually used the skill or built the project would know.
 
 MCQ rules:
+- SPREAD THE COVERAGE. Do not ask two questions about the same skill, certification or project. Work across the whole list above so as much of the resume as possible is examined, rather than going deep on one item.
 - Mix skill-based, certification-based, project-based, and role-based questions.
 - If a claimed skill is a programming language or framework, at least 1-2 of the MCQs should be code-reading style: show a short (1-3 line) code snippet using that language/framework in the prompt text and ask what it does or what's wrong with it.
 - Exactly 4 options, exactly one correct answer, wrong options plausible.
@@ -183,22 +249,31 @@ Return ONLY the JSON array, no additional text.`;
       );
     }
 
-    // Deepened project-defense: 5 fixed sub-questions on the richest claimed
-    // project, worded verbatim per the product doc — no LLM involved so the
-    // wording/coverage never drifts.
-    if (richestProject) {
-      const p = richestProject;
-      const defenseQuestions = [
-        `What problem did your "${p.name}" project solve?`,
+    // Two fixed questions per project, across up to three projects. Fixed
+    // wording rather than LLM-written so coverage never drifts, and rotated so
+    // a student is not asked the same two things about every project.
+    const DEFENCE_QUESTIONS = [
+      (p: { name: string }) => `What problem did your "${p.name}" project solve?`,
+      (p: { name: string; tech_stack?: string[] }) =>
         `Why did you choose ${(p.tech_stack || []).join(', ') || 'that tech stack'} for "${p.name}"?`,
-        `What exactly was your own contribution to "${p.name}"?`,
+      (p: { name: string }) => `What exactly was your own contribution to "${p.name}"?`,
+      (p: { name: string }) =>
         `What was the toughest challenge you hit building "${p.name}", and how did you solve it?`,
-        `Why that particular database, API, framework, or model in "${p.name}"?`,
-      ];
-      defenseQuestions.forEach((prompt, i) => {
-        questions.push({ id: `q${mcqCount + 1 + i}`, type: 'short_answer', prompt, category: 'project_defense' });
-      });
-    }
+    ];
+
+    let defenceId = mcqCount;
+    defendedProjects.forEach((p, projectIndex) => {
+      for (let i = 0; i < QUESTIONS_PER_PROJECT; i++) {
+        const ask = DEFENCE_QUESTIONS[(projectIndex * QUESTIONS_PER_PROJECT + i) % DEFENCE_QUESTIONS.length];
+        defenceId += 1;
+        questions.push({
+          id: `q${defenceId}`,
+          type: 'short_answer',
+          prompt: ask(p),
+          category: 'project_defense',
+        });
+      }
+    });
 
     // Shuffle MCQ option order — LLMs put the correct answer first far too often
     for (const q of questions) {
@@ -216,7 +291,8 @@ Return ONLY the JSON array, no additional text.`;
       .from('resume_assessments')
       .upsert(
         {
-          resume_claims_id,
+          resume_claims_id: fromResume ? resume_claims_id : null,
+          student_interest_id: fromResume ? null : student_interest_id,
           student_id: profile.id,
           questions,
           student_answers: [],
@@ -224,11 +300,11 @@ Return ONLY the JSON array, no additional text.`;
           status: 'pending',
           is_retest: false,
           // Stamped here rather than taken from created_at: this row is upserted
-          // on resume_claims_id, so created_at still holds the first attempt.
+          // on the source id, so created_at still holds the first attempt.
           started_at: new Date().toISOString(),
           elapsed_seconds: null,
         },
-        { onConflict: 'resume_claims_id' }
+        { onConflict: fromResume ? 'resume_claims_id' : 'student_interest_id' }
       )
       .select('id')
       .single();

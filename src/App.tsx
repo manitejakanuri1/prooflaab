@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 // Lazy load all other routes for faster initial load
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const StudentResumeOnboarding = lazy(() => import("./pages/StudentResumeOnboarding"));
+const StudentInterestOnboarding = lazy(() => import("./pages/StudentInterestOnboarding"));
 const StudentStart = lazy(() => import("./pages/StudentStart"));
 const CollegeDashboard = lazy(() => import("./pages/CollegeDashboard"));
 const StartupDashboard = lazy(() => import("./pages/StartupDashboard"));
@@ -115,6 +116,16 @@ const App = () => (
                   element={
                     <RoleBasedProtectedRoute allowedRoles={['student']}>
                       <StudentResumeOnboarding />
+                    </RoleBasedProtectedRoute>
+                  }
+                />
+                {/* The Skip half of intake. Same test, same scorecard, built
+                    from the interests picked instead of from a resume. */}
+                <Route
+                  path="/student/interest-onboarding"
+                  element={
+                    <RoleBasedProtectedRoute allowedRoles={['student']}>
+                      <StudentInterestOnboarding />
                     </RoleBasedProtectedRoute>
                   }
                 />

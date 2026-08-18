@@ -32,3 +32,6 @@ supabase/.temp/
 
 .vercel
 .env*
+
+# TypeScript incremental build cache — machine-local, not source
+*.tsbuildinfo

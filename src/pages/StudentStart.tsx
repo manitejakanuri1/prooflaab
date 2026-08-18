@@ -125,9 +125,14 @@ const StudentStart = () => {
   };
 
   const handleReviewDone = async () => {
+    // Claimed before completeIntake for the same reason the resume path does it:
+    // completing intake flips intakeComplete, which re-renders and fires the
+    // redirect effect above, and that effect would win the race.
+    leavingRef.current = true;
     try {
       await completeIntake("general");
     } catch (err) {
+      leavingRef.current = false;
       toast({
         title: "Something went wrong",
         description: err instanceof Error ? err.message : "Please try again.",
@@ -135,7 +140,10 @@ const StudentStart = () => {
       });
       return;
     }
-    navigate("/student/dashboard", { replace: true });
+    // Not the dashboard. Skip now runs the same test and produces the same
+    // scorecard the resume path does — dropping them on the dashboard here
+    // would end the flow halfway, exactly as it used to for the resume path.
+    navigate("/student/interest-onboarding", { replace: true });
   };
 
   if (loading || passThrough) {

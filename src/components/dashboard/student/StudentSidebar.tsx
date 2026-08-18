@@ -1,25 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  ListTodo,
-  FileText,
-  Upload,
-  Briefcase,
-  Bell,
-  Settings,
+  FlaskConical,
+  NotebookPen,
+  Users,
+  IdCard,
   LogOut,
-  PlusSquare,
   ChevronDown,
   ChevronRight,
-  Building2,
-  ClipboardList,
-  Sparkles,
-  FileCheck2,
-  BriefcaseBusiness,
-  Radar,
-  History,
-  Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,45 +28,21 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
-// 7 top-level items; everything else nests under a group or is linked
-// from the Dashboard overview (Feed, Progress, Portfolio, Learning)
+// Four destinations, from the product design deck.
+//
+// It was nineteen items, seven of which opened an empty screen or an error —
+// one of them literally labelled "Error". The deck is explicit that Squad's
+// four views and Profile's three views are tabs INSIDE those destinations, not
+// separate navigation entries, so nothing nests here any more.
+//
+// Removed rather than hidden: Match to a Job, Certification Radar, Job
+// Openings, Startup Tasks, Opportunities and Applications all read tables that
+// do not exist. They come back as menu entries when their features are built.
 const menuItems: MenuItem[] = [
-  { id: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
-  {
-    id: "resume-group",
-    label: "Resume",
-    icon: FileCheck2,
-    children: [
-      { id: "resume", label: "Resume Check", icon: FileCheck2 },
-      { id: "resume-jobmatch", label: "Match to a Job", icon: BriefcaseBusiness },
-      { id: "resume-certs", label: "Certification Radar", icon: Radar },
-      { id: "resume-roadmap", label: "My Roadmap", icon: Map, route: "/student/roadmap" },
-      { id: "resume-history", label: "Retest History", icon: History },
-    ]
-  },
-  {
-    id: "tasks",
-    label: "Tasks",
-    icon: ListTodo,
-    children: [
-      { id: "tasks-assigned", label: "Assigned Tasks", icon: ClipboardList, route: "/student/tasks/assigned" },
-      { id: "tasks-created", label: "My Created Tasks", icon: Sparkles, route: "/student/tasks/created" },
-      { id: "create-task", label: "Create a Task", icon: PlusSquare },
-    ]
-  },
-  {
-    id: "opportunities",
-    label: "Opportunities",
-    icon: Briefcase,
-    children: [
-      { id: "tasks-opportunities", label: "Startup Tasks", icon: Building2, route: "/student/tasks/opportunities" },
-      { id: "jobs", label: "Job Openings", icon: Briefcase },
-    ]
-  },
-  { id: "applications", label: "Applications", icon: FileText },
-  { id: "uploads", label: "My Uploads", icon: Upload },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "lab", label: "Daily Card", icon: FlaskConical },
+  { id: "log", label: "Build-Log", icon: NotebookPen },
+  { id: "squad", label: "Squad", icon: Users },
+  { id: "profile", label: "Profile", icon: IdCard },
 ];
 
 const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {

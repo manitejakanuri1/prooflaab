@@ -130,18 +130,34 @@ serve(async (req) => {
       answered_at: new Date().toISOString()
     }));
 
-    // MCQ tests carry their correct answers, so grade them here
-    // deterministically instead of calling the essay evaluator.
+    // MCQ tests are graded here deterministically instead of calling the essay
+    // evaluator. The correct answers are NOT in conceptual_tests.questions —
+    // that table is readable by the student, so keeping the key there handed
+    // them the answers with the questions. They live in conceptual_answer_keys,
+    // which only the service role can read.
     const questionList = (conceptualTest.questions ?? []) as any[];
+
+    const { data: keyRow } = await supabase
+      .from('conceptual_answer_keys')
+      .select('answers')
+      .eq('test_id', conceptualTest.id)
+      .maybeSingle();
+
+    const correctByQuestion = new Map<string, number>(
+      ((keyRow?.answers ?? []) as any[]).map((k: any) => [k.id, k.correct_index])
+    );
+
     const isMcqTest = questionList.length > 0 &&
-      questionList.every((q: any) => Array.isArray(q.options) && typeof q.correct_index === 'number');
+      questionList.every((q: any) => Array.isArray(q.options)) &&
+      correctByQuestion.size > 0;
 
     let mcqScores: any[] | null = null;
     if (isMcqTest) {
       const questionsById = new Map(questionList.map((q: any) => [q.id, q]));
       mcqScores = answers.map((a: any) => {
         const q = questionsById.get(a.question_id);
-        const correct = !!q && a.selected_index === q.correct_index;
+        const correct = correctByQuestion.has(a.question_id)
+          && a.selected_index === correctByQuestion.get(a.question_id);
         return {
           question_id: a.question_id,
           correctness_score: correct ? 100 : 0,

@@ -11,6 +11,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useConceptualTests } from "@/hooks/useConceptualTests";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -21,7 +22,8 @@ import {
   Upload, 
   Search, 
   Eye, 
-  CheckCircle, 
+  CheckCircle,
+  Mic, 
   ClipboardList,
   MoreVertical,
   Target,
@@ -35,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
+import VoiceExplainModal from "./VoiceExplainModal";
 import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import TaskDetailsDialog from "./TaskDetailsDialog";
 import { useNavigate } from "react-router-dom";
@@ -44,6 +47,8 @@ const StudentAssignedTasksPage = () => {
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [explainTask, setExplainTask] = useState<{ id: string; title: string } | null>(null);
+  const { profile } = useStudentProfile();
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string; review?: boolean } | null>(null);
   const [preparingQuiz, setPreparingQuiz] = useState<{ proofId: string; taskId: string } | null>(null);
@@ -364,14 +369,27 @@ const StudentAssignedTasksPage = () => {
                       {/* Right: Actions */}
                       <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
                         {task.status === 'In Progress' && (
-                          <Button
-                            size="sm"
-                            onClick={() => setSelectedTaskId(task.id)}
-                            className="bg-orange-600 hover:bg-orange-700 text-white"
-                          >
-                            <Upload className="h-4 w-4 mr-1" />
-                            Submit Proof
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedTaskId(task.id)}
+                              className="bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                              <Upload className="h-4 w-4 mr-1" />
+                              Submit Proof
+                            </Button>
+                            {/* The second of the two actions the design deck
+                                allows on this screen. Explaining the work out
+                                loud is the part that cannot be pasted. */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setExplainTask({ id: task.id, title: task.title })}
+                            >
+                              <Mic className="h-4 w-4 mr-1" />
+                              Explain 60s
+                            </Button>
+                          </>
                         )}
                         {task.status === 'Completed' && (
                           <Button
@@ -479,6 +497,18 @@ const StudentAssignedTasksPage = () => {
               setPreparingQuiz({ proofId, taskId: selectedTaskId });
             }
           }}
+        />
+      )}
+
+      {/* The 60-second Explain. Sits beside Submit as the second of the two
+          actions the design deck allows on this screen. */}
+      {explainTask && profile?.id && (
+        <VoiceExplainModal
+          open={true}
+          onOpenChange={(o) => !o && setExplainTask(null)}
+          studentId={profile.id}
+          taskId={explainTask.id}
+          prompt={`In your own words: how did you approach "${explainTask.title}"?`}
         />
       )}
 

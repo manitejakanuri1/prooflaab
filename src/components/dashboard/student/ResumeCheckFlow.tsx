@@ -458,10 +458,13 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
     );
   }
 
+  // The feedback and review screens were two separate steps, so a student who
+  // had just uploaded their resume clicked through two "yes" screens before
+  // anything happened. They are now one screen: the scores sit above the skill
+  // list, and Confirm & continue is the single action. The "feedback" step
+  // still exists in the type, but nothing selects it any more.
   const step: Step = !claim
     ? "upload"
-    : !claim.feedback_acknowledged && claim.status !== "confirmed"
-    ? "feedback"
     : editingDetails || claim.status !== "confirmed"
     ? "review"
     : !scoreResult
@@ -494,21 +497,27 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               onChange={handleFileChange}
               disabled={uploading}
             />
-            <label htmlFor="resume-file-input">
-              <Button asChild variant={step === "upload" ? "default" : "outline"} size={step === "upload" ? "default" : "sm"} disabled={uploading}>
-                <span>
-                  {uploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing resume...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" /> {claim ? "Upload a new resume" : "Upload resume (PDF)"}
-                    </>
-                  )}
-                </span>
-              </Button>
-            </label>
+            {/* Only on the upload step. It used to render on every screen, so
+                the page you landed on straight after uploading greeted you with
+                an upload button — it read as "do it again". Replacing a resume
+                is now a small link at the bottom of the review screen. */}
+            {(step === "upload" || uploading) && (
+              <label htmlFor="resume-file-input">
+                <Button asChild disabled={uploading}>
+                  <span>
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing resume...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" /> Upload resume (PDF)
+                      </>
+                    )}
+                  </span>
+                </Button>
+              </label>
+            )}
           </div>
 
           {claim?.status === "confirmed" && step !== "upload" && (
@@ -522,7 +531,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
         </CardContent>
       </Card>
 
-      {step === "feedback" && claim && tier !== "excellent" && (
+      {step === "review" && claim && tier !== "excellent" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Resume feedback</CardTitle>
@@ -573,23 +582,12 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                   <span>Edit myself &amp; re-upload</span>
                 </Button>
               </label>
-              <Button type="button" onClick={handleAcknowledge} disabled={acknowledging} className="ml-auto">
-                {acknowledging ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Continuing...
-                  </>
-                ) : (
-                  <>
-                    I'm satisfied, continue <ArrowRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {step === "feedback" && claim && tier === "excellent" && (
+      {step === "review" && claim && tier === "excellent" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -612,17 +610,6 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               <p className="text-sm font-medium mb-1">Are your skills actually valuable?</p>
               <p className="text-sm text-muted-foreground">{claim.skill_relevance_notes}</p>
             </div>
-            <Button type="button" onClick={handleAcknowledge} disabled={acknowledging}>
-              {acknowledging ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Continuing...
-                </>
-              ) : (
-                <>
-                  Continue <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
-            </Button>
           </CardContent>
         </Card>
       )}
@@ -772,6 +759,13 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                 </Button>
               )}
             </div>
+
+            {/* Replacing the resume stays possible, just quietly. */}
+            <label htmlFor="resume-file-input" className="block">
+              <span className="text-xs text-muted-foreground underline cursor-pointer hover:text-foreground">
+                Wrong resume? Upload a different one
+              </span>
+            </label>
           </CardContent>
         </Card>
       )}
@@ -918,7 +912,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           open={modalOpen}
           onOpenChange={setModalOpen}
           assessmentId={assessmentId}
-          resumeClaimsId={claim.id}
+          source={{ resume_claims_id: claim.id }}
           questions={assessmentQuestions}
           onGraded={handleGraded}
         />

@@ -8,12 +8,21 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentIntake } from "@/hooks/useStudentIntake";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+/**
+ * Four destinations: Daily Card, Build-Log, Squad, Profile.
+ *
+ * The old task routes still resolve so existing links keep working — they land
+ * on the Daily Card, which is where the work is. The default is the Daily Card
+ * rather than the feed: a student arriving here should see the one thing they
+ * have to do today, not other people's posts on a platform with no posts yet.
+ */
 const getTabFromPath = (pathname: string): string => {
-  if (pathname.startsWith("/student/tasks/opportunities")) return "tasks-opportunities";
-  if (pathname.startsWith("/student/tasks/assigned")) return "tasks-assigned";
-  if (pathname.startsWith("/student/tasks/created")) return "tasks-created";
-  if (pathname === "/student/roadmap") return "resume-roadmap";
-  return "dashboard";
+  if (pathname.startsWith("/student/tasks")) return "lab";
+  if (pathname === "/student/roadmap") return "profile";
+  if (pathname.endsWith("/log")) return "log";
+  if (pathname.endsWith("/squad")) return "squad";
+  if (pathname.endsWith("/profile")) return "profile";
+  return "lab";
 };
 
 const StudentDashboard = () => {

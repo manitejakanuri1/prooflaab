@@ -110,19 +110,20 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       cleanupAuthState();
       await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
 
-      const redirectUrl = `${getRedirectUrl()}?type=${role}`;
-      console.log(`Attempting ${provider} OAuth with role: ${role}`);
-      console.log(`Redirect URL: ${redirectUrl}`);
+      // Social sign-in is students only, so the account type is fixed rather
+      // than carried through the provider round trip.
+      //
+      // It used to send `?type=${role}`, which the provider frequently dropped
+      // on the way back — and AuthCallback falls back to 'student' when the
+      // type is missing. A college or startup signing in with Google was
+      // therefore turned into a student with no warning. The `account_type`
+      // query param was never a fix either: providers ignore fields they do not
+      // know, so it never reached us.
+      const redirectUrl = `${getRedirectUrl()}?type=student`;
 
-      // Enhanced OAuth call with better error handling
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            account_type: role
-          }
-        }
+        options: { redirectTo: redirectUrl }
       });
 
       if (error) {
@@ -449,38 +450,45 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Social Auth Buttons */}
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => handleSocialAuth('google')}
-            disabled={isGoogleLoading || loading}
-          >
-            {isGoogleLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <FaGoogle className="w-4 h-4 mr-2" />
-            )}
-            Continue with Google
-          </Button>
-          
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => handleSocialAuth('github')}
-            disabled={loading || isGoogleLoading}
-          >
-            {loading && !isGoogleLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <FaGithub className="w-4 h-4 mr-2" />
-            )}
-            Continue with GitHub
-          </Button>
-        </div>
+        {/* Social sign-in, students only. A college or startup arriving this
+            way cannot be told apart from a student on the way back, so the
+            buttons are simply not offered to them — they sign in with email and
+            password, which carries the account type reliably. */}
+        {role === 'student' && (
+          <>
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleSocialAuth('google')}
+                disabled={isGoogleLoading || loading}
+              >
+                {isGoogleLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FaGoogle className="w-4 h-4 mr-2" />
+                )}
+                Continue with Google
+              </Button>
 
-        <Separator />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleSocialAuth('github')}
+                disabled={loading || isGoogleLoading}
+              >
+                {loading && !isGoogleLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FaGithub className="w-4 h-4 mr-2" />
+                )}
+                Continue with GitHub
+              </Button>
+            </div>
+
+            <Separator />
+          </>
+        )}
 
         {/* Auth Mode Tabs */}
         <Tabs value={mode} onValueChange={(value) => setMode(value as AuthMode)}>

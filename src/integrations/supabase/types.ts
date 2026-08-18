@@ -1344,6 +1344,7 @@ export type Database = {
           status: string
           student_answers: Json
           student_id: string
+          student_interest_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1581,6 +1582,7 @@ export type Database = {
           skill_gap: Json | null
           skill_proof_score: number | null
           student_id: string
+          student_interest_id: string | null
           voice_authenticity_score: number | null
           voice_notes: string | null
         }
@@ -1854,6 +1856,125 @@ export type Database = {
           updated_at?: string
           user_id?: string
           welcome_seen_at?: string | null
+        }
+        Relationships: []
+      }
+      student_interests: {
+        Row: {
+          branch: string | null
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          interests: string[]
+          skills: string[]
+          student_id: string
+          target_role: string | null
+          updated_at: string
+          year_of_study: string | null
+        }
+        Insert: {
+          branch?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          interests?: string[]
+          skills?: string[]
+          student_id: string
+          target_role?: string | null
+          updated_at?: string
+          year_of_study?: string | null
+        }
+        Update: {
+          branch?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          interests?: string[]
+          skills?: string[]
+          student_id?: string
+          target_role?: string | null
+          updated_at?: string
+          year_of_study?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_interests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_explanations: {
+        Row: {
+          communication_notes: string | null
+          communication_score: number | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          proof_id: string | null
+          status: string
+          storage_path: string
+          student_id: string
+          task_id: string | null
+          transcript: string | null
+          transcript_source: string
+          word_count: number | null
+        }
+        Insert: {
+          communication_notes?: string | null
+          communication_score?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          proof_id?: string | null
+          status?: string
+          storage_path: string
+          student_id: string
+          task_id?: string | null
+          transcript?: string | null
+          transcript_source?: string
+          word_count?: number | null
+        }
+        Update: {
+          communication_notes?: string | null
+          communication_score?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          proof_id?: string | null
+          status?: string
+          storage_path?: string
+          student_id?: string
+          task_id?: string | null
+          transcript?: string | null
+          transcript_source?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
+      student_streaks: {
+        Row: {
+          current_days: number
+          last_active_on: string | null
+          longest_days: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          current_days?: number
+          last_active_on?: string | null
+          longest_days?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          current_days?: number
+          last_active_on?: string | null
+          longest_days?: number
+          student_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2798,6 +2919,21 @@ export type Database = {
       }
     }
     Functions: {
+      my_suggested_tracks: {
+        Args: { _limit?: number }
+        Returns: {
+          slug: string
+          name: string
+          emoji: string
+          role: string | null
+          total_steps: number
+          matched_steps: number
+          match_pct: number
+          matched_skills: string[]
+          from_interest: boolean
+          reason: string
+        }[]
+      }
       add_comment: {
         Args: { p_comment: string; p_post_id: string }
         Returns: string

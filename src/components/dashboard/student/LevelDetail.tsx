@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { readFunctionError } from "@/lib/functionError";
+import CodeSandboxEmbed from "./CodeSandboxEmbed";
+import CodeSnapshot from "./CodeSnapshot";
 import {
   ArrowRight,
   Check,
@@ -24,11 +27,33 @@ interface QuizQuestion {
   options: string[];
 }
 
+interface SandboxSpec {
+  template: "html" | "javascript";
+  files: Record<string, string>;
+}
+
+interface CodeExampleSpec {
+  language: string;
+  code: string;
+}
+
 interface LevelPayload {
-  level: { id: string; track_slug: string; level_number: number; skill: string; title: string };
+  level: {
+    id: string;
+    track_slug: string;
+    level_number: number;
+    sub_level: number;
+    kind: "explanation" | "checkpoint";
+    skill: string;
+    title: string;
+  };
+  step_index: number | null;
+  total_steps: number;
   explanation: string;
+  sandbox: SandboxSpec | null;
+  code_example: CodeExampleSpec | null;
   quiz: QuizQuestion[];
-  proof: { title: string; brief: string };
+  proof: { title: string; brief: string } | null;
   status: string;
   /** On a placed level: the line from their resume that earned the tick. */
   evidence: string | null;
@@ -52,8 +77,9 @@ interface SubmitPayload {
   results: QuizResult[];
   proof: { title: string; brief: string } | null;
   xp_awarded: number;
-  next_level: { level_number: number; skill: string; title: string } | null;
+  next_level: { level_number: number; sub_level: number; skill: string; title: string } | null;
   track_complete: boolean;
+  task_id: string | null;
 }
 
 interface LevelDetailProps {
@@ -62,21 +88,45 @@ interface LevelDetailProps {
   onOpenChange: (open: boolean) => void;
   /** Called after a pass, so the map can redraw with the new unlock. */
   onCleared: () => void;
+  /** Jump straight into the next topic instead of closing back to the map. */
+  onContinue: (levelNumber: number) => void;
 }
 
 type Phase = "loading" | "read" | "quiz" | "result" | "error";
 
-const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelDetailProps) => {
+const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContinue }: LevelDetailProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorText, setErrorText] = useState("");
   const [data, setData] = useState<LevelPayload | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const [result, setResult] = useState<SubmitPayload | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const open = levelNumber !== null;
+
+  const fetchStep = async (advanceStep: boolean, skipToCheckpoint = false) => {
+    const { data: payload, error } = await supabase.functions.invoke("level-open", {
+      body: {
+        track_slug: trackSlug,
+        level_number: levelNumber,
+        advance_step: advanceStep,
+        skip_to_checkpoint: skipToCheckpoint,
+      },
+    });
+    if (error) {
+      const body = await readFunctionError(error);
+      setErrorText(String(body?.error ?? "Could not open this topic. Please try again in a moment."));
+      setPhase("error");
+      return;
+    }
+    setData(payload as LevelPayload);
+    setPhase("read");
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -87,36 +137,32 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
       setData(null);
       setResult(null);
       setAnswers({});
-
-      const { data: payload, error } = await supabase.functions.invoke("level-open", {
-        body: { track_slug: trackSlug, level_number: levelNumber },
-      });
-
-      if (cancelled) return;
-
-      if (error) {
-        const body = await readFunctionError(error);
-        setErrorText(
-          String(body?.error ?? "Could not open this level. Please try again in a moment."),
-        );
-        setPhase("error");
-        return;
-      }
-
-      setData(payload as LevelPayload);
-      setPhase("read");
+      if (!cancelled) await fetchStep(false);
     })();
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, trackSlug, levelNumber]);
 
   // Each phase starts a new screen's worth of content; keeping the old scroll
   // position leaves people halfway down a page they have not read yet.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
-  }, [phase]);
+  }, [phase, data?.level.id]);
+
+  const handleNextStep = async () => {
+    setAdvancing(true);
+    await fetchStep(true);
+    setAdvancing(false);
+  };
+
+  const handleSkipToCheckpoint = async () => {
+    setSkipping(true);
+    await fetchStep(false, true);
+    setSkipping(false);
+  };
 
   const handleSubmit = async () => {
     if (!data) return;
@@ -151,6 +197,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
   };
 
   const allAnswered = data ? data.quiz.every((q) => answers[q.id] !== undefined) : false;
+  const isCheckpoint = data?.level.kind === "checkpoint";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,9 +205,15 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary" className="font-mono">
-              Level {levelNumber}
+              Topic {levelNumber}
             </Badge>
             {data && <Badge variant="outline">{data.level.skill}</Badge>}
+            {data && !isCheckpoint && data.step_index && (
+              <Badge variant="outline">
+                Step {data.step_index} of {data.total_steps}
+              </Badge>
+            )}
+            {data && isCheckpoint && <Badge variant="outline">Check yourself</Badge>}
           </div>
           <DialogTitle className="text-xl mt-2 text-left">
             {data?.level.title ?? "Loading…"}
@@ -171,7 +224,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
           {phase === "loading" && (
             <div className="py-16 flex flex-col items-center gap-3 text-muted-foreground">
               <Loader2 className="h-7 w-7 animate-spin" />
-              <p className="text-sm">Writing this level…</p>
+              <p className="text-sm">Writing this topic…</p>
             </div>
           )}
 
@@ -196,14 +249,12 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                     {data.evidence ?? `Your resume says you know ${data.level.skill}.`}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    That is a claim, not a test — nobody asked you a question about it. Take the quiz
-                    and the tick becomes a real one.
+                    That is a claim, not a test — nobody asked you a question about it. Finish the
+                    check at the end and the tick becomes a real one.
                   </p>
                 </div>
               )}
 
-              {/* Paragraphs, not a lesson page. The whole thing is under 200 words
-                  on purpose — this is the explanation, the quiz is the teaching. */}
               <div className="space-y-3">
                 {data.explanation.split(/\n{2,}/).map((para, i) => (
                   <p key={i} className="text-[15px] leading-relaxed">
@@ -212,18 +263,34 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                 ))}
               </div>
 
-              <div className="rounded-lg border bg-muted/40 p-4">
-                <p className="text-sm font-semibold flex items-center gap-2">
-                  <Hammer className="h-4 w-4 text-primary" />
-                  Then you'll build: {data.proof.title}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">{data.proof.brief}</p>
-              </div>
+              {data.sandbox && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Try it yourself</p>
+                  <CodeSandboxEmbed template={data.sandbox.template} files={data.sandbox.files} />
+                </div>
+              )}
 
-              {data.attempts > 0 && (
+              {data.code_example && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">In code</p>
+                  <CodeSnapshot language={data.code_example.language} code={data.code_example.code} />
+                </div>
+              )}
+
+              {isCheckpoint && data.proof && (
+                <div className="rounded-lg border bg-muted/40 p-4">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <Hammer className="h-4 w-4 text-primary" />
+                    Then you'll build: {data.proof.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{data.proof.brief}</p>
+                </div>
+              )}
+
+              {isCheckpoint && data.attempts > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  You've tried this quiz {data.attempts} {data.attempts === 1 ? "time" : "times"} —
-                  best {data.best_score} of 3.
+                  You've tried this check {data.attempts} {data.attempts === 1 ? "time" : "times"} —
+                  best {data.best_score} of {data.quiz.length || "—"}.
                 </p>
               )}
             </div>
@@ -232,9 +299,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
           {phase === "quiz" && data && (
             <div className="space-y-6 animate-level-in">
               <p className="text-sm text-muted-foreground">
-                {data.status === "placed"
-                  ? "Three questions. Pass and this level counts as properly proved."
-                  : "Three questions. Get 2 right and the next level opens."}
+                {data.quiz.length} questions on everything above. Pass and the next topic opens.
               </p>
               {data.quiz.map((q, qi) => (
                 <div key={q.id} className="space-y-2">
@@ -281,13 +346,13 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                     <RotateCcw className="h-5 w-5 text-amber-600" />
                   )}
                   {result.score} out of {result.out_of}
-                  {result.passed ? " — level cleared" : " — not quite yet"}
+                  {result.passed ? " — topic cleared" : " — not quite yet"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {result.passed
                     ? result.track_complete
-                      ? "That was the last level on this path. Genuinely well done."
-                      : `Next up: level ${result.next_level?.level_number} — ${result.next_level?.title}.`
+                      ? "That was the last topic on this path. Genuinely well done."
+                      : `Next up: ${result.next_level?.skill}.`
                     : "Read the explanations below, then have another go. Nothing is lost."}
                 </p>
                 {result.xp_awarded > 0 && (
@@ -315,7 +380,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                     {!r.correct && (
                       <p className="text-sm mt-2 pl-6">
                         <span className="text-muted-foreground">Right answer: </span>
-                        {data.quiz[i]?.options[r.correct_index]}
+                        {data.quiz.find((q) => q.id === r.question_id)?.options[r.correct_index]}
                       </p>
                     )}
                     <p className="text-sm text-muted-foreground mt-1 pl-6">{r.explanation}</p>
@@ -331,9 +396,23 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">{result.proof.brief}</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    It's waiting in Assigned Tasks. Finishing it earns this level its star —
-                    knowing it is good, proving it is the point.
+                    Finishing it earns this topic its star — knowing it is good, proving it is
+                    the point.
                   </p>
+                  {result.task_id && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 gap-1.5"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate('/student/tasks/assigned');
+                      }}
+                    >
+                      Go to this task
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -351,7 +430,38 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
               <span className="flex-1" />
             )}
 
-            {phase === "read" && (
+            {phase === "read" && !isCheckpoint && (
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSkipToCheckpoint}
+                    disabled={skipping || advancing}
+                    className="gap-1.5 text-muted-foreground"
+                  >
+                    {skipping && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Skip to check
+                  </Button>
+                  <Button onClick={handleNextStep} disabled={advancing || skipping} className="gap-2">
+                    {advancing && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Got it — next
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                {/* Legally not legal advice, just a nudge: skipping is one click, so
+                    make the click cost something — a joke they'll half-remember
+                    the next time they're stuck and wish they hadn't skipped. */}
+                <p className="text-[11px] text-muted-foreground/70 italic max-w-xs text-right">
+                  ⚠️ Skipping voids the "I definitely learned this" warranty. Side
+                  effects may include blank stares in interviews. Reading it once
+                  now is cheaper than re-learning it live, in front of someone
+                  judging you.
+                </p>
+              </div>
+            )}
+
+            {phase === "read" && isCheckpoint && (
               <Button onClick={() => setPhase("quiz")} className="gap-2">
                 Got it — quiz me
                 <ArrowRight className="h-4 w-4" />
@@ -361,7 +471,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
             {phase === "quiz" && (
               <Button onClick={handleSubmit} disabled={!allAnswered || submitting} className="gap-2">
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {allAnswered ? "Check my answers" : "Answer all three"}
+                {allAnswered ? "Check my answers" : `Answer all ${data?.quiz.length ?? ""}`}
               </Button>
             )}
 
@@ -380,8 +490,31 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared }: LevelD
                     Read it again
                   </Button>
                 )}
-                <Button onClick={() => onOpenChange(false)}>
-                  {result.passed ? "Back to the map" : "Close"}
+                {result.passed && result.next_level && (
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    Back to the map
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    if (result.passed && result.next_level) {
+                      onContinue(result.next_level.level_number);
+                    } else {
+                      onOpenChange(false);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  {result.passed && result.next_level ? (
+                    <>
+                      Continue: {result.next_level.skill}
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  ) : result.passed ? (
+                    "Back to the map"
+                  ) : (
+                    "Close"
+                  )}
                 </Button>
               </div>
             )}

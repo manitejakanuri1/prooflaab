@@ -197,8 +197,7 @@ const LevelMap = () => {
       if (summaries.length === 0) {
         // Two suggestions, ranked against what this student has actually
         // claimed and proved, instead of twelve identical buttons. The full
-        // list is still loaded, behind a link, for anyone deliberately
-        // changing direction.
+        // list stays available behind a link for anyone changing direction.
         const [{ data: suggested }, { data: everything }] = await Promise.all([
           supabase.rpc("my_suggested_tracks", { _limit: 2 }),
           supabase.from("level_tracks").select("slug, name, emoji").order("sort_order"),
@@ -217,10 +216,14 @@ const LevelMap = () => {
   useEffect(() => {
     if (tracks.length === 0) return;
     (async () => {
+      // A topic can now be several rows (one per sub-step). The map shows one
+      // node per topic, so only its entry row (sub_level=1) is fetched here —
+      // the steps inside are LevelDetail's job, opened from this one node.
       const { data } = await supabase
         .from("levels")
         .select("id, track_slug, level_number, skill, title")
         .in("track_slug", tracks.map((t) => t.track_slug))
+        .eq("sub_level", 1)
         .order("level_number");
 
       const grouped: Record<string, Level[]> = {};
@@ -267,13 +270,15 @@ const LevelMap = () => {
 
   const stateOf = useCallback(
     (level: Level, track: TrackSummary): LevelState => {
+      // `level` here is a topic's sub_level=1 row — its own status only
+      // reflects step 1, not the whole topic (a topic clears its early steps
+      // long before its checkpoint). So "cleared" is read off unlocked_through
+      // (which only moves past a topic once every one of its rows is done),
+      // not off this row's status directly. 'placed' is still read directly:
+      // placement marks every sub-step of a topic together, so step 1's status
+      // already speaks for the whole topic in that one case.
       const status = progress[level.id]?.status;
-      if (status === "mastered") return "mastered";
-      if (status === "cleared") return "cleared";
       if (status === "placed") return "placed";
-      // Exactly one level is "you are here" — the wall. Anything below it is
-      // finished by construction, so a level that somehow sits below the wall
-      // without a status is shown as done rather than a second "you are here".
       if (level.level_number === track.unlocked_through) return "current";
       if (level.level_number < track.unlocked_through) return "cleared";
       return "locked";
@@ -347,8 +352,8 @@ const LevelMap = () => {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* The two suggestions, each showing WHY it is being suggested. A
-              student who disagrees can still see every track below. */}
+          {/* Two suggestions, each showing WHY. A student who disagrees can
+              still see every track below. */}
           {!showAllTracks &&
             suggestions.map((t, i) => (
               <button
@@ -406,12 +411,9 @@ const LevelMap = () => {
               onClick={() => setShowAllTracks((v) => !v)}
               className="text-xs text-muted-foreground underline hover:text-foreground"
             >
-              {showAllTracks
-                ? "Back to what suits you"
-                : `Something else? Show all ${allTracks.length} paths`}
+              {showAllTracks ? "Back to what suits you" : `Something else? Show all ${allTracks.length} paths`}
             </button>
           )}
-
           {placing && (
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -525,7 +527,8 @@ const LevelMap = () => {
                   Nothing on your paths teaches that yet.
                 </p>
               ) : (
-                matches.map(({ level, track }) => {
+                <>
+                {matches.map(({ level, track }) => {
                   const state = stateOf(level, track);
                   return (
                     <button
@@ -551,7 +554,8 @@ const LevelMap = () => {
                       </span>
                     </button>
                   );
-                })
+                })}
+                </>
               )}
             </div>
           )}
@@ -742,6 +746,10 @@ const LevelMap = () => {
           levelNumber={openLevel}
           onOpenChange={(open) => !open && setOpenLevel(null)}
           onCleared={refresh}
+          onContinue={(nextLevelNumber) => {
+            refresh();
+            setOpenLevel(nextLevelNumber);
+          }}
         />
       )}
     </div>

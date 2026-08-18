@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
-import { ensureLevelContent, type LevelRow } from "../_shared/levels.ts";
+import { ensureTopicSteps, type LevelRow } from "../_shared/levels.ts";
 
 /**
  * Write level content ahead of time, so no student is the one who waits.
@@ -77,9 +77,12 @@ serve(async (req) => {
       ? Math.min(MAX_BATCH, Math.max(1, body.batch))
       : DEFAULT_BATCH;
 
+    // Only seed rows (sub_level=1) — a topic is regenerated as a whole, and
+    // ensureTopicSteps expects the seed row, not one of its expanded steps.
     let query = supabase
       .from('levels')
-      .select('id, track_slug, level_number, skill, title')
+      .select('id, track_slug, level_number, sub_level, kind, skill, title')
+      .eq('sub_level', 1)
       .lte('level_number', upTo)
       .order('track_slug')
       .order('level_number');
@@ -87,10 +90,25 @@ serve(async (req) => {
 
     const { data: levels } = await query;
 
-    // Skip anything already written — this endpoint is meant to be safe to run
-    // again after a partial failure without paying for the same level twice.
-    const { data: existing } = await supabase.from('level_content').select('level_id');
-    const written = new Set((existing ?? []).map((r: any) => r.level_id));
+    // Skip anything already expanded into sub-steps — this endpoint is meant
+    // to be safe to run again after a partial failure without paying for the
+    // same topic twice. NOT the same as "has level_content": a topic that
+    // still has its old single-blob content (pre-sub-stepping) has a row in
+    // level_content already but is still exactly 1 row in `levels`, so it
+    // needs regenerating same as one that has never been opened at all.
+    const { data: allRows } = await supabase
+      .from('levels')
+      .select('track_slug, level_number');
+    const rowCountByTopic = new Map<string, number>();
+    for (const r of (allRows ?? []) as { track_slug: string; level_number: number }[]) {
+      const key = `${r.track_slug}:${r.level_number}`;
+      rowCountByTopic.set(key, (rowCountByTopic.get(key) ?? 0) + 1);
+    }
+    const written = new Set(
+      (levels ?? [])
+        .filter((l: any) => (rowCountByTopic.get(`${l.track_slug}:${l.level_number}`) ?? 1) > 1)
+        .map((l: any) => l.id),
+    );
 
     const pending = (levels ?? []).filter((l: any) => !written.has(l.id));
     const batch = pending.slice(0, batchSize);
@@ -100,11 +118,12 @@ serve(async (req) => {
 
     for (const level of batch) {
       try {
-        await ensureLevelContent(supabase, level as LevelRow, {
+        const { levels: steps } = await ensureTopicSteps(supabase, level as LevelRow, {
           userId: callerId,
           skipRateLimit: true,
         });
-        generated.push(`${level.track_slug} L${level.level_number} — ${level.skill}`);
+        const stepCount = steps.filter((s) => s.kind === 'explanation').length;
+        generated.push(`${level.track_slug} L${level.level_number} — ${level.skill} (${stepCount} steps)`);
       } catch (err) {
         // One bad level must not abandon the other thirty-five. Failures are
         // reported so they can be retried, and the level still generates on

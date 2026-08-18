@@ -12,6 +12,7 @@ import StudentResumeCheckPage from "./StudentResumeCheckPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
 import StudentRoadmapPage from "./StudentRoadmapPage";
 import SquadPlaceholder from "./SquadPlaceholder";
+import CodingStreaks from "./CodingStreaks";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -93,7 +94,12 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
             <StudentUploadsPage />
           </TabsContent>
           <TabsContent value="progress" className="mt-4">
-            <StudentProgressPage />
+            <div className="space-y-6">
+              {/* Brought across from the other line of work: LeetCode and
+                  HackerRank practice streaks, alongside the ProofLab record. */}
+              <CodingStreaks />
+              <StudentProgressPage />
+            </div>
           </TabsContent>
         </Tabs>
       )}

@@ -214,6 +214,45 @@ export type Database = {
         }
         Relationships: []
       }
+      coding_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_active_date: string | null
+          last_synced_at: string | null
+          longest_streak: number
+          platform: string
+          student_id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          last_synced_at?: string | null
+          longest_streak?: number
+          platform: string
+          student_id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          last_synced_at?: string | null
+          longest_streak?: number
+          platform?: string
+          student_id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       colleges: {
         Row: {
           created_at: string | null
@@ -472,6 +511,8 @@ export type Database = {
           proof_brief: string
           proof_title: string
           quiz: Json
+          sandbox: Json | null
+          code_example: Json | null
         }
         Insert: {
           explanation: string
@@ -488,6 +529,8 @@ export type Database = {
           proof_brief?: string
           proof_title?: string
           quiz?: Json
+          sandbox?: Json | null
+          code_example?: Json | null
         }
         Relationships: [
           {
@@ -530,6 +573,8 @@ export type Database = {
         Row: {
           id: string
           level_number: number
+          sub_level: number
+          kind: string
           skill: string
           title: string
           track_slug: string
@@ -544,6 +589,8 @@ export type Database = {
         Update: {
           id?: string
           level_number?: number
+          sub_level?: number
+          kind?: string
           skill?: string
           title?: string
           track_slug?: string

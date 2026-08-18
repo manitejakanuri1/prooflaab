@@ -64,10 +64,15 @@ serve(async (req) => {
 
     const { data: level } = await supabase
       .from('levels')
-      .select('id, track_slug, level_number, skill, title')
+      .select('id, track_slug, level_number, sub_level, kind, skill, title')
       .eq('id', level_id)
       .maybeSingle();
     if (!level) return json({ error: 'That level does not exist' }, 404);
+    if (level.kind !== 'checkpoint') {
+      // Explanation steps have no quiz to grade — they're cleared via
+      // level-open's advance_step instead.
+      return json({ error: 'This step has no quiz. Read it and move to the next one.' }, 400);
+    }
 
     const { data: content } = await supabase
       .from('level_content')
@@ -113,7 +118,19 @@ serve(async (req) => {
       }
     }
 
-    const results = quiz.map((q) => {
+    // Grade only the questions this attempt actually served, not the whole
+    // pool a topic's checkpoint stores — level-open hands out a random
+    // QUIZ_LENGTH subset of up to QUIZ_POOL_SIZE questions per attempt, so
+    // "everything in content.quiz" is the wrong denominator once pools are
+    // bigger than what's shown. Ordered by the submitted answers, which is
+    // the order the student was shown them in — not content.quiz's storage
+    // order, which the shuffle at serve time no longer matches.
+    const quizById = new Map(quiz.map((q) => [q.id, q]));
+    const presented = [...selectedById.keys()]
+      .map((id) => quizById.get(id))
+      .filter((q): q is (typeof quiz)[number] => !!q);
+
+    const results = presented.map((q) => {
       const selected = selectedById.has(q.id) ? selectedById.get(q.id)! : null;
       const correct = selected === q.correct_index;
       return {
@@ -215,21 +232,22 @@ serve(async (req) => {
 
     const unlockedThrough = await advanceUnlock(supabase, profile.id, level.track_slug);
 
-    // The level they actually go to next, which is the wall — not simply the one
-    // after this. Levels above this one can already be ticked from placement, and
-    // pointing at "next up: React" when React is already done sends them to a
-    // level they have no reason to open.
+    // The checkpoint is always a topic's last row, so passing it always
+    // finishes that topic — unlockedThrough has moved to whatever topic comes
+    // next (or nothing, if this was the last one). Point at that topic's
+    // first step, not simply the one after this row.
     const { data: nextLevel } = await supabase
       .from('levels')
-      .select('level_number, skill, title')
+      .select('level_number, sub_level, skill, title')
       .eq('track_slug', level.track_slug)
       .eq('level_number', unlockedThrough)
+      .eq('sub_level', 1)
       .maybeSingle();
 
     return json({
       passed,
       score,
-      out_of: quiz.length,
+      out_of: presented.length,
       pass_mark: QUIZ_PASS_MARK,
       attempts,
       best_score: bestScore,

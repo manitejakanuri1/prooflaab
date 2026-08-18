@@ -9,17 +9,26 @@
 
 import { generateText } from './llm.ts';
 
-/** Out of three. Two right means they understood it; three means no room to slip. */
-export const QUIZ_PASS_MARK = 2;
-export const QUIZ_LENGTH = 3;
+/** Out of five, for the one checkpoint quiz at the end of a topic. */
+export const QUIZ_PASS_MARK = 3;
+export const QUIZ_LENGTH = 5;
+/** Generated once per topic; each attempt serves a random QUIZ_LENGTH of these,
+ * so retaking a failed checkpoint isn't just memorising the same 5 answers. */
+export const QUIZ_POOL_SIZE = 10;
 
-/** XP for clearing a level's quiz. The proof task carries its own, larger reward. */
+/** A topic's explanation steps, not counting its checkpoint. */
+export const MIN_TOPIC_STEPS = 4;
+export const MAX_TOPIC_STEPS = 10;
+
+/** XP for clearing a topic's checkpoint quiz. The proof task carries its own, larger reward. */
 export const LEVEL_CLEAR_XP = 15;
 
 export interface LevelRow {
   id: string;
   track_slug: string;
   level_number: number;
+  sub_level: number;
+  kind: 'explanation' | 'checkpoint';
   skill: string;
   title: string;
 }
@@ -32,12 +41,27 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+/** A live embedded code editor (StackBlitz) shown beside an explanation step. */
+export interface SandboxSpec {
+  template: 'html' | 'javascript';
+  files: Record<string, string>;
+}
+
+/** A read-only highlighted code snippet for a step whose language can't run
+ * in the browser sandbox (Python, SQL, Java, ...). */
+export interface CodeExampleSpec {
+  language: string;
+  code: string;
+}
+
 export interface LevelContentRow {
   level_id: string;
   explanation: string;
   quiz: QuizQuestion[];
-  proof_title: string;
-  proof_brief: string;
+  proof_title: string | null;
+  proof_brief: string | null;
+  sandbox: SandboxSpec | null;
+  code_example: CodeExampleSpec | null;
 }
 
 /** Same normalisation as skill-map, so "Node.js" and "nodejs" are one skill. */
@@ -60,11 +84,18 @@ export async function advanceUnlock(
   studentId: string,
   trackSlug: string,
 ): Promise<number> {
+  // A topic is now possibly several rows (one per sub_level) sharing one
+  // level_number. Ordering by sub_level too keeps every row of a topic
+  // contiguous, which is what lets the loop below work unmodified: it only
+  // moves unlockedThrough past a level_number once every row sharing it is
+  // done, because a not-done row anywhere in the group breaks before that
+  // level_number's rows are behind it.
   const { data: levels } = await supabase
     .from('levels')
     .select('id, level_number')
     .eq('track_slug', trackSlug)
-    .order('level_number', { ascending: true });
+    .order('level_number', { ascending: true })
+    .order('sub_level', { ascending: true });
 
   const { data: progress } = await supabase
     .from('student_levels')
@@ -210,7 +241,8 @@ export async function placeStudent(
       .from('levels')
       .select('id, level_number, skill')
       .eq('track_slug', slug)
-      .order('level_number', { ascending: true });
+      .order('level_number', { ascending: true })
+      .order('sub_level', { ascending: true });
     if (!levels || levels.length === 0) continue;
 
     const { data: existingRows } = await supabase
@@ -292,37 +324,69 @@ export async function placeStudent(
 // Level content
 // ---------------------------------------------------------------------------
 
-function buildContentPrompt(
-  level: LevelRow,
+const SANDBOX_TEMPLATES = new Set(['html', 'javascript']);
+
+function buildTopicPrompt(
+  topic: LevelRow,
   trackName: string,
   role: string,
-  totalLevels: number,
+  totalTopics: number,
   before: string[],
   after: string[],
 ): string {
-  // Kept deliberately tight. Every word here is paid for on all 137 levels, and
-  // the long version of this prompt was mostly restating the same rule three
-  // ways — which cost tokens without improving a single generated level.
-  return `Write ONE level of a game-style learning path for a student becoming a ${role}.
+  // One call writes the whole topic — every sub-step plus the checkpoint —
+  // rather than one call per step. Same total depth, same one-time-per-topic
+  // cost as before, just organised as several small steps instead of one blob.
+  return `Write ONE topic of a game-style learning path for a student becoming a ${role}, broken into small sequential steps — like a good tutorial site breaks "HTML" into Introduction, Basics, Elements, Attributes... in order, each step small and building on the last.
 
-Path "${trackName}", level ${level.level_number}/${totalLevels}. Teaches: ${level.skill}. Called: "${level.title}".
-Just covered: ${before.length ? before.join(', ') : 'nothing, this is level 1'}. Coming next: ${after.length ? after.join(', ') : 'nothing, this is the last'}.
+Path "${trackName}", topic ${topic.level_number}/${totalTopics}. Teaches: ${topic.skill}. Called: "${topic.title}".
+Just covered: ${before.length ? before.join(', ') : 'nothing, this is the first topic'}. Coming next: ${after.length ? after.join(', ') : 'nothing, this is the last'}.
 
-Return JSON: {"explanation":"...","quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},{...},{...}],"proof_title":"...","proof_brief":"..."}
+If "${topic.skill}" is itself a broad, whole-language/whole-tool skill (Python, SQL, Git, Java, and similar — not a narrow concept like "REST APIs" or "Git & GitHub" workflow basics), do NOT try to survey the whole language. Structure the steps as: first, the small set of fundamentals every developer needs regardless of role (syntax, variables, control flow, functions — whatever is truly universal for this skill); then, for the remaining steps, cover ONLY the parts of "${topic.skill}" a working ${role} actually reaches for on the job for "${trackName}" — skip the corners of the language a ${role} would never touch. This is a path, not a reference manual: depth on what matters for this role, not coverage of everything the language can do.
 
-explanation — 130-180 words, a message from a funny senior who has the job, not a lecture. In order: one joke or everyday analogy that makes it click; what ${level.skill} actually is in plain words; the one thing beginners get wrong; one line on why a ${role} can't skip it. Plain sentences, blank lines between them. No headings, bullets, markdown, code blocks or emoji. Funny and warm, never patronising, never "Hey champ!".
+Return JSON:
+{"steps":[{"title":"...","explanation":"...","needs_sandbox":false,"sandbox_template":null,"sandbox_files":null,"code_language":null,"code_example":null},...],"quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},...],"proof_title":"...","proof_brief":"..."}
 
-quiz — exactly 3 questions on ${level.skill}, answerable by someone who understood the explanation. Test the idea, not trivia or memorised syntax. At least one realistic "what happens if" or "why did this break". Exactly 4 options, one correct, wrong ones genuinely tempting. Vary which index is correct. Each explanation is one short sentence in the same voice.
+steps — between ${MIN_TOPIC_STEPS} and ${MAX_TOPIC_STEPS} of them, however many the topic actually needs (a small topic gets fewer, a broad one gets more — you decide, but do not undershoot: this has to actually teach the topic, not tease it). Each step:
+- title: short, specific (e.g. "Reading a Stack Trace", not "Debugging Part 1").
+- explanation: 150-220 words, a message from a funny senior who has the job, not a lecture — but a funny voice is not an excuse to be vague. Use the REAL terminology a working ${role} would actually say out loud (the exact keyword, flag, HTTP verb, command, or concept name), then immediately explain what that term means in plain words the first time it shows up — teach the vocabulary, don't dodge it. Plain sentences, blank lines between them, one idea per step — don't try to cover the whole topic in step 1. No headings, bullets, markdown, code blocks or emoji IN the explanation text itself — code goes in code_example below, not inline.
+- needs_sandbox: true ONLY if this step teaches something runnable as plain HTML/CSS/JS in a browser (a web page, DOM manipulation, a JS snippet). False for anything else.
+- sandbox_template: "html" for a page/markup/CSS step, "javascript" for a JS-logic step, when needs_sandbox is true, else null.
+- sandbox_files: when needs_sandbox is true, an object of {filename: starter code} — a minimal, runnable starting point illustrating THIS step, not a finished solution (e.g. {"index.html": "<!doctype html>..."}). Else null.
+- code_language / code_example: when needs_sandbox is FALSE but a short real code snippet would make the step concrete (a Python function, a SQL query, a shell command, a Java class, a git command sequence — anything that isn't HTML/CSS/JS but the step is still specifically about writing or reading code/commands), set code_language to that language (e.g. "python", "sql", "bash", "java") and code_example to a short (3-15 line) realistic, runnable-looking snippet that illustrates exactly what this step just explained. This is shown read-only, not executed, so it can use anything real code would. For conceptual steps with no code to show (soft skills, architecture, "what is X"), leave both null.
 
-proof — a real thing finishable in 30-90 minutes that ends in an artefact (repo, link, screenshot, recording). proof_brief is 2-3 sentences: what to build and what counts as done. Specific and checkable.
+quiz — exactly ${QUIZ_POOL_SIZE} questions covering the WHOLE topic (draw from across every step, not just the last one), answerable by someone who went through all the steps. This is a POOL: each attempt only shows the student ${QUIZ_LENGTH} of these at random, so the ${QUIZ_POOL_SIZE} must be genuinely different questions, not near-duplicates reworded — vary which step, which term, which "what happens if" each one targets. Test understanding and real terminology, not trivia. At least 3 of them should be a realistic "what happens if" or "why did this break" rather than a definition lookup. Exactly 4 options, one correct, wrong ones genuinely tempting (a common misconception or an almost-right term). Vary which index is correct. Each explanation is one short sentence in the same voice.
+
+proof — a real thing finishable in 30-90 minutes that ends in an artefact (repo, link, screenshot, recording), and that needs what MULTIPLE steps taught, not just one. proof_brief is 2-3 sentences: what to build and what counts as done. Specific and checkable.
 
 Return ONLY the JSON.`;
+}
+
+function validSandbox(s: any): s is SandboxSpec {
+  return (
+    s &&
+    typeof s === 'object' &&
+    SANDBOX_TEMPLATES.has(s.template) &&
+    s.files &&
+    typeof s.files === 'object' &&
+    Object.keys(s.files).length > 0 &&
+    Object.values(s.files).every((v) => typeof v === 'string')
+  );
+}
+
+function validCodeExample(language: unknown, code: unknown): code is string {
+  return (
+    typeof language === 'string' &&
+    language.trim().length > 0 &&
+    typeof code === 'string' &&
+    code.trim().length > 0
+  );
 }
 
 function validQuiz(quiz: unknown): quiz is Omit<QuizQuestion, 'id'>[] {
   return (
     Array.isArray(quiz) &&
-    quiz.length === QUIZ_LENGTH &&
+    quiz.length === QUIZ_POOL_SIZE &&
     quiz.every(
       (q: any) =>
         typeof q?.prompt === 'string' &&
@@ -338,106 +402,212 @@ function validQuiz(quiz: unknown): quiz is Omit<QuizQuestion, 'id'>[] {
   );
 }
 
-/**
- * Fetch this level's content, generating it once if it does not exist yet.
- *
- * Cached in the table rather than regenerated per student so every student sees
- * the same level — a level that says something different each time it is opened
- * is not a level — and so the model is paid for once per level instead of once
- * per student per open.
- */
-export async function ensureLevelContent(
-  supabase: any,
-  level: LevelRow,
-  ctx: { userId?: string | null; studentId?: string | null; skipRateLimit?: boolean },
-): Promise<LevelContentRow> {
-  const { data: cached } = await supabase
-    .from('level_content')
-    .select('level_id, explanation, quiz, proof_title, proof_brief')
-    .eq('level_id', level.id)
-    .maybeSingle();
-  if (cached) return cached as LevelContentRow;
+interface ParsedStep {
+  title: string;
+  explanation: string;
+  sandbox: SandboxSpec | null;
+  codeExample: CodeExampleSpec | null;
+}
 
+function validSteps(steps: unknown): steps is ParsedStep[] {
+  return (
+    Array.isArray(steps) &&
+    steps.length >= MIN_TOPIC_STEPS &&
+    steps.length <= MAX_TOPIC_STEPS &&
+    steps.every(
+      (s: any) =>
+        typeof s?.title === 'string' &&
+        s.title.trim().length > 0 &&
+        typeof s?.explanation === 'string' &&
+        s.explanation.trim().length > 40,
+    )
+  );
+}
+
+/**
+ * Make sure a topic has its sub-steps (and their content) generated, and
+ * return every row that belongs to it plus each row's content.
+ *
+ * A brand-new topic is one seed row (from the original migration, sub_level=1,
+ * kind='checkpoint' by default). The first call here expands it: the seed row
+ * becomes step 1 (kind flips to 'explanation'), new rows are inserted for the
+ * remaining steps, and one final row is added as the checkpoint. The seed
+ * row's id is kept rather than replaced so any progress or content already
+ * tied to it survives the expansion instead of being orphaned.
+ *
+ * Cached like the old per-level content was: generated once, for everyone,
+ * not once per student.
+ */
+export async function ensureTopicSteps(
+  supabase: any,
+  seed: LevelRow,
+  ctx: { userId?: string | null; studentId?: string | null; skipRateLimit?: boolean },
+): Promise<{ levels: LevelRow[]; contentByLevelId: Record<string, LevelContentRow> }> {
+  const { data: existingRows } = await supabase
+    .from('levels')
+    .select('id, track_slug, level_number, sub_level, kind, skill, title')
+    .eq('track_slug', seed.track_slug)
+    .eq('level_number', seed.level_number)
+    .order('sub_level', { ascending: true });
+
+  const rows = (existingRows ?? []) as LevelRow[];
+
+  if (rows.length > 1) {
+    // Already expanded. Just fetch content for each row.
+    const { data: contentRows } = await supabase
+      .from('level_content')
+      .select('level_id, explanation, quiz, proof_title, proof_brief, sandbox, code_example')
+      .in('level_id', rows.map((r) => r.id));
+    const contentByLevelId: Record<string, LevelContentRow> = {};
+    for (const c of contentRows ?? []) contentByLevelId[c.level_id] = c as LevelContentRow;
+    return { levels: rows, contentByLevelId };
+  }
+
+  // 0 or 1 row: needs generating. (0 should not happen — the seed itself is
+  // always the row passed in — but treat it the same rather than assume.)
   const { data: track } = await supabase
     .from('level_tracks')
     .select('name, role')
-    .eq('slug', level.track_slug)
+    .eq('slug', seed.track_slug)
     .maybeSingle();
 
   const { data: siblings } = await supabase
     .from('levels')
     .select('level_number, skill')
-    .eq('track_slug', level.track_slug)
-    .order('level_number', { ascending: true });
+    .eq('track_slug', seed.track_slug)
+    .eq('sub_level', 1);
 
-  const all = (siblings ?? []) as { level_number: number; skill: string }[];
-  // Only the immediate neighbours. The model needs to know what it can assume
-  // and what not to steal from the next level — the full history of fifteen
-  // earlier skills told it nothing extra and grew the prompt with every level.
-  const before = all
-    .filter((l) => l.level_number < level.level_number)
+  const allTopics = (siblings ?? []) as { level_number: number; skill: string }[];
+  const before = allTopics
+    .filter((l) => l.level_number < seed.level_number)
     .slice(-3)
     .map((l) => l.skill);
-  const after = all.filter((l) => l.level_number > level.level_number).slice(0, 3).map((l) => l.skill);
+  const after = allTopics
+    .filter((l) => l.level_number > seed.level_number)
+    .slice(0, 3)
+    .map((l) => l.skill);
 
-  const prompt = buildContentPrompt(
-    level,
-    track?.name ?? level.track_slug,
+  const prompt = buildTopicPrompt(
+    seed,
+    track?.name ?? seed.track_slug,
     track?.role ?? 'developer',
-    all.length,
+    allTopics.length,
     before,
     after,
   );
 
   const result = await generateText(
     prompt,
-    // skipRateLimit is for the warm-up job only: writing 36 levels in one run is
-    // legitimate batch work, and counting it against a student-sized hourly cap
-    // would stop the job halfway and leave half the tracks cold.
-    // 1200, not 2000: measured completions land around 680 tokens, so this is
-    // still ample headroom while capping what a rambling response can cost.
-    { temperature: 0.8, maxOutputTokens: 1200, skipRateLimit: ctx.skipRateLimit },
+    // Up to 10 steps at 150-220 words each plus a 10-question pool needs real
+    // headroom — this got cut short at 3000 once steps and pool size both grew.
+    { temperature: 0.8, maxOutputTokens: 4500, skipRateLimit: ctx.skipRateLimit },
     { feature: 'level-content', userId: ctx.userId ?? null, studentId: ctx.studentId ?? null },
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Level content came back in a shape we could not read');
+  if (!jsonMatch) throw new Error('Topic content came back in a shape we could not read');
   const parsed = JSON.parse(jsonMatch[0]);
 
   if (
-    typeof parsed?.explanation !== 'string' ||
-    parsed.explanation.trim().length < 80 ||
+    !validSteps(parsed?.steps) ||
     !validQuiz(parsed?.quiz) ||
     typeof parsed?.proof_title !== 'string' ||
     typeof parsed?.proof_brief !== 'string'
   ) {
-    // Thrown rather than patched up: a half-written level with two questions or
-    // a missing answer key would silently mis-grade every student who took it.
-    throw new Error('Level content failed validation');
+    // Thrown rather than patched up: a half-written topic would silently
+    // mis-teach or mis-grade every student who opens it.
+    throw new Error('Topic content failed validation');
   }
 
-  const quiz: QuizQuestion[] = parsed.quiz.map((q: any, i: number) => ({
-    id: `${level.id}-q${i + 1}`,
-    prompt: q.prompt.trim(),
-    options: q.options.map((o: string) => o.trim()),
-    correct_index: q.correct_index,
-    explanation: (q.explanation ?? '').trim(),
+  const steps: ParsedStep[] = parsed.steps.map((s: any) => ({
+    title: s.title.trim(),
+    explanation: s.explanation.trim(),
+    sandbox: s.needs_sandbox && validSandbox({ template: s.sandbox_template, files: s.sandbox_files })
+      ? { template: s.sandbox_template, files: s.sandbox_files }
+      : null,
+    // Sandbox and code_example are mutually exclusive by construction — a
+    // step either runs live (HTML/JS) or gets a read-only snapshot, never both.
+    codeExample: !s.needs_sandbox && validCodeExample(s.code_language, s.code_example)
+      ? { language: String(s.code_language).trim(), code: String(s.code_example).trim() }
+      : null,
   }));
 
-  const row: LevelContentRow = {
-    level_id: level.id,
-    explanation: parsed.explanation.trim(),
-    quiz,
+  // Row 1 reuses the seed's id (preserves any existing progress/content on
+  // it). The rest are new rows. The final row is the checkpoint.
+  const newLevels: LevelRow[] = steps.map((_, i) => ({
+    id: i === 0 ? seed.id : crypto.randomUUID(),
+    track_slug: seed.track_slug,
+    level_number: seed.level_number,
+    sub_level: i + 1,
+    kind: 'explanation' as const,
+    skill: seed.skill,
+    title: steps[i].title,
+  }));
+  const checkpoint: LevelRow = {
+    id: crypto.randomUUID(),
+    track_slug: seed.track_slug,
+    level_number: seed.level_number,
+    sub_level: steps.length + 1,
+    kind: 'checkpoint',
+    skill: seed.skill,
+    title: 'Check yourself',
+  };
+  const allRows = [...newLevels, checkpoint];
+
+  const { error: updateSeedError } = await supabase
+    .from('levels')
+    .update({ sub_level: 1, kind: 'explanation', title: newLevels[0].title })
+    .eq('id', seed.id);
+  if (updateSeedError) console.error('Could not expand seed level:', updateSeedError.message);
+
+  const toInsert = allRows.filter((r) => r.id !== seed.id);
+  if (toInsert.length > 0) {
+    const { error: insertError } = await supabase.from('levels').insert(
+      toInsert.map((r) => ({
+        id: r.id,
+        track_slug: r.track_slug,
+        level_number: r.level_number,
+        sub_level: r.sub_level,
+        kind: r.kind,
+        skill: r.skill,
+        title: r.title,
+      })),
+    );
+    if (insertError) console.error('Could not insert topic steps:', insertError.message);
+  }
+
+  const contentRows = newLevels.map((row, i) => ({
+    level_id: row.id,
+    explanation: steps[i].explanation,
+    quiz: [] as QuizQuestion[],
+    proof_title: null,
+    proof_brief: null,
+    sandbox: steps[i].sandbox,
+    code_example: steps[i].codeExample,
+  }));
+  contentRows.push({
+    level_id: checkpoint.id,
+    explanation: `You've been through ${steps.length} steps on ${seed.skill}. Let's see what stuck.`,
+    code_example: null,
+    quiz: parsed.quiz.map((q: any, i: number) => ({
+      id: `${checkpoint.id}-q${i + 1}`,
+      prompt: q.prompt.trim(),
+      options: q.options.map((o: string) => o.trim()),
+      correct_index: q.correct_index,
+      explanation: (q.explanation ?? '').trim(),
+    })),
     proof_title: parsed.proof_title.trim(),
     proof_brief: parsed.proof_brief.trim(),
-  };
+    sandbox: null,
+  });
 
-  // Ignore a duplicate: two students opening a brand-new level at the same
-  // moment both generate it, and whichever lands first is as good as the other.
-  const { error } = await supabase.from('level_content').upsert(row, { onConflict: 'level_id' });
-  if (error) console.error('Caching level content failed:', error.message);
+  const { error: contentError } = await supabase.from('level_content').upsert(contentRows, { onConflict: 'level_id' });
+  if (contentError) console.error('Caching topic content failed:', contentError.message);
 
-  return row;
+  const contentByLevelId: Record<string, LevelContentRow> = {};
+  for (const c of contentRows) contentByLevelId[c.level_id] = c as LevelContentRow;
+
+  return { levels: allRows, contentByLevelId };
 }
 
 /**
@@ -446,7 +616,14 @@ export async function ensureLevelContent(
  * correct_index and the per-question explanation stay on the server until the
  * answers are in. Sending the whole question object is how the earlier
  * assessment leaked its own answer key to anyone who opened the network tab.
+ *
+ * Also where the pool becomes a quiz: a topic's checkpoint stores up to
+ * QUIZ_POOL_SIZE questions, and each open serves a random QUIZ_LENGTH of them
+ * — so failing and reading the explanations, then retaking, is a real retake
+ * and not just re-answering the same 5 from memory. Pools smaller than
+ * QUIZ_LENGTH (older, pre-pool topics) just serve everything they have.
  */
 export function quizForStudent(quiz: QuizQuestion[]) {
-  return quiz.map((q) => ({ id: q.id, prompt: q.prompt, options: q.options }));
+  const shuffled = [...quiz].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, QUIZ_LENGTH).map((q) => ({ id: q.id, prompt: q.prompt, options: q.options }));
 }

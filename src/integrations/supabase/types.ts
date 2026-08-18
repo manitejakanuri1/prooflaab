@@ -2516,6 +2516,12 @@ export type Database = {
           ai_metadata: Json | null
           approved_by_admin: boolean | null
           category: string | null
+          code_sample: string | null
+          estimate_minutes: number | null
+          lot_category: string | null
+          lot_date: string | null
+          lot_number: number | null
+          source_jd: string | null
           completed_at: string | null
           created_at: string | null
           created_by_admin_id: string | null
@@ -2550,6 +2556,12 @@ export type Database = {
           ai_metadata?: Json | null
           approved_by_admin?: boolean | null
           category?: string | null
+          code_sample?: string | null
+          estimate_minutes?: number | null
+          lot_category?: string | null
+          lot_date?: string | null
+          lot_number?: number | null
+          source_jd?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by_admin_id?: string | null
@@ -2584,6 +2596,12 @@ export type Database = {
           ai_metadata?: Json | null
           approved_by_admin?: boolean | null
           category?: string | null
+          code_sample?: string | null
+          estimate_minutes?: number | null
+          lot_category?: string | null
+          lot_date?: string | null
+          lot_number?: number | null
+          source_jd?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by_admin_id?: string | null
@@ -2919,6 +2937,22 @@ export type Database = {
       }
     }
     Functions: {
+      my_todays_lot: {
+        Args: never
+        Returns: {
+          id: string
+          lot_number: number | null
+          title: string
+          description: string | null
+          code_sample: string | null
+          source_jd: string | null
+          difficulty: string | null
+          estimate_minutes: number | null
+          lot_category: string | null
+          status: string | null
+          due_date: string | null
+        }[]
+      }
       my_suggested_tracks: {
         Args: { _limit?: number }
         Returns: {

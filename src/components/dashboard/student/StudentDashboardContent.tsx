@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import StudentDailyCard from "./StudentDailyCard";
 import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
 import StudentUploadsPage from "./StudentUploadsPage";
 import StudentPortfolioPage from "./StudentPortfolioPage";
@@ -73,7 +74,14 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
 
   return (
     <div className={destination === "profile" && profileTab === "portfolio" ? "w-full" : "max-w-7xl mx-auto"}>
-      {destination === "lab" && <StudentAssignedTasksPage />}
+      {/* The Daily Card is the landing screen: today's Lot and two actions.
+          The full task list sits underneath it for anything still open. */}
+      {destination === "lab" && (
+        <div className="space-y-8">
+          <StudentDailyCard />
+          <StudentAssignedTasksPage />
+        </div>
+      )}
 
       {destination === "log" && (
         <Tabs value={logTab} onValueChange={setLogTab}>

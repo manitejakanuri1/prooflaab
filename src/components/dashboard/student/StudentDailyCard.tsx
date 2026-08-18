@@ -1,0 +1,251 @@
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Mic, Upload, Clock, Loader2 } from "lucide-react";
+import UploadProofModal from "@/components/dashboard/UploadProofModal";
+import VoiceExplainModal from "./VoiceExplainModal";
+import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+
+interface Lot {
+  id: string;
+  lot_number: number | null;
+  title: string;
+  description: string | null;
+  code_sample: string | null;
+  source_jd: string | null;
+  difficulty: string | null;
+  estimate_minutes: number | null;
+  lot_category: string | null;
+  status: string | null;
+  due_date: string | null;
+}
+
+/** One dot per day, coloured by what was submitted. */
+interface DayMark {
+  date: Date;
+  kind: "technical" | "business" | "pitch" | null;
+}
+
+/**
+ * The Daily Card — the screen a student lands on.
+ *
+ * The design deck allows exactly two actions here: Submit and Explain.
+ * Everything else on the screen is information. That is not a stylistic
+ * preference — a student who opens this and sees a menu has to decide what to
+ * do, and deciding is the thing this screen exists to remove.
+ */
+const StudentDailyCard = () => {
+  const { profile } = useStudentProfile();
+  const [lot, setLot] = useState<Lot | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [streak, setStreak] = useState(0);
+  const [lastActive, setLastActive] = useState<string | null>(null);
+  const [week, setWeek] = useState<DayMark[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [explaining, setExplaining] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!profile?.id) return;
+
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+
+    const [lotRes, streakRes, weekRes] = await Promise.all([
+      supabase.rpc("my_todays_lot"),
+      supabase
+        .from("student_streaks")
+        .select("current_days, last_active_on")
+        .eq("student_id", profile.id)
+        .maybeSingle(),
+      supabase
+        .from("tasks")
+        .select("lot_date, lot_category")
+        .eq("student_id", profile.id)
+        .gte("lot_date", format(monday, "yyyy-MM-dd"))
+        .not("lot_date", "is", null),
+    ]);
+
+    setLot(((lotRes.data as Lot[] | null) ?? [])[0] ?? null);
+    setStreak(streakRes.data?.current_days ?? 0);
+    setLastActive(streakRes.data?.last_active_on ?? null);
+
+    const byDay = new Map<string, DayMark["kind"]>();
+    for (const row of (weekRes.data ?? []) as { lot_date: string; lot_category: string | null }[]) {
+      byDay.set(row.lot_date, (row.lot_category as DayMark["kind"]) ?? "technical");
+    }
+    setWeek(
+      Array.from({ length: 7 }, (_, i) => {
+        const date = addDays(monday, i);
+        return { date, kind: byDay.get(format(date, "yyyy-MM-dd")) ?? null };
+      }),
+    );
+    setLoading(false);
+  }, [profile?.id]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const recency = lastActive
+    ? isSameDay(new Date(lastActive), new Date()) ? "active" : "idle"
+    : "new";
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Title line. The second word carries the colour, as in the deck. */}
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          THE <span className="text-primary">FLOOR</span>
+        </h1>
+        <span className="ml-auto font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          {format(new Date(), "EEE · dd MMM")}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-muted-foreground">
+          Streak <span className="font-mono text-lg font-bold text-primary">{streak}</span> days
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              recency === "active" ? "bg-emerald-500" : recency === "idle" ? "bg-amber-500" : "bg-muted-foreground"
+            }`}
+          />
+          recency: {recency}
+        </span>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr] items-start">
+        {/* The Lot itself: a paper work order on a dark bench. */}
+        {lot ? (
+          <div className="rounded-xl bg-[#f2ede1] p-5 text-[#191b1f] shadow-sm">
+            <div className="flex items-center gap-3 border-b border-dashed border-[#cbc4b4] pb-3">
+              <span className="font-mono text-xs font-bold tracking-widest">
+                LOT {lot.lot_number ? `#${String(lot.lot_number).padStart(3, "0")}` : ""}
+              </span>
+              {lot.due_date && (
+                <span className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] text-[#6b6559]">
+                  <Clock className="h-3 w-3" />
+                  due {format(new Date(lot.due_date), "d MMM")}
+                </span>
+              )}
+            </div>
+
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6b6559]">
+              {lot.lot_category ?? "task"}
+              {lot.estimate_minutes ? ` · ${lot.estimate_minutes} min` : ""}
+              {lot.difficulty ? ` · ${lot.difficulty}` : ""}
+            </p>
+
+            <h2 className="mt-2 text-lg font-semibold leading-snug">{lot.title}</h2>
+            {lot.description && <p className="mt-2 text-sm text-[#4d4a43]">{lot.description}</p>}
+
+            {lot.code_sample && (
+              <pre className="mt-3 overflow-x-auto rounded-lg bg-[#14161a] p-3 font-mono text-xs leading-relaxed text-[#d7dbe2]">
+                {lot.code_sample}
+              </pre>
+            )}
+
+            {lot.source_jd && (
+              <p className="mt-3 text-[11px] italic text-[#6b6559]">Sourced from {lot.source_jd}</p>
+            )}
+
+            {/* The only two actions on this screen. */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                onClick={() => setSubmitting(true)}
+                className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
+              >
+                <Upload className="mr-2 h-4 w-4" /> Submit fix
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setExplaining(true)}
+                className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
+              >
+                <Mic className="mr-2 h-4 w-4" /> Record 60s explain
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              No Lot for today yet. Today's work is set each morning — check back shortly.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="rounded-xl border p-4">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              This week
+            </p>
+            <div className="mt-3 flex justify-between">
+              {week.map(({ date, kind }) => {
+                const today = isSameDay(date, new Date());
+                const colour =
+                  kind === "technical" ? "bg-emerald-500"
+                  : kind === "business" ? "bg-amber-500"
+                  : kind === "pitch" ? "bg-rose-500"
+                  : "bg-muted";
+                return (
+                  <div key={date.toISOString()} className="flex flex-1 flex-col items-center gap-1.5">
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${colour} ${today ? "ring-4 ring-emerald-500/20" : ""}`}
+                    />
+                    <span
+                      className={`font-mono text-[10px] ${today ? "font-bold text-foreground" : "text-muted-foreground"}`}
+                    >
+                      {format(date, "EEE")}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border p-4">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Squad
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Not in a squad yet</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {lot && (
+        <UploadProofModal
+          isOpen={submitting}
+          onClose={() => setSubmitting(false)}
+          taskId={lot.id}
+          taskTitle={lot.title}
+          onSuccess={() => { setSubmitting(false); void load(); }}
+        />
+      )}
+
+      {lot && explaining && profile?.id && (
+        <VoiceExplainModal
+          open={explaining}
+          onOpenChange={setExplaining}
+          studentId={profile.id}
+          taskId={lot.id}
+          prompt={`In your own words: how did you approach "${lot.title}"?`}
+          onSaved={() => void load()}
+        />
+      )}
+    </div>
+  );
+};
+
+export default StudentDailyCard;

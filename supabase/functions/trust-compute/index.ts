@@ -159,8 +159,33 @@ serve(async (req) => {
       (conceptualUnderstandingScore * 0.40)
     );
 
+    // The 60-second spoken explanation.
+    //
+    // Added as an adjustment rather than a fourth weight, because 35/25/40 is a
+    // deliberate split and quietly reshuffling it would change every score
+    // already awarded. Capped at +10, so it can lift a borderline submission
+    // into review or over the line without ever carrying one on its own.
+    //
+    // It is also the only signal here that cannot be produced by pasting, so
+    // the sign matters: a strong explanation helps, and a missing one simply
+    // does not help. It is never a penalty — a student with a broken
+    // microphone has not cheated.
+    const { data: voice } = await supabase
+      .from('voice_explanations')
+      .select('communication_score')
+      .eq('proof_id', proof_id)
+      .eq('status', 'scored')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const voiceScore: number | null = voice?.communication_score ?? null;
+    const voiceAdjustment = voiceScore === null
+      ? 0
+      : Math.round((voiceScore / 100) * 10);
+
     // Apply ethical framing adjustments
-    let ethicalAdjustment = 0;
+    let ethicalAdjustment = voiceAdjustment;
     if (proofUpload.declaration_acknowledged === true) {
       ethicalAdjustment += 5; // Reward honesty and transparency
     }
@@ -199,7 +224,7 @@ serve(async (req) => {
       summary += ` Concerns: ${concerns.join(', ')}.`;
     }
 
-    console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (base: ${baseCIS}, adjustment: +${ethicalAdjustment}) (${suggestedAction}), trust delta: +${trustDelta}`);
+    console.log(`Trust score computed: ${cognitiveIntegrityScore}/100 (base: ${baseCIS}, adjustment: +${ethicalAdjustment}, voice: ${voiceScore ?? 'none'}) (${suggestedAction}), trust delta: +${trustDelta}`);
 
     // Update trust_scores (one row per student — unique_student_trust_score)
     const { error: trustScoreError } = await supabase

@@ -54,6 +54,20 @@ export interface CodeExampleSpec {
   code: string;
 }
 
+/**
+ * Somewhere to go and learn this properly before the quiz.
+ *
+ * A model asked for deep links invents them, and a 404 in a lesson is worse
+ * than no link at all. So: a url ONLY for a canonical docs home it is sure of,
+ * otherwise a search phrase — which cannot rot.
+ */
+export interface TopicResource {
+  kind: 'docs' | 'video';
+  label: string;
+  url: string | null;
+  search: string | null;
+}
+
 export interface LevelContentRow {
   level_id: string;
   explanation: string;
@@ -62,6 +76,7 @@ export interface LevelContentRow {
   proof_brief: string | null;
   sandbox: SandboxSpec | null;
   code_example: CodeExampleSpec | null;
+  resources: TopicResource[] | null;
 }
 
 /** Same normalisation as skill-map, so "Node.js" and "nodejs" are one skill. */
@@ -345,11 +360,18 @@ Just covered: ${before.length ? before.join(', ') : 'nothing, this is the first 
 If "${topic.skill}" is itself a broad, whole-language/whole-tool skill (Python, SQL, Git, Java, and similar — not a narrow concept like "REST APIs" or "Git & GitHub" workflow basics), do NOT try to survey the whole language. Structure the steps as: first, the small set of fundamentals every developer needs regardless of role (syntax, variables, control flow, functions — whatever is truly universal for this skill); then, for the remaining steps, cover ONLY the parts of "${topic.skill}" a working ${role} actually reaches for on the job for "${trackName}" — skip the corners of the language a ${role} would never touch. This is a path, not a reference manual: depth on what matters for this role, not coverage of everything the language can do.
 
 Return JSON:
-{"steps":[{"title":"...","explanation":"...","needs_sandbox":false,"sandbox_template":null,"sandbox_files":null,"code_language":null,"code_example":null},...],"quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},...],"proof_title":"...","proof_brief":"..."}
+{"steps":[{"title":"...","explanation":"...","needs_sandbox":false,"sandbox_template":null,"sandbox_files":null,"code_language":null,"code_example":null},...],"quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},...],"proof_title":"...","proof_brief":"...","resources":[{"kind":"docs","label":"...","url":"...","search":null},{"kind":"video","label":"...","url":null,"search":"..."}]}
 
 steps — between ${MIN_TOPIC_STEPS} and ${MAX_TOPIC_STEPS} of them, however many the topic actually needs (a small topic gets fewer, a broad one gets more — you decide, but do not undershoot: this has to actually teach the topic, not tease it). Each step:
 - title: short, specific (e.g. "Reading a Stack Trace", not "Debugging Part 1").
 - explanation: 150-220 words, a message from a funny senior who has the job, not a lecture — but a funny voice is not an excuse to be vague. Use the REAL terminology a working ${role} would actually say out loud (the exact keyword, flag, HTTP verb, command, or concept name), then immediately explain what that term means in plain words the first time it shows up — teach the vocabulary, don't dodge it. Plain sentences, blank lines between them, one idea per step — don't try to cover the whole topic in step 1. No headings, bullets, markdown, code blocks or emoji IN the explanation text itself — code goes in code_example below, not inline.
+resources — 2 to 4 places to go and learn this topic properly before the quiz. A student who reads only our explanation and fails should have somewhere obvious to go.
+- kind: "docs" for written reference or a tutorial site, "video" for YouTube.
+- label: what it is, in plain words ("MDN: Array methods", "Amigoscode: Spring Boot REST API").
+- url: ONLY for a stable, canonical documentation home you are certain of — developer.mozilla.org, docs.python.org, react.dev, w3schools.com, the tool's own docs. Never invent a deep link to a specific page or article, and never a URL for a video.
+- search: for videos, and for anything you are not certain of, give the exact phrase to search instead, and set url to null. A search phrase that works beats a link that 404s.
+- At least one docs and at least one video. Prefer sources a ${role} would actually use.
+
 - needs_sandbox: true ONLY if this step teaches something runnable as plain HTML/CSS/JS in a browser (a web page, DOM manipulation, a JS snippet). False for anything else.
 - sandbox_template: "html" for a page/markup/CSS step, "javascript" for a JS-logic step, when needs_sandbox is true, else null.
 - sandbox_files: when needs_sandbox is true, an object of {filename: starter code} — a minimal, runnable starting point illustrating THIS step, not a finished solution (e.g. {"index.html": "<!doctype html>..."}). Else null.
@@ -456,7 +478,7 @@ export async function ensureTopicSteps(
     // Already expanded. Just fetch content for each row.
     const { data: contentRows } = await supabase
       .from('level_content')
-      .select('level_id, explanation, quiz, proof_title, proof_brief, sandbox, code_example')
+      .select('level_id, explanation, quiz, proof_title, proof_brief, sandbox, code_example, resources')
       .in('level_id', rows.map((r) => r.id));
     const contentByLevelId: Record<string, LevelContentRow> = {};
     for (const c of contentRows ?? []) contentByLevelId[c.level_id] = c as LevelContentRow;
@@ -584,6 +606,7 @@ export async function ensureTopicSteps(
     proof_brief: null,
     sandbox: steps[i].sandbox,
     code_example: steps[i].codeExample,
+    resources: null,
   }));
   contentRows.push({
     level_id: checkpoint.id,
@@ -599,6 +622,21 @@ export async function ensureTopicSteps(
     proof_title: parsed.proof_title.trim(),
     proof_brief: parsed.proof_brief.trim(),
     sandbox: null,
+    // Kept on the checkpoint rather than per step: this is where a student
+    // finds out they did not understand it, so this is where "go read this"
+    // has to be. A dropped or malformed url is simply left out rather than
+    // failing the whole topic.
+    resources: Array.isArray(parsed.resources)
+      ? parsed.resources
+          .filter((r: any) => r && typeof r.label === 'string' && (r.url || r.search))
+          .slice(0, 4)
+          .map((r: any) => ({
+            kind: r.kind === 'video' ? 'video' : 'docs',
+            label: String(r.label).trim(),
+            url: typeof r.url === 'string' && r.url.startsWith('https://') ? r.url : null,
+            search: typeof r.search === 'string' ? r.search.trim() : null,
+          }))
+      : null,
   });
 
   const { error: contentError } = await supabase.from('level_content').upsert(contentRows, { onConflict: 'level_id' });

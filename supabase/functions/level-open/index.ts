@@ -230,6 +230,8 @@ serve(async (req) => {
       code_example: content?.code_example ?? null,
       quiz: target.kind === 'checkpoint' ? quizForStudent(content?.quiz ?? []) : [],
       proof: content?.proof_title ? { title: content.proof_title, brief: content.proof_brief } : null,
+      // Only on the checkpoint: an explanation step has nothing to look up yet.
+      resources: target.kind === 'checkpoint' ? (content?.resources ?? null) : null,
       status: progressById.get(target.id)?.status ?? 'opened',
       evidence: progress?.evidence ?? null,
       best_score: progress?.best_score ?? 0,

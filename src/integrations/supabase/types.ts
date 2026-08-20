@@ -2025,6 +2025,347 @@ export type Database = {
         }
         Relationships: []
       }
+      badges: {
+        Row: {
+          slug: string
+          name: string
+          emoji: string
+          description: string
+          rule_kind: string
+          rule_value: number | null
+          track_slug: string | null
+          created_at: string
+        }
+        Insert: {
+          slug: string
+          name: string
+          emoji?: string
+          description: string
+          rule_kind: string
+          rule_value?: number | null
+          track_slug?: string | null
+          created_at?: string
+        }
+        Update: {
+          slug?: string
+          name?: string
+          emoji?: string
+          description?: string
+          rule_kind?: string
+          rule_value?: number | null
+          track_slug?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      student_badges: {
+        Row: {
+          id: string
+          student_id: string
+          badge_slug: string
+          awarded_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          badge_slug: string
+          awarded_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          badge_slug?: string
+          awarded_at?: string
+        }
+        Relationships: []
+      }
+      quests: {
+        Row: {
+          slug: string
+          name: string
+          description: string
+          cadence: string
+          metric: string
+          target: number
+          xp_reward: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          slug: string
+          name: string
+          description: string
+          cadence: string
+          metric: string
+          target?: number
+          xp_reward?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          slug?: string
+          name?: string
+          description?: string
+          cadence?: string
+          metric?: string
+          target?: number
+          xp_reward?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      student_quests: {
+        Row: {
+          id: string
+          student_id: string
+          quest_slug: string
+          period_start: string
+          progress: number
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          quest_slug: string
+          period_start: string
+          progress?: number
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          quest_slug?: string
+          period_start?: string
+          progress?: number
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
+      track_phases: {
+        Row: {
+          id: string
+          track_slug: string
+          phase_number: number
+          name: string
+          goal: string | null
+          from_level: number
+          to_level: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          track_slug: string
+          phase_number: number
+          name: string
+          goal?: string | null
+          from_level: number
+          to_level: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          track_slug?: string
+          phase_number?: number
+          name?: string
+          goal?: string | null
+          from_level?: number
+          to_level?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      topic_threads: {
+        Row: {
+          id: string
+          level_id: string
+          post_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          level_id: string
+          post_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          level_id?: string
+          post_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      thread_posts: {
+        Row: {
+          id: string
+          thread_id: string
+          author_id: string
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          thread_id: string
+          author_id: string
+          body: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          thread_id?: string
+          author_id?: string
+          body?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      seasons: {
+        Row: {
+          id: string
+          name: string
+          starts_on: string
+          ends_on: string
+          is_current: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          starts_on: string
+          ends_on: string
+          is_current?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          starts_on?: string
+          ends_on?: string
+          is_current?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      squads: {
+        Row: {
+          id: string
+          name: string
+          college_id: string | null
+          season_id: string | null
+          max_members: number
+          points: number
+          wins: number
+          losses: number
+          rank: number | null
+          previous_rank: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          college_id?: string | null
+          season_id?: string | null
+          max_members?: number
+          points?: number
+          wins?: number
+          losses?: number
+          rank?: number | null
+          previous_rank?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          college_id?: string | null
+          season_id?: string | null
+          max_members?: number
+          points?: number
+          wins?: number
+          losses?: number
+          rank?: number | null
+          previous_rank?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      squad_matches: {
+        Row: {
+          id: string
+          season_id: string | null
+          home_squad: string
+          away_squad: string
+          scheduled_at: string
+          home_points: number | null
+          away_points: number | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          season_id?: string | null
+          home_squad: string
+          away_squad: string
+          scheduled_at: string
+          home_points?: number | null
+          away_points?: number | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          season_id?: string | null
+          home_squad?: string
+          away_squad?: string
+          scheduled_at?: string
+          home_points?: number | null
+          away_points?: number | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      squad_members: {
+        Row: {
+          id: string
+          squad_id: string
+          student_id: string
+          role: string | null
+          contribution: number
+          joined_at: string
+          meet_url: string | null
+        }
+        Insert: {
+          id?: string
+          squad_id: string
+          student_id: string
+          role?: string | null
+          contribution?: number
+          joined_at?: string
+          meet_url?: string | null
+        }
+        Update: {
+          id?: string
+          squad_id?: string
+          student_id?: string
+          role?: string | null
+          contribution?: number
+          joined_at?: string
+          meet_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_members_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_levels: {
         Row: {
           attempts: number

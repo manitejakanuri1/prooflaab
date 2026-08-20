@@ -37,6 +37,15 @@ interface CodeExampleSpec {
   code: string;
 }
 
+/** Somewhere to go and learn this properly. A search phrase where the model
+ *  was not certain of a URL, because a 404 in a lesson is worse than no link. */
+interface TopicResource {
+  kind: "docs" | "video";
+  label: string;
+  url: string | null;
+  search: string | null;
+}
+
 interface LevelPayload {
   level: {
     id: string;
@@ -54,6 +63,7 @@ interface LevelPayload {
   code_example: CodeExampleSpec | null;
   quiz: QuizQuestion[];
   proof: { title: string; brief: string } | null;
+  resources: TopicResource[] | null;
   status: string;
   /** On a placed level: the line from their resume that earned the tick. */
   evidence: string | null;
@@ -284,6 +294,39 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                     Then you'll build: {data.proof.title}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">{data.proof.brief}</p>
+                </div>
+              )}
+
+              {/* Shown on the checkpoint, because that is where a student finds
+                  out they did not understand it — so that is where "go read
+                  this" has to be. */}
+              {isCheckpoint && data.resources && data.resources.length > 0 && (
+                <div className="rounded-lg border p-4">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Learn it properly
+                  </p>
+                  <div className="mt-3 grid gap-2">
+                    {data.resources.map((r, i) => {
+                      const href = r.url
+                        ? r.url
+                        : `https://www.${r.kind === "video" ? "youtube.com/results?search_query" : "google.com/search?q"}=${encodeURIComponent(r.search ?? r.label)}`;
+                      return (
+                        <a
+                          key={i}
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm hover:border-primary transition-colors"
+                        >
+                          <span className="text-base leading-none">{r.kind === "video" ? "▶" : "📄"}</span>
+                          <span className="min-w-0 flex-1 truncate">{r.label}</span>
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {r.url ? "open" : "search"}
+                          </span>
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

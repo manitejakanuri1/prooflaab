@@ -11,8 +11,9 @@ import StudentSettingsPage from "./StudentSettingsPage";
 import StudentResumeCheckPage from "./StudentResumeCheckPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";
 import StudentRoadmapPage from "./StudentRoadmapPage";
-import SquadPlaceholder from "./SquadPlaceholder";
+import StudentSquadPage from "./StudentSquadPage";
 import CodingStreaks from "./CodingStreaks";
+import StudentAchievements from "./StudentAchievements";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -89,6 +90,7 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
           <TabsList>
             <TabsTrigger value="entries">Entries</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="achievements">Badges &amp; Quests</TabsTrigger>
           </TabsList>
           <TabsContent value="entries" className="mt-4">
             <StudentUploadsPage />
@@ -101,10 +103,13 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
               <StudentProgressPage />
             </div>
           </TabsContent>
+          <TabsContent value="achievements" className="mt-4">
+            <StudentAchievements />
+          </TabsContent>
         </Tabs>
       )}
 
-      {destination === "squad" && <SquadPlaceholder />}
+      {destination === "squad" && <StudentSquadPage />}
 
       {destination === "profile" && (
         <Tabs value={profileTab} onValueChange={setProfileTab}>

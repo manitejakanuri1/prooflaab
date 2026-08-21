@@ -18,6 +18,13 @@ delete from public.interventions          where college_id = 'dddddddd-0000-4000
 delete from public.notifications          where user_id::text like 'dddddddd-0000-4000-8000-%';
 delete from public.student_skills         where student_id in
   (select id from public.student_profiles where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
+delete from public.student_weekly_scores  where squad_id in
+  (select id from public.squads where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
+delete from public.squad_weekly_scores    where season_id = 'dddddddd-0000-4000-8000-0000000055e1';
+delete from public.voice_explanations     where student_id in
+  (select id from public.student_profiles where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
+delete from public.task_assignments       where student_id in
+  (select id from public.student_profiles where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
 delete from public.student_activity_events where college_id = 'dddddddd-0000-4000-8000-00000000cc01';
 delete from public.squad_members          where squad_id in
   (select id from public.squads where college_id = 'dddddddd-0000-4000-8000-00000000cc01');

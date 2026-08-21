@@ -207,16 +207,7 @@ const TpoSquads = ({ focusSquad }: Props) => {
         <p className="text-sm text-muted-foreground">
           Standings, members, matches and assignment.
         </p>
-        <div className="ml-auto flex gap-2">
-          <Button size="sm" variant="outline" disabled={busy}
-                  onClick={() => void runWeek()}>
-            {busy ? "Working…" : "Score this week"}
-          </Button>
-          <Button size="sm" variant="outline" disabled={busy}
-                  onClick={() => void fixtures()}>
-            Generate fixtures
-          </Button>
-        </div>
+
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -267,6 +258,24 @@ const TpoSquads = ({ focusSquad }: Props) => {
                 })}
               </tbody>
             </table>
+
+            <div className="flex items-center gap-3 flex-wrap mt-4 pt-3 border-t">
+              <p className="text-xs text-muted-foreground">
+                Scored automatically every Monday from what each member did that week.
+                Fixtures are drawn as soon as a season has two squads.
+              </p>
+              <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs"
+                      disabled={busy} onClick={() => void runWeek()}>
+                {busy ? "Working…" : "Recalculate now"}
+              </Button>
+              {/* A squad added after the draw has no fixtures, and the nightly
+                  job only draws for a season that has none at all — so redrawing
+                  stays reachable, and refuses rather than discarding results. */}
+              <Button size="sm" variant="ghost" className="h-7 text-xs"
+                      disabled={busy} onClick={() => void fixtures()}>
+                Redraw fixtures
+              </Button>
+            </div>
           </CardContent></Card>
         </TabsContent>
 

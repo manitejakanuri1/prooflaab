@@ -86,16 +86,22 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   }
   if (!data) return <Skeleton className="h-72 w-full rounded-xl" />;
 
+  // Every card leads somewhere, because a number with nowhere to go is a number
+  // the officer has to act on by hand. The only one that stays inert is a zero
+  // — there is nothing to show behind "0 need attention".
   const cards = [
     { key: "students", label: "Students", value: data.students, icon: Users,
-      note: `${data.active_this_week} active this week` },
+      note: `${data.active_this_week} active this week · open the list`,
+      action: () => onNavigate?.("students") },
     { key: "today", label: "Active today", value: data.active_today, icon: Activity,
-      note: "signed in or submitted", tone: "good" as const },
+      note: data.active_today > 0 ? "signed in or submitted today" : "nobody yet today",
+      tone: "good" as const, action: () => onFilterStudents?.("active_today") },
     { key: "attention", label: "Needs attention", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
       tone: "hot" as const, action: () => onFilterStudents?.("all") },
     { key: "squads", label: "Squads", value: data.squads, icon: Shield,
-      note: `${data.reserves} in reserve` },
+      note: `${data.reserves} in reserve · open standings`,
+      action: () => onNavigate?.("squads") },
   ];
 
   return (

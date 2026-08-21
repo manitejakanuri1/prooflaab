@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import StudentHeader from "@/components/dashboard/student/StudentHeader";
 import StudentSidebar from "@/components/dashboard/student/StudentSidebar";
 import StudentDashboardContent from "@/components/dashboard/student/StudentDashboardContent";
@@ -37,6 +38,15 @@ const StudentDashboard = () => {
   useEffect(() => {
     setActiveTab(getTabFromPath(location.pathname));
   }, [location.pathname]);
+
+  // Opening the dashboard counts as being here, which is what a college means
+  // by "active today". The function records it once per day, so refreshing the
+  // page forty times is still one active day — and it never throws, because a
+  // student's dashboard must not fail over a statistic.
+  useEffect(() => {
+    if (!profile?.id) return;
+    void supabase.rpc("touch_my_activity" as never);
+  }, [profile?.id]);
 
   // A student who hasn't finished intake (welcome + "upload resume vs skip")
   // gets sent back to it instead of seeing the dashboard.

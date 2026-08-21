@@ -100,6 +100,7 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
       if (status === "attention" && r.attention === "ok") return false;
       if (status === "inactive" && r.days_quiet < 7) return false;
       if (status === "onboarding" && r.onboarding_status === "completed") return false;
+      if (status === "active_today" && r.days_quiet > 0) return false;
       return true;
     });
   }, [rows, q, branch, batch, squad, status]);
@@ -171,6 +172,7 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
             <SelectItem value="attention">Needs attention</SelectItem>
             <SelectItem value="inactive">Quiet 7+ days</SelectItem>
             <SelectItem value="onboarding">Onboarding unfinished</SelectItem>
+            <SelectItem value="active_today">Active today</SelectItem>
           </SelectContent>
         </Select>
 

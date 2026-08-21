@@ -159,7 +159,35 @@ Return ONLY a JSON array with this exact structure:
 
 Return ONLY the JSON array, no additional text, no markdown fences.`;
 
+    // Coding problems depend only on the skills and the target role, so two
+    // students with the same profile were paying for the same two problems
+    // twice. Keyed on a normalised, sorted skill list, so "Node.js, React" and
+    // "react, nodejs" are recognised as the same profile.
+    const { data: keyRow } = await supabase.rpc('template_key', {
+      _kind: 'coding_round', _role: targetRole, _skills: skills, _extra: language,
+    });
+    const cacheKey = keyRow as unknown as string | null;
+
+    let codingQuestions: any[] | null = null;
+
+    if (cacheKey) {
+      const { data: cached } = await supabase
+        .from('ai_templates')
+        .select('payload')
+        .eq('template_key', cacheKey)
+        .maybeSingle();
+
+      if (cached?.payload) {
+        console.log('coding round served from template cache:', cacheKey);
+        codingQuestions = cached.payload as any[];
+        await supabase.rpc('touch_template', { _key: cacheKey });
+      }
+    }
+
     let generatedText: string;
+    if (codingQuestions) {
+      generatedText = '';
+    } else {
     try {
       const result = await generateText(prompt, { temperature: 0.5, maxOutputTokens: 3000 }, { feature: 'resume-coding-generate', userId: callerId, studentId: profile.id });
       generatedText = result.text;
@@ -175,15 +203,34 @@ Return ONLY the JSON array, no additional text, no markdown fences.`;
       );
     }
 
-    let codingQuestions: any[];
     try {
       const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error('No JSON array found');
       codingQuestions = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      console.error('Failed to parse Gemini response:', parseError, generatedText);
+      console.error('Failed to parse the generated coding problems:', parseError, generatedText);
       return new Response(
         JSON.stringify({ error: 'Failed to parse generated coding problems' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Cached only after it parsed. Storing a broken payload would serve the
+    // same broken payload to everyone who follows.
+    if (cacheKey && codingQuestions) {
+      await supabase.from('ai_templates').upsert({
+        template_key: cacheKey,
+        kind: 'coding_round',
+        role: targetRole,
+        paths: skills,
+        payload: codingQuestions,
+      }, { onConflict: 'template_key' });
+    }
+    }
+
+    if (!codingQuestions) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate coding problems' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

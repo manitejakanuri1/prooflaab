@@ -25,6 +25,10 @@ interface HomeSnapshot {
   error?: string;
 }
 
+interface Standing {
+  id: string; name: string; points: number; wins: number; losses: number;
+}
+
 interface Props {
   onNavigate?: (tab: string) => void;
   onFilterStudents?: (reasonCode: string) => void;
@@ -44,6 +48,7 @@ interface Props {
  */
 const TpoHome = ({ onNavigate, onFilterStudents }: Props) => {
   const [data, setData] = useState<HomeSnapshot | null>(null);
+  const [standings, setStandings] = useState<Standing[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -52,6 +57,19 @@ const TpoHome = ({ onNavigate, onFilterStudents }: Props) => {
     const snap = res as unknown as HomeSnapshot;
     if (snap?.error) { setError(snap.error); return; }
     setData(snap);
+
+    // Standings are read straight from the squads table rather than folded into
+    // tpo_home: it is a plain list a rule already permits, and putting it in the
+    // snapshot would make one call slower for every screen that does not show it.
+    const cid = await supabase.rpc("my_college_id" as never);
+    const collegeId = cid.data as unknown as string | null;
+    if (collegeId) {
+      const { data: sq } = await supabase
+        .from("squads").select("id, name, points, wins, losses")
+        .eq("college_id", collegeId)
+        .order("points", { ascending: false });
+      setStandings((sq ?? []) as unknown as Standing[]);
+    }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -217,6 +235,53 @@ const TpoHome = ({ onNavigate, onFilterStudents }: Props) => {
           </Card>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="pt-5">
+          <div className="flex items-baseline">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Weekly squad standings
+            </span>
+            <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs"
+                    onClick={() => onNavigate?.("squads")}>
+              Open squads
+            </Button>
+          </div>
+
+          {standings.length === 0 ? (
+            <p className="text-sm text-muted-foreground mt-3">
+              No squads yet. A squad belongs to a season — create one and students can be drawn
+              into it from the reserve pool.
+            </p>
+          ) : (
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full text-sm min-w-[380px]">
+                <thead>
+                  <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <th className="pb-2 pr-3">Rank</th>
+                    <th className="pb-2 pr-3">Squad</th>
+                    <th className="pb-2 pr-3">Record</th>
+                    <th className="pb-2">Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((s, i) => (
+                    <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
+                        onClick={() => onNavigate?.("squads")}>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{i + 1}</td>
+                      <td className="py-2.5 pr-3 font-medium">{s.name}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.losses}</td>
+                      <td className={`py-2.5 font-mono tabular-nums font-semibold ${i === 0 ? "text-primary" : ""}`}>
+                        {s.points}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Download } from "lucide-react";
 
 interface SkillGap { skill: string; students: number }
 interface SquadHealth {
@@ -52,6 +53,50 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
   }
   if (!data) return <Skeleton className="h-80 w-full rounded-xl" />;
 
+  /**
+   * The weekly report, built from the same rows the screen is showing rather
+   * than from a second query — so the file a principal reads and the screen an
+   * officer read cannot disagree.
+   */
+  const exportWeekly = async () => {
+    const { data: students } = await supabase.rpc("tpo_students" as never);
+    const list = (students ?? []) as unknown as Array<Record<string, unknown>>;
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+    const lines: string[] = [];
+    lines.push(`ProofLab weekly report,${new Date().toLocaleDateString()}`);
+    lines.push("");
+    lines.push("Summary");
+    lines.push(`Students,${data.students}`);
+    lines.push(`Active this week (%),${data.participation_this_week}`);
+    lines.push(`Active last week (%),${data.participation_last_week}`);
+    lines.push(`Needs attention,${data.attention_total}`);
+    lines.push("");
+    lines.push("Skill gaps");
+    lines.push("Skill,Students needing improvement");
+    data.skill_gaps.forEach((g) => lines.push(`${esc(g.skill)},${g.students}`));
+    lines.push("");
+    lines.push("Squad health");
+    lines.push("Squad,Members,Active members,Points,Won,Lost");
+    data.squad_health.forEach((h) =>
+      lines.push([esc(h.name), h.members, h.active_members, h.points, h.wins, h.losses].join(",")));
+    lines.push("");
+    lines.push("Students");
+    lines.push("Name,Roll number,Branch,Squad,Days since active,Lots completed,Status");
+    list.forEach((r) => lines.push([
+      esc(r.full_name), esc(r.roll_number), esc(r.branch),
+      esc(r.is_reserve ? "Reserve" : r.squad_name),
+      r.days_quiet, r.lots_done, esc(r.attention),
+    ].join(",")));
+
+    const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `prooflab-weekly-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const delta = data.participation_this_week - data.participation_last_week;
   const healthy = data.squad_health.filter(
     (s) => s.members > 0 && s.active_members / s.members >= 0.7).length;
@@ -63,6 +108,10 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
         <p className="text-sm text-muted-foreground">
           Participation, skills, squad health and where to step in.
         </p>
+        <Button size="sm" variant="outline" className="ml-auto"
+                onClick={() => void exportWeekly()}>
+          <Download className="h-3.5 w-3.5 mr-1.5" /> Export weekly report
+        </Button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

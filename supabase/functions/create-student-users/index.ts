@@ -103,7 +103,11 @@ serve(async (req) => {
         year_of_study = '', 
         preferred_skills = '', 
         key_interests = '', 
-        career_goals = '' 
+        career_goals = '',
+        // How a college actually names a student. Unique per college, so two
+        // colleges may both legitimately have a 23CSE041.
+        roll_number = '',
+        batch = ''
       } = studentData
 
       // Convert comma-separated strings to arrays
@@ -211,7 +215,13 @@ serve(async (req) => {
               career_goals: career_goals || '',
               status: 'active',
               college_id: college_id,
-              source: 'College'
+              source: 'College',
+              roll_number: roll_number || null,
+              batch: batch || null,
+              // Imported, not yet arrived: the student still has to sign in and
+              // finish. Home counts these as needing attention until they do.
+              onboarding_status: 'invited',
+              invited_at: new Date().toISOString()
             })
             .eq('id', existingProfile.id)
 
@@ -240,7 +250,11 @@ serve(async (req) => {
               trust_score: 0,
               status: 'active',
               college_id: college_id,
-              source: 'College'
+              source: 'College',
+              roll_number: roll_number || null,
+              batch: batch || null,
+              onboarding_status: 'invited',
+              invited_at: new Date().toISOString()
             })
             .select('id')
             .single()

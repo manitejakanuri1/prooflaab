@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Bell } from "lucide-react";
+import TpoImportStudents from "./TpoImportStudents";
 
 interface Row {
   student_id: string;
@@ -58,11 +59,16 @@ const TpoStudents = ({ initialFilter }: Props) => {
   const [squad, setSquad] = useState("all");
   const [status, setStatus] = useState(initialFilter && initialFilter !== "all" ? initialFilter : "all");
   const [sending, setSending] = useState<string | null>(null);
+  const [collegeId, setCollegeId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data, error: err } = await supabase.rpc("tpo_students" as never);
+    const [{ data, error: err }, cid] = await Promise.all([
+      supabase.rpc("tpo_students" as never),
+      supabase.rpc("my_college_id" as never),
+    ]);
     if (err) { setError(err.message); return; }
     setRows((data ?? []) as unknown as Row[]);
+    setCollegeId((cid.data as unknown as string | null) ?? null);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -162,6 +168,8 @@ const TpoStudents = ({ initialFilter }: Props) => {
             <SelectItem value="onboarding">Onboarding unfinished</SelectItem>
           </SelectContent>
         </Select>
+
+        <TpoImportStudents collegeId={collegeId} onImported={() => void load()} />
       </div>
 
       <Card>

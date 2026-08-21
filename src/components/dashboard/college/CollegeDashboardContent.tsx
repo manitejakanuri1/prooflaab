@@ -1,21 +1,13 @@
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import TpoHome from "./TpoHome";
 import TpoStudents from "./TpoStudents";
 import TpoSquads from "./TpoSquads";
 import TpoInsights from "./TpoInsights";
 
-import StudentsManagement from "./StudentsManagement";
-import AssignTasks from "./AssignTasks";
-import UploadedProofs from "./UploadedProofs";
-import TrustScoresSection from "./TrustScoresSection";
 import NotificationsSection from "./NotificationsSection";
 import CollegeProfilePage from "./CollegeProfilePage";
 import CollegeSettingsPage from "./CollegeSettingsPage";
-import { RecruiterLinksPage } from "./RecruiterLinksPage";
-import VerificationTrendsPage from "./VerificationTrendsPage";
-import VerificationSettingsPage from "./VerificationSettingsPage";
 
 interface CollegeDashboardContentProps {
   activeTab: string;
@@ -23,15 +15,14 @@ interface CollegeDashboardContentProps {
 }
 
 /**
- * Four destinations, not eleven.
+ * Four destinations, and only four.
  *
- * Nothing was deleted. Assign Tasks, Uploaded Proofs, Trust Scores, Verification
- * Trends and Settings, and Recruiter Links all still exist — they moved inside
- * the destination they belong to, as tabs. The specification is explicit that
- * import, onboarding, reserve, leaderboard, season, at-risk and reports are
- * capabilities within four places rather than eleven entries in a menu.
+ * Each one is a whole screen rather than a shelf with the old modules parked on
+ * it. Import is an action inside Students, reports are an action inside
+ * Insights, and the reserve pool is a filter — exactly as the specification
+ * describes them, and none of them a tab of their own.
  *
- * Old tab ids still resolve, so a bookmark or an old link does not break.
+ * Old tab ids still resolve so an existing link does not break.
  */
 const LEGACY: Record<string, string> = {
   dashboard: "home",
@@ -61,45 +52,13 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
         return <TpoHome onNavigate={onTabChange} onFilterStudents={goFiltered} />;
 
       case "students":
-        return (
-          <Tabs defaultValue="list">
-            <TabsList>
-              <TabsTrigger value="list">Students</TabsTrigger>
-              <TabsTrigger value="import">Import &amp; manage</TabsTrigger>
-              <TabsTrigger value="assign">Assign tasks</TabsTrigger>
-              <TabsTrigger value="proofs">Uploaded proofs</TabsTrigger>
-              <TabsTrigger value="trust">Trust scores</TabsTrigger>
-            </TabsList>
-            <TabsContent value="list" className="mt-4">
-              <TpoStudents initialFilter={studentFilter} />
-            </TabsContent>
-            <TabsContent value="import" className="mt-4"><StudentsManagement /></TabsContent>
-            <TabsContent value="assign" className="mt-4"><AssignTasks /></TabsContent>
-            <TabsContent value="proofs" className="mt-4"><UploadedProofs /></TabsContent>
-            <TabsContent value="trust" className="mt-4"><TrustScoresSection /></TabsContent>
-          </Tabs>
-        );
+        return <TpoStudents initialFilter={studentFilter} />;
 
       case "squads":
         return <TpoSquads />;
 
       case "insights":
-        return (
-          <Tabs defaultValue="overview">
-            <TabsList>
-              <TabsTrigger value="overview">Insights</TabsTrigger>
-              <TabsTrigger value="trends">Verification trends</TabsTrigger>
-              <TabsTrigger value="rules">Verification settings</TabsTrigger>
-              <TabsTrigger value="recruiters">Recruiter links</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" className="mt-4">
-              <TpoInsights onFilterStudents={goFiltered} />
-            </TabsContent>
-            <TabsContent value="trends" className="mt-4"><VerificationTrendsPage /></TabsContent>
-            <TabsContent value="rules" className="mt-4"><VerificationSettingsPage /></TabsContent>
-            <TabsContent value="recruiters" className="mt-4"><RecruiterLinksPage /></TabsContent>
-          </Tabs>
-        );
+        return <TpoInsights onFilterStudents={goFiltered} />;
 
       // Account chrome, not destinations — reachable from the sidebar footer.
       case "notifications": return <NotificationsSection />;

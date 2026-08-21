@@ -157,6 +157,7 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          college_id: string | null
           created_at: string
           id: string
           new_values: Json | null
@@ -167,6 +168,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          college_id?: string | null
           created_at?: string
           id?: string
           new_values?: Json | null
@@ -177,6 +179,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          college_id?: string | null
           created_at?: string
           id?: string
           new_values?: Json | null
@@ -185,7 +188,15 @@ export type Database = {
           table_name?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       badges: {
         Row: {
@@ -460,6 +471,60 @@ export type Database = {
             columns: ["proof_id"]
             isOneToOne: false
             referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interventions: {
+        Row: {
+          college_id: string
+          created_at: string
+          created_by: string
+          id: string
+          message: string | null
+          reason: string
+          resolved_at: string | null
+          status: string
+          student_id: string
+          type: string
+        }
+        Insert: {
+          college_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          message?: string | null
+          reason: string
+          resolved_at?: string | null
+          status?: string
+          student_id: string
+          type: string
+        }
+        Update: {
+          college_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          message?: string | null
+          reason?: string
+          resolved_at?: string | null
+          status?: string
+          student_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interventions_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1542,30 +1607,57 @@ export type Database = {
       }
       seasons: {
         Row: {
+          champion_squad_id: string | null
+          college_id: string | null
           created_at: string
           ends_on: string
           id: string
           is_current: boolean
           name: string
+          planned_weeks: number
           starts_on: string
+          status: string
         }
         Insert: {
+          champion_squad_id?: string | null
+          college_id?: string | null
           created_at?: string
           ends_on: string
           id?: string
           is_current?: boolean
           name: string
+          planned_weeks?: number
           starts_on: string
+          status?: string
         }
         Update: {
+          champion_squad_id?: string | null
+          college_id?: string | null
           created_at?: string
           ends_on?: string
           id?: string
           is_current?: boolean
           name?: string
+          planned_weeks?: number
           starts_on?: string
+          status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "seasons_champion_squad_id_fkey"
+            columns: ["champion_squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_events: {
         Row: {
@@ -1666,28 +1758,37 @@ export type Database = {
       }
       squad_members: {
         Row: {
+          assigned_by: string | null
           contribution: number
           id: string
           joined_at: string
+          left_at: string | null
           meet_url: string | null
+          membership_type: string
           role: string | null
           squad_id: string
           student_id: string
         }
         Insert: {
+          assigned_by?: string | null
           contribution?: number
           id?: string
           joined_at?: string
+          left_at?: string | null
           meet_url?: string | null
+          membership_type?: string
           role?: string | null
           squad_id: string
           student_id: string
         }
         Update: {
+          assigned_by?: string | null
           contribution?: number
           id?: string
           joined_at?: string
+          left_at?: string | null
           meet_url?: string | null
+          membership_type?: string
           role?: string | null
           squad_id?: string
           student_id?: string
@@ -1841,6 +1942,54 @@ export type Database = {
         }
         Relationships: []
       }
+      student_activity_events: {
+        Row: {
+          college_id: string | null
+          event_type: string
+          id: number
+          metadata: Json
+          occurred_at: string
+          source_id: string | null
+          source_type: string | null
+          student_id: string
+        }
+        Insert: {
+          college_id?: string | null
+          event_type: string
+          id?: never
+          metadata?: Json
+          occurred_at?: string
+          source_id?: string | null
+          source_type?: string | null
+          student_id: string
+        }
+        Update: {
+          college_id?: string | null
+          event_type?: string
+          id?: never
+          metadata?: Json
+          occurred_at?: string
+          source_id?: string | null
+          source_type?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_activity_events_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_activity_events_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_badges: {
         Row: {
           awarded_at: string
@@ -1949,6 +2098,104 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: true
             referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_import_rows: {
+        Row: {
+          error_message: string | null
+          id: string
+          import_id: string
+          raw_data: Json
+          roll_number: string | null
+          row_number: number
+          student_id: string | null
+          validation_status: string
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          import_id: string
+          raw_data?: Json
+          roll_number?: string | null
+          row_number: number
+          student_id?: string | null
+          validation_status?: string
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          import_id?: string
+          raw_data?: Json
+          roll_number?: string | null
+          row_number?: number
+          student_id?: string | null
+          validation_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_import_rows_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "student_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_import_rows_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_imports: {
+        Row: {
+          college_id: string
+          completed_at: string | null
+          duplicate_rows: number
+          file_name: string
+          id: string
+          invalid_rows: number
+          started_at: string
+          status: string
+          total_rows: number
+          uploaded_by: string
+          valid_rows: number
+        }
+        Insert: {
+          college_id: string
+          completed_at?: string | null
+          duplicate_rows?: number
+          file_name: string
+          id?: string
+          invalid_rows?: number
+          started_at?: string
+          status?: string
+          total_rows?: number
+          uploaded_by: string
+          valid_rows?: number
+        }
+        Update: {
+          college_id?: string
+          completed_at?: string | null
+          duplicate_rows?: number
+          file_name?: string
+          id?: string
+          invalid_rows?: number
+          started_at?: string
+          status?: string
+          total_rows?: number
+          uploaded_by?: string
+          valid_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_imports_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
             referencedColumns: ["id"]
           },
         ]
@@ -2149,17 +2396,23 @@ export type Database = {
           ai_personalization_enabled: boolean
           batch: string | null
           branch: string | null
+          calibration_completed: boolean
           career_goals: string | null
           college_id: string | null
           created_at: string
+          first_task_completed: boolean
           full_name: string
           id: string
+          invited_at: string | null
           key_interests: string[]
           last_active: string | null
+          onboarded_at: string | null
+          onboarding_status: string
           preferred_skills: string[]
           profile_completed: boolean
           profile_photo_url: string | null
           profile_visibility: string
+          roll_number: string | null
           slug: string | null
           source: string | null
           status: string
@@ -2173,17 +2426,23 @@ export type Database = {
           ai_personalization_enabled?: boolean
           batch?: string | null
           branch?: string | null
+          calibration_completed?: boolean
           career_goals?: string | null
           college_id?: string | null
           created_at?: string
+          first_task_completed?: boolean
           full_name: string
           id?: string
+          invited_at?: string | null
           key_interests?: string[]
           last_active?: string | null
+          onboarded_at?: string | null
+          onboarding_status?: string
           preferred_skills?: string[]
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string
+          roll_number?: string | null
           slug?: string | null
           source?: string | null
           status?: string
@@ -2197,17 +2456,23 @@ export type Database = {
           ai_personalization_enabled?: boolean
           batch?: string | null
           branch?: string | null
+          calibration_completed?: boolean
           career_goals?: string | null
           college_id?: string | null
           created_at?: string
+          first_task_completed?: boolean
           full_name?: string
           id?: string
+          invited_at?: string | null
           key_interests?: string[]
           last_active?: string | null
+          onboarded_at?: string | null
+          onboarding_status?: string
           preferred_skills?: string[]
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string
+          roll_number?: string | null
           slug?: string | null
           source?: string | null
           status?: string
@@ -3105,6 +3370,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      assign_to_squad: {
+        Args: { _effective?: string; _squad_id: string; _student_id: string }
+        Returns: Json
+      }
       bump_llm_cache_hit: { Args: { p_hash: string }; Returns: undefined }
       check_rate_limit: {
         Args: {
@@ -3136,6 +3405,16 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       like_post: { Args: { p_post_id: string }; Returns: undefined }
+      log_activity: {
+        Args: {
+          _event_type: string
+          _metadata?: Json
+          _source_id?: string
+          _source_type?: string
+          _student_id: string
+        }
+        Returns: undefined
+      }
       log_security_event: {
         Args: {
           p_detail?: Json
@@ -3149,6 +3428,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      my_college_id: { Args: never; Returns: string }
       my_suggested_tracks: {
         Args: { _limit?: number }
         Returns: {
@@ -3194,6 +3474,7 @@ export type Database = {
         Args: { _metric: string; _student_id: string }
         Returns: undefined
       }
+      season_week: { Args: { _season_id: string }; Returns: number }
       set_proof_publicity: {
         Args: { p_is_public: boolean; p_proof_id: string }
         Returns: undefined
@@ -3224,8 +3505,58 @@ export type Database = {
       }
       touch_streak: { Args: { _student_id: string }; Returns: undefined }
       touch_template: { Args: { _key: string }; Returns: undefined }
+      tpo_attention: {
+        Args: never
+        Returns: {
+          branch: string
+          days_quiet: number
+          full_name: string
+          reason_codes: string[]
+          reasons: string[]
+          roll_number: string
+          severity: string
+          student_id: string
+        }[]
+      }
+      tpo_home: { Args: never; Returns: Json }
+      tpo_insights: { Args: never; Returns: Json }
+      tpo_send_reminder: {
+        Args: { _message?: string; _reason: string; _student_id: string }
+        Returns: Json
+      }
+      tpo_students: {
+        Args: never
+        Returns: {
+          attention: string
+          batch: string
+          branch: string
+          days_quiet: number
+          email: string
+          full_name: string
+          is_reserve: boolean
+          lots_done: number
+          onboarding_status: string
+          roll_number: string
+          squad_id: string
+          squad_name: string
+          student_id: string
+          total_xp: number
+          trust_score: number
+        }[]
+      }
       unfollow_user: { Args: { target_id: string }; Returns: undefined }
       unlike_post: { Args: { p_post_id: string }; Returns: undefined }
+      write_audit: {
+        Args: {
+          _action: string
+          _college?: string
+          _new?: Json
+          _old?: Json
+          _record: string
+          _table: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "student" | "college_admin" | "startup" | "admin"

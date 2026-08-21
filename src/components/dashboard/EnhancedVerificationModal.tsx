@@ -142,15 +142,18 @@ const EnhancedVerificationModal = ({
       // browser, which quietly did nothing: there was no INSERT policy, so the
       // student was never told. It goes through a function that checks the
       // caller is an admin and resolves the student's account itself.
-      await supabase.rpc('admin_notify_student', {
-        p_student_id: data.student_id,
-        p_type: 'review',
-        p_title: action === 'verified' ? 'Proof Manually Approved ✅' : 'Proof Rejected ❌',
-        p_message: action === 'verified'
+      // Not fire-and-forget. Telling the student is the point of the decision,
+      // so if it fails the admin has to know it failed.
+      const { error: notifyError } = await supabase.rpc('admin_notify_student', {
+        _student_id: data.student_id,
+        _type: 'review',
+        _title: action === 'verified' ? 'Proof Manually Approved ✅' : 'Proof Rejected ❌',
+        _message: action === 'verified'
           ? `Your proof was manually reviewed and approved by ${reviewerName}.`
           : `Your proof was rejected by ${reviewerName}. Reason: ${overrideReason}`,
-        p_link: '/student/uploads',
+        _link: '/student/uploads',
       });
+      if (notifyError) throw notifyError;
 
       toast.success(`Proof ${action === 'verified' ? 'approved' : 'rejected'} successfully`, {
         description: `Manual override logged for audit trail`
@@ -182,12 +185,13 @@ const EnhancedVerificationModal = ({
       // Notify admins. Same story as above: listing every admin from the
       // browser and inserting a row each never worked. notify_all_admins does
       // the fan-out server-side and refuses a caller who is not an admin.
-      await supabase.rpc('notify_all_admins', {
-        notification_type: 'proof',
-        notification_title: '⚠️ Manual Review Required',
-        notification_message: `${studentName} submission needs manual review (Trust Score: ${trustScore}/100)`,
-        notification_link: '/admin/proof-submissions',
+      const { error: notifyError } = await supabase.rpc('notify_all_admins', {
+        _type: 'proof',
+        _title: '⚠️ Manual Review Required',
+        _message: `${studentName} submission needs manual review (Trust Score: ${trustScore}/100)`,
+        _link: '/admin/proof-submissions',
       });
+      if (notifyError) throw notifyError;
 
       toast.success('Sent to manual review queue', {
         description: 'Admins have been notified'

@@ -37,7 +37,7 @@ const SystemSettings = () => {
   const [newAdminData, setNewAdminData] = useState({
     name: "",
     email: "",
-    role: "moderator"
+    role: "admin"
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,8 +57,10 @@ const SystemSettings = () => {
 
   const createAdminMutation = useMutation({
     mutationFn: async (adminData: any) => {
-      const { error } = await supabase
-        .from('admin_users')
+      // admin_users is a view over user_roles with INSTEAD OF triggers, so the
+      // type generator marks it read-only. The write is real; the cast is only
+      // to say so.
+      const { error } = await (supabase.from('admin_users') as any)
         .insert([adminData]);
       
       if (error) throw error;
@@ -70,7 +72,7 @@ const SystemSettings = () => {
         description: "Admin user created successfully.",
       });
       setIsCreateAdminModalOpen(false);
-      setNewAdminData({ name: "", email: "", role: "moderator" });
+      setNewAdminData({ name: "", email: "", role: "admin" });
     },
     onError: (error) => {
       toast({
@@ -83,8 +85,7 @@ const SystemSettings = () => {
 
   const deleteAdminMutation = useMutation({
     mutationFn: async (adminId: string) => {
-      const { error } = await supabase
-        .from('admin_users')
+      const { error } = await (supabase.from('admin_users') as any)
         .update({ status: 'inactive' })
         .eq('id', adminId);
       
@@ -119,13 +120,12 @@ const SystemSettings = () => {
     createAdminMutation.mutate(newAdminData);
   };
 
-  const getRoleBadge = (role: string) => {
-    return (
-      <Badge variant={role === 'super' ? 'default' : 'secondary'}>
-        {role === 'super' ? 'Super Admin' : 'Moderator'}
-      </Badge>
-    );
-  };
+  // This used to label every row "Moderator" unless the role was "super" —
+  // neither of which is a role that exists. It now shows what is actually
+  // stored, so the table cannot claim somebody has access they do not have.
+  const getRoleBadge = (role: string) => (
+    <Badge variant="default">{role === 'admin' ? 'Administrator' : role}</Badge>
+  );
 
   const getStatusBadge = (status: string) => {
     return (
@@ -272,10 +272,17 @@ const SystemSettings = () => {
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="super">Super Admin</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
                 </SelectContent>
               </Select>
+              {/* Moderator and Super Admin used to be offered here and neither
+                  existed. There is one admin role, and it is all-or-nothing —
+                  offering tiers that grant identical access is worse than
+                  offering none, because somebody will believe them. */}
+              <p className="text-xs text-muted-foreground mt-1.5">
+                They must already have a ProofLab account — this grants admin access
+                to that email, it does not create the account.
+              </p>
             </div>
           </div>
           <DialogFooter>

@@ -58,18 +58,31 @@ const TpoSquads = () => {
     const collegeId = cid.data as unknown as string | null;
     if (!collegeId) { setSquads([]); return; }
 
-    const [sq, mem, mat, stu] = await Promise.all([
-      supabase.from("squads").select("*").eq("college_id", collegeId)
-        .order("points", { ascending: false }),
+    // Squads first, because everything below is scoped by which squads are
+    // this college's. squad_matches and squad_members are both readable by any
+    // signed-in user, so reading them unfiltered would put another college's
+    // fixtures and members in these tables — nothing secret, still wrong.
+    const { data: sqData } = await supabase
+      .from("squads").select("*").eq("college_id", collegeId)
+      .order("points", { ascending: false });
+
+    const list = (sqData ?? []) as unknown as Squad[];
+    setSquads(list);
+
+    if (list.length === 0) { setMembers([]); setMatches([]); return; }
+    const ids = list.map((s) => s.id);
+
+    const [mem, mat, stu] = await Promise.all([
       supabase.from("squad_members")
         .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
+        .in("squad_id", ids)
         .is("left_at", null),
-      supabase.from("squad_matches").select("*").order("scheduled_at", { ascending: false }).limit(20),
+      supabase.from("squad_matches").select("*")
+        .or(`home_squad.in.(${ids.join(",")}),away_squad.in.(${ids.join(",")})`)
+        .order("scheduled_at", { ascending: false }).limit(20),
       supabase.rpc("tpo_students" as never),
     ]);
 
-    const list = (sq.data ?? []) as unknown as Squad[];
-    setSquads(list);
     setMembers((mem.data ?? []) as unknown as Member[]);
     setMatches((mat.data ?? []) as unknown as Match[]);
     setStudents((stu.data ?? []) as unknown as StudentRow[]);

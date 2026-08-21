@@ -44,6 +44,8 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
   // A squad chosen on another screen. Squads reads it, lands on Members, and
   // clears nothing — clicking "Titans" anywhere means "show me who is in Titans".
   const [focusSquad, setFocusSquad] = useState<string | null>(null);
+  // "Show me the four who need SQL" — set by a skill gap on Insights.
+  const [focusSkill, setFocusSkill] = useState<string | undefined>();
 
   const goFiltered = (reasonCode: string) => {
     setStudentFilter(reasonCode);
@@ -55,19 +57,32 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
     onTabChange?.("squads");
   };
 
+  const goSkill = (skill: string) => {
+    setFocusSkill(skill);
+    setStudentFilter(undefined);
+    onTabChange?.("students");
+  };
+
   const render = () => {
     switch (tab) {
       case "home":
         return <TpoHome onNavigate={onTabChange} onFilterStudents={goFiltered} onOpenSquad={goSquad} />;
 
       case "students":
-        return <TpoStudents initialFilter={studentFilter} onOpenSquad={goSquad} />;
+        return <TpoStudents initialFilter={studentFilter} initialSkill={focusSkill} onOpenSquad={goSquad} />;
 
       case "squads":
         return <TpoSquads focusSquad={focusSquad} />;
 
       case "insights":
-        return <TpoInsights onFilterStudents={goFiltered} />;
+        return (
+          <TpoInsights
+            onFilterStudents={goFiltered}
+            onFilterSkill={goSkill}
+            onOpenSquad={goSquad}
+            onNavigate={onTabChange}
+          />
+        );
 
       // Account chrome, not destinations — reachable from the sidebar footer.
       case "notifications": return <NotificationsSection />;

@@ -8,11 +8,12 @@ import { Download } from "lucide-react";
 
 interface SkillGap { skill: string; students: number }
 interface SquadHealth {
-  name: string; points: number; wins: number; losses: number;
+  id: string; name: string; points: number; wins: number; losses: number;
   members: number; active_members: number;
 }
 interface Insights {
   students: number;
+  active_today: number;
   participation_this_week: number;
   participation_last_week: number;
   skill_gaps: SkillGap[];
@@ -23,6 +24,10 @@ interface Insights {
 
 interface Props {
   onFilterStudents?: (reasonCode: string) => void;
+  /** "Show me the four who need SQL." */
+  onFilterSkill?: (skill: string) => void;
+  onOpenSquad?: (squadId: string) => void;
+  onNavigate?: (tab: string) => void;
 }
 
 /**
@@ -33,7 +38,7 @@ interface Props {
  * is also why this screen is honest about having nothing to say early on: a
  * participation trend drawn from one week of data is decoration.
  */
-const TpoInsights = ({ onFilterStudents }: Props) => {
+const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate }: Props) => {
   const [data, setData] = useState<Insights | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,7 +120,8 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="cursor-pointer transition-colors hover:border-primary"
+              onClick={() => onFilterStudents?.("active_week")}>
           <CardContent className="pt-5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Active this week
@@ -148,7 +154,8 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer transition-colors hover:border-primary"
+              onClick={() => onNavigate?.("squads")}>
           <CardContent className="pt-5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Squads healthy
@@ -162,13 +169,16 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer transition-colors hover:border-primary"
+              onClick={() => onNavigate?.("students")}>
           <CardContent className="pt-5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Students
             </span>
             <div className="font-mono text-3xl font-bold tabular-nums mt-1">{data.students}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">in this college</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {data.active_today} active today · open the list
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -187,7 +197,9 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
             ) : (
               <div className="mt-2">
                 {data.skill_gaps.map((g) => (
-                  <div key={g.skill} className="flex items-center gap-3 py-3 border-b last:border-b-0">
+                  <div key={g.skill}
+                       className="flex items-center gap-3 py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/40 rounded px-1 -mx-1"
+                       onClick={() => onFilterSkill?.(g.skill)}>
                     <div>
                       <p className="text-sm font-medium">{g.skill}</p>
                       <p className="text-xs text-muted-foreground">
@@ -199,8 +211,9 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
                         <div className="h-full bg-primary"
                              style={{ width: `${Math.min(100, Math.round(g.students / Math.max(data.students, 1) * 100))}%` }} />
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => onFilterStudents?.("all")}>
-                        View
+                      <Button size="sm" variant="outline"
+                              onClick={(e) => { e.stopPropagation(); onFilterSkill?.(g.skill); }}>
+                        View {g.students}
                       </Button>
                     </div>
                   </div>
@@ -222,7 +235,9 @@ const TpoInsights = ({ onFilterStudents }: Props) => {
                 {data.squad_health.map((s) => {
                   const pct = s.members === 0 ? 0 : Math.round(s.active_members / s.members * 100);
                   return (
-                    <div key={s.name} className="py-3 border-b last:border-b-0">
+                    <div key={s.id}
+                         className="py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/40 rounded px-1 -mx-1"
+                         onClick={() => onOpenSquad?.(s.id)}>
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-sm font-medium">{s.name}</span>
                         <span className="font-mono text-xs text-muted-foreground">

@@ -168,7 +168,7 @@ const TpoSquads = ({ focusSquad }: Props) => {
       // The refusal when results already exist is the useful case: it says how
       // many would be thrown away, and asks rather than deciding.
       toast({
-        title: "Fixtures not generated",
+        title: "Match schedule not changed",
         description: error.message,
         variant: "destructive",
         action: !force ? (
@@ -181,8 +181,9 @@ const TpoSquads = ({ focusSquad }: Props) => {
     }
     const r = data as unknown as { fixtures: number; weeks_covered: number; cycles: number };
     toast({
-      title: `${r.fixtures} fixtures drawn`,
-      description: `${r.cycles} full round${r.cycles === 1 ? "" : "s"} of the draw, covering ${r.weeks_covered} weeks.`,
+      title: `${r.fixtures} matches scheduled`,
+      description: `Every squad plays every other squad, repeated ${r.cycles} time${
+        r.cycles === 1 ? "" : "s"} to cover all ${r.weeks_covered} weeks of the season.`,
     });
     void load();
   };
@@ -262,7 +263,8 @@ const TpoSquads = ({ focusSquad }: Props) => {
             <div className="flex items-center gap-3 flex-wrap mt-4 pt-3 border-t">
               <p className="text-xs text-muted-foreground">
                 Scored automatically every Monday from what each member did that week.
-                Fixtures are drawn as soon as a season has two squads.
+                The match schedule — who plays whom, and in which week — is drawn as
+                soon as a season has two squads.
               </p>
               <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs"
                       disabled={busy} onClick={() => void runWeek()}>
@@ -273,7 +275,7 @@ const TpoSquads = ({ focusSquad }: Props) => {
                   stays reachable, and refuses rather than discarding results. */}
               <Button size="sm" variant="ghost" className="h-7 text-xs"
                       disabled={busy} onClick={() => void fixtures()}>
-                Redraw fixtures
+                Redo match schedule
               </Button>
             </div>
           </CardContent></Card>

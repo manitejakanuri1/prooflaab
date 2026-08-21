@@ -30,11 +30,14 @@ interface Row {
   onboarding_status: string;
   lots_done: number;
   attention: string;
+  gap_skills: string[] | null;
 }
 
 interface Props {
   /** Set by Home when a "needs attention" line is tapped. */
   initialFilter?: string;
+  /** Set by Insights when a skill gap is tapped — "show me the four who need SQL". */
+  initialSkill?: string;
   /** Jump to a squad, on its Members tab. */
   onOpenSquad?: (squadId: string) => void;
 }
@@ -53,7 +56,7 @@ const recency = (d: number) => (d >= 999 ? "never" : `${d}d`);
  * showing up — a trust score says how good someone is, not whether they are
  * still here.
  */
-const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
+const TpoStudents = ({ initialFilter, initialSkill, onOpenSquad }: Props) => {
   const { toast } = useToast();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,7 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
   const [sending, setSending] = useState<string | null>(null);
   const [collegeId, setCollegeId] = useState<string | null>(null);
   const [openStudent, setOpenStudent] = useState<string | null>(null);
+  const [skill, setSkill] = useState<string>(initialSkill ?? "all");
 
   const load = useCallback(async () => {
     const [{ data, error: err }, cid] = await Promise.all([
@@ -80,6 +84,11 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
   useEffect(() => {
     if (initialFilter) setStatus(initialFilter === "all" ? "attention" : initialFilter);
   }, [initialFilter]);
+  // Arriving from a skill gap means only that skill matters — the attention
+  // filter would hide the students who are weak at it but otherwise fine.
+  useEffect(() => {
+    if (initialSkill) { setSkill(initialSkill); setStatus("all"); }
+  }, [initialSkill]);
 
   const branches = useMemo(
     () => [...new Set((rows ?? []).map((r) => r.branch).filter(Boolean))] as string[], [rows]);
@@ -87,6 +96,8 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
     () => [...new Set((rows ?? []).map((r) => r.batch).filter(Boolean))] as string[], [rows]);
   const squads = useMemo(
     () => [...new Set((rows ?? []).map((r) => r.squad_name).filter(Boolean))] as string[], [rows]);
+  const skills = useMemo(
+    () => [...new Set((rows ?? []).flatMap((r) => r.gap_skills ?? []))].sort(), [rows]);
 
   const shown = useMemo(() => {
     if (!rows) return [];
@@ -101,9 +112,11 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
       if (status === "inactive" && r.days_quiet < 7) return false;
       if (status === "onboarding" && r.onboarding_status === "completed") return false;
       if (status === "active_today" && r.days_quiet > 0) return false;
+      if (status === "active_week" && r.days_quiet > 7) return false;
+      if (skill !== "all" && !(r.gap_skills ?? []).includes(skill)) return false;
       return true;
     });
-  }, [rows, q, branch, batch, squad, status]);
+  }, [rows, q, branch, batch, squad, status, skill]);
 
   const remind = async (r: Row) => {
     setSending(r.student_id);
@@ -173,6 +186,15 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
             <SelectItem value="inactive">Quiet 7+ days</SelectItem>
             <SelectItem value="onboarding">Onboarding unfinished</SelectItem>
             <SelectItem value="active_today">Active today</SelectItem>
+            <SelectItem value="active_week">Active this week</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={skill} onValueChange={setSkill}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Skill gap" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any skill</SelectItem>
+            {skills.map((k) => <SelectItem key={k} value={k}>Weak at {k}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -185,6 +207,12 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {shown.length} shown
             </span>
+            {skill !== "all" && (
+              <Badge variant="outline" className="ml-3 font-normal cursor-pointer"
+                     onClick={() => setSkill("all")}>
+                weak at {skill} ✕
+              </Badge>
+            )}
             <span className="ml-auto font-mono text-[10px] text-muted-foreground">
               {rows.length} total
             </span>
@@ -220,9 +248,17 @@ const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{r.branch ?? "—"}</td>
                     <td className="py-2.5 pr-3">
-                      {r.is_reserve
-                        ? <Badge variant="outline" className="font-normal">Reserve</Badge>
-                        : r.squad_name}
+                      {r.is_reserve ? (
+                        <Badge variant="outline" className="font-normal">Reserve</Badge>
+                      ) : (
+                        <button
+                          type="button"
+                          className="hover:text-primary hover:underline"
+                          onClick={(e) => { e.stopPropagation(); if (r.squad_id) onOpenSquad?.(r.squad_id); }}
+                        >
+                          {r.squad_name}
+                        </button>
+                      )}
                     </td>
                     <td className={`py-2.5 pr-3 font-mono tabular-nums ${
                       r.days_quiet >= 7 ? "text-destructive" : "text-muted-foreground"}`}>

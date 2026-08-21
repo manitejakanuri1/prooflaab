@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { format } from "date-fns";
 import TpoStudentProfile from "./TpoStudentProfile";
 import { ChevronRight } from "lucide-react";
@@ -136,6 +137,56 @@ const TpoSquads = ({ focusSquad }: Props) => {
     void load();
   };
 
+  /**
+   * §14, steps one to six. Every member's week is scored from what they
+   * actually did, summed into a squad score, ranked, published, and this
+   * round's fixture settled from the two squads' totals.
+   */
+  const runWeek = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("tpo_run_week" as never, {} as never);
+    setBusy(false);
+    if (error) {
+      toast({ title: "Could not score the week", description: error.message, variant: "destructive" });
+      return;
+    }
+    const r = data as unknown as { week: number; squads_scored: number; matches_settled: number };
+    toast({
+      title: `Week ${r.week} scored`,
+      description: `${r.squads_scored} squads ranked, ${r.matches_settled} match${
+        r.matches_settled === 1 ? "" : "es"} settled.`,
+    });
+    void load();
+  };
+
+  const fixtures = async (force = false) => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc(
+      "tpo_generate_fixtures" as never, { _force: force } as never);
+    setBusy(false);
+    if (error) {
+      // The refusal when results already exist is the useful case: it says how
+      // many would be thrown away, and asks rather than deciding.
+      toast({
+        title: "Fixtures not generated",
+        description: error.message,
+        variant: "destructive",
+        action: !force ? (
+          <ToastAction altText="Rebuild anyway" onClick={() => void fixtures(true)}>
+            Rebuild anyway
+          </ToastAction>
+        ) : undefined,
+      });
+      return;
+    }
+    const r = data as unknown as { fixtures: number; weeks_covered: number; cycles: number };
+    toast({
+      title: `${r.fixtures} fixtures drawn`,
+      description: `${r.cycles} full round${r.cycles === 1 ? "" : "s"} of the draw, covering ${r.weeks_covered} weeks.`,
+    });
+    void load();
+  };
+
   if (!squads) return <Skeleton className="h-96 w-full rounded-xl" />;
 
   if (squads.length === 0) {
@@ -156,6 +207,16 @@ const TpoSquads = ({ focusSquad }: Props) => {
         <p className="text-sm text-muted-foreground">
           Standings, members, matches and assignment.
         </p>
+        <div className="ml-auto flex gap-2">
+          <Button size="sm" variant="outline" disabled={busy}
+                  onClick={() => void runWeek()}>
+            {busy ? "Working…" : "Score this week"}
+          </Button>
+          <Button size="sm" variant="outline" disabled={busy}
+                  onClick={() => void fixtures()}>
+            Generate fixtures
+          </Button>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>

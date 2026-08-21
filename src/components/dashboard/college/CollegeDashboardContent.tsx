@@ -41,21 +41,30 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
   // opens already filtered. §2: "The TPO does not have to search again."
   const [studentFilter, setStudentFilter] = useState<string | undefined>();
 
+  // A squad chosen on another screen. Squads reads it, lands on Members, and
+  // clears nothing — clicking "Titans" anywhere means "show me who is in Titans".
+  const [focusSquad, setFocusSquad] = useState<string | null>(null);
+
   const goFiltered = (reasonCode: string) => {
     setStudentFilter(reasonCode);
     onTabChange?.("students");
   };
 
+  const goSquad = (squadId: string) => {
+    setFocusSquad(squadId);
+    onTabChange?.("squads");
+  };
+
   const render = () => {
     switch (tab) {
       case "home":
-        return <TpoHome onNavigate={onTabChange} onFilterStudents={goFiltered} />;
+        return <TpoHome onNavigate={onTabChange} onFilterStudents={goFiltered} onOpenSquad={goSquad} />;
 
       case "students":
-        return <TpoStudents initialFilter={studentFilter} />;
+        return <TpoStudents initialFilter={studentFilter} onOpenSquad={goSquad} />;
 
       case "squads":
-        return <TpoSquads />;
+        return <TpoSquads focusSquad={focusSquad} />;
 
       case "insights":
         return <TpoInsights onFilterStudents={goFiltered} />;
@@ -66,7 +75,7 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
       case "settings":      return <CollegeSettingsPage />;
 
       default:
-        return <TpoHome onNavigate={onTabChange} onFilterStudents={goFiltered} />;
+        return <TpoHome onNavigate={onTabChange} onFilterStudents={goFiltered} onOpenSquad={goSquad} />;
     }
   };
 

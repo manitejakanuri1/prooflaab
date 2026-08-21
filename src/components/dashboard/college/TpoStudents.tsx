@@ -11,6 +11,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Bell } from "lucide-react";
 import TpoImportStudents from "./TpoImportStudents";
+import TpoStudentProfile from "./TpoStudentProfile";
+import { ChevronRight } from "lucide-react";
 
 interface Row {
   student_id: string;
@@ -33,6 +35,8 @@ interface Row {
 interface Props {
   /** Set by Home when a "needs attention" line is tapped. */
   initialFilter?: string;
+  /** Jump to a squad, on its Members tab. */
+  onOpenSquad?: (squadId: string) => void;
 }
 
 const recency = (d: number) => (d >= 999 ? "never" : `${d}d`);
@@ -49,7 +53,7 @@ const recency = (d: number) => (d >= 999 ? "never" : `${d}d`);
  * showing up — a trust score says how good someone is, not whether they are
  * still here.
  */
-const TpoStudents = ({ initialFilter }: Props) => {
+const TpoStudents = ({ initialFilter, onOpenSquad }: Props) => {
   const { toast } = useToast();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +64,7 @@ const TpoStudents = ({ initialFilter }: Props) => {
   const [status, setStatus] = useState(initialFilter && initialFilter !== "all" ? initialFilter : "all");
   const [sending, setSending] = useState<string | null>(null);
   const [collegeId, setCollegeId] = useState<string | null>(null);
+  const [openStudent, setOpenStudent] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [{ data, error: err }, cid] = await Promise.all([
@@ -199,7 +204,11 @@ const TpoStudents = ({ initialFilter }: Props) => {
               </thead>
               <tbody>
                 {shown.map((r) => (
-                  <tr key={r.student_id} className="border-t">
+                  <tr
+                    key={r.student_id}
+                    className="border-t cursor-pointer hover:bg-muted/40"
+                    onClick={() => setOpenStudent(r.student_id)}
+                  >
                     <td className="py-2.5 pr-3">
                       <div className="font-medium">{r.full_name}</div>
                       <div className="text-xs text-muted-foreground">{r.email}</div>
@@ -232,17 +241,20 @@ const TpoStudents = ({ initialFilter }: Props) => {
                         </div>
                       )}
                     </td>
-                    <td className="py-2.5">
+                    <td className="py-2.5 whitespace-nowrap">
                       {r.attention !== "ok" && (
                         <Button
                           size="sm" variant="outline"
                           disabled={sending === r.student_id}
-                          onClick={() => void remind(r)}
+                          // The row opens the profile; this button must not do
+                          // both at once.
+                          onClick={(e) => { e.stopPropagation(); void remind(r); }}
                         >
                           <Bell className="h-3 w-3 mr-1" />
                           {sending === r.student_id ? "Sending…" : "Remind"}
                         </Button>
                       )}
+                      <ChevronRight className="h-4 w-4 inline-block ml-2 text-muted-foreground" />
                     </td>
                   </tr>
                 ))}
@@ -256,6 +268,13 @@ const TpoStudents = ({ initialFilter }: Props) => {
           </div>
         </CardContent>
       </Card>
+
+      <TpoStudentProfile
+        studentId={openStudent}
+        onClose={() => setOpenStudent(null)}
+        onOpenSquad={onOpenSquad}
+        onChanged={() => void load()}
+      />
     </div>
   );
 };

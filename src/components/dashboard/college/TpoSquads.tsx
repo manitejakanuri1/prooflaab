@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import TpoStudentProfile from "./TpoStudentProfile";
+import { ChevronRight } from "lucide-react";
 
 interface Squad {
   id: string; name: string; points: number; wins: number; losses: number;
@@ -41,7 +43,12 @@ const daysSince = (iso: string | null) =>
  * student in a squad has to close their old membership, respect capacity and
  * write an audit record all at once or not at all.
  */
-const TpoSquads = () => {
+interface Props {
+  /** A squad chosen elsewhere — from Home's standings, or a student's profile. */
+  focusSquad?: string | null;
+}
+
+const TpoSquads = ({ focusSquad }: Props) => {
   const { toast } = useToast();
   const [squads, setSquads] = useState<Squad[] | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -52,6 +59,8 @@ const TpoSquads = () => {
   const [pickSquad, setPickSquad] = useState("");
   const [when, setWhen] = useState("now");
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState("standings");
+  const [openStudent, setOpenStudent] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const cid = await supabase.rpc("my_college_id" as never);
@@ -90,6 +99,12 @@ const TpoSquads = () => {
   }, [selected]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Arriving with a squad already chosen means somebody clicked its name, and
+  // what they wanted to see is who is in it.
+  useEffect(() => {
+    if (focusSquad) { setSelected(focusSquad); setTab("members"); }
+  }, [focusSquad]);
 
   const names = useMemo(
     () => Object.fromEntries((squads ?? []).map((s) => [s.id, s.name])), [squads]);
@@ -143,7 +158,7 @@ const TpoSquads = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="standings">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="standings">Standings</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -170,9 +185,12 @@ const TpoSquads = () => {
                   const healthy = mine.length === 0 ? false : active / mine.length >= 0.7;
                   return (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
-                        onClick={() => setSelected(s.id)}>
+                        onClick={() => { setSelected(s.id); setTab("members"); }}>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{i + 1}</td>
-                      <td className="py-2.5 pr-3 font-medium">{s.name}</td>
+                      <td className="py-2.5 pr-3 font-medium">
+                        {s.name}
+                        <ChevronRight className="h-3.5 w-3.5 inline-block ml-1.5 text-muted-foreground" />
+                      </td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">
                         {mine.length}/{s.max_members}
                       </td>
@@ -212,11 +230,16 @@ const TpoSquads = () => {
                 const quiet = currentMembers.filter(
                   (m) => daysSince(m.student_profiles?.last_active ?? null) >= 7);
                 return quiet.length > 0 ? (
-                  <p className="text-sm mt-4">
+                  <div className="text-sm mt-4 flex items-center gap-2 flex-wrap">
                     <span className="text-destructive font-medium">{quiet.length} member
                       {quiet.length > 1 ? "s need" : " needs"} attention</span>
-                    {" — "}{quiet.map((m) => m.student_profiles?.full_name).join(", ")}
-                  </p>
+                    {quiet.map((m) => (
+                      <Button key={m.student_id} size="sm" variant="outline" className="h-7 text-xs"
+                              onClick={() => setOpenStudent(m.student_id)}>
+                        {m.student_profiles?.full_name}
+                      </Button>
+                    ))}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-4">Every member has been active this week.</p>
                 );
@@ -242,13 +265,16 @@ const TpoSquads = () => {
                 {currentMembers.map((m) => {
                   const d = daysSince(m.student_profiles?.last_active ?? null);
                   return (
-                    <tr key={m.student_id} className="border-t">
+                    <tr key={m.student_id}
+                        className="border-t cursor-pointer hover:bg-muted/40"
+                        onClick={() => setOpenStudent(m.student_id)}>
                       <td className="py-2.5 pr-3">{m.student_profiles?.full_name ?? "—"}</td>
                       <td className="py-2.5 pr-3 font-mono text-xs">{m.student_profiles?.roll_number ?? "—"}</td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{m.membership_type}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{m.contribution}</td>
                       <td className={`py-2.5 font-mono tabular-nums ${d >= 7 ? "text-destructive" : "text-muted-foreground"}`}>
                         {d >= 999 ? "never" : `${d}d`}
+                        <ChevronRight className="h-3.5 w-3.5 inline-block ml-2 text-muted-foreground" />
                       </td>
                     </tr>
                   );
@@ -352,6 +378,13 @@ const TpoSquads = () => {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      <TpoStudentProfile
+        studentId={openStudent}
+        onClose={() => setOpenStudent(null)}
+        onOpenSquad={(id) => { setSelected(id); setTab("members"); }}
+        onChanged={() => void load()}
+      />
     </div>
   );
 };

@@ -32,6 +32,7 @@ interface Standing {
 interface Props {
   onNavigate?: (tab: string) => void;
   onFilterStudents?: (reasonCode: string) => void;
+  onOpenSquad?: (squadId: string) => void;
 }
 
 /**
@@ -46,7 +47,7 @@ interface Props {
  * squads and the season together, and six round trips to paint a screen
  * somebody looks at for ten seconds is five too many.
  */
-const TpoHome = ({ onNavigate, onFilterStudents }: Props) => {
+const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   const [data, setData] = useState<HomeSnapshot | null>(null);
   const [standings, setStandings] = useState<Standing[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -222,11 +223,15 @@ const TpoHome = ({ onNavigate, onFilterStudents }: Props) => {
                   Leading squad
                 </span>
                 {data.leader ? (
-                  <p className="text-lg font-semibold mt-0.5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="text-lg font-semibold mt-0.5 flex items-center gap-2 hover:text-primary transition-colors"
+                    onClick={() => onOpenSquad?.(data.leader!.id)}
+                  >
                     <Trophy className="h-4 w-4 text-primary" />
                     {data.leader.name}
                     <span className="font-mono text-sm text-muted-foreground">{data.leader.points} pts</span>
-                  </p>
+                  </button>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-1">No squads yet.</p>
                 )}
@@ -267,7 +272,7 @@ const TpoHome = ({ onNavigate, onFilterStudents }: Props) => {
                 <tbody>
                   {standings.map((s, i) => (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
-                        onClick={() => onNavigate?.("squads")}>
+                        onClick={() => onOpenSquad?.(s.id)}>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{i + 1}</td>
                       <td className="py-2.5 pr-3 font-medium">{s.name}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.losses}</td>

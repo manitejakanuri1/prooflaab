@@ -34,10 +34,15 @@ interface Row {
 }
 
 interface Props {
-  /** Set by Home when a "needs attention" line is tapped. */
-  initialFilter?: string;
-  /** Set by Insights when a skill gap is tapped — "show me the four who need SQL". */
-  initialSkill?: string;
+  /** What the click that brought us here asked for. Undefined means everyone. */
+  filter?: string;
+  skill?: string;
+  /**
+   * Bumped on every navigation, including one that repeats the last. Without
+   * it, tapping the same card twice sends identical props and nothing happens —
+   * so a filter cleared by hand could not be re-applied by the card that set it.
+   */
+  intentKey?: number;
   /** Jump to a squad, on its Members tab. */
   onOpenSquad?: (squadId: string) => void;
 }
@@ -56,7 +61,7 @@ const recency = (d: number) => (d >= 999 ? "never" : `${d}d`);
  * showing up — a trust score says how good someone is, not whether they are
  * still here.
  */
-const TpoStudents = ({ initialFilter, initialSkill, onOpenSquad }: Props) => {
+const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Props) => {
   const { toast } = useToast();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,11 +69,11 @@ const TpoStudents = ({ initialFilter, initialSkill, onOpenSquad }: Props) => {
   const [branch, setBranch] = useState("all");
   const [batch, setBatch] = useState("all");
   const [squad, setSquad] = useState("all");
-  const [status, setStatus] = useState(initialFilter && initialFilter !== "all" ? initialFilter : "all");
+  const [status, setStatus] = useState("all");
   const [sending, setSending] = useState<string | null>(null);
   const [collegeId, setCollegeId] = useState<string | null>(null);
   const [openStudent, setOpenStudent] = useState<string | null>(null);
-  const [skill, setSkill] = useState<string>(initialSkill ?? "all");
+  const [skill, setSkill] = useState<string>("all");
 
   const load = useCallback(async () => {
     const [{ data, error: err }, cid] = await Promise.all([
@@ -81,14 +86,18 @@ const TpoStudents = ({ initialFilter, initialSkill, onOpenSquad }: Props) => {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // One place decides what the filters are, so the two can never be left set
+  // from different clicks. Arriving from a skill gap means only that skill
+  // matters — an attention filter would hide the students who are weak at it
+  // but otherwise perfectly active.
   useEffect(() => {
-    if (initialFilter) setStatus(initialFilter === "all" ? "attention" : initialFilter);
-  }, [initialFilter]);
-  // Arriving from a skill gap means only that skill matters — the attention
-  // filter would hide the students who are weak at it but otherwise fine.
-  useEffect(() => {
-    if (initialSkill) { setSkill(initialSkill); setStatus("all"); }
-  }, [initialSkill]);
+    setStatus(filter ? (filter === "all" ? "attention" : filter) : "all");
+    setSkill(skillIntent ?? "all");
+    setQ("");
+    setBranch("all");
+    setBatch("all");
+    setSquad("all");
+  }, [intentKey, filter, skillIntent]);
 
   const branches = useMemo(
     () => [...new Set((rows ?? []).map((r) => r.branch).filter(Boolean))] as string[], [rows]);

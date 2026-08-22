@@ -47,9 +47,11 @@ const daysSince = (iso: string | null) =>
 interface Props {
   /** A squad chosen elsewhere — from Home's standings, or a student's profile. */
   focusSquad?: string | null;
+  /** Bumped on every navigation, so choosing the same squad twice still works. */
+  focusKey?: number;
 }
 
-const TpoSquads = ({ focusSquad }: Props) => {
+const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const { toast } = useToast();
   const [squads, setSquads] = useState<Squad[] | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -105,7 +107,8 @@ const TpoSquads = ({ focusSquad }: Props) => {
   // what they wanted to see is who is in it.
   useEffect(() => {
     if (focusSquad) { setSelected(focusSquad); setTab("members"); }
-  }, [focusSquad]);
+    else { setTab("standings"); }
+  }, [focusSquad, focusKey]);
 
   const names = useMemo(
     () => Object.fromEntries((squads ?? []).map((s) => [s.id, s.name])), [squads]);

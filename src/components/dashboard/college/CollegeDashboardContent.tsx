@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import TpoHome from "./TpoHome";
 import TpoStudents from "./TpoStudents";
@@ -37,31 +37,49 @@ const LEGACY: Record<string, string> = {
 const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardContentProps) => {
   const tab = LEGACY[activeTab] ?? activeTab;
 
-  // Set when a "needs attention" line on Home or Insights is tapped, so Students
-  // opens already filtered. §2: "The TPO does not have to search again."
-  const [studentFilter, setStudentFilter] = useState<string | undefined>();
+  /**
+   * What the last click asked Students to show.
+   *
+   * One object rather than two independent pieces of state, because they were
+   * being set independently and left each other behind: opening a skill gap and
+   * then tapping "needs attention" showed the students who were BOTH, which is
+   * neither of the two things that were asked for.
+   *
+   * The counter matters as much as the values. Without it, tapping the same card
+   * twice sends the same props, React sees no change, and nothing happens — so
+   * a filter the officer had cleared by hand could not be re-applied by tapping
+   * the card that set it.
+   */
+  const [intent, setIntent] = useState<{ filter?: string; skill?: string; n: number }>({ n: 0 });
+  const [focusSquad, setFocusSquad] = useState<{ id: string; n: number } | null>(null);
 
-  // A squad chosen on another screen. Squads reads it, lands on Members, and
-  // clears nothing — clicking "Titans" anywhere means "show me who is in Titans".
-  const [focusSquad, setFocusSquad] = useState<string | null>(null);
-  // "Show me the four who need SQL" — set by a skill gap on Insights.
-  const [focusSkill, setFocusSkill] = useState<string | undefined>();
+  // True only for the instant between a card being tapped and the tab changing,
+  // so arriving at Students from the sidebar can be told apart from arriving
+  // from a card — the sidebar means "show me everyone".
+  const deliberate = useRef(false);
 
-  const goFiltered = (reasonCode: string) => {
-    setStudentFilter(reasonCode);
+  const goStudents = (next: { filter?: string; skill?: string }) => {
+    deliberate.current = true;
+    setIntent((i) => ({ filter: next.filter, skill: next.skill, n: i.n + 1 }));
     onTabChange?.("students");
   };
 
+  const goFiltered = (reasonCode: string) => goStudents({ filter: reasonCode });
+  const goSkill    = (skill: string)      => goStudents({ skill });
+
   const goSquad = (squadId: string) => {
-    setFocusSquad(squadId);
+    deliberate.current = true;
+    setFocusSquad((f) => ({ id: squadId, n: (f?.n ?? 0) + 1 }));
     onTabChange?.("squads");
   };
 
-  const goSkill = (skill: string) => {
-    setFocusSkill(skill);
-    setStudentFilter(undefined);
-    onTabChange?.("students");
-  };
+  // Reaching a destination any other way — the sidebar, a quick action — is a
+  // request for the whole thing, not for whatever was filtered last time.
+  useEffect(() => {
+    if (deliberate.current) { deliberate.current = false; return; }
+    if (tab === "students") setIntent((i) => ({ n: i.n + 1 }));
+    if (tab === "squads")   setFocusSquad(null);
+  }, [tab]);
 
   const render = () => {
     switch (tab) {
@@ -69,10 +87,17 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
         return <TpoHome onNavigate={onTabChange} onFilterStudents={goFiltered} onOpenSquad={goSquad} />;
 
       case "students":
-        return <TpoStudents initialFilter={studentFilter} initialSkill={focusSkill} onOpenSquad={goSquad} />;
+        return (
+          <TpoStudents
+            filter={intent.filter}
+            skill={intent.skill}
+            intentKey={intent.n}
+            onOpenSquad={goSquad}
+          />
+        );
 
       case "squads":
-        return <TpoSquads focusSquad={focusSquad} />;
+        return <TpoSquads focusSquad={focusSquad?.id ?? null} focusKey={focusSquad?.n ?? 0} />;
 
       case "insights":
         return (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,10 @@ interface Row {
   lots_done: number;
   attention: string;
   gap_skills: string[] | null;
+  total_count: number;
 }
+
+const PAGE = 50;
 
 interface Props {
   /** What the click that brought us here asked for. Undefined means everyone. */
@@ -48,6 +51,10 @@ interface Props {
 }
 
 const recency = (d: number) => (d >= 999 ? "never" : `${d}d`);
+
+interface FilterOptions {
+  branches?: string[]; batches?: string[]; squads?: string[]; skills?: string[];
+}
 
 /**
  * Students — one workspace for finding, filtering and acting.
@@ -72,20 +79,51 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   const [status, setStatus] = useState("all");
   const [sending, setSending] = useState<string | null>(null);
   const [collegeId, setCollegeId] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [options, setOptions] = useState<FilterOptions>({});
   const [openStudent, setOpenStudent] = useState<string | null>(null);
   const [skill, setSkill] = useState<string>("all");
 
+  /**
+   * One page, filtered by the database.
+   *
+   * This used to fetch every student and filter them in the page. At six
+   * students that is invisible; at ten thousand it is several megabytes on
+   * every visit and ten thousand objects re-filtered on every keystroke.
+   */
   const load = useCallback(async () => {
-    const [{ data, error: err }, cid] = await Promise.all([
-      supabase.rpc("tpo_students" as never),
+    setLoading(true);
+    const [{ data, error: err }, cid, opts] = await Promise.all([
+      supabase.rpc("tpo_students" as never, {
+        _search: q || null,
+        _branch: branch, _batch: batch, _squad: squad,
+        _status: status, _skill: skill,
+        _limit: PAGE, _offset: page * PAGE,
+      } as never),
       supabase.rpc("my_college_id" as never),
+      supabase.rpc("tpo_student_filters" as never),
     ]);
+    setLoading(false);
     if (err) { setError(err.message); return; }
-    setRows((data ?? []) as unknown as Row[]);
+    const list = (data ?? []) as unknown as Row[];
+    setRows(list);
+    setTotal(list[0]?.total_count ?? 0);
     setCollegeId((cid.data as unknown as string | null) ?? null);
-  }, []);
+    setOptions((opts.data ?? {}) as unknown as FilterOptions);
+  }, [q, branch, batch, squad, status, skill, page]);
 
-  useEffect(() => { void load(); }, [load]);
+  // A query per keystroke would be one per letter typed. A short pause is
+  // enough to tell "still typing" from "finished".
+  useEffect(() => {
+    const t = setTimeout(() => { void load(); }, q ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [load, q]);
+
+  // Any filter change starts again at the first page — page 4 of a filter that
+  // now matches twelve students is an empty screen.
+  useEffect(() => { setPage(0); }, [q, branch, batch, squad, status, skill]);
   // One place decides what the filters are, so the two can never be left set
   // from different clicks. Arriving from a skill gap means only that skill
   // matters — an attention filter would hide the students who are weak at it
@@ -99,33 +137,14 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
     setSquad("all");
   }, [intentKey, filter, skillIntent]);
 
-  const branches = useMemo(
-    () => [...new Set((rows ?? []).map((r) => r.branch).filter(Boolean))] as string[], [rows]);
-  const batches = useMemo(
-    () => [...new Set((rows ?? []).map((r) => r.batch).filter(Boolean))] as string[], [rows]);
-  const squads = useMemo(
-    () => [...new Set((rows ?? []).map((r) => r.squad_name).filter(Boolean))] as string[], [rows]);
-  const skills = useMemo(
-    () => [...new Set((rows ?? []).flatMap((r) => r.gap_skills ?? []))].sort(), [rows]);
+  // Every value in the college, not just the ones on this page — otherwise
+  // choosing MECH would be impossible while page one happens to be all CSE.
+  const branches = options.branches ?? [];
+  const batches  = options.batches  ?? [];
+  const squads   = options.squads   ?? [];
+  const skills   = options.skills   ?? [];
 
-  const shown = useMemo(() => {
-    if (!rows) return [];
-    const needle = q.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (needle && ![r.full_name, r.roll_number, r.email]
-        .some((v) => v?.toLowerCase().includes(needle))) return false;
-      if (branch !== "all" && r.branch !== branch) return false;
-      if (batch !== "all" && r.batch !== batch) return false;
-      if (squad === "reserve" ? !r.is_reserve : squad !== "all" && r.squad_name !== squad) return false;
-      if (status === "attention" && r.attention === "ok") return false;
-      if (status === "inactive" && r.days_quiet < 7) return false;
-      if (status === "onboarding" && r.onboarding_status === "completed") return false;
-      if (status === "active_today" && r.days_quiet > 0) return false;
-      if (status === "active_week" && r.days_quiet > 7) return false;
-      if (skill !== "all" && !(r.gap_skills ?? []).includes(skill)) return false;
-      return true;
-    });
-  }, [rows, q, branch, batch, squad, status, skill]);
+  const shown = rows ?? [];
 
   const remind = async (r: Row) => {
     setSending(r.student_id);
@@ -214,7 +233,8 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
         <CardContent className="pt-5">
           <div className="flex items-baseline mb-3">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {shown.length} shown
+              {total === 0 ? "none" : `${page * PAGE + 1}–${Math.min((page + 1) * PAGE, total)} of ${total}`}
+              {loading && " · loading"}
             </span>
             {skill !== "all" && (
               <Badge variant="outline" className="ml-3 font-normal cursor-pointer"
@@ -223,7 +243,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
               </Badge>
             )}
             <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-              {rows.length} total
+              matching these filters
             </span>
           </div>
 
@@ -305,7 +325,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                     </td>
                   </tr>
                 ))}
-                {shown.length === 0 && (
+                {shown.length === 0 && !loading && (
                   <tr><td colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
                     No students match these filters.
                   </td></tr>
@@ -313,6 +333,25 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
               </tbody>
             </table>
           </div>
+
+          {total > PAGE && (
+            <div className="flex items-center gap-3 mt-4 pt-3 border-t">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                page {page + 1} of {Math.ceil(total / PAGE)}
+              </span>
+              <div className="ml-auto flex gap-2">
+                <Button size="sm" variant="outline" disabled={page === 0 || loading}
+                        onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                  Previous
+                </Button>
+                <Button size="sm" variant="outline"
+                        disabled={(page + 1) * PAGE >= total || loading}
+                        onClick={() => setPage((p) => p + 1)}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

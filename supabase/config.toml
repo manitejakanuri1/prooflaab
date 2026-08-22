@@ -70,3 +70,6 @@ verify_jwt = false
 verify_jwt = false
 [functions.security-log]
 verify_jwt = false
+
+[functions.lot-writer]
+verify_jwt = true

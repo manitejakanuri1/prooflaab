@@ -868,6 +868,56 @@ export type Database = {
           },
         ]
       }
+      lot_templates: {
+        Row: {
+          code_sample: string | null
+          created_at: string
+          difficulty: string
+          estimate_minutes: number
+          level_id: string
+          lot_category: string
+          origin: string
+          scenario: string
+          source_jd: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          code_sample?: string | null
+          created_at?: string
+          difficulty?: string
+          estimate_minutes?: number
+          level_id: string
+          lot_category?: string
+          origin?: string
+          scenario: string
+          source_jd?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          code_sample?: string | null
+          created_at?: string
+          difficulty?: string
+          estimate_minutes?: number
+          level_id?: string
+          lot_category?: string
+          origin?: string
+          scenario?: string
+          source_jd?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_templates_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: true
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manual_adjustment_log: {
         Row: {
           adjustment_type: string
@@ -3574,6 +3624,7 @@ export type Database = {
         Args: { _effective?: string; _squad_id: string; _student_id: string }
         Returns: Json
       }
+      assign_todays_lots: { Args: never; Returns: Json }
       bump_llm_cache_hit: { Args: { p_hash: string }; Returns: undefined }
       check_rate_limit: {
         Args: {
@@ -3601,6 +3652,11 @@ export type Database = {
           work: string
         }[]
       }
+      create_lot_for: {
+        Args: { _for_date?: string; _student_id: string }
+        Returns: Json
+      }
+      create_my_lot: { Args: never; Returns: Json }
       form_squads: {
         Args: { _college_id: string; _season_id?: string }
         Returns: Json
@@ -3745,6 +3801,7 @@ export type Database = {
           title: string
         }[]
       }
+      next_lot_level: { Args: { _student_id: string }; Returns: string }
       notify_all_admins: {
         Args: {
           _link?: string
@@ -3781,6 +3838,7 @@ export type Database = {
           starts_at: string
         }[]
       }
+      seed_lot_template: { Args: { _level_id: string }; Returns: undefined }
       set_proof_publicity: {
         Args: { p_is_public: boolean; p_proof_id: string }
         Returns: undefined
@@ -3826,6 +3884,7 @@ export type Database = {
           student_id: string
         }[]
       }
+      tpo_college_report: { Args: never; Returns: Json }
       tpo_form_squads: { Args: never; Returns: Json }
       tpo_generate_fixtures: { Args: { _force?: boolean }; Returns: Json }
       tpo_home: { Args: never; Returns: Json }

@@ -25,7 +25,6 @@ const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const RecruiterView = lazy(() => import("./pages/RecruiterView"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const InviteCodeVerification = lazy(() => import("./pages/InviteCodeVerification"));
 const ReviewProofs = lazy(() => import("./pages/ReviewProofs"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -74,7 +73,6 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/invite-verification" element={<InviteCodeVerification />} />
                 <Route path="/onboarding-wizard" element={
                   <ProtectedRoute>
                     <OnboardingWizard />

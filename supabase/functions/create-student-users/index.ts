@@ -283,14 +283,42 @@ serve(async (req) => {
           }
         }
 
+        // The invitation. §6: after a successful import the platform invites the
+        // students it just created — until now the import created accounts and
+        // told nobody, so every imported student sat waiting for an email that
+        // was never sent.
+        //
+        // A recovery link rather than the temporary password: the password is
+        // generated here and should die here. Mailing it would put a working
+        // credential in an inbox forever.
+        //
+        // Never allowed to fail the import. A student whose account exists but
+        // whose email bounced is recoverable; a half-finished import is not.
+        try {
+          const { data: link } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email,
+          })
+
+          await supabaseAdmin.functions.invoke('send-onboarding-email', {
+            body: {
+              email,
+              name,
+              userType: 'student',
+              actionLink: link?.properties?.action_link ?? null,
+            },
+          })
+        } catch (inviteError) {
+          console.error('Invitation email failed (student was still created):', inviteError)
+        }
+
         results.push({
           email,
           status: 'success',
-          message: 'Student account created successfully',
+          message: 'Student account created and invited',
           userId: authData.user.id
-          // Temporary password intentionally omitted from response.
-          // Deliver credentials to the student via send-onboarding-email
-          // or a password-reset link generated with supabase.auth.admin.generateLink.
+          // Temporary password intentionally omitted from the response: the
+          // student sets their own through the link above.
         })
 
       } catch (error) {

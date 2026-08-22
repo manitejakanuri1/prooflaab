@@ -2601,6 +2601,54 @@ export type Database = {
           },
         ]
       }
+      student_week_plan: {
+        Row: {
+          created_at: string
+          id: string
+          level_id: string
+          reason: string
+          reason_code: string
+          slot: number
+          student_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level_id: string
+          reason: string
+          reason_code: string
+          slot: number
+          student_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level_id?: string
+          reason?: string
+          reason_code?: string
+          slot?: number
+          student_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_week_plan_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_week_plan_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_weekly_scores: {
         Row: {
           breakdown: Json
@@ -3329,6 +3377,30 @@ export type Database = {
           },
         ]
       }
+      public_resume_scorecards: {
+        Row: {
+          ats_match_score: number | null
+          coding_score: number | null
+          created_at: string | null
+          interview_readiness_score: number | null
+          project_proof_score: number | null
+          reasoning_score: number | null
+          resume_quality_score: number | null
+          roadmap: string | null
+          skill_gap: Json | null
+          skill_proof_score: number | null
+          student_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_scorecards_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_notify_student: {
@@ -3434,6 +3506,19 @@ export type Database = {
           title: string
         }[]
       }
+      my_week: {
+        Args: never
+        Returns: {
+          level_id: string
+          level_number: number
+          reason: string
+          reason_code: string
+          skill: string
+          slot: number
+          status: string
+          title: string
+        }[]
+      }
       notify_all_admins: {
         Args: {
           _link?: string
@@ -3442,6 +3527,11 @@ export type Database = {
           _type?: string
         }
         Returns: undefined
+      }
+      plan_all_weeks: { Args: never; Returns: Json }
+      plan_student_week: {
+        Args: { _student_id: string; _week_start?: string }
+        Returns: number
       }
       prune_rate_limits: { Args: never; Returns: undefined }
       record_activity: {

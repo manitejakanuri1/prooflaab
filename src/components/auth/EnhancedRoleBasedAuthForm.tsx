@@ -13,7 +13,6 @@ import { Loader2 } from 'lucide-react';
 import { FaGoogle, FaGithub } from 'react-icons/fa';
 import PasswordInput, { isPasswordValid } from './PasswordInput';
 import EmailVerificationScreen from './EmailVerificationScreen';
-import InviteCodeVerificationForm from './InviteCodeVerificationForm';
 import EmailConfirmationRequired from './EmailConfirmationRequired';
 
 const signupSchema = z.object({
@@ -35,7 +34,7 @@ const loginSchema = z.object({
 
 type AuthMode = 'login' | 'signup' | 'magic-link' | 'forgot-password';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
-type AuthStep = 'form' | 'email-verification' | 'invite-code';
+type AuthStep = 'form' | 'email-verification';
 
 interface EnhancedRoleBasedAuthFormProps {
   onSuccess?: (role: UserRole) => void;
@@ -202,10 +201,6 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateInviteCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
   const handleEmailPasswordAuth = async () => {

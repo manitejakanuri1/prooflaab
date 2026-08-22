@@ -14,6 +14,12 @@ import StudentRoadmapPage from "./StudentRoadmapPage";
 import StudentSquadPage from "./StudentSquadPage";
 import CodingStreaks from "./CodingStreaks";
 import StudentAchievements from "./StudentAchievements";
+import StudentSkillsProved from "./StudentSkillsProved";
+import StudentCosigns from "./StudentCosigns";
+import StudentHistory from "./StudentHistory";
+import StudentCertifications from "./StudentCertifications";
+import StudentPrivacy from "./StudentPrivacy";
+import StudentRolePreference from "./StudentRolePreference";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -87,13 +93,28 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
 
       {destination === "log" && (
         <Tabs value={logTab} onValueChange={setLogTab}>
-          <TabsList>
+          {/* The six views the architecture puts inside Build-log. Entries,
+              Progress and Badges were already here; Skills, Cosigns and History
+              read tables that existed and had no reader. */}
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="entries">Entries</TabsTrigger>
+            <TabsTrigger value="skills">Skills</TabsTrigger>
+            <TabsTrigger value="cosigns">Cosigns</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="achievements">Badges &amp; Quests</TabsTrigger>
           </TabsList>
           <TabsContent value="entries" className="mt-4">
             <StudentUploadsPage />
+          </TabsContent>
+          <TabsContent value="skills" className="mt-4">
+            <StudentSkillsProved />
+          </TabsContent>
+          <TabsContent value="cosigns" className="mt-4">
+            <StudentCosigns />
+          </TabsContent>
+          <TabsContent value="history" className="mt-4">
+            <StudentHistory />
           </TabsContent>
           <TabsContent value="progress" className="mt-4">
             <div className="space-y-6">
@@ -113,10 +134,13 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
 
       {destination === "profile" && (
         <Tabs value={profileTab} onValueChange={setProfileTab}>
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="proof">Proof</TabsTrigger>
             <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
             <TabsTrigger value="resume">Resume</TabsTrigger>
+            <TabsTrigger value="certifications">Certifications</TabsTrigger>
+            <TabsTrigger value="role">Role preference</TabsTrigger>
+            <TabsTrigger value="privacy">Privacy</TabsTrigger>
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -128,6 +152,15 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
           </TabsContent>
           <TabsContent value="resume" className="mt-4">
             <StudentResumeCheckPage />
+          </TabsContent>
+          <TabsContent value="certifications" className="mt-4">
+            <StudentCertifications />
+          </TabsContent>
+          <TabsContent value="role" className="mt-4">
+            <StudentRolePreference />
+          </TabsContent>
+          <TabsContent value="privacy" className="mt-4">
+            <StudentPrivacy />
           </TabsContent>
           <TabsContent value="portfolio" className="mt-4">
             <StudentPortfolioPage />

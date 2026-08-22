@@ -4,7 +4,7 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Video } from "lucide-react";
+import { Users, Video, Trophy, Crown, Medal, Award } from "lucide-react";
 import { format } from "date-fns";
 
 interface Squad {
@@ -26,6 +26,13 @@ interface Member {
   student_profiles: { full_name: string; total_xp: number } | null;
 }
 
+interface Achievement {
+  kind: "win" | "week" | "milestone" | "badge";
+  title: string;
+  detail: string | null;
+  achieved_at: string | null;
+}
+
 interface Match {
   id: string;
   scheduled_at: string;
@@ -36,8 +43,15 @@ interface Match {
   away_squad: string;
 }
 
+const ACHIEVEMENT_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  win: Trophy,
+  week: Crown,
+  milestone: Medal,
+  badge: Award,
+};
+
 /**
- * Squad — one destination, four views.
+ * Squad — one destination, five views.
  *
  * The design deck says this twice: Overview, Members, Matches and Standings are
  * tabs inside Squad, not four sidebar entries. A student asks "how is my team
@@ -51,6 +65,7 @@ const StudentSquadPage = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [standings, setStandings] = useState<Squad[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -63,13 +78,17 @@ const StudentSquadPage = () => {
 
     if (!membership) { setLoading(false); return; }
 
-    const [squadRes, memberRes, matchRes, standingRes] = await Promise.all([
+    const [squadRes, memberRes, matchRes, standingRes, achieveRes] = await Promise.all([
       supabase.from("squads").select("*").eq("id", membership.squad_id).maybeSingle(),
       supabase
         .from("squad_members")
         .select("student_id, role, contribution, meet_url, student_profiles(full_name, total_xp)")
         .eq("squad_id", membership.squad_id)
-        .order("contribution", { ascending: false }),
+        // Joined order, not contribution order. The architecture is explicit
+        // that a squad is cooperative and that students are not to be ranked
+        // against their own squadmates — the number still shows, as a
+        // contribution indicator, but the list is not a leaderboard.
+        .order("joined_at", { ascending: true }),
       supabase
         .from("squad_matches")
         .select("*")
@@ -79,6 +98,10 @@ const StudentSquadPage = () => {
       // Everyone's standings, not just ours — a league you cannot see the rest
       // of is a scoreboard with one row on it.
       supabase.from("squads").select("*").order("points", { ascending: false }).limit(20),
+      // Wins, weeks at the top, milestones and badges — every one of them read
+      // back out of the match and weekly-score records rather than stored a
+      // second time where it could drift from them.
+      supabase.rpc("my_squad_achievements" as never),
     ]);
 
     setSquad(squadRes.data as Squad | null);
@@ -86,6 +109,7 @@ const StudentSquadPage = () => {
     setMatches((matchRes.data ?? []) as Match[]);
     setStandings((standingRes.data ?? []) as Squad[]);
     setNames(Object.fromEntries(((standingRes.data ?? []) as Squad[]).map((s) => [s.id, s.name])));
+    setAchievements((achieveRes.data ?? []) as unknown as Achievement[]);
     setLoading(false);
   }, [profile?.id]);
 
@@ -107,8 +131,8 @@ const StudentSquadPage = () => {
             one, this is where you will see your team's rank and points, who is active, your
             upcoming matches and the full standings.
           </p>
-          <div className="grid gap-2 sm:grid-cols-4">
-            {["Overview", "Members", "Matches", "Standings"].map((v) => (
+          <div className="grid gap-2 sm:grid-cols-5">
+            {["Overview", "Members", "Matches", "Standings", "Achievements"].map((v) => (
               <div key={v} className="rounded-lg border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">
                 {v}
               </div>
@@ -164,6 +188,7 @@ const StudentSquadPage = () => {
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="matches">Matches</TabsTrigger>
           <TabsTrigger value="standings">Standings</TabsTrigger>
+          <TabsTrigger value="achievements">Achievements</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">
@@ -324,6 +349,40 @@ const StudentSquadPage = () => {
                   ))}
                 </tbody>
               </table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="achievements" className="mt-4">
+          <Card>
+            <CardContent className="pt-5">
+              {achievements.length === 0 ? (
+                <p className="text-sm text-muted-foreground max-w-prose">
+                  Nothing yet. Wins, weeks at the top of the table, point milestones and your own
+                  badges land here as they happen — none of it is entered by hand.
+                </p>
+              ) : (
+                <div>
+                  {achievements.map((a, i) => {
+                    const Icon = ACHIEVEMENT_ICON[a.kind] ?? Award;
+                    return (
+                      <div key={`${a.kind}-${i}`} className="flex items-start gap-3 py-3 border-b last:border-b-0">
+                        <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{a.title}</p>
+                          {a.detail && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{a.detail}</p>
+                          )}
+                        </div>
+                        {a.achieved_at && (
+                          <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap mt-1">
+                            {format(new Date(a.achieved_at), "d MMM yyyy")}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

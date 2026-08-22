@@ -11,6 +11,17 @@ interface SquadHealth {
   id: string; name: string; points: number; wins: number; losses: number;
   members: number; active_members: number;
 }
+interface Branch { branch: string; students: number; active_week: number; in_squads: number }
+interface Trend {
+  squad_id: string; squad: string; week: number; points: number; change: number | null;
+}
+interface Season {
+  id: string; name: string; status: string; is_current: boolean;
+  starts_on: string; ends_on: string; completed_at: string | null;
+  champion: string | null; runner_up: string | null; third: string | null; squads: number;
+}
+interface Report { branches: Branch[]; squad_trends: Trend[]; seasons: Season[]; error?: string }
+
 interface Insights {
   students: number;
   active_today: number;
@@ -40,11 +51,19 @@ interface Props {
  */
 const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate }: Props) => {
   const [data, setData] = useState<Insights | null>(null);
+  const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data: res, error: err } = await supabase.rpc("tpo_insights" as never);
+    // Two functions rather than one: tpo_insights answers "where do I step in",
+    // and the report answers "how is the college doing" — §11 asks for both and
+    // they are read at different rhythms.
+    const [{ data: res, error: err }, { data: rep }] = await Promise.all([
+      supabase.rpc("tpo_insights" as never),
+      supabase.rpc("tpo_college_report" as never),
+    ]);
     if (err) { setError(err.message); return; }
+    setReport(rep as unknown as Report);
     const d = res as unknown as Insights;
     if (d?.error) { setError(d.error); return; }
     setData(d);
@@ -102,6 +121,9 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
     URL.revokeObjectURL(url);
   };
 
+  const branches = report?.branches ?? [];
+  const trends = report?.squad_trends ?? [];
+  const seasons = report?.seasons ?? [];
   const delta = data.participation_this_week - data.participation_last_week;
   const healthy = data.squad_health.filter(
     (s) => s.members > 0 && s.active_members / s.members >= 0.7).length;
@@ -261,6 +283,133 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
           </CardContent>
         </Card>
       </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardContent className="pt-5">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Branch activity
+            </span>
+            {branches.length === 0 ? (
+              <p className="text-sm text-muted-foreground mt-3">No students imported yet.</p>
+            ) : (
+              <div className="mt-2">
+                {branches.map((b) => {
+                  const pct = b.students === 0
+                    ? 0 : Math.round((b.active_week / b.students) * 100);
+                  return (
+                    <div key={b.branch} className="py-3 border-b last:border-b-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{b.branch}</span>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {b.active_week}/{b.students} active this week
+                        </span>
+                        <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
+                          {b.in_squads} in squads
+                        </span>
+                      </div>
+                      <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className={pct >= 70 ? "h-full bg-emerald-500" : "h-full bg-amber-500"}
+                             style={{ width: pct + "%" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-5">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Squad trends
+            </span>
+            {trends.length === 0 ? (
+              <p className="text-sm text-muted-foreground mt-3 max-w-prose">
+                Nothing to compare yet. A trend needs two scored weeks — after the second Monday
+                this shows which squads are climbing and which are falling away.
+              </p>
+            ) : (
+              <div className="mt-2">
+                {trends.map((t) => (
+                  <div key={t.squad_id}
+                       className="flex items-center gap-3 py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/40 rounded px-1 -mx-1"
+                       onClick={() => onOpenSquad?.(t.squad_id)}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{t.squad}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t.points} points in week {t.week}
+                      </p>
+                    </div>
+                    <span className="ml-auto font-mono text-sm tabular-nums">
+                      {t.change == null ? (
+                        <span className="text-muted-foreground">first week</span>
+                      ) : t.change >= 0 ? (
+                        <span className="text-emerald-500">+{t.change}</span>
+                      ) : (
+                        <span className="text-destructive">{t.change}</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent className="pt-5">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Season results
+          </span>
+          {seasons.length === 0 ? (
+            <p className="text-sm text-muted-foreground mt-3 max-w-prose">
+              No season has been run yet. A season is what the weekly scores add up to — it opens
+              with the squads you have and closes with a champion, a runner-up and a third.
+            </p>
+          ) : (
+            <div className="mt-2">
+              {seasons.map((s) => (
+                <div key={s.id} className="py-3 border-b last:border-b-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-sm font-medium">{s.name}</span>
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      {s.is_current ? "Running" : s.status}
+                    </Badge>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {s.squads} squads
+                    </span>
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                      {s.starts_on} → {s.ends_on}
+                    </span>
+                  </div>
+                  {s.champion ? (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                      {[
+                        { k: "Champion", v: s.champion },
+                        { k: "Runner-up", v: s.runner_up },
+                        { k: "Third", v: s.third },
+                      ].map(({ k, v }) => (
+                        <div key={k} className="rounded-lg bg-muted/50 p-3">
+                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                            {k}
+                          </span>
+                          <div className="text-sm font-semibold mt-0.5">{v ?? "—"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Still running. The podium is filled in when the season closes.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

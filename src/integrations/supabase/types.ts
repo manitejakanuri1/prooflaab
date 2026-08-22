@@ -425,6 +425,54 @@ export type Database = {
           },
         ]
       }
+      cosigns: {
+        Row: {
+          cosigner_id: string
+          cosigner_name: string
+          cosigner_role: string
+          created_at: string
+          id: string
+          note: string | null
+          proof_id: string
+          student_id: string
+        }
+        Insert: {
+          cosigner_id: string
+          cosigner_name: string
+          cosigner_role: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          proof_id: string
+          student_id: string
+        }
+        Update: {
+          cosigner_id?: string
+          cosigner_name?: string
+          cosigner_role?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          proof_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cosigns_proof_id_fkey"
+            columns: ["proof_id"]
+            isOneToOne: false
+            referencedRelation: "proof_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cosigns_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       github_verifications: {
         Row: {
           authenticity_notes: Json | null
@@ -1468,38 +1516,47 @@ export type Database = {
         Row: {
           champion_squad_id: string | null
           college_id: string | null
+          completed_at: string | null
           created_at: string
           ends_on: string
           id: string
           is_current: boolean
           name: string
           planned_weeks: number
+          runner_up_squad_id: string | null
           starts_on: string
           status: string
+          third_squad_id: string | null
         }
         Insert: {
           champion_squad_id?: string | null
           college_id?: string | null
+          completed_at?: string | null
           created_at?: string
           ends_on: string
           id?: string
           is_current?: boolean
           name: string
           planned_weeks?: number
+          runner_up_squad_id?: string | null
           starts_on: string
           status?: string
+          third_squad_id?: string | null
         }
         Update: {
           champion_squad_id?: string | null
           college_id?: string | null
+          completed_at?: string | null
           created_at?: string
           ends_on?: string
           id?: string
           is_current?: boolean
           name?: string
           planned_weeks?: number
+          runner_up_squad_id?: string | null
           starts_on?: string
           status?: string
+          third_squad_id?: string | null
         }
         Relationships: [
           {
@@ -1514,6 +1571,20 @@ export type Database = {
             columns: ["college_id"]
             isOneToOne: false
             referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_runner_up_squad_id_fkey"
+            columns: ["runner_up_squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_third_squad_id_fkey"
+            columns: ["third_squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
             referencedColumns: ["id"]
           },
         ]
@@ -1672,6 +1743,21 @@ export type Database = {
           },
         ]
       }
+      squad_name_themes: {
+        Row: {
+          branch: string
+          theme: string
+        }
+        Insert: {
+          branch: string
+          theme: string
+        }
+        Update: {
+          branch?: string
+          theme?: string
+        }
+        Relationships: []
+      }
       squad_scoring_rules: {
         Row: {
           description: string | null
@@ -1749,9 +1835,11 @@ export type Database = {
       }
       squads: {
         Row: {
+          archived_at: string | null
           college_id: string | null
           created_at: string
           id: string
+          is_locked: boolean
           losses: number
           max_members: number
           name: string
@@ -1763,9 +1851,11 @@ export type Database = {
           wins: number
         }
         Insert: {
+          archived_at?: string | null
           college_id?: string | null
           created_at?: string
           id?: string
+          is_locked?: boolean
           losses?: number
           max_members?: number
           name: string
@@ -1777,9 +1867,11 @@ export type Database = {
           wins?: number
         }
         Update: {
+          archived_at?: string | null
           college_id?: string | null
           created_at?: string
           id?: string
+          is_locked?: boolean
           losses?: number
           max_members?: number
           name?: string
@@ -1956,6 +2048,56 @@ export type Database = {
           },
           {
             foreignKeyName: "student_badges_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_certifications: {
+        Row: {
+          created_at: string
+          credential_id: string | null
+          credential_url: string | null
+          expires_on: string | null
+          id: string
+          issued_on: string | null
+          issuer: string | null
+          name: string
+          source: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          expires_on?: string | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          name: string
+          source?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          expires_on?: string | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          name?: string
+          source?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_certifications_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student_profiles"
@@ -2345,18 +2487,23 @@ export type Database = {
           last_active: string | null
           onboarded_at: string | null
           onboarding_status: string
+          open_to_relocate: boolean
+          preferred_locations: string[]
           preferred_skills: string[]
           profile_completed: boolean
           profile_photo_url: string | null
           profile_visibility: string
           roll_number: string | null
+          secondary_roles: string[]
           slug: string | null
           source: string | null
           status: string
+          target_role: string | null
           total_xp: number
           trust_score: number
           updated_at: string
           user_id: string
+          work_preference: string
           year_of_study: string | null
         }
         Insert: {
@@ -2375,18 +2522,23 @@ export type Database = {
           last_active?: string | null
           onboarded_at?: string | null
           onboarding_status?: string
+          open_to_relocate?: boolean
+          preferred_locations?: string[]
           preferred_skills?: string[]
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string
           roll_number?: string | null
+          secondary_roles?: string[]
           slug?: string | null
           source?: string | null
           status?: string
+          target_role?: string | null
           total_xp?: number
           trust_score?: number
           updated_at?: string
           user_id: string
+          work_preference?: string
           year_of_study?: string | null
         }
         Update: {
@@ -2405,18 +2557,23 @@ export type Database = {
           last_active?: string | null
           onboarded_at?: string | null
           onboarding_status?: string
+          open_to_relocate?: boolean
+          preferred_locations?: string[]
           preferred_skills?: string[]
           profile_completed?: boolean
           profile_photo_url?: string | null
           profile_visibility?: string
           roll_number?: string | null
+          secondary_roles?: string[]
           slug?: string | null
           source?: string | null
           status?: string
+          target_role?: string | null
           total_xp?: number
           trust_score?: number
           updated_at?: string
           user_id?: string
+          work_preference?: string
           year_of_study?: string | null
         }
         Relationships: [
@@ -3427,7 +3584,27 @@ export type Database = {
         }
         Returns: Json
       }
+      close_season: { Args: { _season_id: string }; Returns: Json }
       complete_own_wizard: { Args: never; Returns: undefined }
+      cosign_proof: {
+        Args: { _note?: string; _proof_id: string }
+        Returns: Json
+      }
+      cosignable_proofs: {
+        Args: never
+        Returns: {
+          proof_id: string
+          status: string
+          student_id: string
+          student_name: string
+          submitted_at: string
+          work: string
+        }[]
+      }
+      form_squads: {
+        Args: { _college_id: string; _season_id?: string }
+        Returns: Json
+      }
       generate_round_robin: {
         Args: { _force?: boolean; _season_id: string }
         Returns: Json
@@ -3475,6 +3652,55 @@ export type Database = {
         Returns: undefined
       }
       my_college_id: { Args: never; Returns: string }
+      my_cosigns: {
+        Args: never
+        Returns: {
+          cosign_id: string
+          cosigner_name: string
+          cosigner_role: string
+          created_at: string
+          direction: string
+          note: string
+          proof_id: string
+          student_name: string
+          work: string
+        }[]
+      }
+      my_history: {
+        Args: { _limit?: number; _offset?: number }
+        Returns: {
+          event_type: string
+          metadata: Json
+          occurred_at: string
+          source_id: string
+          source_type: string
+          total: number
+        }[]
+      }
+      my_skills_proved: {
+        Args: never
+        Returns: {
+          assessed_score: number
+          claimed_from: string
+          last_evidence_at: string
+          needs_improvement: boolean
+          proven_lots: number
+          proven_voice: number
+          skill: string
+          status: string
+          topics_cleared: number
+          topics_total: number
+        }[]
+      }
+      my_squad_achievements: {
+        Args: never
+        Returns: {
+          achieved_at: string
+          detail: string
+          kind: string
+          title: string
+        }[]
+      }
       my_suggested_tracks: {
         Args: { _limit?: number }
         Returns: {
@@ -3559,6 +3785,7 @@ export type Database = {
         Args: { p_is_public: boolean; p_proof_id: string }
         Returns: undefined
       }
+      squad_town: { Args: { _college_id: string }; Returns: string }
       suggest_tracks: {
         Args: { _limit?: number; _student_id: string }
         Returns: {
@@ -3599,12 +3826,53 @@ export type Database = {
           student_id: string
         }[]
       }
+      tpo_form_squads: { Args: never; Returns: Json }
       tpo_generate_fixtures: { Args: { _force?: boolean }; Returns: Json }
       tpo_home: { Args: never; Returns: Json }
       tpo_insights: { Args: never; Returns: Json }
+      tpo_rebalance_squads: { Args: never; Returns: Json }
       tpo_run_week: { Args: { _week?: number }; Returns: Json }
       tpo_send_reminder: {
         Args: { _message?: string; _reason: string; _student_id: string }
+        Returns: Json
+      }
+      tpo_squad_achievements: {
+        Args: never
+        Returns: {
+          archived: boolean
+          best_rank: number
+          best_week_points: number
+          is_locked: boolean
+          losses: number
+          member_badges: number
+          squad_id: string
+          squad_name: string
+          weeks_led: number
+          wins: number
+        }[]
+      }
+      tpo_squad_performance: {
+        Args: { _weeks?: number }
+        Returns: {
+          active_members: number
+          change: number
+          participation: number
+          points: number
+          rank: number
+          squad_id: string
+          squad_name: string
+          total_members: number
+          week: number
+        }[]
+      }
+      tpo_squad_update: {
+        Args: {
+          _archived?: boolean
+          _is_locked?: boolean
+          _max_members?: number
+          _name?: string
+          _squad_id: string
+        }
         Returns: Json
       }
       tpo_student_filters: { Args: never; Returns: Json }
@@ -3640,6 +3908,7 @@ export type Database = {
           trust_score: number
         }[]
       }
+      viewer_college_id: { Args: never; Returns: string }
       write_audit: {
         Args: {
           _action: string

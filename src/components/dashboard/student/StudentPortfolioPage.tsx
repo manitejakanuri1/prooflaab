@@ -7,8 +7,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useProofUploads } from "@/hooks/useProofUploads";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { useFollowCounts } from "@/hooks/useFollowCounts";
-import { FollowersFollowingModal } from "./FollowersFollowingModal";
 import { Award, Eye, EyeOff, ExternalLink, Share, Star, Trophy, CheckCircle, Clock, Globe, Lock, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +21,6 @@ const StudentPortfolioPage = () => {
   const currentDate = new Date();
   const { data: uploads, isLoading: uploadsLoading, refetch } = useProofUploads(currentDate);
   const { portfolio, loading: portfolioLoading, updatePortfolioVisibility } = usePortfolio();
-  const { followerCount, followingCount, loading: countsLoading } = useFollowCounts(profile?.id);
   const { toast } = useToast();
   const [localUploads, setLocalUploads] = useState(uploads || []);
   const [followModalOpen, setFollowModalOpen] = useState(false);
@@ -212,25 +209,6 @@ const StudentPortfolioPage = () => {
                       <Users className="h-5 w-5 text-blue-500" />
                     </div>
                     <div className="flex items-center gap-3 text-lg font-semibold text-foreground">
-                      <button
-                        onClick={() => {
-                          setFollowModalTab("followers");
-                          setFollowModalOpen(true);
-                        }}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {followerCount} <span className="text-sm text-muted-foreground font-normal">Followers</span>
-                      </button>
-                      <span className="text-muted-foreground">·</span>
-                      <button
-                        onClick={() => {
-                          setFollowModalTab("following");
-                          setFollowModalOpen(true);
-                        }}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {followingCount} <span className="text-sm text-muted-foreground font-normal">Following</span>
-                      </button>
                     </div>
                   </CardContent>
                 </Card>
@@ -373,14 +351,6 @@ const StudentPortfolioPage = () => {
         </CardContent>
       </Card>
 
-      {/* Followers/Following Modal */}
-      <FollowersFollowingModal
-        open={followModalOpen}
-        onOpenChange={setFollowModalOpen}
-        userId={profile?.id || ""}
-        currentUserId={profile?.id}
-        defaultTab={followModalTab}
-      />
     </div>
   );
 };

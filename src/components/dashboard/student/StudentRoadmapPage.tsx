@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseStages, type RoadmapStage } from "./RoadmapStages";
 import LevelMap from "./LevelMap";
+import ThisWeekPlan from "./ThisWeekPlan";
 
 interface StageTask {
   roadmap_stage_index: number;
@@ -83,6 +84,8 @@ const StudentRoadmapPage = () => {
   // either one would be a step backwards.
   return (
     <div className="space-y-6">
+      <ThisWeekPlan />
+
       <LevelMap />
 
       {loading ? (

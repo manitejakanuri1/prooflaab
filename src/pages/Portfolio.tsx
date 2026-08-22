@@ -10,10 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicProjectCard } from "@/components/portfolio/PublicProjectCard";
-import { FollowButton } from "@/components/dashboard/student/FollowButton";
-import { FollowersFollowingModal } from "@/components/dashboard/student/FollowersFollowingModal";
 import PublicSuggestedStudents from "@/components/feed/PublicSuggestedStudents";
-import { useFollowCounts } from "@/hooks/useFollowCounts";
 import { supabase } from "@/integrations/supabase/client";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import {
@@ -38,7 +35,6 @@ const Portfolio = () => {
   const { projects, loading: projectsLoading, error: projectsError } = usePortfolioProjects(
     portfolio?.student_id || ""
   );
-  const { followerCount, followingCount, loading: countsLoading } = useFollowCounts(portfolio?.student_id);
   const { scorecard } = usePublicScorecard(portfolio?.student_id);
 
   // Get current user ID and check if they're a student
@@ -297,40 +293,10 @@ const Portfolio = () => {
                   <Briefcase className="h-5 w-5 text-primary" />
                   <span className="font-semibold">{projects.length} Projects</span>
                 </div>
-                <button
-                  onClick={() => {
-                    setFollowModalTab("followers");
-                    setFollowModalOpen(true);
-                  }}
-                  className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border hover:bg-background transition-colors cursor-pointer"
-                >
-                  <Users className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">{followerCount} Followers</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setFollowModalTab("following");
-                    setFollowModalOpen(true);
-                  }}
-                  className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border hover:bg-background transition-colors cursor-pointer"
-                >
-                  <Users className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">{followingCount} Following</span>
-                </button>
               </div>
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                {/* Follow Button - Only show if logged in as student */}
-                {isStudent && (
-                  <FollowButton
-                    targetUserId={portfolio?.student_id || ""}
-                    currentUserId={currentUserId}
-                    variant="profile"
-                    size="default"
-                  />
-                )}
-                
                 {/* Contact Button - Show for recruiters with different label */}
                 <a
                   href={`mailto:contact@prooflab.ai?subject=Interest in ${portfolio?.student_profiles?.full_name || "Student"}'s Profile`}
@@ -421,7 +387,6 @@ const Portfolio = () => {
                         filePath={project.file_path}
                         fileName={project.file_name}
                         proofId={project.id}
-                        postId={project.post_id}
                         aiSummary={project.ai_summary}
                         reflectionSummary={reflectionSummary}
                       />
@@ -455,14 +420,6 @@ const Portfolio = () => {
         </div>
       </main>
 
-      {/* Followers/Following Modal */}
-      <FollowersFollowingModal
-        open={followModalOpen}
-        onOpenChange={setFollowModalOpen}
-        userId={portfolio?.student_id || ""}
-        currentUserId={currentUserId}
-        defaultTab={followModalTab}
-      />
     </div>
   );
 };

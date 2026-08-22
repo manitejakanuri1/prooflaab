@@ -15,7 +15,6 @@ interface Notification {
   triggered_by?: string;
   triggered_by_name?: string;
   triggered_by_avatar?: string;
-  post_id?: string;
   source: 'system' | 'social';
 }
 
@@ -73,7 +72,6 @@ export const useNotifications = () => {
           triggered_by: n.actor_id || undefined,
           triggered_by_name: actor?.full_name || (n.actor_id ? 'Someone' : undefined),
           triggered_by_avatar: actor?.profile_photo_url || undefined,
-          post_id: n.post_id || undefined,
           source: n.source as 'system' | 'social',
         };
       });

@@ -82,8 +82,19 @@ export interface LevelContentRow {
 /** Same normalisation as skill-map, so "Node.js" and "nodejs" are one skill. */
 export const normSkill = (s: string) => s.toLowerCase().replace(/[\s._-]/g, '');
 
-/** Statuses that mean "this level no longer stands between you and the next one". */
+/** Statuses that mean the student has genuinely finished this level. */
 const DONE_STATUSES = new Set(['placed', 'cleared', 'mastered']);
+
+/**
+ * Statuses that mean "this level no longer stands between you and the next one".
+ *
+ * 'revise' is here and not in DONE_STATUSES, and the difference is the whole
+ * point of it. A Foundations topic marked for revision is not finished — it
+ * still shows in the week's plan and still has to be cleared — but it must
+ * never be a locked door. Making a student who already writes React re-prove
+ * HTML before they may continue is how you lose them in week one.
+ */
+const UNBLOCKING_STATUSES = new Set(['placed', 'cleared', 'mastered', 'revise']);
 
 /**
  * Recompute how far a student may go on a track.
@@ -123,7 +134,7 @@ export async function advanceUnlock(
 
   let unlockedThrough = 1;
   for (const level of levels ?? []) {
-    if (DONE_STATUSES.has(statusById.get(level.id) ?? '')) {
+    if (UNBLOCKING_STATUSES.has(statusById.get(level.id) ?? '')) {
       // Finished, so the wall moves past it. +1 rather than +0 so a fully
       // finished track unlocks one past the end and the map can say "done"
       // instead of pointing at the last level forever.
@@ -260,6 +271,21 @@ export async function placeStudent(
       .order('sub_level', { ascending: true });
     if (!levels || levels.length === 0) continue;
 
+    // Where Foundations ends. A resume can prove somebody has used React; it
+    // cannot prove they never skipped the basics underneath it, and those gaps
+    // are what break students later. So Foundations is never ticked off on
+    // paper — it becomes a quick revision instead.
+    const { data: foundations } = await supabase
+      .from('track_phases')
+      .select('from_level, to_level')
+      .eq('track_slug', slug)
+      .eq('phase_number', 1)
+      .maybeSingle();
+    const isFoundation = (levelNumber: number) =>
+      foundations != null &&
+      levelNumber >= foundations.from_level &&
+      levelNumber <= foundations.to_level;
+
     const { data: existingRows } = await supabase
       .from('student_levels')
       .select('level_id, status')
@@ -274,7 +300,10 @@ export async function placeStudent(
       .map((l: any) => ({
         student_id: studentId,
         level_id: l.id,
-        status: 'placed',
+        // Advanced topics the resume proves are ticked off. Foundations are
+        // marked for revision instead: shown, quick, and never a blocker —
+        // an easy win sitting in the list rather than a locked door.
+        status: isFoundation(l.level_number) ? 'revise' : 'placed',
         // No quiz was taken for these, so no score is claimed.
         best_score: 0,
         // What in the resume earned the tick, so the student can check our
@@ -294,7 +323,10 @@ export async function placeStudent(
     // First level they have not finished — where the map should point them.
     const finished = new Set<string>([
       ...toInsert.map((r: any) => r.level_id),
-      ...[...existing.entries()].filter(([, s]) => DONE_STATUSES.has(s)).map(([id]) => id),
+      // Unblocking rather than done: the map should point at the next real
+      // piece of work, with the revision sitting in this week's plan instead of
+      // standing in front of it.
+      ...[...existing.entries()].filter(([, s]) => UNBLOCKING_STATUSES.has(s)).map(([id]) => id),
     ]);
     let placedAt = levels.length + 1;
     for (const level of levels) {

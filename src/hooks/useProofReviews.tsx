@@ -118,7 +118,9 @@ export const useProofReviews = () => {
           task: item.tasks,
           conceptual_score: (item as any).conceptual_score ?? null,
           conceptual_status: (item as any).conceptual_status ?? null,
-        })) as ProofReview[] || [];
+        // Reshaped from the joined rows above, so the two types genuinely do
+        // not overlap — via unknown rather than pretending they do.
+        })) as unknown as ProofReview[] || [];
       } catch (error) {
         console.error('Proof reviews query error:', error);
         return [];

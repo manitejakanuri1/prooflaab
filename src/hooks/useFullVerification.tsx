@@ -76,13 +76,19 @@ export const useFullVerification = () => {
           // notifications is keyed on the auth user id now, and a browser
           // cannot insert a row addressed to someone else. This admin-only
           // function resolves the student's account and writes it server-side.
-          await supabase.rpc('admin_notify_student', {
-            p_student_id: proofData.student_id,
-            p_type: 'verification',
-            p_title: 'Conceptual Questions Ready',
-            p_message: 'Please answer the conceptual questions for your proof submission to complete verification.',
-            p_link: '/student/uploads',
+          // The parameters are named with a single underscore, not p_. They
+          // were p_ here, so this call failed every time and the student was
+          // never told their questions were ready.
+          const { error: notifyError } = await supabase.rpc('admin_notify_student', {
+            _student_id: proofData.student_id,
+            _type: 'verification',
+            _title: 'Conceptual Questions Ready',
+            _message: 'Please answer the conceptual questions for your proof submission to complete verification.',
+            _link: '/student/uploads',
           });
+          if (notifyError) {
+            console.error('Could not notify the student:', notifyError);
+          }
         }
 
         results.status = 'awaiting_student_answers';

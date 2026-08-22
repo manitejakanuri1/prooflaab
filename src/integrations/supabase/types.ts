@@ -868,7 +868,6 @@ export type Database = {
           link: string | null
           message: string
           metadata: Json | null
-          post_id: string | null
           read_at: string | null
           source: string
           title: string
@@ -884,7 +883,6 @@ export type Database = {
           link?: string | null
           message: string
           metadata?: Json | null
-          post_id?: string | null
           read_at?: string | null
           source?: string
           title: string
@@ -900,83 +898,13 @@ export type Database = {
           link?: string | null
           message?: string
           metadata?: Json | null
-          post_id?: string | null
           read_at?: string | null
           source?: string
           title?: string
           type?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "proof_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      post_comments: {
-        Row: {
-          comment: string
-          created_at: string
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          comment: string
-          created_at?: string
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          comment?: string
-          created_at?: string
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "proof_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      post_likes: {
-        Row: {
-          created_at: string
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "proof_posts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       proof_appeals: {
         Row: {
@@ -1025,75 +953,6 @@ export type Database = {
           },
           {
             foreignKeyName: "proof_appeals_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "student_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      proof_posts: {
-        Row: {
-          comments_count: number
-          created_at: string
-          description: string | null
-          emoji_code: string
-          external_link: string | null
-          id: string
-          likes_count: number
-          proof_id: string | null
-          skills: string[]
-          status: string
-          student_id: string
-          title: string
-          verified_badge: boolean
-          view_count: number
-          visibility: string
-        }
-        Insert: {
-          comments_count?: number
-          created_at?: string
-          description?: string | null
-          emoji_code?: string
-          external_link?: string | null
-          id?: string
-          likes_count?: number
-          proof_id?: string | null
-          skills?: string[]
-          status?: string
-          student_id: string
-          title: string
-          verified_badge?: boolean
-          view_count?: number
-          visibility?: string
-        }
-        Update: {
-          comments_count?: number
-          created_at?: string
-          description?: string | null
-          emoji_code?: string
-          external_link?: string | null
-          id?: string
-          likes_count?: number
-          proof_id?: string | null
-          skills?: string[]
-          status?: string
-          student_id?: string
-          title?: string
-          verified_badge?: boolean
-          view_count?: number
-          visibility?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "proof_posts_proof_id_fkey"
-            columns: ["proof_id"]
-            isOneToOne: false
-            referencedRelation: "proof_uploads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proof_posts_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student_profiles"
@@ -1706,6 +1565,7 @@ export type Database = {
           home_points: number | null
           home_squad: string
           id: string
+          round_number: number | null
           scheduled_at: string
           season_id: string | null
           status: string
@@ -1717,6 +1577,7 @@ export type Database = {
           home_points?: number | null
           home_squad: string
           id?: string
+          round_number?: number | null
           scheduled_at: string
           season_id?: string | null
           status?: string
@@ -1728,6 +1589,7 @@ export type Database = {
           home_points?: number | null
           home_squad?: string
           id?: string
+          round_number?: number | null
           scheduled_at?: string
           season_id?: string | null
           status?: string
@@ -1806,6 +1668,81 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squad_scoring_rules: {
+        Row: {
+          description: string | null
+          label: string
+          metric: string
+          points: number
+        }
+        Insert: {
+          description?: string | null
+          label: string
+          metric: string
+          points: number
+        }
+        Update: {
+          description?: string | null
+          label?: string
+          metric?: string
+          points?: number
+        }
+        Relationships: []
+      }
+      squad_weekly_scores: {
+        Row: {
+          active_members: number
+          breakdown: Json
+          computed_at: string
+          id: string
+          points: number
+          rank: number | null
+          season_id: string
+          squad_id: string
+          total_members: number
+          week: number
+        }
+        Insert: {
+          active_members?: number
+          breakdown?: Json
+          computed_at?: string
+          id?: string
+          points?: number
+          rank?: number | null
+          season_id: string
+          squad_id: string
+          total_members?: number
+          week: number
+        }
+        Update: {
+          active_members?: number
+          breakdown?: Json
+          computed_at?: string
+          id?: string
+          points?: number
+          rank?: number | null
+          season_id?: string
+          squad_id?: string
+          total_members?: number
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_weekly_scores_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squad_weekly_scores_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
             referencedColumns: ["id"]
           },
         ]
@@ -2664,6 +2601,61 @@ export type Database = {
           },
         ]
       }
+      student_weekly_scores: {
+        Row: {
+          breakdown: Json
+          computed_at: string
+          id: string
+          points: number
+          season_id: string
+          squad_id: string | null
+          student_id: string
+          week: number
+        }
+        Insert: {
+          breakdown?: Json
+          computed_at?: string
+          id?: string
+          points?: number
+          season_id: string
+          squad_id?: string | null
+          student_id: string
+          week: number
+        }
+        Update: {
+          breakdown?: Json
+          computed_at?: string
+          id?: string
+          points?: number
+          season_id?: string
+          squad_id?: string | null
+          student_id?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_weekly_scores_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_weekly_scores_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_weekly_scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_applications: {
         Row: {
           application_note: string | null
@@ -3079,27 +3071,6 @@ export type Database = {
           },
         ]
       }
-      user_follows: {
-        Row: {
-          created_at: string
-          follower_id: string
-          following_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          follower_id: string
-          following_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          follower_id?: string
-          following_id?: string
-          id?: string
-        }
-        Relationships: []
-      }
       user_preferences: {
         Row: {
           compact_mode: boolean
@@ -3384,7 +3355,11 @@ export type Database = {
         }
         Returns: Json
       }
-      follow_user: { Args: { target_id: string }; Returns: undefined }
+      complete_own_wizard: { Args: never; Returns: undefined }
+      generate_round_robin: {
+        Args: { _force?: boolean; _season_id: string }
+        Returns: Json
+      }
       get_leaderboard: {
         Args: { _limit?: number }
         Returns: {
@@ -3404,7 +3379,6 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
-      like_post: { Args: { p_post_id: string }; Returns: undefined }
       log_activity: {
         Args: {
           _event_type: string
@@ -3474,7 +3448,23 @@ export type Database = {
         Args: { _metric: string; _student_id: string }
         Returns: undefined
       }
+      run_all_seasons: { Args: never; Returns: Json }
+      run_squad_week: {
+        Args: { _season_id: string; _week?: number }
+        Returns: Json
+      }
+      score_student_week: {
+        Args: { _season_id: string; _student_id: string; _week: number }
+        Returns: Json
+      }
       season_week: { Args: { _season_id: string }; Returns: number }
+      season_week_bounds: {
+        Args: { _season_id: string; _week: number }
+        Returns: {
+          ends_at: string
+          starts_at: string
+        }[]
+      }
       set_proof_publicity: {
         Args: { p_is_public: boolean; p_proof_id: string }
         Returns: undefined
@@ -3503,6 +3493,7 @@ export type Database = {
         }
         Returns: string
       }
+      touch_my_activity: { Args: never; Returns: undefined }
       touch_streak: { Args: { _student_id: string }; Returns: undefined }
       touch_template: { Args: { _key: string }; Returns: undefined }
       tpo_attention: {
@@ -3518,14 +3509,27 @@ export type Database = {
           student_id: string
         }[]
       }
+      tpo_generate_fixtures: { Args: { _force?: boolean }; Returns: Json }
       tpo_home: { Args: never; Returns: Json }
       tpo_insights: { Args: never; Returns: Json }
+      tpo_run_week: { Args: { _week?: number }; Returns: Json }
       tpo_send_reminder: {
         Args: { _message?: string; _reason: string; _student_id: string }
         Returns: Json
       }
+      tpo_student_filters: { Args: never; Returns: Json }
+      tpo_student_profile: { Args: { _student_id: string }; Returns: Json }
       tpo_students: {
-        Args: never
+        Args: {
+          _batch?: string
+          _branch?: string
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _skill?: string
+          _squad?: string
+          _status?: string
+        }
         Returns: {
           attention: string
           batch: string
@@ -3533,6 +3537,7 @@ export type Database = {
           days_quiet: number
           email: string
           full_name: string
+          gap_skills: string[]
           is_reserve: boolean
           lots_done: number
           onboarding_status: string
@@ -3540,12 +3545,11 @@ export type Database = {
           squad_id: string
           squad_name: string
           student_id: string
+          total_count: number
           total_xp: number
           trust_score: number
         }[]
       }
-      unfollow_user: { Args: { target_id: string }; Returns: undefined }
-      unlike_post: { Args: { p_post_id: string }; Returns: undefined }
       write_audit: {
         Args: {
           _action: string

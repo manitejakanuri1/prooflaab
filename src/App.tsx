@@ -34,12 +34,10 @@ const OnboardingStartup = lazy(() => import("./pages/OnboardingStartup"));
 const OnboardingStudent = lazy(() => import("./pages/OnboardingStudent"));
 const OnboardingWizard = lazy(() => import("./pages/OnboardingWizard"));
 const ProofViewer = lazy(() => import("./pages/ProofViewer"));
-const PostPage = lazy(() => import("./pages/PostPage"));
 
 // Lazy load route guards
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 const RoleBasedProtectedRoute = lazy(() => import("./components/RoleBasedProtectedRoute"));
-const ProofRedirect = lazy(() => import("./components/ProofRedirect"));
 
 // Lightweight loading fallback - no spinner, just reserve space
 const PageLoader = () => (
@@ -98,7 +96,6 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 <Route path="/pricing" element={<Pricing />} />
-                <Route path="/post/:postId" element={<PostPage />} />
                 <Route path="/portfolio/:slug" element={<Portfolio />} />
                 <Route path="/recruiter/:linkId" element={<RecruiterView />} />
                 
@@ -154,10 +151,6 @@ const App = () => (
                   }
                 />
                 {/* Legacy proof route - redirects to post page */}
-                <Route 
-                  path="/student/proof/:id" 
-                  element={<ProofRedirect />}
-                />
                 
                 {/* College Admin Routes */}
                 <Route 

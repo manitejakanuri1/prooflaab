@@ -17,7 +17,6 @@ interface PublicProjectCardProps {
   filePath?: string | null;
   fileName?: string | null;
   proofId: string;
-  postId?: string | null;
   aiSummary?: string | null;
   reflectionSummary?: string | null;
 }
@@ -32,7 +31,6 @@ export const PublicProjectCard = ({
   filePath,
   fileName,
   proofId,
-  postId,
   aiSummary,
   reflectionSummary,
 }: PublicProjectCardProps) => {
@@ -125,15 +123,7 @@ export const PublicProjectCard = ({
           <span>{format(new Date(submittedAt), "MMM dd, yyyy")}</span>
         </div>
 
-        {postId ? (
-          <Link
-            to={`/post/${postId}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-xs font-medium"
-          >
-            <span>View Project</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        ) : hasOpenableProof(proofRef) ? (
+        {hasOpenableProof(proofRef) ? (
           // Not an <a href>: an uploaded proof lives in a private bucket and has
           // no static URL, so the link has to be signed at the moment of the
           // click. Pasted links still open directly.

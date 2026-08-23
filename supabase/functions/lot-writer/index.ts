@@ -125,19 +125,40 @@ serve(async (req) => {
     // Claim the topic before spending anything.
     //
     // Two students reaching a new topic within the same few seconds both read a
-    // seed template, both call the model, and the upsert only converges them
+    // seed template, both call the model, and the write only converges them
     // after both calls have been paid for. The claim is a conditional UPDATE, so
-    // exactly one caller can hold it; it expires after two minutes so a crashed
-    // or timed-out generation does not lock the topic out for good.
-    if (existing) {
-      const { data: claimed } = await supabase.rpc('claim_lot_template', { _level_id: levelId });
-      if (claimed !== true) {
-        return json({
-          ok: true, level_id: levelId, written: false,
-          reason: 'another request is writing this topic',
-        });
-      }
+    // exactly one caller can hold it, and it hands back a token.
+    //
+    // The lease is two minutes and the model can take longer than that — the
+    // provider chain has a retry and two fallbacks behind it — so the token is
+    // heartbeated while the call is in flight. The lease therefore only lapses
+    // when this isolate has actually stopped running, and the write at the end
+    // is fenced on the same token so a caller that did lose its claim cannot
+    // overwrite whatever replaced it.
+    // Seeding and claiming happen in one statement, so there is no window in
+    // which a caller can reach a topic with no row yet and generate without
+    // holding the claim. Three concurrent requests on a brand-new topic all
+    // generated before this was one call.
+    const { data: claimed } = await supabase.rpc('ensure_and_claim_lot_template', {
+      _level_id: levelId,
+    });
+    const token = (claimed as string | null) ?? null;
+    if (!token) {
+      return json({
+        ok: true, level_id: levelId, written: false,
+        reason: 'another request is writing this topic',
+      });
     }
+
+    const heartbeat = setInterval(() => {
+      supabase.rpc('touch_lot_template', { _level_id: levelId, _token: token })
+        .then(() => {}, () => {});
+    }, 30_000);
+
+    const letGo = async () => {
+      clearInterval(heartbeat);
+      await supabase.rpc('release_lot_template', { _level_id: levelId, _token: token });
+    };
 
     const { data: level } = await supabase
       .from('levels')
@@ -157,8 +178,8 @@ serve(async (req) => {
       parsed = JSON.parse(text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim());
     } catch {
       // Hand the topic back so the next caller can try rather than waiting out
-      // the two-minute lease.
-      await supabase.rpc('release_lot_template', { _level_id: levelId });
+      // the lease.
+      await letGo();
       return json({ error: 'The model did not return usable JSON' }, 502);
     }
 
@@ -167,7 +188,7 @@ serve(async (req) => {
     // A Lot with no situation in it is the thing this endpoint exists to
     // replace, so a short answer is refused rather than saved over the seed.
     if (scenario.length < 80) {
-      await supabase.rpc('release_lot_template', { _level_id: levelId });
+      await letGo();
       return json({ error: 'The model returned an empty scenario' }, 502);
     }
 
@@ -189,11 +210,27 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    const { error: upsertError } = await supabase
-      .from('lot_templates').upsert(row, { onConflict: 'level_id' });
-    if (upsertError) {
-      await supabase.rpc('release_lot_template', { _level_id: levelId });
-      return json({ error: upsertError.message }, 500);
+    clearInterval(heartbeat);
+
+    // Fenced on the same token: a caller whose lease lapsed and was taken by
+    // somebody else writes nothing rather than overwriting what replaced it.
+    const { data: saved, error: saveError } = await supabase.rpc('save_lot_template', {
+      _level_id: levelId,
+      _token: token,
+      _title: row.title,
+      _scenario: row.scenario,
+      _code_sample: row.code_sample,
+      _source_jd: row.source_jd,
+      _difficulty: row.difficulty,
+      _estimate_minutes: row.estimate_minutes,
+      _lot_category: row.lot_category,
+    });
+    if (saveError) return json({ error: saveError.message }, 500);
+    if (saved !== true) {
+      return json({
+        ok: true, level_id: levelId, written: false,
+        reason: 'another request finished this topic first',
+      });
     }
 
     // Rewrite today's cards that are still on the seed version. Only ones

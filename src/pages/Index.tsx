@@ -197,7 +197,7 @@ const Index = () => {
             <div className="relative">
               <div className="bg-muted rounded-3xl p-8 shadow-2xl">
                 <img 
-                  src="/lovable-uploads/dba3a561-930a-4e90-84a7-09a19371deb3.png" 
+                  src="/images/dba3a561-930a-4e90-84a7-09a19371deb3.png" 
                   alt="Dashboard Preview" 
                   className="w-full h-auto rounded-2xl dark:invert dark:brightness-90"
                 />
@@ -595,7 +595,7 @@ const Index = () => {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <img 
-                  src="/lovable-uploads/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
+                  src="/images/b9197a47-7e43-4b27-8ab7-ce8138fcd94c.png" 
                   alt="ProofLabAI Logo" 
                   className="h-8 w-8"
                 />

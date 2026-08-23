@@ -1,73 +1,62 @@
-# Welcome to your Lovable project
+# ProofLabAI
 
-## Project info
+A proof-of-work platform for engineering students. A student is handed one real
+piece of work a day, submits what they built, and explains it out loud for sixty
+seconds. The platform judges whether they actually did it, and their college can
+see who is moving and who has gone quiet.
 
-**URL**: https://lovable.dev/projects/023a380a-8625-4b86-b282-600bbb1d750b
+Live at https://prooflaab.vercel.app
 
-## How can I edit this code?
+## The four roles
 
-There are several ways of editing your application.
+| Role | Lands on | Has |
+| --- | --- | --- |
+| Student | Daily Card | Build-Log, Squad, Profile |
+| College / TPO | Home | Students, Squads, Insights |
+| Admin | Overview | Students, colleges, proofs, tasks, system settings |
+| Startup | Dashboard | Posts work, reviews submissions |
 
-**Use Lovable**
+## Running it
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/023a380a-8625-4b86-b282-600bbb1d750b) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requires Node 18+.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+npm run dev        # http://localhost:8080
+npm run typecheck  # the same check the build gate runs
+npm run build      # typecheck, then build — fails the build if types fail
 ```
 
-**Edit a file directly in GitHub**
+The Supabase URL and publishable key are compiled into
+`src/integrations/supabase/client.ts`, so no `.env` file is needed to run the app.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Stack
 
-**Use GitHub Codespaces**
+- React 18 + TypeScript + Vite, Tailwind and shadcn/ui
+- TanStack Query for server state, React Router v6
+- Supabase — Postgres with row-level security, Auth, Storage
+- 36 Deno edge functions in `supabase/functions`, on DeepSeek for anything generative
+- Vercel hosting, deployed from `main`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Working on the database
 
-## What technologies are used for this project?
+Migrations live in `supabase/migrations` and are applied through the Supabase
+MCP tools, never `supabase db push`. Every applied change is saved back into that
+folder and committed, so the folder and the live database stay the same thing.
 
-This project is built with:
+Regenerate `src/integrations/supabase/types.ts` after any schema change — the
+editor reads it to know what tables and columns exist.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deploying
 
-## How can I deploy this project?
+```sh
+git push prooflaab deploy/prooflaab:main   # Vercel builds automatically
+supabase functions deploy <name>           # edge functions deploy separately
+```
 
-Simply open [Lovable](https://lovable.dev/projects/023a380a-8625-4b86-b282-600bbb1d750b) and click on Share -> Publish.
+## What the docs in here are worth
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+`PROJECT_OVERVIEW.md`, `PROJECT_STATUS.md`, `RESUME_FEATURE_STATUS.md` and
+`HANDOFF.md` describe the product per role and the end-to-end journey. The
+product descriptions still hold. Any table, policy or row count in them is out of
+date — read the live database instead.

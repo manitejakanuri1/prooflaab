@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mic, Upload, Clock, Loader2 } from "lucide-react";
+import { Mic, Upload, Clock, Loader2, Compass } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import VoiceExplainModal from "./VoiceExplainModal";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
@@ -45,6 +46,13 @@ const StudentDailyCard = () => {
   const [week, setWeek] = useState<DayMark[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [explaining, setExplaining] = useState(false);
+  // "writing" is the few seconds the very first student to reach a topic waits
+  // while the Lot behind it is written. "no-track" is the honest answer for a
+  // student whose path has not been placed yet — it used to say "check back
+  // shortly", which was never going to become true on its own.
+  const [preparing, setPreparing] = useState(false);
+  const [reason, setReason] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -66,7 +74,36 @@ const StudentDailyCard = () => {
         .not("lot_date", "is", null),
     ]);
 
-    setLot(((lotRes.data as Lot[] | null) ?? [])[0] ?? null);
+    let today = ((lotRes.data as Lot[] | null) ?? [])[0] ?? null;
+
+    // No Lot yet: ask for one rather than telling the student to come back.
+    // The nightly job makes these at ten past midnight; this is the path for
+    // somebody who joined today, or whose plan changed after the job ran.
+    if (!today) {
+      const { data: made } = await supabase.rpc("create_my_lot" as never);
+      const r = made as unknown as
+        { task_id: string | null; needs_writer: boolean; reason?: string } | null;
+
+      if (r?.reason === "no topic due") {
+        setReason("no-topic");
+      } else if (r?.task_id) {
+        // The topic has never been reached by anyone, so the work behind it has
+        // not been written. This is the only slow path, it happens once per
+        // topic for the whole platform, and it rewrites this card in place.
+        if (r.needs_writer) {
+          setPreparing(true);
+          const lvl = (made as unknown as { level_id?: string })?.level_id;
+          if (lvl) {
+            await supabase.functions.invoke("lot-writer", { body: { level_id: lvl } });
+          }
+          setPreparing(false);
+        }
+        const again = await supabase.rpc("my_todays_lot");
+        today = ((again.data as Lot[] | null) ?? [])[0] ?? null;
+      }
+    }
+
+    setLot(today);
     setStreak(streakRes.data?.current_days ?? 0);
     setLastActive(streakRes.data?.last_active_on ?? null);
 
@@ -178,9 +215,31 @@ const StudentDailyCard = () => {
           </div>
         ) : (
           <div className="rounded-xl border border-dashed p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              No Lot for today yet. Today's work is set each morning — check back shortly.
-            </p>
+            {preparing ? (
+              <>
+                <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Writing today's Lot. You are the first person to reach this topic — after this
+                  it is instant for everyone.
+                </p>
+              </>
+            ) : reason === "no-topic" ? (
+              <>
+                <Compass className="mx-auto h-5 w-5 text-muted-foreground" />
+                <p className="mt-3 text-sm text-muted-foreground max-w-prose mx-auto">
+                  Your path has not been set yet, so there is nothing to hand you this morning.
+                  The resume check places you on the ladder — it takes a few minutes and every
+                  Lot after it follows from it.
+                </p>
+                <Button className="mt-4" onClick={() => navigate("/student/roadmap")}>
+                  Set my path
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No Lot for today yet. Today's work is set each morning — check back shortly.
+              </p>
+            )}
           </div>
         )}
 

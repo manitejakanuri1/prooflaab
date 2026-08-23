@@ -2,7 +2,7 @@
 
 Reference doc for what's built vs. what's left on the resume-first flow.
 Supabase project: `ajaeneehxlnmnhjtvrgs` (switched from the old `zlfjxcwltqtajnczfjjp`).
-Live at: `prooflabai.com` (Lovable) and `prooflabai-mvp.vercel.app` (Vercel, auto-deploys from `main`).
+Live at: `prooflaab.vercel.app` (auto-deploys from `main`).
 
 ## Built
 

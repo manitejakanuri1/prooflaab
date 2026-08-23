@@ -71,23 +71,9 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     setAuthStep('form'); // Reset auth step when switching modes
   }, [mode]);
 
-  // Dynamic redirect URL helper
-  const getRedirectUrl = () => {
-    const currentOrigin = window.location.origin;
-    
-    // For Lovable preview environments, use the current origin
-    if (currentOrigin.includes('lovable.app') || currentOrigin.includes('lovableproject.com')) {
-      return `${currentOrigin}/auth/callback`;
-    }
-    
-    // For localhost development
-    if (currentOrigin.includes('localhost')) {
-      return `${currentOrigin}/auth/callback`;
-    }
-    
-    // For production or staging environments
-    return `${currentOrigin}/auth/callback`;
-  };
+  // Wherever the app is being served from — localhost, a preview build, the
+  // live site — send the user back to the same place after signing in.
+  const getRedirectUrl = () => `${window.location.origin}/auth/callback`;
 
   const cleanupAuthState = () => {
     Object.keys(localStorage).forEach((key) => {

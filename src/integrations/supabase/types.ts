@@ -3025,6 +3025,45 @@ export type Database = {
           },
         ]
       }
+      task_templates: {
+        Row: {
+          branch: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          difficulty: string
+          id: string
+          skills: string[]
+          title: string
+          updated_at: string
+          xp_reward: number
+        }
+        Insert: {
+          branch?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          difficulty?: string
+          id?: string
+          skills?: string[]
+          title: string
+          updated_at?: string
+          xp_reward?: number
+        }
+        Update: {
+          branch?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          difficulty?: string
+          id?: string
+          skills?: string[]
+          title?: string
+          updated_at?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           ai_metadata: Json | null
@@ -3811,6 +3850,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_retest_unlocks: { Args: never; Returns: Json }
       plan_all_weeks: { Args: never; Returns: Json }
       plan_student_week: {
         Args: { _student_id: string; _week_start?: string }
@@ -3821,6 +3861,11 @@ export type Database = {
         Args: { _metric: string; _student_id: string }
         Returns: undefined
       }
+      refresh_unlock: {
+        Args: { _student_id: string; _track: string }
+        Returns: number
+      }
+      reshuffle_quiz_options: { Args: never; Returns: Json }
       run_all_seasons: { Args: never; Returns: Json }
       run_squad_week: {
         Args: { _season_id: string; _week?: number }
@@ -3966,6 +4011,10 @@ export type Database = {
           total_xp: number
           trust_score: number
         }[]
+      }
+      unlock_ceiling: {
+        Args: { _student_id: string; _track: string }
+        Returns: number
       }
       viewer_college_id: { Args: never; Returns: string }
       write_audit: {

@@ -188,18 +188,57 @@ const AdminAssignTasks = () => {
     }
   };
 
+  // Real rows. This used to return one invented template with the id '1', which
+  // the assign function then failed to find, so the whole tab could only ever
+  // produce "Template not found".
   const fetchTemplates = async () => {
-    // Placeholder for templates - can be implemented when task_templates table exists
-    setTemplates([
-      {
-        id: '1',
-        title: 'Basic Programming Challenge',
-        description: 'A fundamental programming task focusing on core concepts',
-        branch: 'CSE',
-        skills: ['Programming', 'Problem Solving'],
-        difficulty: 'Beginner'
-      }
-    ]);
+    const { data, error } = await supabase
+      .from('task_templates')
+      .select('id, title, description, branch, skills, difficulty')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Could not load templates:', error.message);
+      setTemplates([]);
+      return;
+    }
+    setTemplates((data ?? []) as TaskTemplate[]);
+  };
+
+  // Saving one is how the library gets filled: an admin writing a task they
+  // will want again ticks the box, and it is there next time.
+  const saveAsTemplate = async () => {
+    const name = title.trim();
+    if (!name || !description.trim()) {
+      toast({
+        title: "Nothing to save yet",
+        description: "A template needs a title and a description.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase.from('task_templates').insert({
+      title: name,
+      description: description.trim(),
+      branch: branchFilter || null,
+      difficulty: 'Medium',
+      xp_reward: Number(xpReward) || 0,
+    });
+
+    if (error) {
+      toast({
+        title: "Not saved",
+        description: error.message.includes('duplicate')
+          ? "A template with that title already exists."
+          : error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: `Saved "${name}" as a template` });
+    void fetchTemplates();
   };
 
   const filterStudents = () => {
@@ -984,6 +1023,22 @@ const AdminAssignTasks = () => {
                     </div>
                   </div>
                 </div>
+
+                  {/* The library is filled from here. A task worth writing once
+                      is usually worth handing out again. */}
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">Save this as a template</p>
+                      <p className="text-xs text-muted-foreground">
+                        It appears in the Template tab next time, for you and for colleges.
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" size="sm"
+                            onClick={() => void saveAsTemplate()}>
+                      Save as template
+                    </Button>
+                  </div>
+
               </TabsContent>
 
               {/* AI Tab */}
@@ -1141,6 +1196,12 @@ const AdminAssignTasks = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    {templates.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        No templates yet. Write a task in the Manual tab and press "Save as
+                        template" — it will be here, and on every college's screen, from then on.
+                      </p>
+                    )}
                   </div>
 
                   {selectedTemplate && (

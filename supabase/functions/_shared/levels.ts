@@ -110,12 +110,18 @@ export async function advanceUnlock(
   studentId: string,
   trackSlug: string,
 ): Promise<number> {
-  // A topic is now possibly several rows (one per sub_level) sharing one
-  // level_number. Ordering by sub_level too keeps every row of a topic
-  // contiguous, which is what lets the loop below work unmodified: it only
-  // moves unlockedThrough past a level_number once every row sharing it is
-  // done, because a not-done row anywhere in the group breaks before that
-  // level_number's rows are behind it.
+  // A topic is several rows — one per sub_level — sharing one level_number, so
+  // the wall is decided per topic rather than per row.
+  //
+  // Two ways a topic stops blocking. Either every row of it is finished, which
+  // is the ordinary path; or one of its rows says 'placed' or 'revise', which is
+  // the resume saying the student already knows it. The second case has to be
+  // checked at the topic level, and this is why: a Foundations topic arrives as
+  // a single 'revise' row, and opening it expands it into seven steps, six of
+  // them untouched. Row-by-row, that expansion dropped the wall back onto the
+  // topic the student had just been told they only needed to skim — so revising
+  // a basic locked everything above it. Revise must never block; that is the
+  // whole point of the status.
   const { data: levels } = await supabase
     .from('levels')
     .select('id, level_number')
@@ -132,15 +138,24 @@ export async function advanceUnlock(
     (progress ?? []).map((p: any) => [p.level_id, p.status]),
   );
 
-  let unlockedThrough = 1;
+  const byTopic = new Map<number, string[]>();
   for (const level of levels ?? []) {
-    if (UNBLOCKING_STATUSES.has(statusById.get(level.id) ?? '')) {
+    const statuses = byTopic.get(level.level_number) ?? [];
+    statuses.push(statusById.get(level.id) ?? '');
+    byTopic.set(level.level_number, statuses);
+  }
+
+  let unlockedThrough = 1;
+  for (const [levelNumber, statuses] of [...byTopic.entries()].sort((a, b) => a[0] - b[0])) {
+    const creditedByResume = statuses.some((s) => s === 'placed' || s === 'revise');
+    const allFinished = statuses.every((s) => DONE_STATUSES.has(s));
+    if (creditedByResume || allFinished) {
       // Finished, so the wall moves past it. +1 rather than +0 so a fully
       // finished track unlocks one past the end and the map can say "done"
       // instead of pointing at the last level forever.
-      unlockedThrough = level.level_number + 1;
+      unlockedThrough = levelNumber + 1;
     } else {
-      unlockedThrough = level.level_number;
+      unlockedThrough = levelNumber;
       break;
     }
   }
@@ -644,13 +659,19 @@ export async function ensureTopicSteps(
     level_id: checkpoint.id,
     explanation: `You've been through ${steps.length} steps on ${seed.skill}. Let's see what stuck.`,
     code_example: null,
-    quiz: parsed.quiz.map((q: any, i: number) => ({
-      id: `${checkpoint.id}-q${i + 1}`,
-      prompt: q.prompt.trim(),
-      options: q.options.map((o: string) => o.trim()),
-      correct_index: q.correct_index,
-      explanation: (q.explanation ?? '').trim(),
-    })),
+    quiz: parsed.quiz.map((q: any, i: number) => {
+      const placed = shuffleOptions(
+        q.options.map((o: string) => o.trim()),
+        q.correct_index,
+      );
+      return {
+        id: `${checkpoint.id}-q${i + 1}`,
+        prompt: q.prompt.trim(),
+        options: placed.options,
+        correct_index: placed.correct_index,
+        explanation: (q.explanation ?? '').trim(),
+      };
+    }),
     proof_title: parsed.proof_title.trim(),
     proof_brief: parsed.proof_brief.trim(),
     sandbox: null,
@@ -678,6 +699,28 @@ export async function ensureTopicSteps(
   for (const c of contentRows) contentByLevelId[c.level_id] = c as LevelContentRow;
 
   return { levels: allRows, contentByLevelId };
+}
+
+/**
+ * Move the right answer somewhere random.
+ *
+ * The prompt asks the model to vary which option is correct and it does not:
+ * measured over the first forty questions it had written, 65% of the answers
+ * were option B and only one was ever option D. A student who clicks the second
+ * option on every question passes a five-question checkpoint that needs three.
+ * That is not a checkpoint.
+ *
+ * Shuffled once here, on the way into storage, so grading keeps comparing
+ * against a single stored index and nothing downstream has to know.
+ */
+function shuffleOptions(options: string[], correctIndex: number) {
+  const answer = options[correctIndex];
+  const shuffled = [...options];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return { options: shuffled, correct_index: shuffled.indexOf(answer) };
 }
 
 /**

@@ -32,7 +32,7 @@ interface OnboardingEmailRequest {
 }
 
 const getEmailContent = (userType: string, name: string, origin?: string) => {
-  const baseUrl = origin || "https://lovable.app";
+  const baseUrl = origin || "https://prooflaab.vercel.app";
   
   switch (userType) {
     case 'student':

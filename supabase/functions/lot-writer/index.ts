@@ -122,6 +122,23 @@ serve(async (req) => {
       return json({ ok: true, level_id: levelId, written: false, reason: 'already written' });
     }
 
+    // Claim the topic before spending anything.
+    //
+    // Two students reaching a new topic within the same few seconds both read a
+    // seed template, both call the model, and the upsert only converges them
+    // after both calls have been paid for. The claim is a conditional UPDATE, so
+    // exactly one caller can hold it; it expires after two minutes so a crashed
+    // or timed-out generation does not lock the topic out for good.
+    if (existing) {
+      const { data: claimed } = await supabase.rpc('claim_lot_template', { _level_id: levelId });
+      if (claimed !== true) {
+        return json({
+          ok: true, level_id: levelId, written: false,
+          reason: 'another request is writing this topic',
+        });
+      }
+    }
+
     const { data: level } = await supabase
       .from('levels')
       .select('id, skill, title, track_slug, level_number, kind')
@@ -139,6 +156,9 @@ serve(async (req) => {
     try {
       parsed = JSON.parse(text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim());
     } catch {
+      // Hand the topic back so the next caller can try rather than waiting out
+      // the two-minute lease.
+      await supabase.rpc('release_lot_template', { _level_id: levelId });
       return json({ error: 'The model did not return usable JSON' }, 502);
     }
 
@@ -147,6 +167,7 @@ serve(async (req) => {
     // A Lot with no situation in it is the thing this endpoint exists to
     // replace, so a short answer is refused rather than saved over the seed.
     if (scenario.length < 80) {
+      await supabase.rpc('release_lot_template', { _level_id: levelId });
       return json({ error: 'The model returned an empty scenario' }, 502);
     }
 
@@ -164,12 +185,16 @@ serve(async (req) => {
         ? String(parsed.lot_category)
         : (level.kind === 'explanation' ? 'pitch' : 'technical'),
       origin: 'ai',
+      generating_since: null,
       updated_at: new Date().toISOString(),
     };
 
     const { error: upsertError } = await supabase
       .from('lot_templates').upsert(row, { onConflict: 'level_id' });
-    if (upsertError) return json({ error: upsertError.message }, 500);
+    if (upsertError) {
+      await supabase.rpc('release_lot_template', { _level_id: levelId });
+      return json({ error: upsertError.message }, 500);
+    }
 
     // Rewrite today's cards that are still on the seed version. Only ones
     // nobody has started: a student who has already begun keeps the wording

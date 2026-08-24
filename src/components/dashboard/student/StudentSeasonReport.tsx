@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trophy, ArrowRight } from "lucide-react";
+import { Trophy, ArrowRight, PartyPopper } from "lucide-react";
+
+interface Placement { placed: boolean; company?: string; since?: string }
 
 interface Report {
   has_season: boolean;
@@ -36,25 +38,51 @@ const ACTIVITY: Record<string, string> = {
  */
 const StudentSeasonReport = () => {
   const [r, setR] = useState<Report | null>(null);
+  const [placement, setPlacement] = useState<Placement | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await supabase.rpc("my_season_report" as never);
+    const [{ data }, { data: p }] = await Promise.all([
+      supabase.rpc("my_season_report" as never),
+      supabase.rpc("my_placement_status" as never),
+    ]);
     setR((data ?? { has_season: false }) as unknown as Report);
+    setPlacement((p ?? { placed: false }) as unknown as Placement);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
 
   if (!r) return <Skeleton className="h-64 w-full rounded-xl" />;
 
+  // Hiring isn't tied to a season, so this can appear whether or not one exists.
+  const placedBanner = placement?.placed ? (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="pt-5 flex items-center gap-3">
+        <PartyPopper className="h-5 w-5 text-primary flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold">Placed at {placement.company}</p>
+          <p className="text-xs text-muted-foreground">
+            {placement.since
+              ? `Since ${new Date(placement.since).toLocaleDateString()}. `
+              : ""}
+            This proof profile is what got you there — keep it current.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  ) : null;
+
   if (!r.has_season) {
     return (
-      <Card><CardContent className="pt-6">
-        <p className="text-sm text-muted-foreground max-w-prose">
-          No season yet. Once your college starts one and the first week is scored, this
-          becomes your record of it — week by week, where your points came from, and what
-          to work on next.
-        </p>
-      </CardContent></Card>
+      <div className="space-y-4">
+        {placedBanner}
+        <Card><CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground max-w-prose">
+            No season yet. Once your college starts one and the first week is scored, this
+            becomes your record of it — week by week, where your points came from, and what
+            to work on next.
+          </p>
+        </CardContent></Card>
+      </div>
     );
   }
 
@@ -62,6 +90,7 @@ const StudentSeasonReport = () => {
 
   return (
     <div className="space-y-4">
+      {placedBanner}
       <Card>
         <CardContent className="pt-5">
           <div className="flex items-baseline gap-2 flex-wrap">

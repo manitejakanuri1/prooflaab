@@ -21,6 +21,7 @@ interface Lot {
   lot_category: string | null;
   status: string | null;
   due_date: string | null;
+  sponsored_by_company: string | null;
 }
 
 /** One dot per day, coloured by what was submitted. */
@@ -183,6 +184,11 @@ const StudentDailyCard = () => {
               {lot.difficulty ? ` · ${lot.difficulty}` : ""}
             </p>
 
+            {lot.sponsored_by_company && (
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-primary">
+                Set by {lot.sponsored_by_company}
+              </span>
+            )}
             <h2 className="mt-2 text-lg font-semibold leading-snug">{lot.title}</h2>
             {lot.description && <p className="mt-2 text-sm text-[#4d4a43]">{lot.description}</p>}
 

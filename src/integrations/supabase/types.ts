@@ -3878,13 +3878,15 @@ export type Database = {
         Args: { _level_id: string }
         Returns: string
       }
+      extend_all_fixtures: { Args: never; Returns: Json }
+      extend_fixtures: { Args: { _season_id: string }; Returns: Json }
       form_all_colleges: { Args: never; Returns: Json }
       form_squads: {
         Args: { _college_id: string; _season_id?: string }
         Returns: Json
       }
       generate_round_robin: {
-        Args: { _force?: boolean; _season_id: string }
+        Args: { _force?: boolean; _from_round?: number; _season_id: string }
         Returns: Json
       }
       get_leaderboard: {
@@ -3961,6 +3963,7 @@ export type Database = {
           total: number
         }[]
       }
+      my_placement_status: { Args: never; Returns: Json }
       my_recruiter_id: { Args: never; Returns: string }
       my_season_report: { Args: { _season_id?: string }; Returns: Json }
       my_shortlists: {
@@ -4025,6 +4028,7 @@ export type Database = {
           lot_category: string
           lot_number: number
           source_jd: string
+          sponsored_by_company: string
           status: string
           title: string
         }[]
@@ -4053,6 +4057,7 @@ export type Database = {
         Returns: undefined
       }
       notify_retest_unlocks: { Args: never; Returns: Json }
+      notify_weekly_progress: { Args: never; Returns: number }
       plan_all_weeks: { Args: never; Returns: Json }
       plan_student_week: {
         Args: { _student_id: string; _week_start?: string }
@@ -4245,6 +4250,7 @@ export type Database = {
       tpo_generate_fixtures: { Args: { _force?: boolean }; Returns: Json }
       tpo_home: { Args: never; Returns: Json }
       tpo_insights: { Args: never; Returns: Json }
+      tpo_placement_report: { Args: never; Returns: Json }
       tpo_rebalance_squads: { Args: never; Returns: Json }
       tpo_run_week: { Args: { _week?: number }; Returns: Json }
       tpo_send_reminder: {

@@ -15,6 +15,11 @@ interface Branch { branch: string; students: number; active_week: number; in_squ
 interface Trend {
   squad_id: string; squad: string; week: number; points: number; change: number | null;
 }
+interface Hire { student: string; company: string; hired_on: string | null }
+interface Placement {
+  pipeline: Record<string, number>; hired_total: number;
+  hires: Hire[]; by_company: { company: string; hires: number }[]; error?: string;
+}
 interface Season {
   id: string; name: string; status: string; is_current: boolean;
   starts_on: string; ends_on: string; completed_at: string | null;
@@ -52,18 +57,21 @@ interface Props {
 const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate }: Props) => {
   const [data, setData] = useState<Insights | null>(null);
   const [report, setReport] = useState<Report | null>(null);
+  const [placement, setPlacement] = useState<Placement | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    // Two functions rather than one: tpo_insights answers "where do I step in",
-    // and the report answers "how is the college doing" — §11 asks for both and
-    // they are read at different rhythms.
-    const [{ data: res, error: err }, { data: rep }] = await Promise.all([
+    // Three functions rather than one: tpo_insights answers "where do I step
+    // in", the report answers "how is the college doing", and placement
+    // answers "did any of this lead anywhere" — three different rhythms.
+    const [{ data: res, error: err }, { data: rep }, { data: plc }] = await Promise.all([
       supabase.rpc("tpo_insights" as never),
       supabase.rpc("tpo_college_report" as never),
+      supabase.rpc("tpo_placement_report" as never),
     ]);
     if (err) { setError(err.message); return; }
     setReport(rep as unknown as Report);
+    setPlacement(plc as unknown as Placement);
     const d = res as unknown as Insights;
     if (d?.error) { setError(d.error); return; }
     setData(d);
@@ -410,6 +418,56 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
           )}
         </CardContent>
       </Card>
+
+      {placement && !placement.error && (
+        <Card>
+          <CardContent className="pt-5">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Placements
+            </span>
+            {placement.hired_total === 0 ? (
+              <p className="text-sm text-muted-foreground mt-3 max-w-prose">
+                No hires recorded yet. This fills in as recruiters mark a shortlisted student
+                hired — the same evidence trail as everything else here, not a claim anyone typed in.
+              </p>
+            ) : (
+              <>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="rounded-lg bg-muted/50 p-3">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Hired
+                    </span>
+                    <div className="font-mono text-xl font-semibold tabular-nums mt-1">
+                      {placement.hired_total}
+                    </div>
+                  </div>
+                  {Object.entries(placement.pipeline)
+                    .filter(([stage]) => stage !== "hired")
+                    .map(([stage, n]) => (
+                      <div key={stage} className="rounded-lg bg-muted/50 p-3">
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground capitalize">
+                          {stage}
+                        </span>
+                        <div className="font-mono text-xl font-semibold tabular-nums mt-1">{n}</div>
+                      </div>
+                    ))}
+                </div>
+                <div className="mt-3">
+                  {placement.hires.map((h, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 py-2 border-b last:border-b-0">
+                      <span className="text-sm">{h.student}</span>
+                      <span className="text-sm text-muted-foreground">{h.company}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {h.hired_on ? new Date(h.hired_on).toLocaleDateString() : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

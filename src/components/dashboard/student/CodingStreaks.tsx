@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Flame, Loader2, RefreshCw } from "lucide-react";
+import { ArrowRight, Flame, Github, Linkedin, Loader2, RefreshCw, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,9 @@ const CodingStreaks = () => {
   const [syncing, setSyncing] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [nextTopic, setNextTopic] = useState<{ title: string; skill: string } | null>(null);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [savingLinks, setSavingLinks] = useState(false);
 
   const loadStreaks = async (sid: string) => {
     const { data } = await supabase
@@ -48,6 +51,14 @@ const CodingStreaks = () => {
       if (!profile) return;
       setStudentId(profile.id);
       loadStreaks(profile.id);
+
+      const { data: contact } = await supabase
+        .from("student_contact")
+        .select("github_url, linkedin_url")
+        .eq("student_id", profile.id)
+        .maybeSingle();
+      setGithubUrl(contact?.github_url ?? "");
+      setLinkedinUrl(contact?.linkedin_url ?? "");
 
       // The streak habit and the roadmap are the same "keep going" muscle —
       // point one at the other instead of leaving them as two unrelated cards.
@@ -115,6 +126,25 @@ const CodingStreaks = () => {
       toast({ title: "Couldn't log check-in", description: err.message, variant: "destructive" });
     } finally {
       setCheckingIn(false);
+    }
+  };
+
+  const saveLinks = async () => {
+    if (!studentId) return;
+    setSavingLinks(true);
+    try {
+      const { error } = await supabase.from("student_contact").upsert({
+        student_id: studentId,
+        github_url: githubUrl.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "student_id" });
+      if (error) throw error;
+      toast({ title: "Profile links saved" });
+    } catch (err: any) {
+      toast({ title: "Couldn't save", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingLinks(false);
     }
   };
 
@@ -191,6 +221,39 @@ const CodingStreaks = () => {
         </CardContent>
       </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Profile links</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Shown to a recruiter alongside your proof profile, once they can see you.
+          </p>
+          <div className="flex items-center gap-2">
+            <Github className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <Input
+              placeholder="https://github.com/yourname"
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Linkedin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <Input
+              placeholder="https://linkedin.com/in/yourname"
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <Button size="sm" onClick={saveLinks} disabled={savingLinks} className="gap-1.5">
+            {savingLinks ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

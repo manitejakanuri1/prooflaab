@@ -5,6 +5,8 @@ import { History, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Check
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface SkillGap { verified: string[]; needs_improvement: string[]; missing: string[] }
+
 interface HistoryEntry {
   id: string;
   created_at: string;
@@ -13,6 +15,10 @@ interface HistoryEntry {
   skill_proof_score: number | null;
   voice_authenticity_score: number | null;
   coding_score: number | null;
+  interview_readiness_score: number | null;
+  project_proof_score: number | null;
+  reasoning_score: number | null;
+  skill_gap: SkillGap | null;
   is_retest: boolean;
   assessment_id: string | null;
 }
@@ -65,11 +71,11 @@ const StudentResumeHistoryPage = () => {
       }
       const { data } = await supabase
         .from("resume_scorecards")
-        .select("id, created_at, resume_quality_score, ats_match_score, skill_proof_score, voice_authenticity_score, coding_score, is_retest, assessment_id")
+        .select("id, created_at, resume_quality_score, ats_match_score, skill_proof_score, voice_authenticity_score, coding_score, interview_readiness_score, project_proof_score, reasoning_score, skill_gap, is_retest, assessment_id")
         .eq("student_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20);
-      setHistory((data as HistoryEntry[]) || []);
+      setHistory((data as unknown as HistoryEntry[]) || []);
       setLoading(false);
     })();
   }, [user]);
@@ -89,6 +95,49 @@ const StudentResumeHistoryPage = () => {
           <p className="text-sm text-muted-foreground">No assessments yet — confirm your resume and take the assessment first.</p>
         ) : (
           <>
+            {(() => {
+              const latest = history[0];
+              const scores = [
+                latest.resume_quality_score, latest.ats_match_score, latest.skill_proof_score,
+                latest.project_proof_score, latest.reasoning_score, latest.coding_score,
+                latest.interview_readiness_score,
+              ].filter((s): s is number => s != null);
+              const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+              const gap = latest.skill_gap;
+              return (
+                <div className="mb-4 rounded-lg border p-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-sm font-medium">Company readiness</span>
+                    {avg != null && (
+                      <Badge variant={avg >= 70 ? "default" : avg >= 45 ? "secondary" : "outline"}>
+                        {avg}/100 overall
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    {[
+                      ["Interview readiness", latest.interview_readiness_score],
+                      ["Project proof", latest.project_proof_score],
+                      ["Reasoning", latest.reasoning_score],
+                      ["ATS match", latest.ats_match_score],
+                    ].map(([label, v]) => (
+                      <div key={label as string} className="rounded bg-muted/50 p-2">
+                        <div className="text-muted-foreground">{label}</div>
+                        <div className="font-mono text-base font-semibold">{v ?? "—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {gap && (gap.needs_improvement?.length > 0 || gap.missing?.length > 0) && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                      {gap.needs_improvement?.length > 0 && (
+                        <>Needs work: {gap.needs_improvement.join(", ")}. </>
+                      )}
+                      {gap.missing?.length > 0 && <>Missing for your target role: {gap.missing.join(", ")}.</>}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
             {(() => {
               const oldest = history[history.length - 1];
               const latest = history[0];
@@ -124,6 +173,7 @@ const StudentResumeHistoryPage = () => {
                     <th className="py-2 px-3 font-medium">Skill Proof</th>
                     <th className="py-2 px-3 font-medium">Voice</th>
                     <th className="py-2 px-3 font-medium">Coding</th>
+                    <th className="py-2 px-3 font-medium">Readiness</th>
                     <th className="py-2 pl-3 font-medium w-8"></th>
                   </tr>
                 </thead>
@@ -176,13 +226,14 @@ const StudentResumeHistoryPage = () => {
                           </td>
                           <td className="py-2 px-3">{h.voice_authenticity_score ?? "—"}</td>
                           <td className="py-2 px-3">{h.coding_score ?? "—"}</td>
+                          <td className="py-2 px-3">{h.interview_readiness_score ?? "—"}</td>
                           <td className="py-2 pl-3 text-muted-foreground">
                             {h.assessment_id && (isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                           </td>
                         </tr>
                         {isExpanded && h.assessment_id && (
                           <tr className="border-b last:border-0">
-                            <td colSpan={8} className="py-3 px-3 bg-muted/20">
+                            <td colSpan={9} className="py-3 px-3 bg-muted/20">
                               {answersLoading === h.assessment_id ? (
                                 <div className="animate-pulse h-16 bg-muted rounded" />
                               ) : !answers || answers.length === 0 ? (

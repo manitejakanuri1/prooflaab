@@ -1,5 +1,10 @@
 # ProofLabAI
 
+> Working on a second machine, or with a different account?
+> Read **[START_HERE.md](START_HERE.md)** first — it carries the branch rules,
+> the shared-database rule, and what is and is not built.
+
+
 A proof-of-work platform for engineering students. A student is handed one real
 piece of work a day, submits what they built, and explains it out loud for sixty
 seconds. The platform judges whether they actually did it, and their college can

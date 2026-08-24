@@ -1,3 +1,7 @@
+> **Out of date.** This file describes an earlier state of the project. For the
+> current picture — what is live, what is half-built, and the rules for working
+> across two machines — read [START_HERE.md](START_HERE.md).
+
 # ProofLabAI — session handoff
 
 Written 2026-08-08. Everything below is verified against the live database and

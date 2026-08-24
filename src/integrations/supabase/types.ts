@@ -874,6 +874,8 @@ export type Database = {
           created_at: string
           difficulty: string
           estimate_minutes: number
+          generating_by: string | null
+          generating_since: string | null
           level_id: string
           lot_category: string
           origin: string
@@ -887,6 +889,8 @@ export type Database = {
           created_at?: string
           difficulty?: string
           estimate_minutes?: number
+          generating_by?: string | null
+          generating_since?: string | null
           level_id: string
           lot_category?: string
           origin?: string
@@ -900,6 +904,8 @@ export type Database = {
           created_at?: string
           difficulty?: string
           estimate_minutes?: number
+          generating_by?: string | null
+          generating_since?: string | null
           level_id?: string
           lot_category?: string
           origin?: string
@@ -1888,6 +1894,7 @@ export type Database = {
           archived_at: string | null
           college_id: string | null
           created_at: string
+          draws: number
           id: string
           is_locked: boolean
           losses: number
@@ -1904,6 +1911,7 @@ export type Database = {
           archived_at?: string | null
           college_id?: string | null
           created_at?: string
+          draws?: number
           id?: string
           is_locked?: boolean
           losses?: number
@@ -1920,6 +1928,7 @@ export type Database = {
           archived_at?: string | null
           college_id?: string | null
           created_at?: string
+          draws?: number
           id?: string
           is_locked?: boolean
           losses?: number
@@ -3664,6 +3673,7 @@ export type Database = {
         Returns: Json
       }
       assign_todays_lots: { Args: never; Returns: Json }
+      backfill_rounds: { Args: { _season_id: string }; Returns: Json }
       bump_llm_cache_hit: { Args: { p_hash: string }; Returns: undefined }
       check_rate_limit: {
         Args: {
@@ -3674,6 +3684,7 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_lot_template: { Args: { _level_id: string }; Returns: string }
       close_season: { Args: { _season_id: string }; Returns: Json }
       complete_own_wizard: { Args: never; Returns: undefined }
       cosign_proof: {
@@ -3696,6 +3707,10 @@ export type Database = {
         Returns: Json
       }
       create_my_lot: { Args: never; Returns: Json }
+      ensure_and_claim_lot_template: {
+        Args: { _level_id: string }
+        Returns: string
+      }
       form_squads: {
         Args: { _college_id: string; _season_id?: string }
         Returns: Json
@@ -3722,6 +3737,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      head_to_head: {
+        Args: { _a: string; _b: string; _season: string }
+        Returns: number
+      }
       is_admin: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
@@ -3746,6 +3765,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      lot_needs_writer: { Args: { _task_id: string }; Returns: boolean }
       my_college_id: { Args: never; Returns: string }
       my_cosigns: {
         Args: never
@@ -3861,15 +3881,34 @@ export type Database = {
         Args: { _metric: string; _student_id: string }
         Returns: undefined
       }
+      recount_season: { Args: { _season_id: string }; Returns: undefined }
       refresh_unlock: {
         Args: { _student_id: string; _track: string }
         Returns: number
+      }
+      release_lot_template: {
+        Args: { _level_id: string; _token: string }
+        Returns: undefined
       }
       reshuffle_quiz_options: { Args: never; Returns: Json }
       run_all_seasons: { Args: never; Returns: Json }
       run_squad_week: {
         Args: { _season_id: string; _week?: number }
         Returns: Json
+      }
+      save_lot_template: {
+        Args: {
+          _code_sample: string
+          _difficulty: string
+          _estimate_minutes: number
+          _level_id: string
+          _lot_category: string
+          _scenario: string
+          _source_jd: string
+          _title: string
+          _token: string
+        }
+        Returns: boolean
       }
       score_student_week: {
         Args: { _season_id: string; _student_id: string; _week: number }
@@ -3887,6 +3926,10 @@ export type Database = {
       set_proof_publicity: {
         Args: { p_is_public: boolean; p_proof_id: string }
         Returns: undefined
+      }
+      settle_round: {
+        Args: { _round: number; _season_id: string }
+        Returns: number
       }
       squad_town: { Args: { _college_id: string }; Returns: string }
       suggest_tracks: {
@@ -3912,6 +3955,10 @@ export type Database = {
           _skills: string[]
         }
         Returns: string
+      }
+      touch_lot_template: {
+        Args: { _level_id: string; _token: string }
+        Returns: boolean
       }
       touch_my_activity: { Args: never; Returns: undefined }
       touch_streak: { Args: { _student_id: string }; Returns: undefined }
@@ -3946,6 +3993,7 @@ export type Database = {
           archived: boolean
           best_rank: number
           best_week_points: number
+          draws: number
           is_locked: boolean
           losses: number
           member_badges: number

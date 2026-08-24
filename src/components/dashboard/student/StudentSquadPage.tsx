@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Video, Trophy, Crown, Medal, Award } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfWeek, addDays, isWithinInterval } from "date-fns";
 
 interface Squad {
   id: string;
   name: string;
   points: number;
   wins: number;
+  draws: number;
   losses: number;
   rank: number | null;
   previous_rank: number | null;
@@ -149,6 +150,13 @@ const StudentSquadPage = () => {
   const movement = squad.previous_rank != null && squad.rank != null ? squad.previous_rank - squad.rank : 0;
   const next = matches.find((m) => m.status === "scheduled");
 
+  // With an odd number of squads one sits out each round. Their tab used to
+  // show nothing at all, which reads as a broken screen rather than a rest.
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const thisWeek = { start: weekStart, end: addDays(weekStart, 7) };
+  const restWeek = !matches.some((m) =>
+    isWithinInterval(new Date(m.scheduled_at), thisWeek));
+
   return (
     <div className="space-y-4">
       <div className="flex items-baseline gap-3 flex-wrap">
@@ -169,7 +177,7 @@ const StudentSquadPage = () => {
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
               { k: "Points", v: squad.points },
-              { k: "Record", v: `${squad.wins}–${squad.losses}` },
+              { k: "Record", v: `${squad.wins}–${squad.draws ?? 0}–${squad.losses}` },
               { k: "My share", v: `${myShare}%` },
               { k: "Movement", v: movement === 0 ? "—" : movement > 0 ? `▲${movement}` : `▼${-movement}` },
             ].map(({ k, v }) => (
@@ -197,6 +205,15 @@ const StudentSquadPage = () => {
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Next match
               </span>
+              {restWeek && (
+                <p className="text-sm mt-2">
+                  <span className="font-medium">Rest round.</span>{" "}
+                  <span className="text-muted-foreground">
+                    Your squad has no fixture this week — every point you earn still counts
+                    toward the table.
+                  </span>
+                </p>
+              )}
               {next ? (
                 <div className="mt-2">
                   <p className="font-semibold">
@@ -207,9 +224,9 @@ const StudentSquadPage = () => {
                     {format(new Date(next.scheduled_at), "EEEE d MMM, h:mm a")}
                   </p>
                 </div>
-              ) : (
+              ) : !restWeek ? (
                 <p className="text-sm text-muted-foreground mt-2">Nothing scheduled yet.</p>
-              )}
+              ) : null}
             </CardContent>
           </Card>
 
@@ -292,6 +309,7 @@ const StudentSquadPage = () => {
                       const us = home ? m.home_points : m.away_points;
                       const them = home ? m.away_points : m.home_points;
                       const won = us != null && them != null && us > them;
+                      const drew = us != null && them != null && us === them;
                       return (
                         <tr key={m.id} className="border-t">
                           <td className="py-2.5 pr-3">
@@ -302,8 +320,8 @@ const StudentSquadPage = () => {
                           </td>
                           <td className="py-2.5 font-mono text-xs">
                             {m.status === "played" && us != null ? (
-                              <span className={won ? "text-emerald-500" : "text-destructive"}>
-                                {won ? "Won" : "Lost"} {us}–{them}
+                              <span className={drew ? "text-muted-foreground" : won ? "text-emerald-500" : "text-destructive"}>
+                                {drew ? "Drew" : won ? "Won" : "Lost"} {us}–{them}
                               </span>
                             ) : (
                               <span className="text-primary">{m.status}</span>
@@ -329,6 +347,7 @@ const StudentSquadPage = () => {
                     <th className="pb-2 pr-3">Squad</th>
                     <th className="pb-2 pr-3">Points</th>
                     <th className="pb-2 pr-3">W</th>
+                    <th className="pb-2 pr-3">D</th>
                     <th className="pb-2">L</th>
                   </tr>
                 </thead>
@@ -344,6 +363,7 @@ const StudentSquadPage = () => {
                       </td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.points}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.draws ?? 0}</td>
                       <td className="py-2.5 font-mono tabular-nums">{s.losses}</td>
                     </tr>
                   ))}

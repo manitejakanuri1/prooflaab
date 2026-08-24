@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface Squad {
-  id: string; name: string; points: number; wins: number; losses: number;
+  id: string; name: string; points: number; wins: number; draws: number; losses: number;
   rank: number | null; max_members: number;
   is_locked: boolean; archived_at: string | null;
 }
@@ -27,7 +27,7 @@ interface Performance {
   change: number | null; participation: number;
 }
 interface Achievement {
-  squad_id: string; squad_name: string; wins: number; losses: number;
+  squad_id: string; squad_name: string; wins: number; draws: number; losses: number;
   weeks_led: number; best_rank: number | null; best_week_points: number | null;
   member_badges: number; is_locked: boolean; archived: boolean;
 }
@@ -321,7 +321,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <td className="py-2.5 pr-3 font-mono tabular-nums">
                         {mine.length}/{s.max_members}
                       </td>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.losses}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.draws ?? 0}–{s.losses}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums font-semibold">{s.points}</td>
                       <td className="py-2.5">
                         {healthy
@@ -363,7 +363,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 {[
                   { k: "Rank", v: current.rank ? `#${current.rank}` : "—" },
                   { k: "Points", v: current.points },
-                  { k: "Record", v: `${current.wins}–${current.losses}` },
+                  { k: "Record", v: `${current.wins}–${current.draws ?? 0}–${current.losses}` },
                   { k: "Members", v: `${currentMembers.length}/${current.max_members}` },
                 ].map(({ k, v }) => (
                   <div key={k} className="rounded-lg bg-muted/50 p-3">
@@ -713,7 +713,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         <Badge variant="outline" className="ml-2 text-[10px] font-normal">Archived</Badge>
                       )}
                     </td>
-                    <td className="py-2.5 pr-3 font-mono tabular-nums">{a.wins}–{a.losses}</td>
+                    <td className="py-2.5 pr-3 font-mono tabular-nums">{a.wins}–{a.draws ?? 0}–{a.losses}</td>
                     <td className="py-2.5 pr-3 font-mono tabular-nums">{a.weeks_led}</td>
                     <td className="py-2.5 pr-3 font-mono tabular-nums">
                       {a.best_rank ? "#" + a.best_rank : "—"}

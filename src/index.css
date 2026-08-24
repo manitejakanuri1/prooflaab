@@ -155,3 +155,11 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Recruiter dashboard: dense, evidence-first cards. */
+  .section-label { @apply text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-mono; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .metric-card { @apply rounded-xl border border-border bg-card/90 backdrop-blur-sm; }
+  .dense-grid { @apply grid gap-4; }
+}

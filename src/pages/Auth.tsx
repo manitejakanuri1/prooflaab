@@ -99,6 +99,9 @@ export default function Auth() {
       case 'startup':
         navigate('/startup/dashboard', { replace: true });
         break;
+      case 'recruiter':
+        navigate('/recruiter/dashboard', { replace: true });
+        break;
       case 'student':
       default:
         navigate('/student/dashboard', { replace: true });

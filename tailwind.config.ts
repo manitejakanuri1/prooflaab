@@ -170,6 +170,11 @@ export default {
 				'confetti-fall': {
 					'0%': { opacity: '1', transform: 'translateY(-12px) rotate(0deg)' },
 					'100%': { opacity: '0', transform: 'translateY(260px) rotate(540deg)' }
+				},
+				// Recruiter dashboard: a panel easing open, not popping in.
+				'slide-down': {
+					from: { opacity: '0', transform: 'translateY(-4px)' },
+					to: { opacity: '1', transform: 'translateY(0)' }
 				}
 			},
 			animation: {
@@ -183,7 +188,8 @@ export default {
 				'node-pop': 'node-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
 				'marker-bob': 'marker-bob 1.6s ease-in-out infinite',
 				'star-twinkle': 'star-twinkle 2s ease-in-out infinite',
-				'confetti-fall': 'confetti-fall 1.5s ease-in forwards'
+				'confetti-fall': 'confetti-fall 1.5s ease-in forwards',
+				'slide-down': 'slide-down 0.25s ease-out'
 			}
 		}
 	},

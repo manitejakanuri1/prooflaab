@@ -19,6 +19,7 @@ const StudentResumeOnboarding = lazy(() => import("./pages/StudentResumeOnboardi
 const StudentInterestOnboarding = lazy(() => import("./pages/StudentInterestOnboarding"));
 const StudentStart = lazy(() => import("./pages/StudentStart"));
 const CollegeDashboard = lazy(() => import("./pages/CollegeDashboard"));
+const RecruiterDashboard = lazy(() => import("./pages/RecruiterDashboard"));
 const StartupDashboard = lazy(() => import("./pages/StartupDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
@@ -160,6 +161,16 @@ const App = () => (
                   } 
                 />
                 
+                {/* Recruiter Routes */}
+                <Route
+                  path="/recruiter/dashboard"
+                  element={
+                    <RoleBasedProtectedRoute allowedRoles={['recruiter']}>
+                      <RecruiterDashboard />
+                    </RoleBasedProtectedRoute>
+                  }
+                />
+
                 {/* Startup Routes */}
                 <Route 
                   path="/startup/dashboard" 

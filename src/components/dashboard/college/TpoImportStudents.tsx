@@ -204,14 +204,34 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       return;
     }
 
-    const created = (data?.results ?? []).filter((r: any) => r.status === "success").length;
+    // Four things can happen to a row, and a college needs to be able to tell
+    // them apart. "Linked" in particular used to be reported as a duplicate,
+    // which read as "already handled" when in fact the student had been left
+    // out of the college entirely.
+    const results = (data?.results ?? []) as Array<{ status: string; email: string; message?: string }>;
+    const count = (s: string) => results.filter((r) => r.status === s).length;
+    const created = count("success");
+    const linked = count("linked");
+    const mine = count("already_yours");
+    const elsewhere = count("other_college");
+    const failed = count("error");
+
     await supabase.from("student_imports")
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", importId);
 
+    const lines = [
+      created > 0 ? `${created} created and invited` : null,
+      linked > 0 ? `${linked} had already signed up — linked to you, their work kept` : null,
+      mine > 0 ? `${mine} already in your college` : null,
+      elsewhere > 0 ? `${elsewhere} belong to another college — not changed` : null,
+      failed > 0 ? `${failed} failed` : null,
+    ].filter(Boolean);
+
     toast({
-      title: `${created} of ${good.length} students created`,
-      description: "They have been invited and will show as needing attention until they sign in.",
+      title: `${created + linked} of ${good.length} students added`,
+      description: lines.join(" · "),
+      variant: elsewhere > 0 || failed > 0 ? "destructive" : undefined,
     });
     setOpen(false);
     setRows(null);

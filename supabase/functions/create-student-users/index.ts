@@ -130,11 +130,101 @@ serve(async (req) => {
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
         const existingAuthUser = authUsers.users?.find(user => user.email?.toLowerCase() === email.toLowerCase())
         
+        // An account with this email already exists. That is the ordinary case,
+        // not an error: the keenest students sign up on their own before their
+        // college ever uploads a CSV, and they are exactly the ones the college
+        // most wants to see. Skipping them left them orphaned — able to work,
+        // invisible to their college, never in a squad, and reported to the
+        // TPO as a "duplicate" they reasonably assumed was already handled.
+        //
+        // Three outcomes, and only one of them changes anything:
+        //   no college yet          -> link them, keep every bit of their work
+        //   already at this college -> nothing to do, say so
+        //   at a different college  -> refuse. A college must never be able to
+        //                              pull another college's students onto its
+        //                              dashboard by putting their emails in a file.
         if (existingAuthUser) {
+          const { data: theirProfile } = await supabaseAdmin
+            .from('student_profiles')
+            .select('id, college_id, full_name, roll_number, branch, batch')
+            .eq('user_id', existingAuthUser.id)
+            .maybeSingle()
+
+          if (!theirProfile) {
+            results.push({
+              email,
+              status: 'duplicate',
+              message: 'An account exists for this email but it is not a student account'
+            })
+            continue
+          }
+
+          if (theirProfile.college_id && theirProfile.college_id !== college_id) {
+            const { data: other } = await supabaseAdmin
+              .from('colleges')
+              .select('name')
+              .eq('id', theirProfile.college_id)
+              .maybeSingle()
+            results.push({
+              email,
+              status: 'other_college',
+              message: `Already a student at ${other?.name ?? 'another college'} — not changed`
+            })
+            continue
+          }
+
+          if (theirProfile.college_id === college_id) {
+            results.push({
+              email,
+              status: 'already_yours',
+              message: 'Already in your college'
+            })
+            continue
+          }
+
+          // The link. Their name, XP, roadmap, build-log and history are left
+          // exactly as they are; only the college's own fields are filled, and
+          // only where the student has not already answered.
+          const { error: linkError } = await supabaseAdmin
+            .from('student_profiles')
+            .update({
+              college_id,
+              roll_number: theirProfile.roll_number || roll_number || null,
+              branch: theirProfile.branch || branch || null,
+              batch: theirProfile.batch || batch || null,
+            })
+            .eq('id', theirProfile.id)
+
+          if (linkError) {
+            results.push({ email, status: 'error', message: `Could not link: ${linkError.message}` })
+            continue
+          }
+
+          if (phone) {
+            await supabaseAdmin
+              .from('student_contact')
+              .upsert({ student_id: theirProfile.id, email: email.toLowerCase(), phone },
+                      { onConflict: 'student_id' })
+          }
+
+          // No recovery link: they already have a password and use it. A
+          // notification is the honest way to tell them what changed.
+          await supabaseAdmin.from('notifications').insert({
+            user_id: theirProfile.id,
+            audience: 'student',
+            source: 'system',
+            type: 'college_linked',
+            title: 'Your college has added you',
+            message: 'Everything you have already done stays with you. You can now be placed ' +
+                     'in a squad and appear on your college leaderboard.',
+            link: '/student/dashboard',
+          })
+
           results.push({
             email,
-            status: 'duplicate',
-            message: 'Auth user already exists'
+            status: 'linked',
+            message: 'Signed up already — linked to your college, work kept',
+            userId: existingAuthUser.id
           })
           continue
         }

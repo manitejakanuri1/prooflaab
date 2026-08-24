@@ -107,7 +107,10 @@ serve(async (req) => {
         // How a college actually names a student. Unique per college, so two
         // colleges may both legitimately have a 23CSE041.
         roll_number = '',
-        batch = ''
+        batch = '',
+        // §6 lists phone as a required CSV column. The importer normalises it
+        // to ten digits before it gets here, or sends an empty string.
+        phone = ''
       } = studentData
 
       // Convert comma-separated strings to arrays
@@ -274,7 +277,11 @@ serve(async (req) => {
           const { error: contactError } = await supabaseAdmin
             .from('student_contact')
             .upsert(
-              { student_id: newProfile.id, email: email.toLowerCase() },
+              {
+                student_id: newProfile.id,
+                email: email.toLowerCase(),
+                ...(phone ? { phone } : {}),
+              },
               { onConflict: 'student_id' }
             )
 

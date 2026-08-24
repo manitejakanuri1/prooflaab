@@ -13,6 +13,7 @@ interface ParsedRow {
   row_number: number;
   name: string;
   email: string;
+  phone: string;
   roll_number: string;
   branch: string;
   batch: string;
@@ -82,6 +83,9 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       const iRoll  = idx("roll_number", "roll_no", "rollno", "roll");
       const iBranch= idx("branch", "department", "dept");
       const iBatch = idx("batch", "year", "year_of_study", "graduation_year");
+      // §6 lists phone as required. It was read by nothing and had nowhere to
+      // land, which is also why WhatsApp could never be switched on.
+      const iPhone = idx("phone", "phone_number", "mobile", "mobile_number", "contact");
 
       if (iName === -1 || iMail === -1) {
         throw new Error("The file needs at least a 'name' and an 'email' column.");
@@ -100,6 +104,11 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         const name = cells[iName] ?? "";
         const email = (cells[iMail] ?? "").toLowerCase();
         const roll = iRoll === -1 ? "" : cells[iRoll] ?? "";
+        // Kept as the ten digits and nothing else, so two spellings of the
+        // same number are one number.
+        const phoneRaw = iPhone === -1 ? "" : (cells[iPhone] ?? "");
+        const phoneDigits = phoneRaw.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "");
+        const phone = phoneDigits.length === 10 ? phoneDigits : "";
 
         let status: ParsedRow["validation_status"] = "valid";
         let err: string | null = null;
@@ -110,10 +119,16 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         else if (known.has(email)) { status = "duplicate"; err = "Already on the platform"; }
         else if (seen.has(email)) { status = "duplicate"; err = "Repeated earlier in this file"; }
 
+        // A malformed number is worth saying out loud, but a student is not
+        // worth rejecting over it: the email is what the invitation needs.
+        if (status === "valid" && phoneRaw && !phone) {
+          err = `Phone "${phoneRaw.trim()}" is not 10 digits — imported without it`;
+        }
+
         if (status === "valid") seen.add(email);
 
         return {
-          row_number: i + 2, name, email, roll_number: roll,
+          row_number: i + 2, name, email, phone, roll_number: roll,
           branch: iBranch === -1 ? "" : cells[iBranch] ?? "",
           batch:  iBatch  === -1 ? "" : cells[iBatch]  ?? "",
           validation_status: status, error_message: err, raw,
@@ -175,7 +190,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       body: {
         college_id: collegeId,
         students: good.map((r) => ({
-          name: r.name, email: r.email, roll_number: r.roll_number,
+          name: r.name, email: r.email, phone: r.phone, roll_number: r.roll_number,
           branch: r.branch, batch: r.batch, year_of_study: r.batch,
         })),
       },

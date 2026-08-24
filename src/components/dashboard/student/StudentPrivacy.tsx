@@ -3,14 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Globe, Lock, School } from "lucide-react";
+import { Globe, Lock, School, Mic, Trash2 } from "lucide-react";
 
 interface Portfolio { is_public: boolean; slug: string | null }
+interface Recording {
+  id: string;
+  storage_path: string;
+  duration_seconds: number | null;
+  communication_score: number | null;
+  created_at: string;
+}
+
 interface Proof {
   id: string;
   is_public: boolean;
@@ -41,6 +50,7 @@ const StudentPrivacy = () => {
   const { toast } = useToast();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [proofs, setProofs] = useState<Proof[] | null>(null);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -53,6 +63,13 @@ const StudentPrivacy = () => {
     ]);
     setPortfolio((pf.data ?? { is_public: false, slug: null }) as unknown as Portfolio);
     setProofs((pr.data ?? []) as unknown as Proof[]);
+
+    const { data: voice } = await supabase
+      .from("voice_explanations")
+      .select("id, storage_path, duration_seconds, communication_score, created_at")
+      .eq("student_id", profile.id)
+      .order("created_at", { ascending: false });
+    setRecordings((voice ?? []) as unknown as Recording[]);
   }, [profile?.id]);
 
   useEffect(() => { void load(); }, [load]);
@@ -92,6 +109,28 @@ const StudentPrivacy = () => {
       description: on
         ? "Anyone with the link can see it, including the scorecard on it."
         : "The link no longer opens for anyone but you.",
+    });
+  };
+
+  /**
+   * Deletes the row and the audio file, in that order.
+   *
+   * The row first, because that is the record the platform reads; a file left
+   * behind is waste, but a row pointing at a file that is gone is a broken
+   * screen. Both are removed here — the storage bucket now has a delete policy
+   * for the owner, which it did not before.
+   */
+  const deleteRecording = async (rec: Recording) => {
+    const { error } = await supabase.from("voice_explanations").delete().eq("id", rec.id);
+    if (error) {
+      toast({ title: "Not deleted", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.storage.from("voice-explanations").remove([rec.storage_path]);
+    setRecordings((list) => list.filter((r) => r.id !== rec.id));
+    toast({
+      title: "Recording deleted",
+      description: "The audio and its transcript are gone. Any score it produced stays on your record.",
     });
   };
 
@@ -164,6 +203,56 @@ const StudentPrivacy = () => {
               onCheckedChange={(on) => void setPortfolioPublic(on)}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-5">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Your voice recordings
+            </span>
+            <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
+              {recordings.length}
+            </span>
+          </div>
+
+          {recordings.length === 0 ? (
+            <p className="text-sm text-muted-foreground mt-2 max-w-prose">
+              None yet. When you record a 60-second explanation it appears here, and you can
+              delete it whenever you want.
+            </p>
+          ) : (
+            <div className="mt-3">
+              {recordings.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 py-2.5 border-b last:border-b-0">
+                  <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm">
+                      {format(new Date(r.created_at), "d MMM yyyy, h:mm a")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {r.duration_seconds ? `${r.duration_seconds}s` : "—"}
+                      {r.communication_score != null && ` · scored ${r.communication_score}`}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => void deleteRecording(r)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground mt-3 max-w-prose">
+            Recordings are kept for the season and removed afterwards. The score a recording
+            produced stays on your record either way.
+          </p>
         </CardContent>
       </Card>
 

@@ -163,7 +163,13 @@ serve(async (req) => {
       .slice(0, MAX_DEFENDED_PROJECTS);
 
     const mcqCount = 5;
-    const fallbackShortAnswerCount = defendedProjects.length > 0 ? 0 : 2;
+    // Section 10 asks for two written answers alongside the five
+    // multiple-choice. Defending a project is the better version of that
+    // question — it is about their own work — so projects count toward the two,
+    // and short answers only top up whatever they do not cover. A student with
+    // exactly one project used to get one written question in total.
+    const WRITTEN_MINIMUM = 2;
+    const fallbackShortAnswerCount = Math.max(0, WRITTEN_MINIMUM - defendedProjects.length);
 
     const prompt = `You are building a short assessment to check whether a student really understands what they claim on their resume — not a generic quiz, ONLY based on the exact items below.
 

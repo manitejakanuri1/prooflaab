@@ -7,6 +7,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Inside the dev container the source is a bind mount from the host, and
+    // file-change events do not cross that boundary — the page would simply
+    // never reload. Polling is the reliable answer there and a waste of CPU
+    // anywhere else, so docker-compose sets VITE_POLL and nothing else does.
+    watch: process.env.VITE_POLL ? { usePolling: true, interval: 300 } : undefined,
   },
   plugins: [react()],
   resolve: {

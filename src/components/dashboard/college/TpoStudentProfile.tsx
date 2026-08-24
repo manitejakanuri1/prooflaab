@@ -17,6 +17,7 @@ interface Profile {
   branch: string | null;
   batch: string | null;
   email: string | null;
+  phone: string | null;
   trust_score: number | null;
   total_xp: number | null;
   joined_at: string | null;
@@ -143,7 +144,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
             </DialogHeader>
 
             <p className="text-sm text-muted-foreground -mt-2">
-              {[data.branch, data.batch, data.email].filter(Boolean).join(" · ")}
+              {[data.branch, data.batch, data.email, data.phone].filter(Boolean).join(" · ")}
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

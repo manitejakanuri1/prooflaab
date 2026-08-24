@@ -1,0 +1,17 @@
+# Anything here is never sent to the Docker build, which keeps the image small
+# and the build fast. node_modules in particular: the image installs its own
+# Linux copy, and shipping a Windows one would be both slow and useless.
+node_modules
+dist
+dist-ssr
+.git
+.github
+.vercel
+.claude
+.claude-worktrees
+*.log
+.env
+.env.*
+.DS_Store
+coverage
+supabase/.temp

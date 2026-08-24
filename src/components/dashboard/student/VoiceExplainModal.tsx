@@ -52,11 +52,22 @@ interface VoiceExplainModalProps {
 
 type Phase = "idle" | "recording" | "saving" | "done" | "error";
 
+/**
+ * Consent, asked once and remembered.
+ *
+ * The platform keeps a recording of the student's voice, a transcript of it and
+ * a judgement about how clearly they explain things. Storing that without ever
+ * asking, and with no way to take it back, is the kind of thing nobody notices
+ * until a parent or a college's legal team asks about it.
+ */
+
 const VoiceExplainModal = ({
   open, onOpenChange, studentId, taskId, proofId, prompt, onSaved,
 }: VoiceExplainModalProps) => {
   const { toast } = useToast();
   const [phase, setPhase] = useState<Phase>("idle");
+  const [consented, setConsented] = useState<boolean | null>(null);
+  const [accepting, setAccepting] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(MAX_SECONDS);
   const [transcript, setTranscript] = useState("");
   const [level, setLevel] = useState(0);
@@ -199,6 +210,32 @@ const VoiceExplainModal = ({
     return () => clearTimeout(t);
   }, [phase, secondsLeft, stop]);
 
+  // Asked once. After the first yes this query is the only cost.
+  useEffect(() => {
+    if (!open || !studentId) return;
+    let cancelled = false;
+    void supabase
+      .from("student_profiles")
+      .select("voice_consent_at")
+      .eq("id", studentId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setConsented(Boolean(data?.voice_consent_at));
+      });
+    return () => { cancelled = true; };
+  }, [open, studentId]);
+
+  const acceptConsent = async () => {
+    setAccepting(true);
+    const { error } = await supabase.rpc("accept_voice_consent");
+    setAccepting(false);
+    if (error) {
+      toast({ title: "Could not save that", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConsented(true);
+  };
+
   const close = (next: boolean) => {
     if (!next) { cleanup(); setPhase("idle"); }
     onOpenChange(next);
@@ -225,7 +262,32 @@ const VoiceExplainModal = ({
           </Alert>
         )}
 
-        {phase === "idle" && (
+        {phase === "idle" && consented === false && (
+          <div className="space-y-3">
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="text-sm font-medium">Before you record</p>
+              <ul className="text-sm text-muted-foreground space-y-1.5 list-disc pl-5">
+                <li>Your voice is recorded and stored with your work.</li>
+                <li>
+                  It is scored for how clearly you explain the work — not for your accent or
+                  your English.
+                </li>
+                <li>Your college can hear it. Nobody outside your college can.</li>
+                <li>
+                  You can delete any recording at any time, from Profile → Privacy.
+                </li>
+              </ul>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => void acceptConsent()} disabled={accepting} className="flex-1">
+                {accepting ? "Saving…" : "I understand — continue"}
+              </Button>
+              <Button variant="ghost" onClick={() => close(false)}>Not now</Button>
+            </div>
+          </div>
+        )}
+
+        {phase === "idle" && consented === true && (
           <div className="space-y-3">
             <p className="text-sm">
               Say it in your own words, as if to a teammate. Mention what you tried first

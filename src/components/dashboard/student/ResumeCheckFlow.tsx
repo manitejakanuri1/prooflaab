@@ -54,8 +54,18 @@ interface AssessmentQuestion {
 
 type ScoreTier = "bad" | "good" | "excellent";
 
+/**
+ * The gate, from §9 of the architecture: below this the student is offered the
+ * rebuild and cannot continue past it.
+ *
+ * It read 65 and gated nothing — a red badge and an open door. A student at 41%
+ * could walk straight into the assessment, which is the one place the platform
+ * is supposed to insist.
+ */
+const ATS_GATE = 60;
+
 const getTier = (ats: number | null | undefined): ScoreTier => {
-  if (ats == null || ats < 65) return "bad";
+  if (ats == null || ats < ATS_GATE) return "bad";
   if (ats <= 85) return "good";
   return "excellent";
 };
@@ -550,7 +560,9 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              {tier === "bad" ? "Below 65% ATS match — worth fixing before you continue." : "65-85% ATS match — solid, but there's room to improve."}
+              {tier === "bad"
+                ? `Below ${ATS_GATE}% ATS match — rebuild it before you continue.`
+                : `${ATS_GATE}-85% ATS match — solid, but there's room to improve.`}
             </p>
 
             {improvedResume && (
@@ -782,8 +794,26 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             <p className="text-sm text-muted-foreground">
               A handful of quick questions based only on what's above — 15 seconds each, no going back.
             </p>
+
+            {/* The gate. A resume this weak is not worth testing against: the
+                questions come from what it claims, so a thin resume produces a
+                thin assessment and a score that means nothing. */}
+            {tier === "bad" && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <p className="text-sm font-medium">Rebuild your resume first</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  It scores {claim.ats_match_score ?? 0}% against your target role, under the{" "}
+                  {ATS_GATE}% the assessment needs. The rebuild rewrites how your existing work
+                  reads — it never invents anything — and then re-scores it.
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleStartAssessment} disabled={generatingAssessment}>
+              <Button
+                onClick={handleStartAssessment}
+                disabled={generatingAssessment || tier === "bad"}
+              >
                 {generatingAssessment ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...

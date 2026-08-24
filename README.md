@@ -30,6 +30,30 @@ npm run build      # typecheck, then build — fails the build if types fail
 The Supabase URL and publishable key are compiled into
 `src/integrations/supabase/client.ts`, so no `.env` file is needed to run the app.
 
+## Running it in Docker
+
+For a second machine, or any machine where you would rather not match Node
+versions by hand. Install Docker Desktop, then:
+
+```sh
+git clone https://github.com/manitejakanuri1/prooflaab.git
+cd prooflaab
+docker compose up
+```
+
+The app is on http://localhost:8080 and reloads when you edit a file.
+
+```sh
+docker compose up --build      # after package.json changes
+docker compose exec web sh     # a shell inside the container
+docker compose down            # stop
+```
+
+Nothing else is needed: the Supabase URL and publishable key are compiled into
+the client, so there is no .env to copy between machines. Two things do not
+live in the container and are per-machine: your GitHub credentials for pushing,
+and `supabase login` if you intend to deploy edge functions from there.
+
 ## Stack
 
 - React 18 + TypeScript + Vite, Tailwind and shadcn/ui

@@ -1,0 +1,25 @@
+services:
+  web:
+    build: .
+    container_name: prooflab-web
+    ports:
+      - "8080:8080"
+    volumes:
+      # Your working copy, live inside the container — edit on the laptop, the
+      # page reloads.
+      - .:/app
+      # node_modules stays a container-owned volume and is NOT taken from the
+      # host. Without this line, a Windows or macOS node_modules gets mounted
+      # over the Linux one the image built, and nothing runs.
+      - prooflab_node_modules:/app/node_modules
+    environment:
+      # Bind-mounted files do not deliver change events across the host
+      # boundary, so the watcher polls instead. Costs a little CPU, saves the
+      # "why is nothing reloading" hour.
+      VITE_POLL: "1"
+    # Keeps `docker compose run` and interactive debugging usable.
+    stdin_open: true
+    tty: true
+
+volumes:
+  prooflab_node_modules:

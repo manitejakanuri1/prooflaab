@@ -2169,6 +2169,7 @@ export type Database = {
           email: string | null
           github_url: string | null
           linkedin_url: string | null
+          phone: string | null
           resume_url: string | null
           student_id: string
           updated_at: string
@@ -2177,6 +2178,7 @@ export type Database = {
           email?: string | null
           github_url?: string | null
           linkedin_url?: string | null
+          phone?: string | null
           resume_url?: string | null
           student_id: string
           updated_at?: string
@@ -2185,6 +2187,7 @@ export type Database = {
           email?: string | null
           github_url?: string | null
           linkedin_url?: string | null
+          phone?: string | null
           resume_url?: string | null
           student_id?: string
           updated_at?: string
@@ -2562,6 +2565,7 @@ export type Database = {
           trust_score: number
           updated_at: string
           user_id: string
+          voice_consent_at: string | null
           work_preference: string
           year_of_study: string | null
         }
@@ -2597,6 +2601,7 @@ export type Database = {
           trust_score?: number
           updated_at?: string
           user_id: string
+          voice_consent_at?: string | null
           work_preference?: string
           year_of_study?: string | null
         }
@@ -2632,6 +2637,7 @@ export type Database = {
           trust_score?: number
           updated_at?: string
           user_id?: string
+          voice_consent_at?: string | null
           work_preference?: string
           year_of_study?: string | null
         }
@@ -3658,6 +3664,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_voice_consent: { Args: never; Returns: string }
       admin_notify_student: {
         Args: {
           _link?: string
@@ -3711,6 +3718,7 @@ export type Database = {
         Args: { _level_id: string }
         Returns: string
       }
+      form_all_colleges: { Args: never; Returns: Json }
       form_squads: {
         Args: { _college_id: string; _season_id?: string }
         Returns: Json

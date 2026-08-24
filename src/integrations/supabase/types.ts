@@ -3962,6 +3962,7 @@ export type Database = {
         }[]
       }
       my_recruiter_id: { Args: never; Returns: string }
+      my_season_report: { Args: { _season_id?: string }; Returns: Json }
       my_shortlists: {
         Args: never
         Returns: {

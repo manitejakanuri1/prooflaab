@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Video, Trophy, Crown, Medal, Award } from "lucide-react";
 import { format, startOfWeek, addDays, isWithinInterval } from "date-fns";
+import StudentSeasonReport from "./StudentSeasonReport";
 
 interface Squad {
   id: string;
@@ -191,12 +192,13 @@ const StudentSquadPage = () => {
       </Card>
 
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="matches">Matches</TabsTrigger>
           <TabsTrigger value="standings">Standings</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          <TabsTrigger value="season">Season</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">
@@ -405,6 +407,9 @@ const StudentSquadPage = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="season" className="mt-4">
+          <StudentSeasonReport />
         </TabsContent>
       </Tabs>
     </div>

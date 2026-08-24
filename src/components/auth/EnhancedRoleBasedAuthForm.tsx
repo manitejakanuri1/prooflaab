@@ -33,7 +33,7 @@ const loginSchema = z.object({
 });
 
 type AuthMode = 'login' | 'signup' | 'magic-link' | 'forgot-password';
-type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
+type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 type AuthStep = 'form' | 'email-verification';
 
 interface EnhancedRoleBasedAuthFormProps {

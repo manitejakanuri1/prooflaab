@@ -7,7 +7,7 @@ import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/Logo";
 
-type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
+type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 
 export default function Auth() {
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);

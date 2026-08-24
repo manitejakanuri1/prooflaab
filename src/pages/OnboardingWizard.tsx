@@ -6,7 +6,7 @@ import StudentWizard from "@/components/onboarding/StudentWizard";
 import CollegeWizard from "@/components/onboarding/CollegeWizard";
 import StartupWizard from "@/components/onboarding/StartupWizard";
 
-type UserRole = 'student' | 'college_admin' | 'startup' | 'admin';
+type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 
 export default function OnboardingWizard() {
   const { user, loading } = useAuth();

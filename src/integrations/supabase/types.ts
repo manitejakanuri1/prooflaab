@@ -1323,6 +1323,135 @@ export type Database = {
           },
         ]
       }
+      recruiter_shortlists: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          recruiter_id: string
+          responded_at: string | null
+          stage: string
+          student_id: string
+          student_response: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          recruiter_id: string
+          responded_at?: string | null
+          stage?: string
+          student_id: string
+          student_response?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          recruiter_id?: string
+          responded_at?: string | null
+          stage?: string
+          student_id?: string
+          student_response?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruiter_shortlists_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "recruiters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiter_shortlists_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruiter_views: {
+        Row: {
+          id: string
+          recruiter_id: string
+          student_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          recruiter_id: string
+          student_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          recruiter_id?: string
+          student_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruiter_views_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "recruiters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiter_views_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruiters: {
+        Row: {
+          about: string | null
+          company: string
+          contact_name: string
+          created_at: string
+          id: string
+          updated_at: string
+          verified: boolean
+          verified_at: string | null
+          verified_by: string | null
+          website: string | null
+          work_email: string | null
+        }
+        Insert: {
+          about?: string | null
+          company: string
+          contact_name: string
+          created_at?: string
+          id: string
+          updated_at?: string
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+          work_email?: string | null
+        }
+        Update: {
+          about?: string | null
+          company?: string
+          contact_name?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+          work_email?: string | null
+        }
+        Relationships: []
+      }
       resume_assessments: {
         Row: {
           answer_scores: Json | null
@@ -3109,6 +3238,8 @@ export type Database = {
           roadmap_stage_index: number | null
           source: string | null
           source_jd: string | null
+          sponsor_criteria: string | null
+          sponsored_by: string | null
           started_at: string | null
           status: string
           student_id: string | null
@@ -3149,6 +3280,8 @@ export type Database = {
           roadmap_stage_index?: number | null
           source?: string | null
           source_jd?: string | null
+          sponsor_criteria?: string | null
+          sponsored_by?: string | null
           started_at?: string | null
           status?: string
           student_id?: string | null
@@ -3189,6 +3322,8 @@ export type Database = {
           roadmap_stage_index?: number | null
           source?: string | null
           source_jd?: string | null
+          sponsor_criteria?: string | null
+          sponsored_by?: string | null
           started_at?: string | null
           status?: string
           student_id?: string | null
@@ -3213,6 +3348,13 @@ export type Database = {
             columns: ["roadmap_scorecard_id"]
             isOneToOne: false
             referencedRelation: "resume_scorecards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_sponsored_by_fkey"
+            columns: ["sponsored_by"]
+            isOneToOne: false
+            referencedRelation: "recruiters"
             referencedColumns: ["id"]
           },
           {
@@ -3675,6 +3817,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_recruiters: {
+        Args: never
+        Returns: {
+          company: string
+          contact_name: string
+          created_at: string
+          id: string
+          shortlists: number
+          sponsored: number
+          verified: boolean
+          website: string
+          work_email: string
+        }[]
+      }
+      admin_verify_recruiter: {
+        Args: { _recruiter_id: string; _verified: boolean }
+        Returns: Json
+      }
       assign_to_squad: {
         Args: { _effective?: string; _squad_id: string; _student_id: string }
         Returns: Json
@@ -3750,6 +3910,7 @@ export type Database = {
         Returns: number
       }
       is_admin: { Args: never; Returns: boolean }
+      is_verified_recruiter: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
           _event_type: string
@@ -3798,6 +3959,18 @@ export type Database = {
           source_id: string
           source_type: string
           total: number
+        }[]
+      }
+      my_recruiter_id: { Args: never; Returns: string }
+      my_shortlists: {
+        Args: never
+        Returns: {
+          company: string
+          created_at: string
+          id: string
+          note: string
+          stage: string
+          student_response: string
         }[]
       }
       my_skills_proved: {
@@ -3889,7 +4062,71 @@ export type Database = {
         Args: { _metric: string; _student_id: string }
         Returns: undefined
       }
+      record_outcome: {
+        Args: { _outcome: string; _student_id: string }
+        Returns: Json
+      }
       recount_season: { Args: { _season_id: string }; Returns: undefined }
+      recruiter_filters: { Args: never; Returns: Json }
+      recruiter_home: { Args: never; Returns: Json }
+      recruiter_log_view: { Args: { _student_id: string }; Returns: undefined }
+      recruiter_lots: {
+        Args: never
+        Returns: {
+          ai_score: number
+          created_at: string
+          due_date: string
+          outcome: string
+          proof_id: string
+          proof_status: string
+          student_id: string
+          student_name: string
+          submitted_at: string
+          task_id: string
+          task_status: string
+          title: string
+        }[]
+      }
+      recruiter_proof_profile: { Args: { _student_id: string }; Returns: Json }
+      recruiter_shortlist: {
+        Args: { _note?: string; _student_id: string }
+        Returns: Json
+      }
+      recruiter_talent: {
+        Args: {
+          _active_within?: number
+          _branch?: string
+          _limit?: number
+          _min_comms?: number
+          _min_skill?: number
+          _offset?: number
+          _role?: string
+          _skills?: string[]
+        }
+        Returns: {
+          active_weeks: number
+          batch: string
+          branch: string
+          comms_score: number
+          days_since_active: number
+          explanations: number
+          full_name: string
+          lots_done: number
+          proofs_verified: number
+          season_points: number
+          shortlisted: boolean
+          skills_proven: number
+          skills_total: number
+          squad_name: string
+          squad_rank: number
+          student_id: string
+          target_role: string
+          top_skills: string[]
+          total_matches: number
+          total_xp: number
+          trust_score: number
+        }[]
+      }
       refresh_unlock: {
         Args: { _student_id: string; _track: string }
         Returns: number
@@ -3899,6 +4136,10 @@ export type Database = {
         Returns: undefined
       }
       reshuffle_quiz_options: { Args: never; Returns: Json }
+      respond_to_shortlist: {
+        Args: { _accept: boolean; _shortlist_id: string }
+        Returns: Json
+      }
       run_all_seasons: { Args: never; Returns: Json }
       run_squad_week: {
         Args: { _season_id: string; _week?: number }
@@ -3939,7 +4180,21 @@ export type Database = {
         Args: { _round: number; _season_id: string }
         Returns: number
       }
+      sponsor_lot: {
+        Args: {
+          _brief: string
+          _criteria?: string
+          _days?: number
+          _student_id: string
+          _title: string
+        }
+        Returns: Json
+      }
       squad_town: { Args: { _college_id: string }; Returns: string }
+      student_is_discoverable: {
+        Args: { _student_id: string }
+        Returns: boolean
+      }
       suggest_tracks: {
         Args: { _limit?: number; _student_id: string }
         Returns: {
@@ -4086,7 +4341,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "student" | "college_admin" | "startup" | "admin"
+      app_role: "student" | "college_admin" | "startup" | "admin" | "recruiter"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4214,7 +4469,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["student", "college_admin", "startup", "admin"],
+      app_role: ["student", "college_admin", "startup", "admin", "recruiter"],
     },
   },
 } as const

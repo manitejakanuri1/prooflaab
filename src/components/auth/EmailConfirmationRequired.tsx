@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface EmailConfirmationRequiredProps {
   email: string;
-  userRole: 'student' | 'college_admin' | 'startup' | 'admin';
+  userRole: 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
   onBackToLogin: () => void;
 }
 

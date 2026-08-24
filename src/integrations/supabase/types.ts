@@ -962,6 +962,53 @@ export type Database = {
           },
         ]
       }
+      mock_interviews: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          created_at: string
+          id: string
+          overall_feedback: string | null
+          overall_score: number | null
+          questions: Json
+          status: string
+          student_id: string
+          target_role: string | null
+        }
+        Insert: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          overall_feedback?: string | null
+          overall_score?: number | null
+          questions?: Json
+          status?: string
+          student_id: string
+          target_role?: string | null
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          overall_feedback?: string | null
+          overall_score?: number | null
+          questions?: Json
+          status?: string
+          student_id?: string
+          target_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_interviews_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           actor_id: string | null
@@ -4164,6 +4211,15 @@ export type Database = {
           _token: string
         }
         Returns: boolean
+      }
+      save_mock_interview_answer: {
+        Args: {
+          _duration_seconds: number
+          _interview_id: string
+          _storage_path: string
+          _transcript: string
+        }
+        Returns: Json
       }
       score_student_week: {
         Args: { _season_id: string; _student_id: string; _week: number }

@@ -20,6 +20,7 @@ import StudentHistory from "./StudentHistory";
 import StudentCertifications from "./StudentCertifications";
 import StudentPrivacy from "./StudentPrivacy";
 import StudentRolePreference from "./StudentRolePreference";
+import MockInterview from "./MockInterview";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -138,6 +139,7 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
             <TabsTrigger value="proof">Proof</TabsTrigger>
             <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
             <TabsTrigger value="resume">Resume</TabsTrigger>
+            <TabsTrigger value="interview">Mock interview</TabsTrigger>
             <TabsTrigger value="certifications">Certifications</TabsTrigger>
             <TabsTrigger value="role">Role preference</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
@@ -152,6 +154,9 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
           </TabsContent>
           <TabsContent value="resume" className="mt-4">
             <StudentResumeCheckPage />
+          </TabsContent>
+          <TabsContent value="interview" className="mt-4">
+            <MockInterview />
           </TabsContent>
           <TabsContent value="certifications" className="mt-4">
             <StudentCertifications />

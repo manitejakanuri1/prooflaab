@@ -1992,24 +1992,38 @@ export type Database = {
       }
       squad_scoring_rules: {
         Row: {
+          college_id: string | null
           description: string | null
+          id: string
           label: string
           metric: string
           points: number
         }
         Insert: {
+          college_id?: string | null
           description?: string | null
+          id?: string
           label: string
           metric: string
           points: number
         }
         Update: {
+          college_id?: string | null
           description?: string | null
+          id?: string
           label?: string
           metric?: string
           points?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "squad_scoring_rules_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       squad_weekly_scores: {
         Row: {
@@ -4233,6 +4247,10 @@ export type Database = {
           starts_at: string
         }[]
       }
+      season_week_start: {
+        Args: { _season_id: string; _week: number }
+        Returns: string
+      }
       seed_lot_template: { Args: { _level_id: string }; Returns: undefined }
       set_proof_publicity: {
         Args: { p_is_public: boolean; p_proof_id: string }
@@ -4308,9 +4326,15 @@ export type Database = {
       tpo_insights: { Args: never; Returns: Json }
       tpo_placement_report: { Args: never; Returns: Json }
       tpo_rebalance_squads: { Args: never; Returns: Json }
+      tpo_reset_scoring_weight: { Args: { _metric: string }; Returns: Json }
       tpo_run_week: { Args: { _week?: number }; Returns: Json }
+      tpo_scoring_rules: { Args: never; Returns: Json }
       tpo_send_reminder: {
         Args: { _message?: string; _reason: string; _student_id: string }
+        Returns: Json
+      }
+      tpo_set_scoring_weight: {
+        Args: { _metric: string; _points: number }
         Returns: Json
       }
       tpo_squad_achievements: {

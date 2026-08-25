@@ -43,6 +43,10 @@ interface Match {
 interface StudentRow {
   student_id: string; full_name: string; roll_number: string | null; is_reserve: boolean;
 }
+interface ScoringRule {
+  metric: string; label: string; description: string | null;
+  points: number; default_points: number; customized: boolean;
+}
 
 const daysSince = (iso: string | null) =>
   iso == null ? 999 : Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -84,6 +88,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   // squad.
   const [rename, setRename] = useState<Record<string, string>>({});
   const [capacity, setCapacity] = useState<Record<string, string>>({});
+  const [scoringRules, setScoringRules] = useState<ScoringRule[]>([]);
+  const [weightDraft, setWeightDraft] = useState<Record<string, string>>({});
+  const [savingWeight, setSavingWeight] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const cid = await supabase.rpc("my_college_id" as never);
@@ -104,7 +111,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     if (list.length === 0) { setMembers([]); setMatches([]); return; }
     const ids = list.map((s) => s.id);
 
-    const [mem, mat, stu, perf, ach] = await Promise.all([
+    const [mem, mat, stu, perf, ach, rules] = await Promise.all([
       supabase.from("squad_members")
         .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
         .in("squad_id", ids)
@@ -115,6 +122,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       supabase.rpc("tpo_students" as never),
       supabase.rpc("tpo_squad_performance" as never, { _weeks: 8 } as never),
       supabase.rpc("tpo_squad_achievements" as never),
+      supabase.rpc("tpo_scoring_rules" as never),
     ]);
 
     setMembers((mem.data ?? []) as unknown as Member[]);
@@ -122,6 +130,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     setStudents((stu.data ?? []) as unknown as StudentRow[]);
     setPerformance((perf.data ?? []) as unknown as Performance[]);
     setAchievements((ach.data ?? []) as unknown as Achievement[]);
+    setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);
     if (list.length && !selected) setSelected(list[0].id);
   }, [selected]);
 
@@ -256,6 +265,38 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         ? `${r.still_unplaced} still unplaced — every unlocked squad is full.`
         : "Nobody is left in the reserve pool.",
     });
+    void load();
+  };
+
+  const saveWeight = async (metric: string) => {
+    const raw = weightDraft[metric];
+    const points = Number(raw);
+    if (raw === undefined || !Number.isFinite(points) || points < 0) return;
+    setSavingWeight(metric);
+    const { error } = await supabase.rpc("tpo_set_scoring_weight" as never, {
+      _metric: metric, _points: points,
+    } as never);
+    setSavingWeight(null);
+    if (error) {
+      toast({ title: "Not changed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `${metric.replace(/_/g, " ")} is now worth ${points} points` });
+    setWeightDraft((d) => { const n = { ...d }; delete n[metric]; return n; });
+    void load();
+  };
+
+  const resetWeight = async (metric: string) => {
+    setSavingWeight(metric);
+    const { error } = await supabase.rpc("tpo_reset_scoring_weight" as never, {
+      _metric: metric,
+    } as never);
+    setSavingWeight(null);
+    if (error) {
+      toast({ title: "Not reset", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Back to the platform default" });
     void load();
   };
 
@@ -543,6 +584,58 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               <Shuffle className="h-4 w-4 mr-1.5" />
               {busy ? "Working…" : "Rebalance the reserve pool"}
             </Button>
+          </CardContent></Card>
+
+          <Card><CardContent className="pt-5">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              How points are earned
+            </span>
+            <p className="text-sm text-muted-foreground mt-2 max-w-prose">
+              Every weekly score and squad ranking is built from these. Change one and it applies
+              to your college only, starting with the next week that gets scored — nothing already
+              published is recalculated.
+            </p>
+            <div className="mt-3 space-y-2">
+              {scoringRules.map((r) => (
+                <div key={r.metric} className="flex items-center gap-3 flex-wrap rounded-lg border p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{r.label}</span>
+                      {r.customized && (
+                        <Badge variant="outline" className="text-[10px] font-normal">
+                          Customized — default {r.default_points}
+                        </Badge>
+                      )}
+                    </div>
+                    {r.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>
+                    )}
+                  </div>
+                  <Input
+                    type="number" min={0} max={1000}
+                    className="h-9 w-24"
+                    value={weightDraft[r.metric] ?? String(r.points)}
+                    onChange={(e) => setWeightDraft((d) => ({ ...d, [r.metric]: e.target.value }))}
+                  />
+                  <Button
+                    variant="outline" className="h-9"
+                    disabled={savingWeight === r.metric || weightDraft[r.metric] === undefined}
+                    onClick={() => void saveWeight(r.metric)}
+                  >
+                    Save
+                  </Button>
+                  {r.customized && (
+                    <Button
+                      variant="ghost" className="h-9"
+                      disabled={savingWeight === r.metric}
+                      onClick={() => void resetWeight(r.metric)}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           </CardContent></Card>
 
           {squads.map((s) => {

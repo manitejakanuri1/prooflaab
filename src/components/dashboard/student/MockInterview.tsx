@@ -8,24 +8,9 @@ import { Mic, Square, Loader2, AlertTriangle, CheckCircle2, MessageSquare } from
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { transcribeAudio, type TranscribeProgress } from "@/lib/transcribeAudio";
 
 const MAX_SECONDS = 90;
-
-/** Same recognition shim as the 60-second explain — Chrome/Edge only. */
-type SpeechRecognitionLike = {
-  continuous: boolean; interimResults: boolean; lang: string;
-  start: () => void; stop: () => void;
-  onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
-  onerror: (() => void) | null;
-};
-const getRecogniser = (): SpeechRecognitionLike | null => {
-  const w = window as unknown as Record<string, unknown>;
-  const Ctor = (w.SpeechRecognition ?? w.webkitSpeechRecognition) as (new () => SpeechRecognitionLike) | undefined;
-  if (!Ctor) return null;
-  const r = new Ctor();
-  r.continuous = true; r.interimResults = true; r.lang = "en-IN";
-  return r;
-};
 
 interface PastAnswer { n: number; score: number | null; feedback: string | null }
 interface PastInterview {
@@ -34,7 +19,7 @@ interface PastInterview {
   questions: string[]; answers: PastAnswer[];
 }
 
-type Phase = "idle" | "generating" | "recording" | "saving" | "scoring" | "done" | "error";
+type Phase = "idle" | "generating" | "recording" | "transcribing" | "saving" | "scoring" | "done" | "error";
 
 /**
  * Mock interviews — step 17 of the journey, the one screen the platform never
@@ -57,18 +42,15 @@ const MockInterview = () => {
   const [questions, setQuestions] = useState<string[]>([]);
   const [qIndex, setQIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(MAX_SECONDS);
-  const [transcript, setTranscript] = useState("");
+  const [transcribeProgress, setTranscribeProgress] = useState<TranscribeProgress | null>(null);
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ overall_score: number; overall_feedback: string } | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-  const recogniserRef = useRef<SpeechRecognitionLike | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
-  const finalRef = useRef("");
-  const noSpeechApi = typeof window !== "undefined" && !getRecogniser();
 
   const loadHistory = useCallback(async (sid: string) => {
     const { data } = await supabase
@@ -102,9 +84,8 @@ const MockInterview = () => {
 
   const cleanup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    recogniserRef.current?.stop();
     streamRef.current?.getTracks().forEach((t) => t.stop());
-    recorderRef.current = null; recogniserRef.current = null; streamRef.current = null;
+    recorderRef.current = null; streamRef.current = null;
   }, []);
   useEffect(() => cleanup, [cleanup]);
 
@@ -166,7 +147,7 @@ const MockInterview = () => {
   }, []);
 
   const start = useCallback(async () => {
-    setError(null); setTranscript(""); finalRef.current = ""; setSecondsLeft(MAX_SECONDS);
+    setError(null); setSecondsLeft(MAX_SECONDS);
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -200,24 +181,15 @@ const MockInterview = () => {
       cleanup();
       void ctx.close();
       const seconds = Math.min(MAX_SECONDS, Math.round((Date.now() - started) / 1000));
-      void saveAnswer(new Blob(chunksRef.current, { type: "audio/webm" }), finalRef.current, seconds);
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+
+      setPhase("transcribing");
+      setTranscribeProgress(null);
+      transcribeAudio(blob, setTranscribeProgress)
+        .then((text) => saveAnswer(blob, text, seconds))
+        .catch(() => saveAnswer(blob, "", seconds));
     };
     rec.start();
-
-    const recog = getRecogniser();
-    if (recog) {
-      recogniserRef.current = recog;
-      recog.onresult = (e) => {
-        let interim = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const text = e.results[i][0].transcript;
-          if (e.results[i].isFinal) finalRef.current += text + " "; else interim += text;
-        }
-        setTranscript(finalRef.current + interim);
-      };
-      recog.onerror = () => { /* keep recording; the audio is the evidence */ };
-      try { recog.start(); } catch { /* already running */ }
-    }
     setPhase("recording");
   }, [cleanup, saveAnswer]);
 
@@ -263,15 +235,6 @@ const MockInterview = () => {
                 Four questions for your target role, generated fresh each time. Answer each out
                 loud, up to {MAX_SECONDS} seconds. Graded as one conversation once all four are in.
               </p>
-              {noSpeechApi && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription className="text-sm">
-                    This browser cannot write down what you say, so it cannot be scored — the
-                    recording still saves. Use Chrome or Edge for a score.
-                  </AlertDescription>
-                </Alert>
-              )}
               <Button onClick={() => void beginInterview()}>
                 <Mic className="h-4 w-4 mr-2" /> Start mock interview
               </Button>
@@ -284,7 +247,8 @@ const MockInterview = () => {
             </div>
           )}
 
-          {interviewId && questions.length > 0 && (phase === "idle" || phase === "recording" || phase === "saving") && (
+          {interviewId && questions.length > 0 &&
+            (phase === "idle" || phase === "recording" || phase === "transcribing" || phase === "saving") && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Badge variant="outline">Question {qIndex + 1} of {questions.length}</Badge>
@@ -306,12 +270,18 @@ const MockInterview = () => {
                            style={{ width: `${Math.round(level * 100)}%` }} />
                     </div>
                   </div>
-                  <div className="min-h-20 rounded-lg border bg-muted/40 p-3 text-sm">
-                    {transcript || <span className="text-muted-foreground">Listening…</span>}
-                  </div>
                   <Button variant="destructive" onClick={stop} className="w-full">
                     <Square className="h-4 w-4 mr-2" /> Stop and save answer
                   </Button>
+                </div>
+              )}
+
+              {phase === "transcribing" && (
+                <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {transcribeProgress?.stage === "loading"
+                    ? `Preparing (first time only)… ${transcribeProgress.percent ?? 0}%`
+                    : "Writing down what you said…"}
                 </div>
               )}
 

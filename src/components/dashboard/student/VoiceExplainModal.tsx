@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mic, Square, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { transcribeAudio, type TranscribeProgress } from "@/lib/transcribeAudio";
 
 const MAX_SECONDS = 60;
 
@@ -14,30 +15,6 @@ const MAX_SECONDS = 60;
  * confident score for nothing.
  */
 const MIN_WORDS = 12;
-
-/** Chrome and Edge expose this; Safari partially; Firefox not at all. */
-type SpeechRecognitionLike = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
-  onerror: (() => void) | null;
-};
-
-const getRecogniser = (): SpeechRecognitionLike | null => {
-  const w = window as unknown as Record<string, unknown>;
-  const Ctor = (w.SpeechRecognition ?? w.webkitSpeechRecognition) as
-    | (new () => SpeechRecognitionLike)
-    | undefined;
-  if (!Ctor) return null;
-  const r = new Ctor();
-  r.continuous = true;
-  r.interimResults = true;
-  r.lang = "en-IN";
-  return r;
-};
 
 interface VoiceExplainModalProps {
   open: boolean;
@@ -50,7 +27,7 @@ interface VoiceExplainModalProps {
   onSaved?: () => void;
 }
 
-type Phase = "idle" | "recording" | "saving" | "done" | "error";
+type Phase = "idle" | "recording" | "transcribing" | "saving" | "done" | "error";
 
 /**
  * Consent, asked once and remembered.
@@ -69,25 +46,19 @@ const VoiceExplainModal = ({
   const [consented, setConsented] = useState<boolean | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(MAX_SECONDS);
-  const [transcript, setTranscript] = useState("");
+  const [transcribeProgress, setTranscribeProgress] = useState<TranscribeProgress | null>(null);
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-  const recogniserRef = useRef<SpeechRecognitionLike | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
-  const finalRef = useRef("");
-
-  const noSpeechApi = typeof window !== "undefined" && !getRecogniser();
 
   const cleanup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    recogniserRef.current?.stop();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     recorderRef.current = null;
-    recogniserRef.current = null;
     streamRef.current = null;
   }, []);
 
@@ -139,8 +110,6 @@ const VoiceExplainModal = ({
 
   const start = useCallback(async () => {
     setError(null);
-    setTranscript("");
-    finalRef.current = "";
     setSecondsLeft(MAX_SECONDS);
 
     let stream: MediaStream;
@@ -178,26 +147,15 @@ const VoiceExplainModal = ({
       cleanup();
       void ctx.close();
       const seconds = Math.min(MAX_SECONDS, Math.round((Date.now() - started) / 1000));
-      save(new Blob(chunksRef.current, { type: "audio/webm" }), finalRef.current, seconds);
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+
+      setPhase("transcribing");
+      setTranscribeProgress(null);
+      transcribeAudio(blob, setTranscribeProgress)
+        .then((text) => save(blob, text, seconds))
+        .catch(() => save(blob, "", seconds)); // audio is still saved even if transcription fails
     };
     rec.start();
-
-    const recog = getRecogniser();
-    if (recog) {
-      recogniserRef.current = recog;
-      recog.onresult = (e) => {
-        let interim = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const text = e.results[i][0].transcript;
-          if (e.results[i].isFinal) finalRef.current += text + " ";
-          else interim += text;
-        }
-        setTranscript(finalRef.current + interim);
-      };
-      recog.onerror = () => { /* keep recording; the audio is the evidence */ };
-      try { recog.start(); } catch { /* already running */ }
-    }
-
     setPhase("recording");
   }, [cleanup, save]);
 
@@ -252,16 +210,6 @@ const VoiceExplainModal = ({
 
         <p className="text-sm text-muted-foreground">{prompt}</p>
 
-        {noSpeechApi && phase === "idle" && (
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              This browser cannot write down what you say. Your recording is still saved and
-              a person can listen to it — but for an instant score, use Chrome or Edge.
-            </AlertDescription>
-          </Alert>
-        )}
-
         {phase === "idle" && consented === false && (
           <div className="space-y-3">
             <div className="rounded-lg border p-4 space-y-2">
@@ -310,12 +258,18 @@ const VoiceExplainModal = ({
                 />
               </div>
             </div>
-            <div className="min-h-24 rounded-lg border bg-muted/40 p-3 text-sm">
-              {transcript || <span className="text-muted-foreground">Listening…</span>}
-            </div>
             <Button variant="destructive" onClick={stop} className="w-full">
               <Square className="h-4 w-4 mr-2" /> Stop and save
             </Button>
+          </div>
+        )}
+
+        {phase === "transcribing" && (
+          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {transcribeProgress?.stage === "loading"
+              ? `Preparing (first time only)… ${transcribeProgress.percent ?? 0}%`
+              : "Writing down what you said…"}
           </div>
         )}
 

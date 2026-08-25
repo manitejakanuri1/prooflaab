@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,12 @@ interface AdminNotification {
 export function useAdminNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // AdminHeader, AdminSidebar, the notifications popover and the notifications
+  // page all call this hook at once. A fixed channel name meant whichever one
+  // mounted second reused the first one's already-subscribed channel and
+  // crashed calling .on() after .subscribe(). Each instance now gets its own
+  // channel — Supabase allows any number of channels to watch the same table.
+  const instanceId = useRef(crypto.randomUUID()).current;
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['admin-notifications', user?.id],
@@ -51,7 +57,7 @@ export function useAdminNotifications() {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel('admin-notifications-changes')
+      .channel(`admin-notifications-changes-${instanceId}`)
       .on(
         'postgres_changes',
         {
@@ -86,7 +92,7 @@ export function useAdminNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, queryClient]);
+  }, [user?.id, queryClient, instanceId]);
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {

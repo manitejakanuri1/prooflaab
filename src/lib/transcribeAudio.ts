@@ -1,12 +1,15 @@
 /**
  * Turns a recorded clip into text using Whisper, running entirely in the
- * browser (Transformers.js, WebAssembly) — no server, no API key, no per-use
- * cost, and unlike the old live-captions approach it works in every modern
- * browser rather than only Chrome and Edge.
+ * browser — no server, no API key, no per-use cost, and unlike the old
+ * live-captions approach it works in every modern browser rather than only
+ * Chrome and Edge.
  *
- * The model (~40MB) downloads once per device and is cached by the browser
- * after; the first transcription on a new device is slower than every one
- * after it.
+ * The model runs via public/whisper-worker.js, loaded from Hugging Face's
+ * CDN rather than bundled — Transformers.js's WebGPU runtime chunks use
+ * `import.meta` in a form Vite's bundler refuses to process, and there is
+ * nothing bundling that file would buy anyway. It downloads once per device
+ * (cached by the browser after); the first transcription on a new device is
+ * slower than every one after it.
  *
  * Whisper's raw output goes through cleanTranscript() before it's returned —
  * fixes technical terms ASR reliably mishears ("get hub" -> "GitHub"), never
@@ -16,14 +19,20 @@
 import { cleanTranscript } from "./cleanTranscript";
 
 const WHISPER_SAMPLE_RATE = 16000;
+const MODEL = "onnx-community/whisper-tiny";
 
+/** Decode any browser-readable audio blob into the mono 16 kHz signal Whisper expects. */
 async function decodeToMono16k(blob: Blob): Promise<Float32Array> {
   const bytes = await blob.arrayBuffer();
   const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AudioCtx) throw new Error("This browser cannot decode audio.");
+
   const audioCtx = new AudioCtx({ sampleRate: WHISPER_SAMPLE_RATE });
   try {
     const buffer = await audioCtx.decodeAudioData(bytes);
     if (buffer.numberOfChannels === 1) return buffer.getChannelData(0).slice();
+    // Average the channels rather than dropping one, so a recording panned to one
+    // side doesn't come back silent.
     const left = buffer.getChannelData(0);
     const right = buffer.getChannelData(1);
     const mono = new Float32Array(left.length);
@@ -34,37 +43,44 @@ async function decodeToMono16k(blob: Blob): Promise<Float32Array> {
   }
 }
 
+/** WebGPU when the browser has it, WebAssembly otherwise — both work, GPU is just faster. */
+function detectDevice(): "webgpu" | "wasm" {
+  const hasWebGPU = typeof (navigator as unknown as { gpu?: unknown }).gpu !== "undefined";
+  return hasWebGPU ? "webgpu" : "wasm";
+}
+
 export interface TranscribeProgress {
   stage: "decoding" | "loading" | "transcribing";
   percent?: number;
 }
 
-/** en-IN by default — this platform's students, same as the API it replaces. */
 export async function transcribeAudio(
   blob: Blob,
   onProgress?: (p: TranscribeProgress) => void,
-  language: string = "en",
 ): Promise<string> {
   onProgress?.({ stage: "decoding" });
   const audio = await decodeToMono16k(blob);
+  const device = detectDevice();
 
-  const worker = new Worker(new URL("../workers/whisper-worker.ts", import.meta.url), { type: "module" });
+  // Served straight from /public, not bundled — see the note at the top of this file.
+  const worker = new Worker("/whisper-worker.js", { type: "module" });
 
-  return new Promise((resolve, reject) => {
-    worker.addEventListener("message", (event: MessageEvent) => {
-      const msg = event.data;
-      if (msg.type === "loading") onProgress?.({ stage: "loading", percent: msg.percent });
-      if (msg.type === "ready") onProgress?.({ stage: "transcribing" });
-      if (msg.type === "done") {
-        worker.terminate();
-        resolve(cleanTranscript(msg.text as string));
-      }
-      if (msg.type === "error") {
-        worker.terminate();
-        reject(new Error(msg.message));
-      }
+  try {
+    return await new Promise<string>((resolve, reject) => {
+      worker.addEventListener("message", (event: MessageEvent) => {
+        const msg = event.data;
+        if (msg.type === "loading") onProgress?.({ stage: "loading", percent: msg.progress });
+        if (msg.type === "ready") onProgress?.({ stage: "transcribing" });
+        if (msg.type === "done") resolve(cleanTranscript(msg.text as string));
+        if (msg.type === "error") reject(new Error(msg.message));
+      });
+      worker.addEventListener("error", (e) => reject(new Error(e.message || "Worker failed")));
+
+      // Hand the samples over rather than copying them — a 90-second recording is
+      // several megabytes, and cloning that stalls the page.
+      worker.postMessage({ type: "transcribe", audio, model: MODEL, device }, [audio.buffer]);
     });
-    worker.addEventListener("error", (e) => { worker.terminate(); reject(new Error(e.message)); });
-    worker.postMessage({ audio, language }, [audio.buffer]);
-  });
+  } finally {
+    worker.terminate();
+  }
 }

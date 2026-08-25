@@ -180,21 +180,23 @@ const CollegeOversight = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase
-        .from('colleges')
-        .insert([{
-          name: data.name,
-          email: data.email,
-          status: data.status,
-          user_id: 'temp-user-id' // Replace with actual user creation logic
-        }]);
+      // A college needs a real sign-in account, which the browser can't
+      // create on its own — that needs the service-role key, server-side.
+      // This used to insert a fake 'temp-user-id' string directly, which
+      // isn't a valid uuid; it failed every time rather than creating a
+      // college. create-college-user does this properly: real account,
+      // college_admin role, and an invite email with a working sign-in link.
+      const { data: result, error } = await supabase.functions.invoke('create-college-user', {
+        body: { name: data.name, email: data.email, status: data.status },
+      });
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
       toast({
         title: "Success",
-        description: "College added successfully.",
+        description: "College added and invited.",
       });
       closeModal();
     },

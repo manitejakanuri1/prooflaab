@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mic, Square, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, Mic, Square, AlertTriangle, CheckCircle2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudio, type TranscribeProgress } from "@/lib/transcribeAudio";
+import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 
 const MAX_SECONDS = 60;
 
@@ -54,6 +55,9 @@ const VoiceExplainModal = ({
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
+  const [savedResult, setSavedResult] = useState<
+    { transcript: string; score: number | null; notes: string | null } | null
+  >(null);
 
   const cleanup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -92,10 +96,15 @@ const VoiceExplainModal = ({
 
       // Scoring runs on the server. A short or missing transcript is saved
       // anyway — the audio is the evidence, and a human can still listen.
+      let score: number | null = null;
+      let notes: string | null = null;
       if (words >= MIN_WORDS) {
-        await supabase.functions.invoke("voice-score", { body: { voice_id: row.id } });
+        const { data: scored } = await supabase.functions.invoke("voice-score", { body: { voice_id: row.id } });
+        score = scored?.communication_score ?? null;
+        notes = scored?.notes ?? null;
       }
 
+      setSavedResult({ transcript: spoken.trim(), score, notes });
       setPhase("done");
       onSaved?.();
     } catch (err) {
@@ -284,6 +293,22 @@ const VoiceExplainModal = ({
             <p className="flex items-center gap-2 text-sm">
               <CheckCircle2 className="h-4 w-4 text-green-600" /> Saved. It will appear in your build-log.
             </p>
+            {savedResult && (
+              <Button
+                variant="outline" className="w-full gap-1.5"
+                onClick={() => exportTranscriptPdf({
+                  title: "Spoken Explanation",
+                  entries: [{
+                    question: prompt,
+                    transcript: savedResult.transcript,
+                    score: savedResult.score,
+                    feedback: savedResult.notes,
+                  }],
+                }, `explanation-${Date.now()}.pdf`)}
+              >
+                <FileDown className="h-4 w-4" /> Download PDF
+              </Button>
+            )}
             <Button className="w-full" onClick={() => close(false)}>Done</Button>
           </div>
         )}

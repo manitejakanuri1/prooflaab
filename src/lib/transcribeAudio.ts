@@ -7,7 +7,13 @@
  * The model (~40MB) downloads once per device and is cached by the browser
  * after; the first transcription on a new device is slower than every one
  * after it.
+ *
+ * Whisper's raw output goes through cleanTranscript() before it's returned —
+ * fixes technical terms ASR reliably mishears ("get hub" -> "GitHub"), never
+ * touches "um"/"uh"/"hmm". Those stay in on purpose: the grading prompt reads
+ * hesitation as a sign of an authentic answer, not noise to strip.
  */
+import { cleanTranscript } from "./cleanTranscript";
 
 const WHISPER_SAMPLE_RATE = 16000;
 
@@ -51,7 +57,7 @@ export async function transcribeAudio(
       if (msg.type === "ready") onProgress?.({ stage: "transcribing" });
       if (msg.type === "done") {
         worker.terminate();
-        resolve(msg.text as string);
+        resolve(cleanTranscript(msg.text as string));
       }
       if (msg.type === "error") {
         worker.terminate();

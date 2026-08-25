@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mic, Square, Loader2, AlertTriangle, CheckCircle2, MessageSquare } from "lucide-react";
+import { Mic, Square, Loader2, AlertTriangle, CheckCircle2, MessageSquare, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudio, type TranscribeProgress } from "@/lib/transcribeAudio";
+import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 
 const MAX_SECONDS = 90;
 
-interface PastAnswer { n: number; score: number | null; feedback: string | null }
+interface PastAnswer { n: number; score: number | null; feedback: string | null; transcript?: string | null }
 interface PastInterview {
   id: string; target_role: string | null; overall_score: number | null;
   overall_feedback: string | null; created_at: string; status: string;
@@ -46,6 +47,7 @@ const MockInterview = () => {
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ overall_score: number; overall_feedback: string } | null>(null);
+  const [scoredAnswers, setScoredAnswers] = useState<PastAnswer[]>([]);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -134,6 +136,11 @@ const MockInterview = () => {
       if (scoreErr) throw scoreErr;
       if (data?.error) throw new Error(data.error);
       setResult({ overall_score: data.overall_score, overall_feedback: data.overall_feedback });
+
+      const { data: full } = await supabase
+        .from("mock_interviews").select("questions, answers").eq("id", interviewId).maybeSingle();
+      setScoredAnswers((full?.answers as unknown as PastAnswer[]) ?? []);
+
       setPhase("done");
       loadHistory(studentId);
     } catch (err) {
@@ -202,7 +209,7 @@ const MockInterview = () => {
 
   const reset = () => {
     setPhase("idle"); setInterviewId(null); setQuestions([]); setQIndex(0);
-    setResult(null); setError(null);
+    setResult(null); setError(null); setScoredAnswers([]);
   };
 
   return (
@@ -307,7 +314,23 @@ const MockInterview = () => {
                 <span className="text-sm text-muted-foreground">/ 100</span>
               </div>
               <p className="text-sm">{result.overall_feedback}</p>
-              <Button variant="outline" onClick={reset}>Take another</Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline" className="gap-1.5"
+                  onClick={() => exportTranscriptPdf({
+                    title: "Mock Interview",
+                    overallScore: result.overall_score,
+                    overallFeedback: result.overall_feedback,
+                    entries: questions.map((q, i) => {
+                      const a = scoredAnswers.find((x) => x.n === i);
+                      return { question: q, transcript: a?.transcript ?? "", score: a?.score ?? null, feedback: a?.feedback ?? null };
+                    }),
+                  }, `mock-interview-${Date.now()}.pdf`)}
+                >
+                  <FileDown className="h-4 w-4" /> Download PDF
+                </Button>
+                <Button variant="outline" onClick={reset}>Take another</Button>
+              </div>
             </div>
           )}
 

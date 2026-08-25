@@ -301,14 +301,22 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
           />
         )}
         <Button
-          size="sm" disabled={busy || !collegeId || !effectiveBranch}
-          title={!effectiveBranch ? "Pick the branch this file is for first" : undefined}
-          onClick={() => fileRef.current?.click()}
+          size="sm" disabled={busy || !collegeId}
+          onClick={() => {
+            if (!effectiveBranch) {
+              toast({ title: "Pick a branch first", description: "Choose which branch this file is for, above.", variant: "destructive" });
+              return;
+            }
+            fileRef.current?.click();
+          }}
         >
           <Upload className="h-3.5 w-3.5 mr-1.5" />
           {busy ? "Reading…" : "Import students"}
         </Button>
       </div>
+      {!effectiveBranch && (
+        <p className="text-xs text-muted-foreground mt-1">Pick a branch above before importing.</p>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">

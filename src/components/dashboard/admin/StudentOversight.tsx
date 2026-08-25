@@ -46,7 +46,8 @@ const StudentOversight = () => {
     email: '',
     status: 'active',
     branch: '',
-    batch: ''
+    batch: '',
+    college_id: '',
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -81,35 +82,45 @@ const StudentOversight = () => {
     }
   });
 
+  const { data: colleges } = useQuery({
+    queryKey: ['colleges-for-student-oversight'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('colleges').select('id, name').order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // The email is no longer a column on the profile, so this is two writes:
-      // the directory row, then the contact row keyed to it.
-      const { data: created, error } = await supabase
-        .from('student_profiles')
-        .insert([{
-          full_name: data.full_name,
-          status: data.status,
-          branch: data.branch,
-          batch: data.batch,
-          user_id: 'temp-user-id', // Replace with actual user creation logic
-          total_xp: 0,
-          trust_score: 50
-        }])
-        .select('id')
-        .single();
+      // A student needs a real sign-in account, which the browser can't create
+      // on its own — that needs the service-role key, which lives server-side.
+      // This used to insert a fake 'temp-user-id' string directly, which isn't
+      // even a valid uuid; it failed every time rather than creating anyone.
+      // create-student-users already does this correctly for CSV import, so
+      // this reuses it for one student instead of a batch.
+      if (!data.college_id) throw new Error('Pick a college first.');
+      const { data: result, error } = await supabase.functions.invoke('create-student-users', {
+        body: {
+          college_id: data.college_id,
+          students: [{
+            name: data.full_name,
+            email: data.email,
+            branch: data.branch,
+            batch: data.batch,
+            year_of_study: data.batch,
+          }],
+        },
+      });
       if (error) throw error;
-
-      const { error: contactError } = await supabase
-        .from('student_contact')
-        .upsert({ student_id: created.id, email: data.email }, { onConflict: 'student_id' });
-      if (contactError) throw contactError;
+      const row = result?.results?.[0];
+      if (row?.status === 'error') throw new Error(row.message ?? 'Could not create the student.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['student-oversight'] });
       toast({
         title: "Success",
-        description: "Student added successfully.",
+        description: "Student added and invited.",
       });
       closeModal();
     },
@@ -191,17 +202,18 @@ const StudentOversight = () => {
         email: student.email || '',
         status: student.status || 'active',
         branch: student.branch || '',
-        batch: student.batch || ''
+        batch: student.batch || '',
+        college_id: student.college_id || '',
       });
     } else {
-      setFormData({ full_name: '', email: '', status: 'active', branch: '', batch: '' });
+      setFormData({ full_name: '', email: '', status: 'active', branch: '', batch: '', college_id: '' });
     }
   };
 
   const closeModal = () => {
     setViewMode(null);
     setSelectedStudent(null);
-    setFormData({ full_name: '', email: '', status: 'active', branch: '', batch: '' });
+    setFormData({ full_name: '', email: '', status: 'active', branch: '', batch: '', college_id: '' });
   };
 
   const handleSave = () => {
@@ -421,6 +433,24 @@ const StudentOversight = () => {
                 placeholder="Student email"
               />
             </div>
+            {viewMode === 'add' && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">College</label>
+                <Select
+                  value={formData.college_id}
+                  onValueChange={(value) => setFormData({ ...formData, college_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a college" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(colleges ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium mb-2 block">Branch</label>
               <Input

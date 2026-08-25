@@ -1,10 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Download } from "lucide-react";
 
@@ -47,6 +51,22 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
   const [importId, setImportId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [branch, setBranch] = useState("");
+  const [otherBranch, setOtherBranch] = useState("");
+
+  // The known branches, from the same list a college's squad-naming themes
+  // are keyed on — so the branch picked here is one the naming engine already
+  // has a theme for, and "Other" is there for anything it doesn't yet.
+  useEffect(() => {
+    void supabase.rpc("tpo_naming_themes" as never).then(({ data }) => {
+      const list = ((data ?? []) as unknown as { branch: string }[])
+        .map((t) => t.branch).filter((b) => b !== "*");
+      setBranches(list);
+    });
+  }, []);
+
+  const effectiveBranch = (branch === "__other__" ? otherBranch : branch).trim();
 
   /** Splits one CSV line, honouring quoted fields that contain commas. */
   const splitLine = (line: string): string[] => {
@@ -129,7 +149,10 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
 
         return {
           row_number: i + 2, name, email, phone, roll_number: roll,
-          branch: iBranch === -1 ? "" : cells[iBranch] ?? "",
+          // The branch picked before upload wins — this is one file per
+          // branch, per §1 of the master flow, not a mixed roster. A CSV
+          // branch column is still read as a fallback if none was picked.
+          branch: effectiveBranch || (iBranch === -1 ? "" : cells[iBranch] ?? ""),
           batch:  iBatch  === -1 ? "" : cells[iBatch]  ?? "",
           validation_status: status, error_message: err, raw,
         };
@@ -263,17 +286,37 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) void parse(f); }}
       />
-      <Button size="sm" disabled={busy || !collegeId} onClick={() => fileRef.current?.click()}>
-        <Upload className="h-3.5 w-3.5 mr-1.5" />
-        {busy ? "Reading…" : "Import students"}
-      </Button>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select value={branch} onValueChange={setBranch}>
+          <SelectTrigger className="h-9 w-36"><SelectValue placeholder="Branch" /></SelectTrigger>
+          <SelectContent>
+            {branches.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+            <SelectItem value="__other__">Other…</SelectItem>
+          </SelectContent>
+        </Select>
+        {branch === "__other__" && (
+          <Input
+            className="h-9 w-32" placeholder="e.g. AI/DS"
+            value={otherBranch} onChange={(e) => setOtherBranch(e.target.value)}
+          />
+        )}
+        <Button
+          size="sm" disabled={busy || !collegeId || !effectiveBranch}
+          title={!effectiveBranch ? "Pick the branch this file is for first" : undefined}
+          onClick={() => fileRef.current?.click()}
+        >
+          <Upload className="h-3.5 w-3.5 mr-1.5" />
+          {busy ? "Reading…" : "Import students"}
+        </Button>
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{fileName}</DialogTitle>
             <DialogDescription>
-              Nothing has been created yet. Check the numbers, then commit.
+              Every row will be imported as {effectiveBranch}. Nothing has been created yet — check
+              the numbers, then commit.
             </DialogDescription>
           </DialogHeader>
 

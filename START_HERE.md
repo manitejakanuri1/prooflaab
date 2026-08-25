@@ -138,7 +138,6 @@ No `.env` is needed. The Supabase URL and publishable key are compiled into
   tasks, hiring outcomes (steps 19–21 of the master flow)
 - Daily Lots sourced from real job descriptions (they come from the ladder)
 - Server-side speech-to-text (the browser writes the transcript today)
-- WhatsApp invitations (the phone column now exists, so this is startable)
 - Per-student improvement reports at the end of a season
 
 **Before real students arrive:**

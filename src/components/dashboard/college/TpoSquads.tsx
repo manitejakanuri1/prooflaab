@@ -47,6 +47,9 @@ interface ScoringRule {
   metric: string; label: string; description: string | null;
   points: number; default_points: number; customized: boolean;
 }
+interface NamingTheme {
+  branch: string; theme: string; default_theme: string; customized: boolean;
+}
 
 const daysSince = (iso: string | null) =>
   iso == null ? 999 : Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -91,6 +94,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const [scoringRules, setScoringRules] = useState<ScoringRule[]>([]);
   const [weightDraft, setWeightDraft] = useState<Record<string, string>>({});
   const [savingWeight, setSavingWeight] = useState<string | null>(null);
+  const [namingThemes, setNamingThemes] = useState<NamingTheme[]>([]);
+  const [themeDraft, setThemeDraft] = useState<Record<string, string>>({});
+  const [savingTheme, setSavingTheme] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const cid = await supabase.rpc("my_college_id" as never);
@@ -111,7 +117,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     if (list.length === 0) { setMembers([]); setMatches([]); return; }
     const ids = list.map((s) => s.id);
 
-    const [mem, mat, stu, perf, ach, rules] = await Promise.all([
+    const [mem, mat, stu, perf, ach, rules, themes] = await Promise.all([
       supabase.from("squad_members")
         .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
         .in("squad_id", ids)
@@ -123,6 +129,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       supabase.rpc("tpo_squad_performance" as never, { _weeks: 8 } as never),
       supabase.rpc("tpo_squad_achievements" as never),
       supabase.rpc("tpo_scoring_rules" as never),
+      supabase.rpc("tpo_naming_themes" as never),
     ]);
 
     setMembers((mem.data ?? []) as unknown as Member[]);
@@ -131,6 +138,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     setPerformance((perf.data ?? []) as unknown as Performance[]);
     setAchievements((ach.data ?? []) as unknown as Achievement[]);
     setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);
+    setNamingThemes((themes.data ?? []) as unknown as NamingTheme[]);
     if (list.length && !selected) setSelected(list[0].id);
   }, [selected]);
 
@@ -292,6 +300,37 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       _metric: metric,
     } as never);
     setSavingWeight(null);
+    if (error) {
+      toast({ title: "Not reset", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Back to the platform default" });
+    void load();
+  };
+
+  const saveTheme = async (branch: string) => {
+    const name = (themeDraft[branch] ?? "").trim();
+    if (!name) return;
+    setSavingTheme(branch);
+    const { error } = await supabase.rpc("tpo_set_naming_theme" as never, {
+      _branch: branch, _theme: name,
+    } as never);
+    setSavingTheme(null);
+    if (error) {
+      toast({ title: "Not changed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `${branch} squads are now named after ${name}` });
+    setThemeDraft((d) => { const n = { ...d }; delete n[branch]; return n; });
+    void load();
+  };
+
+  const resetTheme = async (branch: string) => {
+    setSavingTheme(branch);
+    const { error } = await supabase.rpc("tpo_reset_naming_theme" as never, {
+      _branch: branch,
+    } as never);
+    setSavingTheme(null);
     if (error) {
       toast({ title: "Not reset", description: error.message, variant: "destructive" });
       return;
@@ -629,6 +668,57 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       variant="ghost" className="h-9"
                       disabled={savingWeight === r.metric}
                       onClick={() => void resetWeight(r.metric)}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent></Card>
+
+          <Card><CardContent className="pt-5">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Squad names
+            </span>
+            <p className="text-sm text-muted-foreground mt-2 max-w-prose">
+              Each branch gets a theme word — your town, then "Warriors", then this — the way a real
+              league names a team ("Surampalem Warriors Titans"). Change it per branch; new squads
+              use it the next time they're formed. Existing squad names do not change.
+            </p>
+            <div className="mt-3 space-y-2">
+              {namingThemes.map((t) => (
+                <div key={t.branch} className="flex items-center gap-3 flex-wrap rounded-lg border p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">
+                        {t.branch === "*" ? "Any other branch" : t.branch}
+                      </span>
+                      {t.customized && (
+                        <Badge variant="outline" className="text-[10px] font-normal">
+                          Customized — default {t.default_theme}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Input
+                    className="h-9 w-40"
+                    placeholder={t.theme}
+                    value={themeDraft[t.branch] ?? t.theme}
+                    onChange={(e) => setThemeDraft((d) => ({ ...d, [t.branch]: e.target.value }))}
+                  />
+                  <Button
+                    variant="outline" className="h-9"
+                    disabled={savingTheme === t.branch || !(themeDraft[t.branch] ?? "").trim()}
+                    onClick={() => void saveTheme(t.branch)}
+                  >
+                    Save
+                  </Button>
+                  {t.customized && (
+                    <Button
+                      variant="ghost" className="h-9"
+                      disabled={savingTheme === t.branch}
+                      onClick={() => void resetTheme(t.branch)}
                     >
                       Reset
                     </Button>

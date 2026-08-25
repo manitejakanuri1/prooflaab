@@ -1978,17 +1978,31 @@ export type Database = {
       squad_name_themes: {
         Row: {
           branch: string
+          college_id: string | null
+          id: string
           theme: string
         }
         Insert: {
           branch: string
+          college_id?: string | null
+          id?: string
           theme: string
         }
         Update: {
           branch?: string
+          college_id?: string | null
+          id?: string
           theme?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "squad_name_themes_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       squad_scoring_rules: {
         Row: {
@@ -4324,13 +4338,19 @@ export type Database = {
       tpo_generate_fixtures: { Args: { _force?: boolean }; Returns: Json }
       tpo_home: { Args: never; Returns: Json }
       tpo_insights: { Args: never; Returns: Json }
+      tpo_naming_themes: { Args: never; Returns: Json }
       tpo_placement_report: { Args: never; Returns: Json }
       tpo_rebalance_squads: { Args: never; Returns: Json }
+      tpo_reset_naming_theme: { Args: { _branch: string }; Returns: Json }
       tpo_reset_scoring_weight: { Args: { _metric: string }; Returns: Json }
       tpo_run_week: { Args: { _week?: number }; Returns: Json }
       tpo_scoring_rules: { Args: never; Returns: Json }
       tpo_send_reminder: {
         Args: { _message?: string; _reason: string; _student_id: string }
+        Returns: Json
+      }
+      tpo_set_naming_theme: {
+        Args: { _branch: string; _theme: string }
         Returns: Json
       }
       tpo_set_scoring_weight: {

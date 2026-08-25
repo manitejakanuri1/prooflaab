@@ -1,224 +1,219 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useMonthlyXP } from "@/hooks/useMonthlyXP";
-import { useTaskStats } from "@/hooks/useTaskStats";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { TrendingUp, Target, Award, BarChart3 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { TrendingUp, Target, Award, FileCheck } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
+interface WeekPoint { week: number; points: number }
+interface TrustPoint { date: string; score: number }
+interface EarnedBadge { name: string; emoji: string }
+
+/**
+ * Progress — real numbers only.
+ *
+ * This used to read tasks.status = 'Completed' for "tasks done" and "XP
+ * earned" — a status value that has never once appeared on a real Daily Lot
+ * row (the pipeline uses 'pending' / 'In Progress' and never flips a task to
+ * any finished state; completion lives in proof_uploads and the weekly
+ * scoring tables instead). That made the completion rate and monthly XP
+ * chart silently zero for every real student, quietly, forever. Rebuilt on
+ * the same tables the season report and weekly scoring already prove
+ * correct: student_weekly_scores for points, proof_uploads for submitted vs
+ * verified work, trust_scores and student_badges for the rest.
+ *
+ * It also used to pad six months of made-up trust-score history and always
+ * showed the same three achievement badges regardless of whether they were
+ * earned. A student asking "how much have I actually improved" deserves an
+ * honest answer — for a new student, the honest answer is "not much history
+ * yet," not a fabricated upward curve.
+ */
 const StudentProgressPage = () => {
-  const { monthlyXP, loading: xpLoading } = useMonthlyXP();
-  const { taskStats, loading: statsLoading } = useTaskStats();
   const { profile, loading: profileLoading } = useStudentProfile();
 
-  if (xpLoading || statsLoading || profileLoading) {
+  const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[] | null>(null);
+  const [trustHistory, setTrustHistory] = useState<TrustPoint[] | null>(null);
+  const [badges, setBadges] = useState<EarnedBadge[] | null>(null);
+  const [submissions, setSubmissions] = useState<{ total: number; verified: number } | null>(null);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    (async () => {
+      const [{ data: weekly }, { data: trust }, { data: earned }, { data: proofs }] = await Promise.all([
+        supabase.from("student_weekly_scores").select("week, points")
+          .eq("student_id", profile.id).order("week", { ascending: true }).limit(8),
+        supabase.from("trust_scores").select("score, created_at")
+          .eq("student_id", profile.id).order("created_at", { ascending: true }),
+        supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
+          .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
+        supabase.from("proof_uploads").select("status").eq("student_id", profile.id),
+      ]);
+
+      setWeeklyPoints((weekly ?? []).map((w) => ({ week: w.week as number, points: w.points as number })));
+      setTrustHistory((trust ?? []).map((r) => ({
+        date: new Date(r.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        score: r.score as number,
+      })));
+      setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
+      setSubmissions({
+        total: (proofs ?? []).length,
+        verified: (proofs ?? []).filter((p) => p.status === "Verified").length,
+      });
+    })();
+  }, [profile?.id]);
+
+  if (profileLoading || weeklyPoints === null || submissions === null) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="pb-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-              </CardContent>
-            </Card>
+            <Card key={i}><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
           ))}
         </div>
       </div>
     );
   }
 
-  // Generate monthly XP data with current month's actual data
-  const monthlyXPData = [
-    { month: 'Jan', xp: 0 },
-    { month: 'Feb', xp: 0 },
-    { month: 'Mar', xp: 0 },
-    { month: 'Apr', xp: 0 },
-    { month: 'May', xp: 0 },
-    { month: 'Jun', xp: 0 },
-    { month: new Date().toLocaleDateString('en-US', { month: 'short' }), xp: monthlyXP },
-  ];
+  const verifiedRate = submissions.total > 0 ? Math.round((submissions.verified / submissions.total) * 100) : 0;
+  const thisWeek = weeklyPoints.length > 0 ? weeklyPoints[weeklyPoints.length - 1].points : 0;
+  const lastWeek = weeklyPoints.length > 1 ? weeklyPoints[weeklyPoints.length - 2].points : null;
+  const weekChange = lastWeek != null
+    ? (lastWeek === 0 ? (thisWeek > 0 ? "up from a quiet week" : null)
+       : `${thisWeek >= lastWeek ? "+" : ""}${Math.round(((thisWeek - lastWeek) / lastWeek) * 100)}% vs last week`)
+    : null;
 
-  const trustScoreData = [
-    { month: 'Jan', score: 65 },
-    { month: 'Feb', score: 68 },
-    { month: 'Mar', score: 72 },
-    { month: 'Apr', score: 75 },
-    { month: 'May', score: 78 },
-    { month: 'Jun', score: 82 },
-    { month: 'Jul', score: profile?.trust_score || 85 },
+  const submissionData = [
+    { name: "Verified", value: submissions.verified, color: "#22c55e" },
+    { name: "Awaiting review", value: submissions.total - submissions.verified, color: "#f59e0b" },
   ];
-
-  const taskCompletionData = [
-    { name: 'Completed', value: taskStats?.completedTasks || 0, color: '#22c55e' },
-    { name: 'In Progress', value: taskStats?.inProgressTasks || 0, color: '#3b82f6' },
-    { name: 'Pending', value: taskStats?.pendingTasks || 0, color: '#f59e0b' },
-  ];
-
-  const completionRate = taskStats?.totalTasks 
-    ? Math.round((taskStats.completedTasks / taskStats.totalTasks) * 100)
-    : 0;
 
   const progressCards = [
-    {
-      title: "This Month's XP",
-      value: monthlyXP.toString(),
-      icon: Award,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      change: "+15%",
-      changeType: "positive"
-    },
-    {
-      title: "Trust Score",
-      value: profile?.trust_score?.toString() || "0",
-      icon: TrendingUp,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-      change: "+3 points",
-      changeType: "positive"
-    },
-    {
-      title: "Completion Rate",
-      value: `${completionRate}%`,
-      icon: Target,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      change: "+5%",
-      changeType: "positive"
-    },
-    {
-      title: "Total Tasks",
-      value: taskStats?.totalTasks?.toString() || "0",
-      icon: BarChart3,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      change: "+2 this week",
-      changeType: "neutral"
-    },
+    { title: "This Week's Points", value: thisWeek.toString(), icon: Award,
+      color: "text-green-600", bgColor: "bg-green-50", change: weekChange },
+    { title: "Trust Score", value: profile?.trust_score?.toString() || "0", icon: TrendingUp,
+      color: "text-purple-600", bgColor: "bg-purple-50", change: null },
+    { title: "Verified Rate", value: `${verifiedRate}%`, icon: Target,
+      color: "text-blue-600", bgColor: "bg-blue-50", change: null },
+    { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck,
+      color: "text-orange-600", bgColor: "bg-orange-50", change: null },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Progress Cards */}
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {progressCards.map((card, index) => {
           const Icon = card.icon;
           return (
             <Card key={index} className="transition-all hover:shadow-md">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  {card.title}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">{card.title}</CardTitle>
                 <div className={`p-2 rounded-lg ${card.bgColor}`}>
                   <Icon className={`h-4 w-4 ${card.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{card.value}</div>
-                <div className={`text-sm ${
-                  card.changeType === 'positive' ? 'text-green-600' : 
-                  card.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
-                }`}>
-                  {card.change} from last month
-                </div>
+                {card.change && <div className="text-sm text-green-600">{card.change}</div>}
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Monthly XP Chart */}
         <Card>
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg font-semibold">XP Earned Monthly</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-semibold">Points — Recent Weeks</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={monthlyXPData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="xp" fill="#ea580c" />
-              </BarChart>
-            </ResponsiveContainer>
+            {weeklyPoints.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={weeklyPoints}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" tickFormatter={(w) => `Wk ${w}`} />
+                  <YAxis />
+                  <Tooltip labelFormatter={(w) => `Week ${w}`} />
+                  <Bar dataKey="points" fill="#ea580c" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-center px-6">
+                <p className="text-sm text-muted-foreground">
+                  No season running yet — this fills in once your college starts one.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Trust Score Trend */}
         <Card>
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg font-semibold">Trust Score Trends</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-semibold">Trust Score History</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={trustScoreData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis domain={[0, 100]} />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="score" 
-                  stroke="#8b5cf6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#8b5cf6', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {trustHistory && trustHistory.length >= 2 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={trustHistory}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={3}
+                        dot={{ fill: '#8b5cf6', strokeWidth: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-center px-6">
+                <p className="text-sm text-muted-foreground">
+                  {trustHistory && trustHistory.length === 1
+                    ? `One score so far: ${trustHistory[0].score}/100. A trend needs at least two.`
+                    : "No trust score recorded yet — this fills in as work gets scored."}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Task Completion and Progress */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Task Completion Pie Chart */}
         <Card>
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg font-semibold">Task Completion Breakdown</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-semibold">Submission Status</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={taskCompletionData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {taskCompletionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            {submissions.total > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={submissionData} cx="50%" cy="50%" innerRadius={60} outerRadius={100}
+                         paddingAngle={5} dataKey="value">
+                      {submissionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap justify-center gap-4 mt-4">
+                  {submissionData.map((entry, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                      <span className="text-sm text-gray-600">{entry.name}: {entry.value}</span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-4 mt-4">
-              {taskCompletionData.map((entry, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: entry.color }}
-                  ></div>
-                  <span className="text-sm text-gray-600">
-                    {entry.name}: {entry.value}
-                  </span>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-center px-6">
+                <p className="text-sm text-muted-foreground">Nothing submitted yet.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Progress Indicators */}
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-base sm:text-lg font-semibold">Progress Indicators</CardTitle>
@@ -226,10 +221,10 @@ const StudentProgressPage = () => {
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Task Completion Rate</span>
-                <span className="text-sm font-bold">{completionRate}%</span>
+                <span className="text-sm font-medium">Verified Rate</span>
+                <span className="text-sm font-bold">{verifiedRate}%</span>
               </div>
-              <Progress value={completionRate} className="h-2" />
+              <Progress value={verifiedRate} className="h-2" />
             </div>
 
             <div>
@@ -240,28 +235,19 @@ const StudentProgressPage = () => {
               <Progress value={profile?.trust_score || 0} className="h-2" />
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Monthly XP Goal</span>
-                <span className="text-sm font-bold">{monthlyXP}/500</span>
-              </div>
-              <Progress value={(monthlyXP / 500) * 100} className="h-2" />
-            </div>
-
-            {/* Achievement Badges */}
             <div className="pt-4">
-              <h4 className="text-sm font-medium mb-3">Recent Achievements</h4>
-              <div className="flex flex-wrap gap-2">
-                <Badge className="bg-yellow-100 text-yellow-800">
-                  🏆 First Task Complete
-                </Badge>
-                <Badge className="bg-blue-100 text-blue-800">
-                  🎯 Consistent Performer
-                </Badge>
-                <Badge className="bg-green-100 text-green-800">
-                  ⭐ Quality Submitter
-                </Badge>
-              </div>
+              <h4 className="text-sm font-medium mb-3">Most Recent Badges</h4>
+              {badges && badges.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {badges.map((b, i) => (
+                    <Badge key={i} className="bg-yellow-100 text-yellow-800">{b.emoji} {b.name}</Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  None yet — badges appear here as they're earned. See Build-log → Badges & Quests for how.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

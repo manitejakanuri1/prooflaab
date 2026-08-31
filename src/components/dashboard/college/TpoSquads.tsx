@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { format } from "date-fns";
 import TpoStudentProfile from "./TpoStudentProfile";
-import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, TrendingUp, TrendingDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -253,6 +253,32 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       return;
     }
     toast({ title: said });
+    void load();
+  };
+
+  /**
+   * Draws the squads themselves, which nothing in the app used to do — the
+   * function existed and was granted, and no button ever called it. Forming is
+   * the step before rebalancing: rebalance fills squads that exist, so on a
+   * college with none it has nowhere to put anybody and reports moving zero.
+   */
+  const formSquads = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("tpo_form_squads" as never, {} as never);
+    setBusy(false);
+    if (error) {
+      toast({ title: "No squads formed", description: error.message, variant: "destructive" });
+      return;
+    }
+    const r = data as unknown as { squads_created: number; students_placed: number; reserve: number };
+    toast({
+      title: r.squads_created === 0
+        ? "Not enough students for a squad"
+        : `${r.squads_created} squad${r.squads_created === 1 ? "" : "s"} formed`,
+      description: r.squads_created === 0
+        ? "A squad needs eleven students in one branch. Everyone stays in reserve until then."
+        : `${r.students_placed} students placed · ${r.reserve} left in reserve.`,
+    });
     void load();
   };
 
@@ -615,14 +641,22 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </span>
             </div>
             <p className="text-sm text-muted-foreground mt-2 max-w-prose">
-              Rebalancing puts every unplaced student into the emptiest squad that still has room.
-              Locked and archived squads are skipped, so freeze a squad first if it should be left
-              alone.
+              Forming draws new squads of eleven, one branch at a time, and names them from that
+              branch's theme — a branch with fewer than eleven unplaced students keeps them all in
+              reserve. Rebalancing does not draw anything: it puts unplaced students into the
+              emptiest squad that already has room, skipping locked and archived ones, so freeze a
+              squad first if it should be left alone.
             </p>
-            <Button className="mt-3" disabled={busy} onClick={() => void rebalance()}>
-              <Shuffle className="h-4 w-4 mr-1.5" />
-              {busy ? "Working…" : "Rebalance the reserve pool"}
-            </Button>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Button disabled={busy} onClick={() => void formSquads()}>
+                <Swords className="h-4 w-4 mr-1.5" />
+                {busy ? "Working…" : "Form squads"}
+              </Button>
+              <Button variant="outline" disabled={busy} onClick={() => void rebalance()}>
+                <Shuffle className="h-4 w-4 mr-1.5" />
+                {busy ? "Working…" : "Rebalance the reserve pool"}
+              </Button>
+            </div>
           </CardContent></Card>
 
           <Card><CardContent className="pt-5">

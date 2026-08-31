@@ -243,12 +243,33 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", importId);
 
+    /**
+     * The import is the moment a college has enough students to have squads,
+     * so this is where they get drawn. Nothing used to happen here, which left
+     * an officer with sixty names, an empty Squads tab and no button anywhere
+     * that would fill it.
+     *
+     * A failure here is reported but never fails the import: the students are
+     * already created, and telling somebody their upload failed because the
+     * squads could not be drawn would be a lie they would act on.
+     */
+    let squadLine: string | null = null;
+    if (created + linked > 0) {
+      const { data: sq, error: sqErr } = await supabase.rpc("tpo_form_squads" as never, {} as never);
+      const r = sq as unknown as { squads_created: number; students_placed: number } | null;
+      if (sqErr) squadLine = `squads not formed — ${sqErr.message}`;
+      else if (r && r.squads_created > 0) {
+        squadLine = `${r.squads_created} squad${r.squads_created === 1 ? "" : "s"} formed, ${r.students_placed} placed`;
+      }
+    }
+
     const lines = [
       created > 0 ? `${created} created and invited` : null,
       linked > 0 ? `${linked} had already signed up — linked to you, their work kept` : null,
       mine > 0 ? `${mine} already in your college` : null,
       elsewhere > 0 ? `${elsewhere} belong to another college — not changed` : null,
       failed > 0 ? `${failed} failed` : null,
+      squadLine,
     ].filter(Boolean);
 
     toast({

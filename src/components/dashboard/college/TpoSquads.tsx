@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { format } from "date-fns";
 import TpoStudentProfile from "./TpoStudentProfile";
-import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, TrendingUp, TrendingDown, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -49,6 +49,11 @@ interface Match {
 }
 interface StudentRow {
   student_id: string; full_name: string; roll_number: string | null; is_reserve: boolean;
+}
+/** A student with no squad. The cohort matters: it says which league they belong in. */
+interface Reserve {
+  student_id: string; full_name: string; roll_number: string | null;
+  cohort: string | null; total_xp: number;
 }
 interface ScoringRule {
   metric: string; label: string; description: string | null;
@@ -102,6 +107,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const [weightDraft, setWeightDraft] = useState<Record<string, string>>({});
   const [savingWeight, setSavingWeight] = useState<string | null>(null);
   const [namingThemes, setNamingThemes] = useState<NamingTheme[]>([]);
+  const [reserves, setReserves] = useState<Reserve[]>([]);
+  const [newSquadName, setNewSquadName] = useState("");
+  const [newSquadCohort, setNewSquadCohort] = useState("");
   const [themeDraft, setThemeDraft] = useState<Record<string, string>>({});
   const [savingTheme, setSavingTheme] = useState<string | null>(null);
 
@@ -127,7 +135,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     if (list.length === 0) { setMembers([]); setMatches([]); return; }
     const ids = list.map((s) => s.id);
 
-    const [mem, mat, stu, perf, ach, rules, themes] = await Promise.all([
+    const [mem, mat, stu, perf, ach, rules, themes, res] = await Promise.all([
       supabase.from("squad_members")
         .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
         .in("squad_id", ids)
@@ -140,6 +148,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       supabase.rpc("tpo_squad_achievements" as never),
       supabase.rpc("tpo_scoring_rules" as never),
       supabase.rpc("tpo_naming_themes" as never),
+      supabase.rpc("tpo_reserves"),
     ]);
 
     setMembers((mem.data ?? []) as unknown as Member[]);
@@ -149,6 +158,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     setAchievements((ach.data ?? []) as unknown as Achievement[]);
     setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);
     setNamingThemes((themes.data ?? []) as unknown as NamingTheme[]);
+    setReserves((res.data ?? []) as unknown as Reserve[]);
     if (list.length && !selected) setSelected(list[0].id);
   }, [selected]);
 
@@ -167,7 +177,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     () => Object.fromEntries((squads ?? []).map((s) => [s.id, s.name])), [squads]);
   const current = (squads ?? []).find((s) => s.id === selected) ?? null;
   const currentMembers = members.filter((m) => m.squad_id === selected);
-  const reserves = students.filter((s) => s.is_reserve);
+
 
   const assign = async () => {
     if (!pickStudent || !pickSquad) return;
@@ -291,6 +301,27 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         ? "A squad needs eleven students in one branch. Everyone stays in reserve until then."
         : `${r.students_placed} students placed · ${r.reserve} left in reserve.`,
     });
+    void load();
+  };
+
+  const createSquad = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("tpo_create_squad", {
+      _name: newSquadName.trim(),
+      _cohort: newSquadCohort.trim() || null,
+    });
+    setBusy(false);
+    if (error) {
+      toast({ title: "Squad not created", description: error.message, variant: "destructive" });
+      return;
+    }
+    const r = data as unknown as { name: string };
+    toast({
+      title: `${r.name} created`,
+      description: "It has twelve seats and no members yet. Fill it from Assign.",
+    });
+    setNewSquadName("");
+    setNewSquadCohort("");
     void load();
   };
 
@@ -621,9 +652,12 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         <TabsContent value="assign" className="mt-4">
           <Card><CardContent className="pt-5">
             <p className="text-sm text-muted-foreground max-w-prose">
-              {reserves.length} {reserves.length === 1 ? "student is" : "students are"} in reserve.
-              A reserve is simply a student with no active squad — moving them here closes any
-              previous membership rather than deleting it, and records the change.
+              {reserves.length} {reserves.length === 1 ? "student is" : "students are"} waiting to
+              be placed. Squads are drawn as elevens, so whatever a section does not divide into
+              elevens is left here for you rather than spread around to make uneven squads. Every
+              squad has a twelfth seat free for exactly this. Put a student wherever you judge is
+              right — moving them closes any previous membership rather than deleting it, and the
+              change is recorded.
             </p>
 
             <div className="flex flex-wrap gap-2 mt-4">
@@ -632,7 +666,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 <SelectContent>
                   {reserves.map((s) => (
                     <SelectItem key={s.student_id} value={s.student_id}>
-                      {s.full_name}{s.roll_number ? ` · ${s.roll_number}` : ""}
+                      {s.cohort ? `${s.cohort} · ` : ""}{s.full_name}
+                      {s.roll_number ? ` · ${s.roll_number}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -684,11 +719,13 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </span>
             </div>
             <p className="text-sm text-muted-foreground mt-2 max-w-prose">
-              Forming draws new squads of eleven, one branch at a time, and names them from that
-              branch's theme — a branch with fewer than eleven unplaced students keeps them all in
-              reserve. Rebalancing does not draw anything: it puts unplaced students into the
-              emptiest squad that already has room, skipping locked and archived ones, so freeze a
-              squad first if it should be left alone.
+              Forming draws squads of exactly eleven, one section at a time, ranking students by
+              what they have done and dealing them out in a snake so no squad collects all the
+              strongest. Whatever does not divide into eleven stays here and is yours to place —
+              a section of fewer than eleven makes no squad at all. Rebalancing does not draw
+              anything: it drops unplaced students into the emptiest squad of their own section
+              that still has room, skipping locked and archived ones, so freeze a squad first if
+              it should be left alone.
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               <Button disabled={busy} onClick={() => void formSquads()}>
@@ -699,6 +736,33 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 <Shuffle className="h-4 w-4 mr-1.5" />
                 {busy ? "Working…" : "Rebalance the reserve pool"}
               </Button>
+            </div>
+
+            <div className="mt-5 pt-4 border-t">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Make a squad yourself
+              </span>
+              <p className="text-sm text-muted-foreground mt-2 max-w-prose">
+                For a section too small to draw one, or when the students left over deserve a
+                squad of their own rather than the spare seats. It starts empty with twelve
+                seats; fill it from Assign. Give it the section it belongs to, or its league
+                will have nobody to play.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Input
+                  className="h-9 w-[240px]" placeholder="Squad name"
+                  value={newSquadName} onChange={(e) => setNewSquadName(e.target.value)}
+                />
+                <Input
+                  className="h-9 w-[150px]" placeholder="Section, e.g. CSE-D"
+                  value={newSquadCohort} onChange={(e) => setNewSquadCohort(e.target.value)}
+                />
+                <Button variant="outline" disabled={busy || !newSquadName.trim()}
+                        onClick={() => void createSquad()}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  {busy ? "Working…" : "Create squad"}
+                </Button>
+              </div>
             </div>
           </CardContent></Card>
 

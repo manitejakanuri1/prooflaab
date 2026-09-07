@@ -5,9 +5,10 @@ code. This follows the Squad System Blueprint; where the two differ, this file
 is what is built and the blueprint is what was asked for. The differences are
 marked.
 
-Built in stages 49–53. Nothing here is theoretical: a twelve-week season with
+Built in stages 49–54. Nothing here is theoretical: a twelve-week season with
 three cohorts and 212 students was simulated against the live database before
-any of it was committed.
+any of it was committed, and the squad sizes were re-simulated with four
+sections of 77, 70, 65 and 8 after the owner settled on elevens.
 
 ---
 
@@ -16,7 +17,7 @@ any of it was committed.
 ```
 College
    └── Cohort            CSE-A, CSE-B, CSE-C — the academic section
-         └── Squad       10–12 students, 11 preferred
+         └── Squad       11 students, with a twelfth seat kept free
                └── Student   one Lot a day, six days a week
 ```
 
@@ -33,30 +34,37 @@ cohorts, and one of them wins the season.
 
 - Students are grouped by `student_profiles.cohort`, which falls back to
   `branch` when a college supplies no sections.
-- Squad count is `round(students / 11)`, taking one more squad only when that
-  keeps every squad at ten or more.
-- Everyone is placed. There is no reserve pool: the old code built only whole
-  squads of exactly eleven and left the remainder as spectators.
+- **A squad is eleven students.** The count is `students / 11`, rounded down.
+- **Whatever is left over is not placed.** It waits in the reserve pool for the
+  college to decide. The platform does not spread a remainder around to make
+  uneven squads, and it does not invent a short squad.
 - Students are ranked by experience and dealt out in a **snake** — 1,2,3,3,2,1 —
-  so no squad collects all the strongest students.
+  so no squad collects all the strongest students. The remainder is therefore
+  the least experienced tail of the section, which is worth knowing when
+  deciding where to put them.
+- Every squad is created with **twelve seats and eleven members**. The spare
+  seat exists so a college can place a leftover student without having to raise
+  the limit first.
 
-Checked against the blueprint's own examples:
+| Cohort size | Squads drawn | Left for the college |
+| --- | --- | --- |
+| 77 | 7 × 11 | 0 |
+| 70 | 6 × 11 | 4 |
+| 65 | 5 × 11 | 10 |
+| 8 | none | 8 |
 
-| Cohort size | Squads | Sizes | Blueprint says |
-| --- | --- | --- | --- |
-| 77 | 7 | 11 × 7 | 7 × 11 ✔ |
-| 65 | 6 | 10, 11 × 5 | 11,11,11,11,11,10 ✔ |
-| 80 | 7 | 11–12 | 7 of 11–12 ✔ |
-| 70 | 6 | 11–12 | 7 × 10 — **differs** |
+This is a deliberate decision by the project owner, taken over the alternative
+of filling every squad to a 10–12 band. Who plays and who waits is a judgement
+about real students, and it belongs to the person who knows them.
 
-The 70 case is the one difference. Both answers sit inside the blueprint's
-10–12 band; six squads of 11–12 is closer to its own stated preferred size of
-eleven than seven squads of ten.
+**What the college can do with the remainder**, all from College → Squads:
 
-Sizes the band cannot hold — 13 students, or 25 — get the closest thing to it:
-one squad of 13, or 12 and 13. Three squads of eight would be further from
-eleven, not nearer. `max_members` is set to the squad's real size so the Manage
-screen does not read a full squad as over-full.
+| | |
+| --- | --- |
+| Assign | Put a student into any squad with a free seat. Reserves are listed with their section so it is obvious which league they belong in. |
+| Manage → Create squad | Make a squad by hand — for a section too small to draw one, or when the leftovers deserve their own squad. Starts empty with twelve seats. |
+| Manage → Rebalance | Drops every unplaced student into the emptiest squad of their own section that has room. One button instead of one at a time. |
+| Do nothing | A student can sit out the league and still get their daily Lot, their score and every individual award. |
 
 ---
 
@@ -173,8 +181,9 @@ own row highlighted.
 
 **College → Squads.** The same phase bar. Standings gain a Cohort column, a
 position that counts within the cohort, and a Championship column. Matches show
-which stage and week each fixture belongs to. A Leaderboards tab shows the
-individual side.
+which stage and week each fixture belongs to. Assign lists every unplaced
+student with their section. Manage carries Form squads, Rebalance and Create
+squad. A Leaderboards tab shows the individual side.
 
 ---
 
@@ -188,3 +197,5 @@ individual side.
   once one exists for every student.
 - **A TPO control to change how many squads qualify.** Two per cohort (four for
   a single cohort) is currently fixed in `qualify_squads`.
+- **Moving a student between sections.** A student's cohort comes from the
+  import and can only be changed by re-importing; there is no screen for it.

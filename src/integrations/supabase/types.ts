@@ -4423,6 +4423,10 @@ export type Database = {
         }[]
       }
       tpo_college_report: { Args: never; Returns: Json }
+      tpo_create_squad: {
+        Args: { _cohort?: string; _name: string }
+        Returns: Json
+      }
       tpo_form_squads: { Args: never; Returns: Json }
       tpo_generate_fixtures: { Args: { _force?: boolean }; Returns: Json }
       tpo_home: { Args: never; Returns: Json }
@@ -4430,6 +4434,16 @@ export type Database = {
       tpo_naming_themes: { Args: never; Returns: Json }
       tpo_placement_report: { Args: never; Returns: Json }
       tpo_rebalance_squads: { Args: never; Returns: Json }
+      tpo_reserves: {
+        Args: never
+        Returns: {
+          cohort: string
+          full_name: string
+          roll_number: string
+          student_id: string
+          total_xp: number
+        }[]
+      }
       tpo_reset_naming_theme: { Args: { _branch: string }; Returns: Json }
       tpo_reset_scoring_weight: { Args: { _metric: string }; Returns: Json }
       tpo_run_week: { Args: { _week?: number }; Returns: Json }

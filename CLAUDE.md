@@ -8,8 +8,11 @@ must not get wrong.
 
 A proof-of-skill platform. A college uploads a student CSV; each student gets
 one real piece of work a day (a **Lot**), submits it, and explains it out loud
-for sixty seconds. Work is scored, students compete in **squads** of eleven,
-and the result is a proof profile a recruiter can inspect.
+for sixty seconds. Work is scored, students compete in **squads** of eleven
+inside their academic section, and the result is a proof profile a recruiter
+can inspect. The league, the championship and the awards are described in
+[SQUAD_SYSTEM.md](SQUAD_SYSTEM.md) — read it before changing anything about
+squads, seasons or scoring.
 
 React + TypeScript + Vite · Supabase (Postgres, Auth, Storage) · 36 Deno edge
 functions on DeepSeek · Vercel. Dashboards: Student, College/TPO, Admin and

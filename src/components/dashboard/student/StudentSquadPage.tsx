@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SeasonPhaseBar, { useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
+import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Video, Trophy, Crown, Medal, Award } from "lucide-react";
 import { format, startOfWeek, addDays, isWithinInterval } from "date-fns";
@@ -18,6 +20,10 @@ interface Squad {
   rank: number | null;
   previous_rank: number | null;
   max_members: number;
+  cohort: string | null;
+  /** Null while the league is still running. */
+  qualified: boolean | null;
+  seed: number | null;
 }
 
 interface Member {
@@ -29,7 +35,7 @@ interface Member {
 }
 
 interface Achievement {
-  kind: "win" | "week" | "milestone" | "badge";
+  kind: "win" | "week" | "milestone" | "badge" | "championship";
   title: string;
   detail: string | null;
   achieved_at: string | null;
@@ -68,6 +74,7 @@ const StudentSquadPage = () => {
   const [standings, setStandings] = useState<Squad[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const { status: season } = useSeasonStatus();
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -97,20 +104,29 @@ const StudentSquadPage = () => {
         .or(`home_squad.eq.${membership.squad_id},away_squad.eq.${membership.squad_id}`)
         .order("scheduled_at", { ascending: false })
         .limit(10),
-      // Everyone's standings, not just ours — a league you cannot see the rest
-      // of is a scoreboard with one row on it.
-      supabase.from("squads").select("*").order("points", { ascending: false }).limit(20),
+      // The league this squad actually plays in, which is its cohort's, not
+      // the whole college's. A table full of sections you never meet is not a
+      // standing.
+      supabase.from("squads").select("*").order("points", { ascending: false }).limit(60),
       // Wins, weeks at the top, milestones and badges — every one of them read
       // back out of the match and weekly-score records rather than stored a
       // second time where it could drift from them.
       supabase.rpc("my_squad_achievements" as never),
     ]);
 
-    setSquad(squadRes.data as Squad | null);
+    const mySquad = squadRes.data as Squad | null;
+    const allSquads = (standingRes.data ?? []) as Squad[];
+    const league = mySquad
+      ? allSquads.filter((s) => s.cohort === mySquad.cohort)
+      : allSquads;
+
+    setSquad(mySquad);
     setMembers((memberRes.data ?? []) as unknown as Member[]);
     setMatches((matchRes.data ?? []) as Match[]);
-    setStandings((standingRes.data ?? []) as Squad[]);
-    setNames(Object.fromEntries(((standingRes.data ?? []) as Squad[]).map((s) => [s.id, s.name])));
+    setStandings(league);
+    // Names still come from every squad read, because a championship fixture
+    // pairs this squad with one from another cohort.
+    setNames(Object.fromEntries(allSquads.map((s) => [s.id, s.name])));
     setAchievements((achieveRes.data ?? []) as unknown as Achievement[]);
     setLoading(false);
   }, [profile?.id]);
@@ -169,12 +185,29 @@ const StudentSquadPage = () => {
         </span>
       </div>
 
+      <SeasonPhaseBar status={season} />
+
       <Card>
         <CardContent className="pt-5">
           <h2 className="text-xl font-semibold">{squad.name}</h2>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-            {members.length} of {squad.max_members} members
+            {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} of {squad.max_members} members
           </p>
+          {squad.qualified !== null && (
+            <p className="mt-2 text-sm">
+              {squad.qualified ? (
+                <span className="text-emerald-600 font-medium">
+                  Through to the championship{squad.seed ? ` as seed ${squad.seed}` : ""}.
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  The championship race is over for this squad. Your daily work,
+                  your score and every individual award carry on to the end of
+                  the season exactly as before.
+                </span>
+              )}
+            </p>
+          )}
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
               { k: "Points", v: squad.points },
@@ -198,6 +231,7 @@ const StudentSquadPage = () => {
           <TabsTrigger value="matches">Matches</TabsTrigger>
           <TabsTrigger value="standings">Standings</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          <TabsTrigger value="leaderboards">Leaderboards</TabsTrigger>
           <TabsTrigger value="season">Season</TabsTrigger>
         </TabsList>
 
@@ -408,6 +442,10 @@ const StudentSquadPage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="leaderboards" className="mt-4">
+          <SeasonLeaderboards highlightStudentId={profile?.id} />
+        </TabsContent>
+
         <TabsContent value="season" className="mt-4">
           <StudentSeasonReport />
         </TabsContent>

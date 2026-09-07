@@ -1864,6 +1864,7 @@ export type Database = {
         Row: {
           away_points: number | null
           away_squad: string
+          cohort: string | null
           created_at: string
           home_points: number | null
           home_squad: string
@@ -1871,11 +1872,13 @@ export type Database = {
           round_number: number | null
           scheduled_at: string
           season_id: string | null
+          stage: string
           status: string
         }
         Insert: {
           away_points?: number | null
           away_squad: string
+          cohort?: string | null
           created_at?: string
           home_points?: number | null
           home_squad: string
@@ -1883,11 +1886,13 @@ export type Database = {
           round_number?: number | null
           scheduled_at: string
           season_id?: string | null
+          stage?: string
           status?: string
         }
         Update: {
           away_points?: number | null
           away_squad?: string
+          cohort?: string | null
           created_at?: string
           home_points?: number | null
           home_squad?: string
@@ -1895,6 +1900,7 @@ export type Database = {
           round_number?: number | null
           scheduled_at?: string
           season_id?: string | null
+          stage?: string
           status?: string
         }
         Relationships: [
@@ -2096,6 +2102,7 @@ export type Database = {
       squads: {
         Row: {
           archived_at: string | null
+          cohort: string | null
           college_id: string | null
           created_at: string
           draws: number
@@ -2106,13 +2113,16 @@ export type Database = {
           name: string
           points: number
           previous_rank: number | null
+          qualified: boolean | null
           rank: number | null
           season_id: string | null
+          seed: number | null
           updated_at: string
           wins: number
         }
         Insert: {
           archived_at?: string | null
+          cohort?: string | null
           college_id?: string | null
           created_at?: string
           draws?: number
@@ -2123,13 +2133,16 @@ export type Database = {
           name: string
           points?: number
           previous_rank?: number | null
+          qualified?: boolean | null
           rank?: number | null
           season_id?: string | null
+          seed?: number | null
           updated_at?: string
           wins?: number
         }
         Update: {
           archived_at?: string | null
+          cohort?: string | null
           college_id?: string | null
           created_at?: string
           draws?: number
@@ -2140,8 +2153,10 @@ export type Database = {
           name?: string
           points?: number
           previous_rank?: number | null
+          qualified?: boolean | null
           rank?: number | null
           season_id?: string | null
+          seed?: number | null
           updated_at?: string
           wins?: number
         }
@@ -2743,6 +2758,7 @@ export type Database = {
           branch: string | null
           calibration_completed: boolean
           career_goals: string | null
+          cohort: string | null
           college_id: string | null
           created_at: string
           first_task_completed: boolean
@@ -2779,6 +2795,7 @@ export type Database = {
           branch?: string | null
           calibration_completed?: boolean
           career_goals?: string | null
+          cohort?: string | null
           college_id?: string | null
           created_at?: string
           first_task_completed?: boolean
@@ -2815,6 +2832,7 @@ export type Database = {
           branch?: string | null
           calibration_completed?: boolean
           career_goals?: string | null
+          cohort?: string | null
           college_id?: string | null
           created_at?: string
           first_task_completed?: boolean
@@ -3910,6 +3928,7 @@ export type Database = {
         Args: { _recruiter_id: string; _verified: boolean }
         Returns: Json
       }
+      advance_season: { Args: { _season_id: string }; Returns: Json }
       assign_to_squad: {
         Args: { _effective?: string; _squad_id: string; _student_id: string }
         Returns: Json
@@ -3917,6 +3936,7 @@ export type Database = {
       assign_todays_lots: { Args: never; Returns: Json }
       backfill_rounds: { Args: { _season_id: string }; Returns: Json }
       bump_llm_cache_hit: { Args: { p_hash: string }; Returns: undefined }
+      can_see_season: { Args: { _season_id: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
           p_bucket: string
@@ -3953,6 +3973,7 @@ export type Database = {
         Args: { _level_id: string }
         Returns: string
       }
+      ensure_season: { Args: { _college_id: string }; Returns: string }
       extend_all_fixtures: { Args: never; Returns: Json }
       extend_fixtures: { Args: { _season_id: string }; Returns: Json }
       form_all_colleges: { Args: never; Returns: Json }
@@ -3960,6 +3981,13 @@ export type Database = {
         Args: { _college_id: string; _season_id?: string }
         Returns: Json
       }
+      generate_championship: { Args: { _season_id: string }; Returns: Json }
+      generate_cohort_league: {
+        Args: { _force?: boolean; _season_id: string }
+        Returns: Json
+      }
+      generate_final: { Args: { _season_id: string }; Returns: Json }
+      generate_knockout: { Args: { _season_id: string }; Returns: Json }
       generate_round_robin: {
         Args: { _force?: boolean; _from_round?: number; _season_id: string }
         Returns: Json
@@ -4040,7 +4068,9 @@ export type Database = {
       }
       my_placement_status: { Args: never; Returns: Json }
       my_recruiter_id: { Args: never; Returns: string }
+      my_season_id: { Args: never; Returns: string }
       my_season_report: { Args: { _season_id?: string }; Returns: Json }
+      my_season_status: { Args: never; Returns: Json }
       my_shortlists: {
         Args: never
         Returns: {
@@ -4139,6 +4169,7 @@ export type Database = {
         Returns: number
       }
       prune_rate_limits: { Args: never; Returns: undefined }
+      qualify_squads: { Args: { _season_id: string }; Returns: Json }
       record_activity: {
         Args: { _metric: string; _student_id: string }
         Returns: undefined
@@ -4249,9 +4280,57 @@ export type Database = {
         }
         Returns: Json
       }
+      schedule_round_robin: {
+        Args: {
+          _cohort?: string
+          _first_week: number
+          _last_week: number
+          _season_id: string
+          _squad_ids: string[]
+          _stage: string
+        }
+        Returns: number
+      }
       score_student_week: {
         Args: { _season_id: string; _student_id: string; _week: number }
         Returns: Json
+      }
+      season_awards: {
+        Args: { _season_id?: string }
+        Returns: {
+          award: string
+          detail: string
+          full_name: string
+          squad_name: string
+          student_id: string
+          title: string
+          value: number
+        }[]
+      }
+      season_leaderboard: {
+        Args: { _kind?: string; _limit?: number; _season_id?: string }
+        Returns: {
+          cohort: string
+          detail: string
+          full_name: string
+          place: number
+          squad_name: string
+          student_id: string
+          value: number
+        }[]
+      }
+      season_league_last_week: { Args: { _season_id: string }; Returns: number }
+      season_phase: {
+        Args: { _season_id: string; _week?: number }
+        Returns: string
+      }
+      season_plan: {
+        Args: { _season_id: string }
+        Returns: {
+          label: string
+          phase: string
+          week: number
+        }[]
       }
       season_week: { Args: { _season_id: string }; Returns: number }
       season_week_bounds: {
@@ -4265,6 +4344,7 @@ export type Database = {
         Args: { _season_id: string; _week: number }
         Returns: string
       }
+      seed_championship: { Args: { _season_id: string }; Returns: Json }
       seed_lot_template: { Args: { _level_id: string }; Returns: undefined }
       set_proof_publicity: {
         Args: { p_is_public: boolean; p_proof_id: string }
@@ -4283,6 +4363,15 @@ export type Database = {
           _title: string
         }
         Returns: Json
+      }
+      squad_championship_achievements: {
+        Args: { _squad_id: string }
+        Returns: {
+          achieved_at: string
+          detail: string
+          kind: string
+          title: string
+        }[]
       }
       squad_town: { Args: { _college_id: string }; Returns: string }
       student_is_discoverable: {
@@ -4349,6 +4438,7 @@ export type Database = {
         Args: { _message?: string; _reason: string; _student_id: string }
         Returns: Json
       }
+      tpo_set_cohorts: { Args: { _assignments: Json }; Returns: Json }
       tpo_set_naming_theme: {
         Args: { _branch: string; _theme: string }
         Returns: Json
@@ -4464,12 +4554,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4493,11 +4583,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4518,11 +4608,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4543,11 +4633,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4560,11 +4650,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

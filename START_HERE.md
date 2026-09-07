@@ -3,7 +3,7 @@
 Read this first — on a new laptop, in a new session, or with a different
 account. It is the only document in this repository that is kept current.
 
-Last updated: 7 September 2026 · live commit `912e894`
+Last updated: 7 September 2026
 
 ---
 
@@ -126,8 +126,15 @@ No `.env` is needed. The Supabase URL and publishable key are compiled into
 - The Daily Lot engine — written once per topic by AI, shared by everyone who
   reaches that topic, created nightly at 00:10
 - The 146-topic ladder, weekly plan, checkpoints, XP, streaks, badges
-- Squads: formation, IPL-style naming, reserve pool, weekly scoring,
-  round robin with draws and a real tie-break, season podium
+- Squads: formation inside a **cohort** (the academic section, CSE-A), sizes
+  10-12 with a snake draft so capability is spread, weekly scoring, a round
+  robin per cohort, qualification, an inter-cohort championship, seeding, semi
+  finals and a final. Twelve-week season by default, fifteen at most. Failing
+  to qualify ends a squad's championship race and nothing else - see
+  [SQUAD_SYSTEM.md](SQUAD_SYSTEM.md)
+- Individual leaderboards (overall, weekly, growth, consistency, participation,
+  skill) and the seven IPL-style awards. They never stop for anybody, whatever
+  happened to their squad
 - College dashboard: Home, Students, Squads, Insights — all four complete
 - Admin dashboard
 - Assign Tasks — one shared component (`AssignTasksScreen.tsx`, `scope:

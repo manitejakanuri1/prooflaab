@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SeasonPhaseBar, { useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
+import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -20,6 +22,10 @@ interface Squad {
   id: string; name: string; points: number; wins: number; draws: number; losses: number;
   rank: number | null; max_members: number;
   is_locked: boolean; archived_at: string | null;
+  cohort: string | null;
+  /** Null until the league ends, then true or false for the rest of the season. */
+  qualified: boolean | null;
+  seed: number | null;
 }
 interface Performance {
   squad_id: string; squad_name: string; week: number; points: number;
@@ -39,6 +45,7 @@ interface Match {
   id: string; scheduled_at: string; status: string;
   home_squad: string; away_squad: string;
   home_points: number | null; away_points: number | null;
+  stage: string; cohort: string | null; round_number: number | null;
 }
 interface StudentRow {
   student_id: string; full_name: string; roll_number: string | null; is_reserve: boolean;
@@ -109,6 +116,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     // fixtures and members in these tables — nothing secret, still wrong.
     const { data: sqData } = await supabase
       .from("squads").select("*").eq("college_id", collegeId)
+      // Cohort first: the league table a TPO reads is their section's table,
+      // and one long list of every section mixed together is not that.
+      .order("cohort", { ascending: true, nullsFirst: false })
       .order("points", { ascending: false });
 
     const list = (sqData ?? []) as unknown as Squad[];
@@ -150,6 +160,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     if (focusSquad) { setSelected(focusSquad); setTab("members"); }
     else { setTab("standings"); }
   }, [focusSquad, focusKey]);
+
+  const { status: season } = useSeasonStatus();
 
   const names = useMemo(
     () => Object.fromEntries((squads ?? []).map((s) => [s.id, s.name])), [squads]);
@@ -388,6 +400,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 
       </div>
 
+      <SeasonPhaseBar status={season} />
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="standings">Standings</TabsTrigger>
@@ -398,6 +412,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
           <TabsTrigger value="manage">Manage</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          <TabsTrigger value="leaderboards">Leaderboards</TabsTrigger>
         </TabsList>
 
         <TabsContent value="standings" className="mt-4">
@@ -406,29 +421,47 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               <thead>
                 <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   <th className="pb-2 pr-3">#</th><th className="pb-2 pr-3">Squad</th>
+                  <th className="pb-2 pr-3">Cohort</th>
                   <th className="pb-2 pr-3">Members</th><th className="pb-2 pr-3">Record</th>
-                  <th className="pb-2 pr-3">Points</th><th className="pb-2">Health</th>
+                  <th className="pb-2 pr-3">Points</th>
+                  <th className="pb-2 pr-3">Championship</th><th className="pb-2">Health</th>
                 </tr>
               </thead>
               <tbody>
                 {squads.map((s, i) => {
                   const mine = members.filter((m) => m.squad_id === s.id);
+                  // Position is within the cohort, because that is the league
+                  // this squad actually plays in.
+                  const place = squads.filter(
+                    (o) => o.cohort === s.cohort).findIndex((o) => o.id === s.id) + 1;
                   const active = mine.filter(
                     (m) => daysSince(m.student_profiles?.last_active ?? null) < 7).length;
                   const healthy = mine.length === 0 ? false : active / mine.length >= 0.7;
                   return (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
                         onClick={() => { setSelected(s.id); setTab("members"); }}>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{i + 1}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{place}</td>
                       <td className="py-2.5 pr-3 font-medium">
                         {s.name}
                         <ChevronRight className="h-3.5 w-3.5 inline-block ml-1.5 text-muted-foreground" />
                       </td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">{s.cohort ?? "—"}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">
                         {mine.length}/{s.max_members}
                       </td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.draws ?? 0}–{s.losses}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums font-semibold">{s.points}</td>
+                      <td className="py-2.5 pr-3">
+                        {s.qualified === null
+                          ? <span className="text-xs text-muted-foreground">League stage</span>
+                          : s.qualified
+                            ? <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">
+                                Through{s.seed ? ` · seed ${s.seed}` : ""}
+                              </Badge>
+                            : <span className="text-xs text-muted-foreground">
+                                Still learning, out of the race
+                              </span>}
+                      </td>
                       <td className="py-2.5">
                         {healthy
                           ? <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">Healthy</Badge>
@@ -548,7 +581,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               <table className="w-full text-sm min-w-[460px]">
                 <thead>
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    <th className="pb-2 pr-3">Match</th><th className="pb-2 pr-3">When</th><th className="pb-2">Result</th>
+                    <th className="pb-2 pr-3">Match</th><th className="pb-2 pr-3">Stage</th>
+                    <th className="pb-2 pr-3">Week</th>
+                    <th className="pb-2 pr-3">When</th><th className="pb-2">Result</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -558,6 +593,14 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {names[m.home_squad] ?? "?"}
                         <span className="text-muted-foreground"> vs </span>
                         {names[m.away_squad] ?? "?"}
+                      </td>
+                      <td className="py-2.5 pr-3 text-xs">
+                        {m.stage === "league"
+                          ? <span className="text-muted-foreground">{m.cohort ?? "League"}</span>
+                          : <Badge variant="secondary" className="capitalize">{m.stage}</Badge>}
+                      </td>
+                      <td className="py-2.5 pr-3 text-muted-foreground font-mono text-xs">
+                        {m.round_number ?? "—"}
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground font-mono text-xs">
                         {format(new Date(m.scheduled_at), "d MMM")}
@@ -908,6 +951,10 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </table>
             )}
           </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="leaderboards" className="mt-4">
+          <SeasonLeaderboards />
         </TabsContent>
 
         <TabsContent value="achievements" className="mt-4">

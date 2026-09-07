@@ -20,6 +20,8 @@ interface ParsedRow {
   phone: string;
   roll_number: string;
   branch: string;
+  /** Branch and section together, e.g. CSE-A. The unit squads are formed in. */
+  cohort: string;
   batch: string;
   validation_status: "valid" | "invalid" | "duplicate";
   error_message: string | null;
@@ -102,6 +104,9 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       const iMail  = idx("email", "email_address", "mail");
       const iRoll  = idx("roll_number", "roll_no", "rollno", "roll");
       const iBranch= idx("branch", "department", "dept");
+      // The section is what splits CSE-A from CSE-B, and squads are formed
+      // inside one section, never across two.
+      const iSection = idx("section", "sec", "class", "cohort", "division");
       const iBatch = idx("batch", "year", "year_of_study", "graduation_year");
       // §6 lists phone as required. It was read by nothing and had nowhere to
       // land, which is also why WhatsApp could never be switched on.
@@ -147,12 +152,19 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
 
         if (status === "valid") seen.add(email);
 
+        const rowBranch = effectiveBranch || (iBranch === -1 ? "" : cells[iBranch] ?? "");
+        const section = (iSection === -1 ? "" : cells[iSection] ?? "").trim().toUpperCase();
+
         return {
           row_number: i + 2, name, email, phone, roll_number: roll,
           // The branch picked before upload wins — this is one file per
           // branch, per §1 of the master flow, not a mixed roster. A CSV
           // branch column is still read as a fallback if none was picked.
-          branch: effectiveBranch || (iBranch === -1 ? "" : cells[iBranch] ?? ""),
+          branch: rowBranch,
+          // A section on its own means nothing; it is the branch it belongs to
+          // that makes it a cohort. No section column at all and the whole
+          // branch is one cohort, which is how it behaved before sections.
+          cohort: section ? `${rowBranch}-${section}` : rowBranch,
           batch:  iBatch  === -1 ? "" : cells[iBatch]  ?? "",
           validation_status: status, error_message: err, raw,
         };
@@ -225,6 +237,24 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       await supabase.from("student_imports").update({ status: "failed" }).eq("id", importId);
       toast({ title: "Import failed", description: error.message, variant: "destructive" });
       return;
+    }
+
+    // The accounts exist now; give them their cohort. create-student-users has
+    // no cohort argument, so this is a second call rather than part of the
+    // first. A student whose row carried no section keeps the branch as their
+    // cohort, which the database would have defaulted to anyway.
+    const withSection = good.filter((r) => r.cohort && r.cohort !== r.branch);
+    if (withSection.length > 0) {
+      const { error: cohortError } = await supabase.rpc("tpo_set_cohorts", {
+        _assignments: withSection.map((r) => ({ email: r.email, cohort: r.cohort })),
+      });
+      if (cohortError) {
+        toast({
+          title: "Students imported, sections not saved",
+          description: `${cohortError.message} — you can re-upload the same file to set them.`,
+          variant: "destructive",
+        });
+      }
     }
 
     // Four things can happen to a row, and a college needs to be able to tell
@@ -335,8 +365,14 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
           {busy ? "Reading…" : "Import students"}
         </Button>
       </div>
-      {!effectiveBranch && (
+      {!effectiveBranch ? (
         <p className="text-xs text-muted-foreground mt-1">Pick a branch above before importing.</p>
+      ) : (
+        <p className="text-xs text-muted-foreground mt-1">
+          Needs <code>name</code> and <code>email</code>. Add a <code>section</code>
+          {" "}column (A, B, C…) and each section becomes its own cohort with its own
+          league — without it the whole branch competes as one.
+        </p>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>

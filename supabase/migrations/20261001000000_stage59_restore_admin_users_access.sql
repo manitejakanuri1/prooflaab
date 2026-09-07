@@ -1,0 +1,37 @@
+-- ============================================================================
+-- Stage 59 — Admin > System Settings & Roles was broken on the live database.
+--
+-- Found while re-running get_advisors before a demo, not by a bug report.
+--
+-- `authenticated` had lost every privilege on public.admin_users - no SELECT,
+-- no INSERT, no UPDATE, no DELETE. SystemSettings.tsx reads that view to list
+-- administrators and writes through it (via the INSTEAD OF trigger
+-- admin_users_write) to add or remove one, so the whole screen was dead: an
+-- admin could not see the admin list, and could not promote anybody.
+--
+-- This did not come from this machine. Stages 46 and 48 deliberately left
+-- admin_users alone and say so in their headers. It appears to be an attempt
+-- from the other laptop to clear the advisor's `auth_users_exposed` ERROR by
+-- removing the grant. That does silence the lint - by breaking the feature the
+-- view exists for.
+--
+-- Restoring the grants is safe, and the reason is worth writing down because
+-- the same lint will tempt somebody again:
+--
+--   * the view body ends in `WHERE r.role = 'admin' AND is_admin()`, so a
+--     non-admin selecting from it gets zero rows, not other people's data;
+--   * admin_users_write, the INSTEAD OF trigger behind every write, begins
+--     `if not public.is_admin() then raise exception`, so a non-admin cannot
+--     promote themselves.
+--
+-- Both guards were verified present immediately before this was applied, and
+-- the result was checked afterwards as a real signed-in admin under the
+-- `authenticated` role rather than as the database owner, which would have
+-- bypassed exactly the checks being tested.
+--
+-- If that lint is to be closed properly, the answer is to stop selecting
+-- auth.users through a view and move the screen onto a SECURITY DEFINER
+-- function - not to revoke the grant and leave the screen broken.
+-- ============================================================================
+
+grant select, insert, update, delete on public.admin_users to authenticated;

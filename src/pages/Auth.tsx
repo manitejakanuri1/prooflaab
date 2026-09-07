@@ -67,6 +67,10 @@ export default function Auth() {
                       navigate('/onboarding/college', { replace: true });
                     } else if (role === 'startup') {
                       navigate('/onboarding/startup', { replace: true });
+                    } else if (role === 'recruiter') {
+                      // A recruiter's one-time setup lives on their own
+                      // dashboard, not in the student wizard.
+                      navigate('/recruiter/dashboard', { replace: true });
                     } else {
                       navigate('/onboarding-wizard', { replace: true });
                     }
@@ -136,6 +140,8 @@ export default function Auth() {
           navigate('/onboarding/college', { replace: true });
         } else if (role === 'startup') {
           navigate('/onboarding/startup', { replace: true });
+        } else if (role === 'recruiter') {
+          navigate('/recruiter/dashboard', { replace: true });
         } else {
           navigate('/onboarding-wizard', { replace: true });
         }
@@ -150,6 +156,8 @@ export default function Auth() {
         navigate('/onboarding/college', { replace: true });
       } else if (role === 'startup') {
         navigate('/onboarding/startup', { replace: true });
+      } else if (role === 'recruiter') {
+        navigate('/recruiter/dashboard', { replace: true });
       } else {
         navigate('/onboarding-wizard', { replace: true });
       }

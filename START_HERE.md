@@ -15,8 +15,7 @@ it, and explains it out loud for sixty seconds. The platform scores the work,
 groups students into **squads** of eleven that compete weekly, and builds a
 proof profile a recruiter can inspect.
 
-Three dashboards exist — Student, College/TPO, Admin. A fourth, Recruiter, does
-not exist yet and is the largest remaining piece of work.
+Four dashboards exist — Student, College/TPO, Admin and Recruiter.
 
 ---
 

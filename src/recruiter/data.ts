@@ -125,7 +125,7 @@ export interface Filters {
 }
 
 export async function loadTalent(f: Filters = {}): Promise<Candidate[]> {
-  const { data, error } = await supabase.rpc("recruiter_talent" as never, {
+  const { data, error } = await supabase.rpc("recruiter_talent", {
     _role: f.role ?? null,
     _skills: f.skills?.length ? f.skills : null,
     _branch: f.branch ?? null,
@@ -134,13 +134,13 @@ export async function loadTalent(f: Filters = {}): Promise<Candidate[]> {
     _active_within: f.activeWithin ?? null,
     _limit: 50,
     _offset: 0,
-  } as never);
+  });
   if (error) throw error;
   return ((data ?? []) as unknown as Record<string, unknown>[]).map(toCandidate);
 }
 
 export async function loadFilters() {
-  const { data } = await supabase.rpc("recruiter_filters" as never);
+  const { data } = await supabase.rpc("recruiter_filters");
   return (data ?? { verified: false }) as unknown as {
     verified: boolean; branches?: string[]; roles?: string[];
     skills?: string[]; total?: number;
@@ -148,7 +148,7 @@ export async function loadFilters() {
 }
 
 export async function loadHome() {
-  const { data } = await supabase.rpc("recruiter_home" as never);
+  const { data } = await supabase.rpc("recruiter_home");
   return data as unknown as Record<string, unknown>;
 }
 
@@ -157,14 +157,14 @@ export async function loadHome() {
  * is the whole point of the screen.
  */
 export async function loadProfile(studentId: string): Promise<Candidate | null> {
-  const { data } = await supabase.rpc("recruiter_proof_profile" as never, {
+  const { data } = await supabase.rpc("recruiter_proof_profile", {
     _student_id: studentId,
-  } as never);
+  });
   const p = data as unknown as Record<string, any> | null;
   if (!p || p.error) return null;
 
   // Recording the view is bookkeeping; a failure must not blank the page.
-  void supabase.rpc("recruiter_log_view" as never, { _student_id: studentId } as never);
+  void supabase.rpc("recruiter_log_view", { _student_id: studentId });
 
   const name = String(p.full_name ?? "");
   const skills: SkillScore[] = (p.skills ?? []).map((s: any) => ({
@@ -255,9 +255,9 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
 }
 
 export async function shortlist(studentId: string, note?: string) {
-  const { error } = await supabase.rpc("recruiter_shortlist" as never, {
+  const { error } = await supabase.rpc("recruiter_shortlist", {
     _student_id: studentId, _note: note ?? null,
-  } as never);
+  });
   if (error) throw error;
 }
 
@@ -270,23 +270,23 @@ export async function loadShortlist() {
 }
 
 export async function loadLots() {
-  const { data } = await supabase.rpc("recruiter_lots" as never);
+  const { data } = await supabase.rpc("recruiter_lots");
   return (data ?? []) as unknown as Record<string, unknown>[];
 }
 
 export async function sponsorLot(
   studentId: string, title: string, brief: string, criteria?: string, days = 7,
 ) {
-  const { error } = await supabase.rpc("sponsor_lot" as never, {
+  const { error } = await supabase.rpc("sponsor_lot", {
     _student_id: studentId, _title: title, _brief: brief,
     _criteria: criteria ?? null, _days: days,
-  } as never);
+  });
   if (error) throw error;
 }
 
 export async function recordOutcome(studentId: string, outcome: string) {
-  const { error } = await supabase.rpc("record_outcome" as never, {
+  const { error } = await supabase.rpc("record_outcome", {
     _student_id: studentId, _outcome: outcome,
-  } as never);
+  });
   if (error) throw error;
 }

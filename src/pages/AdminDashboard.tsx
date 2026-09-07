@@ -16,6 +16,7 @@ import CollegeOversight from "@/components/dashboard/admin/CollegeOversight";
 import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
+import RecruiterOversight from "@/components/dashboard/admin/RecruiterOversight";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 
 const AdminDashboard = () => {
@@ -84,6 +85,8 @@ const AdminDashboard = () => {
         return <CollegeOversight />;
       case "student-oversight":
         return <StudentOversight />;
+      case "recruiter-oversight":
+        return <RecruiterOversight />;
       case "settings":
         return <SystemSettings />;
       default:

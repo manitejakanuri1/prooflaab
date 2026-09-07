@@ -42,11 +42,16 @@ export default function RoleBasedProtectedRoute({
           // Admins skip onboarding entirely. Students are gated by their own
           // intake flow (/student/start) rather than the generic wizard, so the
           // wizard check must not fire for them or it would pre-empt the
-          // welcome screen and trap them after intake.
+          // welcome screen and trap them after intake. A recruiter's one-time
+          // setup is the company form on their own dashboard, and they cannot
+          // update user_roles themselves (only an admin can), so the flag stays
+          // false for them forever — without this they would be bounced into
+          // the student wizard on every single visit.
           if (
             !roleData.has_completed_wizard &&
             roleData.role !== 'admin' &&
-            roleData.role !== 'student'
+            roleData.role !== 'student' &&
+            roleData.role !== 'recruiter'
           ) {
             navigate('/onboarding-wizard', { replace: true });
             return;

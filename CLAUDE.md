@@ -12,8 +12,9 @@ for sixty seconds. Work is scored, students compete in **squads** of eleven,
 and the result is a proof profile a recruiter can inspect.
 
 React + TypeScript + Vite · Supabase (Postgres, Auth, Storage) · 36 Deno edge
-functions on DeepSeek · Vercel. Dashboards: Student, College/TPO, Admin. The
-Recruiter dashboard does not exist yet and is the largest remaining piece.
+functions on DeepSeek · Vercel. Dashboards: Student, College/TPO, Admin and
+Recruiter — all four are built. A recruiter signs themselves up and sees
+nothing until an administrator approves them on Admin -> Recruiters.
 
 ## Hard rules
 

@@ -9,10 +9,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Bell } from "lucide-react";
+import { Bell, ClipboardList } from "lucide-react";
 import TpoImportStudents from "./TpoImportStudents";
 import TpoStudentProfile from "./TpoStudentProfile";
 import { ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AssignTasksScreen from "@/components/dashboard/assignTasks/AssignTasksScreen";
 
 interface Row {
   student_id: string;
@@ -85,6 +87,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   const [options, setOptions] = useState<FilterOptions>({});
   const [openStudent, setOpenStudent] = useState<string | null>(null);
   const [skill, setSkill] = useState<string>("all");
+  const [assignOpen, setAssignOpen] = useState(false);
 
   /**
    * One page, filtered by the database.
@@ -227,6 +230,10 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
         </Select>
 
         <TpoImportStudents collegeId={collegeId} onImported={() => void load()} />
+        <Button variant="outline" onClick={() => setAssignOpen(true)}>
+          <ClipboardList className="h-4 w-4 mr-2" />
+          Assign Task
+        </Button>
       </div>
 
       <Card>
@@ -361,6 +368,15 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
         onOpenSquad={onOpenSquad}
         onChanged={() => void load()}
       />
+
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Assign Task</DialogTitle>
+          </DialogHeader>
+          <AssignTasksScreen scope="college" />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Activity, AlertTriangle, Shield, Upload, Trophy } from "lucide-react";
+import PostJobDescription from "./PostJobDescription";
 
 interface AttentionLine {
   reason_code: string;
@@ -111,6 +112,9 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
         <p className="text-sm text-muted-foreground">
           Pilot health and what needs your attention.
         </p>
+        <div className="ml-auto">
+          <PostJobDescription />
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

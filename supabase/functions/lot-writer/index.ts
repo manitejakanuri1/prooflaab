@@ -36,7 +36,16 @@ const clampInt = (v: unknown, lo: number, hi: number, fallback: number) => {
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : fallback;
 };
 
-const prompt = (level: { skill: string; title: string; track_slug: string; level_number: number; kind: string }) => `
+interface RealJob {
+  role: string;
+  company: string;
+  excerpt: string;
+}
+
+const prompt = (
+  level: { skill: string; title: string; track_slug: string; level_number: number; kind: string },
+  realJob: RealJob | null,
+) => `
 You write daily work orders ("Lots") for Indian engineering students preparing for their first job.
 
 A Lot is one concrete piece of work someone would actually be handed at a company — not a tutorial exercise, not a quiz. It names a situation, says what is wrong or wanted, and says what to hand back.
@@ -53,7 +62,13 @@ Rules:
 - Say exactly what to submit at the end.
 - No greeting, no praise, no "in this task you will learn".
 - If a short piece of starter or broken code makes the work concrete, include it (max 15 lines). Otherwise use null.
-- source_jd is a short phrase naming the kind of job this work comes from, e.g. "a fresher backend JD, Hyderabad". Never invent a company name.
+${realJob ? `- A real job posting for "${realJob.role}" at ${realJob.company} is the source for this Lot. Ground the scenario in what it actually asks for, quoted below. Do not invent a different company or role.
+- Leave source_jd as null — the real posting is attached separately, you do not need to name it.
+
+Real posting excerpt:
+"""
+${realJob.excerpt}
+"""` : `- source_jd is a short phrase naming the kind of job this work comes from, e.g. "a fresher backend JD, Hyderabad". Never invent a company name.`}
 
 Reply with JSON only, exactly these keys:
 {"title": string (max 90 chars, names the work, not the topic),
@@ -167,8 +182,32 @@ serve(async (req) => {
       .maybeSingle();
     if (!level) return json({ error: 'No such topic' }, 404);
 
+    // A real posting beats an invented one. Match on the skill appearing
+    // anywhere in the description text — eligible_branch is a student's
+    // academic branch (CSE/ECE/...), not a skill area, so it is not a useful
+    // filter here. A plain ilike, not .or(), so a skill name with a comma or
+    // parenthesis cannot break PostgREST's filter-string parsing.
+    const { data: realJobRow } = await supabase
+      .from('job_opportunities')
+      .select('role, company_name, description')
+      .eq('status', 'approved')
+      .ilike('description', `%${level.skill}%`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const realJob: RealJob | null = realJobRow?.description
+      ? {
+          role: realJobRow.role,
+          company: realJobRow.company_name,
+          // A whole posting is more than a Lot needs and costs more tokens for
+          // no benefit past the first few hundred characters of substance.
+          excerpt: String(realJobRow.description).slice(0, 800),
+        }
+      : null;
+
     const { text, provider } = await generateText(
-      prompt(level as never),
+      prompt(level as never, realJob),
       { temperature: 0.8, maxOutputTokens: 900, json: true },
       { feature: 'lot-writer', userId: callerId, studentId: callerId },
     );
@@ -198,8 +237,11 @@ serve(async (req) => {
       scenario,
       code_sample: typeof parsed.code_sample === 'string' && parsed.code_sample.trim()
         ? parsed.code_sample : null,
-      source_jd: typeof parsed.source_jd === 'string' && parsed.source_jd.trim()
-        ? parsed.source_jd : null,
+      // A real posting's label is deterministic, never left to the model to
+      // restate — that is the whole point of grounding this in something real.
+      source_jd: realJob
+        ? `${realJob.role} at ${realJob.company}`
+        : (typeof parsed.source_jd === 'string' && parsed.source_jd.trim() ? parsed.source_jd : null),
       difficulty: DIFFICULTIES.has(String(parsed.difficulty)) ? String(parsed.difficulty) : 'Medium',
       estimate_minutes: clampInt(parsed.estimate_minutes, 10, 45, 20),
       lot_category: CATEGORIES.has(String(parsed.lot_category))

@@ -3,7 +3,7 @@
 Read this first — on a new laptop, in a new session, or with a different
 account. It is the only document in this repository that is kept current.
 
-Last updated: 24 August 2026 · live commit `0d98ad4`
+Last updated: 7 September 2026 · live commit `912e894`
 
 ---
 
@@ -131,14 +131,88 @@ No `.env` is needed. The Supabase URL and publishable key are compiled into
   round robin with draws and a real tie-break, season podium
 - College dashboard: Home, Students, Squads, Insights — all four complete
 - Admin dashboard
+- Assign Tasks — one shared component (`AssignTasksScreen.tsx`, `scope:
+  "admin"|"college"`) now used by both dashboards. College's copy was
+  previously unreachable (no button pointed at it) — fixed, it now opens from
+  `TpoStudents.tsx`.
+- Daily Lots grounded in a real job description when one exists —
+  `lot-writer` looks up the newest approved `job_opportunities` row matching
+  the topic's skill and writes the scenario from it instead of inventing one.
+  Reuses `job_opportunities` + `lot_templates`, no new table. **Caveat:**
+  `lot_templates` is one row per topic, written once, cached forever — a new
+  JD only affects topics not yet AI-written, never retroactive.
+- College can post real job descriptions too (`PostJobDescription.tsx`, on
+  `TpoHome.tsx`) — same `job_opportunities` table, `source: "college"`.
+  **This needs migration `stage45_real_jd_lots` applied first — see below.**
 
 **Not built:**
 
 - The Recruiter role in full — discovery, proof profile, shortlist, sponsored
   tasks, hiring outcomes (steps 19–21 of the master flow)
-- Daily Lots sourced from real job descriptions (they come from the ladder)
-- Server-side speech-to-text (the browser writes the transcript today)
+- Server-side speech-to-text (the browser writes the transcript today —
+  checked this session, confirmed this is intentional and sufficient, not a
+  gap)
 - Per-student improvement reports at the end of a season
+- Crawl4AI / automated scraping for job postings — wanted eventually "for
+  real," not manual paste. Recommended path (not yet built): free public
+  job-board APIs (Greenhouse, Lever, RemoteOK) instead of general scraping —
+  no new server, no ToS risk.
+- Per-topic Elo-style skill rating (800–2200) with adaptive topic selection,
+  replacing the fixed 146-step ladder order. This is the Master Spec's core
+  idea but is NOT built and needs its own separate scoping — it's the one
+  change that could break current student progression if done carelessly.
+- WhatsApp notifications — deprioritized, no business account exists.
+
+**Written but deliberately NOT applied to the live database** (two migration
+files sitting in `supabase/migrations/`, held back on purpose — decide with
+the project owner before applying):
+
+- `20260917000000_stage45_real_jd_lots.sql` — fixes `job_opportunities_post`
+  RLS (today it only allows `source = 'startup'`, so Admin's own "Add New
+  Job" button and the new College "Post Job Description" button both get
+  silently rejected by RLS) and extends the `source` check constraint to
+  allow `'college'`. **Without this, college job-posting and admin
+  job-posting are both broken at the DB level.**
+- `20260915000000_stage43_fundamentals_prompting_placement_prep.sql` — seeds
+  5 new tracks into `level_tracks`/`levels`: Prompt Engineering (Prompt
+  Basics, Few-Shot, Chain-of-Thought, System Prompts, Structured Output, RAG
+  Basics, **Agentic Loops** [agentic/tool-use looping, not for/while loop
+  syntax], Evaluating Prompts) and the non-technical placement-prep branch —
+  Quantitative Aptitude, Logical Reasoning, Verbal Ability, HR & Behavioral
+  Prep. `StudentWizard.tsx` already lists these as onboarding interests.
+  **Without this migration, those interests exist in the UI with no track
+  data behind them.**
+
+**Fixed live this session** (already applied, already in `main`):
+
+- `tasks_assigned_read` RLS policy on `public.tasks` compared
+  `task_assignments.task_id = task_assignments.id` — always false, never
+  actually checked the `tasks` row. Effect: any admin-assigned task that
+  wasn't public visibility was invisible to the student it was assigned to
+  (silently returned null through the embedded join in
+  `useAllStudentTasks.tsx`). Migration
+  `20260916000000_stage44_fix_tasks_assigned_read.sql`.
+
+**Security/performance audit — started, not finished** (`get_advisors` via
+Supabase MCP). Still open:
+
+- 3 views (`admin_users`, `llm_usage_by_student`, `public_resume_scorecards`)
+  have `security_invoker=off` (ERROR-level lint). First two have their own
+  internal `WHERE is_admin()` clause so are probably not exploitable, but
+  should still get `security_invoker=on` for defense-in-depth.
+  `public_resume_scorecards` is reachable by `anon` (logged-out) and filters
+  on `student_portfolios.is_public = true` — looks intentional but confirm
+  with the project owner before deciding whether to restrict it.
+- 66+14 WARN `security_definer_function` lints — not reviewed yet.
+- 6 tables with RLS on and zero policies (`ai_templates`,
+  `conceptual_answer_keys`, `level_content`, `llm_cache`, `llm_usage`,
+  `rate_limits`) — fine if only edge functions (service_role) touch them,
+  need to confirm nothing expects direct client access.
+- `auth_leaked_password_protection` WARN — Supabase dashboard setting, not a
+  migration fix.
+- Not yet run: a fresh `npm run build`, and a browser click-through of
+  admin-assigns-private-task → student-sees-it, college-posts-JD →
+  admin-sees-it-in-Manage-Jobs, recruiter-shortlist → student-visibility.
 
 **Before real students arrive:**
 

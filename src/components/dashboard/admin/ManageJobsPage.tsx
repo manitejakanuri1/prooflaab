@@ -27,6 +27,7 @@ interface JobOpportunity {
   eligible_branch: string;
   apply_link: string;
   deadline: string;
+  description: string | null;
   created_at: string;
   status: string;
 }
@@ -111,7 +112,8 @@ const ManageJobsPage = () => {
         apply_link: formData.apply_link,
         deadline: format(formData.deadline, 'yyyy-MM-dd'),
         eligible_branch: 'ALL',
-        status: 'approved'
+        status: 'approved',
+        description: formData.description?.trim() || null,
       };
 
       if (editingJob) {
@@ -189,7 +191,7 @@ const ManageJobsPage = () => {
       job_type: job.job_type,
       apply_link: job.apply_link,
       deadline: new Date(job.deadline),
-      description: "",
+      description: job.description ?? "",
     });
     setIsDialogOpen(true);
   };

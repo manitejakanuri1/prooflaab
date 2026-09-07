@@ -21,9 +21,11 @@ interface StudentWizardData {
 }
 
 const INTERESTS = [
-  "Web Development", "Mobile Development", "Data Science", "Machine Learning", 
-  "Cybersecurity", "Cloud Computing", "DevOps", "UI/UX Design", "Game Development", 
-  "Blockchain", "IoT", "Robotics"
+  "Web Development", "Mobile Development", "Data Science", "Machine Learning",
+  "Cybersecurity", "Cloud Computing", "DevOps", "UI/UX Design", "Game Development",
+  "Blockchain", "IoT", "Robotics",
+  "Prompt Engineering",
+  "Quantitative Aptitude", "Logical Reasoning", "Verbal Ability", "HR & Behavioral Prep"
 ];
 
 const INTEREST_SKILLS: Record<string, string[]> = {
@@ -39,6 +41,11 @@ const INTEREST_SKILLS: Record<string, string[]> = {
   "Game Development":   ["Unity", "C#", "Unreal", "C++", "3D Maths", "Physics", "Blender"],
   "Blockchain":         ["Solidity", "Foundry", "Hardhat", "ethers.js", "viem", "EVM Internals", "Smart Contract Security", "React", "JavaScript"],
   "Robotics":           ["Python", "C++", "ROS 2", "Control Systems", "OpenCV", "Embedded Systems", "Gazebo", "Linear Algebra"],
+  "Prompt Engineering":       ["Prompt Basics", "Few-Shot Prompting", "Chain-of-Thought Prompting", "System Prompts", "Structured Output", "RAG Basics", "Agentic Loops", "Evaluating Prompts"],
+  "Quantitative Aptitude":    ["Percentages", "Ratios & Proportions", "Time, Speed & Distance", "Profit & Loss", "Probability", "Permutations & Combinations"],
+  "Logical Reasoning":        ["Syllogisms", "Blood Relations", "Seating Arrangement", "Coding-Decoding", "Series Completion"],
+  "Verbal Ability":           ["Reading Comprehension", "Sentence Correction", "Vocabulary in Context", "Para Jumbles"],
+  "HR & Behavioral Prep":     ["STAR Response Basics", "Common HR Questions", "Strengths & Weaknesses Framing", "Salary Negotiation Basics"],
 };
 
 // Expected on every track, so they are always offered.

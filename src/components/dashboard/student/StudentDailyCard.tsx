@@ -198,10 +198,6 @@ const StudentDailyCard = () => {
               </pre>
             )}
 
-            {lot.source_jd && (
-              <p className="mt-3 text-[11px] italic text-[#6b6559]">Sourced from {lot.source_jd}</p>
-            )}
-
             {/* The only two actions on this screen. */}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button

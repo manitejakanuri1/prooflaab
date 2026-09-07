@@ -1,57 +1,70 @@
 -- Removes every test account and all the data seeded with them.
 --
--- Run this before real students arrive. These accounts exist only so all four
--- dashboards can be opened and clicked through; they share one password, and a
--- shared password is fine for a fixture and not fine for anything else.
+-- Run before real students arrive. Already run once, on 7 September 2026: it
+-- left 0 students, 0 colleges, 0 squads, 0 seasons and 0 startups behind.
 --
--- Everything seeded sits under two id prefixes, so this deletes exactly the
--- fixture and nothing else:
---   dddddddd-…  the college, its students, squads and season
---   the +admin account is kept — it is the real administrator, not a fixture
+-- The earlier version of this file deleted by the id prefix dddddddd-… and
+-- would have missed almost everything. Only two fixtures ever had those ids
+-- (the college account and the startup account); the sixty students were
+-- created later through CSV import and the create-student-users edge
+-- function, so they carry ordinary random ids. They are identified instead by
+-- their e-mail domain, @test.prooflab.in, which nothing real uses.
+--
+-- Almost every table hangs off auth.users through ON DELETE CASCADE —
+-- student_profiles.id, colleges.user_id, user_roles.user_id — and everything
+-- else cascades from student_profiles or colleges in turn. So deleting the
+-- accounts is enough, and is safer than a hand-written list of tables that
+-- goes stale the moment somebody adds one.
 --
 -- Usage: paste into the Supabase SQL editor, or apply through the MCP tool.
 
 begin;
 
-delete from public.audit_logs             where college_id = 'dddddddd-0000-4000-8000-00000000cc01';
-delete from public.interventions          where college_id = 'dddddddd-0000-4000-8000-00000000cc01';
-delete from public.notifications          where user_id::text like 'dddddddd-0000-4000-8000-%';
-delete from public.student_skills         where student_id in
-  (select id from public.student_profiles where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
-delete from public.student_weekly_scores  where squad_id in
-  (select id from public.squads where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
-delete from public.squad_weekly_scores    where season_id = 'dddddddd-0000-4000-8000-0000000055e1';
-delete from public.voice_explanations     where student_id in
-  (select id from public.student_profiles where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
-delete from public.task_assignments       where student_id in
-  (select id from public.student_profiles where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
-delete from public.student_activity_events where college_id = 'dddddddd-0000-4000-8000-00000000cc01';
-delete from public.squad_members          where squad_id in
-  (select id from public.squads where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
-delete from public.squad_matches          where season_id = 'dddddddd-0000-4000-8000-0000000055e1';
-delete from public.squads                 where college_id = 'dddddddd-0000-4000-8000-00000000cc01';
-delete from public.seasons                where college_id = 'dddddddd-0000-4000-8000-00000000cc01';
-delete from public.student_contact        where student_id in
-  (select id from public.student_profiles where college_id = 'dddddddd-0000-4000-8000-00000000cc01');
-delete from public.student_profiles       where college_id = 'dddddddd-0000-4000-8000-00000000cc01';
-delete from public.college_profiles       where user_id = 'dddddddd-0000-4000-8000-00000000c001';
-delete from public.colleges               where id = 'dddddddd-0000-4000-8000-00000000cc01';
-delete from public.job_opportunities      where created_by = 'dddddddd-0000-4000-8000-00000000d001';
-delete from public.startup_profiles       where user_id = 'dddddddd-0000-4000-8000-00000000d001';
-delete from public.startups               where user_id = 'dddddddd-0000-4000-8000-00000000d001';
-delete from public.user_roles             where user_id::text like 'dddddddd-0000-4000-8000-%';
-delete from auth.identities               where user_id::text like 'dddddddd-0000-4000-8000-%';
-delete from auth.users                    where id::text      like 'dddddddd-0000-4000-8000-%';
+-- the sixty seeded students
+delete from auth.users where email like '%@test.prooflab.in';
+
+-- the seeded college account and the seeded startup account
+delete from auth.users where id::text like 'dddddddd-%';
+
+-- the two seeded recruiter fixtures
+delete from auth.users
+ where email in ('vidyuthsetu+recruiter1@gmail.com',
+                 'vidyuthsetu+recruiter2@gmail.com');
+
+-- squads.college_id is ON DELETE SET NULL, so squad rows outlive the college
+-- they belonged to. Their members are gone already (CASCADE from
+-- student_profiles), so anything orphaned here is debris.
+delete from public.squad_weekly_scores
+ where squad_id in (select id from public.squads where college_id is null);
+delete from public.squad_matches
+ where home_squad in (select id from public.squads where college_id is null)
+    or away_squad in (select id from public.squads where college_id is null);
+delete from public.squads where college_id is null;
 
 -- Should all be zero afterwards.
-select (select count(*) from auth.users where id::text like 'dddddddd-%')      as test_users,
-       (select count(*) from public.student_profiles
-         where college_id = 'dddddddd-0000-4000-8000-00000000cc01')            as test_students,
-       (select count(*) from public.colleges)                                  as colleges_left,
-       (select count(*) from public.startups)                                  as startups_left;
+select (select count(*) from public.student_profiles) as students_left,
+       (select count(*) from public.colleges)         as colleges_left,
+       (select count(*) from public.squads)           as squads_left,
+       (select count(*) from public.startups)         as startups_left;
 
 commit;
 
--- The real administrator (vidyuthsetu+admin@gmail.com) is deliberately NOT
--- deleted here. Its password is the shared test one, so change it through
--- "Forgot password" on the sign-in page before launch.
+-- NOT deleted here, on purpose:
+--
+--   vidyuthsetu+admin@gmail.com  — the real administrator. Its password is
+--     still the shared test one; change it through "Forgot password" on the
+--     sign-in page before launch.
+--
+--   vidyuthsetu+recruitercheck@gmail.com — created on 7 September 2026 to
+--     prove the recruiter journey end to end against the live database
+--     (role claim, workspace, the awaiting-verification gate, approval, and
+--     the candidate list opening up afterwards). It is approved and has a
+--     company called "Checkpoint Hiring". Keep it while you are still
+--     clicking through the recruiter dashboard; to remove it afterwards:
+--
+--       delete from auth.users where email = 'vidyuthsetu+recruitercheck@gmail.com';
+--
+-- Storage is not touched here. A protect_delete trigger blocks deleting
+-- storage.objects rows from SQL, and deleting them anyway would leave the
+-- file bytes orphaned in S3. Empty the `resumes` bucket from the Supabase
+-- dashboard instead (31 test files, 2 MB, as of 7 September 2026).

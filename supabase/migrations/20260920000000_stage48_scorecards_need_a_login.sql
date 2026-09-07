@@ -1,0 +1,21 @@
+-- ============================================================================
+-- Stage 48 — the public scorecard view no longer answers logged-out callers.
+--
+-- public_resume_scorecards was the one thing in the whole schema a stranger
+-- with the publishable key could read: resume quality, ATS match, coding and
+-- reasoning scores and the skill gap for any student whose portfolio is
+-- public.
+--
+-- It was paired with nothing. The page that would have used it,
+-- /portfolio/:slug, reads student_profiles first, and student_profiles has
+-- only `to authenticated` SELECT policies — a logged-out visitor gets 401
+-- there before the scorecard is ever fetched. So anon's SELECT on this view
+-- exposed scores through a hand-written API call while delivering no feature.
+--
+-- SELECT stays for authenticated, which is what the app actually uses. If a
+-- genuinely public portfolio page is wanted later it needs its own design —
+-- an anon read path for student_profiles as well, and a decision about which
+-- numbers a stranger should see.
+-- ============================================================================
+
+revoke select on public.public_resume_scorecards from anon;

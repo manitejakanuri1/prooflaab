@@ -3,3 +3,4 @@ markdownify>=0.13
 python-dotenv>=1.0
 supabase>=2.7
 crawl4ai>=0.4
+trafilatura>=1.9

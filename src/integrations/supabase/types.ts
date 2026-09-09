@@ -473,6 +473,53 @@ export type Database = {
           },
         ]
       }
+      crawl_queue: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          depth: number
+          id: string
+          last_error: string | null
+          source_id: string
+          status: string
+          url: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          depth?: number
+          id?: string
+          last_error?: string | null
+          source_id: string
+          status?: string
+          url: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          depth?: number
+          id?: string
+          last_error?: string | null
+          source_id?: string
+          status?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crawl_queue_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "source_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       github_verifications: {
         Row: {
           authenticity_notes: Json | null
@@ -1246,6 +1293,48 @@ export type Database = {
           },
         ]
       }
+      question_calibration: {
+        Row: {
+          ai_difficulty: number | null
+          attempts: number
+          correct: number
+          hint_used: number
+          id: string
+          level_id: string | null
+          observed_difficulty: number | null
+          skipped: number
+          topic: string
+          total_seconds: number
+          updated_at: string
+        }
+        Insert: {
+          ai_difficulty?: number | null
+          attempts?: number
+          correct?: number
+          hint_used?: number
+          id?: string
+          level_id?: string | null
+          observed_difficulty?: number | null
+          skipped?: number
+          topic: string
+          total_seconds?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_difficulty?: number | null
+          attempts?: number
+          correct?: number
+          hint_used?: number
+          id?: string
+          level_id?: string | null
+          observed_difficulty?: number | null
+          skipped?: number
+          topic?: string
+          total_seconds?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quests: {
         Row: {
           cadence: string
@@ -1744,6 +1833,24 @@ export type Database = {
           },
         ]
       }
+      role_track_config: {
+        Row: {
+          role_slug: string
+          topic_category: string
+          weight: number
+        }
+        Insert: {
+          role_slug: string
+          topic_category: string
+          weight: number
+        }
+        Update: {
+          role_slug?: string
+          topic_category?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       seasons: {
         Row: {
           champion_squad_id: string | null
@@ -1857,6 +1964,117 @@ export type Database = {
           source?: string
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      source_content: {
+        Row: {
+          canonical_url: string | null
+          content_hash: string
+          enriched_at: string | null
+          fetch_method: string | null
+          fetched_at: string
+          id: string
+          markdown: string | null
+          rights_flag: string | null
+          simhash: number | null
+          source_id: string
+          submitted_by_college_id: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          content_hash: string
+          enriched_at?: string | null
+          fetch_method?: string | null
+          fetched_at?: string
+          id?: string
+          markdown?: string | null
+          rights_flag?: string | null
+          simhash?: number | null
+          source_id: string
+          submitted_by_college_id?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          canonical_url?: string | null
+          content_hash?: string
+          enriched_at?: string | null
+          fetch_method?: string | null
+          fetched_at?: string
+          id?: string
+          markdown?: string | null
+          rights_flag?: string | null
+          simhash?: number | null
+          source_id?: string
+          submitted_by_college_id?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_content_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "source_registry"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_content_submitted_by_college_id_fkey"
+            columns: ["submitted_by_college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_registry: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          known_dynamic: boolean
+          license_note: string | null
+          max_depth: number
+          name: string | null
+          path_scope: string[]
+          rate_limit_per_min: number
+          retired_at: string | null
+          rights_flag: string
+          seed_urls: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          known_dynamic?: boolean
+          license_note?: string | null
+          max_depth?: number
+          name?: string | null
+          path_scope?: string[]
+          rate_limit_per_min?: number
+          retired_at?: string | null
+          rights_flag?: string
+          seed_urls?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          known_dynamic?: boolean
+          license_note?: string | null
+          max_depth?: number
+          name?: string | null
+          path_scope?: string[]
+          rate_limit_per_min?: number
+          retired_at?: string | null
+          rights_flag?: string
+          seed_urls?: string[]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2770,6 +2988,7 @@ export type Database = {
           onboarded_at: string | null
           onboarding_status: string
           open_to_relocate: boolean
+          placement_completed_at: string | null
           preferred_locations: string[]
           preferred_skills: string[]
           profile_completed: boolean
@@ -2807,6 +3026,7 @@ export type Database = {
           onboarded_at?: string | null
           onboarding_status?: string
           open_to_relocate?: boolean
+          placement_completed_at?: string | null
           preferred_locations?: string[]
           preferred_skills?: string[]
           profile_completed?: boolean
@@ -2844,6 +3064,7 @@ export type Database = {
           onboarded_at?: string | null
           onboarding_status?: string
           open_to_relocate?: boolean
+          placement_completed_at?: string | null
           preferred_locations?: string[]
           preferred_skills?: string[]
           profile_completed?: boolean
@@ -3491,6 +3712,53 @@ export type Database = {
           },
         ]
       }
+      topic_ratings: {
+        Row: {
+          attempts: number
+          confidence: number
+          created_at: string
+          id: string
+          last_seen: string | null
+          rating: number
+          seeded_by: string | null
+          student_id: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          confidence?: number
+          created_at?: string
+          id?: string
+          last_seen?: string | null
+          rating?: number
+          seeded_by?: string | null
+          student_id: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          confidence?: number
+          created_at?: string
+          id?: string
+          last_seen?: string | null
+          rating?: number
+          seeded_by?: string | null
+          student_id?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_ratings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topic_threads: {
         Row: {
           created_at: string
@@ -3937,6 +4205,10 @@ export type Database = {
       backfill_rounds: { Args: { _season_id: string }; Returns: Json }
       bump_llm_cache_hit: { Args: { p_hash: string }; Returns: undefined }
       can_see_season: { Args: { _season_id: string }; Returns: boolean }
+      check_answer: {
+        Args: { _answer_type: string; _expected: Json; _given: Json }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           p_bucket: string
@@ -3946,8 +4218,24 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_crawl_jobs: {
+        Args: { _limit?: number; _worker: string }
+        Returns: {
+          depth: number
+          domain: string
+          job_id: string
+          known_dynamic: boolean
+          max_depth: number
+          rate_limit_per_min: number
+          url: string
+        }[]
+      }
       claim_lot_template: { Args: { _level_id: string }; Returns: string }
       close_season: { Args: { _season_id: string }; Returns: Json }
+      college_submit_source_content: {
+        Args: { _content: string; _title: string }
+        Returns: string
+      }
       complete_own_wizard: { Args: never; Returns: undefined }
       cosign_proof: {
         Args: { _note?: string; _proof_id: string }
@@ -4015,6 +4303,15 @@ export type Database = {
         Returns: number
       }
       is_admin: { Args: never; Returns: boolean }
+      is_duplicate_source: {
+        Args: {
+          _content_hash: string
+          _markdown: string
+          _simhash?: number
+          _threshold?: number
+        }
+        Returns: Json
+      }
       is_verified_recruiter: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
@@ -4163,6 +4460,18 @@ export type Database = {
       }
       notify_retest_unlocks: { Args: never; Returns: Json }
       notify_weekly_progress: { Args: never; Returns: number }
+      placement_questions: {
+        Args: { _student_id?: string }
+        Returns: {
+          band: string
+          level_id: string
+          level_number: number
+          own_track: boolean
+          quiz: Json
+          topic: string
+          track_slug: string
+        }[]
+      }
       plan_all_weeks: { Args: never; Returns: Json }
       plan_student_week: {
         Args: { _student_id: string; _week_start?: string }
@@ -4176,6 +4485,16 @@ export type Database = {
       }
       record_outcome: {
         Args: { _outcome: string; _student_id: string }
+        Returns: Json
+      }
+      record_topic_attempt: {
+        Args: {
+          _level_id?: string
+          _outcome: string
+          _seconds?: number
+          _student_id: string
+          _topic: string
+        }
         Returns: Json
       }
       recount_season: { Args: { _season_id: string }; Returns: undefined }
@@ -4354,6 +4673,8 @@ export type Database = {
         Args: { _round: number; _season_id: string }
         Returns: number
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       sponsor_lot: {
         Args: {
           _brief: string
@@ -4378,6 +4699,7 @@ export type Database = {
         Args: { _student_id: string }
         Returns: boolean
       }
+      submit_placement: { Args: { _results: Json }; Returns: Json }
       suggest_tracks: {
         Args: { _limit?: number; _student_id: string }
         Returns: {
@@ -4401,6 +4723,16 @@ export type Database = {
           _skills: string[]
         }
         Returns: string
+      }
+      topic_priorities: {
+        Args: { _limit?: number; _student_id: string }
+        Returns: {
+          confidence: number
+          days_since: number
+          rating: number
+          score: number
+          topic: string
+        }[]
       }
       touch_lot_template: {
         Args: { _level_id: string; _token: string }

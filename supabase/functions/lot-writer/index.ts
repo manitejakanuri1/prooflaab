@@ -37,14 +37,30 @@ const clampInt = (v: unknown, lo: number, hi: number, fallback: number) => {
 };
 
 interface RealJob {
+  kind: 'job';
   role: string;
   company: string;
   excerpt: string;
 }
 
+/**
+ * Real crawled or college/TPO-submitted material from source_content, used
+ * when no matching job posting exists. Covers real interview questions
+ * (PrepInsta, college submissions), reference docs, and similar — never a
+ * job description specifically, hence a different label in the prompt.
+ */
+interface RealContent {
+  kind: 'content';
+  title: string;
+  origin: 'college' | 'web';
+  excerpt: string;
+}
+
+type RealSource = RealJob | RealContent;
+
 const prompt = (
   level: { skill: string; title: string; track_slug: string; level_number: number; kind: string },
-  realJob: RealJob | null,
+  realSource: RealSource | null,
 ) => `
 You write daily work orders ("Lots") for Indian engineering students preparing for their first job.
 
@@ -62,12 +78,18 @@ Rules:
 - Say exactly what to submit at the end.
 - No greeting, no praise, no "in this task you will learn".
 - If a short piece of starter or broken code makes the work concrete, include it (max 15 lines). Otherwise use null.
-${realJob ? `- A real job posting for "${realJob.role}" at ${realJob.company} is the source for this Lot. Ground the scenario in what it actually asks for, quoted below. Do not invent a different company or role.
+${realSource?.kind === 'job' ? `- A real job posting for "${realSource.role}" at ${realSource.company} is the source for this Lot. Ground the scenario in what it actually asks for, quoted below. Do not invent a different company or role.
 - Leave source_jd as null — the real posting is attached separately, you do not need to name it.
 
 Real posting excerpt:
 """
-${realJob.excerpt}
+${realSource.excerpt}
+"""` : realSource?.kind === 'content' ? `- Real ${realSource.origin === 'college' ? "material submitted by the student's own college" : 'reference material found online'} titled "${realSource.title}" is the source for this Lot. Ground the scenario in what it actually covers — do not invent unrelated specifics.
+- Leave source_jd as null — the real source is attached separately, you do not need to name it.
+
+Real source excerpt:
+"""
+${realSource.excerpt}
 """` : `- source_jd is a short phrase naming the kind of job this work comes from, e.g. "a fresher backend JD, Hyderabad". Never invent a company name.`}
 
 Reply with JSON only, exactly these keys:
@@ -196,8 +218,9 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const realJob: RealJob | null = realJobRow?.description
+    let realSource: RealSource | null = realJobRow?.description
       ? {
+          kind: 'job',
           role: realJobRow.role,
           company: realJobRow.company_name,
           // A whole posting is more than a Lot needs and costs more tokens for
@@ -206,8 +229,33 @@ serve(async (req) => {
         }
       : null;
 
+    // No real job posting for this skill — check source_content next. This is
+    // the crawler's own output (real pages it collected) and college/TPO
+    // submissions, both landing in the same table. Prefer a college's own
+    // submission over generic web content when both exist, since it is the
+    // most locally relevant material a Lot can be grounded in.
+    if (!realSource) {
+      const { data: contentRow } = await supabase
+        .from('source_content')
+        .select('title, markdown, submitted_by_college_id')
+        .ilike('markdown', `%${level.skill}%`)
+        .order('submitted_by_college_id', { ascending: false, nullsFirst: false })
+        .order('fetched_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (contentRow?.markdown) {
+        realSource = {
+          kind: 'content',
+          title: String(contentRow.title ?? level.skill).slice(0, 200),
+          origin: contentRow.submitted_by_college_id ? 'college' : 'web',
+          excerpt: String(contentRow.markdown).slice(0, 800),
+        };
+      }
+    }
+
     const { text, provider } = await generateText(
-      prompt(level as never, realJob),
+      prompt(level as never, realSource),
       { temperature: 0.8, maxOutputTokens: 900, json: true },
       { feature: 'lot-writer', userId: callerId, studentId: callerId },
     );
@@ -237,10 +285,13 @@ serve(async (req) => {
       scenario,
       code_sample: typeof parsed.code_sample === 'string' && parsed.code_sample.trim()
         ? parsed.code_sample : null,
-      // A real posting's label is deterministic, never left to the model to
-      // restate — that is the whole point of grounding this in something real.
-      source_jd: realJob
-        ? `${realJob.role} at ${realJob.company}`
+      // A real posting's or real content's label is deterministic, never left
+      // to the model to restate — that is the whole point of grounding this
+      // in something real.
+      source_jd: realSource?.kind === 'job'
+        ? `${realSource.role} at ${realSource.company}`
+        : realSource?.kind === 'content'
+        ? `Real source: ${realSource.title}${realSource.origin === 'college' ? ' (from your college)' : ''}`
         : (typeof parsed.source_jd === 'string' && parsed.source_jd.trim() ? parsed.source_jd : null),
       difficulty: DIFFICULTIES.has(String(parsed.difficulty)) ? String(parsed.difficulty) : 'Medium',
       estimate_minutes: clampInt(parsed.estimate_minutes, 10, 45, 20),

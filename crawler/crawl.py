@@ -17,6 +17,7 @@ import urllib.robotparser as robotparser
 from urllib.parse import urlparse
 
 import httpx
+import trafilatura
 from dotenv import load_dotenv
 from markdownify import markdownify
 from supabase import create_client
@@ -99,7 +100,14 @@ def process_url(source: dict, url: str, existing: list[dict]) -> str:
         return "fetch_failed"
 
     html, title = fetched
-    markdown = markdownify(html).strip()
+    # Real bug found live: hashing the whole page (nav/footer/sidebar
+    # included) makes every page on the same site read as a near-duplicate
+    # of every other, since shared template text swamps the actual
+    # content (measured: 1-3 bits apart for genuinely different pages on
+    # prepinsta.com, vs 10-14 once boilerplate is stripped). trafilatura
+    # extracts just the article text; markdownify is the fallback for
+    # pages it can't parse (e.g. non-article layouts).
+    markdown = trafilatura.extract(html, output_format="markdown") or markdownify(html).strip()
     if len(markdown) < MIN_TEXT_CHARS:
         return "too_short"
 

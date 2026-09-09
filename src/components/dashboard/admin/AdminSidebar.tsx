@@ -65,47 +65,58 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const { open, setOpen, isMobile } = useSidebar();
   const { unreadCount } = useAdminNotifications();
 
+  // Four groups instead of 14 flat items. Grouped by what an admin is
+  // actually trying to do in that moment, not by data model:
+  // Overview (see the pilot), People (who's in it), Work Queue (what needs
+  // a decision today), Platform (content and system-level controls).
   const menuItems = [
-    { id: "dashboard", label: "Dashboard Home", icon: LayoutDashboard },
-    { 
-      id: "notifications", 
-      label: "Notifications", 
-      icon: Bell,
-      badge: unreadCount,
-      isRoute: true,
-      route: "/admin/notifications"
+    {
+      id: "overview",
+      label: "Overview",
+      icon: LayoutDashboard,
+      children: [
+        { id: "dashboard", label: "Dashboard Home", icon: LayoutDashboard },
+        { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, route: "/admin/notifications" },
+        { id: "analytics", label: "Reports & Analytics", icon: BarChart3 },
+      ]
     },
-    { 
-      id: "user-management", 
-      label: "User Management", 
+    {
+      id: "people",
+      label: "People",
       icon: Users,
       children: [
         { id: "students", label: "Students", icon: GraduationCap },
         { id: "startups", label: "Startups", icon: Rocket },
-        { id: "colleges", label: "Colleges", icon: Building2 }
+        { id: "colleges", label: "Colleges", icon: Building2 },
+        { id: "college-oversight", label: "College Oversight", icon: School },
+        { id: "student-oversight", label: "Student Oversight", icon: Users },
+        { id: "recruiter-oversight", label: "Recruiters", icon: UserCheck },
       ]
     },
-    { id: "proof-submissions", label: "Proof Review & Verification", icon: ClipboardCheck },
-    { id: "task-oversight", label: "Task Oversight", icon: Eye },
-    { id: "assign-tasks", label: "Assign Tasks", icon: Plus },
     {
-      id: "content-management", 
-      label: "Content Management", 
-      icon: FileText,
+      id: "work-queue",
+      label: "Work Queue",
+      icon: ClipboardCheck,
+      children: [
+        { id: "proof-submissions", label: "Proof Review & Verification", icon: ClipboardCheck },
+        { id: "task-oversight", label: "Task Oversight", icon: Eye },
+        { id: "assign-tasks", label: "Assign Tasks", icon: Plus },
+        { id: "xp-moderation", label: "Trust & XP Moderation", icon: Shield },
+      ]
+    },
+    {
+      id: "platform",
+      label: "Platform",
+      icon: Settings,
       children: [
         { id: "jobs", label: "Jobs", icon: Briefcase },
         { id: "resources", label: "Resources", icon: BookOpen },
-        { id: "announcements", label: "Announcements", icon: Megaphone }
+        { id: "announcements", label: "Announcements", icon: Megaphone },
+        { id: "token-usage", label: "Token Usage", icon: Coins },
+        { id: "security-events", label: "Security Events", icon: ShieldAlert },
+        { id: "settings", label: "System Settings & Roles", icon: Settings },
       ]
     },
-    { id: "analytics", label: "Reports & Analytics", icon: BarChart3 },
-    { id: "token-usage", label: "Token Usage", icon: Coins },
-    { id: "security-events", label: "Security Events", icon: ShieldAlert },
-    { id: "xp-moderation", label: "Trust & XP Moderation", icon: Shield },
-    { id: "college-oversight", label: "College Oversight", icon: School },
-    { id: "student-oversight", label: "Student Oversight", icon: Users },
-    { id: "recruiter-oversight", label: "Recruiters", icon: UserCheck },
-    { id: "settings", label: "System Settings & Roles", icon: Settings }
   ];
 
   // Find which group contains the active tab
@@ -256,14 +267,19 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
                             {item.children.map((child: any) => (
                               <SidebarMenuSubItem key={child.id}>
                                 <SidebarMenuSubButton
-                                  onClick={() => handleMenuClick(child.id)}
+                                  onClick={() => handleMenuClick(child.id, child.route)}
                                   className={cn(
-                                    "cursor-pointer",
+                                    "cursor-pointer relative",
                                     activeTab === child.id && "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300"
                                   )}
                                 >
                                   <child.icon className="h-4 w-4" />
                                   <span>{child.label}</span>
+                                  {child.badge > 0 && (
+                                    <span className="ml-auto h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
+                                      {child.badge > 9 ? '9+' : child.badge}
+                                    </span>
+                                  )}
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
                             ))}

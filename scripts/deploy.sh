@@ -43,9 +43,13 @@ fi
 auth=(-H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json")
 
 echo "==> Building $ORG/$REPO@$BRANCH as a preview"
+# `target` is deliberately absent. The API only accepts 'production', 'staging'
+# or a custom environment there - a preview is expressed by omitting it, and the
+# resulting deployment comes back with target: null. Sending "preview" is
+# rejected outright ("Invalid request: `target` should be ..."), and a preview is
+# the whole point here, since production builds are what Hobby refuses to run.
 create=$(curl -sS -X POST "https://api.vercel.com/v13/deployments?teamId=$TEAM_ID" "${auth[@]}" -d "{
   \"name\": \"$REPO\",
-  \"target\": \"preview\",
   \"gitSource\": { \"type\": \"github\", \"org\": \"$ORG\", \"repo\": \"$REPO\", \"ref\": \"$BRANCH\" }
 }")
 

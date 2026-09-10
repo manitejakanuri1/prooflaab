@@ -1,0 +1,58 @@
+name: Deploy to production
+
+# Vercel Hobby refuses to build a production deployment unless the commit author
+# is the Hobby team owner, so pushing does not deploy this project on its own -
+# see DEPLOYING.md. This workflow does the sequence that does work: build main as
+# a preview through the Vercel API, wait for it, then promote it to production.
+#
+# Needs one repository secret: VERCEL_TOKEN
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+#   Token comes from https://vercel.com/account/settings/tokens and is free on
+#   Hobby. It does not have to be the team owner's token.
+
+on:
+  push:
+    branches: [main]
+  # Lets you re-run a deploy from the Actions tab without pushing anything.
+  workflow_dispatch:
+
+# A newer push makes an in-flight deploy pointless, so cancel it rather than
+# racing two promotes against each other.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build a preview and promote it to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN secret is not set - see DEPLOYING.md"
+            exit 1
+          fi
+          bash scripts/deploy.sh
+
+      - name: Confirm production is serving the new bundle
+        run: |
+          # A promote can report success while the alias still points at the old
+          # build, so check the hash actually moved rather than trusting the API.
+          before=""
+          for i in $(seq 1 30); do
+            now=$(curl -s https://prooflaab.vercel.app/ \
+                  | grep -oE 'assets/index-[^"]+\.js' | head -1 || true)
+            if [ -n "$now" ]; then
+              if [ -z "$before" ]; then before="$now"; fi
+              echo "production bundle: $now"
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$now" ]; then
+            echo "::warning::Could not read the production bundle hash to confirm."
+          fi

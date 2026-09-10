@@ -159,8 +159,11 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);
     setNamingThemes((themes.data ?? []) as unknown as NamingTheme[]);
     setReserves((res.data ?? []) as unknown as Reserve[]);
-    if (list.length && !selected) setSelected(list[0].id);
-  }, [selected]);
+    // Functional update and no `selected` dependency. With `[selected]`, choosing
+    // a squad rebuilt `load`, the effect below re-ran all ten requests on every
+    // click, and this default selection caused a second full load on mount.
+    if (list.length) setSelected((cur) => cur ?? list[0].id);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 

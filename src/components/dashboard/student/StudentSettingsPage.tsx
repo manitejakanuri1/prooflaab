@@ -321,11 +321,13 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
 
   const handleSavePortfolioPrivacy = async (isPublic: boolean) => {
     try {
-      // Also update the portfolio's is_public field
+      // upsert, not update: a student who never opened the portfolio has no row,
+      // and update() on zero rows succeeds silently - the toggle said "public"
+      // while recruiters still could not find them (student_is_discoverable
+      // requires this row).
       const { error } = await supabase
         .from('student_portfolios')
-        .update({ is_public: isPublic })
-        .eq('student_id', profile?.id);
+        .upsert({ student_id: profile?.id, is_public: isPublic } as never, { onConflict: 'student_id' });
 
       if (error) throw error;
 

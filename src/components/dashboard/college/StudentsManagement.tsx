@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import StudentProfileModal from "./StudentProfileModal";
 import { GenerateRecruiterLinkModal } from "./GenerateRecruiterLinkModal";
 import { useCollegeProfile } from "@/hooks/useCollegeProfile";
+import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 
 interface Student {
   id: string;
@@ -154,7 +155,7 @@ const StudentsManagement = () => {
           completed_at
         `)
         .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
 
       if (error) {
         console.error('Error fetching task history:', error);

@@ -1,0 +1,13 @@
+-- NOTE ON THE FILE NAME: version 20260910173544, as recorded by apply_migration.
+--
+-- stage 65 created student_profiles_active_xp_idx before noticing that
+-- student_profiles_leaderboard_idx already existed with an identical
+-- definition: btree (total_xp desc, created_at) where status = 'active'.
+--
+-- Two identical indexes cost two writes on every insert and update and buy
+-- nothing, so the one added today goes. The pre-existing name stays, because
+-- other migrations refer to it.
+--
+-- student_profiles_active_college_xp_idx is NOT a duplicate - it leads with
+-- college_id, which is what my_rank() filters on - and stays.
+drop index if exists public.student_profiles_active_xp_idx;

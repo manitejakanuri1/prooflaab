@@ -7,6 +7,7 @@ import { Bell, Check, X, AlertCircle, Info, CheckCircle2, Clock } from "lucide-r
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
+import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 
 const VIEWED_NOTIFICATIONS_KEY = 'college_viewed_notifications';
 
@@ -53,7 +54,7 @@ const NotificationsSection = () => {
           student_profiles!inner(full_name),
           tasks!inner(title)
         `)
-        .order('submitted_at', { ascending: false })
+        .order('submitted_at', { ascending: false }).limit(ADMIN_LIST_CAP)
         .limit(20);
 
       if (proofsError) {
@@ -71,7 +72,7 @@ const NotificationsSection = () => {
           student_profiles!inner(full_name),
           tasks!inner(title)
         `)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP)
         .limit(20);
 
       if (appsError) {

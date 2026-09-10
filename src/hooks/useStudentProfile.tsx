@@ -87,21 +87,26 @@ export const useStudentProfile = () => {
   });
   const profile = profileQuery.data ?? null;
 
-  // Separate query so the profile paints without waiting on a 1000-row
-  // leaderboard, and so rank is cached longer than the profile - it moves
-  // weekly, not per click.
-  // ponytail: fetches up to 1000 rows to find one rank; a rank-for-student RPC if cohorts outgrow it.
+  // Separate query so the profile paints without waiting on rank, and so rank
+  // is cached longer than the profile - it moves weekly, not per click.
+  //
+  // This used to call get_leaderboard(1000) and search the reply for the signed
+  // -in student. That moved up to a thousand rows to read one integer, and past
+  // a thousand students in a college anyone below the cut fell off the end of
+  // the list and silently rendered as rank 0. my_rank() counts in the database
+  // and returns the number, over the same population and ordering the
+  // leaderboard uses, so the two cannot drift apart.
   const rankQuery = useQuery({
     queryKey: [...RANK_KEY, profile?.id],
     enabled: !!profile?.id,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_leaderboard", { _limit: 1000 });
+      const { data, error } = await supabase.rpc("my_rank");
       if (error) {
         console.warn("Could not fetch rank:", error.message);
         return 0;
       }
-      return data?.find((entry) => entry.id === profile!.id)?.rank || 0;
+      return (data as number) ?? 0;
     },
   });
 

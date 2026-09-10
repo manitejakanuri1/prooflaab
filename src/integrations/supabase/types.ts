@@ -4368,6 +4368,7 @@ export type Database = {
         }[]
       }
       my_placement_status: { Args: never; Returns: Json }
+      my_rank: { Args: never; Returns: number }
       my_recruiter_id: { Args: never; Returns: string }
       my_season_id: { Args: never; Returns: string }
       my_season_report: { Args: { _season_id?: string }; Returns: Json }

@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 
 const TrustXPModeration = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,7 +70,7 @@ const TrustXPModeration = () => {
         `)
         .in('status', ['Under Review', 'Pending']);
 
-      const { data, error } = await query.order('submitted_at', { ascending: false });
+      const { data, error } = await query.order('submitted_at', { ascending: false }).limit(ADMIN_LIST_CAP);
       if (error) throw error;
       
       // Fetch college names separately
@@ -116,7 +117,7 @@ const TrustXPModeration = () => {
         query = query.eq('college_id', collegeFilter);
       }
 
-      const { data, error } = await query.order('total_xp', { ascending: false });
+      const { data, error } = await query.order('total_xp', { ascending: false }).limit(ADMIN_LIST_CAP);
       if (error) throw error;
       
       // Fetch college names and verified proofs count

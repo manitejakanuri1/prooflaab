@@ -19,28 +19,48 @@ const AdminDashboardOverview = ({
   } = useQuery({
     queryKey: ['admin-overview-stats'],
     queryFn: async () => {
-      const [studentsRes, collegesRes, startupsRes, proofsRes, tasksRes] = await Promise.all([supabase.from('student_profiles').select('id, status', {
-        count: 'exact'
-      }), supabase.from('colleges').select('id, verification_status', {
-        count: 'exact'
-      }), supabase.from('startups').select('id, verification_status', {
-        count: 'exact'
-      }), supabase.from('proof_uploads').select('id, status', {
-        count: 'exact'
-      }), supabase.from('tasks').select('id, status', {
-        count: 'exact'
-      })]);
+      // `head: true` makes PostgREST answer with the count in a header and no
+      // rows at all. Without it, `count: 'exact'` still ships every row so the
+      // browser can filter them - which is what this did, across five tables,
+      // to show ten numbers. At one college it was invisible; at fifty it means
+      // downloading every student, proof and task on the platform to render a
+      // header card. Counting the filtered sets in the database costs ten cheap
+      // round trips and transfers nothing.
+      const [
+        students, activeStudents,
+        colleges, activeColleges,
+        startups, activeStartups,
+        proofs, pendingProofs,
+        tasks, activeTasks,
+      ] = await Promise.all([
+        supabase.from('student_profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('student_profiles').select('id', { count: 'exact', head: true })
+          .eq('status', 'active'),
+        supabase.from('colleges').select('id', { count: 'exact', head: true }),
+        supabase.from('colleges').select('id', { count: 'exact', head: true })
+          .eq('verification_status', 'approved'),
+        supabase.from('startups').select('id', { count: 'exact', head: true }),
+        supabase.from('startups').select('id', { count: 'exact', head: true })
+          .eq('verification_status', 'approved'),
+        supabase.from('proof_uploads').select('id', { count: 'exact', head: true }),
+        supabase.from('proof_uploads').select('id', { count: 'exact', head: true })
+          .eq('status', 'Under Review'),
+        supabase.from('tasks').select('id', { count: 'exact', head: true }),
+        supabase.from('tasks').select('id', { count: 'exact', head: true })
+          .in('status', ['Pending', 'In Progress']),
+      ]);
+
       return {
-        totalStudents: studentsRes.count || 0,
-        activeStudents: studentsRes.data?.filter(s => s.status === 'active').length || 0,
-        totalColleges: collegesRes.count || 0,
-        activeColleges: collegesRes.data?.filter(c => c.verification_status === 'approved').length || 0,
-        totalStartups: startupsRes.count || 0,
-        activeStartups: startupsRes.data?.filter(s => s.verification_status === 'approved').length || 0,
-        pendingProofs: proofsRes.data?.filter(p => p.status === 'Under Review').length || 0,
-        totalProofs: proofsRes.count || 0,
-        activeTasks: tasksRes.data?.filter(t => t.status === 'Pending' || t.status === 'In Progress').length || 0,
-        totalTasks: tasksRes.count || 0
+        totalStudents: students.count ?? 0,
+        activeStudents: activeStudents.count ?? 0,
+        totalColleges: colleges.count ?? 0,
+        activeColleges: activeColleges.count ?? 0,
+        totalStartups: startups.count ?? 0,
+        activeStartups: activeStartups.count ?? 0,
+        totalProofs: proofs.count ?? 0,
+        pendingProofs: pendingProofs.count ?? 0,
+        totalTasks: tasks.count ?? 0,
+        activeTasks: activeTasks.count ?? 0,
       };
     }
   });

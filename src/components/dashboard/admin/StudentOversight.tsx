@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Users, Plus, Eye, Edit, Pause, MoreHorizontal } from "lucide-react";
+import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 
 const StudentOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,7 +74,7 @@ const StudentOversight = () => {
         query = query.ilike('full_name', `%${searchTerm}%`);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
       if (error) throw error;
       return (data ?? []).map((s: any) => ({
         ...s,

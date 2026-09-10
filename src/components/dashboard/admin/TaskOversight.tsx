@@ -26,6 +26,7 @@ import { ViewAssignedStudentsModal } from "./ViewAssignedStudentsModal";
 import { EditTaskModal } from "./EditTaskModal";
 import { ReassignTaskModal } from "./ReassignTaskModal";
 import { TaskDetailsModal } from "./TaskDetailsModal";
+import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 
 const TaskOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -91,7 +92,7 @@ const TaskOversight = () => {
         }
       }
 
-      const { data: tasksData, error: tasksError } = await query.order('created_at', { ascending: false });
+      const { data: tasksData, error: tasksError } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
       if (tasksError) {
         console.error('Task fetch error:', tasksError);
         throw tasksError;

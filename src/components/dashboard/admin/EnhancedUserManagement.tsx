@@ -42,6 +42,7 @@ import {
   Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle, 
   Eye, Download, MoreHorizontal, Shield, Trash2, UserX, UserCheck, Filter
 } from "lucide-react";
+import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 
 interface UserData {
   id: string;
@@ -127,7 +128,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
           query = query.eq('college_id', collegeFilter);
         }
 
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
         if (error) {
           console.error('Error fetching students:', error);
           throw error;
@@ -154,7 +155,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
           query = query.eq('verification_status', statusFilter);
         }
 
-        const { data: startupsData, error: startupsError } = await query.order('created_at', { ascending: false });
+        const { data: startupsData, error: startupsError } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
         
         if (startupsError) {
           console.error('Error fetching startups:', startupsError);
@@ -200,7 +201,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
           query = query.eq('verification_status', statusFilter);
         }
 
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
         if (error) {
           console.error('Error fetching colleges:', error);
           throw error;

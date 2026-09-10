@@ -1,3 +1,7 @@
+-- NOTE ON THE FILE NAME: version 20260910170225, as recorded by
+-- apply_migration in the live database. See the note in the stage 63 file about
+-- the duplicated stage number.
+--
 -- ============================================================================
 -- Stage 64 — the other two college helpers also require approval.
 --

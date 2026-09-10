@@ -1,3 +1,9 @@
+-- NOTE ON THE FILE NAME: this is version 20260910165902 because that is what
+-- apply_migration recorded in the live database, and the folder has to match
+-- what actually ran. The other laptop independently used "stage 63" for
+-- 20261001000500_stage63_demo_students_discoverable.sql on the same day, so the
+-- stage numbers collide. Both are applied; neither depends on the other.
+--
 -- ============================================================================
 -- Stage 63 — a college_admin must be an APPROVED college.
 --

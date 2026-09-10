@@ -30,6 +30,14 @@ interface DayMark {
   kind: "technical" | "business" | "pitch" | null;
 }
 
+/** The student's current squad, or null when they are still in the reserve pool. */
+interface SquadSummary {
+  name: string;
+  points: number | null;
+  rank: number | null;
+  cohort: string | null;
+}
+
 /**
  * The Daily Card — the screen a student lands on.
  *
@@ -45,6 +53,7 @@ const StudentDailyCard = () => {
   const [streak, setStreak] = useState(0);
   const [lastActive, setLastActive] = useState<string | null>(null);
   const [week, setWeek] = useState<DayMark[]>([]);
+  const [squad, setSquad] = useState<SquadSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [explaining, setExplaining] = useState(false);
   // "writing" is the few seconds the very first student to reach a topic waits
@@ -60,7 +69,7 @@ const StudentDailyCard = () => {
 
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
 
-    const [lotRes, streakRes, weekRes] = await Promise.all([
+    const [lotRes, streakRes, weekRes, squadRes] = await Promise.all([
       supabase.rpc("my_todays_lot"),
       supabase
         .from("student_streaks")
@@ -73,6 +82,14 @@ const StudentDailyCard = () => {
         .eq("student_id", profile.id)
         .gte("lot_date", format(monday, "yyyy-MM-dd"))
         .not("lot_date", "is", null),
+      // A student with no squad row is a reserve, which is a real state rather
+      // than an error - left_at is null so a past membership does not count.
+      supabase
+        .from("squad_members")
+        .select("squads(name, points, rank, cohort)")
+        .eq("student_id", profile.id)
+        .is("left_at", null)
+        .maybeSingle(),
     ]);
 
     let today = ((lotRes.data as Lot[] | null) ?? [])[0] ?? null;
@@ -107,6 +124,9 @@ const StudentDailyCard = () => {
     setLot(today);
     setStreak(streakRes.data?.current_days ?? 0);
     setLastActive(streakRes.data?.last_active_on ?? null);
+    setSquad(
+      ((squadRes.data as unknown as { squads: SquadSummary | null } | null)?.squads) ?? null,
+    );
 
     const byDay = new Map<string, DayMark["kind"]>();
     for (const row of (weekRes.data ?? []) as { lot_date: string; lot_category: string | null }[]) {
@@ -275,11 +295,24 @@ const StudentDailyCard = () => {
           </div>
 
           <div className="flex items-center gap-3 rounded-xl border p-4">
-            <div>
+            <div className="min-w-0">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Squad
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">Not in a squad yet</p>
+              {squad ? (
+                <>
+                  <p className="mt-1 truncate text-sm font-semibold">{squad.name}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                    {squad.cohort ? `${squad.cohort} · ` : ""}
+                    {squad.points ?? 0} pts
+                    {squad.rank ? ` · rank #${squad.rank}` : ""}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Not in a squad yet — your college places you in one.
+                </p>
+              )}
             </div>
           </div>
         </div>

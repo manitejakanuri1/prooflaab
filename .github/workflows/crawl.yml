@@ -1,0 +1,60 @@
+name: Crawl source content
+
+# The collector only fetches the seed_urls listed in source_registry - it does
+# not follow links - so once it has consumed that list every later run is mostly
+# duplicate detection. That is fine and cheap: the point of running it on a
+# schedule is to pick up pages that CHANGED, and to fetch seeds added to the
+# registry since the last run, without anyone remembering to do it by hand.
+#
+# Needs two repository secrets:
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY   <- bypasses RLS; the crawler writes source_content
+#
+# The service-role key is powerful. It lives in GitHub's encrypted secrets and is
+# never printed - the crawler reads it from the environment and GitHub masks it
+# in logs. If that is not acceptable, run crawler/crawl.py locally instead and
+# leave this workflow disabled.
+
+on:
+  schedule:
+    # 02:40 UTC daily. Deliberately not on the hour: scheduled jobs pile up at
+    # :00 across all of GitHub and get delayed, and nothing here is time-critical.
+    - cron: '40 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    # Politeness delays are per source and per URL, so this is mostly waiting.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install crawler dependencies
+        working-directory: crawler
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Crawl
+        working-directory: crawler
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set - see the comment at the top of this file"
+            exit 1
+          fi
+          # Each URL prints its own outcome (inserted / exact_duplicate /
+          # near_duplicate / blocked_by_robots / fetch_failed / too_short), so the
+          # run log is the report. Duplicates are the expected steady state.
+          python crawl.py

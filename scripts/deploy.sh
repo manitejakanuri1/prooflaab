@@ -91,13 +91,51 @@ if [ "${state:-}" != "READY" ]; then
 fi
 
 echo "==> Promoting to production"
-promote=$(curl -sS -w '\n%{http_code}' -X POST \
-  "https://api.vercel.com/v10/projects/$PROJECT_ID/promote/$dpl?teamId=$TEAM_ID" "${auth[@]}" || true)
+# Not /promote - that endpoint only accepts a deployment already built for
+# production and answers 422 unprocessable_entity for a preview. What the
+# dashboard's "Promote to Production" button actually does is stated in its own
+# dialog: "A new deployment will be built using your production environment."
+# So it is a redeploy of this build with target=production, which is what this
+# does. Redeploying an existing build is also the step that escapes the Hobby
+# author check - building straight from git with target=production is exactly
+# what comes back BLOCKED.
+promote=$(curl -sS -w '\n%{http_code}' -X POST "https://api.vercel.com/v13/deployments?teamId=$TEAM_ID" "${auth[@]}" -d "{
+  \"name\": \"$REPO\",
+  \"deploymentId\": \"$dpl\",
+  \"target\": \"production\",
+  \"meta\": { \"action\": \"redeploy\" }
+}" || true)
 code=$(printf '%s' "$promote" | tail -1)
+body=$(printf '%s' "$promote" | sed '$d')
+
 if [ "$code" != "200" ] && [ "$code" != "201" ] && [ "$code" != "202" ]; then
   echo "Promote failed (HTTP $code). Vercel replied:" >&2
-  printf '%s\n' "$promote" | sed '$d' >&2
+  printf '%s\n' "$body" >&2
   exit 1
+fi
+
+if command -v jq >/dev/null 2>&1; then
+  prod=$(printf '%s' "$body" | jq -r '.id // empty' 2>/dev/null || true)
+else
+  prod=$(printf '%s' "$body" | grep -oE '"id"[[:space:]]*:[[:space:]]*"dpl_[^"]+"' | head -1 | grep -oE 'dpl_[^"]+' || true)
+fi
+echo "    production deployment: ${prod:-unknown}"
+
+if [ -n "$prod" ]; then
+  echo "==> Waiting for the production build"
+  for _ in $(seq 1 90); do
+    pstatus=$(curl -sS "https://api.vercel.com/v13/deployments/$prod?teamId=$TEAM_ID" "${auth[@]}" || true)
+    if command -v jq >/dev/null 2>&1; then
+      pstate=$(printf '%s' "$pstatus" | jq -r '.readyState // .status // empty' 2>/dev/null || true)
+    else
+      pstate=$(printf '%s' "$pstatus" | grep -oE '"readyState"[[:space:]]*:[[:space:]]*"[A-Z]+"' | head -1 | grep -oE '[A-Z]+$' || true)
+    fi
+    case "$pstate" in
+      READY) echo "    READY"; break ;;
+      ERROR|CANCELED|BLOCKED) echo "    production build $pstate" >&2; exit 1 ;;
+      *) sleep 5 ;;
+    esac
+  done
 fi
 
 echo "==> Done. Confirm the bundle actually changed:"

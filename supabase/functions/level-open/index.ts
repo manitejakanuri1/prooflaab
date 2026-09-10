@@ -6,6 +6,7 @@ import {
   quizForStudent,
   type LevelRow,
 } from "../_shared/levels.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Open one topic and serve whichever of its steps is next for this student.
@@ -16,11 +17,6 @@ import {
  * only happens when the caller explicitly passes advance_step: true, which the
  * "Got it, next" button sends for the step currently on screen.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const DONE_STATUSES = new Set(['placed', 'cleared', 'mastered']);
 

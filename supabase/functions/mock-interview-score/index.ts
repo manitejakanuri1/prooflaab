@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from "../_shared/rate-limit.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Grades all four answers together in one call rather than one call per
@@ -9,11 +10,6 @@ import { rateLimitResponse } from "../_shared/rate-limit.ts";
  * conversation, and four separate 0-100s would double-count the same
  * nervousness or fluency four times.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

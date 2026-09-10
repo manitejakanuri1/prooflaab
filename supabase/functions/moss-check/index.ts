@@ -1,11 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { mayActOnStudentWork, forbidden } from "../_shared/authz.ts";
 
 async function submitToMossAPI(repoUrl: string, language: string = 'javascript'): Promise<{ similarity_score: number; report_url: string }> {
   const mossApiUrl = Deno.env.get('MOSS_API_URL');
@@ -105,7 +102,10 @@ serve(async (req) => {
       .from('user_roles')
       .select('role')
       .eq('user_id', userData.user.id);
-    if (!(roles ?? []).some((r: any) => r.role === 'admin' || r.role === 'college_admin')) {
+    // Coarse gate first: only staff run plagiarism checks at all. Which
+    // submissions a college admin may run one on cannot be decided yet - the
+    // submission has not been read - so that half is enforced below.
+    if (!(roles ?? []).some((r: { role: string }) => r.role === 'admin' || r.role === 'college_admin')) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -119,13 +119,23 @@ serve(async (req) => {
     // Get submission details
     const { data: submission, error: submissionError } = await supabaseClient
       .from('proof_uploads')
-      .select('*')
+      .select('*, student_profiles(user_id, college_id)')
       .eq('id', submissionId)
       .single();
 
     if (submissionError || !submission) {
       throw new Error('Submission not found');
     }
+
+    // The scoped half of the gate above. A college admin may only check a
+    // submission from a student in a college they own; without this, the role
+    // alone reached every submission on the platform.
+    const submissionProfile = (submission as any).student_profiles;
+    const mayCheck = await mayActOnStudentWork(supabaseClient, userData.user.id, {
+      ownerUserId: submissionProfile?.user_id ?? null,
+      collegeId: submissionProfile?.college_id ?? null,
+    });
+    if (!mayCheck) return forbidden(corsHeaders);
 
     // Update submission to show MOSS is pending
     await supabaseClient

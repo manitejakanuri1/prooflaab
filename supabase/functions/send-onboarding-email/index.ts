@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { guard } from '../_shared/rate-limit.ts';
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Built per request, not once at module load.
@@ -16,11 +17,6 @@ function getResend(): Resend | null {
   const key = Deno.env.get("RESEND_API_KEY");
   return key ? new Resend(key) : null;
 }
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface OnboardingEmailRequest {
   userType?: 'student' | 'college' | 'startup';

@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { generateText } from "../_shared/llm.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { mayActOnStudentWork, forbidden } from "../_shared/authz.ts";
 
 interface QuestionData {
   id: string;
@@ -49,6 +46,9 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     
     let isAuthorized = false;
+    // Stays null on the webhook path: the scheduled caller is not a user and
+    // has no proof of its own to be scoped against.
+    let callerId: string | null = null;
     
     // Option 1: Webhook secret for internal/cron calls
     if (webhookSecret && expectedSecret && webhookSecret === expectedSecret) {
@@ -65,6 +65,7 @@ serve(async (req) => {
       
       if (!error && data?.user) {
         isAuthorized = true;
+        callerId = data.user.id;
       }
     }
     
@@ -86,6 +87,24 @@ serve(async (req) => {
 
     // Use service role for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // A signed-in caller may only touch a proof they own, or one belonging to a
+    // student in a college they administer. Being signed in was already checked;
+    // being entitled to THIS proof was not. The webhook caller skips this.
+    if (callerId) {
+      const { data: ownerRow } = await supabase
+        .from('proof_uploads')
+        .select('student_profiles(user_id, college_id)')
+        .eq('id', proof_id)
+        .maybeSingle();
+
+      const owner = (ownerRow as any)?.student_profiles;
+      const mayAct = await mayActOnStudentWork(supabase, callerId, {
+        ownerUserId: owner?.user_id ?? null,
+        collegeId: owner?.college_id ?? null,
+      });
+      if (!mayAct) return forbidden(corsHeaders);
+    }
 
     // Fetch conceptual test
     const { data: conceptualTest, error: fetchError } = await supabase

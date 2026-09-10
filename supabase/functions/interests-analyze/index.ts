@@ -3,11 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { matchSkills, INTEREST_SKILLS, CORE_SKILLS } from "../_shared/skill-map.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 // Mirrors the pickers in StudentWizard. Anything outside these lists is dropped
 // rather than rejected, so a stale client cannot lock a student out — but it also

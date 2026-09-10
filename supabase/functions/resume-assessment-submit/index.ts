@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { classifySkillGap } from "../_shared/role-skills.ts";
 import { normSkill, placeStudent } from "../_shared/levels.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /** Must match the countdown in TimedResumeAssessment. */
 const SECONDS_PER_QUESTION = 15;
@@ -13,11 +14,6 @@ const SECONDS_PER_QUESTION = 15;
  * slightly slow one.
  */
 const TIME_GRACE_SECONDS = 600;
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 type ConfidenceLevel = 'high' | 'medium' | 'low';
 

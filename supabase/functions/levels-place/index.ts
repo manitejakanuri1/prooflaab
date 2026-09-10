@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { placeStudent } from "../_shared/levels.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Put a student on the level map.
@@ -11,11 +12,6 @@ import { placeStudent } from "../_shared/levels.ts";
  * skipped the resume still has interests and picked skills, and they deserve a
  * path too rather than an empty page telling them to go take a test.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

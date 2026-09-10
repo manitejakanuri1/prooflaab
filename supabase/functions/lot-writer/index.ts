@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Writes the Lot behind a topic — once, for everybody.
@@ -16,11 +17,6 @@ import { generateText } from "../_shared/llm.ts";
  * in place the moment it lands — so nobody stares at a spinner and nobody is
  * left with the plain one.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

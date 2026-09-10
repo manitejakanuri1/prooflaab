@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { generateText } from "../_shared/llm.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { mayActOnStudentWork, forbidden } from "../_shared/authz.ts";
 
 interface GitHubRepoInfo {
   commit_count: number;
@@ -259,6 +256,16 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Being signed in was checked above; being entitled to THIS proof was not.
+    // Without it any account could re-verify a stranger's proof, overwrite
+    // their trust_score, and file audit_logs rows under their user id.
+    const proofOwner = (proof as any).student_profiles;
+    const mayVerify = await mayActOnStudentWork(supabase, claims.claims.sub as string, {
+      ownerUserId: proofOwner?.user_id ?? null,
+      collegeId: proofOwner?.college_id ?? null,
+    });
+    if (!mayVerify) return forbidden(corsHeaders);
 
     const isGitHubLink = proof.file_url?.includes('github.com');
     let githubInfo: GitHubRepoInfo | null = null;

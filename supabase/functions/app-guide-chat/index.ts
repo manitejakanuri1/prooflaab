@@ -2,11 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 const APP_GUIDE = `You are the in-app guide chatbot for ProofLabAI, a skill-verification platform. Answer only questions about how to use ProofLabAI — be short, friendly, and point to exact menu names. If asked something unrelated, redirect them back to the app.
 

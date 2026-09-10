@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { corsHeaders } from "../_shared/cors.ts";
+import { mayActOnStudentWork } from "../_shared/authz.ts";
 
 /**
  * Hand out a short-lived link to a proof file.
@@ -16,11 +18,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
  * both Verified and explicitly public — the same condition as the public SELECT
  * policy on the table.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -48,7 +45,7 @@ serve(async (req) => {
 
     const { data: proof } = await supabase
       .from('proof_uploads')
-      .select('id, student_id, task_id, file_path, file_name, status, is_public')
+      .select('id, student_id, task_id, file_path, file_name, status, is_public, student_profiles(user_id, college_id)')
       .eq('id', proof_id)
       .maybeSingle();
 
@@ -75,25 +72,23 @@ serve(async (req) => {
     let allowed = isPubliclyVisible;
 
     if (!allowed && callerId) {
-      const { data: ownProfile } = await supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('user_id', callerId)
-        .maybeSingle();
+      // Owner, platform admin, or the college admin this student actually
+      // belongs to. Previously any college_admin passed here regardless of
+      // college, which reached every private proof on the platform.
+      const ownerProfile = (proof as any).student_profiles;
+      allowed = await mayActOnStudentWork(supabase, callerId, {
+        ownerUserId: ownerProfile?.user_id ?? null,
+        collegeId: ownerProfile?.college_id ?? null,
+      });
 
-      if (ownProfile?.id === proof.student_id) {
-        allowed = true;
-      } else {
+      if (!allowed) {
+        // A startup sees proofs answering a task it created, and nothing else.
         const { data: roles } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', callerId);
-        const roleNames = (roles ?? []).map((r: any) => r.role);
 
-        if (roleNames.includes('admin') || roleNames.includes('college_admin')) {
-          allowed = true;
-        } else if (roleNames.includes('startup')) {
-          // Only the startup that created the task this proof answers.
+        if ((roles ?? []).some((r: { role: string }) => r.role === 'startup')) {
           const { data: task } = await supabase
             .from('tasks')
             .select('id')

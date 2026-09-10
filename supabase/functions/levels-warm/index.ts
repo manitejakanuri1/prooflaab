@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { ensureTopicSteps, type LevelRow } from "../_shared/levels.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Write level content ahead of time, so no student is the one who waits.
@@ -14,11 +15,6 @@ import { ensureTopicSteps, type LevelRow } from "../_shared/levels.ts";
  *
  * Admin only. It spends real money with the model provider on every call.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

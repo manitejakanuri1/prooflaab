@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Scores a 60-second spoken explanation.
@@ -17,11 +18,6 @@ import { generateText } from "../_shared/llm.ts";
  * transcription would need a new provider and a new key. The audio itself is
  * kept as the evidence a human can always fall back on.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

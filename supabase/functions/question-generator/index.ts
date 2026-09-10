@@ -2,11 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { mayActOnStudentWork, forbidden } from "../_shared/authz.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -58,7 +55,7 @@ serve(async (req) => {
     const callerId = claims.claims.sub;
     const { data: proofRow, error: proofErr } = await supabase
       .from('proof_uploads')
-      .select('id, file_url, student_profiles!inner(user_id)')
+      .select('id, file_url, student_profiles!inner(user_id, college_id)')
       .eq('id', proof_id)
       .maybeSingle();
     if (proofErr || !proofRow) {
@@ -67,18 +64,12 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    const ownerId = (proofRow as any).student_profiles?.user_id;
-    if (ownerId !== callerId) {
-      const { data: roles } = await supabase
-        .from('user_roles').select('role').eq('user_id', callerId);
-      const allowed = (roles ?? []).some((r: any) => r.role === 'admin' || r.role === 'college_admin');
-      if (!allowed) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
+    const ownerProfile = (proofRow as any).student_profiles;
+    const allowed = await mayActOnStudentWork(supabase, callerId, {
+      ownerUserId: ownerProfile?.user_id ?? null,
+      collegeId: ownerProfile?.college_id ?? null,
+    });
+    if (!allowed) return forbidden(corsHeaders);
     if (!proofRow.file_url || proofRow.file_url !== repo_url) {
       return new Response(
         JSON.stringify({ error: 'repo_url does not match the proof record' }),

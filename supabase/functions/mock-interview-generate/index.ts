@@ -2,17 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from "../_shared/rate-limit.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Four interview questions for the student's own target role, generated once
  * per attempt rather than drawn from a fixed bank — the roadmap already knows
  * what they claim to know, so the questions can be specific instead of generic.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

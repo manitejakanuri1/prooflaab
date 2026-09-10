@@ -2398,6 +2398,7 @@ export type Database = {
       startup_profiles: {
         Row: {
           created_at: string
+          description: string | null
           domain_industry: string | null
           id: string
           startup_name: string
@@ -2409,6 +2410,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           domain_industry?: string | null
           id?: string
           startup_name: string
@@ -2420,6 +2422,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           domain_industry?: string | null
           id?: string
           startup_name?: string
@@ -4337,6 +4340,7 @@ export type Database = {
         Returns: undefined
       }
       lot_needs_writer: { Args: { _task_id: string }; Returns: boolean }
+      my_approved_college_ids: { Args: never; Returns: string[] }
       my_college_id: { Args: never; Returns: string }
       my_cosigns: {
         Args: never

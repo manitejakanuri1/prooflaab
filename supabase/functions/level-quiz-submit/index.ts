@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { advanceUnlock, LEVEL_CLEAR_XP, QUIZ_PASS_MARK } from "../_shared/levels.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Grade a level's quiz and, if they passed, open the next level and hand them
@@ -12,11 +13,6 @@ import { advanceUnlock, LEVEL_CLEAR_XP, QUIZ_PASS_MARK } from "../_shared/levels
  * and a path you can get stuck on is not a path. Requiring nothing but a quiz
  * would make this a course website. So: the quiz moves you, the proof marks you.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

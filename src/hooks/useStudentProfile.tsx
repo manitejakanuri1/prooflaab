@@ -15,6 +15,10 @@ interface StudentProfile {
   preferred_skills: string[] | null;
   career_goals: string | null;
   profile_completed: boolean;
+  // Already fetched by the select('*') below - just missing from this type.
+  // stage68's Daily Card squad panel needs it to say whether "no squad" means
+  // "not placed yet" or "no college linked at all".
+  college_id: string | null;
 }
 
 const PROFILE_KEY = ["student-profile"] as const;

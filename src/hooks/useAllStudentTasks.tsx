@@ -16,6 +16,10 @@ interface StudentTask {
   application_id?: string;
   proof_submitted?: boolean;
   can_start?: boolean;
+  // stage69/70: which grading mode this task uses, if any.
+  sandbox_config_id?: string | null;
+  rubric_config_id?: string | null;
+  is_sandbox_task?: boolean;
 }
 
 export const useAllStudentTasks = () => {
@@ -41,6 +45,7 @@ export const useAllStudentTasks = () => {
         .from('task_assignments')
         .select(`
           task_id,
+          status,
           tasks:task_id (
             id,
             title,
@@ -53,6 +58,9 @@ export const useAllStudentTasks = () => {
             created_by_startup_id,
             created_by_college_id,
             created_by_admin_id,
+            sandbox_config_id,
+            rubric_config_id,
+            is_sandbox_task,
             proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
           )
         `)
@@ -76,6 +84,9 @@ export const useAllStudentTasks = () => {
           created_by_startup_id,
           created_by_college_id,
           created_by_admin_id,
+          sandbox_config_id,
+          rubric_config_id,
+          is_sandbox_task,
           proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
         `)
         .eq('student_id', profile.id)
@@ -112,8 +123,15 @@ export const useAllStudentTasks = () => {
       (directTasks || []).forEach(task => {
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
-        
-        if (proofUploads.length > 0) {
+
+        // stage69/70: a sandbox or rubric task never creates a proof_uploads
+        // row — record_task_submission sets tasks.status = 'completed'
+        // directly on a pass. Checked before the proof-upload path, which
+        // would otherwise leave these stuck on 'Applied' forever.
+        if (task.sandbox_config_id || task.rubric_config_id) {
+          if (task.status === 'completed') status = 'Completed';
+          else if (task.started_at) status = 'In Progress';
+        } else if (proofUploads.length > 0) {
           const latestProof = proofUploads[proofUploads.length - 1];
           // Any submitted proof stays out of 'In Progress' — 'Rejected'/'needs_review'
           // (set by trust-compute) must not re-show the Submit Proof button.
@@ -147,6 +165,9 @@ export const useAllStudentTasks = () => {
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
           can_start: !task.started_at && status === 'Applied',
+          sandbox_config_id: task.sandbox_config_id,
+          rubric_config_id: task.rubric_config_id,
+          is_sandbox_task: task.is_sandbox_task,
         });
         addedTaskIds.add(task.id);
       });
@@ -159,7 +180,13 @@ export const useAllStudentTasks = () => {
         const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
 
-        if (proofUploads.length > 0) {
+        // stage69/70: a college/admin task graded automatically completes
+        // via task_assignments.status (record_task_submission's non-owner
+        // branch), not tasks.status and never proof_uploads.
+        if (task.sandbox_config_id || task.rubric_config_id) {
+          if (assignment.status === 'completed') status = 'Completed';
+          else if (task.started_at) status = 'In Progress';
+        } else if (proofUploads.length > 0) {
           const latestProof = proofUploads[proofUploads.length - 1];
           status = latestProof.status === 'Verified' ? 'Completed' : 'Under Review';
         } else if (task.started_at) {
@@ -189,6 +216,9 @@ export const useAllStudentTasks = () => {
           created_by_startup_id: task.created_by_startup_id,
           proof_submitted: proofUploads.length > 0,
           can_start: !task.started_at && status === 'Applied',
+          sandbox_config_id: task.sandbox_config_id,
+          rubric_config_id: task.rubric_config_id,
+          is_sandbox_task: task.is_sandbox_task,
         });
         addedTaskIds.add(task.id);
       });

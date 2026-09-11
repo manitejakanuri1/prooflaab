@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -926,10 +926,13 @@ export type Database = {
           level_id: string
           lot_category: string
           origin: string
+          rubric_config_id: string | null
+          sandbox_config_id: string | null
           scenario: string
           source_jd: string | null
           title: string
           updated_at: string
+          xp_reward: number
         }
         Insert: {
           code_sample?: string | null
@@ -941,10 +944,13 @@ export type Database = {
           level_id: string
           lot_category?: string
           origin?: string
+          rubric_config_id?: string | null
+          sandbox_config_id?: string | null
           scenario: string
           source_jd?: string | null
           title: string
           updated_at?: string
+          xp_reward?: number
         }
         Update: {
           code_sample?: string | null
@@ -956,10 +962,13 @@ export type Database = {
           level_id?: string
           lot_category?: string
           origin?: string
+          rubric_config_id?: string | null
+          sandbox_config_id?: string | null
           scenario?: string
           source_jd?: string | null
           title?: string
           updated_at?: string
+          xp_reward?: number
         }
         Relationships: [
           {
@@ -967,6 +976,20 @@ export type Database = {
             columns: ["level_id"]
             isOneToOne: true
             referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_templates_rubric_config_id_fkey"
+            columns: ["rubric_config_id"]
+            isOneToOne: false
+            referencedRelation: "task_rubric_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_templates_sandbox_config_id_fkey"
+            columns: ["sandbox_config_id"]
+            isOneToOne: false
+            referencedRelation: "task_sandbox_config"
             referencedColumns: ["id"]
           },
         ]
@@ -3486,6 +3509,185 @@ export type Database = {
           },
         ]
       }
+      task_rubric_config: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          criteria: Json
+          id: string
+          max_words: number
+          min_words: number
+          pass_threshold: number
+          prompt_text: string
+          reference_answer: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          criteria: Json
+          id?: string
+          max_words?: number
+          min_words?: number
+          pass_threshold?: number
+          prompt_text: string
+          reference_answer: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          criteria?: Json
+          id?: string
+          max_words?: number
+          min_words?: number
+          pass_threshold?: number
+          prompt_text?: string
+          reference_answer?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_sandbox_config: {
+        Row: {
+          constraints_text: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          language: string
+          memory_limit_mb: number
+          pass_threshold: number
+          reference_solution: string
+          starter_code: string
+          test_cases: Json
+          time_limit_ms: number
+          updated_at: string
+        }
+        Insert: {
+          constraints_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          language: string
+          memory_limit_mb?: number
+          pass_threshold?: number
+          reference_solution: string
+          starter_code?: string
+          test_cases: Json
+          time_limit_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          constraints_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          language?: string
+          memory_limit_mb?: number
+          pass_threshold?: number
+          reference_solution?: string
+          starter_code?: string
+          test_cases?: Json
+          time_limit_ms?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_submissions: {
+        Row: {
+          code: string
+          created_at: string
+          details: Json
+          duration_ms: number | null
+          flags: string[]
+          id: string
+          language: string | null
+          passed_count: number
+          rubric_config_id: string | null
+          rubric_scores: Json | null
+          runner: string | null
+          sandbox_config_id: string | null
+          sandbox_score: number
+          status: string
+          student_id: string
+          task_id: string
+          total_count: number
+          xp_awarded: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          details?: Json
+          duration_ms?: number | null
+          flags?: string[]
+          id?: string
+          language?: string | null
+          passed_count?: number
+          rubric_config_id?: string | null
+          rubric_scores?: Json | null
+          runner?: string | null
+          sandbox_config_id?: string | null
+          sandbox_score: number
+          status: string
+          student_id: string
+          task_id: string
+          total_count?: number
+          xp_awarded?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          details?: Json
+          duration_ms?: number | null
+          flags?: string[]
+          id?: string
+          language?: string | null
+          passed_count?: number
+          rubric_config_id?: string | null
+          rubric_scores?: Json | null
+          runner?: string | null
+          sandbox_config_id?: string | null
+          sandbox_score?: number
+          status?: string
+          student_id?: string
+          task_id?: string
+          total_count?: number
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_submissions_rubric_config_id_fkey"
+            columns: ["rubric_config_id"]
+            isOneToOne: false
+            referencedRelation: "task_rubric_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_submissions_sandbox_config_id_fkey"
+            columns: ["sandbox_config_id"]
+            isOneToOne: false
+            referencedRelation: "task_sandbox_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_templates: {
         Row: {
           branch: string | null
@@ -3545,6 +3747,7 @@ export type Database = {
           id: string
           is_ai_generated: boolean
           is_paid: boolean
+          is_sandbox_task: boolean | null
           level_id: string | null
           lot_category: string | null
           lot_date: string | null
@@ -3553,6 +3756,8 @@ export type Database = {
           required_skills: string[]
           roadmap_scorecard_id: string | null
           roadmap_stage_index: number | null
+          rubric_config_id: string | null
+          sandbox_config_id: string | null
           source: string | null
           source_jd: string | null
           sponsor_criteria: string | null
@@ -3587,6 +3792,7 @@ export type Database = {
           id?: string
           is_ai_generated?: boolean
           is_paid?: boolean
+          is_sandbox_task?: boolean | null
           level_id?: string | null
           lot_category?: string | null
           lot_date?: string | null
@@ -3595,6 +3801,8 @@ export type Database = {
           required_skills?: string[]
           roadmap_scorecard_id?: string | null
           roadmap_stage_index?: number | null
+          rubric_config_id?: string | null
+          sandbox_config_id?: string | null
           source?: string | null
           source_jd?: string | null
           sponsor_criteria?: string | null
@@ -3629,6 +3837,7 @@ export type Database = {
           id?: string
           is_ai_generated?: boolean
           is_paid?: boolean
+          is_sandbox_task?: boolean | null
           level_id?: string | null
           lot_category?: string | null
           lot_date?: string | null
@@ -3637,6 +3846,8 @@ export type Database = {
           required_skills?: string[]
           roadmap_scorecard_id?: string | null
           roadmap_stage_index?: number | null
+          rubric_config_id?: string | null
+          sandbox_config_id?: string | null
           source?: string | null
           source_jd?: string | null
           sponsor_criteria?: string | null
@@ -3665,6 +3876,20 @@ export type Database = {
             columns: ["roadmap_scorecard_id"]
             isOneToOne: false
             referencedRelation: "resume_scorecards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_rubric_config_id_fkey"
+            columns: ["rubric_config_id"]
+            isOneToOne: false
+            referencedRelation: "task_rubric_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_sandbox_config_id_fkey"
+            columns: ["sandbox_config_id"]
+            isOneToOne: false
+            referencedRelation: "task_sandbox_config"
             referencedColumns: ["id"]
           },
           {
@@ -4315,6 +4540,7 @@ export type Database = {
         }
         Returns: Json
       }
+      is_last_step: { Args: { _level_id: string }; Returns: boolean }
       is_verified_recruiter: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
@@ -4432,12 +4658,19 @@ export type Database = {
           due_date: string
           estimate_minutes: number
           id: string
+          is_foundation: boolean
+          level_id: string
+          level_number: number
+          level_status: string
           lot_category: string
           lot_number: number
           source_jd: string
           sponsored_by_company: string
           status: string
           title: string
+          total_levels: number
+          track_name: string
+          track_slug: string
         }[]
       }
       my_week: {
@@ -4451,6 +4684,21 @@ export type Database = {
           slot: number
           status: string
           title: string
+        }[]
+      }
+      needs_review_submissions: {
+        Args: never
+        Returns: {
+          code: string
+          created_at: string
+          flags: string[]
+          rubric_scores: Json
+          score: number
+          student_id: string
+          student_name: string
+          submission_id: string
+          task_id: string
+          task_title: string
         }[]
       }
       next_lot_level: { Args: { _student_id: string }; Returns: string }
@@ -4490,6 +4738,25 @@ export type Database = {
       }
       record_outcome: {
         Args: { _outcome: string; _student_id: string }
+        Returns: Json
+      }
+      record_task_submission: {
+        Args: {
+          _code: string
+          _details: Json
+          _duration_ms: number
+          _flags?: string[]
+          _language: string
+          _passed_count: number
+          _rubric_config_id?: string
+          _rubric_scores?: Json
+          _runner: string
+          _sandbox_config_id: string
+          _score: number
+          _student_id: string
+          _task_id: string
+          _total_count: number
+        }
         Returns: Json
       }
       record_topic_attempt: {
@@ -4576,11 +4843,16 @@ export type Database = {
         Args: { _accept: boolean; _shortlist_id: string }
         Returns: Json
       }
+      review_task_submission: {
+        Args: { _approve: boolean; _submission_id: string }
+        Returns: Json
+      }
       run_all_seasons: { Args: never; Returns: Json }
       run_squad_week: {
         Args: { _season_id: string; _week?: number }
         Returns: Json
       }
+      sandbox_task_view: { Args: { _task_id: string }; Returns: Json }
       save_lot_template: {
         Args: {
           _code_sample: string
@@ -4680,6 +4952,15 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      similar_written_submission: {
+        Args: {
+          _answer: string
+          _rubric_config_id: string
+          _student_id: string
+          _threshold?: number
+        }
+        Returns: boolean
+      }
       sponsor_lot: {
         Args: {
           _brief: string

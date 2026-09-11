@@ -18,6 +18,7 @@ import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
 import RecruiterOversight from "@/components/dashboard/admin/RecruiterOversight";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
+import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
 
 const AdminDashboard = () => {
   const { userType, packId } = useParams();
@@ -59,6 +60,8 @@ const AdminDashboard = () => {
         return <AdminDashboardOverview onNavigate={setActiveTab} />;
       case "proof-submissions":
         return <ProofSubmissionsContent />;
+      case "reviewed-submissions":
+        return <ReviewedSubmissions />;
       case "students":
       case "startups":
       case "colleges":

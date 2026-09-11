@@ -3,10 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mic, Upload, Clock, Loader2, Compass } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Mic, Upload, Clock, Loader2, Compass, Code2, Trophy, PenLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import VoiceExplainModal from "./VoiceExplainModal";
+import SandboxTaskPanel from "./SandboxTaskPanel";
+import WrittenTaskPanel from "./WrittenTaskPanel";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 
 interface Lot {
@@ -22,6 +25,18 @@ interface Lot {
   status: string | null;
   due_date: string | null;
   sponsored_by_company: string | null;
+  // stage68: which track/level this Lot is practice for.
+  level_id: string | null;
+  level_number: number | null;
+  track_slug: string | null;
+  track_name: string | null;
+  total_levels: number | null;
+  /** student_levels.status of the Lot's own step, or 'new' if there is none. */
+  level_status: string | null;
+  is_foundation: boolean | null;
+  // stage69/70: which grading mode this Lot uses. At most one is set.
+  sandbox_config_id: string | null;
+  rubric_config_id: string | null;
 }
 
 /** One dot per day, coloured by what was submitted. */
@@ -38,6 +53,15 @@ interface SquadSummary {
   cohort: string | null;
 }
 
+/** The small caps line above the Lot title — what kind of practice this is. */
+function lotLabel(lot: Lot): string {
+  if (lot.level_status === "revise") {
+    return lot.is_foundation ? "Revision Lot · Foundations" : "Revision Lot";
+  }
+  if (lot.level_number != null) return `Practice for Level ${lot.level_number}`;
+  return lot.lot_category ?? "task";
+}
+
 /**
  * The Daily Card — the screen a student lands on.
  *
@@ -45,6 +69,11 @@ interface SquadSummary {
  * Everything else on the screen is information. That is not a stylistic
  * preference — a student who opens this and sees a menu has to decide what to
  * do, and deciding is the thing this screen exists to remove.
+ *
+ * "Submit" now opens one of three surfaces depending on how the Lot is
+ * graded: the code editor (sandbox_config_id), the written-answer panel
+ * (rubric_config_id), or the file/link upload (neither) — a task carries at
+ * most one grading mode, so exactly one of the three ever applies.
  */
 const StudentDailyCard = () => {
   const { profile } = useStudentProfile();
@@ -55,13 +84,16 @@ const StudentDailyCard = () => {
   const [week, setWeek] = useState<DayMark[]>([]);
   const [squad, setSquad] = useState<SquadSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [coding, setCoding] = useState(false);
+  const [writing, setWriting] = useState(false);
   const [explaining, setExplaining] = useState(false);
-  // "writing" is the few seconds the very first student to reach a topic waits
-  // while the Lot behind it is written. "no-track" is the honest answer for a
-  // student whose path has not been placed yet — it used to say "check back
-  // shortly", which was never going to become true on its own.
+  // "writing" (below, "preparing") is the few seconds the very first student
+  // to reach a topic waits while the Lot behind it is written. "no-track" and
+  // "track-complete" are the two honest reasons nothing is due today, as
+  // opposed to "check back shortly", which was never going to become true on
+  // its own.
   const [preparing, setPreparing] = useState(false);
-  const [reason, setReason] = useState<string | null>(null);
+  const [reason, setReason] = useState<"no-track" | "track-complete" | null>(null);
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
@@ -100,10 +132,14 @@ const StudentDailyCard = () => {
     if (!today) {
       const { data: made } = await supabase.rpc("create_my_lot" as never);
       const r = made as unknown as
-        { task_id: string | null; needs_writer: boolean; reason?: string } | null;
+        { task_id: string | null; needs_writer: boolean; reason?: string; detail?: string } | null;
 
       if (r?.reason === "no topic due") {
-        setReason("no-topic");
+        setReason(
+          r.detail === "track complete" ? "track-complete"
+          : r.detail === "no track" ? "no-track"
+          : null,
+        );
       } else if (r?.task_id) {
         // The topic has never been reached by anyone, so the work behind it has
         // not been written. This is the only slow path, it happens once per
@@ -156,6 +192,13 @@ const StudentDailyCard = () => {
     );
   }
 
+  const openLot = () => {
+    if (!lot) return;
+    if (lot.sandbox_config_id) setCoding(true);
+    else if (lot.rubric_config_id) setWriting(true);
+    else setSubmitting(true);
+  };
+
   return (
     <div className="space-y-5">
       {/* Title line. The second word carries the colour, as in the deck. */}
@@ -198,8 +241,14 @@ const StudentDailyCard = () => {
               )}
             </div>
 
-            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6b6559]">
-              {lot.lot_category ?? "task"}
+            {/* stage68: which track and level this Lot is practice for. */}
+            {lot.level_number != null && lot.total_levels != null && (
+              <p className="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#191b1f]">
+                {lot.track_name ?? lot.track_slug} · Level {lot.level_number} of {lot.total_levels}
+              </p>
+            )}
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6b6559]">
+              {lotLabel(lot)}
               {lot.estimate_minutes ? ` · ${lot.estimate_minutes} min` : ""}
               {lot.difficulty ? ` · ${lot.difficulty}` : ""}
             </p>
@@ -218,13 +267,29 @@ const StudentDailyCard = () => {
               </pre>
             )}
 
+            {/* A Lot is practice: passing it awards XP and squad points, but it
+                never moves the Level Map. Only the checkpoint quiz does that. */}
+            {lot.level_number != null && (
+              <p className="mt-3 text-xs text-[#6b6559]">
+                {lot.level_status === "revise"
+                  ? "Your resume says you know this. This Lot is a quick check-in and does not change your Level Map."
+                  : `This Lot is practice. Level ${lot.level_number} moves up when you pass its checkpoint on your Level Map.`}
+              </p>
+            )}
+
             {/* The only two actions on this screen. */}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
-                onClick={() => setSubmitting(true)}
+                onClick={openLot}
                 className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
               >
-                <Upload className="mr-2 h-4 w-4" /> Submit fix
+                {lot.sandbox_config_id ? (
+                  <><Code2 className="mr-2 h-4 w-4" /> Solve in editor</>
+                ) : lot.rubric_config_id ? (
+                  <><PenLine className="mr-2 h-4 w-4" /> Write my answer</>
+                ) : (
+                  <><Upload className="mr-2 h-4 w-4" /> Submit fix</>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -245,7 +310,18 @@ const StudentDailyCard = () => {
                   it is instant for everyone.
                 </p>
               </>
-            ) : reason === "no-topic" ? (
+            ) : reason === "track-complete" ? (
+              <>
+                <Trophy className="mx-auto h-5 w-5 text-muted-foreground" />
+                <p className="mt-3 text-sm text-muted-foreground max-w-prose mx-auto">
+                  You have finished every level on your track, so there is no practice Lot today.
+                  Your Level Map shows everything you cleared.
+                </p>
+                <Button className="mt-4" onClick={() => navigate("/student/roadmap")}>
+                  Open my Level Map
+                </Button>
+              </>
+            ) : reason === "no-track" ? (
               <>
                 <Compass className="mx-auto h-5 w-5 text-muted-foreground" />
                 <p className="mt-3 text-sm text-muted-foreground max-w-prose mx-auto">
@@ -310,7 +386,9 @@ const StudentDailyCard = () => {
                 </>
               ) : (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Not in a squad yet — your college places you in one.
+                  {profile?.college_id
+                    ? "Not in a squad yet — your college places you in one."
+                    : "Squads are formed inside a college. You are not linked to one yet."}
                 </p>
               )}
             </div>
@@ -318,7 +396,7 @@ const StudentDailyCard = () => {
         </div>
       </div>
 
-      {lot && (
+      {lot && !lot.sandbox_config_id && !lot.rubric_config_id && (
         <UploadProofModal
           isOpen={submitting}
           onClose={() => setSubmitting(false)}
@@ -326,6 +404,22 @@ const StudentDailyCard = () => {
           taskTitle={lot.title}
           onSuccess={() => { setSubmitting(false); void load(); }}
         />
+      )}
+
+      {lot && lot.sandbox_config_id && (
+        <Dialog open={coding} onOpenChange={setCoding}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <SandboxTaskPanel taskId={lot.id} onCompleted={() => { setCoding(false); void load(); }} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {lot && lot.rubric_config_id && (
+        <Dialog open={writing} onOpenChange={setWriting}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <WrittenTaskPanel taskId={lot.id} onCompleted={() => { setWriting(false); void load(); }} />
+          </DialogContent>
+        </Dialog>
       )}
 
       {lot && explaining && profile?.id && (

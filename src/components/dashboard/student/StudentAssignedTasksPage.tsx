@@ -40,6 +40,10 @@ import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import VoiceExplainModal from "./VoiceExplainModal";
 import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import TaskDetailsDialog from "./TaskDetailsDialog";
+import SandboxTaskPanel from "./SandboxTaskPanel";
+import WrittenTaskPanel from "./WrittenTaskPanel";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Code2, PenLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -47,6 +51,8 @@ const StudentAssignedTasksPage = () => {
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [codingTaskId, setCodingTaskId] = useState<string | null>(null);
+  const [writingTaskId, setWritingTaskId] = useState<string | null>(null);
   const [explainTask, setExplainTask] = useState<{ id: string; title: string } | null>(null);
   const { profile } = useStudentProfile();
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
@@ -370,14 +376,34 @@ const StudentAssignedTasksPage = () => {
                       <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
                         {task.status === 'In Progress' && (
                           <>
-                            <Button
-                              size="sm"
-                              onClick={() => setSelectedTaskId(task.id)}
-                              className="bg-orange-600 hover:bg-orange-700 text-white"
-                            >
-                              <Upload className="h-4 w-4 mr-1" />
-                              Submit Proof
-                            </Button>
+                            {task.sandbox_config_id ? (
+                              <Button
+                                size="sm"
+                                onClick={() => setCodingTaskId(task.id)}
+                                className="bg-orange-600 hover:bg-orange-700 text-white"
+                              >
+                                <Code2 className="h-4 w-4 mr-1" />
+                                Solve in editor
+                              </Button>
+                            ) : task.rubric_config_id ? (
+                              <Button
+                                size="sm"
+                                onClick={() => setWritingTaskId(task.id)}
+                                className="bg-orange-600 hover:bg-orange-700 text-white"
+                              >
+                                <PenLine className="h-4 w-4 mr-1" />
+                                Write my answer
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => setSelectedTaskId(task.id)}
+                                className="bg-orange-600 hover:bg-orange-700 text-white"
+                              >
+                                <Upload className="h-4 w-4 mr-1" />
+                                Submit Proof
+                              </Button>
+                            )}
                             {/* The second of the two actions the design deck
                                 allows on this screen. Explaining the work out
                                 loud is the part that cannot be pasted. */}
@@ -498,6 +524,30 @@ const StudentAssignedTasksPage = () => {
             }
           }}
         />
+      )}
+
+      {/* stage69/70: coding and written tasks skip the proof/quiz flow
+          entirely — they are graded automatically the moment they submit. */}
+      {codingTaskId && (
+        <Dialog open={!!codingTaskId} onOpenChange={(open) => !open && setCodingTaskId(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <SandboxTaskPanel
+              taskId={codingTaskId}
+              onCompleted={() => { setCodingTaskId(null); refetchTasks(); }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {writingTaskId && (
+        <Dialog open={!!writingTaskId} onOpenChange={(open) => !open && setWritingTaskId(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <WrittenTaskPanel
+              taskId={writingTaskId}
+              onCompleted={() => { setWritingTaskId(null); refetchTasks(); }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* The 60-second Explain. Sits beside Submit as the second of the two

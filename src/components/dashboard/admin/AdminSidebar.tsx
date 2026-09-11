@@ -25,6 +25,7 @@ import {
   Bell
 ,
   Coins,
+  ClipboardList,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
@@ -99,6 +100,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       icon: ClipboardCheck,
       children: [
         { id: "proof-submissions", label: "Proof Review & Verification", icon: ClipboardCheck },
+        { id: "reviewed-submissions", label: "Flagged Submissions", icon: ClipboardList },
         { id: "task-oversight", label: "Task Oversight", icon: Eye },
         { id: "assign-tasks", label: "Assign Tasks", icon: Plus },
         { id: "xp-moderation", label: "Trust & XP Moderation", icon: Shield },

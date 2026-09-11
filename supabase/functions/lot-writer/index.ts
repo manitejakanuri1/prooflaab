@@ -9,8 +9,9 @@ import { corsHeaders } from "../_shared/cors.ts";
  * A Lot is a piece of real work: a situation, the thing to build or fix, and
  * what to hand back. Generating one per student per day would be ten thousand
  * model calls every morning for work that is word-for-word identical, so a Lot
- * is written once per topic and stored in lot_templates. There are 146 topics,
- * which caps the lifetime spend of this endpoint at 146 calls.
+ * is written once per topic and stored in lot_templates. That caps the
+ * lifetime spend of this endpoint at one call per topic across the platform,
+ * whatever the topic count on any given track turns out to be.
  *
  * The student who is first to reach a topic gets the plain seed version
  * instantly, this runs while they are looking at it, and their card is rewritten
@@ -57,6 +58,7 @@ type RealSource = RealJob | RealContent;
 const prompt = (
   level: { skill: string; title: string; track_slug: string; level_number: number; kind: string },
   realSource: RealSource | null,
+  trackTopicCount: number,
 ) => `
 You write daily work orders ("Lots") for Indian engineering students preparing for their first job.
 
@@ -65,7 +67,7 @@ A Lot is one concrete piece of work someone would actually be handed at a compan
 Topic: ${level.title}
 Skill: ${level.skill}
 Track: ${level.track_slug}
-Position on the ladder: step ${level.level_number} of 146 (early steps are basics, later steps are advanced)
+Position on the ladder: step ${level.level_number} of ${trackTopicCount} on this track (early steps are basics, later steps are advanced)
 Type: ${level.kind === 'explanation' ? 'explaining and communicating' : 'building or fixing'}
 
 Rules:
@@ -250,8 +252,16 @@ serve(async (req) => {
       }
     }
 
+    // The real count for THIS track, not a platform-wide guess — tracks range
+    // from 4 topics (verbal-ability) to 16 (web-development).
+    const { count: trackTopicCount } = await supabase
+      .from('levels')
+      .select('id', { count: 'exact', head: true })
+      .eq('track_slug', level.track_slug)
+      .eq('sub_level', 1);
+
     const { text, provider } = await generateText(
-      prompt(level as never, realSource),
+      prompt(level as never, realSource, trackTopicCount ?? level.level_number),
       { temperature: 0.8, maxOutputTokens: 900, json: true },
       { feature: 'lot-writer', userId: callerId, studentId: callerId },
     );

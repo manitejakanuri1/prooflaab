@@ -159,35 +159,10 @@ export const useUpdateProofStatus = () => {
 
       if (proofError) throw proofError;
 
-      // If verified, award XP
-      if (status === 'Verified' && xpReward > 0) {
-        // Add XP log
-        const { error: xpError } = await supabase
-          .from('xp_logs')
-          .insert({
-            student_id: studentId,
-            xp_points: xpReward,
-            source: 'Task Verification'
-          });
-
-        if (xpError) throw xpError;
-
-        // Update student total XP
-        const { data: currentProfile } = await supabase
-          .from('student_profiles')
-          .select('total_xp')
-          .eq('id', studentId)
-          .single();
-
-        if (currentProfile) {
-          await supabase
-            .from('student_profiles')
-            .update({
-              total_xp: (currentProfile.total_xp || 0) + xpReward
-            })
-            .eq('id', studentId);
-        }
-      }
+      // stage68: XP is paid by the on_proof_reviewed database trigger, once
+      // per task, the moment the UPDATE above lands. This used to try to pay
+      // it again here, which always failed (xp_logs has no insert policy for
+      // a signed-in user) and surfaced as "Failed to update proof status".
 
       return { proofId, status };
     },

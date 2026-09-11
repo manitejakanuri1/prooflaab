@@ -430,6 +430,12 @@ const LevelMap = () => {
   ).length;
   const provedCount = levels.filter((l) => progress[l.id]?.status === "mastered").length;
   const assumedCount = levels.filter((l) => progress[l.id]?.status === "placed").length;
+  // stage68: the topic count for "Level X of Y" comes from the highest topic
+  // number on this track, not levels.length — the two agree today (levels is
+  // already one row per topic), but max(level_number) stays right even if a
+  // track ever has a gap in its sub_level=1 rows. doneCount/the progress bar
+  // stay on levels.length: they count real rows, not the ladder's top rung.
+  const totalLevels = levels.reduce((m, l) => Math.max(m, l.level_number), 0);
 
   return (
     <div className="space-y-4">
@@ -461,7 +467,7 @@ const LevelMap = () => {
               {activeTrack.name}
             </p>
             <p className="truncate text-[11px] text-muted-foreground">
-              Level {Math.min(activeTrack.unlocked_through, levels.length)} of {levels.length} ·{" "}
+              Level {Math.min(activeTrack.unlocked_through, totalLevels)} of {totalLevels} ·{" "}
               {activeTrack.role}
             </p>
           </div>
@@ -488,7 +494,7 @@ const LevelMap = () => {
           <p className="text-sm text-muted-foreground">
             {doneCount === levels.length && levels.length > 0
               ? "Every level done. Now go prove the ones you skipped."
-              : `Level ${Math.min(activeTrack.unlocked_through, levels.length)} of ${levels.length} — on the way to ${activeTrack.role}.`}
+              : `Level ${Math.min(activeTrack.unlocked_through, totalLevels)} of ${totalLevels} — on the way to ${activeTrack.role}.`}
           </p>
           <div className="pt-2 space-y-1.5">
             <Progress

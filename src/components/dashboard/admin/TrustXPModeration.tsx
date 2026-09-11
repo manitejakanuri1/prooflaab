@@ -213,32 +213,10 @@ const TrustXPModeration = () => {
 
       if (proofError) throw proofError;
 
-      // If verified, add XP
-      if (status === 'Verified' && xpReward > 0) {
-        const { error: xpError } = await supabase
-          .from('xp_logs')
-          .insert({
-            student_id: studentId,
-            xp_points: xpReward,
-            source: 'Task Verification'
-          });
-
-        if (xpError) throw xpError;
-
-        // Update student total XP
-        const { data: student } = await supabase
-          .from('student_profiles')
-          .select('total_xp')
-          .eq('id', studentId)
-          .single();
-
-        const { error: updateError } = await supabase
-          .from('student_profiles')
-          .update({ total_xp: (student?.total_xp || 0) + xpReward })
-          .eq('id', studentId);
-
-        if (updateError) throw updateError;
-      }
+      // stage68: XP is paid by the on_proof_reviewed database trigger, once
+      // per task, the moment the UPDATE above lands. The xp_logs insert that
+      // used to happen here always failed (xp_logs has no insert policy for a
+      // signed-in admin either) and would have paid twice if it ever passed.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-xp-reviews'] });

@@ -182,6 +182,23 @@ serve(async (req) => {
       return json({ error: 'Could not save your answers' }, 500);
     }
 
+    // ---- topic rating -------------------------------------------------------
+    // One attempt per question actually served, so question_calibration counts
+    // questions, not quizzes, and topic_ratings moves by how many of them were
+    // right rather than by pass/fail alone. Sequential, not Promise.all: every
+    // call updates the same topic_ratings row, and a rating hiccup here must
+    // never cost the student the quiz result they just earned above.
+    for (const r of results) {
+      const { error: ratingError } = await supabase.rpc('record_topic_attempt', {
+        _student_id: profile.id,
+        _topic: level.skill,
+        _outcome: r.correct ? 'correct' : 'incorrect',
+        _level_id: level_id,
+        _seconds: null,
+      });
+      if (ratingError) console.error('record_topic_attempt failed:', ratingError.message);
+    }
+
     // ---- the proof task ---------------------------------------------------
     let taskId = progress?.task_id ?? null;
     if (passed && !taskId) {

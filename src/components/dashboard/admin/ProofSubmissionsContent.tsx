@@ -236,30 +236,12 @@ const ProofSubmissionsContent = () => {
       
       if (assignmentError) throw assignmentError;
 
-      // If verified, try to award XP (don't fail if XP log fails due to RLS)
-      if (status === 'Verified' && xpReward && xpReward > 0) {
-        try {
-          // Update student total XP directly
-          const { data: currentProfile } = await supabase
-            .from('student_profiles')
-            .select('total_xp')
-            .eq('id', studentId)
-            .single();
+      // stage68: XP is paid by the on_proof_reviewed database trigger, once
+      // per task, the moment the proof_uploads UPDATE above lands. The direct
+      // total_xp write that used to happen here was silently reverted by
+      // protect_student_profiles for anyone who is not an admin, so it never
+      // actually worked for a college reviewer.
 
-          if (currentProfile) {
-            await supabase
-              .from('student_profiles')
-              .update({
-                total_xp: (currentProfile.total_xp || 0) + xpReward
-              })
-              .eq('id', studentId);
-          }
-        } catch (xpError) {
-          console.error('XP update error:', xpError);
-          // Don't throw - XP update failure shouldn't prevent verification
-        }
-      }
-      
       return { id, status, taskId, studentId };
     },
     onMutate: async ({ id, status, taskId, studentId }) => {

@@ -18,6 +18,7 @@ interface VerificationResult {
   authenticity_score: number;
   trust_change: number;
   review_comment: string;
+  auto_verified: boolean;
 }
 
 async function verifyGitHubRepo(repoUrl: string, githubPat: string): Promise<GitHubRepoInfo | null> {
@@ -257,6 +258,22 @@ serve(async (req) => {
       );
     }
 
+    // stage69: a coding task is graded automatically by submit-sandbox-task.
+    // proof_uploads_reject_sandbox already stops a proof row from being
+    // created against one, but this covers a proof that existed from before
+    // a task was switched onto a sandbox config.
+    const { data: proofTask } = await supabase
+      .from('tasks')
+      .select('sandbox_config_id')
+      .eq('id', proof.task_id)
+      .maybeSingle();
+    if (proofTask?.sandbox_config_id) {
+      return new Response(
+        JSON.stringify({ error: 'This is a coding task. It is graded automatically, not verified.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Being signed in was checked above; being entitled to THIS proof was not.
     // Without it any account could re-verify a stranger's proof, overwrite
     // their trust_score, and file audit_logs rows under their user id.
@@ -337,6 +354,17 @@ serve(async (req) => {
       reviewComment = 'Moderate verification scores. Standard trust adjustment applied.';
     }
 
+    // stage68: only a clean result auto-verifies. Anything else waits for a
+    // human, flagged — the owner is allowed to call this function
+    // (mayActOnStudentWork returns true for the proof owner), so "always
+    // Verified" meant any student could verify their own proof and collect
+    // the 25 squad points, the weekly-proof quest XP, and their task's XP in
+    // one call. aiRan distinguishes "the AI actually looked at this" from the
+    // fallback score of 50 analyzeWithGemini returns when every provider fails.
+    const aiRan = aiResult.ai_summary !== 'AI analysis unavailable'
+      && aiResult.ai_summary !== 'AI analysis encountered an error';
+    const autoVerify = aiRan && trustChange > 0 && originalityScore >= 50;
+
     // 5. Update student trust score with error handling
     const { data: currentTrust, error: trustFetchError } = await supabase
       .from('student_profiles')
@@ -396,10 +424,11 @@ serve(async (req) => {
 
     // 6. Update proof status with validated payload including AI data
     const updatePayload: any = {
-      status: 'Verified',
-      admin_review_status: 'Verified',
+      status: autoVerify ? 'Verified' : 'Under Review',
+      admin_review_status: autoVerify ? 'Verified' : 'needs_review',
+      review_flag: !autoVerify,
       review_comment: reviewComment,
-      reviewed_at: new Date().toISOString(),
+      reviewed_at: autoVerify ? new Date().toISOString() : null,
       moss_status: mossScore > 0 ? 'completed' : null,
       moss_url: githubInfo ? proof.file_url : null,
       ai_score: originalityScore,
@@ -436,11 +465,12 @@ serve(async (req) => {
     }
 
     // 7. Log audit trail - check for existing entry first
+    const auditAction = autoVerify ? 'AUTO_VERIFIED' : 'FLAGGED_FOR_REVIEW';
     const { data: existingAudit } = await supabase
       .from('audit_logs')
       .select('id')
       .eq('record_id', proofId)
-      .eq('action', 'AUTO_VERIFIED')
+      .eq('action', auditAction)
       .maybeSingle();
 
     if (!existingAudit) {
@@ -448,7 +478,7 @@ serve(async (req) => {
       if (studentUserId) {
         const { error: auditError } = await supabase.from('audit_logs').insert({
           user_id: studentUserId,
-          action: 'AUTO_VERIFIED',
+          action: auditAction,
           table_name: 'proof_uploads',
           record_id: proofId,
           new_values: {
@@ -471,7 +501,8 @@ serve(async (req) => {
       originality_score: originalityScore,
       authenticity_score: authenticityScore,
       trust_change: trustChange,
-      review_comment: reviewComment
+      review_comment: reviewComment,
+      auto_verified: autoVerify
     };
 
     console.log('Verification completed:', result);

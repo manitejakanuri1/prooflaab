@@ -267,63 +267,20 @@ export const useAllStudentTasks = () => {
     enabled: !!user,
   });
 
+  // Moving a task/assignment off 'Applied' is a privileged write on both
+  // sides: protect_task_assignments guards task_assignments.status, and
+  // tasks' own RLS only lets a student update a row they directly own
+  // (tasks.student_id), which an admin/college-assigned task never is - it
+  // is only ever linked via task_assignments. Both of those silently
+  // no-op (still 200/204) for a plain client PATCH, so this goes through
+  // start_task_assignment() instead, the one function allowed to move it.
   const startTask = async (taskId: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    // Get student profile
-    const { data: profile } = await supabase
-      .from('student_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!profile) throw new Error('Student profile not found');
-
-    // Check if task assignment already exists
-    const { data: existingAssignment } = await supabase
-      .from('task_assignments')
-      .select('id')
-      .eq('task_id', taskId)
-      .eq('student_id', profile.id)
-      .maybeSingle();
-
-    if (existingAssignment) {
-      // Update existing assignment
-      const { error } = await supabase
-        .from('task_assignments')
-        .update({ 
-          status: 'in_progress',
-          updated_at: new Date().toISOString()
-        })
-        .eq('task_id', taskId)
-        .eq('student_id', profile.id);
-
-      if (error) throw error;
-    } else {
-      // Create new assignment for directly assigned tasks
-      const { error } = await supabase
-        .from('task_assignments')
-        .insert({
-          task_id: taskId,
-          student_id: profile.id,
-          status: 'in_progress',
-          assigned_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-    }
-
-    // Also update tasks table for backward compatibility
-    const { error: taskError } = await supabase
-      .from('tasks')
-      .update({ 
-        started_at: new Date().toISOString(),
-        status: 'In Progress'
-      })
-      .eq('id', taskId);
-
-    if (taskError) throw taskError;
+    const { data, error } = await supabase.rpc('start_task_assignment' as never, { _task_id: taskId } as never);
+    if (error) throw error;
+    const result = data as { ok: boolean; reason?: string } | null;
+    if (!result?.ok) throw new Error(result?.reason || 'Could not start task');
 
     // Invalidate queries to refresh data
     queryClient.invalidateQueries({ queryKey: ['all-student-tasks'] });

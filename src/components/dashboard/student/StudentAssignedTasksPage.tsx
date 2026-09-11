@@ -374,6 +374,16 @@ const StudentAssignedTasksPage = () => {
 
                       {/* Right: Actions */}
                       <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
+                        {task.status === 'Applied' && task.can_start && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStartTask(task.id)}
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Start Task
+                          </Button>
+                        )}
                         {task.status === 'In Progress' && (
                           <>
                             {task.sandbox_config_id ? (

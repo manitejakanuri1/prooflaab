@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
-import { generateText } from "../_shared/llm.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
 
 /**
  * Writes the Lot behind a topic — once, for everybody.
@@ -89,16 +89,20 @@ Real source excerpt:
 """
 ${realSource.excerpt}
 """` : `- source_jd is a short phrase naming the kind of job this work comes from, e.g. "a fresher backend JD, Hyderabad". Never invent a company name.`}
-
-Reply with JSON only, exactly these keys:
-{"title": string (max 90 chars, names the work, not the topic),
- "scenario": string,
- "code_sample": string or null,
- "source_jd": string or null,
- "difficulty": "Easy" | "Medium" | "Hard",
- "estimate_minutes": integer between 10 and 45,
- "lot_category": "technical" | "business" | "pitch"}
 `.trim();
+
+// The scenario/metadata keys asked for alongside whatever grading-config keys
+// auto-config.ts appends for the chosen mode — one combined LLM call instead
+// of a scenario call followed by a separate config call.
+const SCENARIO_FIELDS = {
+  title: "string, max 90 chars, names the work, not the topic",
+  scenario: "string, 3 to 5 sentences",
+  code_sample: "string or null, max 15 lines",
+  source_jd: "string or null",
+  difficulty: '"Easy" | "Medium" | "Hard"',
+  estimate_minutes: "integer between 10 and 45",
+  lot_category: '"technical" | "business" | "pitch"',
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -260,22 +264,24 @@ serve(async (req) => {
       .eq('track_slug', level.track_slug)
       .eq('sub_level', 1);
 
-    const { text, provider } = await generateText(
-      prompt(level as never, realSource, trackTopicCount ?? level.level_number),
-      { temperature: 0.8, maxOutputTokens: 900, json: true },
-      { feature: 'lot-writer', userId: callerId, studentId: callerId },
-    );
+    // Coding topics get a sandbox config, explanation topics get a rubric —
+    // deterministic from the topic's own kind, never left to the model to
+    // pick, mirroring the existing lot_category fallback below.
+    const gradingMode: AutoConfigMode = level.kind === 'explanation' ? 'rubric' : 'sandbox';
 
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim());
-    } catch {
-      // Hand the topic back so the next caller can try rather than waiting out
-      // the lease.
-      await letGo();
-      return json({ error: 'The model did not return usable JSON' }, 502);
-    }
+    const genResult = await generateGradedConfig({
+      db: supabase,
+      mode: gradingMode,
+      content: {
+        kind: 'scenario',
+        promptBody: prompt(level as never, realSource, trackTopicCount ?? level.level_number),
+        fields: SCENARIO_FIELDS,
+      },
+      feature: 'lot-writer',
+      usageCtx: { userId: callerId, studentId: callerId },
+    });
 
+    const parsed = genResult.scenarioFields;
     const title = String(parsed.title ?? level.title).slice(0, 90);
     const scenario = String(parsed.scenario ?? '').trim();
     // A Lot with no situation in it is the thing this endpoint exists to
@@ -307,6 +313,8 @@ serve(async (req) => {
       origin: 'ai',
       generating_since: null,
       updated_at: new Date().toISOString(),
+      sandbox_config_id: genResult.mode === 'sandbox' ? genResult.configId : null,
+      rubric_config_id: genResult.mode === 'rubric' ? genResult.configId : null,
     };
 
     clearInterval(heartbeat);
@@ -323,6 +331,8 @@ serve(async (req) => {
       _difficulty: row.difficulty,
       _estimate_minutes: row.estimate_minutes,
       _lot_category: row.lot_category,
+      _sandbox_config_id: row.sandbox_config_id,
+      _rubric_config_id: row.rubric_config_id,
     });
     if (saveError) return json({ error: saveError.message }, 500);
     if (saved !== true) {
@@ -348,6 +358,8 @@ serve(async (req) => {
         estimate_minutes: row.estimate_minutes,
         lot_category: row.lot_category,
         is_ai_generated: true,
+        sandbox_config_id: row.sandbox_config_id,
+        rubric_config_id: row.rubric_config_id,
       })
       .eq('level_id', levelId)
       .eq('lot_date', today)
@@ -359,7 +371,8 @@ serve(async (req) => {
       ok: true,
       level_id: levelId,
       written: true,
-      provider,
+      grading_mode: genResult.mode,
+      used_fallback: genResult.usedFallback,
       cards_refreshed: (updated ?? []).length,
     });
   } catch (err) {

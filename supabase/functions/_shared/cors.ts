@@ -16,7 +16,7 @@
 // apex at the hosting layer rather than being a second allowed origin. If a
 // genuine second browser origin ever appears, change corsHeaders into a
 // function of the request that echoes a matching Origin and adds `Vary: Origin`.
-const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://prooflabai.com';
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://prooflaab.vercel.app';
 
 // x-webhook-secret is listed for every function, not just the three that read
 // it. Naming a header here only permits the browser to send it; it grants

@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
 
 interface AssignTasksRequest {
   mode: 'manual' | 'ai' | 'template' | 'personalized';
@@ -223,7 +224,9 @@ serve(async (req) => {
           visibility,
           approved_by_admin: approvedByAdmin,
           source: finalSource,
-          ai_metadata: taskData.ai_metadata || null
+          ai_metadata: taskData.ai_metadata || null,
+          sandbox_config_id: taskData.sandbox_config_id ?? null,
+          rubric_config_id: taskData.rubric_config_id ?? null
         })
         .select()
         .single();
@@ -256,6 +259,29 @@ serve(async (req) => {
       return data || [];
     }
 
+    // Every task created here gets a live, auto-graded config attached
+    // before it's ever shown to a student — no proof_uploads fallback.
+    // 'Coding' category gets a sandbox (code-runner) config; everything else
+    // (Design/Research/Writing/Analysis/General) gets a rubric config.
+    // generateGradedConfig() always returns a usable configId (it has its
+    // own internal downgrade + generic-fallback chain), so this never blocks
+    // task creation on a bad model response.
+    async function attachGradingConfig(title: string, description: string) {
+      const gradingMode: AutoConfigMode = category === 'Coding' ? 'sandbox' : 'rubric';
+      const result = await generateGradedConfig({
+        db: supabase,
+        mode: gradingMode,
+        content: { kind: 'fixed', title, description },
+        feature: 'assign_tasks',
+        usageCtx: { userId: user.id },
+        createdBy: user.id,
+      });
+      return {
+        sandbox_config_id: result.mode === 'sandbox' ? result.configId : null,
+        rubric_config_id: result.mode === 'rubric' ? result.configId : null,
+      };
+    }
+
     switch (mode) {
       case 'manual': {
         const { title, description } = requestData;
@@ -280,12 +306,14 @@ serve(async (req) => {
         }
 
         console.log('Creating manual task:', trimmedTitle);
-        
+
+        const gradingConfig = await attachGradingConfig(trimmedTitle, trimmedDescription);
         const task = await insertTask({
           title: trimmedTitle,
           description: trimmedDescription,
           xp_reward,
-          source: 'manual'
+          source: 'manual',
+          ...gradingConfig
         });
 
         createdTasks.push(task);
@@ -327,7 +355,7 @@ Description: Build a dynamic web application that displays and filters product l
 Now generate a task for: ${keywords}`;
 
         const { title, description, model } = await generateWithGemini(prompt, 'gemini-flash-latest');
-        
+
         const aiMetadata = {
           model: model,
           keywords,
@@ -335,13 +363,15 @@ Now generate a task for: ${keywords}`;
           generated_at: currentTime,
           prompt_used: prompt
         };
-        
+
+        const gradingConfig = await attachGradingConfig(title, description);
         const task = await insertTask({
           title,
           description,
           xp_reward,
           source: 'ai',
-          ai_metadata: aiMetadata
+          ai_metadata: aiMetadata,
+          ...gradingConfig
         });
 
         createdTasks.push(task);
@@ -374,11 +404,13 @@ Now generate a task for: ${keywords}`;
           throw new Error('Template not found');
         }
 
+        const gradingConfig = await attachGradingConfig(template.title, template.description);
         const task = await insertTask({
           title: template.title,
           description: template.description,
           xp_reward: template.xp_reward || xp_reward,
-          source: 'template'
+          source: 'template',
+          ...gradingConfig
         });
 
         createdTasks.push(task);
@@ -458,13 +490,15 @@ Now generate a personalized mini-project for ${student.full_name}:`;
               generated_at: currentTime,
               prompt_type: 'personalized_mini_project'
             };
-            
+
+            const gradingConfig = await attachGradingConfig(title, description);
             const task = await insertTask({
               title: title,
               description: description,
               xp_reward,
               source: 'personalized',
-              ai_metadata: aiMetadata
+              ai_metadata: aiMetadata,
+              ...gradingConfig
             });
 
             createdTasks.push(task);

@@ -17,9 +17,14 @@ name: Crawl source content
 
 on:
   schedule:
-    # 02:40 UTC daily. Deliberately not on the hour: scheduled jobs pile up at
-    # :00 across all of GitHub and get delayed, and nothing here is time-critical.
-    - cron: '40 2 * * *'
+    # 02:40 UTC every Monday. The collector only fetches the literal
+    # seed_urls in source_registry, no recursive spidering (see the comment
+    # above), so a daily run bought nothing over weekly - same URLs, same
+    # duplicate-detection result, every day. Weekly still catches changed
+    # pages and any seed added to the registry since the last run.
+    # Deliberately not on the hour: scheduled jobs pile up at :00 across all
+    # of GitHub and get delayed, and nothing here is time-critical.
+    - cron: '40 2 * * 1'
   workflow_dispatch:
 
 concurrency:

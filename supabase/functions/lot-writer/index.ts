@@ -4,19 +4,20 @@ import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
 
 /**
- * Writes the Lot behind a topic — once, for everybody.
+ * Writes the Lot behind a piece of real content — once, for everybody.
  *
- * A Lot is a piece of real work: a situation, the thing to build or fix, and
- * what to hand back. Generating one per student per day would be ten thousand
- * model calls every morning for work that is word-for-word identical, so a Lot
- * is written once per topic and stored in lot_templates. That caps the
- * lifetime spend of this endpoint at one call per topic across the platform,
- * whatever the topic count on any given track turns out to be.
+ * stage75: a Lot is no longer written "for a Track level." It is written for
+ * one source_content row (the crawler's own pages, or something a college
+ * submitted) — Lots and Tracks are unrelated. Generating one per student per
+ * day would be a huge number of duplicate model calls for identical work, so
+ * a Lot is written once per source_content row and stored in lot_templates,
+ * keyed by source_content_id. Whoever is first to reach a given piece of
+ * content pays for it once; everyone after reads the cached result for free.
  *
- * The student who is first to reach a topic gets the plain seed version
- * instantly, this runs while they are looking at it, and their card is rewritten
- * in place the moment it lands — so nobody stares at a spinner and nobody is
- * left with the plain one.
+ * The student who is first to reach a piece of content gets the plain seed
+ * version instantly, this runs while they are looking at it, and their card
+ * is rewritten in place the moment it lands — so nobody stares at a spinner
+ * and nobody is left with the plain one.
  */
 
 const json = (body: unknown, status = 200) =>
@@ -40,12 +41,6 @@ interface RealJob {
   excerpt: string;
 }
 
-/**
- * Real crawled or college/TPO-submitted material from source_content, used
- * when no matching job posting exists. Covers real interview questions
- * (PrepInsta, college submissions), reference docs, and similar — never a
- * job description specifically, hence a different label in the prompt.
- */
 interface RealContent {
   kind: 'content';
   title: string;
@@ -55,20 +50,29 @@ interface RealContent {
 
 type RealSource = RealJob | RealContent;
 
+/**
+ * ponytail: a keyword heuristic, not a model call. Grading mode (sandbox vs
+ * rubric) has to be picked BEFORE generateGradedConfig runs — it needs to
+ * know which schema to ask the model for. Without a Track level's `kind` to
+ * read anymore, the cheapest honest signal left is the source content's own
+ * title/excerpt. Upgrade path: tag source_content with a real category at
+ * crawl/submission time instead of sniffing it here.
+ */
+const CODE_SIGNALS = /\b(code|coding|program(ming)?|algorithm|function|syntax|debug|compile|array|loop|api|sql|query|script|variable|data structure)\b/i;
+
+function guessGradingMode(title: string, excerpt: string): AutoConfigMode {
+  return CODE_SIGNALS.test(title) || CODE_SIGNALS.test(excerpt.slice(0, 400)) ? 'sandbox' : 'rubric';
+}
+
 const prompt = (
-  level: { skill: string; title: string; track_slug: string; level_number: number; kind: string },
+  contentTitle: string,
   realSource: RealSource | null,
-  trackTopicCount: number,
 ) => `
 You write daily work orders ("Lots") for Indian engineering students preparing for their first job.
 
 A Lot is one concrete piece of work someone would actually be handed at a company — not a tutorial exercise, not a quiz. It names a situation, says what is wrong or wanted, and says what to hand back.
 
-Topic: ${level.title}
-Skill: ${level.skill}
-Track: ${level.track_slug}
-Position on the ladder: step ${level.level_number} of ${trackTopicCount} on this track (early steps are basics, later steps are advanced)
-Type: ${level.kind === 'explanation' ? 'explaining and communicating' : 'building or fixing'}
+Grounding material: ${contentTitle}
 
 Rules:
 - The scenario is 3 to 5 sentences, in plain English, second person ("you").
@@ -82,7 +86,7 @@ ${realSource?.kind === 'job' ? `- A real job posting for "${realSource.role}" at
 Real posting excerpt:
 """
 ${realSource.excerpt}
-"""` : realSource?.kind === 'content' ? `- Real ${realSource.origin === 'college' ? "material submitted by the student's own college" : 'reference material found online'} titled "${realSource.title}" is the source for this Lot. Ground the scenario in what it actually covers — do not invent unrelated specifics.
+"""` : realSource?.kind === 'content' ? `- Real ${realSource.origin === 'college' ? "material submitted by the student's own college" : 'reference material'} titled "${realSource.title}" is the source for this Lot. Ground the scenario in what it actually covers — do not invent unrelated specifics.
 - Leave source_jd as null — the real source is attached separately, you do not need to name it.
 
 Real source excerpt:
@@ -91,9 +95,6 @@ ${realSource.excerpt}
 """` : `- source_jd is a short phrase naming the kind of job this work comes from, e.g. "a fresher backend JD, Hyderabad". Never invent a company name.`}
 `.trim();
 
-// The scenario/metadata keys asked for alongside whatever grading-config keys
-// auto-config.ts appends for the chosen mode — one combined LLM call instead
-// of a scenario call followed by a separate config call.
 const SCENARIO_FIELDS = {
   title: "string, max 90 chars, names the work, not the topic",
   scenario: "string, 3 to 5 sentences",
@@ -128,17 +129,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json().catch(() => ({}));
-    const levelId: string | undefined =
-      typeof body?.level_id === 'string' ? body.level_id : undefined;
-    if (!levelId) return json({ error: 'level_id is required' }, 400);
+    const sourceContentId: string | undefined =
+      typeof body?.source_content_id === 'string' ? body.source_content_id : undefined;
+    if (!sourceContentId) return json({ error: 'source_content_id is required' }, 400);
 
     const { data: roles } = await supabase
       .from('user_roles').select('role').eq('user_id', callerId);
     const isAdmin = (roles ?? []).some((r: { role: string }) => r.role === 'admin');
 
-    // A student may only pay for the topic their own Lot is about. Without this
-    // one account could walk the whole ladder and spend the model budget on
-    // topics nobody has reached.
+    // A student may only pay for content their own Lot is about. Without
+    // this one account could walk the whole pool and spend the model budget
+    // on content nobody has reached.
     if (!isAdmin) {
       const today = new Date().toISOString().slice(0, 10);
       const { data: mine } = await supabase
@@ -146,136 +147,90 @@ serve(async (req) => {
         .select('id')
         .eq('student_id', callerId)
         .eq('lot_date', today)
-        .eq('level_id', levelId)
+        .eq('source_content_id', sourceContentId)
         .maybeSingle();
       if (!mine) return json({ error: 'That is not your Lot for today.' }, 403);
     }
 
     const { data: existing } = await supabase
       .from('lot_templates')
-      .select('level_id, origin')
-      .eq('level_id', levelId)
+      .select('source_content_id, origin')
+      .eq('source_content_id', sourceContentId)
       .maybeSingle();
 
-    // Somebody else reached this topic first and already paid for it.
     if (existing?.origin === 'ai') {
-      return json({ ok: true, level_id: levelId, written: false, reason: 'already written' });
+      return json({ ok: true, source_content_id: sourceContentId, written: false, reason: 'already written' });
     }
 
-    // Claim the topic before spending anything.
-    //
-    // Two students reaching a new topic within the same few seconds both read a
-    // seed template, both call the model, and the write only converges them
-    // after both calls have been paid for. The claim is a conditional UPDATE, so
-    // exactly one caller can hold it, and it hands back a token.
-    //
-    // The lease is two minutes and the model can take longer than that — the
-    // provider chain has a retry and two fallbacks behind it — so the token is
-    // heartbeated while the call is in flight. The lease therefore only lapses
-    // when this isolate has actually stopped running, and the write at the end
-    // is fenced on the same token so a caller that did lose its claim cannot
-    // overwrite whatever replaced it.
-    // Seeding and claiming happen in one statement, so there is no window in
-    // which a caller can reach a topic with no row yet and generate without
-    // holding the claim. Three concurrent requests on a brand-new topic all
-    // generated before this was one call.
+    // Claim before spending anything — same fenced-lease pattern as before,
+    // just keyed on source_content_id now. See the long comment this
+    // replaced in git history (stage69/stage31) for why the claim exists.
     const { data: claimed } = await supabase.rpc('ensure_and_claim_lot_template', {
-      _level_id: levelId,
+      _source_content_id: sourceContentId,
     });
     const token = (claimed as string | null) ?? null;
     if (!token) {
       return json({
-        ok: true, level_id: levelId, written: false,
-        reason: 'another request is writing this topic',
+        ok: true, source_content_id: sourceContentId, written: false,
+        reason: 'another request is writing this content',
       });
     }
 
     const heartbeat = setInterval(() => {
-      supabase.rpc('touch_lot_template', { _level_id: levelId, _token: token })
+      supabase.rpc('touch_lot_template', { _source_content_id: sourceContentId, _token: token })
         .then(() => {}, () => {});
     }, 30_000);
 
     const letGo = async () => {
       clearInterval(heartbeat);
-      await supabase.rpc('release_lot_template', { _level_id: levelId, _token: token });
+      await supabase.rpc('release_lot_template', { _source_content_id: sourceContentId, _token: token });
     };
 
-    const { data: level } = await supabase
-      .from('levels')
-      .select('id, skill, title, track_slug, level_number, kind')
-      .eq('id', levelId)
+    const { data: content } = await supabase
+      .from('source_content')
+      .select('id, title, markdown, submitted_by_college_id')
+      .eq('id', sourceContentId)
       .maybeSingle();
-    if (!level) return json({ error: 'No such topic' }, 404);
+    if (!content) {
+      await letGo();
+      return json({ error: 'No such content' }, 404);
+    }
 
-    // A real posting beats an invented one. Match on the skill appearing
-    // anywhere in the description text — eligible_branch is a student's
-    // academic branch (CSE/ECE/...), not a skill area, so it is not a useful
-    // filter here. A plain ilike, not .or(), so a skill name with a comma or
-    // parenthesis cannot break PostgREST's filter-string parsing.
+    const contentTitle = String(content.title ?? 'today\'s work').slice(0, 200);
+
+    // A real matching job posting still beats plain grounding in the source
+    // content itself, when one exists for roughly the same subject.
     const { data: realJobRow } = await supabase
       .from('job_opportunities')
       .select('role, company_name, description')
       .eq('status', 'approved')
-      .ilike('description', `%${level.skill}%`)
+      .ilike('description', `%${contentTitle.split(' ')[0]}%`)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    let realSource: RealSource | null = realJobRow?.description
+    const realSource: RealSource = realJobRow?.description
       ? {
           kind: 'job',
           role: realJobRow.role,
           company: realJobRow.company_name,
-          // A whole posting is more than a Lot needs and costs more tokens for
-          // no benefit past the first few hundred characters of substance.
           excerpt: String(realJobRow.description).slice(0, 800),
         }
-      : null;
-
-    // No real job posting for this skill — check source_content next. This is
-    // the crawler's own output (real pages it collected) and college/TPO
-    // submissions, both landing in the same table. Prefer a college's own
-    // submission over generic web content when both exist, since it is the
-    // most locally relevant material a Lot can be grounded in.
-    if (!realSource) {
-      const { data: contentRow } = await supabase
-        .from('source_content')
-        .select('title, markdown, submitted_by_college_id')
-        .ilike('markdown', `%${level.skill}%`)
-        .order('submitted_by_college_id', { ascending: false, nullsFirst: false })
-        .order('fetched_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (contentRow?.markdown) {
-        realSource = {
+      : {
           kind: 'content',
-          title: String(contentRow.title ?? level.skill).slice(0, 200),
-          origin: contentRow.submitted_by_college_id ? 'college' : 'web',
-          excerpt: String(contentRow.markdown).slice(0, 800),
+          title: contentTitle,
+          origin: content.submitted_by_college_id ? 'college' : 'web',
+          excerpt: String(content.markdown ?? '').slice(0, 800),
         };
-      }
-    }
 
-    // The real count for THIS track, not a platform-wide guess — tracks range
-    // from 4 topics (verbal-ability) to 16 (web-development).
-    const { count: trackTopicCount } = await supabase
-      .from('levels')
-      .select('id', { count: 'exact', head: true })
-      .eq('track_slug', level.track_slug)
-      .eq('sub_level', 1);
-
-    // Coding topics get a sandbox config, explanation topics get a rubric —
-    // deterministic from the topic's own kind, never left to the model to
-    // pick, mirroring the existing lot_category fallback below.
-    const gradingMode: AutoConfigMode = level.kind === 'explanation' ? 'rubric' : 'sandbox';
+    const gradingMode: AutoConfigMode = guessGradingMode(contentTitle, String(content.markdown ?? ''));
 
     const genResult = await generateGradedConfig({
       db: supabase,
       mode: gradingMode,
       content: {
         kind: 'scenario',
-        promptBody: prompt(level as never, realSource, trackTopicCount ?? level.level_number),
+        promptBody: prompt(contentTitle, realSource),
         fields: SCENARIO_FIELDS,
       },
       feature: 'lot-writer',
@@ -283,34 +238,27 @@ serve(async (req) => {
     });
 
     const parsed = genResult.scenarioFields;
-    const title = String(parsed.title ?? level.title).slice(0, 90);
+    const title = String(parsed.title ?? contentTitle).slice(0, 90);
     const scenario = String(parsed.scenario ?? '').trim();
-    // A Lot with no situation in it is the thing this endpoint exists to
-    // replace, so a short answer is refused rather than saved over the seed.
     if (scenario.length < 80) {
       await letGo();
       return json({ error: 'The model returned an empty scenario' }, 502);
     }
 
     const row = {
-      level_id: levelId,
+      source_content_id: sourceContentId,
       title,
       scenario,
       code_sample: typeof parsed.code_sample === 'string' && parsed.code_sample.trim()
         ? parsed.code_sample : null,
-      // A real posting's or real content's label is deterministic, never left
-      // to the model to restate — that is the whole point of grounding this
-      // in something real.
-      source_jd: realSource?.kind === 'job'
+      source_jd: realSource.kind === 'job'
         ? `${realSource.role} at ${realSource.company}`
-        : realSource?.kind === 'content'
-        ? `Real source: ${realSource.title}${realSource.origin === 'college' ? ' (from your college)' : ''}`
-        : (typeof parsed.source_jd === 'string' && parsed.source_jd.trim() ? parsed.source_jd : null),
+        : `Real source: ${realSource.title}${realSource.origin === 'college' ? ' (from your college)' : ''}`,
       difficulty: DIFFICULTIES.has(String(parsed.difficulty)) ? String(parsed.difficulty) : 'Medium',
       estimate_minutes: clampInt(parsed.estimate_minutes, 10, 45, 20),
       lot_category: CATEGORIES.has(String(parsed.lot_category))
         ? String(parsed.lot_category)
-        : (level.kind === 'explanation' ? 'pitch' : 'technical'),
+        : (gradingMode === 'rubric' ? 'pitch' : 'technical'),
       origin: 'ai',
       generating_since: null,
       updated_at: new Date().toISOString(),
@@ -320,10 +268,8 @@ serve(async (req) => {
 
     clearInterval(heartbeat);
 
-    // Fenced on the same token: a caller whose lease lapsed and was taken by
-    // somebody else writes nothing rather than overwriting what replaced it.
     const { data: saved, error: saveError } = await supabase.rpc('save_lot_template', {
-      _level_id: levelId,
+      _source_content_id: sourceContentId,
       _token: token,
       _title: row.title,
       _scenario: row.scenario,
@@ -338,15 +284,13 @@ serve(async (req) => {
     if (saveError) return json({ error: saveError.message }, 500);
     if (saved !== true) {
       return json({
-        ok: true, level_id: levelId, written: false,
-        reason: 'another request finished this topic first',
+        ok: true, source_content_id: sourceContentId, written: false,
+        reason: 'another request finished this content first',
       });
     }
 
     // Rewrite today's cards that are still on the seed version. Only ones
-    // nobody has started: a student who has already begun keeps the wording
-    // they read, because changing the work under someone mid-task is worse
-    // than leaving them on the plain version.
+    // nobody has started.
     const today = new Date().toISOString().slice(0, 10);
     const { data: updated } = await supabase
       .from('tasks')
@@ -362,7 +306,7 @@ serve(async (req) => {
         sandbox_config_id: row.sandbox_config_id,
         rubric_config_id: row.rubric_config_id,
       })
-      .eq('level_id', levelId)
+      .eq('source_content_id', sourceContentId)
       .eq('lot_date', today)
       .eq('status', 'pending')
       .is('started_at', null)
@@ -370,7 +314,7 @@ serve(async (req) => {
 
     return json({
       ok: true,
-      level_id: levelId,
+      source_content_id: sourceContentId,
       written: true,
       grading_mode: genResult.mode,
       used_fallback: genResult.usedFallback,

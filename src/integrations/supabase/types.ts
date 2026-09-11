@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -923,12 +923,14 @@ export type Database = {
           estimate_minutes: number
           generating_by: string | null
           generating_since: string | null
-          level_id: string
+          id: string
+          level_id: string | null
           lot_category: string
           origin: string
           rubric_config_id: string | null
           sandbox_config_id: string | null
           scenario: string
+          source_content_id: string | null
           source_jd: string | null
           title: string
           updated_at: string
@@ -941,12 +943,14 @@ export type Database = {
           estimate_minutes?: number
           generating_by?: string | null
           generating_since?: string | null
-          level_id: string
+          id?: string
+          level_id?: string | null
           lot_category?: string
           origin?: string
           rubric_config_id?: string | null
           sandbox_config_id?: string | null
           scenario: string
+          source_content_id?: string | null
           source_jd?: string | null
           title: string
           updated_at?: string
@@ -959,12 +963,14 @@ export type Database = {
           estimate_minutes?: number
           generating_by?: string | null
           generating_since?: string | null
-          level_id?: string
+          id?: string
+          level_id?: string | null
           lot_category?: string
           origin?: string
           rubric_config_id?: string | null
           sandbox_config_id?: string | null
           scenario?: string
+          source_content_id?: string | null
           source_jd?: string | null
           title?: string
           updated_at?: string
@@ -990,6 +996,13 @@ export type Database = {
             columns: ["sandbox_config_id"]
             isOneToOne: false
             referencedRelation: "task_sandbox_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_templates_source_content_id_fkey"
+            columns: ["source_content_id"]
+            isOneToOne: true
+            referencedRelation: "source_content"
             referencedColumns: ["id"]
           },
         ]
@@ -3515,8 +3528,10 @@ export type Database = {
           created_by: string | null
           criteria: Json
           id: string
+          is_generic_fallback: boolean
           max_words: number
           min_words: number
+          origin: string
           pass_threshold: number
           prompt_text: string
           reference_answer: string
@@ -3527,8 +3542,10 @@ export type Database = {
           created_by?: string | null
           criteria: Json
           id?: string
+          is_generic_fallback?: boolean
           max_words?: number
           min_words?: number
+          origin?: string
           pass_threshold?: number
           prompt_text: string
           reference_answer: string
@@ -3539,8 +3556,10 @@ export type Database = {
           created_by?: string | null
           criteria?: Json
           id?: string
+          is_generic_fallback?: boolean
           max_words?: number
           min_words?: number
+          origin?: string
           pass_threshold?: number
           prompt_text?: string
           reference_answer?: string
@@ -3557,6 +3576,7 @@ export type Database = {
           kind: string
           language: string
           memory_limit_mb: number
+          origin: string
           pass_threshold: number
           reference_solution: string
           starter_code: string
@@ -3572,6 +3592,7 @@ export type Database = {
           kind?: string
           language: string
           memory_limit_mb?: number
+          origin?: string
           pass_threshold?: number
           reference_solution: string
           starter_code?: string
@@ -3587,6 +3608,7 @@ export type Database = {
           kind?: string
           language?: string
           memory_limit_mb?: number
+          origin?: string
           pass_threshold?: number
           reference_solution?: string
           starter_code?: string
@@ -3759,6 +3781,7 @@ export type Database = {
           rubric_config_id: string | null
           sandbox_config_id: string | null
           source: string | null
+          source_content_id: string | null
           source_jd: string | null
           sponsor_criteria: string | null
           sponsored_by: string | null
@@ -3804,6 +3827,7 @@ export type Database = {
           rubric_config_id?: string | null
           sandbox_config_id?: string | null
           source?: string | null
+          source_content_id?: string | null
           source_jd?: string | null
           sponsor_criteria?: string | null
           sponsored_by?: string | null
@@ -3849,6 +3873,7 @@ export type Database = {
           rubric_config_id?: string | null
           sandbox_config_id?: string | null
           source?: string | null
+          source_content_id?: string | null
           source_jd?: string | null
           sponsor_criteria?: string | null
           sponsored_by?: string | null
@@ -3890,6 +3915,13 @@ export type Database = {
             columns: ["sandbox_config_id"]
             isOneToOne: false
             referencedRelation: "task_sandbox_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_source_content_id_fkey"
+            columns: ["source_content_id"]
+            isOneToOne: false
+            referencedRelation: "source_content"
             referencedColumns: ["id"]
           },
           {
@@ -4458,7 +4490,10 @@ export type Database = {
           url: string
         }[]
       }
-      claim_lot_template: { Args: { _level_id: string }; Returns: string }
+      claim_lot_template: {
+        Args: { _source_content_id: string }
+        Returns: string
+      }
       close_season: { Args: { _season_id: string }; Returns: Json }
       college_submit_source_content: {
         Args: { _content: string; _title: string }
@@ -4486,7 +4521,7 @@ export type Database = {
       }
       create_my_lot: { Args: never; Returns: Json }
       ensure_and_claim_lot_template: {
-        Args: { _level_id: string }
+        Args: { _source_content_id: string }
         Returns: string
       }
       ensure_season: { Args: { _college_id: string }; Returns: string }
@@ -4658,19 +4693,14 @@ export type Database = {
           due_date: string
           estimate_minutes: number
           id: string
-          is_foundation: boolean
-          level_id: string
-          level_number: number
-          level_status: string
           lot_category: string
           lot_number: number
+          rubric_config_id: string
+          sandbox_config_id: string
           source_jd: string
           sponsored_by_company: string
           status: string
           title: string
-          total_levels: number
-          track_name: string
-          track_slug: string
         }[]
       }
       my_week: {
@@ -4701,7 +4731,7 @@ export type Database = {
           task_title: string
         }[]
       }
-      next_lot_level: { Args: { _student_id: string }; Returns: string }
+      next_lot_source: { Args: { _student_id: string }; Returns: string }
       notify_all_admins: {
         Args: {
           _link?: string
@@ -4835,7 +4865,7 @@ export type Database = {
         Returns: number
       }
       release_lot_template: {
-        Args: { _level_id: string; _token: string }
+        Args: { _source_content_id: string; _token: string }
         Returns: undefined
       }
       reshuffle_quiz_options: { Args: never; Returns: Json }
@@ -4847,26 +4877,44 @@ export type Database = {
         Args: { _approve: boolean; _submission_id: string }
         Returns: Json
       }
+      rubric_task_view: { Args: { _task_id: string }; Returns: Json }
       run_all_seasons: { Args: never; Returns: Json }
       run_squad_week: {
         Args: { _season_id: string; _week?: number }
         Returns: Json
       }
       sandbox_task_view: { Args: { _task_id: string }; Returns: Json }
-      save_lot_template: {
-        Args: {
-          _code_sample: string
-          _difficulty: string
-          _estimate_minutes: number
-          _level_id: string
-          _lot_category: string
-          _scenario: string
-          _source_jd: string
-          _title: string
-          _token: string
-        }
-        Returns: boolean
-      }
+      save_lot_template:
+        | {
+            Args: {
+              _code_sample: string
+              _difficulty: string
+              _estimate_minutes: number
+              _level_id: string
+              _lot_category: string
+              _scenario: string
+              _source_jd: string
+              _title: string
+              _token: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _code_sample: string
+              _difficulty: string
+              _estimate_minutes: number
+              _lot_category: string
+              _rubric_config_id?: string
+              _sandbox_config_id?: string
+              _scenario: string
+              _source_content_id: string
+              _source_jd: string
+              _title: string
+              _token: string
+            }
+            Returns: boolean
+          }
       save_mock_interview_answer: {
         Args: {
           _duration_seconds: number
@@ -4941,7 +4989,10 @@ export type Database = {
         Returns: string
       }
       seed_championship: { Args: { _season_id: string }; Returns: Json }
-      seed_lot_template: { Args: { _level_id: string }; Returns: undefined }
+      seed_lot_template: {
+        Args: { _source_content_id: string }
+        Returns: undefined
+      }
       set_proof_publicity: {
         Args: { p_is_public: boolean; p_proof_id: string }
         Returns: undefined
@@ -4981,6 +5032,7 @@ export type Database = {
         }[]
       }
       squad_town: { Args: { _college_id: string }; Returns: string }
+      start_task_assignment: { Args: { _task_id: string }; Returns: Json }
       student_is_discoverable: {
         Args: { _student_id: string }
         Returns: boolean
@@ -5021,7 +5073,7 @@ export type Database = {
         }[]
       }
       touch_lot_template: {
-        Args: { _level_id: string; _token: string }
+        Args: { _source_content_id: string; _token: string }
         Returns: boolean
       }
       touch_my_activity: { Args: never; Returns: undefined }

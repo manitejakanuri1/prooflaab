@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { classifySkillGap } from "../_shared/role-skills.ts";
 import { normSkill, placeStudent } from "../_shared/levels.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 /** Must match the countdown in TimedResumeAssessment. */
 const SECONDS_PER_QUESTION = 15;
@@ -47,6 +47,7 @@ function deriveConfidenceFlag(finalScore: number, confidence?: ConfidenceLevel):
 }
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

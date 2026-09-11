@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 import { mayActOnStudentWork, forbidden } from "../_shared/authz.ts";
 
 async function submitToMossAPI(repoUrl: string, language: string = 'javascript'): Promise<{ similarity_score: number; report_url: string }> {
@@ -70,6 +70,7 @@ async function downloadFile(url: string): Promise<string> {
 }
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

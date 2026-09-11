@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { generateText } from "../_shared/llm.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 import { mayActOnStudentWork, forbidden } from "../_shared/authz.ts";
 
 interface GitHubRepoInfo {
@@ -196,6 +196,7 @@ async function downloadFileContent(fileUrl: string): Promise<string> {
 }
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { advanceUnlock, LEVEL_CLEAR_XP, QUIZ_PASS_MARK } from "../_shared/levels.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 
 /**
  * Grade a level's quiz and, if they passed, open the next level and hand them
@@ -17,7 +17,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsStatic, 'Content-Type': 'application/json' },
   });
 
 /** How long a student gets to finish a level's proof task. */
@@ -25,6 +25,7 @@ const PROOF_DUE_DAYS = 14;
 const PROOF_TASK_XP = 40;
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {

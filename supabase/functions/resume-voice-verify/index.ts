@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { guard } from '../_shared/rate-limit.ts';
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 
@@ -15,6 +15,7 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 
 /**
  * Scores a 60-second spoken explanation.
@@ -22,10 +22,11 @@ import { corsHeaders } from "../_shared/cors.ts";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsStatic, 'Content-Type': 'application/json' },
   });
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {

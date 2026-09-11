@@ -2,11 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 const MAX_JD_LENGTH = 8000;
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

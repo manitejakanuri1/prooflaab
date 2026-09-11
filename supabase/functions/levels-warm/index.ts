@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { ensureTopicSteps, type LevelRow } from "../_shared/levels.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 
 /**
  * Write level content ahead of time, so no student is the one who waits.
@@ -19,7 +19,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsStatic, 'Content-Type': 'application/json' },
   });
 
 /**
@@ -36,6 +36,7 @@ const DEFAULT_BATCH = 4;
 const MAX_BATCH = 8;
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 // LeetCode has no official public API. This is their site's own GraphQL
 // endpoint (used by leetcode.com itself), queried read-only for a public
@@ -20,6 +20,7 @@ const CALENDAR_QUERY = `
 `;
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

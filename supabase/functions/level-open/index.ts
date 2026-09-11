@@ -6,7 +6,7 @@ import {
   quizForStudent,
   type LevelRow,
 } from "../_shared/levels.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 
 /**
  * Open one topic and serve whichever of its steps is next for this student.
@@ -23,10 +23,11 @@ const DONE_STATUSES = new Set(['placed', 'cleared', 'mastered']);
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsStatic, 'Content-Type': 'application/json' },
   });
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {

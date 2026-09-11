@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 import { mayActOnStudentWork } from "../_shared/authz.ts";
 
 /**
@@ -22,13 +22,14 @@ import { mayActOnStudentWork } from "../_shared/authz.ts";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsStatic, 'Content-Type': 'application/json' },
   });
 
 /** Long enough to open or download a video, short enough that a leaked link dies. */
 const SIGNED_URL_SECONDS = 60 * 30;
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {

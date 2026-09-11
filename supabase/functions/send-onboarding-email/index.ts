@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { guard } from '../_shared/rate-limit.ts';
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 /**
  * Built per request, not once at module load.
@@ -136,6 +136,7 @@ const getEmailContent = (userType: string, name: string, origin?: string) => {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  const corsHeaders = cors(req);
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

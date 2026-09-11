@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { unzipSync } from "https://esm.sh/fflate@0.8.2";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 // 5MB — matches the client-side limit shown to students on the upload screen.
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
@@ -45,6 +45,7 @@ function extractDocxText(bytes: Uint8Array): string {
 
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { clientIp } from "../_shared/audit.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 /**
  * Events a browser is allowed to report.
@@ -33,6 +33,7 @@ const REASONS = new Set(['invalid_credentials', 'email_not_confirmed', 'user_not
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,255}\.[A-Za-z]{2,}$/;
 
 serve(async (req) => {
+  const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

@@ -51,12 +51,11 @@ interface RealContent {
 type RealSource = RealJob | RealContent;
 
 /**
- * ponytail: a keyword heuristic, not a model call. Grading mode (sandbox vs
- * rubric) has to be picked BEFORE generateGradedConfig runs — it needs to
- * know which schema to ask the model for. Without a Track level's `kind` to
- * read anymore, the cheapest honest signal left is the source content's own
- * title/excerpt. Upgrade path: tag source_content with a real category at
- * crawl/submission time instead of sniffing it here.
+ * Fallback only — source_content.grading_mode_hint (stage76) is checked
+ * first. This keyword guess exists for content nobody has tagged yet: fresh
+ * crawler runs and fresh college submissions land with no hint set. Grading
+ * mode has to be picked BEFORE generateGradedConfig runs — it needs to know
+ * which schema to ask the model for.
  */
 const CODE_SIGNALS = /\b(code|coding|program(ming)?|algorithm|function|syntax|debug|compile|array|loop|api|sql|query|script|variable|data structure)\b/i;
 
@@ -188,7 +187,7 @@ serve(async (req) => {
 
     const { data: content } = await supabase
       .from('source_content')
-      .select('id, title, markdown, submitted_by_college_id')
+      .select('id, title, markdown, submitted_by_college_id, grading_mode_hint')
       .eq('id', sourceContentId)
       .maybeSingle();
     if (!content) {
@@ -223,7 +222,13 @@ serve(async (req) => {
           excerpt: String(content.markdown ?? '').slice(0, 800),
         };
 
-    const gradingMode: AutoConfigMode = guessGradingMode(contentTitle, String(content.markdown ?? ''));
+    // stage76: a real, hand-checked signal beats the keyword guess whenever
+    // it exists. New content (fresh crawler runs, fresh college submissions)
+    // has no hint yet and falls back to the heuristic below.
+    const gradingMode: AutoConfigMode =
+      content.grading_mode_hint === 'sandbox' || content.grading_mode_hint === 'rubric'
+        ? content.grading_mode_hint
+        : guessGradingMode(contentTitle, String(content.markdown ?? ''));
 
     const genResult = await generateGradedConfig({
       db: supabase,

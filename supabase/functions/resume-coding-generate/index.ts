@@ -262,7 +262,7 @@ Return ONLY the JSON array, no additional text, no markdown fences.`;
   } catch (error) {
     console.error('Error in resume-coding-generate:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

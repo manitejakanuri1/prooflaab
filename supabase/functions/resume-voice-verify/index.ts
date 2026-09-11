@@ -232,7 +232,7 @@ Return ONLY a JSON object:
   } catch (error) {
     console.error('Error in resume-voice-verify:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

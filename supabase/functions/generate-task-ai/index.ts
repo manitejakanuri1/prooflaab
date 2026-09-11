@@ -65,7 +65,7 @@ Keep the title under 100 characters and the description focused and actionable.`
   } catch (error) {
     console.error('Error in generate-task-ai function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

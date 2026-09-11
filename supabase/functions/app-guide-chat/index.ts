@@ -86,7 +86,7 @@ Guide: Reply with plain text only, no JSON, no markdown fences.`;
     const limited = rateLimitResponse(error, corsHeaders);
     if (limited) return limited;
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

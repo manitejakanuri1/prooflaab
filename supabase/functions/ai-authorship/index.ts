@@ -254,10 +254,7 @@ Return your analysis in JSON format with:
   } catch (error) {
     console.error('AI authorship analysis error:', error);
     return new Response(
-      JSON.stringify({
-        error: error.message || 'Internal server error',
-        details: error.toString(),
-      }),
+      JSON.stringify({ error: 'Internal server error' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

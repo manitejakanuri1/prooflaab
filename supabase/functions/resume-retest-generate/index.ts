@@ -253,7 +253,7 @@ Return ONLY the JSON array, no additional text.`;
   } catch (error) {
     console.error('Error in resume-retest-generate:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

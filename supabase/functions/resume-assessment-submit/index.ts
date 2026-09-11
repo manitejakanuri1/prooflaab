@@ -504,7 +504,7 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
   } catch (error) {
     console.error('Error in resume-assessment-submit:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

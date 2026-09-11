@@ -336,7 +336,7 @@ Return ONLY the JSON array, no additional text.`;
   } catch (error) {
     console.error('Error in question-generator:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "../_shared/serve.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { clientIp } from "../_shared/audit.ts";
 import { cors } from "../_shared/cors.ts";

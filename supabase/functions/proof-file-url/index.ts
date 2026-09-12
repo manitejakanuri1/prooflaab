@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "../_shared/serve.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 import { mayActOnStudentWork } from "../_shared/authz.ts";

@@ -1,0 +1,116 @@
+// All 41 edge functions, in one Cloud Run service.
+//
+// Supabase runs each function as its own tiny process, reached at
+// /functions/v1/<name>. This serves the same 41 handlers from one process,
+// reached at /<name>, which is what supabase-js asks for once it is pointed
+// here.
+//
+// One process rather than 41 services is a deliberate choice. The functions are
+// small, they share nine helper modules, and 41 Cloud Run services would mean 41
+// cold starts, 41 deployments and 41 sets of environment variables to keep in
+// step. The cost of one process is that a crash in one handler restarts the lot
+// - acceptable, because a handler that throws returns 500 rather than taking the
+// process down.
+//
+// The functions themselves are unmodified apart from one import line: they call
+// a serve() that records the handler instead of starting a server. See
+// ../supabase/functions/_shared/serve.ts.
+
+import { takeHandler, type Handler } from '../supabase/functions/_shared/serve.ts';
+
+const PORT = Number(Deno.env.get('PORT') ?? 8080);
+const ROOT = new URL('../supabase/functions/', import.meta.url);
+
+/** Every function that exists, in no particular order. */
+const SLUGS = [
+  'ai-authorship', 'app-guide-chat', 'assign_tasks', 'create-college-user',
+  'create-student-users', 'generate-task-ai', 'github-check', 'interests-analyze',
+  'leetcode-streak-sync', 'level-open', 'level-quiz-submit', 'levels-place',
+  'levels-warm', 'lot-writer', 'mock-interview-generate', 'mock-interview-score',
+  'moss-check', 'proof-file-url', 'question-generator', 'reset-daily-credits',
+  'response-evaluator', 'resume-assessment-submit', 'resume-cert-radar',
+  'resume-code-execute', 'resume-coding-generate', 'resume-improve',
+  'resume-jd-match', 'resume-parser', 'resume-question-generator',
+  'resume-retest-generate', 'resume-voice-verify', 'run-sandbox', 'security-log',
+  'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
+  'submit-written-task', 'test-github-connection', 'trust-compute',
+  'verify-proof', 'voice-score',
+];
+
+const handlers = new Map<string, Handler>();
+const failed = new Map<string, string>();
+
+/**
+ * Load every function once, at startup.
+ *
+ * Deliberately not lazy. A function that fails to import should be discovered
+ * when the service starts and can be rolled back, not at 2am when the first
+ * student happens to trigger it.
+ */
+async function loadAll(): Promise<void> {
+  for (const slug of SLUGS) {
+    try {
+      await import(new URL(`${slug}/index.ts`, ROOT).href);
+      const handler = takeHandler();
+      if (handler) handlers.set(slug, handler);
+      else failed.set(slug, 'imported but registered no handler');
+    } catch (err) {
+      failed.set(slug, err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  console.log(`loaded ${handlers.size} of ${SLUGS.length} functions`);
+  for (const [slug, why] of failed) console.error(`  FAILED ${slug}: ${why}`);
+}
+
+/**
+ * Report readiness at /ready, not /healthz - Google's edge answers /healthz
+ * with its own 404 page and the request never arrives here.
+ */
+function ready(): Response {
+  return new Response(
+    JSON.stringify({
+      ok: failed.size === 0,
+      loaded: handlers.size,
+      expected: SLUGS.length,
+      failed: Object.fromEntries(failed),
+    }),
+    { status: failed.size === 0 ? 200 : 503, headers: { 'Content-Type': 'application/json' } },
+  );
+}
+
+async function router(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  if (url.pathname === '/ready') return ready();
+
+  // Accept both /<name> and Supabase's /functions/v1/<name>, so a client that
+  // has not been repointed yet still works during the changeover.
+  const slug = url.pathname.replace(/^\/functions\/v1\//, '').replace(/^\//, '').split('/')[0];
+
+  const handler = handlers.get(slug);
+  if (!handler) {
+    return new Response(JSON.stringify({ error: `no such function: ${slug}` }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    return await handler(req);
+  } catch (err) {
+    // One handler throwing must not take the other 40 down with it.
+    console.error(`${slug} threw:`, err);
+    return new Response(JSON.stringify({ error: 'internal error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+if (import.meta.main) {
+  await loadAll();
+  console.log(`functions service listening on :${PORT}`);
+  Deno.serve({ port: PORT }, router);
+}
+
+export { loadAll, router, handlers, failed, SLUGS };

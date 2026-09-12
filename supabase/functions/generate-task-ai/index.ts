@@ -1,5 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "../_shared/serve.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { generateText } from "../_shared/llm.ts";
 import { cors } from "../_shared/cors.ts";

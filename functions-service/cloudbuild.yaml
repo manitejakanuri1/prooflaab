@@ -1,0 +1,25 @@
+# Build the functions image from the repository root.
+#
+# Needed because `gcloud run deploy --source=.` hands the whole repo to Cloud
+# Build's automatic detection, which finds package.json at the root, decides
+# this is a Vite site, and deploys the website instead of the functions - which
+# is exactly what happened on the first attempt.
+#
+# The build context has to be the repository root, because the image needs both
+# functions-service/ and supabase/functions/.
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - functions-service/Dockerfile
+      - -t
+      - ${_IMAGE}
+      - .
+
+images:
+  - ${_IMAGE}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

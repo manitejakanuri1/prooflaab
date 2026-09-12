@@ -8,9 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
-import { FaGoogle, FaGithub } from 'react-icons/fa';
 import PasswordInput, { isPasswordValid } from './PasswordInput';
 import EmailVerificationScreen from './EmailVerificationScreen';
 import EmailConfirmationRequired from './EmailConfirmationRequired';
@@ -32,7 +30,7 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-type AuthMode = 'login' | 'signup' | 'magic-link' | 'forgot-password';
+type AuthMode = 'login' | 'signup' | 'forgot-password';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 type AuthStep = 'form' | 'email-verification';
 
@@ -47,7 +45,6 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<UserRole>('student');
   const [loading, setLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [authStep, setAuthStep] = useState<AuthStep>('form');
@@ -81,88 +78,6 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
         localStorage.removeItem(key);
       }
     });
-  };
-
-  const handleSocialAuth = async (provider: 'google' | 'github') => {
-    if (provider === 'google') {
-      setIsGoogleLoading(true);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      cleanupAuthState();
-      await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
-
-      // Social sign-in is students only, so the account type is fixed rather
-      // than carried through the provider round trip.
-      //
-      // It used to send `?type=${role}`, which the provider frequently dropped
-      // on the way back — and AuthCallback falls back to 'student' when the
-      // type is missing. A college or startup signing in with Google was
-      // therefore turned into a student with no warning. The `account_type`
-      // query param was never a fix either: providers ignore fields they do not
-      // know, so it never reached us.
-      const redirectUrl = `${getRedirectUrl()}?type=student`;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: redirectUrl }
-      });
-
-      if (error) {
-        console.error(`OAuth error for ${provider}:`, error);
-        if (error.message?.includes('Unsupported provider') || error.message?.includes('not enabled')) {
-          throw new Error(`${provider === 'google' ? 'Google' : 'GitHub'} sign-in is not enabled. Please contact support or use email/password authentication.`);
-        }
-        if (error.message?.includes('Invalid login credentials') || error.message?.includes('OAuth')) {
-          throw new Error(`${provider === 'google' ? 'Google' : 'GitHub'} OAuth is not properly configured. Please check the credentials in Supabase settings.`);
-        }
-        throw error;
-      }
-    } catch (error: any) {
-      console.error(`${provider} auth error:`, error);
-      
-      // Provide specific error messages for common OAuth issues
-      if (error.message?.includes('redirect_uri_mismatch')) {
-        setError(`OAuth redirect URL mismatch. Please ensure ${window.location.origin}/auth/callback is added to your ${provider === 'google' ? 'Google Cloud Console' : 'GitHub OAuth App'} authorized redirect URIs.`);
-      } else if (error.message?.includes('invalid_client')) {
-        setError(`Invalid OAuth credentials. Please check your ${provider === 'google' ? 'Google' : 'GitHub'} Client ID and Secret in Supabase settings.`);
-      } else {
-        setError(error.message || `Failed to authenticate with ${provider === 'google' ? 'Google' : 'GitHub'}`);
-      }
-    } finally {
-      setIsGoogleLoading(false);
-      setLoading(false);
-    }
-  };
-
-  const handleMagicLink = async () => {
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const redirectUrl = `${getRedirectUrl()}?type=${role}`;
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            account_type: role
-          }
-        }
-      });
-
-      if (error) throw error;
-      setMessage('Check your email for the magic link!');
-    } catch (error: any) {
-      console.error('Magic link error:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleForgotPassword = async () => {
@@ -393,9 +308,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       }
     }
     
-    if (mode === 'magic-link') {
-      handleMagicLink();
-    } else if (mode === 'forgot-password') {
+    if (mode === 'forgot-password') {
       handleForgotPassword();
     } else {
       handleEmailPasswordAuth();
@@ -424,59 +337,17 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     <Card className="w-full max-w-md mx-auto rounded-3xl shadow-2xl border border-border/50 bg-card dark:bg-gray-800/95 backdrop-blur-md">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">
-          {mode === 'login' ? 'Welcome Back' : 
-           mode === 'signup' ? 'Create Account' : 
-           mode === 'forgot-password' ? 'Reset Password' : 
-           'Magic Link'}
+          {mode === 'login' ? 'Welcome Back' :
+           mode === 'signup' ? 'Create Account' :
+           'Reset Password'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Social sign-in, students only. A college or startup arriving this
-            way cannot be told apart from a student on the way back, so the
-            buttons are simply not offered to them — they sign in with email and
-            password, which carries the account type reliably. */}
-        {role === 'student' && (
-          <>
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => handleSocialAuth('google')}
-                disabled={isGoogleLoading || loading}
-              >
-                {isGoogleLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <FaGoogle className="w-4 h-4 mr-2" />
-                )}
-                Continue with Google
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => handleSocialAuth('github')}
-                disabled={loading || isGoogleLoading}
-              >
-                {loading && !isGoogleLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <FaGithub className="w-4 h-4 mr-2" />
-                )}
-                Continue with GitHub
-              </Button>
-            </div>
-
-            <Separator />
-          </>
-        )}
-
         {/* Auth Mode Tabs */}
         <Tabs value={mode} onValueChange={(value) => setMode(value as AuthMode)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login" className="space-y-4">
@@ -562,34 +433,6 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
                   Password too weak
                 </p>
               )}
-            </form>
-          </TabsContent>
-
-          <TabsContent value="magic-link" className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Account Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="college_admin">College Admin</SelectItem>
-                  <SelectItem value="startup">Startup</SelectItem>
-                  <SelectItem value="recruiter">Recruiter</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                Send Magic Link
-              </Button>
             </form>
           </TabsContent>
 

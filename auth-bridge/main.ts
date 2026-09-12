@@ -18,6 +18,22 @@ import { verifyGoogleToken } from './verify.ts';
 const PORT = Number(Deno.env.get('PORT') ?? 8080);
 const TTL_SECONDS = Number(Deno.env.get('TOKEN_TTL') ?? 3600);
 
+/**
+ * Where to ask for the uuid belonging to a Google account.
+ *
+ * Identity Platform names an account when it creates one, and its names are not
+ * uuids. Every user column in the database is uuid and 264 auth.uid() checks
+ * compare against one, so the name has to be translated before it reaches a
+ * token. Telling Identity Platform to use a uuid instead would need an
+ * administrator credential, and the metadata server on this runtime cannot
+ * issue one - so the translation happens here, where a token is minted anyway.
+ *
+ * The seven accounts migrated in August kept their uuids as their Identity
+ * Platform ids, so for them this costs nothing: resolve_account_uuid recognises
+ * a uuid and hands it straight back without touching the database.
+ */
+const POSTGREST_URL = Deno.env.get('POSTGREST_URL') ?? '';
+
 const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://prooflaab.vercel.app')
   .split(',').map((s) => s.trim()).filter(Boolean);
 const PREVIEW = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
@@ -72,14 +88,19 @@ const b64urlStr = (s: string) =>
  * Its lifetime is capped independently of Google's, so a long-lived Google
  * session cannot produce an indefinitely valid database token.
  */
-async function mint(sub: string, email?: string): Promise<{ token: string; exp: number }> {
+async function mint(
+  sub: string,
+  email?: string,
+  role = 'authenticated',
+  ttl = TTL_SECONDS,
+): Promise<{ token: string; exp: number }> {
   const now = Math.floor(Date.now() / 1000);
-  const exp = now + TTL_SECONDS;
+  const exp = now + ttl;
 
   const header = b64urlStr(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const payload = b64urlStr(JSON.stringify({
-    sub,
-    role: 'authenticated',
+    ...(sub ? { sub } : {}),
+    role,
     ...(email ? { email } : {}),
     iat: now,
     exp,
@@ -89,6 +110,49 @@ async function mint(sub: string, email?: string): Promise<{ token: string; exp: 
     'HMAC', await key(), new TextEncoder().encode(`${header}.${payload}`),
   );
   return { token: `${header}.${payload}.${b64url(new Uint8Array(sig))}`, exp };
+}
+
+/** Looks like a uuid? Then no lookup is needed at all. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The uuid for this account.
+ *
+ * Uses the same secret this service already holds to mint a short service_role
+ * token, so no new credential is introduced - the bridge can already sign
+ * tokens, that is its whole job.
+ *
+ * A failure here refuses the login rather than falling back to the Google name.
+ * Issuing a token with an unusable subject would produce a student who is a
+ * stranger to their own work, which is far worse than being told to try again.
+ */
+async function resolveUuid(providerUid: string, email?: string): Promise<string | null> {
+  if (UUID.test(providerUid)) return providerUid;
+  if (!POSTGREST_URL) return null;
+
+  const { token } = await mint('', undefined, 'service_role', 60);
+
+  try {
+    const res = await fetch(`${POSTGREST_URL}/rpc/resolve_account_uuid`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/vnd.pgrst.object+json',
+      },
+      body: JSON.stringify({ _provider_uid: providerUid, _email: email ?? null }),
+    });
+    if (!res.ok) {
+      console.error('resolve_account_uuid returned', res.status);
+      return null;
+    }
+    const body = await res.json();
+    const uuid = typeof body === 'string' ? body : body?.resolve_account_uuid;
+    return typeof uuid === 'string' && UUID.test(uuid) ? uuid : null;
+  } catch (err) {
+    console.error('resolve_account_uuid failed:', err);
+    return null;
+  }
 }
 
 async function handler(req: Request): Promise<Response> {
@@ -111,7 +175,12 @@ async function handler(req: Request): Promise<Response> {
       return json({ error: 'invalid token' }, 401, origin);
     }
 
-    const { token, exp } = await mint(verified.sub, verified.email);
+    const uuid = await resolveUuid(verified.sub, verified.email);
+    if (!uuid) {
+      return json({ error: 'could not establish your account' }, 503, origin);
+    }
+
+    const { token, exp } = await mint(uuid, verified.email);
     return json({
       access_token: token,
       token_type: 'bearer',

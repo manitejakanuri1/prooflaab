@@ -5,7 +5,11 @@
 // attack: a token from another Google project, an expired one, one with the
 // signature stripped, one re-signed by the attacker.
 //
-//   deno test --allow-net --allow-env auth-bridge/bridge_test.ts
+//   PGRST_JWT_SECRET=any-32-character-string-will-do-here //     deno test --allow-net --allow-env auth-bridge/bridge_test.ts
+//
+// The secret is required: one test mints a token, and signing with an empty key
+// fails with "Key length is zero", which reads like a broken test rather than a
+// missing variable.
 import { handler } from './main.ts';
 import { verifyGoogleToken } from './verify.ts';
 

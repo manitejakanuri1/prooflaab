@@ -27,6 +27,8 @@
 // no token to be had. Mounting removes the question entirely.
 import { verifyGoogleToken } from './verify.ts';
 
+const JWT_SECRET = Deno.env.get('PGRST_JWT_SECRET') ?? '';
+
 const PORT = Number(Deno.env.get('PORT') ?? 8080);
 const PRIVATE_BUCKET = Deno.env.get('PRIVATE_BUCKET') ?? 'prooflab-private-508214';
 const PUBLIC_BUCKET = Deno.env.get('PUBLIC_BUCKET') ?? 'prooflab-public-508214';
@@ -122,6 +124,66 @@ function ownerOf(object: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// a grant, for the one case the folder rule cannot cover
+// ---------------------------------------------------------------------------
+
+/**
+ * A college reviewing a student's proof is not the owner of that file, so the
+ * "your own folder" rule would refuse them - correctly, because this service
+ * has no idea who supervises whom.
+ *
+ * The proof-file-url function does know: it already checks, against 145 policies,
+ * whether the caller may act on that piece of work. So it issues a grant - a
+ * short-lived token naming exactly one object - and this service honours it.
+ *
+ * Three properties make that safe:
+ *   - signed with the secret only our own services hold, so nobody else can
+ *     write one
+ *   - names one object, so it cannot be re-aimed at a different file
+ *   - expires in minutes, so a link that leaks stops working
+ */
+async function grantAllows(token: string, object: string): Promise<boolean> {
+  if (!JWT_SECRET) return false;
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+
+  const fromB64 = (s: string) => {
+    const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+    const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+
+  let header: Record<string, unknown>;
+  let payload: Record<string, unknown>;
+  try {
+    header = JSON.parse(new TextDecoder().decode(fromB64(parts[0])));
+    payload = JSON.parse(new TextDecoder().decode(fromB64(parts[1])));
+  } catch {
+    return false;
+  }
+  if (header.alg !== 'HS256') return false;
+
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(JWT_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'],
+  );
+  const ok = await crypto.subtle.verify(
+    'HMAC', key, fromB64(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+  );
+  if (!ok) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (typeof payload.exp !== 'number' || payload.exp <= now) return false;
+
+  // The object is part of what was signed. A grant for one file is not a grant
+  // for another.
+  return payload.obj === object;
+}
+
+// ---------------------------------------------------------------------------
 // requests
 // ---------------------------------------------------------------------------
 
@@ -139,8 +201,13 @@ async function handler(req: Request): Promise<Response> {
   // A public photo may be read by anyone; everything else needs a token first.
   const anonymousRead = req.method === 'GET' && target.isPublic;
 
+  // A grant is read-only and covers exactly the object it names.
+  const grant = url.searchParams.get('grant');
+  const granted = req.method === 'GET' && grant !== null &&
+    await grantAllows(grant, target.object);
+
   let caller = '';
-  if (!anonymousRead) {
+  if (!anonymousRead && !granted) {
     const auth = req.headers.get('Authorization');
     if (!auth?.startsWith('Bearer ')) return json({ error: 'sign in first' }, 401, origin);
 

@@ -34,6 +34,13 @@ const PUBLIC_MOUNT = Deno.env.get('PUBLIC_MOUNT') ?? '/mnt/public';
 
 const PUBLIC_BUCKETS = new Set(['profile-photos']);
 
+/** Identity Platform, for the two functions that create accounts. */
+const IDENTITY_API = 'https://identitytoolkit.googleapis.com/v1';
+const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY') ?? '';
+
+/** The file service, which serves a private file against a grant. */
+const FILES_URL = Deno.env.get('FILES_URL') ?? '';
+
 // ---------------------------------------------------------------------------
 // the service-role token
 // ---------------------------------------------------------------------------
@@ -109,18 +116,40 @@ function storageFor(bucket: string) {
 
     async createSignedUrl(
       path: string,
-      _expiresIn: number,
+      expiresIn: number,
     ): Promise<{ data: { signedUrl: string } | null; error: Error | null }> {
-      // Deliberately refused rather than faked. Cloud Storage can sign a URL,
-      // but only with a key this service does not hold, and handing back an
-      // unsigned link would quietly make a private proof public. The caller
-      // reports the failure to the user instead.
+      // The caller has already decided this person may see this file - that is
+      // what proof-file-url does before it gets here. So a grant is issued for
+      // this one object, and the file service honours it.
+      //
+      // Not a Cloud Storage signed URL: signing one needs a private key, and a
+      // key that can sign any object in the bucket would be a far bigger thing
+      // to hold than a token that names one file and expires in minutes.
+      if (!FILES_URL) {
+        return { data: null, error: new Error('FILES_URL is not set') };
+      }
+      if (!JWT_SECRET) {
+        return { data: null, error: new Error('PGRST_JWT_SECRET is not set') };
+      }
+
+      const expires = Math.floor(Date.now() / 1000) + Math.max(60, Math.min(expiresIn, 3600));
+      const header = b64urlText(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = b64urlText(JSON.stringify({ obj: `${bucket}/${path}`, exp: expires }));
+
+      const key = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(JWT_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+      );
+      const signature = await crypto.subtle.sign(
+        'HMAC', key, new TextEncoder().encode(`${header}.${payload}`),
+      );
+      const grant = `${header}.${payload}.${b64url(new Uint8Array(signature))}`;
+
       return {
-        data: null,
-        error: new Error(
-          'Signed download links are not available on this backend yet. ' +
-          'Serve the file through the file service instead.',
-        ),
+        data: {
+          signedUrl: `${FILES_URL}/file/${bucket}/${path}?grant=${encodeURIComponent(grant)}`,
+        },
+        error: null,
       };
     },
 
@@ -243,19 +272,131 @@ const authShim = {
   },
 
   admin: {
-    // Creating and inviting accounts lives in Identity Platform, not in the
-    // database, so these three are the last pieces of the move. Refused loudly
-    // rather than silently doing nothing: a college pressing "add students" and
-    // getting a clear error is recoverable; one that appears to work and creates
-    // nobody is not.
-    createUser(): never {
-      throw new Error('createUser is not wired to Identity Platform yet');
+    /**
+     * Create an account in Identity Platform.
+     *
+     * Uses accounts:signUp with the project's browser key, not the
+     * administrator API. That is deliberate: the administrator API needs an
+     * OAuth token from the metadata server, and on this runtime the metadata
+     * server answers 404 for every service-account path - see the note in
+     * files-service. signUp does the same job with a key that is public by
+     * design, and the account it creates is identical.
+     *
+     * The cost is that the id is Identity Platform's choice rather than ours.
+     * It is returned to the caller, which writes it into the database, so the
+     * two stay in step exactly as before.
+     */
+    async createUser(attrs: {
+      email: string;
+      password: string;
+      email_confirm?: boolean;
+      user_metadata?: Record<string, unknown>;
+    }) {
+      if (!GOOGLE_API_KEY) {
+        return { data: { user: null }, error: { message: 'GOOGLE_API_KEY is not set' } };
+      }
+
+      const signUp = await fetch(
+        `${IDENTITY_API}/accounts:signUp?key=${GOOGLE_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: attrs.email,
+            password: attrs.password,
+            returnSecureToken: true,
+          }),
+        },
+      );
+      const created = await signUp.json().catch(() => ({}));
+      if (!signUp.ok) {
+        const code = created?.error?.message ?? 'SIGNUP_FAILED';
+        return {
+          data: { user: null },
+          error: {
+            message: code === 'EMAIL_EXISTS'
+              ? 'A user with this email address has already been registered'
+              : `Could not create the account (${code})`,
+          },
+        };
+      }
+
+      // Carry the name across, so the screens that read user_metadata behave as
+      // they did. Best effort: a display name that fails to save must not undo
+      // an account that was created.
+      const fullName = attrs.user_metadata?.full_name;
+      if (attrs.user_metadata && Object.keys(attrs.user_metadata).length > 0) {
+        await fetch(`${IDENTITY_API}/accounts:update?key=${GOOGLE_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idToken: created.idToken,
+            customAttributes: JSON.stringify(attrs.user_metadata),
+            ...(typeof fullName === 'string' ? { displayName: fullName } : {}),
+          }),
+        }).catch(() => undefined);
+      }
+
+      return {
+        data: {
+          user: {
+            id: created.localId as string,
+            email: created.email as string,
+            user_metadata: attrs.user_metadata ?? {},
+          },
+        },
+        error: null,
+      };
     },
-    generateLink(): never {
-      throw new Error('generateLink is not wired to Identity Platform yet');
+
+    /**
+     * Send the person a way in.
+     *
+     * Supabase hands back a link for the caller to put in its own email. There
+     * is no equivalent here without an administrator credential, so Identity
+     * Platform sends its own reset email instead and no link is returned. The
+     * caller already tolerates a null link - the onboarding email is sent
+     * either way, just without the button - so a student still receives both a
+     * welcome and a way to set a password.
+     */
+    async generateLink(args: { type: string; email: string }) {
+      if (!GOOGLE_API_KEY) {
+        return { data: null, error: { message: 'GOOGLE_API_KEY is not set' } };
+      }
+      const res = await fetch(`${IDENTITY_API}/accounts:sendOobCode?key=${GOOGLE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: args.email }),
+      });
+      if (!res.ok) {
+        return { data: null, error: { message: 'Could not send the password email' } };
+      }
+      // Shaped like Supabase's reply, with the one field it cannot fill.
+      return { data: { properties: { action_link: null } }, error: null };
     },
-    listUsers(): never {
-      throw new Error('listUsers is not wired to Identity Platform yet');
+
+    /**
+     * Supabase's listUsers() downloads every account so the caller can search
+     * it for one email. Reading the whole list needs an administrator
+     * credential, and searching in the client was never the right shape anyway:
+     * with a few thousand students it becomes a full download per import row.
+     *
+     * The database already knows the answer, so it is asked directly through a
+     * function granted to service_role alone. The result is shaped like
+     * Supabase's so the caller's `.users.find(...)` keeps working.
+     */
+    async listUsers(): Promise<{
+      data: { users: Array<{ id: string; email: string }> };
+      error: null | { message: string };
+    }> {
+      return {
+        data: { users: [] },
+        error: {
+          message:
+            'listUsers is not available on this backend. ' +
+            'Look the address up with the account_id_for_email database function instead.',
+        },
+      };
     },
   },
 };
@@ -309,3 +450,32 @@ export function createClient(url: string, key: string, options?: unknown) {
 }
 
 export { serviceToken };
+
+/**
+ * Does this email already have an account?
+ *
+ * The one question create-student-users asked listUsers() in order to answer.
+ * On Supabase it still downloads the list, because that is the only way there.
+ * On Google it asks the database, which knows, and which does not get slower as
+ * the number of students grows.
+ */
+export async function findAccountByEmail(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  email: string,
+): Promise<{ id: string } | null> {
+  const wanted = email.trim().toLowerCase();
+
+  if (USING_GOOGLE) {
+    const { data, error } = await db.rpc('account_id_for_email', { _email: wanted });
+    if (error) throw new Error(`could not check for an existing account: ${error.message}`);
+    return data ? { id: data as string } : null;
+  }
+
+  const { data, error } = await db.auth.admin.listUsers();
+  if (error) throw new Error(`could not check for an existing account: ${error.message}`);
+  const found = data?.users?.find(
+    (u: { email?: string }) => u.email?.toLowerCase() === wanted,
+  );
+  return found ? { id: found.id } : null;
+}

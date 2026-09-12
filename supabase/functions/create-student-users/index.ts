@@ -1,5 +1,5 @@
 import { serve } from "../_shared/serve.ts";
-import { createClient } from "../_shared/backend.ts";
+import { createClient, findAccountByEmail } from "../_shared/backend.ts";
 import { cors } from "../_shared/cors.ts";
 
 serve(async (req) => {
@@ -123,9 +123,9 @@ serve(async (req) => {
       const keyInterestsArray = convertToSkillsArray(key_interests)
 
       try {
-        // Check if auth user already exists
-        const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
-        const existingAuthUser = authUsers.users?.find(user => user.email?.toLowerCase() === email.toLowerCase())
+        // Does this email already have an account? Asked of whichever backend is
+        // in use - the database on Google, the account list on Supabase.
+        const existingAuthUser = await findAccountByEmail(supabaseAdmin, email)
         
         // An account with this email already exists. That is the ordinary case,
         // not an error: the keenest students sign up on their own before their

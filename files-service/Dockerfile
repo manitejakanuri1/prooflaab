@@ -12,7 +12,7 @@ RUN deno cache main.ts
 USER deno
 CMD ["deno", "run", \
      "--allow-net", \
-     "--allow-env=PORT,PRIVATE_BUCKET,PUBLIC_BUCKET,PRIVATE_MOUNT,PUBLIC_MOUNT,ALLOWED_ORIGINS,GCP_PROJECT", \
+     "--allow-env=PORT,PRIVATE_BUCKET,PUBLIC_BUCKET,PRIVATE_MOUNT,PUBLIC_MOUNT,ALLOWED_ORIGINS,GCP_PROJECT,PGRST_JWT_SECRET", \
      "--allow-read=/mnt", \
      "--allow-write=/mnt", \
      "main.ts"]

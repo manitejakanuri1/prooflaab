@@ -74,9 +74,40 @@ function ready(): Response {
       loaded: handlers.size,
       expected: SLUGS.length,
       failed: Object.fromEntries(failed),
+      metadata: metadataStatus,
     }),
     { status: failed.size === 0 ? 200 : 503, headers: { 'Content-Type': 'application/json' } },
   );
+}
+
+/**
+ * Can this service obtain a Google credential of its own?
+ *
+ * Recorded at startup because it decides whether the account-creating functions
+ * can set an account's id. Without it, Identity Platform assigns its own id,
+ * which is not a UUID and therefore cannot be stored in a database whose user
+ * columns are uuid.
+ */
+let metadataStatus = 'not checked';
+
+async function checkMetadata(): Promise<void> {
+  const urls = [
+    'http://metadata.google.internal/computeMetadata/v1/instance/service-account/default/token',
+    'http://169.254.169.254/computeMetadata/v1/instance/service-account/default/token',
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { headers: { 'Metadata-Flavor': 'Google' } });
+      if (res.ok) {
+        await res.body?.cancel();
+        metadataStatus = `available via ${new URL(url).host}`;
+        return;
+      }
+      metadataStatus = `${new URL(url).host} answered ${res.status}`;
+    } catch (err) {
+      metadataStatus = `${new URL(url).host} threw ${err instanceof Error ? err.name : 'error'}`;
+    }
+  }
 }
 
 async function router(req: Request): Promise<Response> {
@@ -109,6 +140,8 @@ async function router(req: Request): Promise<Response> {
 
 if (import.meta.main) {
   await loadAll();
+  await checkMetadata();
+  console.log(`credentials: ${metadataStatus}`);
   console.log(`functions service listening on :${PORT}`);
   Deno.serve({ port: PORT }, router);
 }

@@ -119,6 +119,12 @@ create or replace view public.admin_users as
    where r.role = 'admin'::public.app_role
      and public.is_admin();
 
+-- The view is created fresh, so it carries none of the grants the original had.
+-- service_role is the only role that may read it - the admin screen reaches it
+-- through an edge function, not directly from the browser - and forgetting this
+-- grant is the exact mistake that has already cost this project two bugs.
+grant select on public.admin_users to service_role;
+
 -- ---------------------------------------------------------------------------
 -- 4. prove it worked before committing
 -- ---------------------------------------------------------------------------
@@ -147,6 +153,12 @@ begin
   if not exists (select 1 from information_schema.views
                   where table_schema = 'public' and table_name = 'admin_users') then
     raise exception 'the admin_users view did not get created';
+  end if;
+
+  if not exists (select 1 from information_schema.role_table_grants
+                  where table_name = 'admin_users' and grantee = 'service_role'
+                    and privilege_type = 'SELECT') then
+    raise exception 'admin_users exists but service_role cannot read it';
   end if;
 
   raise notice 'schema catch-up complete: 7 columns and the admin_users view are present';

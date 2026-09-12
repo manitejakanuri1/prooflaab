@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { createClient } from "../_shared/backend.ts";
 import { guard } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
 

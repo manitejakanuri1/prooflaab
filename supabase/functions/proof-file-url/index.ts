@@ -1,5 +1,5 @@
 import { serve } from "../_shared/serve.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+import { createClient } from "../_shared/backend.ts";
 import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 import { mayActOnStudentWork } from "../_shared/authz.ts";
 

@@ -6,10 +6,10 @@
  *   auth      -> Google Identity Platform, via the shim in ./identity
  *   from/rpc  -> PostgREST on Cloud Run, talking to Cloud SQL
  *   realtime  -> off. Nothing in the app subscribes to it.
- *   storage   -> still Supabase (phase 5 moves it)
+ *   storage   -> Cloud Storage, through the file service (phase 5)
  *   functions -> still Supabase (phase 6 moves them)
  *
- * The two that stay behind are the reason this file reads a flag instead of
+ * The one that stays behind is the reason this file reads a flag instead of
  * simply replacing the old client: with a Google session there is no Supabase
  * token, so the 24 edge functions that check one would start refusing callers.
  * Flipping the flag is therefore the last step of the move, not the first.
@@ -18,6 +18,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { googleAuth, currentAccessToken } from './identity';
+import { googleStorage } from './storage';
 
 const POSTGREST_URL = import.meta.env.VITE_POSTGREST_URL as string;
 
@@ -49,7 +50,7 @@ export function createGoogleClient() {
     db: { schema: 'public' },
   });
 
-  // Storage and edge functions have not moved yet; they keep their old home.
+  // Edge functions have not moved yet; they keep their old home.
   const legacy = createClient<Database>(
     import.meta.env.VITE_SUPABASE_URL as string,
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
@@ -59,7 +60,7 @@ export function createGoogleClient() {
   return new Proxy(base, {
     get(target, prop, receiver) {
       if (prop === 'auth') return googleAuth;
-      if (prop === 'storage') return legacy.storage;
+      if (prop === 'storage') return googleStorage;
       if (prop === 'functions') return legacy.functions;
 
       const value = Reflect.get(target, prop, receiver);

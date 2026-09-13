@@ -93,6 +93,7 @@ async function mint(
   email?: string,
   role = 'authenticated',
   ttl = TTL_SECONDS,
+  emailConfirmed?: boolean,
 ): Promise<{ token: string; exp: number }> {
   const now = Math.floor(Date.now() / 1000);
   const exp = now + ttl;
@@ -102,6 +103,11 @@ async function mint(
     ...(sub ? { sub } : {}),
     role,
     ...(email ? { email } : {}),
+    // The app refuses to let an unconfirmed address in. Identity Platform says
+    // "unverified" for every account it creates and will not let anything but an
+    // administrator credential change that, so the database's record - which a
+    // college sets when it enrols a student - is carried here as well.
+    ...(emailConfirmed === undefined ? {} : { email_confirmed: emailConfirmed }),
     iat: now,
     exp,
   }));
@@ -126,31 +132,45 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * Issuing a token with an unusable subject would produce a student who is a
  * stranger to their own work, which is far worse than being told to try again.
  */
-async function resolveUuid(providerUid: string, email?: string): Promise<string | null> {
-  if (UUID.test(providerUid)) return providerUid;
-  if (!POSTGREST_URL) return null;
+async function resolveAccount(
+  providerUid: string,
+  email: string | undefined,
+  providerVerified: boolean,
+): Promise<{ uuid: string; emailConfirmed: boolean } | null> {
+  if (!POSTGREST_URL) {
+    // Nothing to ask. A uuid-named account can still be served from the token
+    // itself, which is every account migrated in August.
+    return UUID.test(providerUid)
+      ? { uuid: providerUid, emailConfirmed: providerVerified }
+      : null;
+  }
 
   const { token } = await mint('', undefined, 'service_role', 60);
 
   try {
-    const res = await fetch(`${POSTGREST_URL}/rpc/resolve_account_uuid`, {
+    const res = await fetch(`${POSTGREST_URL}/rpc/resolve_account`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
         Accept: 'application/vnd.pgrst.object+json',
       },
-      body: JSON.stringify({ _provider_uid: providerUid, _email: email ?? null }),
+      body: JSON.stringify({
+        _provider_uid: providerUid,
+        _email: email ?? null,
+        _provider_verified: providerVerified,
+      }),
     });
     if (!res.ok) {
-      console.error('resolve_account_uuid returned', res.status);
+      console.error('resolve_account returned', res.status);
       return null;
     }
     const body = await res.json();
-    const uuid = typeof body === 'string' ? body : body?.resolve_account_uuid;
-    return typeof uuid === 'string' && UUID.test(uuid) ? uuid : null;
+    const uuid = body?.user_id;
+    if (typeof uuid !== 'string' || !UUID.test(uuid)) return null;
+    return { uuid, emailConfirmed: body?.email_confirmed === true };
   } catch (err) {
-    console.error('resolve_account_uuid failed:', err);
+    console.error('resolve_account failed:', err);
     return null;
   }
 }
@@ -190,12 +210,16 @@ async function handler(req: Request): Promise<Response> {
       return json({ error: 'invalid token' }, 401, origin);
     }
 
-    const uuid = await resolveUuid(verified.sub, verified.email);
-    if (!uuid) {
+    const account = await resolveAccount(
+      verified.sub, verified.email, verified.email_verified === true,
+    );
+    if (!account) {
       return json({ error: 'could not establish your account' }, 503, origin);
     }
 
-    const { token, exp } = await mint(uuid, verified.email);
+    const { token, exp } = await mint(
+      account.uuid, verified.email, 'authenticated', TTL_SECONDS, account.emailConfirmed,
+    );
     return json({
       access_token: token,
       token_type: 'bearer',

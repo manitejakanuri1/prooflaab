@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 interface AdminNotification {
   id: string;
@@ -53,6 +54,11 @@ export function useAdminNotifications() {
   });
 
   // Set up real-time subscription
+  // Replaces the live subscription below, which cannot work against
+  // PostgREST. Paused while the tab is hidden, and refreshes at once when
+  // the tab is looked at again.
+  useLiveRefresh(() => { queryClient.invalidateQueries({ queryKey: ['admin-notifications'] }); });
+
   useEffect(() => {
     if (!user?.id) return;
 

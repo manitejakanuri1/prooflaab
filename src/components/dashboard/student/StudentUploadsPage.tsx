@@ -23,6 +23,7 @@ import { useReflectionRequest } from "@/hooks/useReflectionRequest";
 import { useAuth } from "@/contexts/AuthContext";
 import ProofFileButton from "@/components/proof/ProofFileButton";
 import { hasOpenableProof, proofFileLabel } from "@/lib/proofFile";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 const StudentUploadsPage = () => {
   const currentDate = new Date();
@@ -69,6 +70,11 @@ const StudentUploadsPage = () => {
   }, [uploads]);
 
   // Real-time subscription for conceptual test updates
+  // Replaces the live subscription below, which cannot work against
+  // PostgREST. Paused while the tab is hidden, and refreshes at once when
+  // the tab is looked at again.
+  useLiveRefresh(() => { void fetchConceptualTests(); void refetch(); });
+
   useEffect(() => {
     const channel = supabase
       .channel('conceptual_tests_realtime')

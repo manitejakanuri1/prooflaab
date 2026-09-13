@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import ProofFileButton from '@/components/proof/ProofFileButton';
 import { proofFileLabel } from '@/lib/proofFile';
 import { Eye, CheckCircle, XCircle, FileText, ExternalLink, Search, FileIcon, Shield, Brain, Github, Play } from 'lucide-react';
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 interface ProofSubmission {
   id: string;
@@ -82,6 +83,11 @@ const ProofSubmissionsContent = () => {
   const fullVerificationMutation = useFullVerification();
 
   // Real-time subscription for proof_uploads changes
+  // Replaces the live subscription below, which cannot work against
+  // PostgREST. Paused while the tab is hidden, and refreshes at once when
+  // the tab is looked at again.
+  useLiveRefresh(() => { queryClient.invalidateQueries({ queryKey: ['proof-submissions'] }); });
+
   useEffect(() => {
     const channel = supabase
       .channel('admin_proof_uploads_changes')

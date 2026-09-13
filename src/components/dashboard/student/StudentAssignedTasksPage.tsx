@@ -46,6 +46,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Code2, PenLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 const StudentAssignedTasksPage = () => {
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
@@ -75,6 +76,11 @@ const StudentAssignedTasksPage = () => {
   const { data: conceptualTests = {}, refetch: refetchConceptualTests } = useConceptualTests();
 
   // Real-time subscription for proof_uploads and conceptual_tests changes
+  // Replaces the live subscription below, which cannot work against
+  // PostgREST. Paused while the tab is hidden, and refreshes at once when
+  // the tab is looked at again.
+  useLiveRefresh(() => { void refetchConceptualTests(); });
+
   useEffect(() => {
     const channel = supabase
       .channel('student_assigned_verification_changes')

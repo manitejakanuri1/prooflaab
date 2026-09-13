@@ -5,7 +5,10 @@
  *
  *   auth      -> Google Identity Platform, via the shim in ./identity
  *   from/rpc  -> PostgREST on Cloud Run, talking to Cloud SQL
- *   realtime  -> off. Nothing in the app subscribes to it.
+ *   realtime  -> stubbed. Six screens subscribe to live database changes, which
+ *                PostgREST cannot serve. Left alone, supabase-js retried the
+ *                websocket forever - a console full of failures and a socket
+ *                reconnecting on a loop behind every dashboard.
  *   storage   -> Cloud Storage, through the file service (phase 5)
  *   functions -> the 41 functions on Cloud Run (phase 6)
  *
@@ -62,6 +65,32 @@ export function createGoogleClient() {
   return new Proxy(base, {
     get(target, prop, receiver) {
       if (prop === 'auth') return googleAuth;
+
+      // A channel that connects to nothing. Supabase's Realtime is a separate
+      // server; PostgREST has no equivalent, so every subscription failed and
+      // reconnected in a loop.
+      //
+      // Subscribing quietly does nothing rather than throwing, because the six
+      // callers use it to refresh a list that a periodic refetch also refreshes
+      // - see useLiveRefresh. A throw here would break screens that otherwise
+      // work perfectly.
+      if (prop === 'channel') {
+        return () => {
+          const chain = {
+            on: () => chain,
+            subscribe: (cb?: (status: string) => void) => {
+              cb?.('SUBSCRIBED');
+              return chain;
+            },
+            unsubscribe: async () => 'ok' as const,
+          };
+          return chain;
+        };
+      }
+      if (prop === 'removeChannel' || prop === 'removeAllChannels') {
+        return async () => 'ok' as const;
+      }
+      if (prop === 'getChannels') return () => [];
       if (prop === 'storage') return googleStorage;
       if (prop === 'functions') return functionsClient.functions;
 

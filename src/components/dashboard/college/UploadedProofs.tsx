@@ -34,6 +34,7 @@ import ProofFileButton from "@/components/proof/ProofFileButton";
 import { hasOpenableProof, proofFileLabel } from "@/lib/proofFile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 const UploadedProofs = () => {
   const { data: proofs, isLoading, refetch } = useProofReviews();
@@ -49,6 +50,11 @@ const UploadedProofs = () => {
   const [showEnhancedModal, setShowEnhancedModal] = useState(false);
 
   // Real-time subscription for proof_uploads changes
+  // Replaces the live subscription below, which cannot work against
+  // PostgREST. Paused while the tab is hidden, and refreshes at once when
+  // the tab is looked at again.
+  useLiveRefresh(() => { void refetch(); });
+
   useEffect(() => {
     const channel = supabase
       .channel('proof_uploads_changes')

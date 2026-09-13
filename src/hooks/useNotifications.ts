@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 interface Notification {
   id: string;
@@ -126,6 +127,11 @@ export const useNotifications = () => {
 
   // Live updates. The old version only subscribed to social notifications, so
   // a verification result or a new task never appeared until a refresh.
+  // Replaces the live subscription below, which cannot work against
+  // PostgREST. Paused while the tab is hidden, and refreshes at once when
+  // the tab is looked at again.
+  useLiveRefresh(() => { queryClient.invalidateQueries({ queryKey: ['notifications'] }); });
+
   useEffect(() => {
     if (!user?.id) return;
 

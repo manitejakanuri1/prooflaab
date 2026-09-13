@@ -72,9 +72,21 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
   // live site — send the user back to the same place after signing in.
   const getRedirectUrl = () => `${window.location.origin}/auth/callback`;
 
+  /**
+   * Wipe any half-finished session before starting a new one.
+   *
+   * prooflab.auth.google is where the Google session lives. It was missing from
+   * this list, so after the move a stuck session survived every attempt to log
+   * in again - the one failure the removed "clear session" buttons existed to
+   * rescue people from.
+   */
   const cleanupAuthState = () => {
     Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      if (
+        key.startsWith('supabase.auth.') ||
+        key.includes('sb-') ||
+        key.startsWith('prooflab.auth.')
+      ) {
         localStorage.removeItem(key);
       }
     });

@@ -52,14 +52,23 @@ jobs:
       - name: Crawl
         working-directory: crawler
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # The collected material has to land where the live site reads it, which
+          # is Cloud SQL through PostgREST. Writing to Supabase would have failed
+          # in the worst way: every run reporting success while students saw no
+          # new material.
+          BACKEND: google
+          POSTGREST_URL: https://prooflab-api-ysn2mpe6sa-el.a.run.app
+          PGRST_JWT_SECRET: ${{ secrets.PGRST_JWT_SECRET }}
+          # Optional. Only lifts GitHub's hourly rate limit; public readmes are
+          # readable without it.
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
         run: |
-          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set - see the comment at the top of this file"
+          if [ -z "$PGRST_JWT_SECRET" ]; then
+            echo "::error::PGRST_JWT_SECRET is not set. Add it under Settings -> Secrets and variables -> Actions. Its value is the Google secret prooflab-jwt-secret."
             exit 1
           fi
-          # Each URL prints its own outcome (inserted / exact_duplicate /
+          # Each URL prints its own outcome (inserted / updated / unchanged /
           # near_duplicate / blocked_by_robots / fetch_failed / too_short), so the
-          # run log is the report. Duplicates are the expected steady state.
+          # run log is the report. "unchanged" is the expected steady state: a
+          # page already stored, re-read, and found not to have moved.
           python crawl.py

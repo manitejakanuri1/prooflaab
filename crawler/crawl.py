@@ -1,13 +1,22 @@
-"""ProofLabAI Crawl4AI collector.
+"""ProofLabAI content collector.
 
-Reads active rows from source_registry, fetches each seed_url (static
-fetch first, browser render fallback for known_dynamic / failed static
-fetches per Master Spec Section 07 / 17.02), dedupes against existing
-source_content, and inserts new rows.
+Reads active rows from source_registry, fetches each seed_url, dedupes against
+what is already stored, and inserts new rows into source_content. The app turns
+those rows into a student's daily Lot.
 
-Standalone service. Does not touch the ProofLabAI app repo. Run manually
-or on a schedule (cron / Task Scheduler) once SUPABASE_SERVICE_ROLE_KEY
-is set in .env.
+Two things changed when the platform moved to Google:
+
+  * The fetch engine is no longer Crawl4AI. It drove a local Chromium, which
+    meant a browser download on every run and only ever handled web pages.
+    fetchers.py now covers web pages, GitHub, YouTube transcripts, Reddit and
+    RSS, all over plain HTTP.
+  * The destination is Cloud SQL through PostgREST, not Supabase. Writing to the
+    old database would have failed silently - every run reporting success while
+    students saw no new material.
+
+Unchanged on purpose: robots.txt, the per-source rate limit, the dedupe rules in
+dedupe.py, the shape of source_registry, and everything downstream that reads
+source_content.
 
     python crawl.py
 """
@@ -16,22 +25,21 @@ import time
 import urllib.robotparser as robotparser
 from urllib.parse import urlparse
 
-import httpx
 import trafilatura
 from dotenv import load_dotenv
 from markdownify import markdownify
-from supabase import create_client
 
+from db import Database
 from dedupe import canonicalize_url, compute_simhash, content_hash, is_near_duplicate
+from fetchers import USER_AGENT, fetch
 
 load_dotenv()
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-USER_AGENT = "ProofLabAI-Crawler/1.0 (+https://prooflab.ai)"
-MIN_TEXT_CHARS = 200  # below this, static fetch is treated as a JS-shell and escalated to browser render
+# Below this, whatever came back is a navigation shell or an error page rather
+# than something worth asking a student about.
+MIN_TEXT_CHARS = 200
 
-sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+db = Database()
 
 
 def robots_allows(url: str) -> bool:
@@ -45,43 +53,21 @@ def robots_allows(url: str) -> bool:
     return rp.can_fetch(USER_AGENT, url)
 
 
-def static_fetch(url: str) -> tuple[str, str] | None:
-    """Returns (html, title) or None if the page needs browser rendering."""
-    try:
-        r = httpx.get(url, headers={"User-Agent": USER_AGENT}, timeout=15, follow_redirects=True)
-    except httpx.HTTPError:
-        return None
-    if r.status_code != 200 or "text/html" not in r.headers.get("content-type", ""):
-        return None
-    html = r.text
-    text_len = len(markdownify(html).strip())
-    if text_len < MIN_TEXT_CHARS:
-        return None  # likely a JS-rendered shell
-    title = ""
-    if "<title>" in html:
-        title = html.split("<title>", 1)[1].split("</title>", 1)[0].strip()
-    return html, title
+def to_markdown(content: str, kind: str) -> str:
+    """Article text, whatever shape the fetcher handed back.
 
+    A real bug found live, and the reason extraction happens at all: hashing a
+    whole page - nav, footer, sidebar - makes every page on a site read as a
+    near-duplicate of every other, because shared template text swamps the
+    actual content. Measured on prepinsta.com: 1-3 bits apart for genuinely
+    different pages, 10-14 once the boilerplate is stripped.
 
-def browser_fetch(url: str) -> tuple[str, str] | None:
-    """Crawl4AI browser render, for known_dynamic sources or static-fetch failures."""
-    import asyncio
-    from crawl4ai import AsyncWebCrawler
-
-    async def _run():
-        async with AsyncWebCrawler(verbose=False) as crawler:
-            result = await crawler.arun(url=url)
-            return result
-
-    result = asyncio.run(_run())
-    if not result or not result.success:
-        return None
-    return result.html, (result.metadata or {}).get("title", "")
-
-
-def existing_for_source(source_id: str) -> list[dict]:
-    res = sb.table("source_content").select("content_hash,simhash").eq("source_id", source_id).execute()
-    return res.data or []
+    Markdown from Jina or a platform API is already just the content, so running
+    an HTML extractor over it would strip most of it and leave nothing to hash.
+    """
+    if kind == "markdown":
+        return content.strip()
+    return trafilatura.extract(content, output_format="markdown") or markdownify(content).strip()
 
 
 def process_url(source: dict, url: str, existing: list[dict]) -> str:
@@ -89,53 +75,64 @@ def process_url(source: dict, url: str, existing: list[dict]) -> str:
     if not robots_allows(url):
         return "blocked_by_robots"
 
-    fetched = None
-    fetch_method = "static"
-    if not source["known_dynamic"]:
-        fetched = static_fetch(url)
-    if fetched is None:
-        fetched = browser_fetch(url)
-        fetch_method = "browser"
-    if fetched is None:
+    result = fetch(url)
+    if result is None:
         return "fetch_failed"
 
-    html, title = fetched
-    # Real bug found live: hashing the whole page (nav/footer/sidebar
-    # included) makes every page on the same site read as a near-duplicate
-    # of every other, since shared template text swamps the actual
-    # content (measured: 1-3 bits apart for genuinely different pages on
-    # prepinsta.com, vs 10-14 once boilerplate is stripped). trafilatura
-    # extracts just the article text; markdownify is the fallback for
-    # pages it can't parse (e.g. non-article layouts).
-    markdown = trafilatura.extract(html, output_format="markdown") or markdownify(html).strip()
+    (content, title, kind), method = result
+    markdown = to_markdown(content, kind)
     if len(markdown) < MIN_TEXT_CHARS:
         return "too_short"
 
     c_hash = content_hash(markdown)
     s_hash = compute_simhash(markdown)
+    canonical = canonicalize_url(url)
 
-    if any(row["content_hash"] == c_hash for row in existing):
-        return "exact_duplicate"
-    if any(row["simhash"] is not None and is_near_duplicate(s_hash, row["simhash"]) for row in existing):
-        return "near_duplicate"
-
-    sb.table("source_content").insert({
+    row = {
         "source_id": source["id"],
         "url": url,
-        "canonical_url": canonicalize_url(url),
+        "canonical_url": canonical,
         "title": title[:500] if title else None,
         "markdown": markdown,
         "content_hash": c_hash,
         "simhash": s_hash,
-        "fetch_method": fetch_method,
+        "fetch_method": method,
         "rights_flag": source["rights_flag"],
-    }).execute()
-    existing.append({"content_hash": c_hash, "simhash": s_hash})
-    return "inserted"
+    }
+
+    # Has this exact page been stored before? Content hashing alone cannot
+    # answer that: change how the text is extracted - as the move off Crawl4AI
+    # did - and the same page produces different text, so it reads as new. The
+    # first run after that change stored thirteen pages twice, and a student
+    # would have been served the same material under two names.
+    #
+    # The address is what identifies a page. Same address means the same page,
+    # updated rather than added, which is also what makes "re-crawl to catch
+    # changes" work at all.
+    for prior in existing:
+        if prior.get("canonical_url") != canonical:
+            continue
+        if prior["content_hash"] == c_hash:
+            return "unchanged"
+        db.update_content(prior["id"], row)
+        prior["content_hash"] = c_hash
+        prior["simhash"] = s_hash
+        return f"updated ({method})"
+
+    if any(r["content_hash"] == c_hash for r in existing):
+        return "exact_duplicate"
+    if any(r["simhash"] is not None and is_near_duplicate(s_hash, r["simhash"]) for r in existing):
+        return "near_duplicate"
+
+    db.insert_content(row)
+    existing.append({"id": None, "canonical_url": canonical,
+                     "content_hash": c_hash, "simhash": s_hash})
+    return f"inserted ({method})"
 
 
 def run() -> None:
-    sources = sb.table("source_registry").select("*").is_("retired_at", "null").execute().data or []
+    print(f"writing to {db.describe()}")
+    sources = db.active_sources()
     print(f"{len(sources)} active source(s) in source_registry")
 
     for source in sources:
@@ -143,11 +140,24 @@ def run() -> None:
             print(f"[{source['domain']}] skipped: BLOCKED_SOURCE")
             continue
 
-        existing = existing_for_source(source["id"])
+        try:
+            existing = db.existing_for_source(source["id"])
+        except Exception as err:
+            # Skip this source, keep the others. Without this a single failed
+            # read ended the whole crawl, and the sources after it in the list
+            # were never even attempted.
+            print(f"[{source['domain']}] skipped: could not read what is already stored - {str(err)[:100]}")
+            continue
+
         delay = 60.0 / max(source["rate_limit_per_min"], 1)
 
-        for url in source["seed_urls"]:
-            status = process_url(source, url, existing)
+        for url in source["seed_urls"] or []:
+            try:
+                status = process_url(source, url, existing)
+            except Exception as err:
+                # One bad URL must not end the run. The next source may be fine,
+                # and a half-finished crawl is worse than a reported failure.
+                status = f"error: {str(err)[:120]}"
             print(f"[{source['domain']}] {url} -> {status}")
             time.sleep(delay)
 

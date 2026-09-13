@@ -1,3 +1,4 @@
+import { readSpreadsheet } from "@/lib/readSpreadsheet";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,12 +47,17 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === "text/csv") {
+    if (!file) return;
+
+    // Judged by name, not by file.type: Windows reports a .csv as
+    // application/vnd.ms-excel often enough that the old check rejected
+    // perfectly good files and said only "please select a valid CSV file".
+    if (/\.(csv|xlsx)$/i.test(file.name)) {
       setCsvFile(file);
       setUploadStatus("File selected: " + file.name);
       setResults([]); // Clear previous results
     } else {
-      setUploadStatus("Please select a valid CSV file");
+      setUploadStatus(`${file.name} is not a spreadsheet. Upload a .csv or .xlsx file.`);
     }
   };
 
@@ -152,11 +158,16 @@ const CollegeDashboardOverview = ({ onNavigate }: CollegeDashboardOverviewProps)
     setResults([]);
 
     try {
-      console.log('Starting CSV processing...');
-      const text = await csvFile.text();
-      console.log('CSV text:', text);
+      // readSpreadsheet handles .csv and .xlsx alike, then the rows are turned
+      // back into CSV text so the parser below is untouched.
+      const table = await readSpreadsheet(csvFile);
+      const text = table
+        .map((row) => row.map((cell) =>
+          /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell).join(','))
+        .join('\n');
       const records = parseCSV(text);
-      console.log('Parsed records:', records);
+      // The file's contents are not logged. It is a list of students' names and
+      // email addresses, and the browser console is not the place for it.
       
       if (records.length === 0) {
         throw new Error("No valid records found in CSV");
@@ -530,7 +541,7 @@ John Doe,john@example.com,Computer Science,Third Year,Python Web Development,AI 
             
             <input
               type="file"
-              accept=".csv"
+              accept=".csv,.xlsx"
               onChange={handleFileUpload}
               className="hidden"
               id="csv-upload"

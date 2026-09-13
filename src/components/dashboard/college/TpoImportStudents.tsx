@@ -1,3 +1,4 @@
+import { readSpreadsheet, UnsupportedFile } from "@/lib/readSpreadsheet";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -91,19 +92,25 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     setBusy(true);
     setFileName(file.name);
     try {
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
-      if (lines.length < 2) throw new Error("The file has a header but no rows.");
+        // Reads .csv and .xlsx alike. A placement office keeps its lists in
+        // Excel, and the first thing anyone tried was an .xlsx - read as text
+        // it became binary rubbish, and the screen complained that a plainly
+        // present 'name' column was missing.
+        const table = await readSpreadsheet(file);
+      if (table.length < 2) throw new Error("The file has a header but no rows.");
 
-      const headers = splitLine(lines[0]).map((h) => h.toLowerCase().replace(/[^a-z_]/g, "_"));
+      const headers = table[0].map((h) => h.toLowerCase().replace(/[^a-z_]/g, "_"));
       const idx = (...names: string[]) => {
         for (const n of names) { const i = headers.indexOf(n); if (i !== -1) return i; }
         return -1;
       };
-      const iName  = idx("name", "full_name", "student_name");
-      const iMail  = idx("email", "email_address", "mail");
-      const iRoll  = idx("roll_number", "roll_no", "rollno", "roll");
-      const iBranch= idx("branch", "department", "dept");
+      const iName  = idx("name", "full_name", "student_name", "name_of_the_student",
+                          "students_name", "student", "candidate_name");
+      const iMail  = idx("email", "email_address", "mail", "email_id", "e_mail",
+                          "mail_id", "college_email", "official_email");
+      const iRoll  = idx("roll_number", "roll_no", "rollno", "roll", "reg_no",
+                          "registration_number", "regd_no", "htno", "hall_ticket");
+      const iBranch= idx("branch", "department", "dept", "stream", "course");
       // The section is what splits CSE-A from CSE-B, and squads are formed
       // inside one section, never across two.
       const iSection = idx("section", "sec", "class", "cohort", "division");
@@ -113,7 +120,10 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       const iPhone = idx("phone", "phone_number", "mobile", "mobile_number", "contact");
 
       if (iName === -1 || iMail === -1) {
-        throw new Error("The file needs at least a 'name' and an 'email' column.");
+        throw new Error(
+          "The file needs a name column and an email column. " +
+          `Found: ${table[0].join(", ") || "no headings at all"}.`,
+        );
       }
 
       // Emails already on the platform, so a re-upload of the same list reports
@@ -123,8 +133,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       const known = new Set((existing ?? []).map((r) => (r.email ?? "").toLowerCase()));
       const seen = new Set<string>();
 
-      const parsed: ParsedRow[] = lines.slice(1).map((line, i) => {
-        const cells = splitLine(line);
+      const parsed: ParsedRow[] = table.slice(1).map((cells, i) => {
         const raw = Object.fromEntries(headers.map((h, j) => [h, cells[j] ?? ""]));
         const name = cells[iName] ?? "";
         const email = (cells[iMail] ?? "").toLowerCase();
@@ -334,7 +343,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   return (
     <>
       <input
-        ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
+        ref={fileRef} type="file" accept=".csv,.xlsx,text/csv" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) void parse(f); }}
       />
       <div className="flex items-center gap-2 flex-wrap">

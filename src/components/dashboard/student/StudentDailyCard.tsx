@@ -4,8 +4,7 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Mic, Upload, Clock, Loader2, Compass, Code2, Trophy, PenLine } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Mic, Upload, Clock, Loader2, Compass, Code2, PenLine } from "lucide-react";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import VoiceExplainModal from "./VoiceExplainModal";
 import SandboxTaskPanel from "./SandboxTaskPanel";
@@ -25,15 +24,6 @@ interface Lot {
   status: string | null;
   due_date: string | null;
   sponsored_by_company: string | null;
-  // stage68: which track/level this Lot is practice for.
-  level_id: string | null;
-  level_number: number | null;
-  track_slug: string | null;
-  track_name: string | null;
-  total_levels: number | null;
-  /** student_levels.status of the Lot's own step, or 'new' if there is none. */
-  level_status: string | null;
-  is_foundation: boolean | null;
   // stage69/70: which grading mode this Lot uses. At most one is set.
   sandbox_config_id: string | null;
   rubric_config_id: string | null;
@@ -53,12 +43,8 @@ interface SquadSummary {
   cohort: string | null;
 }
 
-/** The small caps line above the Lot title — what kind of practice this is. */
+/** The small caps line above the Lot title — what kind of task this is. */
 function lotLabel(lot: Lot): string {
-  if (lot.level_status === "revise") {
-    return lot.is_foundation ? "Revision Lot · Foundations" : "Revision Lot";
-  }
-  if (lot.level_number != null) return `Practice for Level ${lot.level_number}`;
   return lot.lot_category ?? "task";
 }
 
@@ -87,14 +73,10 @@ const StudentDailyCard = () => {
   const [coding, setCoding] = useState(false);
   const [writing, setWriting] = useState(false);
   const [explaining, setExplaining] = useState(false);
-  // "writing" (below, "preparing") is the few seconds the very first student
-  // to reach a topic waits while the Lot behind it is written. "no-track" and
-  // "track-complete" are the two honest reasons nothing is due today, as
-  // opposed to "check back shortly", which was never going to become true on
-  // its own.
+  // "preparing" is the few seconds the very first student to reach a piece
+  // of content waits while the Lot behind it is written.
   const [preparing, setPreparing] = useState(false);
-  const [reason, setReason] = useState<"no-track" | "track-complete" | null>(null);
-  const navigate = useNavigate();
+  const [noContent, setNoContent] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -132,23 +114,19 @@ const StudentDailyCard = () => {
     if (!today) {
       const { data: made } = await supabase.rpc("create_my_lot" as never);
       const r = made as unknown as
-        { task_id: string | null; needs_writer: boolean; reason?: string; detail?: string } | null;
+        { task_id: string | null; needs_writer: boolean; reason?: string; source_content_id?: string } | null;
 
-      if (r?.reason === "no topic due") {
-        setReason(
-          r.detail === "track complete" ? "track-complete"
-          : r.detail === "no track" ? "no-track"
-          : null,
-        );
+      if (r?.reason === "no content available") {
+        setNoContent(true);
       } else if (r?.task_id) {
-        // The topic has never been reached by anyone, so the work behind it has
-        // not been written. This is the only slow path, it happens once per
-        // topic for the whole platform, and it rewrites this card in place.
+        // The content has never been reached by anyone, so the work behind
+        // it has not been written. This is the only slow path, it happens
+        // once per piece of content for the whole platform, and it rewrites
+        // this card in place.
         if (r.needs_writer) {
           setPreparing(true);
-          const lvl = (made as unknown as { level_id?: string })?.level_id;
-          if (lvl) {
-            await supabase.functions.invoke("lot-writer", { body: { level_id: lvl } });
+          if (r.source_content_id) {
+            await supabase.functions.invoke("lot-writer", { body: { source_content_id: r.source_content_id } });
           }
           setPreparing(false);
         }
@@ -241,13 +219,7 @@ const StudentDailyCard = () => {
               )}
             </div>
 
-            {/* stage68: which track and level this Lot is practice for. */}
-            {lot.level_number != null && lot.total_levels != null && (
-              <p className="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#191b1f]">
-                {lot.track_name ?? lot.track_slug} · Level {lot.level_number} of {lot.total_levels}
-              </p>
-            )}
-            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6b6559]">
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6b6559]">
               {lotLabel(lot)}
               {lot.estimate_minutes ? ` · ${lot.estimate_minutes} min` : ""}
               {lot.difficulty ? ` · ${lot.difficulty}` : ""}
@@ -265,16 +237,6 @@ const StudentDailyCard = () => {
               <pre className="mt-3 overflow-x-auto rounded-lg bg-[#14161a] p-3 font-mono text-xs leading-relaxed text-[#d7dbe2]">
                 {lot.code_sample}
               </pre>
-            )}
-
-            {/* A Lot is practice: passing it awards XP and squad points, but it
-                never moves the Level Map. Only the checkpoint quiz does that. */}
-            {lot.level_number != null && (
-              <p className="mt-3 text-xs text-[#6b6559]">
-                {lot.level_status === "revise"
-                  ? "Your resume says you know this. This Lot is a quick check-in and does not change your Level Map."
-                  : `This Lot is practice. Level ${lot.level_number} moves up when you pass its checkpoint on your Level Map.`}
-              </p>
             )}
 
             {/* The only two actions on this screen. */}
@@ -306,32 +268,16 @@ const StudentDailyCard = () => {
               <>
                 <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Writing today's Lot. You are the first person to reach this topic — after this
+                  Writing today's Lot. You are the first person to reach this content — after this
                   it is instant for everyone.
                 </p>
               </>
-            ) : reason === "track-complete" ? (
-              <>
-                <Trophy className="mx-auto h-5 w-5 text-muted-foreground" />
-                <p className="mt-3 text-sm text-muted-foreground max-w-prose mx-auto">
-                  You have finished every level on your track, so there is no practice Lot today.
-                  Your Level Map shows everything you cleared.
-                </p>
-                <Button className="mt-4" onClick={() => navigate("/student/roadmap")}>
-                  Open my Level Map
-                </Button>
-              </>
-            ) : reason === "no-track" ? (
+            ) : noContent ? (
               <>
                 <Compass className="mx-auto h-5 w-5 text-muted-foreground" />
                 <p className="mt-3 text-sm text-muted-foreground max-w-prose mx-auto">
-                  Your path has not been set yet, so there is nothing to hand you this morning.
-                  The resume check places you on the ladder — it takes a few minutes and every
-                  Lot after it follows from it.
+                  There is no real content to hand you a Lot from yet. Check back shortly.
                 </p>
-                <Button className="mt-4" onClick={() => navigate("/student/roadmap")}>
-                  Set my path
-                </Button>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">

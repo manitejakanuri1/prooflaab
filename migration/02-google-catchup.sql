@@ -165,3 +165,20 @@ begin
 end $$;
 
 commit;
+
+-- ---------------------------------------------------------------------------
+-- 5. the check that came with grading_mode_hint
+--
+-- Missed on the first pass: the column was copied from the backup's column list,
+-- which carries the type and default but not the constraint. Found when the
+-- other laptop pushed the original stage76 migration and it could be compared
+-- side by side. Without it, any string at all would be accepted.
+-- ---------------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'source_content_grading_mode_hint_check') then
+    alter table public.source_content
+      add constraint source_content_grading_mode_hint_check CHECK ((grading_mode_hint = ANY (ARRAY['sandbox'::text, 'rubric'::text])));
+  end if;
+end $$;

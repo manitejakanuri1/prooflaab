@@ -1,14 +1,17 @@
 name: Deploy to production
 
-# Vercel Hobby refuses to build a production deployment unless the commit author
-# is the Hobby team owner, so pushing does not deploy this project on its own -
-# see DEPLOYING.md. This workflow does the sequence that does work: build main as
-# a preview through the Vercel API, wait for it, then promote it to production.
+# Publishes the site to Firebase Hosting, in the same Google project as the
+# database, the API, the file service and the 41 functions. It replaces a
+# workflow that promoted a build on Vercel - which is why, for a while after the
+# move, every push kept refreshing the old site while the new one sat still.
 #
-# Needs one repository secret: VERCEL_TOKEN
-#   Settings -> Secrets and variables -> Actions -> New repository secret
-#   Token comes from https://vercel.com/account/settings/tokens and is free on
-#   Hobby. It does not have to be the team owner's token.
+# No key file. GitHub proves who it is with a short-lived OIDC token, Google
+# accepts it only from this repository, and hands back a credential that expires
+# in minutes. There is no secret to leak and none to rotate. The one thing that
+# would grant standing access to the project - a downloaded service-account key -
+# deliberately does not exist.
+#
+# The account it acts as may publish to Hosting and do nothing else.
 
 on:
   push:
@@ -17,42 +20,64 @@ on:
   workflow_dispatch:
 
 # A newer push makes an in-flight deploy pointless, so cancel it rather than
-# racing two promotes against each other.
+# racing two publishes at the same site.
 concurrency:
   group: deploy-production
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  id-token: write        # required to request the OIDC token
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build a preview and promote it to production
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::VERCEL_TOKEN secret is not set - see DEPLOYING.md"
-            exit 1
-          fi
-          bash scripts/deploy.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
 
-      - name: Confirm production is serving the new bundle
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: prooflab-508214
+          workload_identity_provider: projects/135298577404/locations/global/workloadIdentityPools/github/providers/prooflaab
+          service_account: github-deploy@prooflab-508214.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build
         run: |
-          # A promote can report success while the alias still points at the old
-          # build, so check the hash actually moved rather than trusting the API.
-          before=""
-          for i in $(seq 1 30); do
-            now=$(curl -s https://prooflaab.vercel.app/ \
-                  | grep -oE 'assets/index-[^"]+\.js' | head -1 || true)
-            if [ -n "$now" ]; then
-              if [ -z "$before" ]; then before="$now"; fi
-              echo "production bundle: $now"
-              break
+          npm ci
+          # .env.production is committed, so the addresses this build talks to
+          # are visible in the diff that ships it rather than hidden in a
+          # dashboard where a change leaves no trace.
+          npm run build
+
+      - name: Publish
+        run: python scripts/deploy-hosting.py
+
+      - name: Confirm the site is serving the new build
+        run: |
+          # A publish can report success while the edge still serves the previous
+          # version, so check the bundle name actually moved rather than trusting
+          # the API's word for it.
+          built=$(ls dist/assets/index-*.js | head -1 | xargs basename)
+          echo "expecting: $built"
+          for i in $(seq 1 20); do
+            live=$(curl -s https://prooflab.co.in/ | grep -oE 'assets/index-[^"]+\.js' | head -1 || true)
+            if [ "$(basename "$live")" = "$built" ]; then
+              echo "live and serving $live"
+              exit 0
             fi
-            sleep 5
+            sleep 6
           done
-          if [ -z "$now" ]; then
-            echo "::warning::Could not read the production bundle hash to confirm."
-          fi
+          echo "::warning::prooflab.co.in is still serving $live, not $built. It may catch up shortly."

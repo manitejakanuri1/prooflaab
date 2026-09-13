@@ -7,7 +7,8 @@
  * the previous index.html is still holding the previous filenames, so the next
  * navigation asks for a file that is gone.
  *
- * It does not 404. The SPA rewrite in vercel.json answers every unmatched path
+ * It does not 404. The single-page rewrite in the hosting config answers every
+ * unmatched path
  * with index.html, so the browser receives HTML where it expected a module,
  * refuses it on MIME grounds, and the dynamic import rejects. React renders
  * nothing and the page goes white. Nothing in the console names the deploy as

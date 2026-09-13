@@ -18,6 +18,7 @@ import hashlib
 import json
 import mimetypes
 import os
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -28,10 +29,27 @@ SITE = "prooflab-508214"
 API = "https://firebasehosting.googleapis.com/v1beta1"
 DIST = sys.argv[1] if len(sys.argv) > 1 else "dist"
 
-GCLOUD = os.environ.get(
-    "GCLOUD",
-    r"C:\Users\manit\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
-)
+def find_gcloud() -> str:
+    """Wherever gcloud happens to live.
+
+    On the GitHub runner it is on PATH; on the Windows laptop it is not, and
+    the launcher there is a .cmd. Hardcoding the laptop path made this fail on
+    the runner with a Windows filename inside a Linux error message, which
+    reads as a far stranger problem than it is.
+    """
+    if os.environ.get("GCLOUD"):
+        return os.environ["GCLOUD"]
+
+    found = shutil.which("gcloud") or shutil.which("gcloud.cmd")
+    if found:
+        return found
+
+    raise SystemExit(
+        "gcloud was not found. Put it on PATH, or set GCLOUD to its full path."
+    )
+
+
+GCLOUD = find_gcloud()
 
 
 def token() -> str:

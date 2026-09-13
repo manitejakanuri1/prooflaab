@@ -18,6 +18,17 @@ export default {
 			}
 		},
 		extend: {
+			screens: {
+				// Inside `extend`, deliberately. At theme level this key REPLACES
+				// Tailwind's breakpoints rather than adding to them, which would
+				// delete sm/md/lg/xl and with them the ~600 responsive classes this
+				// app is built from.
+				//
+				// Folded phones and the smallest Androids are 280-360px wide, below
+				// Tailwind's smallest default of 640px, so there was no way to say
+				// "not on the very smallest screens".
+				xs: '400px',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

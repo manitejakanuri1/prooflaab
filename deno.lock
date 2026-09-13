@@ -349,6 +349,7 @@
         "npm:lucide-react@0.462",
         "npm:next-themes@0.3",
         "npm:pdfjs-dist@^6.2.108",
+        "npm:playwright@^1.63.0",
         "npm:postcss@^8.4.47",
         "npm:react-day-picker@^8.10.1",
         "npm:react-dom@^18.3.1",

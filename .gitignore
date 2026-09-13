@@ -39,3 +39,7 @@ supabase/.temp/
 
 # TypeScript incremental build cache — machine-local, not source
 *.tsbuildinfo
+
+# Screenshots and measurements from scripts/screens.mjs. Regenerated on demand,
+# and 5 MB of PNGs is not history worth keeping.
+screenshots/

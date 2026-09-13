@@ -36,7 +36,10 @@ const StartupDashboard = () => {
           isVerified={isVerified}
         />
         
-        <div className="flex-1 flex flex-col">
+        {/* min-w-0 lets this column be narrower than its content wants to be.
+            Without it a flex child refuses to shrink below its content, and the
+            whole page grows sideways on a narrow phone. */}
+        <div className="flex-1 flex flex-col min-w-0">
           <StartupDashboardHeader />
           
           <main className="flex-1 p-6">

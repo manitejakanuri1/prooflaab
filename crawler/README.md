@@ -1,63 +1,77 @@
-# prooflab-crawler
+# ProofLabAI collector
 
-Standalone Crawl4AI collector for ProofLabAI, per Master Spec Section 07.
-Feeds `source_registry` -> `source_content`. Does not touch the main app
-repo. Local only — nothing here is pushed or deployed yet.
+Reads the addresses in `source_registry`, fetches each one, and stores the clean
+text in `source_content`. The app turns those rows into a student's daily Lot.
 
-## What it does
+## How a page is read
 
-For each active row in `source_registry`:
-1. Fetch each `seed_url` — static HTTP fetch first (`httpx`), no browser cost.
-2. Escalate to Crawl4AI browser rendering if `known_dynamic` is true, or
-   the static fetch comes back empty/JS-shell.
-3. Convert to Markdown, hash it (SHA-256 exact + SimHash near-dup).
-4. Skip exact and near-duplicates already in `source_content`.
-5. Insert the new row, carrying the source's `rights_flag`.
+`fetchers.py` picks a reader from the address alone:
 
-Respects `robots.txt` and each source's `rate_limit_per_min`. Only crawls
-the literal `seed_urls` — no recursive spidering (`max_depth` in the schema
-is not used yet; add when a source needs more than its seed pages).
+| Address | Reader | Notes |
+|---|---|---|
+| anything else | Jina Reader | returns markdown, free, no key |
+| github.com | GitHub API | the repository readme |
+| youtube.com, youtu.be | transcript API | the captions, not the page |
+| *.rss, *.xml, /feed, /rss | feedparser | the entries, flattened |
+| reddit.com | Reddit JSON | see the note below |
 
-## Setup
+If Jina is unavailable, a plain GET of the page's own HTML is used instead, and
+`trafilatura` extracts the article from it. That fallback is why the extractor is
+still here: markdown from Jina is already just the content and is stored as-is.
 
-```sh
-cd E:/Projects/prooflab-crawler
-python -m venv .venv
-.venv/Scripts/pip install -r requirements.txt
-.venv/Scripts/crawl4ai-setup   # one-time: downloads Chromium for the browser-render path
-cp .env.example .env
-```
+**Reddit** currently fails cleanly and stores nothing. `www.reddit.com` answers
+an unauthenticated caller with 403, and `old.reddit.com` returns HTML for a
+listing. Making it work needs a registered Reddit app and an OAuth token, which
+is a decision about accounts rather than code. No Reddit source is in the
+registry today.
 
-Edit `.env` and paste your Supabase **service role** key (Project Settings
--> API -> service_role). `source_content` has RLS with no policies, so
-only the service role can write to it — this key never goes near the
-frontend or the git repo.
+**On agent-reach.** For plain web pages its own documentation says it calls Jina
+Reader with "no wrapper layer", which is exactly what happens here. The rest of
+it is a CLI that installs Node, the GitHub CLI and mcporter so an AI agent on a
+laptop can reach Twitter and Xiaohongshu. This crawler runs on a fresh GitHub
+Actions machine every week to read a handful of public pages, so installing four
+tools per run to obtain one HTTP call would cost minutes and buy nothing. If
+Twitter or Xiaohongshu become sources, that is the moment to revisit it.
 
-## Run
+## What it writes to
 
-```sh
-.venv/Scripts/python crawl.py
-```
+`db.py`, and by default that is Cloud SQL through PostgREST - where the live site
+reads. Set `BACKEND` to anything other than `google` to use Supabase instead.
 
-Prints one line per URL: `inserted`, `exact_duplicate`, `near_duplicate`,
-`blocked_by_robots`, `fetch_failed`, or `too_short`.
+    BACKEND=google
+    POSTGREST_URL=https://prooflab-api-ysn2mpe6sa-el.a.run.app
+    PGRST_JWT_SECRET=<the Google secret prooflab-jwt-secret>
 
-## Self-check (no network, no DB)
+Writing to the wrong database is the failure this guards against, because it is
+silent: every run would report success while students saw no new material.
 
-```sh
-.venv/Scripts/python dedupe.py
-```
+## Same page twice
 
-## Adding sources
+A page is identified by its address, not by its text. Re-reading a stored page
+updates that row; it never adds a second one. This matters more than it sounds:
+when the fetch engine changed, the same pages produced different text and
+thirteen of them were stored twice, which would have served a student the same
+material under two names.
 
-Not this service's job — `source_registry` rows are managed wherever the
-app's admin source-registry screen (or direct SQL/Supabase MCP) writes
-them. This script only reads `retired_at is null` rows and crawls their
-`seed_urls`.
+Outcomes printed per URL:
 
-## Not built here (matches HANDOFF.md's scope for "the collector")
+    inserted      a page not seen before
+    updated       a stored page whose text has changed
+    unchanged     a stored page that has not moved - the steady state
+    near_duplicate  different address, near-identical text
+    too_short     under 200 characters, so a shell or an error page
+    fetch_failed  nothing readable came back
+    blocked_by_robots
 
-- AI question enrichment (DeepSeek) — separate worker, reads `source_content`
-- Quality gates, question bank — separate workers
-- Scheduling — run manually or wire to cron / Task Scheduler yourself
-- Deployment to the new server — explicitly on hold, everything here stays local until you say go
+## Running it
+
+    pip install -r requirements.txt
+    python crawl.py
+
+Weekly on Sundays via `.github/workflows/crawl.yml`. The only secret it needs is
+`PGRST_JWT_SECRET`; `GITHUB_PAT` is optional and only lifts GitHub's rate limit.
+
+## Left alone deliberately
+
+`dedupe.py`, robots.txt, the per-source rate limit, the shape of
+`source_registry`, and everything downstream that reads `source_content`.

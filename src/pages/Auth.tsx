@@ -164,23 +164,6 @@ export default function Auth() {
     }
   };
 
-  const handleSignOutAll = async () => {
-    // Clean up auth state
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-    } catch (err) {
-      // Continue even if this fails
-    }
-    
-    window.location.reload();
-  };
-
   if (showVerificationPrompt) {
     return (
       <div className="min-h-screen bg-background dark:bg-gray-950 flex items-center justify-center p-4">
@@ -221,27 +204,12 @@ export default function Auth() {
         
         <EnhancedRoleBasedAuthForm onSuccess={handleAuthSuccess} />
         
-        {/* Clear Session Option */}
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => window.location.href = '/auth?clear=true'}
-            className="text-sm text-muted-foreground hover:underline mr-4"
-          >
-            Clear session & start fresh
-          </button>
-        </div>
-        
-        {/* Emergency Sign Out */}
-        <div className="mt-2 text-center">
-          <button
-            type="button"
-            onClick={handleSignOutAll}
-            className="text-sm text-destructive hover:underline"
-          >
-            Sign out all users
-          </button>
-        </div>
+        {/* No "clear session" or "sign out all users" here any more. They were
+            a development escape hatch from stuck sessions, and read to a visitor
+            as either broken or alarming - "sign out all users" sounds like it
+            affects their whole college. The recovery they offered is automatic:
+            a session that fails or takes over three seconds to check is signed
+            out above, and signing in wipes any leftover state first. */}
       </div>
     </div>
   );

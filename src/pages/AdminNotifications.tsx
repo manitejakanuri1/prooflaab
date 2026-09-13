@@ -52,10 +52,13 @@ export default function AdminNotifications() {
       <div className="flex min-h-screen w-full">
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
         
-        <div className="flex-1 flex flex-col">
+        {/* min-w-0 lets this column be narrower than its content wants to be.
+            Without it a flex child refuses to shrink below its content, and the
+            whole page grows sideways on a narrow phone. */}
+        <div className="flex-1 flex flex-col min-w-0">
           <AdminHeader />
           
-          <div className="container mx-auto p-6 space-y-6">
+          <div className="container mx-auto p-3 sm:p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">

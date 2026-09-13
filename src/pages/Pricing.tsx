@@ -167,12 +167,12 @@ const Pricing = () => {
 
         {/* Audience Tabs */}
         <div className="flex justify-center mb-8">
-          <div className="bg-muted rounded-2xl p-1 inline-flex">
+          <div className="bg-muted rounded-2xl p-1 inline-flex max-w-full overflow-x-auto">
             {(["student", "college", "startup"] as AudienceType[]).map((audience) => (
               <button
                 key={audience}
                 onClick={() => setSelectedAudience(audience)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                className={`px-3 xs:px-4 sm:px-6 py-3 rounded-xl font-medium whitespace-nowrap transition-all ${
                   selectedAudience === audience
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"

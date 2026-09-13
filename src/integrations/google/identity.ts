@@ -151,6 +151,22 @@ function readableError(json: { error?: { message?: string } }): string {
   return 'Could not sign in. Please try again';
 }
 
+/** The claims inside a token, read without verifying - the bridge already did. */
+function claimsOf(token: string): Record<string, unknown> | null {
+  try {
+    const part = token.split('.')[1];
+    const padded = part + '='.repeat((4 - (part.length % 4)) % 4);
+    return JSON.parse(atob(padded.replace(/-/g, '+').replace(/_/g, '/')));
+  } catch {
+    return null;
+  }
+}
+
+const subjectOf = (token: string): string | null => {
+  const sub = claimsOf(token)?.sub;
+  return typeof sub === 'string' ? sub : null;
+};
+
 /** Exchange a verified Google token for the HS256 token PostgREST accepts. */
 async function exchange(idToken: string): Promise<{ token: string; expiresIn: number }> {
   const res = await fetch(`${BRIDGE_URL}/token`, {
@@ -191,7 +207,10 @@ interface LookupResponse {
  * screens, so it is filled from Google's custom attributes where present rather
  * than left empty.
  */
-async function buildUser(idToken: string, fallback: { id: string; email: string }): Promise<GoogleUser> {
+async function buildUser(
+  idToken: string,
+  fallback: { id: string; email: string; confirmed?: boolean },
+): Promise<GoogleUser> {
   let found: NonNullable<LookupResponse['users']>[number] | undefined;
   try {
     const res = await identity<LookupResponse>('lookup', { idToken });
@@ -214,11 +233,15 @@ async function buildUser(idToken: string, fallback: { id: string; email: string 
   const asIso = (ms?: string) => (ms ? new Date(Number(ms)).toISOString() : null);
 
   return {
-    id: found?.localId ?? fallback.id,
+    // fallback.id first: it is the database's id, resolved by the bridge.
+    // found.localId is Identity Platform's, which the database has never seen.
+    id: fallback.id,
     aud: 'authenticated',
     role: 'authenticated',
     email: found?.email ?? fallback.email,
-    email_confirmed_at: found?.emailVerified ? asIso(found.createdAt) : null,
+    email_confirmed_at: (found?.emailVerified || fallback.confirmed)
+      ? (asIso(found?.createdAt) ?? new Date().toISOString())
+      : null,
     phone: '',
     created_at: asIso(found?.createdAt) ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -232,7 +255,22 @@ async function buildUser(idToken: string, fallback: { id: string; email: string 
 /** Turn a Google sign-in response into a session the app can use. */
 async function sessionFrom(res: SignInResponse): Promise<GoogleSession> {
   const { token, expiresIn } = await exchange(res.idToken);
-  const user = await buildUser(res.idToken, { id: res.localId, email: res.email });
+
+  // The id the rest of the app uses must be the one the DATABASE knows, not the
+  // one Identity Platform invented. For accounts migrated in August they are the
+  // same; for accounts created since, Google's id looks like
+  // SOBgobKpvxNgqQIBQSnsIaoIoBv1 and every query built from it fails with a 400,
+  // because the columns are uuid. The bridge already resolved it - it is the
+  // subject of the token it just returned - so take it from there.
+  const user = await buildUser(res.idToken, {
+    id: subjectOf(token) ?? res.localId,
+    email: res.email,
+    // Identity Platform reports every account it creates as unverified and
+    // cannot be told otherwise without an administrator credential. The bridge
+    // carries the database's answer instead, which is what a college sets when
+    // it enrols a student.
+    confirmed: claimsOf(token)?.email_confirmed === true,
+  });
   return {
     access_token: token,
     refresh_token: res.refreshToken,
@@ -287,6 +325,9 @@ async function refreshSession(): Promise<GoogleSession | null> {
     const { token, expiresIn } = await exchange(json.id_token);
     const fresh: GoogleSession = {
       ...stale,
+      // Keep the database id across a refresh. Taking Google's id here would
+      // silently change who the app thinks you are, an hour into a session.
+      user: { ...stale.user, id: subjectOf(token) ?? stale.user.id },
       access_token: token,
       refresh_token: json.refresh_token,
       expires_in: expiresIn,

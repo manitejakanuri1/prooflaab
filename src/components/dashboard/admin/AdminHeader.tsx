@@ -42,7 +42,10 @@ const AdminHeader = () => {
             </span>
           )}
         </Button>
-        <div className="bg-primary/10 px-3 py-1 rounded-full">
+        {/* Decoration, not information - the page already says "Admin Dashboard".
+            On a 280px screen it was the element pushing the page sideways, so it
+            steps aside there rather than making everything else scroll. */}
+        <div className="hidden xs:block bg-primary/10 px-3 py-1 rounded-full">
           <span className="text-xs font-medium text-primary">Admin</span>
         </div>
       </div>

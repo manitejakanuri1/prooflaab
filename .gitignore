@@ -32,6 +32,10 @@ supabase/.temp/
 
 .vercel
 .env*
+# ...except the production build config. It holds no secrets - a browser API key
+# and public service URLs - and a build's destination should be visible in the
+# review that ships it, not typed into a dashboard nobody reads.
+!.env.production
 
 # TypeScript incremental build cache — machine-local, not source
 *.tsbuildinfo

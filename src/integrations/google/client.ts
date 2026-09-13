@@ -7,12 +7,11 @@
  *   from/rpc  -> PostgREST on Cloud Run, talking to Cloud SQL
  *   realtime  -> off. Nothing in the app subscribes to it.
  *   storage   -> Cloud Storage, through the file service (phase 5)
- *   functions -> still Supabase (phase 6 moves them)
+ *   functions -> the 41 functions on Cloud Run (phase 6)
  *
- * The one that stays behind is the reason this file reads a flag instead of
- * simply replacing the old client: with a Google session there is no Supabase
- * token, so the 24 edge functions that check one would start refusing callers.
- * Flipping the flag is therefore the last step of the move, not the first.
+ * Nothing is left behind now. The flag stays because it is the way back: one
+ * variable returns the whole app to Supabase, which is worth keeping until the
+ * new side has run in production for a while.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -21,6 +20,7 @@ import { googleAuth, currentAccessToken } from './identity';
 import { googleStorage } from './storage';
 
 const POSTGREST_URL = import.meta.env.VITE_POSTGREST_URL as string;
+const FUNCTIONS_URL = import.meta.env.VITE_FUNCTIONS_URL as string;
 
 /**
  * supabase-js addresses tables at `<url>/rest/v1/<table>`, because that is where
@@ -50,18 +50,20 @@ export function createGoogleClient() {
     db: { schema: 'public' },
   });
 
-  // Edge functions have not moved yet; they keep their old home.
-  const legacy = createClient<Database>(
-    import.meta.env.VITE_SUPABASE_URL as string,
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
-  );
+  // The 41 functions, now on Cloud Run. supabase-js calls them at
+  // <url>/functions/v1/<name>, and the router accepts that path as well as the
+  // bare /<name>, so nothing here needs rewriting. The same session token goes
+  // with the call: the functions verify it against the secret they already hold.
+  const functionsClient = createClient<Database>(FUNCTIONS_URL, 'functions-need-no-api-key', {
+    accessToken: async () => (await currentAccessToken()) ?? '',
+    global: { fetch },
+  });
 
   return new Proxy(base, {
     get(target, prop, receiver) {
       if (prop === 'auth') return googleAuth;
       if (prop === 'storage') return googleStorage;
-      if (prop === 'functions') return legacy.functions;
+      if (prop === 'functions') return functionsClient.functions;
 
       const value = Reflect.get(target, prop, receiver);
       // Methods must keep the real client as their `this`, or the query builder

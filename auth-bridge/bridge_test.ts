@@ -135,3 +135,24 @@ Deno.test('the minted token carries the subject unchanged and is time-limited', 
   assert(typeof claims.exp === 'number', 'no expiry - a token that never dies');
   assert(claims.exp - claims.iat <= 3600, 'lifetime longer than an hour');
 });
+
+Deno.test('a browser preflight is answered, and carries the headers', async () => {
+  // This exact case returned 500 in production: a 204 with a body, which Deno
+  // refuses. Every browser sends this before the real request, so the login was
+  // blocked before it started while a direct POST looked perfectly healthy.
+  const res = await handler(
+    new Request('https://bridge/token', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://prooflab.co.in',
+        'Access-Control-Request-Method': 'POST',
+      },
+    }),
+  );
+  assert(res.status === 204, `preflight answered ${res.status}, not 204`);
+  assert(
+    res.headers.get('Access-Control-Allow-Origin') === 'https://prooflab.co.in',
+    'preflight did not allow the calling site',
+  );
+  assert(res.body === null, 'a 204 must carry no body - that is what threw');
+});

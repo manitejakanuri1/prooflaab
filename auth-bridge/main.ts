@@ -159,7 +159,22 @@ async function handler(req: Request): Promise<Response> {
   const origin = req.headers.get('Origin');
   const url = new URL(req.url);
 
-  if (req.method === 'OPTIONS') return json({}, 204, origin);
+  // 204 means "no content", and Deno throws if a body is attached to one - which
+  // surfaced as a 500 on every preflight, so the browser refused the login
+  // before the real request was ever sent. The headers are the entire point of
+  // this reply; the body never was.
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': allowOrigin(origin),
+        'Access-Control-Allow-Headers': 'authorization, content-type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Max-Age': '3600',
+        'Vary': 'Origin',
+      },
+    });
+  }
   if (url.pathname === '/healthz') return json({ ok: true }, 200, origin);
 
   if (url.pathname === '/token' && req.method === 'POST') {

@@ -255,6 +255,50 @@ async function verifyCallerToken(
   };
 }
 
+
+/**
+ * Record an account in the database and return the uuid it should be known by.
+ *
+ * Identity Platform names an account when it creates one, and its names are not
+ * uuids. record_account stores the row and hands back the uuid every other table
+ * expects, creating the mapping the auth-bridge reads on each later login - so
+ * the same person is the same id from the moment they are enrolled.
+ */
+async function recordAccount(
+  providerUid: string,
+  email: string,
+  fullName: string | null,
+  vouched: boolean,
+): Promise<string | null> {
+  if (!USING_GOOGLE || !POSTGREST_URL) return providerUid;
+
+  try {
+    const res = await fetch(`${POSTGREST_URL}/rpc/record_account`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${await serviceToken()}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/vnd.pgrst.object+json',
+      },
+      body: JSON.stringify({
+        _provider_uid: providerUid,
+        _email: email,
+        _full_name: fullName,
+        _vouched: vouched,
+      }),
+    });
+    if (!res.ok) {
+      console.error('record_account returned', res.status, (await res.text()).slice(0, 200));
+      return null;
+    }
+    const body = await res.json();
+    return typeof body === 'string' ? body : (body?.record_account ?? null);
+  } catch (err) {
+    console.error('record_account failed:', err);
+    return null;
+  }
+}
+
 /** The pieces of supabase.auth the 41 functions actually use. */
 const authShim = {
   async getClaims(token: string) {
@@ -315,7 +359,14 @@ const authShim = {
           data: { user: null },
           error: {
             message: code === 'EMAIL_EXISTS'
-              ? 'A user with this email address has already been registered'
+              // Said plainly, because it has one cause that is not the obvious
+              // one: a login can exist in Identity Platform with no row behind
+              // it, if an earlier import created the account and then failed.
+              // The address cannot be reused until that login is removed, and
+              // this service cannot remove it - that needs an administrator.
+              ? 'A login already exists for this email address. If the student ' +
+                'does not appear in the dashboard, the login is orphaned and an ' +
+                'administrator must remove it before the import can recreate them.'
               : `Could not create the account (${code})`,
           },
         };
@@ -337,10 +388,39 @@ const authShim = {
         }).catch(() => undefined);
       }
 
+      // Write the account into the database and take the uuid it assigns.
+      //
+      // Identity Platform holds the password; this database holds the record of
+      // the account, and every user column in it is uuid. Returning Google's id
+      // instead - which is what this did at first - created 29 logins with no
+      // rows behind them: every follow-up insert referenced an account the
+      // database had never heard of, and failed on the foreign key. The logins
+      // worked and the students did not exist.
+      //
+      // email_confirm is what a college asserting "this address is real" looks
+      // like, and it is carried through so an enrolled student can sign in at
+      // once rather than waiting for a link they never asked for.
+      const recorded = await recordAccount(
+        created.localId as string,
+        created.email as string,
+        typeof fullName === 'string' ? fullName : null,
+        attrs.email_confirm === true,
+      );
+      if (!recorded) {
+        return {
+          data: { user: null },
+          error: {
+            message:
+              'The login was created but could not be recorded in the database. ' +
+              'Nothing else was written, so it is safe to run the import again.',
+          },
+        };
+      }
+
       return {
         data: {
           user: {
-            id: created.localId as string,
+            id: recorded,
             email: created.email as string,
             user_metadata: attrs.user_metadata ?? {},
           },

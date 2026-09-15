@@ -34,12 +34,11 @@ const TTL_SECONDS = Number(Deno.env.get('TOKEN_TTL') ?? 3600);
  */
 const POSTGREST_URL = Deno.env.get('POSTGREST_URL') ?? '';
 
-const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://prooflaab.vercel.app')
+const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://prooflab.co.in')
   .split(',').map((s) => s.trim()).filter(Boolean);
-const PREVIEW = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
 function allowOrigin(origin: string | null): string {
-  if (origin && (ALLOWED.includes(origin) || PREVIEW.test(origin))) return origin;
+  if (origin && ALLOWED.includes(origin)) return origin;
   return ALLOWED[0];
 }
 

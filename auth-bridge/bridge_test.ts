@@ -29,7 +29,7 @@ function assert(cond: boolean, msg: string) {
 }
 
 async function exchange(token?: string) {
-  const headers: Record<string, string> = { Origin: 'https://prooflaab.vercel.app' };
+  const headers: Record<string, string> = { Origin: 'https://prooflab.co.in' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await handler(new Request('http://localhost/token', { method: 'POST', headers }));
   return { status: res.status, body: await res.json() };

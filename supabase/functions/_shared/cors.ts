@@ -19,12 +19,12 @@
 //
 // ALLOWED_ORIGINS is a comma-separated list. Set it once for the project:
 //
-//   supabase secrets set ALLOWED_ORIGINS="https://prooflaab.vercel.app,http://localhost:8080"
+//   ALLOWED_ORIGINS="https://prooflab.co.in,https://www.prooflab.co.in" (Cloud Run env)
 //
 // Because it is read at runtime, changing it does not need a code change, and
 // every function sees the same value no matter when it was last deployed.
 
-const FALLBACK = 'https://prooflaab.vercel.app';
+const FALLBACK = 'https://prooflab.co.in';
 
 const ALLOWED: string[] = (
   Deno.env.get('ALLOWED_ORIGINS') ??
@@ -35,13 +35,13 @@ const ALLOWED: string[] = (
   .map((s) => s.trim())
   .filter(Boolean);
 
-/** Vercel preview builds get a generated hostname, so match the shape. */
-const PREVIEW = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
+// There used to be a wildcard here for *.vercel.app preview builds. Vercel is
+// gone, and anyone can create a *.vercel.app site - including one named
+// prooflaab, now that ours is deleted - so it only ever widened who is trusted.
 
 function pickOrigin(requestOrigin: string | null): string {
   if (!requestOrigin) return ALLOWED[0] ?? FALLBACK;
   if (ALLOWED.includes(requestOrigin)) return requestOrigin;
-  if (PREVIEW.test(requestOrigin)) return requestOrigin;
   // Not permitted: answer with our own origin, which the browser will refuse
   // to match, so the caller is blocked. Never echo an unknown origin.
   return ALLOWED[0] ?? FALLBACK;

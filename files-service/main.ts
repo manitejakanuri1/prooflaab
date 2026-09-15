@@ -47,12 +47,11 @@ const BUCKETS: Record<string, { bucket: string; public: boolean }> = {
   'profile-photos': { bucket: PUBLIC_BUCKET, public: true },
 };
 
-const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://prooflaab.vercel.app')
+const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://prooflab.co.in')
   .split(',').map((s) => s.trim()).filter(Boolean);
-const PREVIEW = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
 function allowOrigin(origin: string | null): string {
-  if (origin && (ALLOWED.includes(origin) || PREVIEW.test(origin))) return origin;
+  if (origin && ALLOWED.includes(origin)) return origin;
   return ALLOWED[0];
 }
 

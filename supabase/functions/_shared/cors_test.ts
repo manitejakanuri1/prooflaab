@@ -28,19 +28,18 @@ function assert(cond: boolean, msg: string) {
 // ── the allowlist ───────────────────────────────────────────────────────────
 
 Deno.test('the production origin is echoed back', () => {
-  const h = cors(req('https://prooflaab.vercel.app'));
+  const h = cors(req('https://prooflab.co.in'));
   assert(
-    h['Access-Control-Allow-Origin'] === 'https://prooflaab.vercel.app',
+    h['Access-Control-Allow-Origin'] === 'https://prooflab.co.in',
     `got ${h['Access-Control-Allow-Origin']}`,
   );
 });
 
-Deno.test('a vercel preview build is allowed', () => {
-  const h = cors(req('https://prooflaab-git-feature-x.vercel.app'));
-  assert(
-    h['Access-Control-Allow-Origin'] === 'https://prooflaab-git-feature-x.vercel.app',
-    'preview builds must work, or every preview deploy is untestable',
-  );
+Deno.test('a vercel.app site is no longer trusted', () => {
+  // Vercel is deleted; anyone can register prooflaab.vercel.app now.
+  for (const o of ['https://prooflaab.vercel.app', 'https://prooflaab-git-feature-x.vercel.app']) {
+    assert(cors(req(o))['Access-Control-Allow-Origin'] !== o, `${o} accepted`);
+  }
 });
 
 Deno.test('an unknown site is NOT echoed back', () => {
@@ -65,12 +64,12 @@ Deno.test('a request with no Origin still gets a valid header', () => {
 
 Deno.test('Vary: Origin is always set', () => {
   // Without it a cache can hand one origin's reply to a different origin.
-  assert(cors(req('https://prooflaab.vercel.app'))['Vary'] === 'Origin', 'cors() missing Vary');
+  assert(cors(req('https://prooflab.co.in'))['Vary'] === 'Origin', 'cors() missing Vary');
   assert(corsHeaders['Vary'] === 'Origin', 'static headers missing Vary');
 });
 
 Deno.test('never a wildcard', () => {
-  for (const o of [undefined, 'https://prooflaab.vercel.app', 'https://evil.example']) {
+  for (const o of [undefined, 'https://prooflab.co.in', 'https://evil.example']) {
     assert(cors(req(o))['Access-Control-Allow-Origin'] !== '*', `wildcard for origin ${o}`);
   }
   assert(corsHeaders['Access-Control-Allow-Origin'] !== '*', 'static headers are a wildcard');

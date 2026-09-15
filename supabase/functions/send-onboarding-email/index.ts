@@ -28,7 +28,13 @@ interface OnboardingEmailRequest {
 }
 
 const getEmailContent = (userType: string, name: string, origin?: string) => {
-  const baseUrl = origin || "https://prooflaab.vercel.app";
+  // Always our own site. The link used to default to prooflaab.vercel.app -
+  // deleted with Vercel - and to take `origin` from the request body, which
+  // let a caller put any address they liked behind the button. And
+  // /student-dashboard never existed. Everyone lands on sign-in; the app sends
+  // each role to its own dashboard from there.
+  void origin;
+  const baseUrl = Deno.env.get("SITE_URL") ?? "https://prooflab.co.in";
   
   switch (userType) {
     case 'student':
@@ -43,7 +49,7 @@ const getEmailContent = (userType: string, name: string, origin?: string) => {
             </p>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              <a href="${baseUrl}/student-dashboard" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              <a href="${baseUrl}/auth" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 Access Your Dashboard
               </a>
             </p>
@@ -69,7 +75,7 @@ const getEmailContent = (userType: string, name: string, origin?: string) => {
             </p>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              <a href="${baseUrl}/college-dashboard" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              <a href="${baseUrl}/auth" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 Access College Dashboard
               </a>
             </p>
@@ -94,7 +100,7 @@ const getEmailContent = (userType: string, name: string, origin?: string) => {
             </p>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              <a href="${baseUrl}/startup-dashboard" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              <a href="${baseUrl}/auth" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 Access Startup Dashboard
               </a>
             </p>
@@ -120,7 +126,7 @@ const getEmailContent = (userType: string, name: string, origin?: string) => {
             </p>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              <a href="${baseUrl}" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              <a href="${baseUrl}/auth" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 Get Started
               </a>
             </p>

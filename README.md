@@ -10,7 +10,7 @@ piece of work a day, submits what they built, and explains it out loud for sixty
 seconds. The platform judges whether they actually did it, and their college can
 see who is moving and who has gone quiet.
 
-Live at https://prooflaab.vercel.app
+Live at https://prooflab.co.in
 
 ## The four roles
 

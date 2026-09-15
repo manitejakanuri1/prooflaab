@@ -300,9 +300,15 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
       if (actionType === 'unblock') updates.status = 'active';
       if (actionType === 'delete') updates.status = 'deleted';
     } else {
-      if (actionType === 'approve') updates.verification_status = 'approved';
+      // Colleges and startups carry two fields: verification_status, and the
+      // status the Status column shows. Approving used to set only the first,
+      // so a college stayed "pending" on screen after the admin approved it and
+      // the button looked broken. Both move together now.
+      if (actionType === 'approve') { updates.verification_status = 'approved'; updates.status = 'active'; }
       if (actionType === 'reject') updates.verification_status = 'rejected';
-      if (actionType === 'suspend') updates.verification_status = 'suspended';
+      // verification_status only allows pending/approved/rejected, so writing
+      // 'suspended' there was refused every time. Suspension is a status.
+      if (actionType === 'suspend') updates.status = 'suspended';
       if (actionType === 'delete') updates.verification_status = 'deleted';
     }
 

@@ -143,10 +143,18 @@ function ownerOf(object: string): string {
  *   - expires in minutes, so a link that leaks stops working
  */
 async function grantAllows(token: string, object: string): Promise<boolean> {
-  if (!JWT_SECRET) return false;
+  const payload = await verifyHs256(token);
+  // The object is part of what was signed. A grant for one file is not a grant
+  // for another.
+  return payload !== null && payload.obj === object;
+}
+
+/** Claims of an HS256 token signed with our secret and not yet expired, or null. */
+async function verifyHs256(token: string): Promise<Record<string, unknown> | null> {
+  if (!JWT_SECRET) return null;
 
   const parts = token.split('.');
-  if (parts.length !== 3) return false;
+  if (parts.length !== 3) return null;
 
   const fromB64 = (s: string) => {
     const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
@@ -162,9 +170,9 @@ async function grantAllows(token: string, object: string): Promise<boolean> {
     header = JSON.parse(new TextDecoder().decode(fromB64(parts[0])));
     payload = JSON.parse(new TextDecoder().decode(fromB64(parts[1])));
   } catch {
-    return false;
+    return null;
   }
-  if (header.alg !== 'HS256') return false;
+  if (header.alg !== 'HS256') return null;
 
   const key = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(JWT_SECRET),
@@ -173,14 +181,38 @@ async function grantAllows(token: string, object: string): Promise<boolean> {
   const ok = await crypto.subtle.verify(
     'HMAC', key, fromB64(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
   );
-  if (!ok) return false;
+  if (!ok) return null;
 
   const now = Math.floor(Date.now() / 1000);
-  if (typeof payload.exp !== 'number' || payload.exp <= now) return false;
+  if (typeof payload.exp !== 'number' || payload.exp <= now) return null;
 
-  // The object is part of what was signed. A grant for one file is not a grant
-  // for another.
-  return payload.obj === object;
+  return payload;
+}
+
+/**
+ * Who is calling, as the uuid their files are filed under - or null.
+ *
+ * Files sit in a folder named after the account's DATABASE uuid. This used to
+ * accept only the Google ID token, whose subject is Google's own id. For the
+ * seven accounts migrated in August the two are the same string, so it worked
+ * for everyone who tested it. For every account created on Google since - the
+ * college that signed up, all 22 imported students - they differ, and every
+ * upload was refused as "not found": no profile photo, no proof, no voice
+ * explanation, no resume.
+ *
+ * The database token the auth-bridge issues carries the uuid as its subject,
+ * which is exactly what the folder rule needs. Only a signed-in person's token
+ * counts: a service_role token has no person behind it, and a file grant is for
+ * reading one file, not for acting as someone.
+ */
+export async function callerOf(token: string): Promise<string | null> {
+  const bridged = await verifyHs256(token);
+  if (bridged !== null) {
+    if (bridged.role !== 'authenticated' || 'obj' in bridged) return null;
+    return typeof bridged.sub === 'string' && bridged.sub !== '' ? bridged.sub : null;
+  }
+  const google = await verifyGoogleToken(token);
+  return google?.sub ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,9 +243,9 @@ async function handler(req: Request): Promise<Response> {
     const auth = req.headers.get('Authorization');
     if (!auth?.startsWith('Bearer ')) return json({ error: 'sign in first' }, 401, origin);
 
-    const verified = await verifyGoogleToken(auth.slice(7).trim());
+    const verified = await callerOf(auth.slice(7).trim());
     if (!verified) return json({ error: 'invalid token' }, 401, origin);
-    caller = verified.sub;
+    caller = verified;
 
     if (ownerOf(target.object) !== caller) {
       // Same answer whether the file exists or not. Telling the caller which

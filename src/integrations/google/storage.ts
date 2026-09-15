@@ -12,7 +12,7 @@
  * has to trust anything this browser says about who the caller is.
  */
 
-import { currentIdToken } from './identity';
+import { currentAccessToken } from './identity';
 
 const FILES_URL = import.meta.env.VITE_FILES_URL as string;
 const PUBLIC_BUCKET = import.meta.env.VITE_PUBLIC_BUCKET as string;
@@ -31,8 +31,11 @@ function fail<T>(empty: T, message: string, status?: number): Result<T> {
   return { data: empty, error: { message, statusCode: status ? String(status) : undefined } };
 }
 
+// The database token, not the Google one: its subject is the account's uuid,
+// which is the folder every file is stored under. Google's id differs for any
+// account created after the move, and the file service refused all of them.
 async function authHeaders(): Promise<Record<string, string>> {
-  const token = await currentIdToken();
+  const token = await currentAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

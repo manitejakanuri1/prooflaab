@@ -2,7 +2,7 @@
 //
 // Run: deno test --allow-net files_test.ts
 import { assertEquals } from 'jsr:@std/assert@1';
-import { handler, ownerOf, resolve } from './main.ts';
+import { callerOf, handler, ownerOf, resolve } from './main.ts';
 
 const ME = '9f77c6d5-bd7c-489e-9410-3db888729328';
 const SOMEONE_ELSE = '1ff6d149-acc1-441c-9899-d79c9894a9d0';
@@ -79,4 +79,48 @@ Deno.test('preflight is answered without a token', async () => {
     new Request(`https://x/file/resumes/${ME}/cv.pdf`, { method: 'OPTIONS' }),
   );
   assertEquals(res.status, 204);
+});
+
+// --- the database token -------------------------------------------------------
+// Every account created after the move has a Google id that is not its uuid, so
+// the file service must identify callers by the bridge's token. These pin down
+// that it does - and that only a person's token counts.
+
+async function hs256(claims: Record<string, unknown>): Promise<string> {
+  const b64 = (b: Uint8Array | string) =>
+    btoa(typeof b === 'string' ? b : String.fromCharCode(...b))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const head = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = b64(JSON.stringify(claims));
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(Deno.env.get('PGRST_JWT_SECRET')!),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+  );
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${head}.${body}`)));
+  return `${head}.${body}.${b64(sig)}`;
+}
+const inAnHour = () => Math.floor(Date.now() / 1000) + 3600;
+
+Deno.test('a signed-in database token names its uuid', async () => {
+  assertEquals(await callerOf(await hs256({ sub: ME, role: 'authenticated', exp: inAnHour() })), ME);
+});
+
+Deno.test('a service_role token is not a person', async () => {
+  assertEquals(await callerOf(await hs256({ role: 'service_role', exp: inAnHour() })), null);
+});
+
+Deno.test('a file grant cannot be used to act as someone', async () => {
+  assertEquals(await callerOf(await hs256({ sub: ME, role: 'authenticated', obj: `resumes/${ME}/cv.pdf`, exp: inAnHour() })), null);
+});
+
+Deno.test('an expired database token is refused', async () => {
+  assertEquals(await callerOf(await hs256({ sub: ME, role: 'authenticated', exp: 1 })), null);
+});
+
+Deno.test("a valid token still cannot reach someone else's folder", async () => {
+  const token = await hs256({ sub: SOMEONE_ELSE, role: 'authenticated', exp: inAnHour() });
+  const res = await handler(
+    new Request(`https://x/file/resumes/${ME}/cv.pdf`, { method: 'GET', headers: { Authorization: `Bearer ${token}` } }),
+  );
+  assertEquals(res.status, 404);
 });

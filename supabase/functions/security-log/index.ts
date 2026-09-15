@@ -1,4 +1,5 @@
 import { serve } from "../_shared/serve.ts";
+import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { clientIp } from "../_shared/audit.ts";
 import { cors } from "../_shared/cors.ts";
@@ -70,29 +71,27 @@ serve(async (req) => {
     const rawReason = typeof body?.reason === 'string' ? body.reason : 'other';
     const reason = REASONS.has(rawReason) ? rawReason : 'other';
 
-    const url = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Written through the shared client, not a hand-built REST call. This was
+    // the one function that built its own URL from SUPABASE_URL, an address
+    // that stopped existing with the move to Cloud Run: every security event a
+    // browser reported since then failed with "Invalid URL: undefined/rest/v1/
+    // ...". It failed silently too, because this endpoint deliberately answers
+    // ok whatever happens, so the loss showed up only in the logs.
+    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 
-    await fetch(`${url}/rest/v1/rpc/log_security_event`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify({
-        p_event_type: eventType,
-        p_severity: SEVERITY[eventType] ?? 'info',
-        // Marked client so an admin reading the dashboard knows this entry was
-        // volunteered by a browser and can be absent, not that it is complete.
-        p_source: 'client',
-        p_user_id: null,
-        p_email: email,
-        p_ip: clientIp(req),
-        p_user_agent: req.headers.get('user-agent'),
-        p_detail: { reason },
-      }),
+    const { error } = await db.rpc('log_security_event', {
+      p_event_type: eventType,
+      p_severity: SEVERITY[eventType] ?? 'info',
+      // Marked client so an admin reading the dashboard knows this entry was
+      // volunteered by a browser and can be absent, not that it is complete.
+      p_source: 'client',
+      p_user_id: null,
+      p_email: email,
+      p_ip: clientIp(req),
+      p_user_agent: req.headers.get('user-agent'),
+      p_detail: { reason },
     });
+    if (error) console.error('security-log could not write the event:', error.message);
 
     return new Response(
       JSON.stringify({ ok: true }),

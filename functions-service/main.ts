@@ -32,7 +32,7 @@ const SLUGS = [
   'resume-code-execute', 'resume-coding-generate', 'resume-improve',
   'resume-jd-match', 'resume-parser', 'resume-question-generator',
   'resume-retest-generate', 'resume-voice-verify', 'run-sandbox', 'security-log',
-  'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
+  'scheduled-job', 'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
   'submit-written-task', 'test-github-connection', 'trust-compute',
   'verify-proof', 'voice-score',
 ];

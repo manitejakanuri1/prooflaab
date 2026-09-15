@@ -8,19 +8,30 @@ because the caller must know whether to run an article extractor over it. Jina
 and the platform APIs already return clean text; running trafilatura over
 markdown would strip most of it.
 
-On agent-reach, which this was going to use: for plain web pages its own
-documentation says it calls Jina Reader with "no wrapper layer", and that is
-what happens below. The rest of it is a CLI that installs Node, the GitHub CLI
-and mcporter so an AI agent on a laptop can reach Twitter and Xiaohongshu. This
-crawler runs in GitHub Actions on a fresh machine every week to read five
-public pages, so installing four tools each run to obtain one HTTP call would
-cost minutes and buy nothing. If Twitter or Xiaohongshu ever become sources,
-that is the moment to revisit it.
+On agent-reach: it is installed in the crawler's image on Google Cloud Run
+(see Dockerfile), pinned to one commit. agent-reach does not read content
+itself - it installs and health-checks the tools that do, and expects callers
+to use those tools directly. So this file uses exactly its backends:
+
+    web pages   Jina Reader            same call agent-reach's web channel makes
+    YouTube     yt-dlp                 agent-reach's YouTube backend
+    GitHub      gh CLI                 agent-reach's GitHub backend
+    RSS         feedparser             agent-reach's RSS backend
+
+Each falls back to plain HTTP when its tool is missing, so the crawler still
+runs on a laptop without the image. Channels that need a personal logged-in
+account (Twitter, Instagram, LinkedIn, Xiaohongshu, Reddit via rdt-cli) are not
+used: a scheduled job on a server has no account to borrow, and borrowing one
+would tie the platform to somebody's personal cookies.
 """
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
+import subprocess
+import tempfile
 from urllib.parse import urlparse
 
 import httpx
@@ -133,12 +144,27 @@ def fetch_github(url: str) -> Fetched | None:
     only to lift the hourly rate limit, which matters if the registry ever
     holds more than a handful of repos.
     """
-    import os
-
     parts = [p for p in urlparse(url).path.split("/") if p]
     if len(parts) < 2:
         return None
     owner, repo = parts[0], parts[1].removesuffix(".git")
+
+    # agent-reach's backend first. gh reads GH_TOKEN; without one it still
+    # reads public repositories, at a lower rate limit.
+    if shutil.which("gh"):
+        env = {**os.environ}
+        if os.environ.get("GITHUB_PAT") and not env.get("GH_TOKEN"):
+            env["GH_TOKEN"] = os.environ["GITHUB_PAT"]
+        try:
+            out = subprocess.run(
+                ["gh", "api", f"repos/{owner}/{repo}/readme",
+                 "-H", "Accept: application/vnd.github.raw+json"],
+                capture_output=True, text=True, timeout=TIMEOUT, env=env,
+            )
+            if out.returncode == 0 and out.stdout.strip():
+                return Fetched(out.stdout, f"{owner}/{repo}", "markdown")
+        except (subprocess.TimeoutExpired, OSError):
+            pass
 
     headers = {"User-Agent": USER_AGENT, "Accept": "application/vnd.github.raw+json"}
     token = os.environ.get("GITHUB_PAT")
@@ -162,8 +188,60 @@ def fetch_github(url: str) -> Fetched | None:
 # YouTube
 # ---------------------------------------------------------------------------
 
+def _vtt_to_text(vtt: str) -> str:
+    """Caption text from a WebVTT file, without timings, tags or repeats.
+
+    Automatic captions repeat each line as it scrolls, so consecutive duplicates
+    are dropped; otherwise every sentence would appear two or three times.
+    """
+    lines: list[str] = []
+    for raw in vtt.splitlines():
+        line = raw.strip()
+        if (not line or line == "WEBVTT" or "-->" in line
+                or line.startswith(("Kind:", "Language:", "NOTE")) or line.isdigit()):
+            continue
+        line = re.sub(r"<[^>]+>", "", line).strip()
+        if line and (not lines or lines[-1] != line):
+            lines.append(line)
+    return " ".join(lines)
+
+
+def fetch_youtube_ytdlp(url: str) -> Fetched | None:
+    """Transcript through yt-dlp, the tool agent-reach installs for YouTube."""
+    if not shutil.which("yt-dlp"):
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            out = subprocess.run(
+                ["yt-dlp", "--skip-download", "--write-subs", "--write-auto-subs",
+                 "--sub-langs", "en.*,en", "--sub-format", "vtt",
+                 "--print", "title", "--no-simulate", "--no-warnings",
+                 "-o", os.path.join(tmp, "v.%(ext)s"), url],
+                capture_output=True, text=True, timeout=120,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            return None
+        if out.returncode != 0:
+            return None
+        title = out.stdout.strip().splitlines()[0] if out.stdout.strip() else ""
+        subs = sorted(f for f in os.listdir(tmp) if f.endswith(".vtt"))
+        # A human-written track is better than an automatic one when both exist;
+        # yt-dlp names them the same way, so prefer the shortest language code.
+        subs.sort(key=len)
+        for name in subs:
+            with open(os.path.join(tmp, name), encoding="utf-8", errors="ignore") as fh:
+                text = _vtt_to_text(fh.read())
+            if text:
+                return Fetched(text, title, "markdown")
+    return None
+
+
 def fetch_youtube(url: str) -> Fetched | None:
     """A video's transcript, which is the only part worth turning into questions."""
+    via_ytdlp = fetch_youtube_ytdlp(url)
+    if via_ytdlp is not None:
+        return via_ytdlp
+
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
     except ImportError:

@@ -162,5 +162,21 @@ def run() -> None:
             time.sleep(delay)
 
 
+def report_tools() -> None:
+    """Print agent-reach's health check, so each run's log says what it could reach."""
+    import shutil
+    import subprocess
+
+    if not shutil.which("agent-reach"):
+        print("agent-reach: not installed here - using plain HTTP fallbacks")
+        return
+    try:
+        out = subprocess.run(["agent-reach", "doctor"], capture_output=True, text=True, timeout=120)
+        print(out.stdout.strip() or out.stderr.strip())
+    except (subprocess.TimeoutExpired, OSError) as err:
+        print(f"agent-reach doctor could not run: {err}")
+
+
 if __name__ == "__main__":
+    report_tools()
     run()

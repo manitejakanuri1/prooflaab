@@ -225,7 +225,42 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   const commit = async () => {
     if (!rows || !importId) return;
     const good = rows.filter((r) => r.validation_status === "valid");
-    if (good.length === 0) return;
+    // Sections are applied to every row that carries one, not only new students.
+    // Re-uploading a file to set sections used to do nothing at all: existing
+    // students are "duplicates", only valid rows reached this function, and with
+    // none valid it returned before a single section was saved.
+    const sectioned = rows.filter(
+      (r) => (r.validation_status === "valid" || r.validation_status === "duplicate")
+        && r.cohort && r.cohort !== r.branch,
+    );
+    if (good.length === 0 && sectioned.length === 0) return;
+
+    if (good.length === 0) {
+      setBusy(true);
+      const { data: set, error: setError } = await supabase.rpc("tpo_set_cohorts", {
+        _assignments: sectioned.map((r) => ({ email: r.email, cohort: r.cohort })),
+      });
+      const { data: sq } = setError
+        ? { data: null }
+        : await supabase.rpc("tpo_form_squads" as never, {} as never);
+      setBusy(false);
+      await supabase.from("student_imports")
+        .update({ status: setError ? "failed" : "completed", completed_at: new Date().toISOString() })
+        .eq("id", importId);
+      const moved = (set as unknown as { students?: number } | null)?.students ?? 0;
+      const formed = (sq as unknown as { squads_created?: number } | null)?.squads_created ?? 0;
+      toast({
+        title: setError ? "Sections not saved" : `Sections saved for ${moved} students`,
+        description: setError
+          ? setError.message
+          : formed > 0 ? `${formed} squads formed` : "No section has eleven students yet, so no squads were formed",
+        variant: setError ? "destructive" : undefined,
+      });
+      setOpen(false);
+      setRows(null);
+      onImported?.();
+      return;
+    }
 
     setBusy(true);
     await supabase.from("student_imports").update({ status: "committing" }).eq("id", importId);
@@ -252,7 +287,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     // no cohort argument, so this is a second call rather than part of the
     // first. A student whose row carried no section keeps the branch as their
     // cohort, which the database would have defaulted to anyway.
-    const withSection = good.filter((r) => r.cohort && r.cohort !== r.branch);
+    const withSection = sectioned;
     if (withSection.length > 0) {
       const { error: cohortError } = await supabase.rpc("tpo_set_cohorts", {
         _assignments: withSection.map((r) => ({ email: r.email, cohort: r.cohort })),
@@ -339,6 +374,9 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   };
 
   const counts = rows ? tally(rows) : null;
+  const sectionsToSet = rows
+    ? rows.filter((r) => r.validation_status === "duplicate" && r.cohort && r.cohort !== r.branch).length
+    : 0;
 
   return (
     <>
@@ -442,8 +480,12 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
               </Button>
             )}
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button disabled={busy || !counts?.valid} onClick={() => void commit()}>
-              {busy ? "Creating…" : `Import ${counts?.valid ?? 0} students`}
+            <Button disabled={busy || (!counts?.valid && !sectionsToSet)} onClick={() => void commit()}>
+              {busy
+                ? "Saving…"
+                : counts?.valid
+                  ? `Import ${counts.valid} students`
+                  : `Save sections for ${sectionsToSet} students`}
             </Button>
           </DialogFooter>
         </DialogContent>

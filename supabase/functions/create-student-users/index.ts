@@ -395,6 +395,7 @@ serve(async (req) => {
           })
 
           await supabaseAdmin.functions.invoke('send-onboarding-email', {
+            headers: { 'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '' },
             body: {
               email,
               name,

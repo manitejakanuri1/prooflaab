@@ -118,6 +118,7 @@ serve(async (req) => {
         email: email.toLowerCase(),
       })
       await supabaseAdmin.functions.invoke('send-onboarding-email', {
+        headers: { 'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '' },
         body: { email, name, userType: 'college', actionLink: link?.properties?.action_link ?? null },
       })
     } catch (inviteError) {

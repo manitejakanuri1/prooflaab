@@ -142,9 +142,19 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // A function inviting the students it just created - create-student-users,
+  // create-college-user - proves itself with the webhook secret, as
+  // trust-compute and response-evaluator already accept. It is not a signed-in
+  // user, so the "your own address only" rule below cannot apply to it, and it
+  // is not a stranger, so the per-caller rate limit must not either: every
+  // internal call arrives from the same loopback address, and an import of
+  // sixty students would otherwise send ten welcome emails and drop fifty.
+  const expectedSecret = Deno.env.get("WEBHOOK_SECRET");
+  const internal = !!expectedSecret && req.headers.get("x-webhook-secret") === expectedSecret;
+
   // Tight cap: an unthrottled send endpoint is a way to mail arbitrary people
   // from your domain, which costs the sending reputation, not just the credits.
-  const limited = await guard(req, {
+  const limited = internal ? null : await guard(req, {
     bucket: 'send-onboarding-email',
     limit: 10,
     windowSeconds: 3600,
@@ -155,7 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     // Require authenticated caller; only allow sending to caller's own email
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    if (!internal && !authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { "Content-Type": "application/json", ...corsHeaders }
       });
@@ -164,10 +174,10 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
     );
-    const { data: userData, error: userErr } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (userErr || !userData?.user) {
+    const { data: userData, error: userErr } = internal
+      ? { data: null, error: null }
+      : await supabase.auth.getUser(authHeader!.replace("Bearer ", ""));
+    if (!internal && (userErr || !userData?.user)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { "Content-Type": "application/json", ...corsHeaders }
       });
@@ -182,7 +192,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    if (email.toLowerCase() !== userData.user.email?.toLowerCase()) {
+    if (!internal && email.toLowerCase() !== userData?.user?.email?.toLowerCase()) {
       return new Response(JSON.stringify({ error: "Forbidden: email must match authenticated user" }), {
         status: 403, headers: { "Content-Type": "application/json", ...corsHeaders }
       });
@@ -205,12 +215,25 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // resend.dev is Resend's test sender: it delivers only to the Resend account's
+    // own address. Real students need a verified domain, set as EMAIL_FROM
+    // (e.g. "ProofLabAI <hello@prooflab.co.in>") once prooflab.co.in is verified.
     const emailResponse = await resend.emails.send({
-      from: "Learning Platform <onboarding@resend.dev>",
+      from: Deno.env.get("EMAIL_FROM") ?? "Learning Platform <onboarding@resend.dev>",
       to: [email],
       subject: emailContent.subject,
       html: emailContent.html,
     });
+
+    // Resend reports a refused send in the body, not by throwing. This used to
+    // log "sent successfully" and answer success:true for every refusal.
+    if (emailResponse.error) {
+      console.error("Onboarding email refused by Resend:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ success: false, error: emailResponse.error.message }),
+        { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     console.log("Onboarding email sent successfully:", emailResponse);
 

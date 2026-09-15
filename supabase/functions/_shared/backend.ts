@@ -523,11 +523,54 @@ export function createClient(url: string, key: string, options?: unknown) {
     get(target, prop, receiver) {
       if (prop === 'storage') return { from: storageFor };
       if (prop === 'auth') return authShim;
+      if (prop === 'functions') return functionsShim;
       const value = Reflect.get(target, prop, receiver);
       return typeof value === 'function' ? value.bind(target) : value;
     },
   }) as typeof base;
 }
+
+/**
+ * One function calling another.
+ *
+ * supabase-js sends functions.invoke to <url>/functions/v1/<name>, and on this
+ * backend <url> is PostgREST - which answers 404. invoke() reports that as an
+ * error rather than throwing, and every caller logs it and carries on, so for
+ * the first days on Google nothing a function asked of another ever happened:
+ * no welcome email after an import (22 x 404 on 14 Sep), no answer evaluation
+ * and no trust score after a student submitted.
+ *
+ * All 42 functions live in this same process, so the call goes to it directly
+ * over loopback: no public hop, and no token for Google's edge to check.
+ */
+const functionsShim = {
+  async invoke(
+    name: string,
+    options: { body?: unknown; headers?: Record<string, string> } = {},
+  ): Promise<{ data: unknown; error: null | { message: string; status?: number } }> {
+    const port = Deno.env.get('PORT') ?? '8080';
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/${name}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${await serviceToken()}`,
+          ...(options.headers ?? {}),
+        },
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      });
+      const text = await res.text();
+      let data: unknown = text;
+      try { data = text ? JSON.parse(text) : null; } catch { /* not JSON; keep the text */ }
+      if (!res.ok) {
+        return { data: null, error: { message: `${name} answered ${res.status}: ${text.slice(0, 200)}`, status: res.status } };
+      }
+      return { data, error: null };
+    } catch (err) {
+      return { data: null, error: { message: `${name} could not be reached: ${err instanceof Error ? err.message : err}` } };
+    }
+  },
+};
 
 export { serviceToken };
 

@@ -416,13 +416,13 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     }
   };
 
-  const advanceCoding = useCallback(async () => {
+  const advanceCoding = useCallback(async (mode: "submit" | "skip" = "submit") => {
     if (codingAdvancingRef.current || !currentCodingQuestion) return;
     codingAdvancingRef.current = true;
     setSubmittingCode(true);
     try {
       const { data, error } = await supabase.functions.invoke("resume-code-execute", {
-        body: { assessment_id: assessmentId, question_id: currentCodingQuestion.id, code, mode: "submit" },
+        body: { assessment_id: assessmentId, question_id: currentCodingQuestion.id, code, mode },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -718,8 +718,19 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
               {/* You cannot submit code you have never run. Submitting blind is
                   how a pasted answer gets through without the student ever
                   seeing whether it works. */}
+              {/* Skip moves on at once and scores this question 0. Without it a
+                  student who could not get code to run had to wait out the timer. */}
               <Button
-                onClick={advanceCoding}
+                variant="ghost"
+                onClick={() => {
+                  if (window.confirm("Skip this question? It will score 0.")) void advanceCoding("skip");
+                }}
+                disabled={submittingCode}
+              >
+                Skip
+              </Button>
+              <Button
+                onClick={() => void advanceCoding("submit")}
                 disabled={submittingCode || runResults === null}
                 title={runResults === null ? "Run your code first" : undefined}
                 className="flex-1"

@@ -235,11 +235,46 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
 }
 
 /**
+ * ProofLab's own runner on Cloud Run (code-runner/), used first whenever
+ * CODE_RUNNER_URL and CODE_RUNNER_SECRET are set. It covers all eight
+ * languages, so the free public runners below become a fallback rather than the
+ * only way code ever ran - they were, until Wandbox went down for every
+ * language on 16 Sep 2026 and students could not run code at all.
+ */
+async function runOnOwnRunner(language: string, code: string, stdin: string): Promise<RunResult> {
+  const url = Deno.env.get('CODE_RUNNER_URL');
+  const secret = Deno.env.get('CODE_RUNNER_SECRET');
+  if (!url || !secret) return { ok: false, reason: 'own runner not configured' };
+
+  const res = await fetch(`${url.replace(/\/$/, '')}/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-runner-secret': secret },
+    body: JSON.stringify({ language, code, stdin }),
+    signal: withTimeout(70000),
+  });
+  if (!res.ok) return { ok: false, reason: `own runner http ${res.status}` };
+  const data = await res.json();
+  const status = data.status as ExecStatus;
+  if (!['ok', 'compile_error', 'runtime_error', 'time_limit'].includes(status)) {
+    return { ok: false, reason: 'own runner gave no status' };
+  }
+  return { ok: true, status, stdout: data.stdout ?? '', stderr: data.stderr ?? '', runner: 'prooflab' };
+}
+
+/**
  * Runs one test case, trying hard to get an honest answer before giving up.
- * Wandbox first and twice, then the fallback where one exists, then Glot.
+ * Our own runner first, then Wandbox twice, then Godbolt where it fits, then Glot.
  */
 export async function runCode(language: string, code: string, stdin: string): Promise<RunResult> {
   let lastReason = 'runner unavailable';
+
+  try {
+    const own = await runOnOwnRunner(language, code, stdin);
+    if (own.ok) return own;
+    lastReason = own.reason;
+  } catch (e) {
+    lastReason = `own runner: ${String(e)}`;
+  }
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

@@ -52,9 +52,9 @@ serve(async (req) => {
     const callerId = claims.claims.sub;
 
     const { assessment_id, question_id, code, mode } = await req.json();
-    if (!assessment_id || !question_id || typeof code !== 'string' || !['run', 'submit'].includes(mode)) {
+    if (!assessment_id || !question_id || typeof code !== 'string' || !['run', 'submit', 'skip'].includes(mode)) {
       return new Response(
-        JSON.stringify({ error: 'assessment_id, question_id, code, and mode ("run"|"submit") are required' }),
+        JSON.stringify({ error: 'assessment_id, question_id, code, and mode ("run"|"submit"|"skip") are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -102,16 +102,21 @@ serve(async (req) => {
     }
 
     const existingResults = (assessment.coding_results || {}) as Record<string, any>;
-    if (mode === 'submit' && existingResults[question_id]) {
+    if (mode !== 'run' && existingResults[question_id]) {
       return new Response(
         JSON.stringify({ error: 'This question has already been submitted' }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // skip: the student moves on without running anything. It scores 0 for
+    // this question - every test counted as failed - and is recorded like a
+    // submission, so the round can finish. Before this a student whose code
+    // could not run (or who simply wanted to move on) had to sit out the timer:
+    // "Submit & next" stays disabled until code has run once.
     const testCases: TestCase[] = mode === 'run'
       ? [question.test_cases[0]]
-      : question.test_cases;
+      : mode === 'skip' ? [] : question.test_cases;
 
     const results = [];
     for (const tc of testCases) {
@@ -157,9 +162,10 @@ serve(async (req) => {
     // submit mode: persist this question's result, and if all coding questions
     // are now submitted, compute the final coding score onto the scorecard.
     const passCount = results.filter(r => r.passed).length;
+    const total = mode === 'skip' ? question.test_cases.length : results.length;
     const updatedResults = {
       ...existingResults,
-      [question_id]: { pass_count: passCount, total: results.length, results },
+      [question_id]: { pass_count: passCount, total, results, ...(mode === 'skip' ? { skipped: true } : {}) },
     };
 
     const { error: updateError } = await supabase
@@ -196,7 +202,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         pass_count: passCount,
-        total: results.length,
+        total,
         results,
         all_submitted: allSubmitted,
         coding_score: codingScore,

@@ -792,7 +792,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              A handful of quick questions based only on what's above — 15 seconds each, no going back.
+              A handful of quick questions based only on what's above — 30 seconds for each choice question, 90 for each written one, no going back.
             </p>
 
             {/* The gate. A resume this weak is not worth testing against: the

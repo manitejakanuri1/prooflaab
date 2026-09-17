@@ -5,8 +5,8 @@ import { classifySkillGap } from "../_shared/role-skills.ts";
 import { normSkill, placeStudent } from "../_shared/levels.ts";
 import { cors } from "../_shared/cors.ts";
 
-/** Must match the countdown in TimedResumeAssessment. */
-const SECONDS_PER_QUESTION = 15;
+/** Must match secondsFor() in TimedResumeAssessment: 30s per MCQ, 90s per written answer. */
+const secondsFor = (q: { type?: string }) => (q?.type === 'mcq' ? 30 : 90);
 /**
  * Slack on top of the per-question budget, covering page load, a reload that
  * resumes from local storage, and a slow connection. Generous on purpose: the
@@ -139,7 +139,7 @@ serve(async (req) => {
     const elapsedSeconds = assessment.started_at
       ? Math.round((Date.now() - new Date(assessment.started_at).getTime()) / 1000)
       : null;
-    const allowanceSeconds = questions.length * SECONDS_PER_QUESTION + TIME_GRACE_SECONDS;
+    const allowanceSeconds = questions.reduce((t: number, q: any) => t + secondsFor(q), 0) + TIME_GRACE_SECONDS;
 
     if (elapsedSeconds !== null && elapsedSeconds > allowanceSeconds) {
       await supabase

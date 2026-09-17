@@ -11,7 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RoadmapStages } from "./RoadmapStages";
 
-const SECONDS_PER_QUESTION = 15;
+// 15s for everything moved the screen on before a student could read the
+// question, let alone type an answer. Must match resume-assessment-submit.
+const secondsFor = (q?: { type?: string }) => (q?.type === "mcq" ? 30 : 90);
 const SECONDS_PER_CODING_PROBLEM = 300;
 /**
  * Time handed back when the executor is unreachable.
@@ -154,7 +156,7 @@ type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing" | "result
 const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, questions, onGraded }: TimedResumeAssessmentProps) => {
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION);
+  const [timeLeft, setTimeLeft] = useState(() => secondsFor(questions[0]));
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [confidence, setConfidence] = useState<ConfidenceLevel | null>(null);
@@ -320,9 +322,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     setSelectedOption(null);
     setTextAnswer("");
     setConfidence(null);
-    setTimeLeft(SECONDS_PER_QUESTION);
+    setTimeLeft(secondsFor(questions[currentIndex + 1]));
     advancingRef.current = false;
-  }, [answers, confidence, currentQuestion, isLastQuestion, selectedOption, textAnswer, submitAssessment]);
+  }, [answers, confidence, currentIndex, currentQuestion, isLastQuestion, questions, selectedOption, textAnswer, submitAssessment]);
 
   // Reload-resume: this component fully remounts on a page reload, so progress
   // (question index, recorded answers, coding round state) is snapshotted to
@@ -352,8 +354,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
             retryCodingGen();
           } else {
             skipNextScrollRef.current = true;
-            setCurrentIndex(Math.min(saved.currentIndex ?? 0, Math.max(questions.length - 1, 0)));
-            setTimeLeft(SECONDS_PER_QUESTION);
+            const resumeAt = Math.min(saved.currentIndex ?? 0, Math.max(questions.length - 1, 0));
+            setCurrentIndex(resumeAt);
+            setTimeLeft(secondsFor(questions[resumeAt]));
             setPhase("quiz");
           }
         }

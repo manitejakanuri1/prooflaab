@@ -70,9 +70,9 @@ const RecruiterOversight = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Recruiters</h1>
+        <h1 className="text-2xl font-bold">Hiring activity</h1>
         <p className="text-muted-foreground">
-          A recruiter sees no candidates until you approve them here.
+          Shortlists, views and sponsored Lots per company. Approving a company above also turns this on.
         </p>
       </div>
 

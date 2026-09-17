@@ -437,10 +437,10 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management
+            {activeTab === 'startups' ? 'Companies' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management
           </h1>
           <p className="text-muted-foreground">
-            Manage {activeTab === 'students' ? 'students' : activeTab === 'startups' ? 'startups' : 'colleges'} accounts and settings
+            Manage {activeTab === 'students' ? 'students' : activeTab === 'startups' ? 'company' : 'colleges'} accounts and settings
           </p>
         </div>
         <Button onClick={exportToCSV} variant="outline">
@@ -477,7 +477,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <CardTitle className="flex items-center gap-2">
                     {getTabIcon(tab)}
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)} Management
+                    {tab === 'startups' ? 'Companies' : tab.charAt(0).toUpperCase() + tab.slice(1)} Management
                   </CardTitle>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-auto">

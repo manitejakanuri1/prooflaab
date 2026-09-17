@@ -21,9 +21,10 @@ interface CollegeDashboardHeaderProps {
   onMenuClick?: () => void;
   showMenuButton?: boolean;
   onNotificationsClick?: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
-const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMenuButton, onNotificationsClick }: CollegeDashboardHeaderProps) => {
+const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMenuButton, onNotificationsClick, onNavigate }: CollegeDashboardHeaderProps) => {
   const { signOut } = useAuth();
   const { toast } = useToast();
   const { unreadCount } = useCollegeNotifications();
@@ -105,11 +106,11 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onNavigate?.("profile")}>
                 <User className="mr-2 h-4 w-4" />
                 My Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onNavigate?.("settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>

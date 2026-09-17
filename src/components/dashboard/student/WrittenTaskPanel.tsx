@@ -92,8 +92,9 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
     const r = data as SubmitResult;
     setResult(r);
     if (r.status === "passed") {
+      // Not onCompleted() here: that closes the dialog, so a pass flashed its
+      // score and vanished. The Done button below closes it once it is read.
       try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
-      onCompleted?.();
     }
   };
 
@@ -178,6 +179,9 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
                 );
               })}
             </ul>
+          )}
+          {result.status === "passed" && onCompleted && (
+            <Button className="mt-3 w-full" onClick={onCompleted}>Done</Button>
           )}
         </div>
       )}

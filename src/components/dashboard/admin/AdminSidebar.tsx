@@ -77,7 +77,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       icon: LayoutDashboard,
       children: [
         { id: "dashboard", label: "Dashboard Home", icon: LayoutDashboard },
-        { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, route: "/admin/notifications" },
+        // Notifications: the header bell (its popover links to the full page).
         { id: "analytics", label: "Reports & Analytics", icon: BarChart3 },
       ]
     },

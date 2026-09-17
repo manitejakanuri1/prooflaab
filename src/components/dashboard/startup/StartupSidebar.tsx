@@ -1,4 +1,4 @@
-import { Home, Plus, List, FileText, Settings, LogOut, Briefcase } from "lucide-react";
+import { Home, Plus, List, FileText, LogOut, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -31,7 +31,6 @@ const sidebarItems = [
   { id: "view-applications", title: "View Applications", icon: FileText },
   { id: "submissions", title: "Student Submissions", icon: FileText },
   { id: "jobs", title: "Post A Job", icon: Briefcase },
-  { id: "settings", title: "Settings", icon: Settings },
 ];
 
 const restrictedTabs = ["post-task", "view-tasks", "view-applications", "submissions", "jobs"];

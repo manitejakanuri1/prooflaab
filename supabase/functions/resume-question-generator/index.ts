@@ -222,30 +222,39 @@ Return ONLY the JSON array, no additional text.`;
 
     console.log('Calling LLM for resume-based question generation...');
 
-    let generatedText: string;
-    try {
-      const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 5000 }, { feature: 'resume-question-generator', userId: callerId, studentId: profile.id });
-      generatedText = result.text;
-      console.log(`LLM (${result.provider}) response:`, generatedText);
-    } catch (e) {
-      console.error('LLM call failed:', e);
-      // Over-budget callers get a 429 with Retry-After, not a generic failure,
-      // so the client can tell 'wait' apart from 'broken'.
-      const limited = rateLimitResponse(e, corsHeaders);
-      if (limited) return limited;
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate assessment' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // The model occasionally returns malformed JSON (a trailing comma before a
+    // closing bracket was the one seen live, 1 call in 29), which used to fail
+    // the student's whole test. Strip trailing commas, and ask once more if the
+    // reply still does not parse.
+    let questions: any[] | null = null;
+    for (let attempt = 1; attempt <= 2 && !questions; attempt++) {
+      let generatedText: string;
+      try {
+        const result = await generateText(prompt, { temperature: 0.6, maxOutputTokens: 5000 }, { feature: 'resume-question-generator', userId: callerId, studentId: profile.id });
+        generatedText = result.text;
+        console.log(`LLM (${result.provider}) response:`, generatedText);
+      } catch (e) {
+        console.error('LLM call failed:', e);
+        // Over-budget callers get a 429 with Retry-After, not a generic failure,
+        // so the client can tell 'wait' apart from 'broken'.
+        const limited = rateLimitResponse(e, corsHeaders);
+        if (limited) return limited;
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate assessment' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      try {
+        const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error('No JSON array found in response');
+        questions = JSON.parse(jsonMatch[0].replace(/,\s*([}\]])/g, '$1'));
+      } catch (parseError) {
+        console.error(`Failed to parse LLM response (attempt ${attempt}):`, parseError);
+      }
     }
 
-    let questions: any[];
-    try {
-      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error('No JSON array found in response');
-      questions = JSON.parse(jsonMatch[0]);
-    } catch (parseError) {
-      console.error('Failed to parse Gemini response:', parseError);
+    if (!questions) {
       return new Response(
         JSON.stringify({ error: 'Failed to parse generated assessment' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

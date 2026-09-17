@@ -28,6 +28,7 @@ const CollegeDashboard = () => {
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         showMenuButton={isMobile}
         onNotificationsClick={() => setActiveTab("notifications")}
+        onNavigate={setActiveTab}
       />
       
       <div className="flex relative">

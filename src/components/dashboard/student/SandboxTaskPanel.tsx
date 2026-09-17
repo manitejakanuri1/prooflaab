@@ -111,8 +111,9 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
     const r = data as SubmitResult;
     setResult(r);
     if (r.passed) {
+      // Not onCompleted() here: that closes the dialog, so a pass flashed its
+      // score and vanished. The Done button below closes it once it is read.
       try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
-      onCompleted?.();
     }
   };
 
@@ -176,6 +177,9 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
           </p>
           {result.already_completed && !result.passed && (
             <p className="mt-1 text-sm text-muted-foreground">You already completed this task.</p>
+          )}
+          {result.passed && onCompleted && (
+            <Button className="mt-3 w-full" onClick={onCompleted}>Done</Button>
           )}
         </div>
       )}

@@ -3,17 +3,12 @@ import {
   Users,
   Swords,
   BarChart3,
-  Bell,
-  Settings,
-  User,
   LogOut,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
 
 interface CollegeDashboardSidebarProps {
   activeTab: string;
@@ -33,15 +28,9 @@ const menuItems = [
 
 // Account chrome. Kept out of the four so the menu stays a list of places to
 // work rather than a list of everything that exists.
-const footerItems = [
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "profile",       label: "My Profile",    icon: User },
-  { id: "settings",      label: "Settings",      icon: Settings },
-];
-
+// Notifications, profile and settings live in the header (bell + avatar menu).
 const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSidebarProps) => {
   const { toast } = useToast();
-  const { unreadCount } = useCollegeNotifications();
 
   const handleSignOut = async () => {
     try {
@@ -89,34 +78,6 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
               </Button>
             );
           })}
-
-          <div className="pt-3 md:pt-4 mt-3 md:mt-4 border-t border-border space-y-1">
-            {footerItems.map((item) => {
-              const Icon = item.icon;
-              const showBadge = item.id === "notifications" && unreadCount > 0;
-              return (
-                <Button
-                  key={item.id}
-                  variant="ghost"
-                  onClick={() => onTabChange(item.id)}
-                  className={cn(
-                    "w-full justify-start space-x-2 md:space-x-3 h-10 text-left text-xs md:text-sm",
-                    activeTab === item.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate flex-1">{item.label}</span>
-                  {showBadge && (
-                    <Badge variant="destructive" className="h-4 md:h-5 px-1 md:px-2 text-[10px]">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              );
-            })}
-          </div>
 
           <div className="pt-3 md:pt-4 mt-3 md:mt-4 border-t border-border">
             <Button

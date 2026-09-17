@@ -1,6 +1,8 @@
 import { Flag } from "lucide-react";
 
 export interface RoadmapStage {
+  /** The ladder skill this stage belongs to, or "other" (older roadmaps have none). */
+  skill?: string;
   title: string;
   why: string;
   action: string;

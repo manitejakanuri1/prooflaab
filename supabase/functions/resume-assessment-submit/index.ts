@@ -323,6 +323,57 @@ Return ONLY the JSON object.`;
       weakQuestions.map((q: any) => q.prompt)
     );
 
+    // Put them on the level map.
+    //
+    // The roadmap above says what they just got wrong. This says where they are:
+    // "level 7 of 16" instead of "here are four mistakes". A skill they claimed
+    // and did not fumble counts as proved and gets ticked off, so the path starts
+    // at the first real gap rather than at level 1 for everybody.
+    let placements: Awaited<ReturnType<typeof placeStudent>> = [];
+    try {
+      const weakSkillText = weakQuestions.map((q: any) => normSkill(q.prompt)).join(' | ');
+      const provedSkills = ((resumeClaim?.skills as string[] | null) ?? []).filter(
+        (s) => !weakSkillText.includes(normSkill(s)),
+      );
+
+      const { data: levelProfile } = await supabase
+        .from('student_profiles')
+        .select('key_interests')
+        .eq('id', profile.id)
+        .maybeSingle();
+
+      placements = await placeStudent(supabase, profile.id, {
+        interests: (levelProfile?.key_interests as string[] | null) ?? [],
+        skills: provedSkills,
+        resume: {
+          skills: (resumeClaim?.skills as string[] | null) ?? [],
+          projects: (resumeClaim?.projects as any[] | null) ?? [],
+          certifications: (resumeClaim?.certifications as string[] | null) ?? [],
+        },
+      });
+    } catch (e) {
+      // A failed placement must not cost them the scorecard they just earned —
+      // the map can place them on their next visit.
+      console.error('Level placement failed:', e);
+    }
+
+
+    // Every skill on every track the student is on, so each roadmap stage can
+    // be tied to a step of their ladder (the Roadmap screen shows it there).
+    let ladderSkills: string[] = [];
+    try {
+      const { data: myTracks } = await supabase
+        .from('student_tracks').select('track_slug').eq('student_id', profile.id);
+      const slugs = (myTracks ?? []).map((t: any) => t.track_slug);
+      if (slugs.length) {
+        const { data: steps } = await supabase
+          .from('levels').select('skill').in('track_slug', slugs).eq('sub_level', 1);
+        ladderSkills = [...new Set((steps ?? []).map((l: any) => String(l.skill)))];
+      }
+    } catch (e) {
+      console.error('Could not read ladder skills for the roadmap:', e);
+    }
+
     let roadmap = JSON.stringify([
       { title: 'Clean sweep', why: "Nothing weak to roast here — you actually knew your stuff.", action: "Come back for a re-check later to prove it wasn't a fluke." },
     ]);
@@ -351,7 +402,7 @@ ${confidenceNotes ? `\nConfidence-vs-performance mismatches to fold in as their 
 ${skillGapNotes}
 
 Return a JSON array, ordered from the most foundational/urgent gap first to the most polish-level gap last (a "from scratch to sharp" progression), one object per distinct weak topic (plus one per confidence mismatch, plus one per missing required skill, if any). Each object:
-{"title": "short punchy stage name (3-6 words, not the raw question)", "why": "ONE quirky sentence — a joke or fun analogy — on why it matters for the role, no lecture", "action": "ONE concrete next step: a specific thing to practice, build, or re-read (e.g. '5 problems on X on LeetCode', 'rebuild the auth flow in your project using Y properly'), phrased with flair, not 'study more'"}
+{"skill": "${ladderSkills.length ? 'EXACTLY one of these ladder skills, copied character for character: ' + ladderSkills.join(' | ') + ' - or "other" if none fits' : 'other'}", "title": "short punchy stage name (3-6 words, not the raw question)", "why": "ONE quirky sentence — a joke or fun analogy — on why it matters for the role, no lecture", "action": "ONE concrete next step: a specific thing to practice, build, or re-read (e.g. '5 problems on X on LeetCode', 'rebuild the auth flow in your project using Y properly'), phrased with flair, not 'study more'"}
 
 Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never actually mean, never say "learn everything from scratch," never truly shame the student. Return ONLY the JSON array, no markdown fences, no commentary.`;
 
@@ -372,7 +423,10 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
           parsed.length > 0 &&
           parsed.every((s) => typeof s?.title === 'string' && typeof s?.why === 'string' && typeof s?.action === 'string')
         ) {
-          roadmap = JSON.stringify(parsed);
+          roadmap = JSON.stringify(parsed.map((st: any) => ({
+            ...st,
+            skill: ladderSkills.find((k) => normSkill(k) === normSkill(String(st.skill ?? ''))) ?? 'other',
+          })));
         }
       } catch (e) {
         console.error('Roadmap generation failed:', e);
@@ -445,40 +499,6 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       }
     } catch (e) {
       console.error('Roadmap task creation failed:', e);
-    }
-
-    // Put them on the level map.
-    //
-    // The roadmap above says what they just got wrong. This says where they are:
-    // "level 7 of 16" instead of "here are four mistakes". A skill they claimed
-    // and did not fumble counts as proved and gets ticked off, so the path starts
-    // at the first real gap rather than at level 1 for everybody.
-    let placements: Awaited<ReturnType<typeof placeStudent>> = [];
-    try {
-      const weakSkillText = weakQuestions.map((q: any) => normSkill(q.prompt)).join(' | ');
-      const provedSkills = ((resumeClaim?.skills as string[] | null) ?? []).filter(
-        (s) => !weakSkillText.includes(normSkill(s)),
-      );
-
-      const { data: levelProfile } = await supabase
-        .from('student_profiles')
-        .select('key_interests')
-        .eq('id', profile.id)
-        .maybeSingle();
-
-      placements = await placeStudent(supabase, profile.id, {
-        interests: (levelProfile?.key_interests as string[] | null) ?? [],
-        skills: provedSkills,
-        resume: {
-          skills: (resumeClaim?.skills as string[] | null) ?? [],
-          projects: (resumeClaim?.projects as any[] | null) ?? [],
-          certifications: (resumeClaim?.certifications as string[] | null) ?? [],
-        },
-      });
-    } catch (e) {
-      // A failed placement must not cost them the scorecard they just earned —
-      // the map can place them on their next visit.
-      console.error('Level placement failed:', e);
     }
 
     console.log('Assessment graded, scorecard saved:', scorecard.id);

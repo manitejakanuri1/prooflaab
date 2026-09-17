@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import LevelDetail from "./LevelDetail";
 import LevelPath, { type LevelState, type PathLevel } from "./LevelPath";
+import TestMistakes, { normSkill, type TestMistake } from "./TestMistakes";
 import {
   Check,
   ChevronRight,
@@ -88,7 +89,13 @@ const STATE_STYLE: Record<LevelState, { ring: string; line: string }> = {
   },
 };
 
-const LevelMap = () => {
+interface LevelMapProps {
+  /** What the resume test caught, each tagged with a ladder skill. */
+  mistakes?: TestMistake[];
+  onGoToTasks?: () => void;
+}
+
+const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -326,6 +333,21 @@ const LevelMap = () => {
       .slice(0, 8);
   }, [search, tracks, levelsByTrack]);
 
+  const mistakesFor = (skill: string) => mistakes.filter((m) => normSkill(m.skill) === normSkill(skill));
+  // Anything that matches no step on any of their tracks still shows, in its own box.
+  const ladderSkillSet = new Set(Object.values(levelsByTrack).flat().map((l) => normSkill(l.skill)));
+  const otherMistakes = mistakes.filter((m) => !ladderSkillSet.has(normSkill(m.skill)));
+  const otherBox = otherMistakes.length > 0 && (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Other things your test caught</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <TestMistakes mistakes={otherMistakes} onGoToTasks={onGoToTasks} />
+      </CardContent>
+    </Card>
+  );
+
   if (loading) {
     return (
       <Card>
@@ -340,6 +362,8 @@ const LevelMap = () => {
   // and quietly putting them on the wrong one.
   if (tracks.length === 0 || !activeTrack) {
     return (
+      <div className="space-y-4">
+      {otherBox}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
@@ -422,6 +446,7 @@ const LevelMap = () => {
           )}
         </CardContent>
       </Card>
+      </div>
     );
   }
 
@@ -620,6 +645,25 @@ const LevelMap = () => {
                   <span className="h-2.5 w-2.5 rounded-full bg-rung-idle" /> locked
                 </span>
               </div>
+              {levels.some((l) => mistakesFor(l.skill).length > 0) && (
+                <div className="space-y-3 border-t pt-4">
+                  <p className="text-sm font-semibold">Your test caught these on this path</p>
+                  {levels.filter((l) => mistakesFor(l.skill).length > 0).map((l) => (
+                    <div key={l.id} className="space-y-1.5">
+                      <button
+                        type="button"
+                        disabled={stateOf(l, activeTrack) === "locked"}
+                        onClick={() => setOpenLevel(l.level_number)}
+                        className="text-xs font-medium text-muted-foreground hover:text-foreground disabled:cursor-default"
+                      >
+                        Level {l.level_number} · {l.title}
+                        {stateOf(l, activeTrack) === "locked" && " · waiting for you here"}
+                      </button>
+                      <TestMistakes mistakes={mistakesFor(l.skill)} onGoToTasks={onGoToTasks} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
           <div className="relative">
@@ -723,11 +767,20 @@ const LevelMap = () => {
                   </button>
                 </div>
               );
+            }).flatMap((row, i) => {
+              const extra = mistakesFor(levels[i].skill);
+              return extra.length === 0 ? [row] : [row, (
+                <div key={`${levels[i].id}-mistakes`} className="-mt-4 mb-4 pl-14 sm:pl-15">
+                  <TestMistakes mistakes={extra} onGoToTasks={onGoToTasks} />
+                </div>
+              )];
             })}
           </div>
           )}
         </CardContent>
       </Card>
+
+      {otherBox}
 
       {celebrating && (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center gap-6">

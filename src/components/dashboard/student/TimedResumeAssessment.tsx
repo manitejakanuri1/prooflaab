@@ -590,7 +590,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
               ) : isLastQuestion ? (
                 "Submit & finish"
               ) : (
-                "Submit"
+                "Next"
               )}
             </Button>
           </>

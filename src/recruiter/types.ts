@@ -34,6 +34,9 @@ export interface Candidate {
   recommended: boolean
   shortlisted: boolean
   notes?: string
+  /** Talent list counts, straight from recruiter_talent. */
+  skillsProven?: number
+  proofsVerified?: number
   /** Only on the full profile, and only once the student has accepted. */
   contactUnlocked?: boolean
   contact?: { email: string; phone: string | null;

@@ -112,6 +112,8 @@ export function toCandidate(row: Record<string, unknown>): Candidate {
     recommended: false,
     shortlisted: Boolean(row.shortlisted),
     notes: undefined,
+    skillsProven: proven,
+    proofsVerified: Number(row.proofs_verified ?? 0),
   };
 }
 

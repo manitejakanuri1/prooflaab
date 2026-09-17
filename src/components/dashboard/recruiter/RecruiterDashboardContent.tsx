@@ -292,9 +292,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                         </td>
                         <td className="py-2.5 pr-3 text-muted-foreground">{c.roleFit[0] ?? "—"}</td>
                         <td className="py-2.5 pr-3 font-mono tabular-nums">
-                          {c.skills.filter((s) => s.verified).length}
+                          {c.skillsProven ?? 0}
                         </td>
-                        <td className="py-2.5 pr-3 font-mono tabular-nums">{c.consistency}</td>
+                        <td className="py-2.5 pr-3 font-mono tabular-nums">{c.proofsVerified ?? 0}</td>
                         <td className="py-2.5 pr-3 font-mono tabular-nums">{c.communicationScore || "—"}</td>
                         <td className="py-2.5 text-muted-foreground">{c.lastActive}</td>
                       </tr>

@@ -450,7 +450,8 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className={hideTabList ? "hidden" : "grid w-full grid-cols-3"}>
+        {!hideTabList && (
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="students" className="flex items-center gap-2 text-sm">
             {getTabIcon('students')}
             <span className="hidden sm:inline">Students</span>
@@ -467,6 +468,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
             <span className="sm:hidden">Colleges</span>
           </TabsTrigger>
         </TabsList>
+        )}
 
         {['students', 'startups', 'colleges'].map((tab) => (
           <TabsContent key={tab} value={tab}>

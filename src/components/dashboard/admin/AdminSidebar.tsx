@@ -50,8 +50,8 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   // Four plain destinations. Clicking one opens its first page; the pages
   // inside are the tab row on the dashboard (ADMIN_GROUPS in adminNav.ts).
   const openGroup = (tabId: string) => {
-    if (location.pathname !== '/admin/dashboard') navigate('/admin/dashboard');
-    onTabChange(tabId);
+    if (location.pathname.startsWith('/admin/dashboard')) onTabChange(tabId);
+    else navigate('/admin/dashboard', { state: { tab: tabId } });
     if (isMobile) setOpen(false);
   };
 

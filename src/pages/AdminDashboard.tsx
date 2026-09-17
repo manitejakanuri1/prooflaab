@@ -40,17 +40,19 @@ const AdminDashboard = () => {
       else if (userType === 'colleges') setActiveTab('colleges');
       else setActiveTab('students');
     } else if (path === '/admin/dashboard') {
-      setActiveTab('dashboard');
+      // A page reached by leaving /user-management/ carries its tab in state;
+      // without it every such click snapped back to Dashboard.
+      setActiveTab((location.state as { tab?: string } | null)?.tab ?? 'dashboard');
     }
-  }, [location.pathname, userType]);
+  }, [location.pathname, location.state, userType]);
 
   // Handle tab changes and update URL accordingly
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'students' || tab === 'startups' || tab === 'colleges') {
       navigate(`/admin/dashboard/user-management/${tab}`);
-    } else if (tab === 'dashboard') {
-      navigate('/admin/dashboard');
+    } else if (location.pathname !== '/admin/dashboard') {
+      navigate('/admin/dashboard', { state: { tab } });
     }
     // For other tabs, just update the state without navigation
     // as they don't have dedicated URL routes

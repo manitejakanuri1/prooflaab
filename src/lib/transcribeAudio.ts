@@ -1,8 +1,7 @@
 /**
  * Turns a recorded clip into text using Whisper, running entirely in the
- * browser — no server, no API key, no per-use cost, and unlike the old
- * live-captions approach it works in every modern browser rather than only
- * Chrome and Edge.
+ * browser — no server, no API key, no per-use cost, and it works in every
+ * modern browser rather than only Chrome and Edge.
  *
  * The model runs via public/whisper-worker.js, loaded from Hugging Face's
  * CDN rather than bundled — Transformers.js's WebGPU runtime chunks use
@@ -20,6 +19,13 @@ import { cleanTranscript } from "./cleanTranscript";
 
 const WHISPER_SAMPLE_RATE = 16000;
 const MODEL = "onnx-community/whisper-tiny";
+
+/** One spoken stretch and where it sits in the recording, in seconds. */
+export interface TranscriptSegment {
+  start: number;
+  end: number | null;
+  text: string;
+}
 
 /** Decode any browser-readable audio blob into the mono 16 kHz signal Whisper expects. */
 async function decodeToMono16k(blob: Blob): Promise<Float32Array> {
@@ -54,10 +60,10 @@ export interface TranscribeProgress {
   percent?: number;
 }
 
-export async function transcribeAudio(
+export async function transcribeWithTimestamps(
   blob: Blob,
   onProgress?: (p: TranscribeProgress) => void,
-): Promise<string> {
+): Promise<{ text: string; segments: TranscriptSegment[] }> {
   onProgress?.({ stage: "decoding" });
   const audio = await decodeToMono16k(blob);
   const device = detectDevice();
@@ -66,12 +72,17 @@ export async function transcribeAudio(
   const worker = new Worker("/whisper-worker.js", { type: "module" });
 
   try {
-    return await new Promise<string>((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       worker.addEventListener("message", (event: MessageEvent) => {
         const msg = event.data;
         if (msg.type === "loading") onProgress?.({ stage: "loading", percent: msg.progress });
         if (msg.type === "ready") onProgress?.({ stage: "transcribing" });
-        if (msg.type === "done") resolve(cleanTranscript(msg.text as string));
+        if (msg.type === "done") {
+          const segments = ((msg.chunks ?? []) as { timestamp: [number, number | null]; text: string }[])
+            .map((c) => ({ start: c.timestamp[0], end: c.timestamp[1], text: cleanTranscript(c.text).trim() }))
+            .filter((s) => s.text);
+          resolve({ text: cleanTranscript(msg.text as string), segments });
+        }
         if (msg.type === "error") reject(new Error(msg.message));
       });
       worker.addEventListener("error", (e) => reject(new Error(e.message || "Worker failed")));
@@ -84,3 +95,9 @@ export async function transcribeAudio(
     worker.terminate();
   }
 }
+
+export const transcribeAudio = (blob: Blob, onProgress?: (p: TranscribeProgress) => void) =>
+  transcribeWithTimestamps(blob, onProgress).then((r) => r.text);
+
+/** 0:07 style, for showing a segment's start. */
+export const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;

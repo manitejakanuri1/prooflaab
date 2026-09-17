@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudio, type TranscribeProgress } from "@/lib/transcribeAudio";
+import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 
 const MAX_SECONDS = 90;
@@ -114,7 +115,7 @@ const MockInterview = () => {
     try {
       const path = `${studentId}/mock-interview/${interviewId}-q${qIndex}.webm`;
       const { error: upErr } = await supabase.storage
-        .from("voice-explanations").upload(path, blob, { contentType: "audio/webm", upsert: false });
+        .from("voice-explanations").upload(path, blob, { contentType: blob.type, upsert: false });
       if (upErr) throw upErr;
 
       const { error: rpcErr } = await supabase.rpc("save_mock_interview_answer" as never, {
@@ -157,7 +158,7 @@ const MockInterview = () => {
     setError(null); setSecondsLeft(MAX_SECONDS);
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await openMic();
     } catch {
       setError("Microphone blocked. Allow it in your browser and try again.");
       setPhase("error");
@@ -181,14 +182,14 @@ const MockInterview = () => {
 
     const started = Date.now();
     chunksRef.current = [];
-    const rec = new MediaRecorder(stream);
+    const rec = makeRecorder(stream);
     recorderRef.current = rec;
     rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
     rec.onstop = () => {
       cleanup();
       void ctx.close();
       const seconds = Math.min(MAX_SECONDS, Math.round((Date.now() - started) / 1000));
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const blob = new Blob(chunksRef.current, { type: recordingFormat(rec).type });
 
       setPhase("transcribing");
       setTranscribeProgress(null);

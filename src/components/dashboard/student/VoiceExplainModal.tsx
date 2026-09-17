@@ -5,7 +5,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mic, Square, AlertTriangle, CheckCircle2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { transcribeAudio, type TranscribeProgress } from "@/lib/transcribeAudio";
+import { transcribeWithTimestamps, type TranscribeProgress, type TranscriptSegment } from "@/lib/transcribeAudio";
+import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
+import RecordingPlayback from "./RecordingPlayback";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 
 const MAX_SECONDS = 60;
@@ -56,7 +58,7 @@ const VoiceExplainModal = ({
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const [savedResult, setSavedResult] = useState<
-    { transcript: string; score: number | null; notes: string | null } | null
+    { transcript: string; segments: TranscriptSegment[]; score: number | null; notes: string | null; audioUrl: string } | null
   >(null);
 
   const cleanup = useCallback(() => {
@@ -68,13 +70,13 @@ const VoiceExplainModal = ({
 
   useEffect(() => cleanup, [cleanup]);
 
-  const save = useCallback(async (blob: Blob, spoken: string, seconds: number) => {
+  const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string) => {
     setPhase("saving");
     try {
-      const path = `${studentId}/${Date.now()}-explain.webm`;
+      const path = `${studentId}/${Date.now()}-explain.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("voice-explanations")
-        .upload(path, blob, { contentType: "audio/webm", upsert: false });
+        .upload(path, blob, { contentType: blob.type, upsert: false });
       if (upErr) throw upErr;
 
       const words = spoken.trim() ? spoken.trim().split(/\s+/).length : 0;
@@ -88,6 +90,7 @@ const VoiceExplainModal = ({
           storage_path: path,
           duration_seconds: seconds,
           transcript: spoken.trim() || null,
+          transcript_segments: (segments.length ? segments : null) as never, // column added in migration 16; types.ts predates it
           word_count: words,
         })
         .select("id")
@@ -104,7 +107,7 @@ const VoiceExplainModal = ({
         notes = scored?.notes ?? null;
       }
 
-      setSavedResult({ transcript: spoken.trim(), score, notes });
+      setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: URL.createObjectURL(blob) });
       setPhase("done");
       onSaved?.();
     } catch (err) {
@@ -123,7 +126,7 @@ const VoiceExplainModal = ({
 
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await openMic();
     } catch {
       setError("Microphone blocked. Allow it in your browser and try again.");
       setPhase("error");
@@ -149,22 +152,25 @@ const VoiceExplainModal = ({
 
     const started = Date.now();
     chunksRef.current = [];
-    const rec = new MediaRecorder(stream);
+    const rec = makeRecorder(stream);
     recorderRef.current = rec;
     rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
     rec.onstop = () => {
       cleanup();
       void ctx.close();
       const seconds = Math.min(MAX_SECONDS, Math.round((Date.now() - started) / 1000));
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const { type, ext } = recordingFormat(rec);
+      const blob = new Blob(chunksRef.current, { type });
 
       setPhase("transcribing");
       setTranscribeProgress(null);
-      transcribeAudio(blob, setTranscribeProgress)
-        .then((text) => save(blob, text, seconds))
-        .catch(() => save(blob, "", seconds)); // audio is still saved even if transcription fails
+      transcribeWithTimestamps(blob, setTranscribeProgress)
+        .then((r) => save(blob, r.text, r.segments, seconds, ext))
+        .catch(() => save(blob, "", [], seconds, ext)); // audio is still saved even if transcription fails
     };
-    rec.start();
+    // A chunk every second, so a recording stopped by the clock or a closed
+    // dialog still holds everything said up to that moment.
+    rec.start(1000);
     setPhase("recording");
   }, [cleanup, save]);
 
@@ -293,6 +299,16 @@ const VoiceExplainModal = ({
             <p className="flex items-center gap-2 text-sm">
               <CheckCircle2 className="h-4 w-4 text-green-600" /> Saved. It will appear in your build-log.
             </p>
+            {savedResult && (
+              <div className="rounded-lg border p-3 max-h-72 overflow-y-auto">
+                <RecordingPlayback src={savedResult.audioUrl} transcript={savedResult.transcript}
+                                   segments={savedResult.segments} />
+                {savedResult.score != null && (
+                  <p className="mt-2 text-sm font-medium">Communication score {savedResult.score}/100</p>
+                )}
+                {savedResult.notes && <p className="text-xs text-muted-foreground mt-1">{savedResult.notes}</p>}
+              </div>
+            )}
             {savedResult && (
               <Button
                 variant="outline" className="w-full gap-1.5"

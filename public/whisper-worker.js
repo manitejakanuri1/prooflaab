@@ -22,9 +22,14 @@ async function getTranscriber(model, device) {
 
   transcriber = await pipeline("automatic-speech-recognition", model, {
     device,
-    // fp16 halves the download and runs faster on GPU; WASM has no fp16 path, so
-    // quantised weights are used there instead.
-    dtype: device === "webgpu" ? "fp16" : "q8",
+    // fp32 everywhere. Tested 17 Sep 2026 on a 53-second spoken explanation:
+    // "q8" no longer loads at all on WASM with this transformers.js version
+    // ("Missing required scale"), so every student without a GPU got an empty
+    // transcript; "fp16" is refused by GPUs without shader-f16, and where it runs
+    // Whisper's decoder degrades after the first stretch - the "first few words,
+    // then random text" students reported. fp32 transcribed the test nearly word
+    // for word with clean timestamps.
+    dtype: "fp32",
     progress_callback: (p) => {
       if (p && p.status === "progress" && typeof p.progress === "number") {
         self.postMessage({
@@ -69,6 +74,8 @@ self.addEventListener("message", async (event) => {
     self.postMessage({
       type: "done",
       text: ((output && output.text) || "").trim(),
+      // Where each stretch of speech sits in the recording, for timestamps.
+      chunks: (output && output.chunks) || [],
     });
   } catch (e) {
     self.postMessage({ type: "error", message: (e && e.message) || String(e) });

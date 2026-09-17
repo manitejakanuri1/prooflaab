@@ -23,6 +23,7 @@ export const useStudentIntake = () => {
   const [intake, setIntake] = useState<StudentIntake | null>(null);
   const [loading, setLoading] = useState(true);
   const [degraded, setDegraded] = useState(false);
+  const [graded, setGraded] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   const fetchIntake = useCallback(async () => {
@@ -35,11 +36,15 @@ export const useStudentIntake = () => {
     }
     setUserId(user.id);
 
-    const { data, error } = await supabase
-      .from("student_intake")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // A graded test also counts as intake done. Intake was otherwise only
+    // marked complete when the student clicked "Done" on the results screen, so
+    // closing the tab there sent them round the whole test again, every visit.
+    const [{ data, error }, { data: scorecard }] = await Promise.all([
+      supabase.from("student_intake").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase.from("resume_scorecards").select("id, student_profiles!inner(user_id)")
+        .eq("student_profiles.user_id", user.id).limit(1).maybeSingle(),
+    ]);
+    setGraded(Boolean(scorecard));
 
     // Fail open. This state drives a blocking gate, so if the table is missing
     // (migration not applied yet) or the read fails, we must not lock every
@@ -101,7 +106,7 @@ export const useStudentIntake = () => {
     loading,
     degraded,
     hasSeenWelcome: intake?.has_seen_welcome ?? false,
-    intakeComplete: Boolean(intake?.intake_completed_at),
+    intakeComplete: Boolean(intake?.intake_completed_at) || graded,
     markWelcomeSeen,
     completeIntake,
     refresh: fetchIntake,

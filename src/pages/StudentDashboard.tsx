@@ -45,7 +45,9 @@ const StudentDashboard = () => {
   // student's dashboard must not fail over a statistic.
   useEffect(() => {
     if (!profile?.id) return;
-    void supabase.rpc("touch_my_activity" as never);
+    // .then() is what sends it: a supabase-js query is lazy, and `void` alone
+    // never fired this request, so last_active stayed null for everyone.
+    supabase.rpc("touch_my_activity" as never).then(() => {}, () => {});
   }, [profile?.id]);
 
   // A student who hasn't finished intake (welcome + "upload resume vs skip")

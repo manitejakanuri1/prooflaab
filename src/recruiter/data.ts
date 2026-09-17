@@ -166,7 +166,8 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
   if (!p || p.error) return null;
 
   // Recording the view is bookkeeping; a failure must not blank the page.
-  void supabase.rpc("recruiter_log_view", { _student_id: studentId });
+  // .then() sends it - a supabase-js query without one is never executed.
+  supabase.rpc("recruiter_log_view", { _student_id: studentId }).then(() => {}, () => {});
 
   const name = String(p.full_name ?? "");
   const skills: SkillScore[] = (p.skills ?? []).map((s: any) => ({

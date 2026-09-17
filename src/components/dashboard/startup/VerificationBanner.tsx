@@ -27,7 +27,7 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
               className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
               asChild
             >
-              <a href="mailto:support@prooflabai.com">
+              <a href="mailto:hello@prooflab.co.in">
                 <Mail className="h-4 w-4 mr-2" />
                 Contact Support
               </a>

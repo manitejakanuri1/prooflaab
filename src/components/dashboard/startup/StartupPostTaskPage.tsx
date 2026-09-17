@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,6 +58,30 @@ export function StartupPostTaskPage({ onNavigateToApplications }: { onNavigateTo
     },
   });
 
+  // "Save as Draft" keeps what was typed on this device and refills the form
+  // next time. Tasks have no draft state in the database, and inventing one
+  // would risk a half-written task reaching students.
+  const DRAFT_KEY = "company-task-draft";
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      form.reset({ ...form.getValues(), ...d, deadline: d.deadline ? new Date(d.deadline) : undefined });
+      setSkills(d.requiredSkills ?? []);
+    } catch { /* storage blocked or old draft - start empty */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveDraft = () => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...form.getValues(), requiredSkills: skills }));
+      toast.success("Draft saved on this device. It will be here when you come back.");
+    } catch {
+      toast.error("Could not save the draft in this browser.");
+    }
+  };
+
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
       const updatedSkills = [...skills, newSkill.trim()];
@@ -105,6 +129,7 @@ export function StartupPostTaskPage({ onNavigateToApplications }: { onNavigateTo
         toast.success("✅ Your task has been posted successfully and is now visible to students!");
         form.reset();
         setSkills([]);
+        try { localStorage.removeItem(DRAFT_KEY); } catch { /* storage blocked */ }
         refetch(); // Refresh the tasks list
       }
     } catch (error) {
@@ -362,7 +387,7 @@ export function StartupPostTaskPage({ onNavigateToApplications }: { onNavigateTo
                   </div>
 
                   <div className="flex justify-end gap-4 pt-4 border-t">
-                    <Button type="button" variant="outline" disabled={isSubmitting}>
+                    <Button type="button" variant="outline" disabled={isSubmitting} onClick={saveDraft}>
                       Save as Draft
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>

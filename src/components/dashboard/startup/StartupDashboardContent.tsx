@@ -110,7 +110,7 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
     default:
       return (
         <div className="space-y-6">
-          <StartupDashboardOverview />
+          <StartupDashboardOverview onEditProfile={() => onTabChange("settings")} />
           <RecruiterDashboardContent activeTab="home" onTabChange={fromRecruiter} />
         </div>
       );

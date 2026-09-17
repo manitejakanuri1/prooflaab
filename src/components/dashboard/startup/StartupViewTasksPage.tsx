@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, Users, Edit } from "lucide-react";
 import { useStartupTasks } from "@/hooks/useStartupTasks";
 import { format } from "date-fns";
@@ -16,6 +17,12 @@ export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksP
   const { tasks, loading, error, refetch } = useStartupTasks();
   const [editingTask, setEditingTask] = useState<typeof tasks[0] | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const statuses = [...new Set(tasks.map((t) => t.status || "Pending"))];
+  const shown = tasks.filter((t) =>
+    (status === "all" || (t.status || "Pending") === status)
+    && (!search.trim() || `${t.title} ${t.description ?? ""}`.toLowerCase().includes(search.trim().toLowerCase())));
 
   const handleEditClick = (task: typeof tasks[0]) => {
     setEditingTask(task);
@@ -73,8 +80,15 @@ export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksP
       </div>
 
       <div className="flex gap-4 mb-6">
-        <Input placeholder="Search tasks..." className="max-w-sm" />
-        <Button variant="outline">Filter</Button>
+        <Input placeholder="Search tasks..." className="max-w-sm" value={search}
+               onChange={(e) => setSearch(e.target.value)} />
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="All statuses" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {tasks.length === 0 ? (
@@ -83,7 +97,10 @@ export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksP
         </div>
       ) : (
         <div className="grid gap-4">
-          {tasks.map((task) => (
+          {shown.length === 0 && (
+            <p className="text-center py-8 text-muted-foreground">No tasks match that search.</p>
+          )}
+          {shown.map((task) => (
             <Card key={task.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">

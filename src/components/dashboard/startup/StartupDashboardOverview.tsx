@@ -7,7 +7,7 @@ import { useStartupStats } from "@/hooks/useStartupStats";
 import { useStartupActivity } from "@/hooks/useStartupActivity";
 import { formatDistanceToNow } from "date-fns";
 
-export function StartupDashboardOverview() {
+export function StartupDashboardOverview({ onEditProfile }: { onEditProfile?: () => void } = {}) {
   const { data: profile, isLoading: profileLoading } = useStartupProfile();
   const { data: stats, isLoading: statsLoading } = useStartupStats();
   const { data: activities, isLoading: activitiesLoading } = useStartupActivity();
@@ -80,7 +80,7 @@ export function StartupDashboardOverview() {
                   <Badge variant="secondary">Active Company</Badge>
                 </div>
                 
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={onEditProfile}>
                   Edit Profile
                 </Button>
               </div>

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Mic, Upload, Clock, Loader2, Compass, Code2, PenLine } from "lucide-react";
+import { Mic, Upload, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon } from "lucide-react";
+import StudentRoadmapPage from "./StudentRoadmapPage";
 import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import VoiceExplainModal from "./VoiceExplainModal";
 import SandboxTaskPanel from "./SandboxTaskPanel";
@@ -73,6 +75,10 @@ const StudentDailyCard = () => {
   const [coding, setCoding] = useState(false);
   const [writing, setWriting] = useState(false);
   const [explaining, setExplaining] = useState(false);
+  const [roadmap, setRoadmap] = useState(false);
+  // "Start this stage" inside the roadmap navigates; close the dialog when it does.
+  const { pathname } = useLocation();
+  useEffect(() => { setRoadmap(false); }, [pathname]);
   // "preparing" is the few seconds the very first student to reach a piece
   // of content waits while the Lot behind it is written.
   const [preparing, setPreparing] = useState(false);
@@ -316,6 +322,11 @@ const StudentDailyCard = () => {
             </div>
           </div>
 
+          {/* The roadmap beside today's work, so the Track and the Lot are one click apart. */}
+          <Button variant="outline" className="w-full justify-start" onClick={() => setRoadmap(true)}>
+            <MapIcon className="mr-2 h-4 w-4" /> My roadmap
+          </Button>
+
           <div className="flex items-center gap-3 rounded-xl border p-4">
             <div className="min-w-0">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -341,6 +352,12 @@ const StudentDailyCard = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={roadmap} onOpenChange={setRoadmap}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          {roadmap && <StudentRoadmapPage />}
+        </DialogContent>
+      </Dialog>
 
       {lot && !lot.sandbox_config_id && !lot.rubric_config_id && (
         <UploadProofModal

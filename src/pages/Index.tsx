@@ -72,7 +72,7 @@ const Index = () => {
                   navigate('/college/dashboard', { replace: true });
                   break;
                 case 'startup':
-                  navigate('/startup/dashboard', { replace: true });
+                  navigate('/company/dashboard', { replace: true });
                   break;
                 // No 'student' case: students are sent to /student/start above
                 // and can never reach this switch.

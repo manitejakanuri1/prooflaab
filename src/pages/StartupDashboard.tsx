@@ -10,7 +10,7 @@ import { useStartupVerification } from "@/hooks/useStartupVerification";
 
 const StartupDashboard = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("home");
   const { data: verificationData } = useStartupVerification();
 
   if (loading) {

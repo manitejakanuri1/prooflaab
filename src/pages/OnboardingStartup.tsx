@@ -25,7 +25,7 @@ export default function OnboardingStartup() {
 
       if (data) {
         // User already onboarded, redirect to dashboard
-        navigate('/startup/dashboard', { replace: true });
+        navigate('/company/dashboard', { replace: true });
         return;
       }
     };
@@ -34,7 +34,7 @@ export default function OnboardingStartup() {
   }, [user, navigate]);
 
   const handleWizardComplete = () => {
-    navigate('/startup/dashboard', { replace: true });
+    navigate('/company/dashboard', { replace: true });
   };
 
   if (!user) {

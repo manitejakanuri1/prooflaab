@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppGuideChatbot from "@/components/AppGuideChatbot";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -19,7 +19,7 @@ const StudentResumeOnboarding = lazy(() => import("./pages/StudentResumeOnboardi
 const StudentInterestOnboarding = lazy(() => import("./pages/StudentInterestOnboarding"));
 const StudentStart = lazy(() => import("./pages/StudentStart"));
 const CollegeDashboard = lazy(() => import("./pages/CollegeDashboard"));
-const RecruiterDashboard = lazy(() => import("./pages/RecruiterDashboard"));
+// RecruiterDashboard page is no longer routed: /recruiter/dashboard opens the Company dashboard.
 const StartupDashboard = lazy(() => import("./pages/StartupDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
@@ -161,26 +161,20 @@ const App = () => (
                   } 
                 />
                 
-                {/* Recruiter Routes */}
+                {/* Company: the Startup and Recruiter dashboards merged (17 Sep 2026).
+                    Both old addresses still work and land here. A login still
+                    holding the old recruiter role is let in too. */}
                 <Route
-                  path="/recruiter/dashboard"
+                  path="/company/dashboard"
                   element={
-                    <RoleBasedProtectedRoute allowedRoles={['recruiter']}>
-                      <RecruiterDashboard />
+                    <RoleBasedProtectedRoute allowedRoles={['startup', 'recruiter']}>
+                      <StartupDashboard />
                     </RoleBasedProtectedRoute>
                   }
                 />
+                <Route path="/startup/dashboard" element={<Navigate to="/company/dashboard" replace />} />
+                <Route path="/recruiter/dashboard" element={<Navigate to="/company/dashboard" replace />} />
 
-                {/* Startup Routes */}
-                <Route 
-                  path="/startup/dashboard" 
-                  element={
-                    <RoleBasedProtectedRoute allowedRoles={['startup']}>
-                      <StartupDashboard />
-                    </RoleBasedProtectedRoute>
-                  } 
-                />
-                
                 {/* Admin Routes */}
                 <Route 
                   path="/admin/dashboard" 

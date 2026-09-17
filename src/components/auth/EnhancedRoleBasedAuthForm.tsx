@@ -402,8 +402,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
                 <SelectContent>
                   <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="college_admin">College Admin</SelectItem>
-                  <SelectItem value="startup">Startup</SelectItem>
-                  <SelectItem value="recruiter">Recruiter</SelectItem>
+                  <SelectItem value="startup">Company</SelectItem>
                 </SelectContent>
               </Select>
 

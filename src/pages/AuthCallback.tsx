@@ -180,7 +180,7 @@ export default function AuthCallback() {
             if (!startupRecord || startupRecord.status === 'pending') {
               navigate('/onboarding/startup', { replace: true });
             } else {
-              navigate('/startup/dashboard', { replace: true });
+              navigate('/company/dashboard', { replace: true });
             }
             break;
           }

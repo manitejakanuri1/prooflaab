@@ -19,6 +19,8 @@ import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
 import RecruiterOversight from "@/components/dashboard/admin/RecruiterOversight";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { groupOf } from "@/components/dashboard/admin/adminNav";
 
 const AdminDashboard = () => {
   const { userType, packId } = useParams();
@@ -63,9 +65,18 @@ const AdminDashboard = () => {
       case "reviewed-submissions":
         return <ReviewedSubmissions />;
       case "students":
-      case "startups":
       case "colleges":
-        return <EnhancedUserManagement initialTab={activeTab} />;
+        return <EnhancedUserManagement initialTab={activeTab} hideTabList />;
+      // Companies = the old Startups list plus the old Recruiters screen: one
+      // company now carries both, and approving it approves both halves.
+      case "startups":
+      case "recruiter-oversight":
+        return (
+          <div className="space-y-6">
+            <EnhancedUserManagement initialTab="startups" hideTabList />
+            <RecruiterOversight />
+          </div>
+        );
       case "task-oversight":
         return <TaskOversight />;
       case "assign-tasks":
@@ -88,8 +99,6 @@ const AdminDashboard = () => {
         return <CollegeOversight />;
       case "student-oversight":
         return <StudentOversight />;
-      case "recruiter-oversight":
-        return <RecruiterOversight />;
       case "settings":
         return <SystemSettings />;
       default:
@@ -122,7 +131,22 @@ const AdminDashboard = () => {
         <div className="flex-1 flex flex-col min-w-0">
           <AdminHeader />
           <main className="flex-1 overflow-auto">
-            <div className="p-3 md:p-4 lg:p-6">
+            <div className="p-3 md:p-4 lg:p-6 space-y-4">
+              {/* The pages of the current destination, as tabs. */}
+              {(() => {
+                const group = groupOf(activeTab);
+                if (!group || group.children.length < 2) return null;
+                const current = activeTab === "recruiter-oversight" ? "startups" : activeTab;
+                return (
+                  <Tabs value={current} onValueChange={handleTabChange}>
+                    <TabsList className="flex-wrap h-auto">
+                      {group.children.map((c) => (
+                        <TabsTrigger key={c.id} value={c.id}>{c.label}</TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                );
+              })()}
               {renderContent()}
             </div>
           </main>

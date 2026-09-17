@@ -77,10 +77,10 @@ export default function OnboardingWizard() {
         navigate('/college/dashboard', { replace: true });
         break;
       case 'startup':
-        navigate('/startup/dashboard', { replace: true });
+        navigate('/company/dashboard', { replace: true });
         break;
       case 'recruiter':
-        navigate('/recruiter/dashboard', { replace: true });
+        navigate('/company/dashboard', { replace: true });
         break;
       case 'student':
       default:

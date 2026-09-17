@@ -66,9 +66,11 @@ interface UserData {
 
 interface EnhancedUserManagementProps {
   initialTab?: string;
+  /** The admin dashboard already shows Students / Companies / Colleges as its own tab row. */
+  hideTabList?: boolean;
 }
 
-const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagementProps) => {
+const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }: EnhancedUserManagementProps) => {
   const { userType } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -448,7 +450,7 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={hideTabList ? "hidden" : "grid w-full grid-cols-3"}>
           <TabsTrigger value="students" className="flex items-center gap-2 text-sm">
             {getTabIcon('students')}
             <span className="hidden sm:inline">Students</span>
@@ -456,8 +458,8 @@ const EnhancedUserManagement = ({ initialTab = "students" }: EnhancedUserManagem
           </TabsTrigger>
           <TabsTrigger value="startups" className="flex items-center gap-2 text-sm">
             {getTabIcon('startups')}
-            <span className="hidden sm:inline">Startups</span>
-            <span className="sm:hidden">Startups</span>
+            <span className="hidden sm:inline">Companies</span>
+            <span className="sm:hidden">Companies</span>
           </TabsTrigger>
           <TabsTrigger value="colleges" className="flex items-center gap-2 text-sm">
             {getTabIcon('colleges')}

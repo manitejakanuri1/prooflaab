@@ -1,4 +1,4 @@
-import { Home, Plus, List, FileText, LogOut, Briefcase } from "lucide-react";
+import { Home, Users, ClipboardList, LogOut, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -25,15 +25,14 @@ interface StartupSidebarProps {
 }
 
 const sidebarItems = [
-  { id: "dashboard", title: "Dashboard Home", icon: Home },
-  { id: "post-task", title: "Post Task", icon: Plus },
-  { id: "view-tasks", title: "View Posted Tasks", icon: List },
-  { id: "view-applications", title: "View Applications", icon: FileText },
-  { id: "submissions", title: "Student Submissions", icon: FileText },
-  { id: "jobs", title: "Post A Job", icon: Briefcase },
+  { id: "home", title: "Home", icon: Home },
+  { id: "talent", title: "Talent", icon: Users },
+  { id: "work", title: "Work", icon: ClipboardList },
+  { id: "jobs", title: "Jobs", icon: Briefcase },
 ];
 
-const restrictedTabs = ["post-task", "view-tasks", "view-applications", "submissions", "jobs"];
+// Talent is not here: the recruiter screens explain verification themselves.
+const restrictedTabs = ["work", "jobs"];
 
 export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSidebarProps) {
   const { signOut } = useAuth();
@@ -55,7 +54,7 @@ export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSi
               <span className="text-primary-foreground font-bold text-sm">S</span>
             </div>
             <div>
-              <h2 className="font-semibold text-sm">Startup Portal</h2>
+              <h2 className="font-semibold text-sm">Company</h2>
               <p className="text-xs text-muted-foreground">Find & hire talent</p>
             </div>
           </div>

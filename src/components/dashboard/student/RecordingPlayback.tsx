@@ -37,13 +37,25 @@ const RecordingPlayback = ({ src, storagePath, transcript, segments }: Recording
   const seek = (s: number) => {
     if (!audioRef.current) return;
     audioRef.current.currentTime = s;
-    void audioRef.current.play();
+    audioRef.current.play().catch(() => { /* interrupted by another click - harmless */ });
+  };
+
+  // Chrome's recorder writes WebM with no duration in it, so the player shows no
+  // length and its bar cannot be dragged. Seeking far past the end makes the
+  // browser read the real length; then return to the start.
+  const fixDuration = () => {
+    const a = audioRef.current;
+    if (!a || Number.isFinite(a.duration)) return;
+    const back = () => { a.removeEventListener("durationchange", back); a.currentTime = 0; };
+    a.addEventListener("durationchange", back);
+    a.currentTime = 1e101;
   };
 
   return (
     <div className="space-y-2">
       {url ? (
-        <audio ref={audioRef} src={url} controls preload="metadata" className="w-full" />
+        <audio ref={audioRef} src={url} controls preload="metadata" className="w-full"
+               onLoadedMetadata={fixDuration} />
       ) : storagePath ? (
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           {loading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}

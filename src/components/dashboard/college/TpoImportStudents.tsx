@@ -337,19 +337,26 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       }
     }
 
+    // Anyone not added is named, with the reason - "21 of 22" alone left the
+    // college guessing who was missing.
+    const handled = new Set(["success", "linked", "already_yours"]);
+    const notAdded = results.filter((r) => !handled.has(r.status));
+
     const lines = [
       created > 0 ? `${created} created and invited` : null,
       linked > 0 ? `${linked} had already signed up — linked to you, their work kept` : null,
       mine > 0 ? `${mine} already in your college` : null,
       elsewhere > 0 ? `${elsewhere} belong to another college — not changed` : null,
-      failed > 0 ? `${failed} failed` : null,
       squadLine,
+      ...notAdded.map((r) => `Not added: ${r.email} — ${r.message ?? r.status}`),
     ].filter(Boolean);
 
     toast({
       title: `${created + linked} of ${good.length} students added`,
       description: lines.join(" · "),
-      variant: elsewhere > 0 || failed > 0 ? "destructive" : undefined,
+      variant: notAdded.length > 0 ? "destructive" : undefined,
+      // Long enough to read who was left out.
+      duration: notAdded.length > 0 ? 30000 : undefined,
     });
     setOpen(false);
     setRows(null);

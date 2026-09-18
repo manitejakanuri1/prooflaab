@@ -125,7 +125,16 @@ serve(async (req) => {
       try {
         // Does this email already have an account? Asked of whichever backend is
         // in use - the database on Google, the account list on Supabase.
-        const existingAuthUser = await findAccountByEmail(supabaseAdmin, email)
+        let existingAuthUser = await findAccountByEmail(supabaseAdmin, email)
+
+        // An empty account (no role, no student/college/company record, no work)
+        // is a leftover from an earlier sign-in or removal, not a real person
+        // on the platform. Clear it and create the student normally - skipping
+        // them is what made "21 of 22 added" on 18 Sep.
+        if (existingAuthUser) {
+          const { data: freed } = await supabaseAdmin.rpc('drop_empty_account', { _id: existingAuthUser.id })
+          if (freed === true) existingAuthUser = null
+        }
         
         // An account with this email already exists. That is the ordinary case,
         // not an error: the keenest students sign up on their own before their
@@ -151,7 +160,7 @@ serve(async (req) => {
             results.push({
               email,
               status: 'duplicate',
-              message: 'An account exists for this email but it is not a student account'
+              message: 'This email is already used by an admin, college or company login, so it cannot also be a student'
             })
             continue
           }

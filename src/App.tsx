@@ -53,6 +53,9 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60, // 1 minute
       gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
       refetchOnWindowFocus: true,
+      // And every minute while the tab is visible, so a change made elsewhere
+      // shows without pressing refresh (paused in background tabs).
+      refetchInterval: 1000 * 60,
       retry: 1,
     },
   },

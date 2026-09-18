@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -166,6 +167,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  useAutoRefresh(load);
 
   // Arriving with a squad already chosen means somebody clicked its name, and
   // what they wanted to see is who is in it.

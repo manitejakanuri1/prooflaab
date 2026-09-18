@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { removeStudents } from "@/lib/removeStudents";
+import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -359,6 +361,22 @@ const StudentOversight = () => {
                         >
                           <Pause className="h-4 w-4 mr-2" />
                           Suspend
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={async () => {
+                            if (!window.confirm(`Remove ${student.full_name}? This deletes their login and all their work. A backup is kept.`)) return;
+                            try {
+                              await removeStudents([student.id]);
+                              toast({ title: `Removed ${student.full_name}` });
+                              void queryClient.invalidateQueries();
+                            } catch (e) {
+                              toast({ title: "Not removed", description: (e as Error).message, variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove student
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

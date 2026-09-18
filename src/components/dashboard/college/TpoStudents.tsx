@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import { removeStudents } from "@/lib/removeStudents";
+import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -128,6 +131,30 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
     const t = setTimeout(() => { void load(); }, q ? 300 : 0);
     return () => clearTimeout(t);
   }, [load, q]);
+  useAutoRefresh(load);
+
+  // Removing: one student from their row, or several ticked at once. Removes
+  // their data and their login together; a backup row is kept first.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [removing, setRemoving] = useState(false);
+  const togglePick = (id: string) => setPicked((cur) => {
+    const next = new Set(cur); if (next.has(id)) next.delete(id); else next.add(id); return next;
+  });
+  const remove = async (ids: string[], label: string) => {
+    if (!ids.length) return;
+    if (!window.confirm(`Remove ${label}? This deletes their login and all their work on ProofLab. A backup is kept, but they will no longer be able to sign in.`)) return;
+    setRemoving(true);
+    try {
+      const r = await removeStudents(ids);
+      toast({ title: `Removed ${r.removed} student${r.removed === 1 ? "" : "s"}`,
+              description: r.loginFailures ? `${r.loginFailures} login(s) could not be deleted - the nightly sync will retry.` : undefined });
+      setPicked(new Set());
+      await load();
+    } catch (e) {
+      toast({ title: "Not removed", description: (e as Error).message, variant: "destructive" });
+    }
+    setRemoving(false);
+  };
 
   // Any filter change starts again at the first page — page 4 of a filter that
   // now matches twelve students is an empty screen.
@@ -261,6 +288,12 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                 weak at {skill} ✕
               </Badge>
             )}
+            {picked.size > 0 && (
+              <Button size="sm" variant="destructive" className="ml-3 h-7" disabled={removing}
+                      onClick={() => void remove([...picked], `${picked.size} selected student${picked.size === 1 ? "" : "s"}`)}>
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Remove selected ({picked.size})
+              </Button>
+            )}
             <span className="ml-auto font-mono text-[10px] text-muted-foreground">
               matching these filters
             </span>
@@ -270,6 +303,11 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
             <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <th className="pb-2 pr-2 w-6">
+                    <input type="checkbox" aria-label="Select all on this page"
+                           checked={shown.length > 0 && shown.every((r) => picked.has(r.student_id))}
+                           onChange={(e) => setPicked(e.target.checked ? new Set(shown.map((r) => r.student_id)) : new Set())} />
+                  </th>
                   <th className="pb-2 pr-3">Student</th>
                   <th className="pb-2 pr-3">Roll no.</th>
                   <th className="pb-2 pr-3">Branch</th>
@@ -287,6 +325,10 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                     className="border-t cursor-pointer hover:bg-muted/40"
                     onClick={() => setOpenStudent(r.student_id)}
                   >
+                    <td className="py-2.5 pr-2" onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" aria-label={`Select ${r.full_name}`}
+                             checked={picked.has(r.student_id)} onChange={() => togglePick(r.student_id)} />
+                    </td>
                     <td className="py-2.5 pr-3">
                       <div className="font-medium">{r.full_name}</div>
                       <div className="text-xs text-muted-foreground">{r.email}</div>
@@ -328,6 +370,11 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                       )}
                     </td>
                     <td className="py-2.5 whitespace-nowrap">
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-muted-foreground hover:text-destructive"
+                              disabled={removing} title="Remove student"
+                              onClick={(e) => { e.stopPropagation(); void remove([r.student_id], r.full_name); }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                       {r.attention !== "ok" && (
                         <Button
                           size="sm" variant="outline"
@@ -345,7 +392,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                   </tr>
                 ))}
                 {shown.length === 0 && !loading && (
-                  <tr><td colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                  <tr><td colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                     No students match these filters.
                   </td></tr>
                 )}

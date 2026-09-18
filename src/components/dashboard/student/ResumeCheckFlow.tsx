@@ -43,6 +43,11 @@ interface ResumeClaimRow {
   skill_relevance_notes?: string | null;
   feedback_acknowledged?: boolean;
   ai_improved_resume?: string | null;
+  improved_ats_score?: number | null;
+  improved_quality_score?: number | null;
+  improve_next_steps?: string[] | null;
+  improve_motivation?: string | null;
+  improved_at?: string | null;
 }
 
 interface AssessmentQuestion {
@@ -134,6 +139,10 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
   const [lastGradedAt, setLastGradedAt] = useState<Date | null>(null);
 
   const tier = getTier(claim?.ats_match_score);
+  // One Auto-fix per upload, only under 60%. After it, everyone may take the
+  // assessment - with clear next steps if the score is still under 60.
+  const fixed = Boolean(claim?.improved_at);
+  const blocked = tier === "bad" && !fixed;
   const retestUnlockAt = lastGradedAt ? addDays(lastGradedAt, RETEST_COOLDOWN_DAYS) : null;
   const retestLocked = !!retestUnlockAt && retestUnlockAt.getTime() > Date.now();
 
@@ -152,7 +161,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
     const { data, error } = await supabase
       .from("resume_claims")
       .select(
-        "id, target_role, skills, certifications, projects, status, resume_quality_score, resume_quality_notes, ats_match_score, ats_match_notes, skill_relevance_notes, feedback_acknowledged, ai_improved_resume"
+        "id, target_role, skills, certifications, projects, status, resume_quality_score, resume_quality_notes, ats_match_score, ats_match_notes, skill_relevance_notes, feedback_acknowledged, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at"
       )
       .eq("student_id", profile.id)
       .order("created_at", { ascending: false })
@@ -360,6 +369,15 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setImprovedResume(data.improved_resume);
+      setClaim((c) => c ? {
+        ...c,
+        ai_improved_resume: data.improved_resume,
+        improved_ats_score: data.after_ats,
+        improved_quality_score: data.after_quality,
+        improve_next_steps: data.next_steps,
+        improve_motivation: data.motivation,
+        improved_at: new Date().toISOString(),
+      } : c);
     } catch (err: any) {
       console.error("Error improving resume:", err);
       toast({ title: "Couldn't generate a fix", description: err.message || "Please try again.", variant: "destructive" });
@@ -561,34 +579,52 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             </div>
             <p className="text-xs text-muted-foreground">
               {tier === "bad"
-                ? `Below ${ATS_GATE}% ATS match — rebuild it before you continue.`
-                : `${ATS_GATE}-85% ATS match — solid, but there's room to improve.`}
+                ? fixed
+                  ? `The one-time AI fix is done. Use the steps below to improve it further.`
+                  : `Below ${ATS_GATE}% ATS match — use the one-time Auto-fix, or edit and re-upload.`
+                : `${ATS_GATE}-85% ATS match — solid. The notes above say what would make it stronger.`}
             </p>
 
-            {improvedResume && (
-              <div className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
+            {fixed && claim && (
+              <div className="border rounded-lg p-3 space-y-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <p className="text-sm font-medium">AI-improved resume</p>
-                  <Button type="button" size="sm" variant="outline" onClick={handleDownloadImproved}>
-                    <Download className="h-4 w-4 mr-1" /> Download PDF
+                  <span className="font-mono text-sm">
+                    ATS {claim.ats_match_score ?? 0}% → <b className={(claim.improved_ats_score ?? 0) >= ATS_GATE ? "text-emerald-600" : "text-amber-600"}>{claim.improved_ats_score ?? 0}%</b>
+                  </span>
+                  <Button type="button" size="sm" className="ml-auto" onClick={handleDownloadImproved} disabled={!improvedResume}>
+                    <Download className="h-4 w-4 mr-1" /> Download improved resume (PDF)
                   </Button>
                 </div>
-                <pre className="text-xs whitespace-pre-wrap max-h-64 overflow-y-auto">{improvedResume}</pre>
+                {improvedResume && (
+                  <pre className="text-xs whitespace-pre-wrap max-h-64 overflow-y-auto rounded bg-muted/40 p-2">{improvedResume}</pre>
+                )}
+                {(claim.improved_ats_score ?? 0) < ATS_GATE && (claim.improve_next_steps?.length ?? 0) > 0 && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                    <p className="text-sm font-medium">To raise it further, add these yourself:</p>
+                    <ol className="mt-1 list-decimal pl-5 text-sm space-y-1">
+                      {claim.improve_next_steps!.map((step, i) => <li key={i}>{step}</li>)}
+                    </ol>
+                  </div>
+                )}
+                {claim.improve_motivation && (
+                  <p className="text-sm">💪 {claim.improve_motivation}</p>
+                )}
+                <p className="text-xs text-muted-foreground">You can take the assessment now, below.</p>
               </div>
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={handleImprove} disabled={improving}>
-                {improving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Fixing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" /> {improvedResume ? "Regenerate with AI" : "Auto-fix with AI"}
-                  </>
-                )}
-              </Button>
+              {/* Auto-fix: only under 60%, and only once per upload. */}
+              {tier === "bad" && !fixed && (
+                <Button type="button" onClick={handleImprove} disabled={improving}>
+                  {improving ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Fixing and re-checking…</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4 mr-2" /> Auto-fix with AI (one time)</>
+                  )}
+                </Button>
+              )}
               <label htmlFor="resume-file-input">
                 <Button asChild type="button" variant="outline">
                   <span>Edit myself &amp; re-upload</span>
@@ -798,7 +834,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             {/* The gate. A resume this weak is not worth testing against: the
                 questions come from what it claims, so a thin resume produces a
                 thin assessment and a score that means nothing. */}
-            {tier === "bad" && (
+            {blocked && (
               <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
                 <p className="text-sm font-medium">Rebuild your resume first</p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -812,7 +848,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={handleStartAssessment}
-                disabled={generatingAssessment || tier === "bad"}
+                disabled={generatingAssessment || blocked}
               >
                 {generatingAssessment ? (
                   <>

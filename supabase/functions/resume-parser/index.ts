@@ -275,6 +275,9 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
         certifications,
         projects,
         raw_extraction: extraction,
+        // Kept so a one-time Auto-fix can rewrite the whole resume - name,
+        // contact, education and experience included - not just the extracted parts.
+        resume_text: resumeText.slice(0, 30000),
         status: 'extracted',
         resume_quality_score,
         resume_quality_notes,

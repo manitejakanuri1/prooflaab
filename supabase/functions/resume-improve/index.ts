@@ -61,7 +61,7 @@ serve(async (req) => {
 
     const { data: claim, error: claimError } = await supabase
       .from('resume_claims')
-      .select('id, student_id, target_role, skills, certifications, projects, resume_quality_notes, ats_match_notes')
+      .select('id, student_id, target_role, skills, certifications, projects, resume_quality_notes, ats_match_notes, ats_match_score, resume_quality_score, resume_text, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at')
       .eq('id', resume_claims_id)
       .maybeSingle();
 
@@ -78,37 +78,64 @@ serve(async (req) => {
       );
     }
 
-    const prompt = `Rewrite this student's resume into a clean, ATS-friendly plain-text resume, fixing the specific flaws noted below. Use ONLY the facts given — do not invent new skills, projects, or experience.
+    // Owner's rules (18 Sep 2026): Auto-fix only for a resume under 60% ATS,
+    // and only once per upload - the stored result is returned, never a second
+    // AI call. One call rewrites AND re-scores AND writes next steps.
+    const reply = (c: any) => new Response(JSON.stringify({
+      success: true,
+      improved_resume: c.ai_improved_resume,
+      before_ats: c.ats_match_score, after_ats: c.improved_ats_score,
+      before_quality: c.resume_quality_score, after_quality: c.improved_quality_score,
+      next_steps: c.improve_next_steps ?? [], motivation: c.improve_motivation,
+    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-Target role: ${claim.target_role || 'not specified'}
+    if (claim.improved_at) return reply(claim);
+    if ((claim.ats_match_score ?? 0) >= 60) {
+      return new Response(
+        JSON.stringify({ error: 'Your resume already scores 60% or more - follow the suggestions and start the assessment.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const source = claim.resume_text
+      ? `ORIGINAL RESUME TEXT:
+${claim.resume_text}`
+      : `Target role: ${claim.target_role || 'not specified'}
 Skills: ${(claim.skills || []).join(', ') || 'none listed'}
 Certifications: ${(claim.certifications || []).join(', ') || 'none listed'}
-Projects: ${JSON.stringify(claim.projects || [])}
+Projects: ${JSON.stringify(claim.projects || [])}`;
 
-Writing quality flaws to fix: ${claim.resume_quality_notes || 'none noted'}
-ATS match flaws to fix: ${claim.ats_match_notes || 'none noted'}
+    const prompt = `You are improving a student's resume for the target role "${claim.target_role || 'their target role'}".
 
-Rules:
-- Plain text only, no markdown symbols, section headers in CAPS (SUMMARY, SKILLS, PROJECTS, CERTIFICATIONS).
-- Quantify impact where the project description implies a result, but never fabricate numbers not implied by the given facts.
-- Keep it to roughly one page worth of text.
-- Standard ATS-safe formatting: no tables, no columns, no special characters.
+${source}
 
-Return ONLY the resume text, nothing else.`;
+Problems found when it was checked:
+- Writing: ${claim.resume_quality_notes || 'none noted'}
+- ATS match: ${claim.ats_match_notes || 'none noted'}
 
-    // json: false — this one returns resume prose, not a JSON blob.
-    let improvedResume: string;
+Do four things and return ONE JSON object:
+
+1. "resume": rewrite the WHOLE resume as clean, ATS-friendly plain text. Keep the person's name, contact details, education, experience, projects, skills and certifications. Use ONLY facts in the original - never invent skills, employers, projects, numbers or dates. Fix the problems above. Section headers in CAPS (SUMMARY, SKILLS, EXPERIENCE, PROJECTS, EDUCATION, CERTIFICATIONS). No markdown symbols, tables or columns. About one page.
+
+2. Score YOUR rewritten resume with the same rubric the first check used:
+   "resume_quality_score" (0-100): how well it is WRITTEN - clarity, structure, quantified impact, action verbs, no fluff, right length.
+   "ats_match_score" (0-100): how well its keywords, skills and phrasing would pass an Applicant Tracking System scan for the target role - standard headers, keyword coverage for the role.
+   Be honest: rewriting cannot add skills the person does not have, so a resume missing core skills for the role must still score low.
+
+3. "next_steps": 3 to 5 clear, specific things the STUDENT should add or do themselves to raise the score further - things only they can supply (a missing skill the role needs, a number for a project result, a link, a certification). Each one short and concrete, naming the actual skill/section/project. Never generic advice like "improve your resume".
+
+4. "motivation": one warm, genuine sentence (max 25 words) that recognises something real in their resume and encourages them to prove their skills in the assessment next.
+
+Return ONLY: {"resume": "...", "resume_quality_score": 0, "ats_match_score": 0, "next_steps": ["..."], "motivation": "..."}`;
+
+    let fix: { resume?: string; resume_quality_score?: number; ats_match_score?: number; next_steps?: string[]; motivation?: string } = {};
     try {
-      const result = await generateText(prompt, {
-        temperature: 0.4,
-        maxOutputTokens: 2000,
-        json: false,
-      }, { feature: 'resume-improve', userId: callerId, studentId: profile.id });
-      improvedResume = (result.text || '').trim();
+      const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 3000 },
+        { feature: 'resume-improve', userId: callerId, studentId: profile.id });
+      const m = (result.text || '').match(/\{[\s\S]*\}/);
+      fix = m ? JSON.parse(m[0]) : {};
     } catch (llmError) {
-      console.error('All LLM providers failed:', llmError);
-      // Over-budget callers get a 429 with Retry-After, not a generic failure,
-      // so the client can tell 'wait' apart from 'broken'.
+      console.error('Resume auto-fix failed:', llmError);
       const limited = rateLimitResponse(llmError, corsHeaders);
       if (limited) return limited;
       return new Response(
@@ -117,26 +144,26 @@ Return ONLY the resume text, nothing else.`;
       );
     }
 
-    if (!improvedResume) {
+    const score = (v: unknown) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+    if (!fix.resume || typeof fix.resume !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Gemini returned an empty resume' }),
+        JSON.stringify({ error: 'The AI returned an empty resume - please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { error: updateError } = await supabase
-      .from('resume_claims')
-      .update({ ai_improved_resume: improvedResume })
-      .eq('id', resume_claims_id);
+    const saved = {
+      ai_improved_resume: fix.resume.trim(),
+      improved_ats_score: score(fix.ats_match_score),
+      improved_quality_score: score(fix.resume_quality_score),
+      improve_next_steps: (Array.isArray(fix.next_steps) ? fix.next_steps : []).slice(0, 5).map(String),
+      improve_motivation: typeof fix.motivation === 'string' ? fix.motivation.slice(0, 300) : null,
+      improved_at: new Date().toISOString(),
+    };
+    const { error: updateError } = await supabase.from('resume_claims').update(saved).eq('id', resume_claims_id);
+    if (updateError) console.error('Error saving improved resume:', updateError);
 
-    if (updateError) {
-      console.error('Error saving improved resume:', updateError);
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, improved_resume: improvedResume }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return reply({ ...claim, ...saved });
 
   } catch (error) {
     console.error('Error in resume-improve:', error);

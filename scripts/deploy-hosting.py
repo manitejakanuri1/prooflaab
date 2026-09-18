@@ -119,7 +119,15 @@ version = call("POST", f"sites/{SITE}/versions", {
                 "headers": {"Cache-Control": "public, max-age=31536000, immutable"},
             },
             {
-                "glob": "/index.html",
+                # Every page address, not just the literal /index.html: "/" and
+                # "/student/dashboard" are rewritten to index.html but matched on
+                # their own path, so they got Firebase's default max-age=3600 and
+                # visitors saw the previous deploy for up to an hour.
+                "glob": "**/!(*.*)",
+                "headers": {"Cache-Control": "no-cache"},
+            },
+            {
+                "glob": "**/*.html",
                 "headers": {"Cache-Control": "no-cache"},
             },
         ],

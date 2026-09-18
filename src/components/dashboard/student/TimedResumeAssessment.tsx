@@ -585,7 +585,11 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
               </div>
             </div>
 
-            <Button onClick={advance} disabled={submitting} className="w-full mt-4">
+            {/* Pinned to the bottom of the dialog: with a long question, four
+                options and the confidence row, the button used to sit below the
+                fold and students did not know there was a Next at all. */}
+            <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 border-t bg-background px-6 py-3">
+            <Button onClick={advance} disabled={submitting} className="w-full">
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Grading...
@@ -596,6 +600,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 "Next"
               )}
             </Button>
+            </div>
           </>
         )}
 

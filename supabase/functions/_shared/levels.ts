@@ -568,14 +568,22 @@ export async function ensureTopicSteps(
   const result = await generateText(
     prompt,
     // Up to 10 steps at 150-220 words each plus a 10-question pool needs real
-    // headroom — this got cut short at 3000 once steps and pool size both grew.
-    { temperature: 0.8, maxOutputTokens: 4500, skipRateLimit: ctx.skipRateLimit },
+    // headroom. 4500 cut it off mid-JSON (17-18k characters, 18 Sep 2026): the
+    // topic failed to open with "still being written" and every retry paid for
+    // another cut-off answer. 8000 fits a full topic; it is written once and
+    // cached for every student after. Lower temperature keeps the JSON clean.
+    { temperature: 0.5, maxOutputTokens: 8000, skipRateLimit: ctx.skipRateLimit },
     { feature: 'level-content', userId: ctx.userId ?? null, studentId: ctx.studentId ?? null },
   );
 
+  if ((result as { truncated?: boolean }).truncated) {
+    throw new Error('Topic content was cut off before it finished');
+  }
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Topic content came back in a shape we could not read');
-  const parsed = JSON.parse(jsonMatch[0]);
+  // A trailing comma before a closing bracket is the commonest slip; it is
+  // safe to drop and saves paying for the whole topic again.
+  const parsed = JSON.parse(jsonMatch[0].replace(/,\s*([}\]])/g, '$1'));
 
   if (
     !validSteps(parsed?.steps) ||

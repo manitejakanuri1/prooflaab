@@ -77,7 +77,7 @@ const TaskDetailsDialog = ({
               {task.source}
             </Badge>
             <Badge variant="outline" className={getStatusColor(task.status)}>
-              {task.status}
+              {task.status === 'Applied' ? 'Not started' : task.status}
             </Badge>
           </div>
         </DialogHeader>

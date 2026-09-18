@@ -92,6 +92,10 @@ serve(async (req) => {
 
     const results = []
 
+    // Section of each student, applied after the loop so squads can be formed
+    // by section right here - every way of adding students, not just the page.
+    const cohortByEmail = new Map<string, string>()
+
     for (const studentData of students) {
       const { 
         name, 
@@ -105,10 +109,19 @@ serve(async (req) => {
         // colleges may both legitimately have a 23CSE041.
         roll_number = '',
         batch = '',
+        // Section, as the CSV has it ("CSE-A"), or just the section letter.
+        cohort = '',
+        section = '',
         // §6 lists phone as a required CSV column. The importer normalises it
         // to ten digits before it gets here, or sends an empty string.
         phone = ''
       } = studentData
+
+      {
+        const c = String(cohort || '').trim() || (String(section || '').trim() && String(branch || '').trim()
+          ? `${String(branch).trim()}-${String(section).trim()}` : '')
+        if (c && email) cohortByEmail.set(String(email).trim().toLowerCase(), c)
+      }
 
       // Convert comma-separated strings to arrays
       const convertToSkillsArray = (str: string): string[] => {
@@ -435,8 +448,30 @@ serve(async (req) => {
       }
     }
 
+    // Sections first, then squads, so they are drawn inside each section.
+    // Squads used to form only when the college's upload page asked for them
+    // afterwards (or at 05:35 the next morning), so a student added any other
+    // way sat in reserve with eleven others (18 Sep). Never fails the import.
+    let squads: unknown = null
+    const added = results.filter((r: any) => r.status === 'success' || r.status === 'linked')
+    if (added.length > 0) {
+      try {
+        for (const r of added) {
+          const c = cohortByEmail.get(String(r.email).toLowerCase())
+          const id = (r as any).userId
+          if (c && id) {
+            await supabaseAdmin.from('student_profiles').update({ cohort: c }).eq('user_id', id)
+          }
+        }
+        const { data: sq, error: sqErr } = await supabaseAdmin.rpc('form_squads', { _college_id: college_id })
+        squads = sqErr ? { error: sqErr.message } : sq
+      } catch (e) {
+        squads = { error: String(e) }
+      }
+    }
+
     return new Response(
-      JSON.stringify({ results }),
+      JSON.stringify({ results, squads }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

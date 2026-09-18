@@ -19,6 +19,7 @@ import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
 import RecruiterOversight from "@/components/dashboard/admin/RecruiterOversight";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
+import ContentLibrary from "@/components/dashboard/admin/ContentLibrary";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groupOf } from "@/components/dashboard/admin/adminNav";
 
@@ -91,6 +92,8 @@ const AdminDashboard = () => {
         return <ContentManagement type="announcements" />;
       case "analytics":
         return <AdminAnalytics />;
+      case "content-library":
+        return <ContentLibrary />;
       case "token-usage":
         return <TokenUsage />;
       case "security-events":

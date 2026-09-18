@@ -30,6 +30,7 @@ export const ADMIN_GROUPS = [
     { id: "jobs", label: "Jobs" },
     { id: "resources", label: "Resources" },
     { id: "announcements", label: "Announcements" },
+    { id: "content-library", label: "Content Library" },
     { id: "token-usage", label: "Token Usage" },
     { id: "security-events", label: "Security Events" },
     { id: "settings", label: "Settings & Roles" },

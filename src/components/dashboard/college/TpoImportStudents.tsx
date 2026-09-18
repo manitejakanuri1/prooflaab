@@ -270,7 +270,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         college_id: collegeId,
         students: good.map((r) => ({
           name: r.name, email: r.email, phone: r.phone, roll_number: r.roll_number,
-          branch: r.branch, batch: r.batch, year_of_study: r.batch,
+          branch: r.branch, batch: r.batch, year_of_study: r.batch, cohort: r.cohort,
         })),
       },
     });
@@ -329,7 +329,12 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
      */
     let squadLine: string | null = null;
     if (created + linked > 0) {
-      const { data: sq, error: sqErr } = await supabase.rpc("tpo_form_squads" as never, {} as never);
+      // The server now sets sections and forms squads itself; its answer is
+      // used, and the page only asks again if the server could not.
+      const serverSquads = (data as { squads?: { squads_created?: number; students_placed?: number; error?: string } })?.squads;
+      const { data: sq, error: sqErr } = serverSquads && !serverSquads.error
+        ? { data: serverSquads, error: null }
+        : await supabase.rpc("tpo_form_squads" as never, {} as never);
       const r = sq as unknown as { squads_created: number; students_placed: number } | null;
       if (sqErr) squadLine = `squads not formed — ${sqErr.message}`;
       else if (r && r.squads_created > 0) {

@@ -87,6 +87,9 @@ export const useAllStudentTasks = () => {
           sandbox_config_id,
           rubric_config_id,
           is_sandbox_task,
+          lot_date,
+          roadmap_scorecard_id,
+          level_id,
           proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
         `)
         .eq('student_id', profile.id)
@@ -143,15 +146,16 @@ export const useAllStudentTasks = () => {
         }
         // If no started_at and no proof, keep status as 'Applied'
 
-        // Determine source based on available data
-        let taskSource = 'Admin';
-        if (task.created_by_startup_id) {
-          taskSource = 'Startup';
-        } else if (task.created_by_college_id) {
-          taskSource = 'College';
-        } else if (task.created_by_admin_id) {
-          taskSource = 'Admin';
-        }
+        // Where the task really came from. Everything used to fall back to
+        // "Admin", so the student's own roadmap and today's Lot looked like
+        // work an administrator had handed out.
+        let taskSource = 'Task';
+        if (task.lot_date) taskSource = "Today's Lot";
+        else if (task.roadmap_scorecard_id) taskSource = 'From your test';
+        else if (task.level_id) taskSource = 'Track proof';
+        else if (task.created_by_startup_id) taskSource = 'Company';
+        else if (task.created_by_college_id) taskSource = 'College';
+        else if (task.created_by_admin_id) taskSource = 'Admin';
 
         allTasks.push({
           id: task.id,
@@ -197,7 +201,7 @@ export const useAllStudentTasks = () => {
         // Determine source based on available data
         let taskSource = 'Admin';
         if (task.created_by_startup_id) {
-          taskSource = 'Startup';
+          taskSource = 'Company';
         } else if (task.created_by_college_id) {
           taskSource = 'College';
         } else if (task.created_by_admin_id) {
@@ -237,7 +241,7 @@ export const useAllStudentTasks = () => {
           // Determine source for application tasks
           let taskSource = 'Admin';
           if (app.tasks.created_by_startup_id) {
-            taskSource = 'Startup';
+            taskSource = 'Company';
           } else if (app.tasks.created_by_type === 'college' || app.tasks.created_by_type === 'college_admin') {
             taskSource = 'College';
           } else if (app.tasks.created_by_type === 'admin') {

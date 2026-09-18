@@ -67,8 +67,10 @@ const StudentAssignedTasksPage = () => {
   const assignedTasks = useMemo(() => {
     return allTasks.filter(task => {
       const source = task.source?.toLowerCase() || '';
-      // Include tasks from college, admin, or direct assignments (not student-created or startup)
-      return source === 'college' || source === 'admin' || source === 'assigned';
+      // Everything the student has to do, except company tasks they applied
+      // to (those have their own flow). Roadmap and Track tasks used to get in
+      // here only because they were mislabelled "Admin".
+      return source !== 'company';
     });
   }, [allTasks]);
 
@@ -355,7 +357,7 @@ const StudentAssignedTasksPage = () => {
                               variant="outline" 
                               className={getStatusColor(task.status)}
                             >
-                              {task.status}
+                              {task.status === 'Applied' ? 'Not started' : task.status}
                             </Badge>
                           </div>
                         </div>

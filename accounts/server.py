@@ -1,6 +1,10 @@
 """ProofLab accounts: remove students completely (data + Google login).
 
 POST /remove {"student_ids": [...]}   signed-in college or admin (bridge token)
+POST /password-link {"email": ...}   functions service (x-webhook-secret): a
+                                     set-password link for a new student,
+                                     WITHOUT Google sending its own email, so
+                                     the welcome email can carry it (one email).
 POST /sync                           Cloud Scheduler (x-webhook-secret): any
                                      student whose Google login was deleted in
                                      the console is removed from ProofLab too.
@@ -152,6 +156,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.remove()
             if self.path == "/sync":
                 return self.sync()
+            if self.path == "/password-link":
+                return self.password_link()
             return self.reply(404, {"error": "not found"})
         except Exception as e:
             print("error:", e, flush=True)
@@ -176,6 +182,21 @@ class Handler(BaseHTTPRequestHandler):
         failed = delete_logins(rows)
         print(f"remove by {who} ({reason}): {len(rows)} students, {len(failed)} login deletes failed", flush=True)
         return self.reply(200, {"removed": len(rows), "login_failures": failed})
+
+    def password_link(self):
+        if not WEBHOOK or not hmac.compare_digest(self.headers.get("x-webhook-secret", ""), WEBHOOK):
+            return self.reply(401, {"error": "unauthorized"})
+        email = str(self.body().get("email") or "").strip()
+        if "@" not in email:
+            return self.reply(400, {"error": "email required"})
+        # returnOobLink: Google hands the link back instead of mailing it.
+        st, out = identity("accounts:sendOobCode", {
+            "requestType": "PASSWORD_RESET", "email": email, "returnOobLink": True,
+            "continueUrl": "https://prooflab.co.in/auth",
+        })
+        if st != 200 or not out.get("oobLink"):
+            return self.reply(502, {"error": str(out)[:200]})
+        return self.reply(200, {"link": out["oobLink"]})
 
     def sync(self):
         if not WEBHOOK or not hmac.compare_digest(self.headers.get("x-webhook-secret", ""), WEBHOOK):

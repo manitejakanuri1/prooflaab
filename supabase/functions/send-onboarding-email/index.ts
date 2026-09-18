@@ -25,9 +25,11 @@ interface OnboardingEmailRequest {
   name?: string;
   user_id?: string;
   origin?: string;
+  /** Set-password link, accepted only from internal callers (the import). */
+  actionLink?: string | null;
 }
 
-const getEmailContent = (userType: string, name: string, origin?: string) => {
+const getEmailContent = (userType: string, name: string, origin?: string, setPasswordLink?: string | null) => {
   // Always our own site. The link used to default to prooflaab.vercel.app -
   // deleted with Vercel - and to take `origin` from the request body, which
   // let a caller put any address they liked behind the button. And
@@ -45,18 +47,23 @@ const getEmailContent = (userType: string, name: string, origin?: string) => {
             <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Welcome ${name}! 👋</h1>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Your student account has been successfully created! You can now start exploring tasks and building your portfolio.
+              Your college has added you to ProofLab. ${setPasswordLink ? 'Set your password to sign in for the first time:' : 'You can now start exploring tasks and building your portfolio.'}
             </p>
             
             <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              <a href="${baseUrl}/auth" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Access Your Dashboard
+              <a href="${setPasswordLink ?? `${baseUrl}/auth`}" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                ${setPasswordLink ? 'Set your password' : 'Access Your Dashboard'}
               </a>
             </p>
+            ${setPasswordLink ? `
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+              After that, sign in any time at <a href="${baseUrl}/auth">${baseUrl.replace('https://', '')}/auth</a>.
+              The button works for about an hour; if it has expired, use <b>Forgot password</b> on the sign-in page.
+            </p>` : ''}
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
               Best regards,<br>
-              Your Learning Platform Team
+              The ProofLab team
             </p>
           </div>
         `
@@ -189,7 +196,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    const { userType, user_type, email, name, user_id, origin }: OnboardingEmailRequest = await req.json();
+    const { userType, user_type, email, name, user_id, origin, actionLink }: OnboardingEmailRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -208,7 +215,12 @@ const handler = async (req: Request): Promise<Response> => {
     const finalUserType = userType || user_type || 'general';
     const finalName = name || email.split('@')[0];
 
-    const emailContent = getEmailContent(finalUserType, finalName, origin);
+    // Only the import (an internal caller) may put a link in the email, and only
+    // an https one - a signed-in user must not be able to mail themselves any
+    // address they like behind the button.
+    const setPasswordLink = internal && typeof actionLink === 'string' && actionLink.startsWith('https://')
+      ? actionLink : null;
+    const emailContent = getEmailContent(finalUserType, finalName, origin, setPasswordLink);
 
     const resend = getResend();
     if (!resend) {

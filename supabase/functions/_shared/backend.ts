@@ -440,6 +440,32 @@ const authShim = {
      * welcome and a way to set a password.
      */
     async generateLink(args: { type: string; email: string }) {
+      // The accounts service holds Identity Platform admin access, so it can
+      // get the link back WITHOUT Google mailing its own "Reset your password
+      // for prooflab-508214" email. The caller puts the link in the one
+      // ProofLab welcome email. If that fails, fall back to Google's email so
+      // the student still gets a way in (two emails, but never zero).
+      const accountsUrl = Deno.env.get('ACCOUNTS_URL');
+      if (accountsUrl) {
+        try {
+          const res = await fetch(`${accountsUrl}/password-link`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '',
+            },
+            body: JSON.stringify({ email: args.email }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (res.ok && json.link) {
+            return { data: { properties: { action_link: json.link as string } }, error: null };
+          }
+          console.error('password-link failed:', res.status, json?.error);
+        } catch (e) {
+          console.error('password-link unreachable:', e);
+        }
+      }
+
       if (!GOOGLE_API_KEY) {
         return { data: null, error: { message: 'GOOGLE_API_KEY is not set' } };
       }
@@ -451,7 +477,6 @@ const authShim = {
       if (!res.ok) {
         return { data: null, error: { message: 'Could not send the password email' } };
       }
-      // Shaped like Supabase's reply, with the one field it cannot fill.
       return { data: { properties: { action_link: null } }, error: null };
     },
 

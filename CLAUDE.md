@@ -1,57 +1,81 @@
-# ProofLabAI — instructions for Claude
+# ProofLab — instructions for Claude
 
-Loaded automatically in every session in this repository. Read
-[START_HERE.md](START_HERE.md) for the full picture; this file is the part you
-must not get wrong.
+Loaded automatically in every session in this repository.
+**Read [HANDOFF-2026-09-19.md](HANDOFF-2026-09-19.md) before any work.** It has the full picture: setup, architecture, runbooks, how the product works, current data and the open plan.
+[SQUAD_SYSTEM.md](SQUAD_SYSTEM.md) explains squads, seasons and scoring. Read it before touching those.
+`START_HERE.md`, `PROJECT_*.md` and `HANDOFF.md` are **older**:
+- Their product descriptions still hold.
+- Anything they say about Supabase, Vercel, MCP tools, table counts or deploy steps is out of date.
 
 ## What this is
 
-A proof-of-skill platform. A college uploads a student CSV; each student gets
-one real piece of work a day (a **Lot**), submits it, and explains it out loud
-for sixty seconds. Work is scored, students compete in **squads** of eleven
-inside their academic section, and the result is a proof profile a recruiter
-can inspect. The league, the championship and the awards are described in
-[SQUAD_SYSTEM.md](SQUAD_SYSTEM.md) — read it before changing anything about
-squads, seasons or scoring.
+A proof-of-skill platform for Indian engineering colleges (live: https://prooflab.co.in).
+1. A college uploads a student CSV.
+2. Each student gets one real task a day (a **Lot**), does it inside the app, and explains it out loud for 60 seconds.
+3. Students learn on **Tracks** (17 tracks, 167 topics).
+4. They compete in **squads** of about 11 inside their section.
+5. Companies read the proof.
 
-React + TypeScript + Vite · Supabase (Postgres, Auth, Storage) · 36 Deno edge
-functions on DeepSeek · Vercel. Dashboards: Student, College/TPO, Admin and
-Recruiter — all four are built. A recruiter signs themselves up and sees
-nothing until an administrator approves them on Admin -> Recruiters.
+Dashboards:
+- Student
+- College (TPO)
+- Admin
+- Company (Startup and Recruiter merged; the database role is `startup`)
+
+**Stack:**
+- React + TypeScript + Vite.
+- Everything runs on **Google Cloud**, project `prooflab-508214`, region `asia-south1`:
+  - Cloud SQL `prooflab-db` (database `prooflab`)
+  - PostgREST `prooflab-api`
+  - Identity Platform + `prooflab-auth-bridge`
+  - `prooflab-functions` (43 Deno functions, AI = DeepSeek)
+  - `prooflab-files`
+  - `prooflab-transcriber`
+  - `prooflab-accounts`
+  - `prooflab-code-runner`
+  - crawler job
+  - Firebase Hosting
+- **Supabase and Vercel are deleted.** The code still uses the `supabase-js` client, pointed at these services. There is no Supabase MCP, no `supabase db push`, no `supabase functions deploy`.
 
 ## Hard rules
 
-- **Never push to `origin`.** It is a different person's diverged fork
-  (`Yashwanth-pilli/prooflabai-mvp`). Every push goes to `prooflaab`
-  (`manitejakanuri1/prooflaab`). Do not offer to push to origin.
-- **Never run `supabase db push`.** Apply migrations with the Supabase MCP
-  `apply_migration`, then save the identical SQL into `supabase/migrations/`
-  and commit it. The folder and the live database must stay the same thing.
-- **The database is shared and live.** Two laptops work on this project. Ask
-  before applying a migration if you are not certain this machine owns the
-  database right now.
-- **Delete nothing without asking** — data, branches, files, test fixtures.
-- **Regenerate `src/integrations/supabase/types.ts`** after any schema change,
-  or the editor will not know the new columns exist.
-- **`strict: false`** in `tsconfig.app.json`. The typechecker will not catch a
-  renamed or missing column. Prove work by running it against the live database
-  with a real signed-in session — not by compiling.
-- **After `revoke all on function … from public, anon, authenticated`, grant it
-  back to `service_role` by name** if an edge function calls it. That revoke
-  strips service_role too, because its EXECUTE came through PUBLIC. This has
-  already caused two bugs.
-- **Edge functions deploy separately:** `supabase functions deploy <name>`.
+- **Never push to `origin`** (someone else's fork, `Yashwanth-pilli/prooflabai-mvp`). Push only to **`prooflaab`** (`manitejakanuri1/prooflaab`), branch `main`. Never offer to push to origin.
+- **Ask before deleting anything**: data, logins, tables, columns, functions, files, branches. Show the exact list and back up first.
+- **Nothing counts as working until a database row proves it.** `strict: false` in `tsconfig.app.json`, so the typechecker will not catch a wrong column. Prove it against the live database with a real signed-in session.
+- **Plan first, then wait for the owner's "yes".** An interrupt means stop and wait. An old "yes" expires when the plan changes.
+- **Secrets live only in Secret Manager.** Read them with `gcloud secrets versions access latest --secret=<name>`. Never write their values into files, commits or chat.
+- Database changes:
+  1. Write the SQL file in `migration/NN-*.sql`, with a `do $$` self-check, and end with `notify pgrst, 'reload schema';` when adding functions or columns.
+  2. Save the same SQL in `supabase/migrations/`.
+  3. Apply it with `gcloud sql import sql` (see the handoff). Direct psql is blocked.
+- After `revoke all on function … from public, anon, authenticated`, **grant it back to `service_role` by name** if the server calls it.
+- A new server function must be added to `SLUGS` in `functions-service/main.ts`. Deploy by building an image, then `gcloud run deploy`. Check that `/ready` shows loaded == expected.
+- `void supabase.rpc(...)` never sends the request (the builder is lazy). Use `.then(() => {}, () => {})`.
+
+## Product rules the owner set (do not "fix" these)
+
+- Lots come from real pages in `source_content` (page-based). There is no `next_lot_level`. This is correct.
+- **No upload proof.** Every task is done in the code editor or as a written answer, checked on the spot.
+- **Students are never sent outside the app.** No external links on student screens.
+  - Outside content is shown in-app only if its licence allows it (MIT, Apache, BSD, CC-BY, CC-BY-SA, CC0), with a plain-text credit.
+  - W3Schools can't be used.
+- Questions are shown **in simple words** (`task_explainers`), with the original wording one tap away. The task data itself is never changed.
+- AI content is written **once and stored**. Say the cost before any paid AI job; the owner is cost-conscious.
+- Everything should happen automatically (squads at import, auto-refresh, sync).
 
 ## How work is done here
 
-Each machine has its own branch (`work/a`, `work/b`) and merges into `main`
-when a piece is finished. Pushing `main` deploys the live site.
-
-One commit per finished thing, with a message saying what was tested and what
-came back. Report honestly: if something is half-done, say which half.
+- Check after every deploy:
+  - `python scripts/healthcheck.py` (24 checks, about 25 s, expect all PASS).
+  - The page check: `scripts/dev-tools/walk.mjs … crawl`.
+- One commit per finished thing. The message says what was tested and what came back. Report honestly: if something is half-done, say which half.
+- After finished work, update the owner's Obsidian vault if it exists on this machine: note `Projects Brain/ProofLab.md` and a line in `log.md`.
 
 ## Style
 
-The owner is not a developer. Explain in plain English, prefer a diagram to a
-paragraph, and give steps as numbered lists. Say what changed, what you tested,
-and what you deliberately did not touch.
+The owner is not a developer.
+- Plain, simple English and short sentences.
+- Lead with the answer.
+- Numbered steps, one action each.
+- Diagrams and tables rather than paragraphs.
+- Say what changed, what you tested, and what you deliberately did not touch.

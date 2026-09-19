@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import SimpleExplainer from "./SimpleExplainer";
-import { BriefCards } from "./ReadableText";
+import { SimpleQuestion } from "./SimpleQuestion";
 import { CheckCircle2, Loader2, Play, Send, XCircle } from "lucide-react";
 
 interface SandboxView {
@@ -134,13 +133,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
     <div className="space-y-4">
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">{view.title}</h2>
-        <SimpleExplainer taskId={taskId} />
-        {view.description && (
-          <div>
-            <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">The full question</p>
-            <BriefCards text={view.description} />
-          </div>
-        )}
+        <SimpleQuestion taskId={taskId} original={view.description} />
         {view.constraints && (
           <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
         )}

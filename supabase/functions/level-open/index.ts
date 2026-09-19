@@ -231,6 +231,7 @@ serve(async (req) => {
       resources: target.kind === 'checkpoint' ? (content?.resources ?? null) : null,
       // Sections from open-licence repos, shown inside the step (no outside links).
       read_more: target.kind === 'explanation' ? (content?.read_more ?? null) : null,
+      go_deeper: target.kind === 'explanation' ? (content?.go_deeper ?? null) : null,
       status: progressById.get(target.id)?.status ?? 'opened',
       evidence: progress?.evidence ?? null,
       best_score: progress?.best_score ?? 0,

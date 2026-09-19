@@ -157,6 +157,31 @@ export const MarkdownLite = ({ text }: { text: string }) => {
   );
 };
 
+export interface GoDeeper { example: string; code: { language: string; code: string } | null; mistakes: string[]; try_this: string }
+
+/** A worked example, common mistakes and a small practice for one step. */
+export const GoDeeperCard = ({ card }: { card: GoDeeper }) => (
+  <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+    <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Go deeper</p>
+    <div>
+      <p className="text-sm font-semibold">Worked example</p>
+      <p className="mt-1 whitespace-pre-line text-sm leading-relaxed"><InlineText text={card.example} /></p>
+    </div>
+    {card.code && <CodeSnapshot language={card.code.language || "text"} code={card.code.code} />}
+    <div>
+      <p className="text-sm font-semibold">Common mistakes</p>
+      <ul className="mt-1 space-y-1 text-sm">
+        {card.mistakes.map((m, i) => (
+          <li key={i} className="flex gap-2"><span className="text-amber-600">⚠</span><span><InlineText text={m} /></span></li>
+        ))}
+      </ul>
+    </div>
+    <div className="rounded-md border bg-card p-3 text-sm">
+      <span className="font-semibold">Try this: </span><InlineText text={card.try_this} />
+    </div>
+  </div>
+);
+
 export interface ReadMoreSection { heading: string; text: string; source: string; licence: string }
 
 /** Extra reading for a step, from open-licence repos, shown inside the app. */

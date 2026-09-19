@@ -1,6 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { explainTask } from "../_shared/explain.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
 
 /**
@@ -292,6 +293,18 @@ serve(async (req) => {
         ok: true, source_content_id: sourceContentId, written: false,
         reason: 'another request finished this content first',
       });
+    }
+
+    // The simple version of the question, written now so no student waits
+    // for it later. A failure here never fails the Lot - it is written on
+    // first open instead.
+    try {
+      await explainTask(supabase, {
+        title: row.title, description: row.scenario, code_sample: row.code_sample,
+        sandbox_config_id: row.sandbox_config_id,
+      }, callerId);
+    } catch (err) {
+      console.error('lot-writer: simple question not written:', (err as Error).message);
     }
 
     // Rewrite today's cards that are still on the seed version. Only ones

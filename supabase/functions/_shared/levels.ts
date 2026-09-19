@@ -78,6 +78,7 @@ export interface LevelContentRow {
   code_example: CodeExampleSpec | null;
   resources: TopicResource[] | null;
   read_more?: { heading: string; text: string; source: string; licence: string }[] | null;
+  go_deeper?: { example: string; code: { language: string; code: string } | null; mistakes: string[]; try_this: string } | null;
 }
 
 /** Same normalisation as skill-map, so "Node.js" and "nodejs" are one skill. */
@@ -526,7 +527,7 @@ export async function ensureTopicSteps(
     // Already expanded. Just fetch content for each row.
     const { data: contentRows } = await supabase
       .from('level_content')
-      .select('level_id, explanation, quiz, proof_title, proof_brief, sandbox, code_example, resources, read_more')
+      .select('level_id, explanation, quiz, proof_title, proof_brief, sandbox, code_example, resources, read_more, go_deeper')
       .in('level_id', rows.map((r) => r.id));
     const contentByLevelId: Record<string, LevelContentRow> = {};
     for (const c of contentRows ?? []) contentByLevelId[c.level_id] = c as LevelContentRow;

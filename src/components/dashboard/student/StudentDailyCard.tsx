@@ -10,7 +10,7 @@ import StudentRoadmapPage from "./StudentRoadmapPage";
 import VoiceExplainModal from "./VoiceExplainModal";
 import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
-import { BriefCards } from "./ReadableText";
+import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 
 interface Lot {
@@ -237,7 +237,7 @@ const StudentDailyCard = () => {
             <h2 className="mt-2 text-lg font-semibold leading-snug">{lot.title}</h2>
             {lot.description && (
               <div className="mt-3 text-[#2b2a26]">
-                <BriefCards text={lot.description} tone="paper" />
+                <SimpleQuestionShort taskId={lot.id} original={lot.description} />
               </div>
             )}
 

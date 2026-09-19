@@ -413,13 +413,16 @@ const StudentAssignedTasksPage = () => {
                                 Write my answer
                               </Button>
                             ) : (
+                              // No upload anywhere: a task without its own
+                              // checker is answered in writing (the server gives
+                              // every task one, so this is only a safety net).
                               <Button
                                 size="sm"
-                                onClick={() => setSelectedTaskId(task.id)}
+                                onClick={() => setWritingTaskId(task.id)}
                                 className="bg-orange-600 hover:bg-orange-700 text-white"
                               >
-                                <Upload className="h-4 w-4 mr-1" />
-                                Submit Proof
+                                <PenLine className="h-4 w-4 mr-1" />
+                                Write my answer
                               </Button>
                             )}
                             {/* The second of the two actions the design deck

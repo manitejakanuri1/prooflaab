@@ -5,9 +5,8 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Mic, Upload, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon } from "lucide-react";
+import { Mic, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon } from "lucide-react";
 import StudentRoadmapPage from "./StudentRoadmapPage";
-import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import VoiceExplainModal from "./VoiceExplainModal";
 import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
@@ -71,7 +70,6 @@ const StudentDailyCard = () => {
   const [lastActive, setLastActive] = useState<string | null>(null);
   const [week, setWeek] = useState<DayMark[]>([]);
   const [squad, setSquad] = useState<SquadSummary | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [coding, setCoding] = useState(false);
   const [writing, setWriting] = useState(false);
   const [explaining, setExplaining] = useState(false);
@@ -179,8 +177,7 @@ const StudentDailyCard = () => {
   const openLot = () => {
     if (!lot) return;
     if (lot.sandbox_config_id) setCoding(true);
-    else if (lot.rubric_config_id) setWriting(true);
-    else setSubmitting(true);
+    else setWriting(true); // no uploads: every other Lot is a written answer
   };
 
   return (
@@ -253,10 +250,8 @@ const StudentDailyCard = () => {
               >
                 {lot.sandbox_config_id ? (
                   <><Code2 className="mr-2 h-4 w-4" /> Solve in editor</>
-                ) : lot.rubric_config_id ? (
-                  <><PenLine className="mr-2 h-4 w-4" /> Write my answer</>
                 ) : (
-                  <><Upload className="mr-2 h-4 w-4" /> Submit fix</>
+                  <><PenLine className="mr-2 h-4 w-4" /> Write my answer</>
                 )}
               </Button>
               <Button
@@ -359,15 +354,6 @@ const StudentDailyCard = () => {
         </DialogContent>
       </Dialog>
 
-      {lot && !lot.sandbox_config_id && !lot.rubric_config_id && (
-        <UploadProofModal
-          isOpen={submitting}
-          onClose={() => setSubmitting(false)}
-          taskId={lot.id}
-          taskTitle={lot.title}
-          onSuccess={() => { setSubmitting(false); void load(); }}
-        />
-      )}
 
       {lot && lot.sandbox_config_id && (
         <Dialog open={coding} onOpenChange={setCoding}>
@@ -377,7 +363,7 @@ const StudentDailyCard = () => {
         </Dialog>
       )}
 
-      {lot && lot.rubric_config_id && (
+      {lot && !lot.sandbox_config_id && (
         <Dialog open={writing} onOpenChange={setWriting}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <WrittenTaskPanel taskId={lot.id} onCompleted={() => { setWriting(false); void load(); }} />

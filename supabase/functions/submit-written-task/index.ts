@@ -65,7 +65,7 @@ serve(async (req) => {
     if (!profile) return json({ error: "Student profile not found" }, 404);
 
     const { data: task } = await db.from("tasks")
-      .select("id, student_id, rubric_config_id").eq("id", task_id).maybeSingle();
+      .select("id, student_id, rubric_config_id, title, description").eq("id", task_id).maybeSingle();
     if (!task?.rubric_config_id) return json({ error: "This is not a written task" }, 404);
     if (task.student_id !== profile.id) {
       const { data: assigned } = await db.from("task_assignments")
@@ -78,8 +78,9 @@ serve(async (req) => {
     if (done) return json({ error: "You already completed this task", already_completed: true }, 409);
 
     const { data: cfg } = await db.from("task_rubric_config")
-      .select("id, prompt_text, criteria, min_words, max_words, pass_threshold, reference_answer")
+      .select("id, prompt_text, criteria, min_words, max_words, pass_threshold, reference_answer, is_generic_fallback")
       .eq("id", task.rubric_config_id).single();
+    if (!cfg) return json({ error: "This task has no checklist yet" }, 404);
 
     // 5. Word count, checked before spending anything on grading
     const words = wordCount(answer);
@@ -91,14 +92,26 @@ serve(async (req) => {
     }
 
     const criteria = cfg.criteria as Criterion[];
+    // The grader must see what was asked. A task-specific checklist already
+    // describes it; the shared one (used by every task without its own) only
+    // works together with the task's own title and description.
+    const gradingPrompt = `${cfg.prompt_text}
+
+THE TASK CARD THE STUDENT WAS GIVEN:
+Title: ${task.title ?? ""}
+${task.description ?? ""}`;
     const flags: string[] = [];
 
     // 6. Cheap pre-check: does this closely match another student's answer
     // to the same question? Checked before paying for two LLM calls.
-    const { data: similar } = await db.rpc("similar_written_submission", {
-      _rubric_config_id: cfg.id, _student_id: profile.id, _answer: answer, _threshold: 0.8,
-    });
-    if (similar) flags.push("similar");
+    // The shared checklist is used by many different tasks, so comparing
+    // against "other answers to the same checklist" would compare unrelated work.
+    if (!cfg.is_generic_fallback) {
+      const { data: similar } = await db.rpc("similar_written_submission", {
+        _rubric_config_id: cfg.id, _student_id: profile.id, _answer: answer, _threshold: 0.8,
+      });
+      if (similar) flags.push("similar");
+    }
 
     // 7. Grade once. A second, independent grader only runs when the first
     // score is close enough to the pass line that a second opinion actually
@@ -106,7 +119,7 @@ serve(async (req) => {
     // skipping it there roughly halves grading LLM calls in the common case.
     const maxTotal = criteria.reduce((s, c) => s + c.max_points, 0);
 
-    const gradeA = await gradeOnce(cfg.prompt_text, criteria, answer, callerId);
+    const gradeA = await gradeOnce(gradingPrompt, criteria, answer, callerId);
     if (!gradeA) {
       return json({
         error: "Grading is busy right now. This is not a problem with your answer - try again in a minute.",
@@ -123,7 +136,7 @@ serve(async (req) => {
     if (Math.abs(scoreA - cfg.pass_threshold) <= NEAR_THRESHOLD) {
       // A close call is exactly the case where a second opinion matters most
       // — do not silently fall back to a single grader for a borderline score.
-      const gradeB = await gradeOnce(cfg.prompt_text, criteria, answer, callerId);
+      const gradeB = await gradeOnce(gradingPrompt, criteria, answer, callerId);
       if (!gradeB) {
         return json({
           error: "Grading is busy right now. This is not a problem with your answer - try again in a minute.",

@@ -12,9 +12,15 @@ const CodeSandboxEmbed = ({ template, files }: CodeSandboxEmbedProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current || Object.keys(files).length === 0) return;
+    const box = containerRef.current;
+    if (!box || Object.keys(files).length === 0) return;
+    // The SDK swaps the element it is given for its iframe. Give it a child
+    // React does not own; handing it React's own div crashed the whole lesson
+    // window when a student moved from one step to a step with a sandbox.
+    const host = document.createElement("div");
+    box.replaceChildren(host);
     sdk.embedProject(
-      containerRef.current,
+      host,
       {
         title: "Try it",
         description: "",
@@ -30,7 +36,8 @@ const CodeSandboxEmbed = ({ template, files }: CodeSandboxEmbedProps) => {
         forceEmbedLayout: true,
         clickToLoad: true,
       },
-    );
+    ).catch(() => { /* a failed embed leaves the lesson readable */ });
+    return () => box.replaceChildren();
   }, [template, files]);
 
   return <div ref={containerRef} className="rounded-lg overflow-hidden border" />;

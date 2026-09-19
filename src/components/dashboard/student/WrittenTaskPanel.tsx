@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { BriefCards } from "./ReadableText";
 import { Loader2, Send, Clock } from "lucide-react";
 
 interface RubricView {
@@ -112,20 +113,25 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">{view.title}</h2>
-        <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{view.prompt_text}</p>
+        <div className="mt-2"><BriefCards text={view.prompt_text} /></div>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           pass mark {view.pass_threshold}% · {view.min_words}–{view.max_words} words
         </p>
       </div>
 
       <div className="space-y-1">
-        <ul className="space-y-1 text-sm text-muted-foreground">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">How it is marked</p>
+        <div className="grid gap-2 sm:grid-cols-2">
           {view.criteria.map((c) => (
-            <li key={c.id}>
-              <span className="font-medium text-foreground">{c.name}</span> ({c.max_points} pts) — {c.description}
-            </li>
+            <div key={c.id} className="rounded-lg border p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">{c.name}</span>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[11px] text-primary">{c.max_points} pts</span>
+              </div>
+              <p className="mt-1 text-muted-foreground">{c.description}</p>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
 
       <Textarea

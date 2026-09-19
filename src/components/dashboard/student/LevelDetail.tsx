@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { readFunctionError } from "@/lib/functionError";
 import CodeSandboxEmbed from "./CodeSandboxEmbed";
 import CodeSnapshot from "./CodeSnapshot";
+import { InlineText, ParagraphCards } from "./ReadableText";
 import {
   ArrowRight,
   Check,
@@ -40,7 +41,7 @@ interface CodeExampleSpec {
 /** Somewhere to go and learn this properly. A search phrase where the model
  *  was not certain of a URL, because a 404 in a lesson is worse than no link. */
 interface TopicResource {
-  kind: "docs" | "video";
+  kind: "docs" | "video" | "repo";
   label: string;
   url: string | null;
   search: string | null;
@@ -265,13 +266,11 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                 </div>
               )}
 
-              <div className="space-y-3">
-                {data.explanation.split(/\n{2,}/).map((para, i) => (
-                  <p key={i} className="text-[15px] leading-relaxed">
-                    {para.trim()}
-                  </p>
-                ))}
-              </div>
+              {!isCheckpoint && data.step_index && data.total_steps > 0 && (
+                <Progress value={(data.step_index / data.total_steps) * 100} className="h-1.5" />
+              )}
+
+              <ParagraphCards text={data.explanation} />
 
               {data.sandbox && (
                 <div className="space-y-1.5">
@@ -318,10 +317,10 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                           rel="noreferrer"
                           className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm hover:border-primary transition-colors"
                         >
-                          <span className="text-base leading-none">{r.kind === "video" ? "▶" : "📄"}</span>
+                          <span className="text-base leading-none">{r.kind === "video" ? "▶" : r.kind === "repo" ? "⭐" : "📄"}</span>
                           <span className="min-w-0 flex-1 truncate">{r.label}</span>
                           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {r.url ? "open" : "search"}
+                            {r.kind === "repo" ? "github" : r.url ? "open" : "search"}
                           </span>
                         </a>
                       );
@@ -345,9 +344,15 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                 {data.quiz.length} questions on everything above. Pass and the next topic opens.
               </p>
               {data.quiz.map((q, qi) => (
-                <div key={q.id} className="space-y-2">
+                <div
+                  key={q.id}
+                  className={`space-y-3 rounded-lg border p-4 shadow-sm ${answers[q.id] !== undefined ? "border-primary/40" : ""}`}
+                >
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Question {qi + 1} of {data.quiz.length}
+                  </p>
                   <p className="text-sm font-medium leading-snug">
-                    {qi + 1}. {q.prompt}
+                    <InlineText text={q.prompt} />
                   </p>
                   <div className="space-y-1.5">
                     {q.options.map((option, oi) => {
@@ -357,13 +362,20 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                           key={oi}
                           type="button"
                           onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: oi }))}
-                          className={`w-full text-left text-sm rounded-md border px-3 py-2 transition-colors ${
+                          className={`flex w-full items-start gap-3 text-left text-sm rounded-md border px-3 py-2 transition-colors ${
                             selected
                               ? "border-primary bg-primary/10 font-medium"
                               : "hover:bg-muted/60"
                           }`}
                         >
-                          {option}
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] ${
+                              selected ? "border-primary bg-primary text-primary-foreground" : ""
+                            }`}
+                          >
+                            {String.fromCharCode(65 + oi)}
+                          </span>
+                          <span><InlineText text={option} /></span>
                         </button>
                       );
                     })}
@@ -409,7 +421,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                   teaching happens — worth reading whether they passed or not. */}
               <div className="space-y-3">
                 {result.results.map((r, i) => (
-                  <div key={r.question_id} className="rounded-md border p-3">
+                  <div key={r.question_id} className={`rounded-lg border p-3 shadow-sm ${r.correct ? "border-emerald-500/30" : "border-destructive/30"}`}>
                     <p className="text-sm font-medium flex items-start gap-2">
                       {r.correct ? (
                         <Check className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
@@ -417,7 +429,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                         <X className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
                       )}
                       <span>
-                        {i + 1}. {r.prompt}
+                        {i + 1}. <InlineText text={r.prompt} />
                       </span>
                     </p>
                     {!r.correct && (
@@ -426,7 +438,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                         {data.quiz.find((q) => q.id === r.question_id)?.options[r.correct_index]}
                       </p>
                     )}
-                    <p className="text-sm text-muted-foreground mt-1 pl-6">{r.explanation}</p>
+                    <p className="text-sm text-muted-foreground mt-1 pl-6"><InlineText text={r.explanation} /></p>
                   </div>
                 ))}
               </div>

@@ -33,7 +33,7 @@ const SLUGS = [
   'resume-jd-match', 'resume-parser', 'resume-question-generator',
   'resume-retest-generate', 'resume-voice-verify', 'run-sandbox', 'security-log',
   'scheduled-job', 'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
-  'submit-written-task', 'test-github-connection', 'trust-compute',
+  'submit-written-task', 'task-explain', 'test-github-connection', 'trust-compute',
   'verify-proof', 'voice-score',
 ];
 

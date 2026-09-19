@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SeasonPhaseBar, { useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
 import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Video, Trophy, Crown, Medal, Award } from "lucide-react";
+import { Users, Trophy, Crown, Medal, Award } from "lucide-react";
 import { format, startOfWeek, addDays, isWithinInterval } from "date-fns";
 import StudentSeasonReport from "./StudentSeasonReport";
 
@@ -30,7 +30,6 @@ interface Member {
   student_id: string;
   role: string | null;
   contribution: number;
-  meet_url: string | null;
   student_profiles: { full_name: string; total_xp: number } | null;
 }
 
@@ -91,7 +90,7 @@ const StudentSquadPage = () => {
       supabase.from("squads").select("*").eq("id", membership.squad_id).maybeSingle(),
       supabase
         .from("squad_members")
-        .select("student_id, role, contribution, meet_url, student_profiles(full_name, total_xp)")
+        .select("student_id, role, contribution, student_profiles(full_name, total_xp)")
         .eq("squad_id", membership.squad_id)
         // Joined order, not contribution order. The architecture is explicit
         // that a squad is cooperative and that students are not to be ranked
@@ -287,8 +286,7 @@ const StudentSquadPage = () => {
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     <th className="pb-2 pr-3">Member</th>
                     <th className="pb-2 pr-3">Role</th>
-                    <th className="pb-2 pr-3">Contribution</th>
-                    <th className="pb-2"></th>
+                    <th className="pb-2">Contribution</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -304,19 +302,7 @@ const StudentSquadPage = () => {
                         )}
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{m.role ?? "—"}</td>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{m.contribution}</td>
-                      <td className="py-2.5">
-                        {m.meet_url && (
-                          <a
-                            href={m.meet_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                          >
-                            <Video className="h-3 w-3" /> Meet
-                          </a>
-                        )}
-                      </td>
+                      <td className="py-2.5 font-mono tabular-nums">{m.contribution}</td>
                     </tr>
                   ))}
                 </tbody>

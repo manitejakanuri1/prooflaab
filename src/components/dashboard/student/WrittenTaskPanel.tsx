@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BriefCards } from "./ReadableText";
+import SimpleExplainer from "./SimpleExplainer";
 import { Loader2, Send, Clock } from "lucide-react";
 
 interface RubricView {
@@ -113,7 +114,9 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">{view.title}</h2>
-        <div className="mt-2"><BriefCards text={view.prompt_text} /></div>
+        <div className="mt-3"><SimpleExplainer taskId={taskId} /></div>
+        <p className="mt-3 mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">The full question</p>
+        <BriefCards text={view.prompt_text} />
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           pass mark {view.pass_threshold}% · {view.min_words}–{view.max_words} words
         </p>

@@ -1,0 +1,1422 @@
+{
+ "AllThingsSmitty/css-protips": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collection of tips to help take your CSS skills pro. \ud83d\udd79 ",
+  "lic": "CC0-1.0",
+  "name": "AllThingsSmitty/css-protips",
+  "pushed": "2026-09-18",
+  "stars": 30285,
+  "copy_ok": true
+ },
+ "AnthonyCalandra/modern-cpp-features": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A cheatsheet of modern C++ language and library features.",
+  "lic": "MIT",
+  "name": "AnthonyCalandra/modern-cpp-features",
+  "pushed": "2026-06-09",
+  "stars": 21879,
+  "copy_ok": true
+ },
+ "AtsushiSakai/PythonRobotics": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Python sample codes and textbook for robotics algorithms.",
+  "lic": "NOASSERTION",
+  "name": "AtsushiSakai/PythonRobotics",
+  "pushed": "2026-09-14",
+  "stars": 30542,
+  "copy_ok": false
+ },
+ "CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers": {
+  "archived": false,
+  "branch": "master",
+  "desc": "aka \"Bayesian Methods for Hackers\": An introduction to Bayesian methods + probabilistic programming with a computation/understanding-first, mathematics-second point of view. All in pure Python ;)  ",
+  "lic": "MIT",
+  "name": "CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers",
+  "pushed": "2024-06-25",
+  "stars": 28192,
+  "copy_ok": true
+ },
+ "Cyfrin/foundry-full-course-cu": {
+  "archived": false,
+  "branch": "main",
+  "desc": null,
+  "lic": "GPL-3.0",
+  "name": "Cyfrin/foundry-full-course-cu",
+  "pushed": "2026-07-08",
+  "stars": 5862,
+  "copy_ok": false
+ },
+ "Cyfrin/solidity-by-example.github.io": {
+  "archived": false,
+  "branch": "gh-pages",
+  "desc": "Solidity By Example",
+  "lic": "MIT",
+  "name": "Cyfrin/solidity-by-example.github.io",
+  "pushed": "2026-01-20",
+  "stars": 684,
+  "copy_ok": true
+ },
+ "FreeRTOS/FreeRTOS": {
+  "archived": false,
+  "branch": "main",
+  "desc": "'Classic' FreeRTOS distribution.  Started as Git clone of FreeRTOS SourceForge SVN repo.  Submodules the kernel.",
+  "lic": "MIT",
+  "name": "FreeRTOS/FreeRTOS",
+  "pushed": "2026-08-26",
+  "stars": 7811,
+  "copy_ok": true
+ },
+ "GoogleCloudPlatform/training-data-analyst": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Labs and demos for courses for GCP Training (http://cloud.google.com/training).",
+  "lic": "Apache-2.0",
+  "name": "GoogleCloudPlatform/training-data-analyst",
+  "pushed": "2026-09-16",
+  "stars": 8641,
+  "copy_ok": true
+ },
+ "HQarroum/awesome-iot": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83e\udd16 A curated list of awesome Internet of Things projects and resources.",
+  "lic": "MIT",
+  "name": "HQarroum/awesome-iot",
+  "pushed": "2026-08-10",
+  "stars": 4509,
+  "copy_ok": true
+ },
+ "Heapy/awesome-kotlin": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A curated list of awesome Kotlin related stuff Inspired by awesome-java. ",
+  "lic": "Apache-2.0",
+  "name": "Heapy/awesome-kotlin",
+  "pushed": "2026-09-18",
+  "stars": 11380,
+  "copy_ok": true
+ },
+ "MicrosoftDocs/azure-docs": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Open source documentation of Microsoft Azure",
+  "lic": "CC-BY-4.0",
+  "name": "MicrosoftDocs/azure-docs",
+  "pushed": "2026-09-19",
+  "stars": 10972,
+  "copy_ok": true
+ },
+ "MicrosoftLearning/AZ-104-MicrosoftAzureAdministrator": {
+  "archived": false,
+  "branch": "master",
+  "desc": "AZ-104 Microsoft Azure Administrator",
+  "lic": "MIT",
+  "name": "MicrosoftLearning/AZ-104-MicrosoftAzureAdministrator",
+  "pushed": "2026-08-26",
+  "stars": 4633,
+  "copy_ok": true
+ },
+ "NirDiamant/GenAI_Agents": {
+  "archived": false,
+  "branch": "main",
+  "desc": "50+ tutorials and implementations for Generative AI Agent techniques, from basic conversational bots to complex multi-agent systems.",
+  "lic": "NOASSERTION",
+  "name": "NirDiamant/GenAI_Agents",
+  "pushed": "2026-09-19",
+  "stars": 24328,
+  "copy_ok": false
+ },
+ "NirDiamant/RAG_Techniques": {
+  "archived": false,
+  "branch": "main",
+  "desc": "This repository showcases various advanced techniques for Retrieval-Augmented Generation (RAG) systems. Each technique has a detailed notebook tutorial.",
+  "lic": "NOASSERTION",
+  "name": "NirDiamant/RAG_Techniques",
+  "pushed": "2026-09-18",
+  "stars": 29545,
+  "copy_ok": false
+ },
+ "NomicFoundation/hardhat": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Hardhat is a development environment to compile, deploy, test, and debug your Ethereum software. ",
+  "lic": "NOASSERTION",
+  "name": "NomicFoundation/hardhat",
+  "pushed": "2026-09-18",
+  "stars": 8506,
+  "copy_ok": false
+ },
+ "OWASP/CheatSheetSeries": {
+  "archived": false,
+  "branch": "master",
+  "desc": "The OWASP Cheat Sheet Series was created to provide a concise collection of high value information on specific application security topics.",
+  "lic": "CC-BY-SA-4.0",
+  "name": "OWASP/CheatSheetSeries",
+  "pushed": "2026-09-18",
+  "stars": 33225,
+  "copy_ok": true
+ },
+ "OWASP/Top10": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Official OWASP Top 10 Document Repository",
+  "lic": "NOASSERTION",
+  "name": "OWASP/Top10",
+  "pushed": "2026-09-10",
+  "stars": 6099,
+  "copy_ok": false
+ },
+ "OWASP/wstg": {
+  "archived": false,
+  "branch": "master",
+  "desc": "The Web Security Testing Guide is a comprehensive Open Source guide to testing the security of web applications and web services.",
+  "lic": "CC-BY-SA-4.0",
+  "name": "OWASP/wstg",
+  "pushed": "2026-09-18",
+  "stars": 9855,
+  "copy_ok": true
+ },
+ "PatrickJS/awesome-angular": {
+  "archived": false,
+  "branch": "gh-pages",
+  "desc": ":page_facing_up: A curated list of awesome Angular resources",
+  "lic": "CC0-1.0",
+  "name": "PatrickJS/awesome-angular",
+  "pushed": "2026-09-18",
+  "stars": 10076,
+  "copy_ok": true
+ },
+ "Solido/awesome-flutter": {
+  "archived": false,
+  "branch": "master",
+  "desc": "An awesome list that curates the best Flutter libraries, tools, tutorials, articles and more.",
+  "lic": "none",
+  "name": "Solido/awesome-flutter",
+  "pushed": "2026-09-03",
+  "stars": 61241,
+  "copy_ok": false
+ },
+ "TheAlgorithms/Java": {
+  "archived": false,
+  "branch": "master",
+  "desc": "All Algorithms implemented in Java",
+  "lic": "MIT",
+  "name": "TheAlgorithms/Java",
+  "pushed": "2026-09-19",
+  "stars": 66277,
+  "copy_ok": true
+ },
+ "TheAlgorithms/Python": {
+  "archived": false,
+  "branch": "master",
+  "desc": "All Algorithms implemented in Python",
+  "lic": "MIT",
+  "name": "TheAlgorithms/Python",
+  "pushed": "2026-09-19",
+  "stars": 224759,
+  "copy_ok": true
+ },
+ "a11yproject/a11yproject.com": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The A11Y Project is a community-driven effort to make digital accessibility easier.",
+  "lic": "Apache-2.0",
+  "name": "a11yproject/a11yproject.com",
+  "pushed": "2026-08-31",
+  "stars": 3890,
+  "copy_ok": true
+ },
+ "ageron/handson-ml3": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A series of Jupyter notebooks that walk you through the fundamentals of Machine Learning and Deep Learning in Python using Scikit-Learn, Keras and TensorFlow 2.",
+  "lic": "Apache-2.0",
+  "name": "ageron/handson-ml3",
+  "pushed": "2026-05-19",
+  "stars": 14172,
+  "copy_ok": true
+ },
+ "agmmnn/awesome-blender": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83e\ude90 A curated list of awesome Blender addons, tools, tutorials; and 3D resources for everyone.",
+  "lic": "CC0-1.0",
+  "name": "agmmnn/awesome-blender",
+  "pushed": "2026-01-22",
+  "stars": 7341,
+  "copy_ok": true
+ },
+ "agucova/awesome-esp": {
+  "archived": false,
+  "branch": "main",
+  "desc": "\ud83d\udcf6 A curated list of awesome ESP8266/32 projects and code",
+  "lic": "CC0-1.0",
+  "name": "agucova/awesome-esp",
+  "pushed": "2026-05-09",
+  "stars": 2695,
+  "copy_ok": true
+ },
+ "akullpp/awesome-java": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A curated list of awesome frameworks, libraries and software for the Java programming language.",
+  "lic": "CC-BY-SA-4.0",
+  "name": "akullpp/awesome-java",
+  "pushed": "2026-09-19",
+  "stars": 49048,
+  "copy_ok": true
+ },
+ "alexpate/awesome-design-systems": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83d\udc85\ud83c\udffb \u2692 A collection of awesome design systems",
+  "lic": "Unlicense",
+  "name": "alexpate/awesome-design-systems",
+  "pushed": "2026-04-28",
+  "stars": 25980,
+  "copy_ok": true
+ },
+ "android/codelab-android-room-with-a-view": {
+  "archived": true,
+  "branch": "master",
+  "desc": null,
+  "lic": "Apache-2.0",
+  "name": "android/codelab-android-room-with-a-view",
+  "pushed": "2024-12-09",
+  "stars": 766,
+  "copy_ok": true
+ },
+ "android/compose-samples": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Official Jetpack Compose samples.",
+  "lic": "Apache-2.0",
+  "name": "android/compose-samples",
+  "pushed": "2026-09-18",
+  "stars": 23465,
+  "copy_ok": true
+ },
+ "aniftyco/awesome-tailwindcss": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83d\ude0e Awesome things related to Tailwind CSS",
+  "lic": "CC0-1.0",
+  "name": "aniftyco/awesome-tailwindcss",
+  "pushed": "2026-08-14",
+  "stars": 15184,
+  "copy_ok": true
+ },
+ "anthropics/claude-cookbooks": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A collection of notebooks/recipes showcasing some fun and effective ways of using Claude.",
+  "lic": "MIT",
+  "name": "anthropics/claude-cookbooks",
+  "pushed": "2026-09-18",
+  "stars": 52821,
+  "copy_ok": true
+ },
+ "anthropics/courses": {
+  "archived": true,
+  "branch": "master",
+  "desc": "Anthropic's educational courses",
+  "lic": "NOASSERTION",
+  "name": "anthropics/courses",
+  "pushed": "2026-08-28",
+  "stars": 22846,
+  "copy_ok": false
+ },
+ "anthropics/prompt-eng-interactive-tutorial": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Anthropic's Interactive Prompt Engineering Tutorial",
+  "lic": "none",
+  "name": "anthropics/prompt-eng-interactive-tutorial",
+  "pushed": "2026-08-28",
+  "stars": 38237,
+  "copy_ok": false
+ },
+ "awesome-mqtt/awesome-mqtt": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Curated list of MQTT brokers, clients, tools, resources and more.",
+  "lic": "CC0-1.0",
+  "name": "awesome-mqtt/awesome-mqtt",
+  "pushed": "2026-09-17",
+  "stars": 2398,
+  "copy_ok": true
+ },
+ "baba-s/awesome-unity-open-source-on-github": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A categorized collection of awesome Unity open source on GitHub (800+)",
+  "lic": "Unlicense",
+  "name": "baba-s/awesome-unity-open-source-on-github",
+  "pushed": "2026-02-02",
+  "stars": 4476,
+  "copy_ok": true
+ },
+ "basarat/typescript-book": {
+  "archived": false,
+  "branch": "master",
+  "desc": ":books: The definitive guide to TypeScript and possibly the best TypeScript book :book:. Free and Open Source \ud83c\udf39",
+  "lic": "NOASSERTION",
+  "name": "basarat/typescript-book",
+  "pushed": "2024-06-29",
+  "stars": 21557,
+  "copy_ok": false
+ },
+ "bregman-arie/devops-exercises": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Linux, Jenkins, AWS, SRE, Prometheus, Docker, Python, Ansible, Git, Kubernetes, Terraform, OpenStack, SQL, NoSQL, Azure, GCP, DNS, Elastic, Network, Virtualization. DevOps Interview Questions",
+  "lic": "NOASSERTION",
+  "name": "bregman-arie/devops-exercises",
+  "pushed": "2025-12-27",
+  "stars": 84524,
+  "copy_ok": false
+ },
+ "brunopulis/awesome-a11y": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A curate list about A11Y",
+  "lic": "CC0-1.0",
+  "name": "brunopulis/awesome-a11y",
+  "pushed": "2026-08-03",
+  "stars": 1989,
+  "copy_ok": true
+ },
+ "cicdops/awesome-ciandcd": {
+  "archived": false,
+  "branch": "master",
+  "desc": "continuous integration and continuous delivery",
+  "lic": "GPL-2.0",
+  "name": "cicdops/awesome-ciandcd",
+  "pushed": "2026-04-14",
+  "stars": 2011,
+  "copy_ok": false
+ },
+ "crytic/building-secure-contracts": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Guidelines and training material to write secure smart contracts",
+  "lic": "AGPL-3.0",
+  "name": "crytic/building-secure-contracts",
+  "pushed": "2026-04-13",
+  "stars": 2479,
+  "copy_ok": false
+ },
+ "dair-ai/Prompt-Engineering-Guide": {
+  "archived": false,
+  "branch": "main",
+  "desc": "\ud83d\udc19 Guides, papers, lessons, notebooks and resources for prompt engineering, context engineering, RAG, and AI Agents.",
+  "lic": "MIT",
+  "name": "dair-ai/Prompt-Engineering-Guide",
+  "pushed": "2026-03-11",
+  "stars": 78461,
+  "copy_ok": true
+ },
+ "dart-lang/site-www": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The source for the Dart website.",
+  "lic": "NOASSERTION",
+  "name": "dart-lang/site-www",
+  "pushed": "2026-09-16",
+  "stars": 1052,
+  "copy_ok": false
+ },
+ "denysdovhan/bash-handbook": {
+  "archived": false,
+  "branch": "master",
+  "desc": ":book: For those who wanna learn Bash",
+  "lic": "none",
+  "name": "denysdovhan/bash-handbook",
+  "pushed": "2024-02-05",
+  "stars": 6085,
+  "copy_ok": false
+ },
+ "dhamaniasad/awesome-postgres": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list of awesome PostgreSQL software, libraries, tools and resources, inspired by awesome-mysql",
+  "lic": "CC0-1.0",
+  "name": "dhamaniasad/awesome-postgres",
+  "pushed": "2026-08-31",
+  "stars": 12100,
+  "copy_ok": true
+ },
+ "docker/awesome-compose": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Awesome Docker Compose samples",
+  "lic": "CC0-1.0",
+  "name": "docker/awesome-compose",
+  "pushed": "2026-09-19",
+  "stars": 46370,
+  "copy_ok": true
+ },
+ "donnemartin/awesome-aws": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list of awesome Amazon Web Services (AWS) libraries, open source repos, guides, blogs, and other resources.  Featuring the Fiery Meter of AWSome.",
+  "lic": "NOASSERTION",
+  "name": "donnemartin/awesome-aws",
+  "pushed": "2024-03-12",
+  "stars": 14146,
+  "copy_ok": false
+ },
+ "donnemartin/system-design-primer": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Learn how to design large-scale systems. Prep for the system design interview.  Includes Anki flashcards.",
+  "lic": "NOASSERTION",
+  "name": "donnemartin/system-design-primer",
+  "pushed": "2026-09-15",
+  "stars": 370731,
+  "copy_ok": false
+ },
+ "dylanaraps/pure-bash-bible": {
+  "archived": true,
+  "branch": "master",
+  "desc": "\ud83d\udcd6 A collection of pure bash alternatives to external processes.",
+  "lic": "MIT",
+  "name": "dylanaraps/pure-bash-bible",
+  "pushed": "2023-11-28",
+  "stars": 41716,
+  "copy_ok": true
+ },
+ "ellisonleao/magictools": {
+  "archived": false,
+  "branch": "main",
+  "desc": ":video_game: :pencil: A list of Game Development resources to make magic happen.",
+  "lic": "MIT",
+  "name": "ellisonleao/magictools",
+  "pushed": "2026-09-14",
+  "stars": 17330,
+  "copy_ok": true
+ },
+ "enaqx/awesome-react": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collection of awesome things regarding React ecosystem",
+  "lic": "none",
+  "name": "enaqx/awesome-react",
+  "pushed": "2026-09-04",
+  "stars": 74649,
+  "copy_ok": false
+ },
+ "enochtangg/quick-SQL-cheatsheet": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A quick reminder of all SQL queries and examples on how to use them. ",
+  "lic": "MIT",
+  "name": "enochtangg/quick-SQL-cheatsheet",
+  "pushed": "2020-10-01",
+  "stars": 5460,
+  "copy_ok": true
+ },
+ "espressif/esp-idf": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Espressif IoT Development Framework. Official development framework for Espressif SoCs.",
+  "lic": "Apache-2.0",
+  "name": "espressif/esp-idf",
+  "pushed": "2026-09-18",
+  "stars": 19052,
+  "copy_ok": true
+ },
+ "ethereumbook/ethereumbook": {
+  "archived": false,
+  "branch": "develop",
+  "desc": "Mastering Ethereum: 2nd Edition, by Andreas M. Antonopoulos, Gavin Wood, Carlo Parisi, Alessandro Mazza, Niccol\u00f2 Pozzolini",
+  "lic": "none",
+  "name": "ethereumbook/ethereumbook",
+  "pushed": "2026-09-18",
+  "stars": 21531,
+  "copy_ok": false
+ },
+ "ethers-io/ethers.js": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Complete Ethereum library and wallet implementation in JavaScript.",
+  "lic": "MIT",
+  "name": "ethers-io/ethers.js",
+  "pushed": "2026-06-18",
+  "stars": 8714,
+  "copy_ok": true
+ },
+ "expressjs/expressjs.com": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The Express.js Website",
+  "lic": "CC-BY-4.0",
+  "name": "expressjs/expressjs.com",
+  "pushed": "2026-09-18",
+  "stars": 5366,
+  "copy_ok": true
+ },
+ "fastai/numerical-linear-algebra": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Free online textbook of Jupyter notebooks for fast.ai Computational Linear Algebra course",
+  "lic": "none",
+  "name": "fastai/numerical-linear-algebra",
+  "pushed": "2024-04-16",
+  "stars": 10976,
+  "copy_ok": false
+ },
+ "fastapi/fastapi": {
+  "archived": false,
+  "branch": "master",
+  "desc": "FastAPI framework, high performance, easy to learn, fast to code, ready for production",
+  "lic": "MIT",
+  "name": "fastapi/fastapi",
+  "pushed": "2026-09-18",
+  "stars": 102462,
+  "copy_ok": true
+ },
+ "fastlane/fastlane": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83d\ude80 The easiest way to automate building and releasing your iOS and Android apps",
+  "lic": "MIT",
+  "name": "fastlane/fastlane",
+  "pushed": "2026-09-19",
+  "stars": 42131,
+  "copy_ok": true
+ },
+ "fffaraz/awesome-cpp": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list of awesome C++ (or C) frameworks, libraries, resources, and shiny things. Inspired by awesome-... stuff.",
+  "lic": "MIT",
+  "name": "fffaraz/awesome-cpp",
+  "pushed": "2026-09-19",
+  "stars": 73358,
+  "copy_ok": true
+ },
+ "firebase/quickstart-android": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Firebase Quickstart Samples for Android",
+  "lic": "Apache-2.0",
+  "name": "firebase/quickstart-android",
+  "pushed": "2026-09-18",
+  "stars": 9319,
+  "copy_ok": true
+ },
+ "firebase/quickstart-js": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Firebase Quickstart Samples for Web",
+  "lic": "Apache-2.0",
+  "name": "firebase/quickstart-js",
+  "pushed": "2026-09-19",
+  "stars": 5368,
+  "copy_ok": true
+ },
+ "flutter/samples": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A collection of Flutter examples and demos",
+  "lic": "NOASSERTION",
+  "name": "flutter/samples",
+  "pushed": "2026-09-14",
+  "stars": 19267,
+  "copy_ok": false
+ },
+ "foundry-rs/book": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A book on all things Foundry, available at https://getfoundry.sh.",
+  "lic": "Apache-2.0",
+  "name": "foundry-rs/book",
+  "pushed": "2026-09-19",
+  "stars": 963,
+  "copy_ok": true
+ },
+ "fullstack-hy2020/fullstack-hy2020.github.io": {
+  "archived": false,
+  "branch": "source",
+  "desc": null,
+  "lic": "NOASSERTION",
+  "name": "fullstack-hy2020/fullstack-hy2020.github.io",
+  "pushed": "2026-09-15",
+  "stars": 2226,
+  "copy_ok": false
+ },
+ "getify/You-Dont-Know-JS": {
+  "archived": false,
+  "branch": "2nd-ed",
+  "desc": "A book series (2 published editions) on the JS language.",
+  "lic": "NOASSERTION",
+  "name": "getify/You-Dont-Know-JS",
+  "pushed": "2026-02-15",
+  "stars": 184919,
+  "copy_ok": false
+ },
+ "git-tips/tips": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Most commonly used git tips and tricks.",
+  "lic": "MIT",
+  "name": "git-tips/tips",
+  "pushed": "2026-09-17",
+  "stars": 21724,
+  "copy_ok": true
+ },
+ "goabstract/Awesome-Design-Tools": {
+  "archived": false,
+  "branch": "master",
+  "desc": "The best design tools and plugins for everything \ud83d\udc49",
+  "lic": "MIT",
+  "name": "goabstract/Awesome-Design-Tools",
+  "pushed": "2024-07-28",
+  "stars": 41247,
+  "copy_ok": true
+ },
+ "goldbergyoni/nodebestpractices": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\u2705 The Node.js best practices list (July 2026)",
+  "lic": "CC-BY-SA-4.0",
+  "name": "goldbergyoni/nodebestpractices",
+  "pushed": "2026-06-15",
+  "stars": 105627,
+  "copy_ok": true
+ },
+ "grafana/grafana": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The open and composable observability and data visualization platform. Visualize metrics, logs, and traces from multiple sources like Prometheus, Loki, Elasticsearch, InfluxDB, Postgres and many more. ",
+  "lic": "AGPL-3.0",
+  "name": "grafana/grafana",
+  "pushed": "2026-09-19",
+  "stars": 76807,
+  "copy_ok": false
+ },
+ "guipsamora/pandas_exercises": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Practice your pandas skills!",
+  "lic": "BSD-3-Clause",
+  "name": "guipsamora/pandas_exercises",
+  "pushed": "2025-10-17",
+  "stars": 13098,
+  "copy_ok": true
+ },
+ "gztchan/awesome-design": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83c\udf1f Curated design resources from all over the world.",
+  "lic": "none",
+  "name": "gztchan/awesome-design",
+  "pushed": "2024-07-04",
+  "stars": 17548,
+  "copy_ok": false
+ },
+ "huggingface/course": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The Hugging Face course on Transformers",
+  "lic": "Apache-2.0",
+  "name": "huggingface/course",
+  "pushed": "2026-09-17",
+  "stars": 4227,
+  "copy_ok": true
+ },
+ "huggingface/transformers": {
+  "archived": false,
+  "branch": "main",
+  "desc": "\ud83e\udd17 Transformers: the model-definition framework for state-of-the-art machine learning models in text, vision, audio, and multimodal models, for both inference and training. ",
+  "lic": "Apache-2.0",
+  "name": "huggingface/transformers",
+  "pushed": "2026-09-19",
+  "stars": 166340,
+  "copy_ok": true
+ },
+ "iluwatar/java-design-patterns": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Design patterns implemented in Java",
+  "lic": "NOASSERTION",
+  "name": "iluwatar/java-design-patterns",
+  "pushed": "2026-09-13",
+  "stars": 94707,
+  "copy_ok": false
+ },
+ "infosecn1nja/AD-Attack-Defense": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Attack and defend active directory using modern post exploitation adversary tradecraft activity",
+  "lic": "none",
+  "name": "infosecn1nja/AD-Attack-Defense",
+  "pushed": "2025-07-29",
+  "stars": 4860,
+  "copy_ok": false
+ },
+ "insthync/awesome-unreal": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A categorized collection of awesome opensource Unreal Engine 4 and 5 repos",
+  "lic": "Unlicense",
+  "name": "insthync/awesome-unreal",
+  "pushed": "2026-09-14",
+  "stars": 1624,
+  "copy_ok": true
+ },
+ "jakevdp/PythonDataScienceHandbook": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Python Data Science Handbook: full text in Jupyter Notebooks",
+  "lic": "MIT",
+  "name": "jakevdp/PythonDataScienceHandbook",
+  "pushed": "2024-06-26",
+  "stars": 49928,
+  "copy_ok": true
+ },
+ "jasonniebauer/Nmap-Cheatsheet": {
+  "archived": false,
+  "branch": "master",
+  "desc": ":notebook: Reference guide for scanning networks with Nmap.",
+  "lic": "none",
+  "name": "jasonniebauer/Nmap-Cheatsheet",
+  "pushed": "2019-11-05",
+  "stars": 733,
+  "copy_ok": false
+ },
+ "javascript-tutorial/en.javascript.info": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Modern JavaScript Tutorial ",
+  "lic": "NOASSERTION",
+  "name": "javascript-tutorial/en.javascript.info",
+  "pushed": "2026-07-25",
+  "stars": 25474,
+  "copy_ok": false
+ },
+ "jenkinsci/pipeline-examples": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collection of examples, tips and tricks and snippets of scripting for the Jenkins Pipeline plugin",
+  "lic": "MIT",
+  "name": "jenkinsci/pipeline-examples",
+  "pushed": "2023-08-31",
+  "stars": 4289,
+  "copy_ok": true
+ },
+ "jetpack-compose/jetpack-compose-awesome": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83d\udcdd A curated list of awesome Jetpack Compose libraries, projects, articles and resources",
+  "lic": "none",
+  "name": "jetpack-compose/jetpack-compose-awesome",
+  "pushed": "2024-08-12",
+  "stars": 2604,
+  "copy_ok": false
+ },
+ "jlevy/the-art-of-command-line": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Master the command line, in one page",
+  "lic": "none",
+  "name": "jlevy/the-art-of-command-line",
+  "pushed": "2024-06-25",
+  "stars": 162445,
+  "copy_ok": false
+ },
+ "jondot/awesome-react-native": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Awesome React Native components, news, tools, and learning material!",
+  "lic": "none",
+  "name": "jondot/awesome-react-native",
+  "pushed": "2026-08-26",
+  "stars": 35700,
+  "copy_ok": false
+ },
+ "jvns/pandas-cookbook": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Recipes for using Python's pandas library",
+  "lic": "none",
+  "name": "jvns/pandas-cookbook",
+  "pushed": "2024-10-24",
+  "stars": 7118,
+  "copy_ok": false
+ },
+ "k88hudson/git-flight-rules": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Flight rules for git",
+  "lic": "CC-BY-SA-4.0",
+  "name": "k88hudson/git-flight-rules",
+  "pushed": "2026-07-23",
+  "stars": 42592,
+  "copy_ok": true
+ },
+ "kelseyhightower/kubernetes-the-hard-way": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Bootstrap Kubernetes the hard way. No scripts.",
+  "lic": "Apache-2.0",
+  "name": "kelseyhightower/kubernetes-the-hard-way",
+  "pushed": "2025-04-10",
+  "stars": 49781,
+  "copy_ok": true
+ },
+ "krahets/hello-algo": {
+  "archived": false,
+  "branch": "main",
+  "desc": "\u300aHello \u7b97\u6cd5\u300b\uff1a\u52a8\u753b\u56fe\u89e3\u3001\u4e00\u952e\u8fd0\u884c\u7684\u6570\u636e\u7ed3\u6784\u4e0e\u7b97\u6cd5\u6559\u7a0b\u3002\u652f\u6301\u7b80\u4e2d\u3001\u7e41\u4e2d\u3001English\u3001\u65e5\u672c\u8a9e\uff0c\u63d0\u4f9b Python, Java, C++, C, C#, JS, Go, Swift, Rust, Ruby, Kotlin, TS, Dart \u7b49\u4ee3\u7801\u5b9e\u73b0",
+  "lic": "NOASSERTION",
+  "name": "krahets/hello-algo",
+  "pushed": "2026-08-17",
+  "stars": 130279,
+  "copy_ok": false
+ },
+ "leonardomso/33-js-concepts": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83d\udcdc 33 JavaScript concepts every developer should know.",
+  "lic": "MIT",
+  "name": "leonardomso/33-js-concepts",
+  "pushed": "2026-09-10",
+  "stars": 66526,
+  "copy_ok": true
+ },
+ "markusschanta/awesome-jupyter": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list of awesome Jupyter projects, libraries and resources",
+  "lic": "CC-BY-SA-4.0",
+  "name": "markusschanta/awesome-jupyter",
+  "pushed": "2026-09-18",
+  "stars": 4671,
+  "copy_ok": true
+ },
+ "matteocrippa/awesome-swift": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collaborative list of awesome Swift libraries and resources. Feel free to contribute!",
+  "lic": "CC0-1.0",
+  "name": "matteocrippa/awesome-swift",
+  "pushed": "2026-09-01",
+  "stars": 26263,
+  "copy_ok": true
+ },
+ "mdn/content": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The official source for MDN Web Docs content. Home to over 14,000 pages of documentation about HTML, CSS, JS, HTTP, Web APIs, and more.",
+  "lic": "NOASSERTION",
+  "name": "mdn/content",
+  "pushed": "2026-09-19",
+  "stars": 11001,
+  "copy_ok": false
+ },
+ "microsoft/ML-For-Beginners": {
+  "archived": false,
+  "branch": "main",
+  "desc": "12 weeks, 26 lessons, 52 quizzes, classic Machine Learning for all",
+  "lic": "MIT",
+  "name": "microsoft/ML-For-Beginners",
+  "pushed": "2026-09-15",
+  "stars": 90709,
+  "copy_ok": true
+ },
+ "microsoft/Web-Dev-For-Beginners": {
+  "archived": false,
+  "branch": "main",
+  "desc": "24 Lessons, 12 Weeks, Get Started as a Web Developer",
+  "lic": "MIT",
+  "name": "microsoft/Web-Dev-For-Beginners",
+  "pushed": "2026-09-19",
+  "stars": 96707,
+  "copy_ok": true
+ },
+ "microsoft/api-guidelines": {
+  "archived": false,
+  "branch": "vNext",
+  "desc": "Microsoft REST API Guidelines",
+  "lic": "NOASSERTION",
+  "name": "microsoft/api-guidelines",
+  "pushed": "2026-08-05",
+  "stars": 23335,
+  "copy_ok": false
+ },
+ "microsoft/generative-ai-for-beginners": {
+  "archived": false,
+  "branch": "main",
+  "desc": "21 Lessons, Get Started Building with Generative AI ",
+  "lic": "MIT",
+  "name": "microsoft/generative-ai-for-beginners",
+  "pushed": "2026-09-18",
+  "stars": 120062,
+  "copy_ok": true
+ },
+ "mjhea0/awesome-fastapi": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A curated list of awesome things related to FastAPI",
+  "lic": "CC0-1.0",
+  "name": "mjhea0/awesome-fastapi",
+  "pushed": "2026-08-24",
+  "stars": 11670,
+  "copy_ok": true
+ },
+ "mrdbourke/pytorch-deep-learning": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Materials for the Learn PyTorch for Deep Learning: Zero to Mastery course.",
+  "lic": "MIT",
+  "name": "mrdbourke/pytorch-deep-learning",
+  "pushed": "2026-02-11",
+  "stars": 19031,
+  "copy_ok": true
+ },
+ "nhivp/Awesome-Embedded": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list of awesome embedded programming.",
+  "lic": "Unlicense",
+  "name": "nhivp/Awesome-Embedded",
+  "pushed": "2026-09-06",
+  "stars": 9129,
+  "copy_ok": true
+ },
+ "open-guides/og-aws": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83d\udcd9 Amazon Web Services \u2014 a practical guide",
+  "lic": "CC-BY-4.0",
+  "name": "open-guides/og-aws",
+  "pushed": "2024-08-16",
+  "stars": 36467,
+  "copy_ok": true
+ },
+ "openai/openai-cookbook": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Examples and guides for using the OpenAI API",
+  "lic": "MIT",
+  "name": "openai/openai-cookbook",
+  "pushed": "2026-09-18",
+  "stars": 76069,
+  "copy_ok": true
+ },
+ "opencv/opencv": {
+  "archived": false,
+  "branch": "5.x",
+  "desc": "Open Source Computer Vision Library",
+  "lic": "Apache-2.0",
+  "name": "opencv/opencv",
+  "pushed": "2026-09-19",
+  "stars": 90891,
+  "copy_ok": true
+ },
+ "oz123/awesome-c": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list of awesome C frameworks, libraries, resources and other shiny things. Inspired by all the other awesome-... projects out there.",
+  "lic": "CC-BY-SA-4.0",
+  "name": "oz123/awesome-c",
+  "pushed": "2026-09-19",
+  "stars": 11563,
+  "copy_ok": true
+ },
+ "pingcap/awesome-database-learning": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A list of learning materials to understand databases internals",
+  "lic": "none",
+  "name": "pingcap/awesome-database-learning",
+  "pushed": "2024-08-29",
+  "stars": 11024,
+  "copy_ok": false
+ },
+ "planetopendata/awesome-sqlite": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collection of awesome sqlite tools, scripts, books, etc",
+  "lic": "CC0-1.0",
+  "name": "planetopendata/awesome-sqlite",
+  "pushed": "2026-08-22",
+  "stars": 405,
+  "copy_ok": true
+ },
+ "prometheus/docs": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Prometheus documentation: content and static site generator",
+  "lic": "Apache-2.0",
+  "name": "prometheus/docs",
+  "pushed": "2026-09-17",
+  "stars": 717,
+  "copy_ok": true
+ },
+ "public-apis/public-apis": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collective list of free APIs",
+  "lic": "MIT",
+  "name": "public-apis/public-apis",
+  "pushed": "2026-09-18",
+  "stars": 481552,
+  "copy_ok": true
+ },
+ "pytorch/tutorials": {
+  "archived": false,
+  "branch": "main",
+  "desc": "PyTorch tutorials.",
+  "lic": "BSD-3-Clause",
+  "name": "pytorch/tutorials",
+  "pushed": "2026-09-03",
+  "stars": 9334,
+  "copy_ok": true
+ },
+ "quozd/awesome-dotnet": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collection of awesome .NET libraries, tools, frameworks and software",
+  "lic": "CC0-1.0",
+  "name": "quozd/awesome-dotnet",
+  "pushed": "2026-03-26",
+  "stars": 21618,
+  "copy_ok": true
+ },
+ "ramitsurana/awesome-kubernetes": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list for awesome kubernetes sources :ship::tada:",
+  "lic": "NOASSERTION",
+  "name": "ramitsurana/awesome-kubernetes",
+  "pushed": "2026-09-03",
+  "stars": 16083,
+  "copy_ok": false
+ },
+ "ramnes/awesome-mongodb": {
+  "archived": false,
+  "branch": "master",
+  "desc": ":leaves: A curated list of awesome MongoDB resources, libraries, tools and applications",
+  "lic": "none",
+  "name": "ramnes/awesome-mongodb",
+  "pushed": "2026-09-18",
+  "stars": 2676,
+  "copy_ok": false
+ },
+ "react/react-native-website": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The React Native website and docs",
+  "lic": "MIT",
+  "name": "react/react-native-website",
+  "pushed": "2026-09-10",
+  "stars": 2160,
+  "copy_ok": true
+ },
+ "reactjs/react.dev": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The React documentation website",
+  "lic": "CC-BY-4.0",
+  "name": "reactjs/react.dev",
+  "pushed": "2026-09-18",
+  "stars": 11802,
+  "copy_ok": true
+ },
+ "ros2/ros2_documentation": {
+  "archived": false,
+  "branch": "rolling",
+  "desc": "ROS 2 docs repository",
+  "lic": "CC-BY-4.0",
+  "name": "ros2/ros2_documentation",
+  "pushed": "2026-09-18",
+  "stars": 1012,
+  "copy_ok": true
+ },
+ "rougier/matplotlib-tutorial": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Matplotlib tutorial for beginner",
+  "lic": "none",
+  "name": "rougier/matplotlib-tutorial",
+  "pushed": "2024-05-27",
+  "stars": 3174,
+  "copy_ok": false
+ },
+ "rougier/numpy-100": {
+  "archived": false,
+  "branch": "master",
+  "desc": "100 numpy exercises (with solutions)",
+  "lic": "MIT",
+  "name": "rougier/numpy-100",
+  "pushed": "2026-08-26",
+  "stars": 14479,
+  "copy_ok": true
+ },
+ "rougier/scientific-visualization-book": {
+  "archived": false,
+  "branch": "master",
+  "desc": "An open access book on scientific visualization using python and matplotlib",
+  "lic": "NOASSERTION",
+  "name": "rougier/scientific-visualization-book",
+  "pushed": "2026-01-04",
+  "stars": 11545,
+  "copy_ok": false
+ },
+ "ryanmcdermott/clean-code-javascript": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Clean Code concepts adapted for JavaScript",
+  "lic": "MIT",
+  "name": "ryanmcdermott/clean-code-javascript",
+  "pushed": "2024-07-29",
+  "stars": 94763,
+  "copy_ok": true
+ },
+ "sbilly/awesome-security": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collection of awesome software, libraries, documents, books, resources and cools stuffs about security.",
+  "lic": "MIT",
+  "name": "sbilly/awesome-security",
+  "pushed": "2026-01-11",
+  "stars": 14868,
+  "copy_ok": true
+ },
+ "sdras/awesome-actions": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A curated list of awesome actions to use on GitHub",
+  "lic": "CC0-1.0",
+  "name": "sdras/awesome-actions",
+  "pushed": "2024-09-01",
+  "stars": 28242,
+  "copy_ok": true
+ },
+ "shuaibiyy/awesome-tf": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Curated list of resources on HashiCorp's Terraform and OpenTofu",
+  "lic": "CC0-1.0",
+  "name": "shuaibiyy/awesome-tf",
+  "pushed": "2026-09-09",
+  "stars": 6593,
+  "copy_ok": true
+ },
+ "sindresorhus/awesome-nodejs": {
+  "archived": false,
+  "branch": "main",
+  "desc": ":zap: Delightful Node.js packages and resources [BECAUSE OF TOO MUCH SPAM AND LOW-QUALITY SUBMISSIONS, SUBMISSIONS ARE PAUSED TEMPORARILY]",
+  "lic": "CC0-1.0",
+  "name": "sindresorhus/awesome-nodejs",
+  "pushed": "2026-09-02",
+  "stars": 66852,
+  "copy_ok": true
+ },
+ "snoopysecurity/awesome-burp-extensions": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A curated list of amazingly awesome Burp Extensions",
+  "lic": "CC0-1.0",
+  "name": "snoopysecurity/awesome-burp-extensions",
+  "pushed": "2026-08-15",
+  "stars": 3450,
+  "copy_ok": true
+ },
+ "splunk/security_content": {
+  "archived": false,
+  "branch": "develop",
+  "desc": "Splunk Security Content",
+  "lic": "Apache-2.0",
+  "name": "splunk/security_content",
+  "pushed": "2026-09-18",
+  "stars": 1694,
+  "copy_ok": true
+ },
+ "spmallick/learnopencv": {
+  "archived": false,
+  "branch": "master",
+  "desc": "Learn OpenCV  : C++ and Python Examples",
+  "lic": "none",
+  "name": "spmallick/learnopencv",
+  "pushed": "2026-09-16",
+  "stars": 23155,
+  "copy_ok": false
+ },
+ "spring-projects/spring-petclinic": {
+  "archived": false,
+  "branch": "main",
+  "desc": "A sample Spring-based application",
+  "lic": "Apache-2.0",
+  "name": "spring-projects/spring-petclinic",
+  "pushed": "2026-08-26",
+  "stars": 9526,
+  "copy_ok": true
+ },
+ "swiftlang/swift-book": {
+  "archived": false,
+  "branch": "main",
+  "desc": "The Swift Programming Language book",
+  "lic": "Apache-2.0",
+  "name": "swiftlang/swift-book",
+  "pushed": "2026-09-15",
+  "stars": 2005,
+  "copy_ok": true
+ },
+ "tensorflow/docs": {
+  "archived": false,
+  "branch": "master",
+  "desc": "TensorFlow documentation",
+  "lic": "Apache-2.0",
+  "name": "tensorflow/docs",
+  "pushed": "2026-07-09",
+  "stars": 6333,
+  "copy_ok": true
+ },
+ "trekhleb/learn-python": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83d\udcda Playground and cheatsheet for learning Python. Collection of Python scripts that are split by topics and contain code examples with explanations.",
+  "lic": "MIT",
+  "name": "trekhleb/learn-python",
+  "pushed": "2026-04-06",
+  "stars": 18296,
+  "copy_ok": true
+ },
+ "trimstray/the-book-of-secret-knowledge": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collection of inspiring lists, manuals, cheatsheets, blogs, hacks, one-liners, cli/web tools and more.",
+  "lic": "MIT",
+  "name": "trimstray/the-book-of-secret-knowledge",
+  "pushed": "2024-11-19",
+  "stars": 244687,
+  "copy_ok": true
+ },
+ "type-challenges/type-challenges": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Collection of TypeScript type challenges with online judge",
+  "lic": "MIT",
+  "name": "type-challenges/type-challenges",
+  "pushed": "2026-05-16",
+  "stars": 48511,
+  "copy_ok": true
+ },
+ "unicodeveloper/awesome-nextjs": {
+  "archived": false,
+  "branch": "master",
+  "desc": ":notebook_with_decorative_cover: :books: A curated list of awesome resources : books, videos, articles about using Next.js (A minimalistic framework for universal server-rendered React applications) ",
+  "lic": "none",
+  "name": "unicodeveloper/awesome-nextjs",
+  "pushed": "2026-09-10",
+  "stars": 11105,
+  "copy_ok": false
+ },
+ "veggiemonk/awesome-docker": {
+  "archived": false,
+  "branch": "master",
+  "desc": ":whale: A curated list of Docker resources and projects",
+  "lic": "Apache-2.0",
+  "name": "veggiemonk/awesome-docker",
+  "pushed": "2026-09-12",
+  "stars": 36850,
+  "copy_ok": true
+ },
+ "vercel/examples": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Enjoy our curated collection of examples and solutions. Use these patterns to build your own robust and scalable applications.",
+  "lic": "MIT",
+  "name": "vercel/examples",
+  "pushed": "2026-09-17",
+  "stars": 5160,
+  "copy_ok": true
+ },
+ "vercel/next.js": {
+  "archived": false,
+  "branch": "canary",
+  "desc": "The React Framework",
+  "lic": "MIT",
+  "name": "vercel/next.js",
+  "pushed": "2026-09-19",
+  "stars": 142353,
+  "copy_ok": true
+ },
+ "vinta/awesome-python": {
+  "archived": false,
+  "branch": "master",
+  "desc": "The definitive list that answers \"I want to do X in Python, which tool should I use?\"",
+  "lic": "NOASSERTION",
+  "name": "vinta/awesome-python",
+  "pushed": "2026-09-18",
+  "stars": 321665,
+  "copy_ok": false
+ },
+ "vlondon/awesome-swiftui": {
+  "archived": false,
+  "branch": "master",
+  "desc": "A collaborative list of awesome articles, talks, books, videos and code examples about SwiftUI.",
+  "lic": "MIT",
+  "name": "vlondon/awesome-swiftui",
+  "pushed": "2026-06-10",
+  "stars": 1968,
+  "copy_ok": true
+ },
+ "vuejs/awesome-vue": {
+  "archived": false,
+  "branch": "master",
+  "desc": "\ud83c\udf89 A curated list of awesome things related to Vue.js",
+  "lic": "MIT",
+  "name": "vuejs/awesome-vue",
+  "pushed": "2026-09-18",
+  "stars": 73547,
+  "copy_ok": true
+ },
+ "vuejs/docs": {
+  "archived": false,
+  "branch": "main",
+  "desc": "\ud83d\udcc4 Documentation for Vue 3",
+  "lic": "NOASSERTION",
+  "name": "vuejs/docs",
+  "pushed": "2026-09-15",
+  "stars": 3237,
+  "copy_ok": false
+ },
+ "wazuh/wazuh-documentation": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Wazuh - Project documentation",
+  "lic": "none",
+  "name": "wazuh/wazuh-documentation",
+  "pushed": "2026-09-18",
+  "stars": 269,
+  "copy_ok": false
+ },
+ "wevm/viem": {
+  "archived": false,
+  "branch": "main",
+  "desc": "TypeScript Interface for Ethereum",
+  "lic": "NOASSERTION",
+  "name": "wevm/viem",
+  "pushed": "2026-09-18",
+  "stars": 3557,
+  "copy_ok": false
+ },
+ "yangshun/tech-interview-handbook": {
+  "archived": false,
+  "branch": "main",
+  "desc": "Curated coding interview preparation materials for busy software engineers",
+  "lic": "MIT",
+  "name": "yangshun/tech-interview-handbook",
+  "pushed": "2026-08-07",
+  "stars": 142819,
+  "copy_ok": true
+ }
+}

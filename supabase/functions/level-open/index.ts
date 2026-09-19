@@ -229,6 +229,8 @@ serve(async (req) => {
       proof: content?.proof_title ? { title: content.proof_title, brief: content.proof_brief } : null,
       // Only on the checkpoint: an explanation step has nothing to look up yet.
       resources: target.kind === 'checkpoint' ? (content?.resources ?? null) : null,
+      // Sections from open-licence repos, shown inside the step (no outside links).
+      read_more: target.kind === 'explanation' ? (content?.read_more ?? null) : null,
       status: progressById.get(target.id)?.status ?? 'opened',
       evidence: progress?.evidence ?? null,
       best_score: progress?.best_score ?? 0,

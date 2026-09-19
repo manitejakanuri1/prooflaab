@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { readFunctionError } from "@/lib/functionError";
 import CodeSandboxEmbed from "./CodeSandboxEmbed";
 import CodeSnapshot from "./CodeSnapshot";
-import { InlineText, ParagraphCards } from "./ReadableText";
+import { InlineText, ParagraphCards, ReadMoreCards, type ReadMoreSection } from "./ReadableText";
 import {
   ArrowRight,
   Check,
@@ -65,6 +65,7 @@ interface LevelPayload {
   quiz: QuizQuestion[];
   proof: { title: string; brief: string } | null;
   resources: TopicResource[] | null;
+  read_more?: ReadMoreSection[] | null;
   status: string;
   /** On a placed level: the line from their resume that earned the tick. */
   evidence: string | null;
@@ -284,6 +285,10 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                   <p className="text-xs font-medium text-muted-foreground">In code</p>
                   <CodeSnapshot language={data.code_example.language} code={data.code_example.code} />
                 </div>
+              )}
+
+              {!isCheckpoint && data.read_more && data.read_more.length > 0 && (
+                <ReadMoreCards sections={data.read_more} />
               )}
 
               {isCheckpoint && data.proof && (

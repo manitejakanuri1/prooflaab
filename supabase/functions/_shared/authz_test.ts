@@ -135,7 +135,6 @@ Deno.test('a missing owner does not match a missing caller', async () => {
 Deno.test('every function that reaches student work uses the shared helper', async () => {
   const MUST_IMPORT = [
     'proof-file-url',
-    'moss-check',
     'ai-authorship',
     'github-check',
     'question-generator',

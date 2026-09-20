@@ -24,16 +24,16 @@ const ROOT = new URL('../supabase/functions/', import.meta.url);
 /** Every function that exists, in no particular order. */
 const SLUGS = [
   'ai-authorship', 'app-guide-chat', 'assign_tasks', 'create-college-user',
-  'create-student-users', 'generate-task-ai', 'github-check', 'interests-analyze',
+  'create-student-users', 'github-check', 'interests-analyze',
   'leetcode-streak-sync', 'level-open', 'level-quiz-submit', 'levels-place',
   'levels-warm', 'lot-writer', 'mock-interview-generate', 'mock-interview-score',
-  'moss-check', 'proof-file-url', 'question-generator', 'reset-daily-credits',
-  'response-evaluator', 'resume-assessment-submit', 'resume-cert-radar',
+  'proof-file-url', 'question-generator', 
+  'response-evaluator', 'resume-assessment-submit', 
   'resume-code-execute', 'resume-coding-generate', 'resume-improve',
-  'resume-jd-match', 'resume-parser', 'resume-question-generator',
-  'resume-retest-generate', 'resume-voice-verify', 'run-sandbox', 'security-log',
+  'resume-parser', 'resume-question-generator',
+  'resume-retest-generate', 'run-sandbox', 'security-log',
   'scheduled-job', 'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
-  'submit-written-task', 'task-explain', 'test-github-connection', 'trust-compute',
+  'submit-written-task', 'task-explain', 'trust-compute',
   'verify-proof', 'voice-score',
 ];
 

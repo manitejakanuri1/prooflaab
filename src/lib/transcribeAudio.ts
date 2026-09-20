@@ -36,11 +36,22 @@ export async function transcribeWithTimestamps(
 ): Promise<{ text: string; segments: TranscriptSegment[] }> {
   onProgress?.({ stage: "transcribing" });
   const token = await currentAccessToken();
-  const res = await fetch(`${TRANSCRIBER_URL}/transcribe`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": blob.type || "audio/webm" },
-    body: blob,
-  });
+  // The transcriber handles three recordings at a time and answers "busy" (429/503,
+  // or Google's own HTML 500 page) to the rest instead of queueing them. With eleven
+  // students recording together, nine used to see an error. Wait a moment and try
+  // again: the recording is still in memory, and the free slots come back in seconds.
+  let res: Response;
+  for (let attempt = 0; ; attempt++) {
+    res = await fetch(`${TRANSCRIBER_URL}/transcribe`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": blob.type || "audio/webm" },
+      body: blob,
+    });
+    const busy = [429, 502, 503, 504].includes(res.status)
+      || (res.status === 500 && (res.headers.get("content-type") ?? "").includes("text/html"));
+    if (!busy || attempt >= 10) break;
+    await new Promise((r) => setTimeout(r, 1500 + attempt * 800 + Math.random() * 1000));
+  }
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? "Could not write down the recording.");
 

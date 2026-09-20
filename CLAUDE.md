@@ -28,7 +28,7 @@ Dashboards:
   - Cloud SQL `prooflab-db` (database `prooflab`)
   - PostgREST `prooflab-api`
   - Identity Platform + `prooflab-auth-bridge`
-  - `prooflab-functions` (43 Deno functions, AI = DeepSeek)
+  - `prooflab-functions` (36 Deno functions, AI = DeepSeek)
   - `prooflab-files`
   - `prooflab-transcriber`
   - `prooflab-accounts`
@@ -39,6 +39,7 @@ Dashboards:
 
 ## Hard rules
 
+- **A push to `main` deploys the live website** (`.github/workflows/deploy.yml`, about 4 minutes, no tests). Work on a branch; merge to `main` only when tested and the owner has said yes. It deploys the website only, never functions or the database.
 - **Never push to `origin`** (someone else's fork, `Yashwanth-pilli/prooflabai-mvp`). Push only to **`prooflaab`** (`manitejakanuri1/prooflaab`), branch `main`. Never offer to push to origin.
 - **Ask before deleting anything**: data, logins, tables, columns, functions, files, branches. Show the exact list and back up first.
 - **Nothing counts as working until a database row proves it.** `strict: false` in `tsconfig.app.json`, so the typechecker will not catch a wrong column. Prove it against the live database with a real signed-in session.

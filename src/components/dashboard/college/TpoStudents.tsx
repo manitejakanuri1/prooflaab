@@ -149,6 +149,18 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
       toast({ title: `Removed ${r.removed} student${r.removed === 1 ? "" : "s"}`,
               description: r.loginFailures ? `${r.loginFailures} login(s) could not be deleted - the nightly sync will retry.` : undefined });
       setPicked(new Set());
+      // Removing students can leave squads empty. Ask what to do with them:
+      // OK deletes them; Cancel keeps them, and the next import fills them
+      // again (form_squads seats new students in existing squads first).
+      const { data: empty } = await supabase.rpc("tpo_empty_squads" as never);
+      const n = Number(empty ?? 0);
+      const s = n === 1 ? "" : "s";
+      if (n > 0 && window.confirm(`${n} squad${s} ${n === 1 ? "is" : "are"} now empty. Remove ${n === 1 ? "it" : "them"} too?\n\nOK = remove the empty squad${s}.\nCancel = keep ${n === 1 ? "it" : "them"}; students you import next are placed in ${n === 1 ? "it" : "them"} first.`)) {
+        const { error: sqErr } = await supabase.rpc("tpo_delete_empty_squads" as never);
+        toast(sqErr
+          ? { title: "Squads not removed", description: sqErr.message, variant: "destructive" }
+          : { title: `Removed ${n} empty squad${s}` });
+      }
       await load();
     } catch (e) {
       toast({ title: "Not removed", description: (e as Error).message, variant: "destructive" });

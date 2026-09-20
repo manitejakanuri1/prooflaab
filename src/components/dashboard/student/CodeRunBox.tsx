@@ -11,6 +11,9 @@ interface CodeRunBoxProps {
 
 interface RunResult { status: "ok" | "compile_error" | "runtime_error" | "time_limit" | "busy"; stdout: string; stderr: string }
 
+// The runner's messages name its temporary folder (/tmp/run-abc/main.py); a student only needs main.py.
+const tidy = (t: string) => t.replace(/\/tmp\/run-[^/\s]+\//g, "").trim();
+
 const NAMES: Record<string, string> = { python: "Python", javascript: "JavaScript", ruby: "Ruby", php: "PHP", c: "C", cpp: "C++", go: "Go", java: "Java" };
 
 /**
@@ -91,14 +94,14 @@ const CodeRunBox = ({ language, code }: CodeRunBoxProps) => {
           {result?.status === "compile_error" && (
             <>
               <p className="mb-1 text-red-400">Your code did not compile. Read the message and fix the line it points to:</p>
-              <pre className="whitespace-pre-wrap text-red-300">{result.stderr.trim()}</pre>
+              <pre className="whitespace-pre-wrap text-red-300">{tidy(result.stderr)}</pre>
             </>
           )}
           {result?.status === "runtime_error" && (
             <>
               <p className="mb-1 text-red-400">Your code stopped with an error:</p>
               {result.stdout.trim() && <pre className="whitespace-pre-wrap text-[#d4d4d4]">{result.stdout}</pre>}
-              <pre className="whitespace-pre-wrap text-red-300">{result.stderr.trim()}</pre>
+              <pre className="whitespace-pre-wrap text-red-300">{tidy(result.stderr)}</pre>
             </>
           )}
           {result?.status === "time_limit" && (

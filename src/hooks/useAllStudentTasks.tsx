@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { tidyTitle } from "@/lib/utils";
 
 interface StudentTask {
   id: string;
@@ -159,7 +160,7 @@ export const useAllStudentTasks = () => {
 
         allTasks.push({
           id: task.id,
-          title: task.title,
+          title: task.lot_date ? tidyTitle(task.title) : task.title,
           description: task.description,
           deadline: task.due_date,
           status,

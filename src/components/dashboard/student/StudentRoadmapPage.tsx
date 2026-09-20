@@ -88,6 +88,9 @@ const StudentRoadmapPage = () => {
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Your learning path: lessons and quizzes, step by step. Your one task for today is on the Daily Card.
+      </p>
       <ThisWeekPlan />
       <div id="ladder">
         <LevelMap mistakes={mistakes} onGoToTasks={() => navigate("/student/tasks/assigned")} />

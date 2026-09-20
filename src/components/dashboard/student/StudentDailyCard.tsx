@@ -12,6 +12,7 @@ import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { tidyTitle } from "@/lib/utils";
 
 interface Lot {
   id: string;
@@ -195,6 +196,10 @@ const StudentDailyCard = () => {
         </span>
       </div>
 
+      <p className="text-sm text-muted-foreground">
+        Today&apos;s task: one real task a day, with its source shown. Your lessons and quizzes are on the Roadmap.
+      </p>
+
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted-foreground">
           Streak <span className="font-mono text-lg font-bold text-primary">{streak}</span> days
@@ -241,7 +246,7 @@ const StudentDailyCard = () => {
                 Set by {lot.sponsored_by_company}
               </span>
             )}
-            <h2 className="mt-2 text-lg font-semibold leading-snug">{lot.title}</h2>
+            <h2 className="mt-2 text-lg font-semibold leading-snug">{tidyTitle(lot.title)}</h2>
             {lot.description && (
               <div className="mt-3 text-[#2b2a26]">
                 <SimpleQuestionShort taskId={lot.id} original={lot.description} />
@@ -389,7 +394,7 @@ const StudentDailyCard = () => {
           onOpenChange={setExplaining}
           studentId={profile.id}
           taskId={lot.id}
-          prompt={`In your own words: how did you approach "${lot.title}"?`}
+          prompt={`In your own words: how did you approach "${tidyTitle(lot.title)}"?`}
           onSaved={() => void load()}
         />
       )}

@@ -6,6 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * A web page's title with the site tail cut off: "TCS Interview Experience 2026 | PrepInsta"
+ * -> "TCS Interview Experience 2026". A Lot made from a page before its own title was
+ * written shows the page's raw title, and the tail is just noise to a student.
+ */
+export function tidyTitle(title?: string | null): string {
+  const t = title ?? ""
+  return t.replace(/\s+\|\s+.*$/, "").trim() || t
+}
+
+/**
  * "Asha Kumar" -> "AK". Used for the fallback shown inside an avatar when
  * someone has no photo.
  *

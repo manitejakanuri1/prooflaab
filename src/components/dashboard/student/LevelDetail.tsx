@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { readFunctionError } from "@/lib/functionError";
 import CodeSnapshot from "./CodeSnapshot";
+import PracticeBox from "./PracticeBox";
 import { GoDeeperCard, InlineText, ParagraphCards, ReadMoreCards, type GoDeeper, type ReadMoreSection } from "./ReadableText";
 import {
   ArrowRight,
@@ -273,15 +274,12 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
 
               <ParagraphCards text={data.explanation} />
 
-              {/* The StackBlitz "Try it yourself" box was removed on 20 Sep 2026: it loaded ad and
-                  tracking sites (Google Ads, Analytics, Mixpanel, Segment) on a student screen.
-                  Its starter code is shown as plain code until an in-app editor replaces it. */}
-              {data.sandbox && !data.code_example && (
+              {/* Our own box, run inside ProofLab in a sandboxed frame. It replaced the StackBlitz
+                  embed (20 Sep 2026), which loaded ad and tracking sites on a student screen. */}
+              {data.sandbox && (
                 <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground">In code</p>
-                  {Object.entries(data.sandbox.files).map(([name, code]) => (
-                    <CodeSnapshot key={name} language={data.sandbox.template} code={code} />
-                  ))}
+                  <p className="text-xs font-medium text-muted-foreground">Try it yourself</p>
+                  <PracticeBox files={data.sandbox.files} />
                 </div>
               )}
 

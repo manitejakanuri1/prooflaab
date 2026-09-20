@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { readFunctionError } from "@/lib/functionError";
 import CodeSnapshot from "./CodeSnapshot";
 import PracticeBox from "./PracticeBox";
+import CodeRunBox from "./CodeRunBox";
+import { runnableLanguage } from "@/lib/runnableLanguage";
 import { GoDeeperCard, InlineText, ParagraphCards, ReadMoreCards, type GoDeeper, type ReadMoreSection } from "./ReadableText";
 import {
   ArrowRight,
@@ -36,6 +38,8 @@ interface SandboxSpec {
 interface CodeExampleSpec {
   language: string;
   code: string;
+  /** Set (by checking it on our runner) only for examples that run cleanly on their own. */
+  runnable?: boolean;
 }
 
 /** Somewhere to go and learn this properly. A search phrase where the model
@@ -283,12 +287,21 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                 </div>
               )}
 
-              {data.code_example && (
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground">In code</p>
-                  <CodeSnapshot language={data.code_example.language} code={data.code_example.code} />
-                </div>
-              )}
+              {data.code_example && (() => {
+                // Only examples that were checked to run cleanly on their own (runnable: true, in a
+                // language our runner has) get a Run box. Most examples are pieces of bigger
+                // projects (numpy, pandas, an API key ...) that would only show an error, so they
+                // stay plain code.
+                const runnable = data.code_example.runnable ? runnableLanguage(data.code_example.language, data.code_example.code) : null;
+                return (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">{runnable ? "In code: change it and run it" : "In code"}</p>
+                    {runnable
+                      ? <CodeRunBox language={runnable} code={data.code_example.code} />
+                      : <CodeSnapshot language={data.code_example.language} code={data.code_example.code} />}
+                  </div>
+                );
+              })()}
 
               {!isCheckpoint && data.go_deeper && <GoDeeperCard card={data.go_deeper} />}
 

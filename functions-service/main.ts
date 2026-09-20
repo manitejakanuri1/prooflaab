@@ -31,7 +31,7 @@ const SLUGS = [
   'response-evaluator', 'resume-assessment-submit', 
   'resume-code-execute', 'resume-coding-generate', 'resume-improve',
   'resume-parser', 'resume-question-generator',
-  'resume-retest-generate', 'run-sandbox', 'security-log',
+  'resume-retest-generate', 'run-code', 'run-sandbox', 'security-log',
   'scheduled-job', 'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
   'submit-written-task', 'task-explain', 'trust-compute',
   'verify-proof', 'voice-score',

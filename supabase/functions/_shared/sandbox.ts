@@ -241,7 +241,7 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
  * only way code ever ran - they were, until Wandbox went down for every
  * language on 16 Sep 2026 and students could not run code at all.
  */
-async function runOnOwnRunner(language: string, code: string, stdin: string): Promise<RunResult> {
+export async function runOnOwnRunner(language: string, code: string, stdin: string): Promise<RunResult> {
   const url = Deno.env.get('CODE_RUNNER_URL');
   const secret = Deno.env.get('CODE_RUNNER_SECRET');
   if (!url || !secret) return { ok: false, reason: 'own runner not configured' };

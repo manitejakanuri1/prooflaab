@@ -29,6 +29,8 @@ interface Lot {
   // stage69/70: which grading mode this Lot uses. At most one is set.
   sandbox_config_id: string | null;
   rubric_config_id: string | null;
+  /** Where the question came from: the source's name only, never a link. */
+  source_name?: string | null;
 }
 
 /** One dot per day, coloured by what was submitted. */
@@ -229,6 +231,11 @@ const StudentDailyCard = () => {
               {lot.difficulty ? ` · ${lot.difficulty}` : ""}
             </p>
 
+            {lot.source_name && (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6b6559]">
+                Source: {lot.source_name}
+              </p>
+            )}
             {lot.sponsored_by_company && (
               <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-primary">
                 Set by {lot.sponsored_by_company}

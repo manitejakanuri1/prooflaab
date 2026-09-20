@@ -70,6 +70,7 @@ Dashboards:
   - `python scripts/healthcheck.py` (24 checks, about 25 s, expect all PASS).
   - The page check: `scripts/dev-tools/walk.mjs … crawl`.
 - One commit per finished thing. The message says what was tested and what came back. Report honestly: if something is half-done, say which half.
+- Test logins (kept): `vidyuthsetu+t01 … +t11@gmail.com` (Demo College, section `TEST-A`), password in Secret Manager `prooflab-testusers-password`. Also `vidyuthsetu+e2e` (used by the health check). Do not remove them without asking.
 - After finished work, update the owner's Obsidian vault if it exists on this machine: note `Projects Brain/ProofLab.md` and a line in `log.md`.
 
 ## Style

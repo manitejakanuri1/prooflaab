@@ -89,7 +89,9 @@ const StudentRoadmapPage = () => {
   return (
     <div className="space-y-6">
       <ThisWeekPlan />
-      <LevelMap mistakes={mistakes} onGoToTasks={() => navigate("/student/tasks/assigned")} />
+      <div id="ladder">
+        <LevelMap mistakes={mistakes} onGoToTasks={() => navigate("/student/tasks/assigned")} />
+      </div>
     </div>
   );
 };

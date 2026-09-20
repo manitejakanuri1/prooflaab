@@ -3,6 +3,7 @@ import { createClient } from "../_shared/backend.ts";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
+import { firstJsonArray } from '../_shared/json-array.ts';
 
 // Force a study gap before a retest unlocks — the point is to work through the
 // roadmap first, not immediately re-answer the same weak topics.
@@ -185,9 +186,9 @@ Return ONLY the JSON array, no additional text.`;
 
     let questions: any[];
     try {
-      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error('No JSON array found in response');
-      questions = JSON.parse(jsonMatch[0]);
+      const found = firstJsonArray(generatedText);
+      if (!found) throw new Error('No JSON array found in response');
+      questions = found;
     } catch (parseError) {
       console.error('Failed to parse retest response:', parseError);
       return new Response(

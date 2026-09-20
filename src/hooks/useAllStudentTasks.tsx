@@ -150,7 +150,7 @@ export const useAllStudentTasks = () => {
         // "Admin", so the student's own roadmap and today's Lot looked like
         // work an administrator had handed out.
         let taskSource = 'Task';
-        if (task.lot_date) taskSource = "Today's Lot";
+        if (task.lot_date) taskSource = "Daily Lot";
         else if (task.roadmap_scorecard_id) taskSource = 'From your test';
         else if (task.level_id) taskSource = 'Track proof';
         else if (task.created_by_startup_id) taskSource = 'Company';

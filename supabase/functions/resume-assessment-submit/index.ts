@@ -4,6 +4,7 @@ import { generateText } from "../_shared/llm.ts";
 import { classifySkillGap } from "../_shared/role-skills.ts";
 import { normSkill, placeStudent } from "../_shared/levels.ts";
 import { cors } from "../_shared/cors.ts";
+import { firstJsonArray } from '../_shared/json-array.ts';
 
 /** Must match secondsFor() in TimedResumeAssessment: 30s per MCQ, 90s per written answer. */
 const secondsFor = (q: { type?: string }) => (q?.type === 'mcq' ? 30 : 90);
@@ -416,8 +417,7 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
           { temperature: 0.6, maxOutputTokens: 1200 },
           { feature: 'resume-roadmap', userId: callerId, studentId: profile.id },
         );
-        const jsonMatch = result.text.match(/\[[\s\S]*\]/);
-        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        const parsed = firstJsonArray(result.text);
         if (
           Array.isArray(parsed) &&
           parsed.length > 0 &&

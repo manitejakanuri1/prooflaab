@@ -1,4 +1,5 @@
 import { generateText } from "./llm.ts";
+import { firstJsonArray } from './json-array.ts';
 
 export interface Criterion {
   id: string;
@@ -21,15 +22,8 @@ export function wordCount(text: string): number {
 
 /** Parses the grader's JSON reply, clamping each score to its criterion's max. */
 export function parseGrade(text: string, criteria: Criterion[]): CriterionScore[] | null {
-  const match = text.match(/\[[\s\S]*\]/);
-  if (!match) return null;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(match[0]);
-  } catch {
-    return null;
-  }
-  if (!Array.isArray(parsed)) return null;
+  const parsed = firstJsonArray(text);
+  if (!parsed) return null;
 
   const byId = new Map(criteria.map((c) => [c.id, c]));
   const out: CriterionScore[] = [];

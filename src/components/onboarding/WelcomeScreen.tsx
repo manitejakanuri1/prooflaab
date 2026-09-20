@@ -23,11 +23,12 @@ const WelcomeScreen = ({ onStart, starting = false }: WelcomeScreenProps) => {
 
           <div className="space-y-6 text-base sm:text-lg leading-relaxed text-muted-foreground">
             <p>
-              Prooflabai.com doesn&rsquo;t offer any course. There are no video lectures here.
+              ProofLab doesn&rsquo;t offer any course. There are no video lectures here.
             </p>
 
             <p>
-              Every day you get one real task, pulled from a real job posting. You solve it,
+              Every day you get one real task, built from a real job posting or interview page.
+              The source is shown on the task. You solve it,
               you explain it out loud for sixty seconds, and it goes into your build-log
               &mdash; a permanent public record of what you can actually do.
             </p>

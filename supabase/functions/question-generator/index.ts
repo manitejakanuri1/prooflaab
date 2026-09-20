@@ -3,6 +3,7 @@ import { createClient } from "../_shared/backend.ts";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
+import { firstJsonArray } from '../_shared/json-array.ts';
 import { mayActOnStudentWork, forbidden } from "../_shared/authz.ts";
 
 serve(async (req) => {
@@ -240,11 +241,10 @@ Return ONLY the JSON array, no additional text.`;
     let questions;
     try {
       // Extract JSON array from response (handle markdown code blocks)
-      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
+      questions = firstJsonArray(generatedText);
+      if (!questions) {
         throw new Error('No JSON array found in response');
       }
-      questions = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', parseError);
       return new Response(

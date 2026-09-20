@@ -3,6 +3,7 @@ import { createClient } from "../_shared/backend.ts";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
+import { firstJsonArray } from '../_shared/json-array.ts';
 
 serve(async (req) => {
   const corsHeaders = cors(req);
@@ -246,9 +247,8 @@ Return ONLY the JSON array, no additional text.`;
       }
 
       try {
-        const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) throw new Error('No JSON array found in response');
-        questions = JSON.parse(jsonMatch[0].replace(/,\s*([}\]])/g, '$1'));
+        questions = firstJsonArray(generatedText);
+        if (!questions) throw new Error('No JSON array found in response');
       } catch (parseError) {
         console.error(`Failed to parse LLM response (attempt ${attempt}):`, parseError);
       }

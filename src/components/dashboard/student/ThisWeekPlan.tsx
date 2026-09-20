@@ -54,6 +54,8 @@ const ThisWeekPlan = () => {
   if (items.length === 0) return null;
 
   const done = items.filter((i) => DONE.has(i.status)).length;
+  // The steps open from the map, so a tap here takes the student to it instead of doing nothing.
+  const goToMap = () => document.getElementById("ladder")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <Card>
@@ -79,7 +81,10 @@ const ThisWeekPlan = () => {
             const finished = DONE.has(it.status);
             return (
               <div key={it.level_id}
-                   className="flex items-start gap-3 py-3 border-b last:border-b-0">
+                   role="button" tabIndex={0}
+                   onClick={goToMap}
+                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") goToMap(); }}
+                   className="flex items-start gap-3 py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/40">
                 <span className="mt-0.5">
                   {finished
                     ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -108,7 +113,7 @@ const ThisWeekPlan = () => {
 
         <p className="text-xs text-muted-foreground mt-3">
           Chosen from your own path, and rebuilt every Monday from what you did
-          the week before.
+          the week before. Tap a step to jump to your map and open it.
         </p>
       </CardContent>
     </Card>

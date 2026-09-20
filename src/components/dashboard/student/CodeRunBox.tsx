@@ -3,6 +3,7 @@ import { Loader2, Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { readFunctionError } from "@/lib/functionError";
+import CodeEditor from "./CodeEditor";
 
 interface CodeRunBoxProps {
   language: string; // one of the runner's languages, see runnableLanguage()
@@ -11,10 +12,28 @@ interface CodeRunBoxProps {
 
 interface RunResult { status: "ok" | "compile_error" | "runtime_error" | "time_limit" | "busy"; stdout: string; stderr: string }
 
+const NAMES: Record<string, string> = { python: "Python", javascript: "JavaScript", ruby: "Ruby", php: "PHP", c: "C", cpp: "C++", go: "Go", java: "Java" };
+
 // The runner's messages name its temporary folder (/tmp/run-abc/main.py); a student only needs main.py.
 const tidy = (t: string) => t.replace(/\/tmp\/run-[^/\s]+\//g, "").trim();
 
-const NAMES: Record<string, string> = { python: "Python", javascript: "JavaScript", ruby: "Ruby", php: "PHP", c: "C", cpp: "C++", go: "Go", java: "Java" };
+// Which line of the student's code does the error point to? (Each language words it differently.)
+const LINE: Record<string, RegExp> = {
+  python: /File "[^"]*main\.py", line (\d+)/g,
+  javascript: /main\.js:(\d+)/g,
+  ruby: /main\.rb:(\d+)/g,
+  php: /on line (\d+)/g,
+  c: /main\.c:(\d+):/g,
+  cpp: /main\.cpp:(\d+):/g,
+  go: /main\.go:(\d+):/g,
+  java: /\.java:(\d+):/g,
+};
+function errorLineOf(language: string, stderr: string): number | null {
+  const all = [...stderr.matchAll(LINE[language] ?? /$^/g)];
+  if (all.length === 0) return null;
+  // Python prints the whole call chain and the mistake is the last frame; the others list it first.
+  return Number((language === "python" ? all[all.length - 1] : all[0])[1]) || null;
+}
 
 /**
  * A lesson's code example that can be changed and run. The code runs on ProofLab's own
@@ -28,6 +47,8 @@ const CodeRunBox = ({ language, code }: CodeRunBoxProps) => {
 
   // A new step brings a new example.
   useEffect(() => { setText(code); setResult(null); setProblem(null); }, [code]);
+
+  const edit = (v: string) => { setText(v); setResult((r) => (r && r.status !== "ok" ? null : r)); };
 
   const run = async () => {
     if (running) return;
@@ -52,26 +73,23 @@ const CodeRunBox = ({ language, code }: CodeRunBoxProps) => {
     }
   };
 
+  const failed = result?.status === "compile_error" || result?.status === "runtime_error";
+  const errorLine = failed && result ? errorLineOf(language, result.stderr) : null;
+  const firstError = failed && result ? tidy(result.stderr).split("\n").filter(Boolean).slice(-1)[0] : undefined;
+
   return (
     <div className="rounded-lg border overflow-hidden">
       <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
         <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{NAMES[language] ?? language}</span>
         <span className="ml-auto text-[11px] text-muted-foreground">Change it and press Run</span>
       </div>
-      <textarea
+      <CodeEditor
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key !== "Tab") return;
-          e.preventDefault();
-          const t = e.currentTarget; const s = t.selectionStart;
-          setText(t.value.slice(0, s) + "    " + t.value.slice(t.selectionEnd));
-          requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = s + 4; });
-        }}
-        spellCheck={false}
-        aria-label={`${NAMES[language] ?? language} code`}
-        className="block w-full resize-y bg-[#1e1e1e] p-3 font-mono text-xs leading-relaxed text-[#d4d4d4] outline-none"
-        style={{ height: `${Math.min(18, Math.max(6, text.split("\n").length + 1))}em`, minHeight: "8rem" }}
+        onChange={edit}
+        language={language}
+        label={`${NAMES[language] ?? language} code`}
+        errorLine={errorLine}
+        errorText={firstError}
       />
       <div className="flex items-center gap-2 border-t bg-muted/40 px-3 py-2">
         <Button type="button" size="sm" onClick={() => void run()} disabled={running || !text.trim()}>
@@ -93,13 +111,13 @@ const CodeRunBox = ({ language, code }: CodeRunBoxProps) => {
           )}
           {result?.status === "compile_error" && (
             <>
-              <p className="mb-1 text-red-400">Your code did not compile. Read the message and fix the line it points to:</p>
+              <p className="mb-1 text-red-400">Your code did not compile. {errorLine ? `The red line is line ${errorLine}. ` : ""}Read the message and fix it:</p>
               <pre className="whitespace-pre-wrap text-red-300">{tidy(result.stderr)}</pre>
             </>
           )}
           {result?.status === "runtime_error" && (
             <>
-              <p className="mb-1 text-red-400">Your code stopped with an error:</p>
+              <p className="mb-1 text-red-400">Your code stopped with an error{errorLine ? ` on line ${errorLine} (marked red)` : ""}:</p>
               {result.stdout.trim() && <pre className="whitespace-pre-wrap text-[#d4d4d4]">{result.stdout}</pre>}
               <pre className="whitespace-pre-wrap text-red-300">{tidy(result.stderr)}</pre>
             </>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buildPracticeDoc } from "@/lib/practiceDoc";
+import CodeEditor from "./CodeEditor";
 
 interface PracticeBoxProps {
   files: Record<string, string>;
@@ -56,20 +57,12 @@ const PracticeBox = ({ files }: PracticeBoxProps) => {
           ))}
         </div>
       )}
-      <textarea
+      <CodeEditor
+        key={active}
         value={edited[active] ?? ""}
-        onChange={(e) => setEdited((cur) => ({ ...cur, [active]: e.target.value }))}
-        onKeyDown={(e) => {
-          if (e.key !== "Tab") return;
-          e.preventDefault();
-          const t = e.currentTarget; const s = t.selectionStart;
-          const v = t.value.slice(0, s) + "  " + t.value.slice(t.selectionEnd);
-          setEdited((cur) => ({ ...cur, [active]: v }));
-          requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = s + 2; });
-        }}
-        spellCheck={false}
-        aria-label={`Code: ${active}`}
-        className="block h-48 w-full resize-y bg-[#1e1e1e] p-3 font-mono text-xs leading-relaxed text-[#d4d4d4] outline-none"
+        onChange={(v) => setEdited((cur) => ({ ...cur, [active]: v }))}
+        language={/\.css$/i.test(active) ? "css" : /\.js$/i.test(active) ? "javascript" : "html"}
+        label={`Code: ${active}`}
       />
       <div className="flex items-center gap-2 border-t bg-muted/40 px-3 py-2">
         <Button type="button" size="sm" onClick={run}><Play className="mr-1.5 h-3.5 w-3.5" /> Run</Button>

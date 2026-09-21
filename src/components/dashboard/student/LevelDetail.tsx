@@ -133,6 +133,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
   const [skipping, setSkipping] = useState(false);
   const [result, setResult] = useState<SubmitPayload | null>(null);
   const [courseLink, setCourseLink] = useState<CourseLinkInfo | null>(null);
+  const [courseTitle, setCourseTitle] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const open = levelNumber !== null;
@@ -161,7 +162,8 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
     }
     if (p?.course_link) {              // this topic is a short primer of a full course
       setCourseLink(p.course_link);
-      setData({ ...(p as LevelPayload), level: { ...p.level, kind: "explanation", sub_level: 1, id: "", skill: p.level.skill } });
+      setData(null);
+      setCourseTitle(p.level.title);
       setPhase("course");
       return;
     }
@@ -258,7 +260,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
             {data && isCheckpoint && <Badge variant="outline">Check yourself</Badge>}
           </div>
           <DialogTitle className="text-xl mt-2 text-left">
-            {data?.level.title ?? "Loading…"}
+            {data?.level.title ?? (phase === "course" ? courseTitle : "Loading…")}
           </DialogTitle>
         </DialogHeader>
 

@@ -1,0 +1,1067 @@
+{
+ "course": "devops",
+ "title": "DevOps",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "k88hudson/git-flight-rules",
+  "dylanaraps/pure-bash-bible",
+  "kelseyhightower/kubernetes-the-hard-way",
+  "prometheus/docs",
+  "open-guides/og-aws"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "The Shell: Your Command Center",
+   "why": "The shell is the text window where you type commands to control a computer.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Shell: Your Command Center",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Navigating the Filesystem",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "File Operations: Create, Copy, Move, Delete",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Permissions and Ownership",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Text Processing: grep, sed, awk",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Process Management",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Networking Basics: curl, netstat, ss",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Package Management",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Users and Groups",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Systemd and Services",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Shell Scripting for Operations",
+   "why": "A script is a saved list of commands that runs by itself so you don't type them again.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Your First Script and the Shebang",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Variables, Quotes, and Command Substitution",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Conditionals and Exit Codes",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Loops, Arguments, and set -euo pipefail",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Pipes, Redirection, and Text Tools",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Functions and Reusable Scripts",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Real Ops Scripting: Health Checks and Retries",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Python for DevOps",
+   "why": "Python is a readable programming language used to automate boring computer tasks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Python Syntax and Variables",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Control Flow and Loops",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Functions and Modules",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "File I/O and Error Handling",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Working with Data: Lists, Dicts, and JSON",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Using Python for Automation",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Containers with Docker",
+   "why": "A container packs an app and everything it needs so it runs the same on any machine.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Containers Exist",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Images, Containers, and the Docker CLI",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Ports, Volumes, and Environment Variables",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Writing Your First Dockerfile",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Multi-Stage Builds and Slim Images",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Docker Compose for Multi-Container Apps",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Registries, Tagging, and Pushing Images",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Debugging Containers and Cleaning Up",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Kubernetes Basics",
+   "why": "Kubernetes runs and heals many containers across many machines automatically.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Kubernetes Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Pods: The Smallest Unit",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Deployments and ReplicaSets",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Services: Stable Networking",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "ConfigMaps and Secrets",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Namespaces and Resource Limits",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Debugging a Broken Pod",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Ingress and Exposing to the World",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Helm and kubectl Workflow",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Git Version Control",
+   "why": "Git saves snapshots of your code so you can go back or work with others safely.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Git Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Your First Commits: add, commit, log",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Branches: Cheap, Fast, Use Them",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Remotes: clone, fetch, pull, push",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Undoing Things Without Panicking",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Merging, Conflicts, and rebase",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Inspecting History: diff, show, blame, bisect",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Tags, .gitignore, and the DevOps Workflow",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "CI/CD Foundations",
+   "why": "CI/CD is a robot that builds, tests, and ships your code every time you change it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What CI/CD Actually Means",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Build Stage: From Source to Artifact",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Automated Tests as the Pipeline Gate",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Triggers: When Does the Pipeline Run?",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Pipeline Stages, Jobs, and Parallelism",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Secrets, Environment Variables, and Not Leaking Them",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Caching and Speeding Up the Pipeline",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Deployment Strategies and Rollback",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Reading a Failed Pipeline and Fixing It",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "GitHub Actions",
+   "why": "GitHub Actions runs your CI/CD pipelines inside GitHub without extra servers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What GitHub Actions Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Workflow Syntax: on, jobs, runs-on, steps",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Actions, Checkout, and Setup Steps",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Secrets, Env Vars, and Contexts",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "The Matrix Strategy",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Caching Dependencies",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Jobs, needs, and Artifacts",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Conditionals, Expressions, and Reusable Workflows",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Deploying and Debugging Pipelines",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Terraform Infrastructure as Code",
+   "why": "Terraform lets you describe servers in a file and creates them for you.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Terraform Actually Does",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "HCL Syntax and Variables",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Providers and the Init-Plan-Apply Loop",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Resources, Data Sources, and Dependencies",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "State: Local, Remote, and Locking",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Modules: Reusable Infrastructure",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Workspaces and Environment Separation",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Terraform in CI/CD",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Prometheus Monitoring",
+   "why": "Prometheus collects numbers from your systems so you can see when something is wrong.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Prometheus Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Exposition Format and /metrics",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Scrape Configs in prometheus.yml",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "PromQL: Selecting and Filtering",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "rate, irate, and Counters",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Aggregation and Grouping",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Recording Rules for Expensive Queries",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Alerting Rules and Alertmanager",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Grafana Dashboards",
+   "why": "Grafana turns stored numbers into pictures and graphs you can watch.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Grafana Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Adding a Data Source and Running Your First Query",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Panels and Visualization Types",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Variables: One Dashboard, Many Environments",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Transformations and Thresholds",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Dashboard Layout and Sharing",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Alerting Rules",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Grafana in the Real Stack",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "AWS Cloud Fundamentals",
+   "why": "AWS rents computers and storage over the internet so you don't buy hardware.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What AWS Actually Is (and Why DevOps Lives There)",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "IAM: Users, Roles, and Policies (The Bouncer)",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "EC2: Renting a Virtual Machine and SSHing In",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "S3: Buckets, Objects, and Static Hosting",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Infrastructure as Code with Terraform on AWS",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Deploying with CodeDeploy and CodePipeline (or GitHub Actions)",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Monitoring and Logging: CloudWatch and Alarms",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Cost, Cleanup, and the Free Tier Trap",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Jenkins Pipelines",
+   "why": "Jenkins is an older but common robot that builds and tests your code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Jenkins Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Install and First Login",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "A Freestyle Job: Build Steps and Triggers",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Jenkinsfile and Declarative Pipeline",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Credentials and Environment Variables",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Agents: Controller vs Nodes",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Triggers, Webhooks, and Multibranch Pipelines",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Shared Libraries and Keeping Pipelines DRY",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Debugging a Red Build",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Linux Users, Permissions, and Processes",
+   "why": "Linux decides who can do what and which programs are running right now.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Users, Groups, and sudo",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "File Permissions in Depth: chmod, chown, umask",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Process Signals and Job Control",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Disk, Memory, and CPU Inspection",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Logs and journalctl",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Networking for DevOps",
+   "why": "Networking is how computers find and talk to each other.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "IP Addresses, Ports, and DNS",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "HTTP, HTTPS, and Status Codes",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "SSH Keys and Remote Access",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Firewalls and Security Groups",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Load Balancers and Reverse Proxies",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Git Branching and Collaboration Workflows",
+   "why": "Teams need rules for how code changes move from one person to the main project.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Feature Branches and Pull Requests",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Code Review Basics",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Forking vs Branching",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Keeping a Fork in Sync",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Protected Branches and Merge Rules",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Testing in the Pipeline",
+   "why": "Tests are automatic checks that catch mistakes before users see them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Unit, Integration, and End-to-End Tests",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Test Runners and Coverage Reports",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Linting and Static Analysis",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Failing Fast and Test Parallelism",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Flaky Tests and How to Handle Them",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Artifacts and Package Registries",
+   "why": "An artifact is the built thing you ship, like a zip or a container image.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Build Artifacts vs Source Code",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Container Registries: Docker Hub and ECR",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Package Managers: npm, pip, apt",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Versioning and Semantic Tags",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Storing and Retrieving Artifacts in CI",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Kubernetes Configuration and Storage",
+   "why": "Apps in Kubernetes need settings, passwords, and places to save data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "ConfigMaps and Secrets in Practice",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Persistent Volumes and Claims",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "StatefulSets for Databases",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Jobs and CronJobs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Horizontal Pod Autoscaling",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Infrastructure State and Remote Backends",
+   "why": "Terraform remembers what it built in a state file that must be shared safely.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why State Matters",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Remote State on S3 and DynamoDB Locking",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "State Drift and Refresh",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Importing Existing Resources",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Splitting State by Environment",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Cloud Networking and DNS",
+   "why": "Cloud networks decide which machines can reach each other and how names resolve.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "VPCs, Subnets, and Route Tables",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Security Groups vs NACLs",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Route 53 and DNS Records",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "NAT Gateways and Internet Gateways",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Private vs Public Subnets",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Logging and Observability",
+   "why": "Logs and traces tell you what happened when something broke.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Structured Logging",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Log Aggregation with CloudWatch or ELK",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Distributed Tracing Basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Metrics vs Logs vs Traces",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Service Level Objectives and Error Budgets",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Secrets Management",
+   "why": "Secrets are passwords and keys that must never appear in code or logs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Hardcoding Secrets Is Dangerous",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Environment Variables vs Secret Stores",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "AWS Secrets Manager and SSM Parameter Store",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Kubernetes Secrets and External Secrets",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Rotating Secrets Safely",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "title": "Deployment Patterns",
+   "why": "Deployment patterns control how new code replaces old code without downtime.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Rolling Updates",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Blue-Green Deployments",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Canary Releases",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Feature Flags",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Rollback and Roll Forward",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 25,
+   "title": "Cost and Reliability on AWS",
+   "why": "Cloud bills grow fast, so you must watch usage and design for failure.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "AWS Pricing Model Basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Budgets and Cost Alerts",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reserved vs On-Demand vs Spot",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Multi-AZ and Backups",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Disaster Recovery Basics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 26,
+   "title": "Capstone: Ship a Full DevOps Pipeline",
+   "why": "Put everything together by building, testing, deploying, and monitoring a real app.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Choose an App and Repository Layout",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Write the Dockerfile and Compose File",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Create the CI Pipeline with Tests",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Provision Infrastructure with Terraform",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Deploy to Kubernetes or AWS",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Add Monitoring and Alerts",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Document and Demo the Pipeline",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

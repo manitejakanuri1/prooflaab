@@ -1,0 +1,906 @@
+{
+ "course": "dsa",
+ "title": "Data structures and algorithms",
+ "sources": [
+  "TheAlgorithms/Python",
+  "TheAlgorithms/Java",
+  "trekhleb/javascript-algorithms",
+  "ossu/computer-science"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Programming Basics and Complexity",
+   "why": "Before you can compare different ways of doing things, you need to know how to measure how much work they take.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables, loops, and functions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Big O notation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Time and space complexity",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Best, average, and worst cases",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Asymptotic analysis examples",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Arrays and Strings",
+   "why": "Arrays and strings are the simplest ways to store a list of things, and you will use them everywhere.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Array declaration and indexing",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Array traversal and basic operations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Dynamic arrays (lists)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "String representation and common operations",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Two-pointer technique",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sliding window technique",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Prefix sums",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Linked Lists",
+   "why": "Linked lists let you store items in a chain where each item points to the next, making it easy to add or remove items.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Singly linked list",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Doubly linked list",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Circular linked list",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Insertion and deletion",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Traversal and search",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Reverse a linked list",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Merge two sorted lists",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Detect cycle in a linked list",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Stacks and Queues",
+   "why": "Stacks and queues are like piles and lines: they control the order in which you take things out.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Stack (LIFO)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Queue (FIFO)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Circular queue",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Priority queue",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Deque (double-ended queue)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Stack applications: balanced parentheses, postfix evaluation",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Queue applications: BFS, scheduling",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Recursion and Backtracking",
+   "why": "Recursion is when a function calls itself to solve a smaller piece of the same problem.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Recursion basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Base case and recursive case",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Recursion vs iteration",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Backtracking template",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "N-Queens problem",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sudoku solver",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Permutations and combinations",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Word break problem",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Sorting Algorithms",
+   "why": "Sorting puts things in order, which makes many other tasks faster and easier.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Bubble sort",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Selection sort",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Insertion sort",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Merge sort",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Quick sort",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Heap sort",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Counting sort",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Radix sort",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Shell sort",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Sorting stability and comparison",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Searching Algorithms",
+   "why": "Searching is how you find a specific item in a collection.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Linear search",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Binary search",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Binary search on answer",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Interpolation search",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Exponential search",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Search in rotated sorted array",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Hashing",
+   "why": "Hashing turns a key into a number so you can find things almost instantly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Hash functions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Hash tables",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Collision resolution: chaining",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Collision resolution: open addressing",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Load factor and rehashing",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Hash sets and hash maps",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Bloom filter",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Trees",
+   "why": "Trees are like family trees: they store data in a hierarchy with a root and branches.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Tree terminology",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Binary tree",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Tree traversals: inorder, preorder, postorder",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Level-order traversal",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Binary search tree (BST)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "BST operations: insert, delete, search",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Balanced BST: AVL tree",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Red-black tree",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Segment tree",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Fenwick tree (binary indexed tree)",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Trie (prefix tree)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Heaps and Priority Queues",
+   "why": "A heap is a special tree that always gives you the smallest (or largest) item quickly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Binary heap",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Heap operations: insert, extract-min/max",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Heapify and build heap",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Priority queue implementation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Heap applications: heap sort, kth largest element",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Graphs",
+   "why": "Graphs model connections between things, like roads between cities or friends in a network.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Graph representation: adjacency matrix and list",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Breadth-first search (BFS)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Depth-first search (DFS)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Cycle detection",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Topological sort",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Connected components",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Strongly connected components",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Bipartite check",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Shortest Paths",
+   "why": "Shortest path algorithms find the quickest route from one place to another in a graph.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Dijkstra's algorithm",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Bellman-Ford algorithm",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Floyd-Warshall algorithm",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "A* search",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "0-1 BFS",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Minimum Spanning Trees",
+   "why": "A minimum spanning tree connects all points in a graph with the least total cost.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Kruskal's algorithm",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Prim's algorithm",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Disjoint set union (DSU)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Applications of MST",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Greedy Algorithms",
+   "why": "Greedy algorithms make the best choice at each step, hoping to find the best overall solution.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Greedy strategy",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Activity selection",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Fractional knapsack",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Huffman coding",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Coin change (greedy)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Merge intervals",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Dynamic Programming",
+   "why": "Dynamic programming solves big problems by remembering solutions to smaller ones.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Memoization vs tabulation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Fibonacci numbers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "0/1 Knapsack",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Longest common subsequence",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Longest increasing subsequence",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Edit distance",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Matrix chain multiplication",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Coin change (DP)",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Partition problem",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Catalan numbers",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Bit Manipulation",
+   "why": "Bit manipulation uses the individual bits of numbers to do clever tricks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Bitwise operators",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Check if a number is a power of two",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Count set bits",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Bitwise addition",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "XOR tricks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Bitmasking",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "String Algorithms",
+   "why": "String algorithms help you search, match, and transform text efficiently.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Naive pattern matching",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Knuth-Morris-Pratt (KMP)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Rabin-Karp",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Boyer-Moore",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Z-algorithm",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Manacher's algorithm",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Suffix arrays and trees",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Advanced Data Structures",
+   "why": "These structures solve special problems like range queries or nearest neighbors.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Disjoint set union (DSU)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Segment tree with lazy propagation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Fenwick tree (BIT)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sparse table",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Trie",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Suffix tree",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "KD-tree",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Algorithm Design Paradigms",
+   "why": "These are general strategies for solving problems, like divide and conquer or randomization.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Divide and conquer",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Randomized algorithms",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Approximation algorithms",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Online algorithms",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Linear programming",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Computational Geometry",
+   "why": "Computational geometry solves problems about points, lines, and shapes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Convex hull",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Jarvis march (gift wrapping)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Graham scan",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Line intersection",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Closest pair of points",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "NP-Completeness and Advanced Topics",
+   "why": "Some problems are very hard, and this topic explains why and what to do about it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "P vs NP",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "NP-complete problems",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reductions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Travelling salesman problem",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "SAT problem",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Approximation algorithms for NP-hard problems",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Practice and Problem Solving",
+   "why": "The only way to get good at algorithms is to practice solving many different problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Problem-solving strategies",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Common patterns (two pointers, sliding window, etc.)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Competitive programming techniques",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Mock interviews",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Project: implement a data structure library",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

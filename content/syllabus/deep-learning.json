@@ -1,0 +1,678 @@
+{
+ "course": "deep-learning",
+ "title": "Deep learning and LLMs",
+ "sources": [
+  "d2l-ai/d2l-en",
+  "ageron/handson-ml3",
+  "huggingface/course",
+  "mrdbourke/pytorch-deep-learning"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Python and Math Foundations for Deep Learning",
+   "why": "You need basic Python and math to understand how computers learn from data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Python basics: variables, loops, functions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "NumPy arrays and vectorized operations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Linear algebra: scalars, vectors, matrices, tensors",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Calculus: derivatives, partial derivatives, gradients",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Probability: random variables, distributions, expectations",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Information theory: entropy, cross-entropy, KL divergence",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Machine Learning Fundamentals",
+   "why": "Machine learning is how computers find patterns in data without being explicitly programmed.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is machine learning? Types of learning",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Linear regression: model, loss, analytic solution",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Gradient descent: minimizing loss",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Training error vs generalization error, underfitting and overfitting",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Model selection, validation, and cross-validation",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Weight decay and regularization",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Softmax regression for classification",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Environment and distribution shift",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Neural Networks from Scratch",
+   "why": "Neural networks are layers of simple functions that can learn complex patterns.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Multilayer perceptrons: hidden layers and activations",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Implementing a multilayer perceptron from scratch",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Backpropagation and automatic differentiation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Numerical stability and parameter initialization",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Dropout and regularization in neural networks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Training a neural network: loss, optimizer, epochs",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Deep Learning with PyTorch",
+   "why": "PyTorch is a popular tool that makes building and training neural networks easier.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "PyTorch tensors and operations",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Autograd: automatic differentiation in PyTorch",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Building models with nn.Module",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Loss functions and optimizers in PyTorch",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Writing a training loop in PyTorch",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Saving and loading models",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Using GPUs for faster training",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Convolutional Neural Networks for Computer Vision",
+   "why": "CNNs are special neural networks that understand images by looking at small patches.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Convolutions: cross-correlation, padding, stride",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Channels and feature maps",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Pooling layers and downsampling",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "LeNet: the first CNN",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Modern CNN architectures: VGG, NiN, GoogLeNet, ResNet, DenseNet",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Batch normalization and layer normalization",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Data augmentation for images",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Transfer learning and fine-tuning pretrained models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Sequence Modeling with Recurrent Neural Networks",
+   "why": "RNNs process sequences like text or time series by remembering previous inputs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Working with sequences: autoregressive models, Markov models",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Recurrent neural networks: hidden state and recurrence",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Backpropagation through time and truncation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Gated recurrent units (GRU) and long short-term memory (LSTM)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Deep RNNs and bidirectional RNNs",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Beam search for sequence generation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Attention Mechanisms and Transformers",
+   "why": "Attention lets models focus on relevant parts of the input, and transformers use it to process all words at once.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Attention pooling and similarity",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Queries, keys, and values",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Bahdanau attention for sequence-to-sequence",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Transformer architecture: self-attention, multi-head attention",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Positional encoding and feed-forward networks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Encoder-only, decoder-only, and encoder-decoder models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Natural Language Processing with Deep Learning",
+   "why": "NLP helps computers understand and generate human language.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Word embeddings: word2vec, GloVe, fastText",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Subword tokenization: BPE, WordPiece, Unigram",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Text preprocessing: tokenization, padding, attention masks",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sentiment analysis with RNNs and CNNs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Machine translation with seq2seq and attention",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Natural language inference and fine-tuning BERT",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Large Language Models and Pretraining",
+   "why": "LLMs are huge transformers trained on massive text to generate and understand language.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Pretraining objectives: masked language modeling, causal language modeling",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "BERT: bidirectional encoder representations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "GPT and decoder-only models",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "T5 and encoder-decoder models",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Scaling laws and large-scale training",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Fine-tuning pretrained models for downstream tasks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Hugging Face Transformers and Ecosystem",
+   "why": "Hugging Face provides tools to easily use and fine-tune pretrained models.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Using pipelines for inference",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Loading and saving models and tokenizers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Fine-tuning with Trainer API",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Datasets library: loading, processing, and sharing data",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Tokenizers library: training and using tokenizers",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Model Hub: sharing and finding models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Advanced Fine-Tuning and Alignment",
+   "why": "Fine-tuning and alignment make LLMs follow instructions and behave safely.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Supervised fine-tuning (SFT) for instruction following",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Parameter-efficient fine-tuning: LoRA, PEFT",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reinforcement learning from human feedback (RLHF)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Group relative policy optimization (GRPO)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Evaluation of LLMs: benchmarks and metrics",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Bias, limitations, and ethical considerations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Model Deployment and MLOps",
+   "why": "Deploying models makes them usable by others in real applications.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Saving and exporting models (SavedModel, ONNX)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Serving models with TensorFlow Serving or TorchServe",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Building demos with Gradio",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Deploying to cloud platforms (Vertex AI, SageMaker)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Monitoring and maintaining models in production",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Scaling inference: batching, quantization, optimization",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Reinforcement Learning",
+   "why": "Reinforcement learning trains agents to make decisions by rewarding good actions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Markov decision processes: states, actions, rewards",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Q-learning and value iteration",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Deep Q-networks (DQN)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Policy gradients and actor-critic methods",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Applications in games and robotics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Generative Models",
+   "why": "Generative models can create new data like images or text.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Autoencoders and variational autoencoders (VAEs)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Generative adversarial networks (GANs)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Deep convolutional GANs (DCGAN)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Diffusion models for image generation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Evaluating generative models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Recommender Systems",
+   "why": "Recommender systems suggest items like movies or products to users.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Collaborative filtering and matrix factorization",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Neural collaborative filtering",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "AutoRec: rating prediction with autoencoders",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Deep factorization machines (DeepFM)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Evaluating recommender systems",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Hyperparameter Optimization and Experiment Tracking",
+   "why": "Tuning hyperparameters and tracking experiments helps you build better models faster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Hyperparameter optimization basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Grid search, random search, and Bayesian optimization",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Asynchronous successive halving",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Experiment tracking with Weights & Biases or TensorBoard",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reproducibility and version control for ML",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Computational Performance and Hardware",
+   "why": "Understanding hardware and performance helps you train models faster and cheaper.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "CPUs, GPUs, TPUs, and memory hierarchy",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Data parallelism and model parallelism",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Mixed precision training",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Distributed training with multiple GPUs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Profiling and optimizing model performance",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Capstone Project: End-to-End Deep Learning Application",
+   "why": "Put everything together to build a complete deep learning project from data to deployment.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Problem definition and dataset collection",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Data preprocessing and augmentation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Model selection and training",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Hyperparameter tuning and evaluation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Deployment and demonstration",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Documentation and presentation",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

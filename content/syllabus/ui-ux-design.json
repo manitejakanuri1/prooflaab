@@ -1,0 +1,747 @@
+{
+ "course": "ui-ux-design",
+ "title": "UI/UX design",
+ "sources": [
+  "microsoft/Web-Dev-For-Beginners",
+  "mdn/content",
+  "AllThingsSmitty/css-protips",
+  "freeCodeCamp/freeCodeCamp",
+  "a11yproject/a11yproject.com"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Design Foundations: Visual Principles and Layout",
+   "why": "Before you open any tool, you need to know why some screens look calm and others look messy.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Three Languages of Every Page",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Tags, Elements, and the Box Model",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Semantic HTML and Why Your Specs Need It",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Selectors and the Cascade",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Flexbox: The Layout Tool You'll Actually Name",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Responsive Units and Media Queries",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "States, Hover, and Focus",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Reading a DevTools Inspection",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Design Tokens and CSS Variables",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Figma Fundamentals: Files, Frames, and Components",
+   "why": "Figma is the shared canvas where your whole team draws and builds the product together.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Figma Files, Pages, and Frames",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Shapes, Text, and Layers",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Selection, Alignment, and Constraints",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Components and Instances",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Styles: Color, Text, and Effects",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Prototyping Basics: Links and Transitions",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Sharing, Commenting, and Handoff",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Auto Layout: Building Screens That Resize",
+   "why": "Auto Layout makes your designs behave like real code so buttons and cards grow and shrink correctly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Auto Layout Basics: Stacking",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Alignment and Distribution",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Resizing: Hug, Fill, and Fixed",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Nesting Auto Layout Frames",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Spacing Modes: Gap and Space Between",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Wrapping and Overflow",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Absolute Position Within Auto Layout",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Auto Layout in Components and Variants",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Design Systems: Tokens, Components, and Libraries",
+   "why": "A design system is the shared rulebook that keeps a big product looking and behaving the same everywhere.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Design System Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Design Tokens: Naming Your Decisions",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Anatomy of a Component: Variants and Props",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Documenting Usage: Do and Don't",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Libraries: Publishing and Consuming",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Versioning and Contribution",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Auditing and Adoption",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Wireframing: Sketching Structure Before Style",
+   "why": "Wireframes let you test the layout and flow cheaply before you spend time on colors and polish.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Wireframe Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Fidelity Levels: Lo, Mid, Hi",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "The Wireframe Vocabulary",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Sketching Before You Open Figma",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Building a Wireframe in Figma",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Annotating and Handing Off",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Testing a Wireframe Without Wasting Time",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Prototyping: Making Designs Clickable and Testable",
+   "why": "A prototype turns static screens into something you can click so you can feel the flow before coding.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Prototype Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Low-Fidelity Click-Throughs",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "High-Fidelity Interactive Prototypes",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Prototyping Interactions and States",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Testing Your Prototype",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Iterating Based on Feedback",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "User Research: Learning From Real People",
+   "why": "Research stops you from guessing what users want and shows you what they actually do.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What User Research Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Choosing Methods: Interviews, Surveys, and Contextual Inquiry",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Writing a Discussion Guide and Recruiting Participants",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Running a Session Without Leading the Witness",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Synthesizing: Affinity Mapping and Insights",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Personas and Journey Maps: Making Research Stick",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "From Research to Design Decisions",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Usability Testing: Watching People Use Your Design",
+   "why": "Usability testing shows you where real users get stuck so you can fix it before launch.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Usability Testing Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Writing a Test Plan and Tasks",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Moderating Without Leading the Witness",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Capturing Observations with a Rainbow Spreadsheet",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Analyzing and Prioritizing Findings",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Remote and Unmoderated Testing Tools",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Turning Findings into Design Changes",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Accessibility: Designing for Everyone",
+   "why": "Accessibility means people with disabilities can use your product, and it is also the law in many places.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What WCAG Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "A, AA, AAA and Why You Ship AA",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Contrast Ratios You Can Actually Check",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Keyboard, Focus, and Tab Order",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Alt Text, Labels, and Names",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Reflow, Zoom, and Target Size",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Testing With Real Tools",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Writing It Into the Handoff",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Inclusive Design: Beyond Minimum Compliance",
+   "why": "Inclusive design goes past checklists to think about colorblindness, dyslexia, motion, and temporary injuries.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understanding Colourblindness",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Understanding Visual Impairment",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Understanding Vestibular Disorders",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Dyslexia-Friendly Typography",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Large Touch Targets",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Reduced Motion and Dark Mode",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Writing Accessible Forms",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Accessible Data Tables",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Screen Readers and Assistive Technology",
+   "why": "You cannot design for screen reader users until you have heard how a screen reader reads a page.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Assistive Technology Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Getting Started With NVDA",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Getting Started With VoiceOver",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Getting Started With TalkBack",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Navigating by Headings and Landmarks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "ARIA Roles, States, and Properties",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "When Not to Use ARIA",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Testing With a Screen Reader",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Interaction Design: States, Feedback, and Errors",
+   "why": "Every tap, hover, and mistake needs a clear response so users always know what just happened.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Vocabulary of Interaction States",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Buttons, Links, and When to Use Which",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Form Validation and Error Messages",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Loading, Empty, and Error States",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Modals, Dialogs, and Focus Traps",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Autosuggest and Combobox Patterns",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Date Pickers and Custom Selects",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Carousels and Dynamically Loaded Content",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Information Architecture and Navigation",
+   "why": "People need to find things fast, so the structure of your app matters as much as its look.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Information Architecture Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Card Sorting and Tree Testing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sitemaps and User Flows",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Navigation Patterns: Tabs, Sidebars, Breadcrumbs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Search vs Browse",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Naming Things Users Understand",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Skip Links and Landmarks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Visual Design: Type, Color, and Spacing",
+   "why": "Good visual design makes information easy to scan and pleasant to read.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Type Scales and Line Height",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Color Theory for Interfaces",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Spacing Scales and the 8-Point Grid",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Hierarchy With Size, Weight, and Contrast",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Icons and Imagery",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Elevation, Shadows, and Depth",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Dark Mode Color Choices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Responsive and Mobile Design",
+   "why": "Your design has to work on a small phone, a tablet, and a wide laptop screen.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Mobile-First Thinking",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Breakpoints and Content Reflow",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Touch Targets and Thumb Zones",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Adaptive Navigation Patterns",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Images and Media That Scale",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Testing on Real Devices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Design Handoff and Working With Engineers",
+   "why": "A design only ships if engineers can build it exactly as you intended.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Handoff Actually Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Specs, Redlines, and Annotations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Naming Conventions Engineers Understand",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Design Tokens to Code Variables",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reviewing the Built UI",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Filing and Tracking Design Bugs",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Portfolio and Job Readiness",
+   "why": "You need a portfolio that shows your thinking, not just pretty screens, to get hired.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Choosing Case Study Projects",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Writing a Case Study: Problem to Outcome",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Showing Process Without Boring the Reader",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Building a Personal Portfolio Site",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Preparing for Design Interviews",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Whiteboard and Take-Home Challenges",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Networking in the Indian Design Community",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,325 @@
+{
+ "course": "quant-aptitude",
+ "title": "Quantitative aptitude",
+ "sources": [
+  "CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What a Percentage Actually Is",
+   "why": "Percentages help us compare parts of a whole easily, like 50% means half.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Percentage Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Three Questions Percentages Ask",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Percentage Increase and Decrease",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Successive Percentage Changes",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Percentages of Populations and Marks",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Percentage Points vs Percentages",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Speed Tricks: Fractions You Should Know Cold",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "What a Ratio Actually Says",
+   "why": "Ratios compare two amounts, like 2:3 means for every 2 of one, there are 3 of another.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Ratio Actually Says",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Simplifying and Scaling Ratios",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Proportions: When Two Ratios Agree",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Dividing a Quantity in a Given Ratio",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Ratio Chains and Combining Ratios",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Proportions in Mixtures and Alligations",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Common Traps and Speed Tricks",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "The DST Triangle: Distance, Speed, Time",
+   "why": "Speed tells how fast something moves, distance is how far, and time is how long it takes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The DST Triangle: Distance, Speed, Time",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Unit Conversions: km/h to m/s and Back",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Average Speed: Not Just the Average of Speeds",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Relative Speed: When Two Objects Move",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Trains Crossing Poles, Platforms, and Each Other",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Boats and Streams: Upstream and Downstream",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Circular Tracks: Meeting and Crossing",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Speed and Time are Inversely Proportional",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Cost Price, Selling Price, and the Profit/Loss Sign",
+   "why": "Profit or loss is how much money you make or lose when you buy and sell something.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Cost Price, Selling Price, and the Profit/Loss Sign",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Profit Percentage and Loss Percentage",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Marked Price, Discount, and Successive Discounts",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "False Weight and Dishonest Dealer Problems",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Partnership and Profit Sharing",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Cost Price of Multiple Items and Overall Profit/Loss",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "What Probability Actually Means",
+   "why": "Probability tells how likely something is to happen, like the chance of rain.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Probability Actually Means",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Addition Rule: OR Events",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "The Multiplication Rule: AND Events",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Conditional Probability and Bayes' Theorem",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Independent vs Dependent Events",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Expected Value: The Long-Run Average",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Common Probability Distributions: Binomial and Geometric",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Counting Choices: The Multiplication Principle",
+   "why": "Counting choices helps you figure out how many ways you can do something, like picking clothes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Counting Choices: The Multiplication Principle",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Factorials: The Shorthand for Shuffling",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Permutations: When Order Matters",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Combinations: When Order Doesn't Matter",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "The Classic Traps: Repetition, Identical Items, Circular",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Mixed Selections: At Least, At Most, and Grouping",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "The Bayesian State of Mind",
+   "why": "Bayesian thinking updates what you believe when you see new evidence.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Bayesian State of Mind",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Bayesian Inference in Practice",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Are frequentist methods incorrect then?",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Probability Distributions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Discrete Case",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Continuous Case",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Interpretation",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Why would I want to use Bayesian methods?",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Introducing Our First Hammer: Pyro",
+   "why": "Pyro is a tool that helps you do Bayesian calculations on a computer.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Introducing our first hammer: Pyro",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "But what is lambda?",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Implementation of Salisman's Don't Overfit submission",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

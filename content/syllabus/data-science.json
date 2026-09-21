@@ -1,0 +1,784 @@
+{
+ "course": "data-science",
+ "title": "Data science",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "jakevdp/PythonDataScienceHandbook",
+  "CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers",
+  "guipsamora/pandas_exercises",
+  "rougier/numpy-100",
+  "rougier/scientific-visualization-book",
+  "enochtangg/quick-SQL-cheatsheet"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Python Foundations for Data Work",
+   "why": "You need to tell the computer what to do before it can help you find patterns in data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables and Types",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Lists and Dictionaries",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Control Flow: if, for, while",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Functions and Modules",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Reading and Writing Files",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Error Handling and Debugging",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Essential Libraries: math, random, datetime",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "List Comprehensions and Lambda Functions",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Jupyter Notebooks and Interactive Python",
+   "why": "A notebook lets you run small pieces of code, see results instantly, and write notes next to them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Jupyter Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Starting Jupyter and Running Cells",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Magic Commands You Will Actually Use",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Displaying DataFrames Nicely",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Plots That Stay in the Notebook",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Markdown Cells for Storytelling",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Exporting and Sharing Your Work",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Getting Help and Documentation in IPython",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Keyboard Shortcuts in the IPython Shell",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Input and Output History",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Running Shell Commands from IPython",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Timing and Profiling Code",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "NumPy: Fast Arrays and Vectorized Computation",
+   "why": "NumPy lets you do math on whole lists of numbers at once, which is much faster than one-by-one.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why NumPy Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Creating Arrays",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Indexing and Slicing",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Vectorized Operations",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Aggregations and Axis",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Boolean Masks and Filtering",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Reshaping and Stacking",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Random Number Generation",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Understanding Data Types in NumPy",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Broadcasting Rules",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Fancy Indexing",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Sorting Arrays",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Structured Arrays",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Pandas: Loading, Cleaning, and Transforming Data",
+   "why": "Pandas is like Excel inside Python, letting you load, clean, and reshape tables of data easily.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Loading Data into a DataFrame",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Selecting Columns and Filtering Rows",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Handling Missing Data",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Grouping and Aggregating",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Merging and Joining DataFrames",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Time Series Basics",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Saving Your Work",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Introducing Pandas Objects: Series and DataFrame",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Indexing and Selection: loc and iloc",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Operations and Index Alignment",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Hierarchical Indexing (MultiIndex)",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Concatenating DataFrames",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Pivot Tables",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Vectorized String Operations",
+     "existing": false
+    },
+    {
+     "n": 15,
+     "title": "High-Performance Pandas: eval and query",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "SQL for Data Analysts",
+   "why": "Most company data lives in databases, and SQL is the language to ask questions of that data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What SQL Is and Why Analysts Live In It",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "SELECT, FROM, WHERE: The Three Words You'll Type Forever",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "ORDER BY, LIMIT, and Aliases",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Aggregations: COUNT, SUM, AVG, GROUP BY",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "JOINs: Bringing Tables Together",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Subqueries and CTEs: Breaking Big Questions Into Small Ones",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Data Types, Dates, and Cleaning in SQL",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Analyst Habits: EXPLAIN, Indexes, and Not Hammering Prod",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "LIKE and Pattern Matching",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "UNION and Set Operations",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "SELECT TOP and Limiting Results",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Descriptive Statistics and Probability",
+   "why": "Statistics helps you summarize data and understand how uncertain your conclusions are.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Descriptive Statistics: Mean, Median, Mode",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Measures of Spread: Variance and Standard Deviation",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Probability Distributions: Normal and Binomial",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Sampling and the Central Limit Theorem",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Hypothesis Testing: p-values and t-tests",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Correlation vs. Causation",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "A/B Testing in Practice",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Geometric Mean and Other Averages",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Bayesian Thinking: The Bayesian State of Mind",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Bayesian Inference in Practice",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Data Visualization with Matplotlib",
+   "why": "A good chart makes patterns in data obvious at a glance.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Your First Plot: plt.plot() and plt.show()",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Labels, Titles, and Legends: Making It Readable",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Bar Charts, Histograms, and Scatter Plots",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Subplots: Multiple Charts in One Figure",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Styling: Colors, Markers, and Linestyles",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Saving Figures: plt.savefig() and DPI",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Working with Pandas: Plotting DataFrames Directly",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Common Pitfalls: Overplotting, Axis Limits, and Memory",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Error Bars and Uncertainty Visualization",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Customizing Colorbars",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Text and Annotation on Plots",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Customizing Ticks and Tick Labels",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Configurations and Stylesheets",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Statistical Data Visualization with Seaborn",
+   "why": "Seaborn makes it easy to draw beautiful statistical charts with less code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Seaborn Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The data= and x=/y= Pattern",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Distribution Plots: histplot and kdeplot",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Categorical Plots: boxplot, violinplot, countplot",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Relational Plots and regplot",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Figure-Level vs Axes-Level Functions",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Correlation Heatmaps and pairplot",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Styling, Palettes, and Saving Figures",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Kernel Density Estimation in Depth",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Excel for Data Analysts",
+   "why": "Excel is still the most common tool for quick data analysis in many jobs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Excel for Data Analysts: The Grid, Cells, and Ranges",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Formulas, Operators, and the $ Sign That Changes Everything",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Core Functions: SUM, AVERAGE, COUNT, IF, and Friends",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Lookup Functions: VLOOKUP, XLOOKUP, and INDEX/MATCH",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "PivotTables: The Analyst's Power Tool",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Data Cleaning: Text Functions, TRIM, and Remove Duplicates",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Conditional Formatting and Data Validation",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Charts: Choosing the Right One and Making It Readable",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Power BI for Business Intelligence",
+   "why": "Power BI turns raw data into interactive dashboards that anyone in a company can explore.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Power BI Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Connecting and Shaping Data with Power Query",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Data Modeling: Relationships and Star Schema",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "DAX Basics: Measures and Calculated Columns",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Building Report Pages and Visuals",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Interactivity: Slicers, Filters, and Drill-Through",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Publishing and Sharing in the Power BI Service",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Tableau for Visual Analytics",
+   "why": "Tableau lets you drag and drop to build interactive charts and dashboards quickly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Connect to Data",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Dimensions vs Measures",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Build Your First View",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Filters and Sorting",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Calculated Fields",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Dashboards and Stories",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Machine Learning with Scikit-Learn",
+   "why": "Machine learning lets computers learn patterns from data to make predictions or decisions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Is Machine Learning?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Introducing Scikit-Learn and the Estimator API",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Hyperparameters and Model Validation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Feature Engineering and Pipelines",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Naive Bayes Classification",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Linear Regression and Regularization",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Decision Trees and Random Forests",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Unsupervised Learning: Clustering and Dimensionality Reduction",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Image Features and Face Detection Example",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Bayesian Methods and Probabilistic Programming",
+   "why": "Bayesian methods let you update your beliefs as you see new data, which is useful when data is scarce.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Bayesian State of Mind",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Probability Distributions: Discrete and Continuous",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Bayesian Inference in Practice",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Introducing PyMC and Probabilistic Programming",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Markov Chain Monte Carlo (MCMC)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Model Checking and Comparison",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Bayesian Machine Learning and Avoiding Overfitting",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "End-to-End Data Science Projects",
+   "why": "Putting all the pieces together on real data is how you become job-ready.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Pandas Exercises: Wind Stats and Online Retail",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Getting Financial Data from APIs",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "100 NumPy Exercises",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "SQL Cheatsheet Practice: WHERE, LIKE, UNION",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Building a Complete Analysis Notebook",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Communicating Results with Reports and Dashboards",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

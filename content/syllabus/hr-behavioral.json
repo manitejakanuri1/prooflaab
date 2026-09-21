@@ -1,0 +1,819 @@
+{
+ "course": "hr-behavioral",
+ "title": "HR and behavioural interviews",
+ "sources": [
+  "yangshun/tech-interview-handbook"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Why HR and Behavioural Interviews Matter",
+   "why": "Companies ask these questions to check if you are safe to work with, not just smart.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What HR interviews test beyond skills",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "How behavioural answers are scored",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The difference between HR and technical rounds",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common myths about HR rounds",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "What interviewers write down about you",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "The STAR Answer Format",
+   "why": "STAR is a simple four-part recipe that keeps your story clear and short.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why STAR Beats Rambling",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Situation: Set the Scene Fast",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Task: Own Your Slice",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Action: The Meat of Your Answer",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Result: Quantify and Reflect",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Timing: Keep It Under Two Minutes",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Building Your Story Bank",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Adapting STAR to Different Questions",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Core HR Questions",
+   "why": "These are the questions almost every interviewer asks, so you must have ready answers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Tell Me About Yourself",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Why Should We Hire You",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Strengths and Weaknesses",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Behavioral Questions With STAR",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Handling Conflict and Teamwork Questions",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Where Do You See Yourself in 5 Years",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Why This Company and Role",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Questions to Ask the Interviewer",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Strengths and Weaknesses in Depth",
+   "why": "You need to pick real strengths and weaknesses that fit the job without sounding fake.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why HR Asks About Strengths & Weaknesses",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Pick a Strength That Maps to the Job",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Frame Your Strength with a Micro-STAR",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Choose a Real Weakness (Not a Fake One)",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Show the Fix: Weakness + Action + Result",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Avoid the Humble-Brag and the Self-Sabotage",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Match Your Strength to the Company's Needs",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Rehearse and Adapt in Real Time",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Salary Negotiation Basics",
+   "why": "Talking about money is scary, but knowing your number and asking politely gets you more.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Know Your Number Before the Call",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "When They Ask 'What Are Your Salary Expectations?'",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "The Counter-Offer Script",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Handling 'That's Above Our Budget'",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Reading the Offer Letter Like a Lawyer",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Getting It in Writing and Closing Gracefully",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Understanding Compensation",
+   "why": "A job offer is more than just salary, so you need to know all the parts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Base salary",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Bonus",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Equity and stocks",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Stock options vs stock grants",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Signing bonus",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Misc bonuses and perks",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "How to compare two offers",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Negotiation Rules and Mindset",
+   "why": "Negotiation is a normal conversation, not a fight, and these rules keep it positive.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Always negotiate",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Get everything in writing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Always keep the door open",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Information is power",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Always be positive",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Don't be the decision maker",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Have alternatives",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Proclaim reasons for everything",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Be motivated by more than money",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Behavioural Interview Evaluation",
+   "why": "Knowing how you are scored helps you say the right things.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "How behavioural interviews are evaluated",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Motivation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Ability to be proactive",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Ability to work in an unstructured environment",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Perseverance",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Conflict resolution",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Example questions and responses",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Common Behavioural Questions from Top Companies",
+   "why": "Different companies ask similar questions, so you can prepare once and reuse.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Most commonly asked behavioural questions across top tech companies",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Airbnb Software Engineer behavioural interview questions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Amazon Software Engineer behavioural interview questions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "ByteDance Software Engineer behavioural interview questions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Google Software Engineer behavioural interview questions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Meta Software Engineer behavioural interview questions",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Microsoft Software Engineer behavioural interview questions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Senior Candidate Behavioural Interviews",
+   "why": "If you have more experience, the stories must show bigger impact and leadership.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Common Pitfalls in Senior Behaviorals",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Story Selection: Beyond Pure Technical Impact",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Story Organization & Delivery: Managing Narrative Complexity",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Thinking Defensively",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Pitfalls in Senior Behaviorals (continued)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Self-Introduction and Elevator Pitch",
+   "why": "The first minute of any interview sets the tone, so you need a short, clear intro.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Make an elevator pitch",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Start with basic background information",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "KISS (Keep It Simple and Sweet)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Why do they want you?",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Practice!",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Example 1: Front End Engineer at Meta",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Example 2: From a non-target school",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Final Questions to Ask",
+   "why": "Asking good questions at the end shows you care and helps you decide if the job is right.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Best questions to ask for knowing more about technical work",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Best questions to ask for knowing more about the role",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Best questions to ask for knowing more culture and welfare",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Best questions to ask to get to know your interviewer",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Questions you should avoid asking",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Communication and Soft Skills",
+   "why": "How you talk and work with others matters as much as your code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why is communication important?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Broaden your impact",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Improve your career performance and progression",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Influence",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Foster alignment and save effort down the line",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "How to communicate effectively as an engineer",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Resume and Application Basics",
+   "why": "Your resume is the first step to get an interview, so it must be clean and clear.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "How your resume is screened",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The skill set checklist",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The 10 seconds glance",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "How to set up an ATS-friendly software engineer resume",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Only use Microsoft Word or Google Docs to create and edit your resume",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Only use standard fonts of readable sizes",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Add sections with standard headings and ordering",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Good vs points of improvement",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Improved version",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Interview Day and Logistics",
+   "why": "Small things like being on time and having your setup ready can make or break the day.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What to do before your coding interview",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "For virtual onsite coding interviews",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "For phone screen coding interviews",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Make a good self introduction at the start of the interview",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Upon receiving the question",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Interview day checklist",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "After the Interview",
+   "why": "What you do after the interview can leave a good impression or help you improve.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Send a thank-you note",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reflect on what went well and what didn't",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Follow up if you haven't heard back",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Keep the door open even if rejected",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Learn from rejection",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Choosing Between Companies",
+   "why": "When you have more than one offer, you need to compare more than just salary.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Compensation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Products",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Prospective teams",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Career growth",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Company culture",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Engineering culture",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Work-life balance",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Transfers and mobility",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Career Growth and Levels",
+   "why": "Knowing how levels work helps you plan your career and answer questions about growth.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Career levels",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Junior Software Engineer",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Software Engineer",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Senior Software Engineer",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Staff Software Engineer",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Senior Staff Software Engineer",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Principal Software Engineer",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Distinguished Engineer and beyond",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Mock Interviews and Practice",
+   "why": "Practicing with a real person or recording yourself makes you less nervous and more clear.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why mock interviews help",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Where to find mock interviews",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "How to give and receive feedback",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Record yourself and review",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Practice with a friend",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Handling Rejection and Feedback",
+   "why": "Rejection is normal, and learning from it makes you stronger for the next interview.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why companies reject candidates",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "How to ask for feedback",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "What to do with vague feedback",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Staying motivated",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "When to reapply",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

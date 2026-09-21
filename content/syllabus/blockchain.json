@@ -1,0 +1,794 @@
+{
+ "course": "blockchain",
+ "title": "Blockchain",
+ "sources": [
+  "wevm/viem",
+  "foundry-rs/book",
+  "reactjs/react.dev",
+  "Cyfrin/solidity-by-example.github.io",
+  "leonardomso/33-js-concepts",
+  "ryanmcdermott/clean-code-javascript",
+  "airbnb/javascript",
+  "trekhleb/javascript-algorithms",
+  "Chalarangelo/30-seconds-of-code",
+  "freeCodeCamp/freeCodeCamp"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "JavaScript and TypeScript Foundations for Blockchain",
+   "why": "You need to be comfortable with JavaScript before you can write code that talks to a blockchain.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables, Types, and the Weird Parts",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Functions, Scope, and Modules",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Arrays, Objects, and Destructuring",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Async/Await and Promises",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Working with BigInt and Unit Conversion",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Error Handling and Debugging",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Fetching Data from RPCs and APIs",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Event Listeners and Contract Events",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Modules, Bundlers, and Environment Variables",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "TypeScript Types for Contract ABIs and Addresses",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Clean Code Habits: Naming, Small Functions, No Side Effects",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Big O Notation and Basic Data Structures",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "How Blockchains and Ethereum Actually Work",
+   "why": "Before writing contracts you need to know what a blockchain is and why Ethereum is different.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Blocks, Chains, and Hashing",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Accounts, Keys, and Addresses",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Transactions, Nonces, and Gas Fees",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "EIP-1559 Fees: Base Fee and Priority Fee",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Nodes, Clients, and JSON-RPC",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Testnets, Faucets, and Block Explorers",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Ethereum Virtual Machine Overview",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Wallets, Seed Phrases, and Key Safety",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Your First Solidity Contract",
+   "why": "Writing a tiny contract is the fastest way to see how blockchain code looks and runs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Your First Contract: The Skeleton",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Types That Matter: uint, address, bool, mapping",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "msg.sender, msg.value, and Who's Calling",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Visibility, State Mutability, and the Function Cocktail",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Events and Modifiers: Logs and Guardrails",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Inheritance and Interfaces: is and import",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Errors: revert, require, custom error",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Security First: Reentrancy and Checks-Effects-Interactions",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Solidity Language Deep Dive",
+   "why": "Real contracts need structs, arrays, libraries, and careful data placement to work correctly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Structs, Enums, and Fixed-size Arrays",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Dynamic Arrays, Storage, and Memory",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Calldata, External, and Public Parameters",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Libraries and using for Syntax",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Abstract Contracts and Interfaces",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Payable Functions and Receiving Ether",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Fallback and Receive Functions",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Constants, Immutables, and Constructor Setup",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Function Overloading and Selectors",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Tokens and Common Standards",
+   "why": "Most real contracts are tokens, so you must know ERC-20, ERC-721, and ERC-1155.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "ERC-20: Fungible Tokens",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "ERC-721: Non-Fungible Tokens",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "ERC-1155: Multi-Token Standard",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Approve, Allowance, and transferFrom",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Safe Transfer and Reentrancy on Tokens",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Metadata, tokenURI, and Off-chain Storage",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Permit and EIP-2612 Gasless Approvals",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Wrapped Ether and Vault Shares",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Foundry: Fast Local Solidity Development",
+   "why": "Foundry lets you write tests in Solidity and run them in seconds.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Installing Foundry and Running forge init",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Writing Your First Test with forge test",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Cheatcodes: vm.prank, vm.warp, vm.deal",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Fuzzing: Let Foundry Find Your Bugs",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Reading Traces with forge test -vvvv",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Deploying with forge script",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Anvil and Cast: Local Chain and CLI",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Gas Snapshots and forge fmt Before You Ship",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Invariant Testing and Stateful Fuzzing",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Fork Testing Against Mainnet State",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Coverage Reports and Mutation Testing",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Deterministic Deployments with CREATE2",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Hardhat: JavaScript Toolchain for Contracts",
+   "why": "Hardhat is the most common JavaScript-based way to build, test, and deploy contracts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Installing Hardhat and Creating a Project",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Writing and Compiling a Contract",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Running a Local Hardhat Network",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Deploying with a Script",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Testing Contracts with Hardhat",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Using Console.log and Debugging",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Configuring Networks and Plugins",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Deploying to a Testnet",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Verifying Contracts on Etherscan",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Upgradeable Contracts with Proxies",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Talking to Chains from JavaScript",
+   "why": "You need a library to read and write contracts from a normal web app.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Connecting to a Provider",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Wallets, Signers, and Keys",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Reading Contracts with ABI and Interface",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Writing Contracts: Sending Transactions",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Units, Addresses, and BigNumbers",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Events and Logs: Listening to the Chain",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Signing Messages Off-Chain (EIP-191/EIP-712)",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Error Handling and Debugging",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Estimating Gas and Filling Transaction Fields",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Multicall: Batching Many Reads",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "viem: Modern TypeScript Ethereum Client",
+   "why": "viem is the newer, smaller, type-safe replacement for ethers.js.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What viem Is and Why It Replaces ethers.js",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Public Client: Reading Chain State",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Wallet Client: Signing and Sending Transactions",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Reading Contracts with readContract and ABI Types",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Writing Contracts with writeContract and Simulation",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Watching Events with watchContractEvent",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Typed Contracts with getContract",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Error Handling and Custom Errors",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Accounts: Private Key, Mnemonic, and JSON-RPC",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Transports: HTTP, WebSocket, and Fallback",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "ABI Encoding and Decoding Utilities",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "ENS Name Resolution and Avatars",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Blob Transactions and KZG Setup",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Smart Accounts and Account Abstraction",
+     "existing": false
+    },
+    {
+     "n": 15,
+     "title": "EIP-7702 Delegation and Authorization",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "The EVM Under the Hood",
+   "why": "Knowing how the EVM runs your code helps you write cheaper and safer contracts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The EVM Is a Stack Machine",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Opcodes: The EVM's Instruction Set",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Memory, Storage, and Calldata",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Gas: The Cost of Every Opcode",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "The Call Stack and Reentrancy",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "ABI Encoding and Function Selectors",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Reading Bytecode and Using Debuggers",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Delegatecall, Call, and Staticcall",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "CREATE and CREATE2 Opcodes",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Storage Layout and Slots",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Smart Contract Security",
+   "why": "Contracts hold real money, so a small bug can drain everything.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Smart Contracts Get Hacked",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Reentrancy Attacks and Checks-Effects-Interactions",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Integer Overflows and Underflows",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Access Control and Ownership",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Front-Running and Transaction Order Dependence",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Denial of Service and Gas Limits",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Oracle Manipulation and Price Feeds",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Testing and Auditing Tools",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Signature Replay and Malleability",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Delegatecall and Proxy Storage Risks",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Weak Randomness and Block Variables",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Vault Inflation and First-Depositor Attacks",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Commit-Reveal Schemes for Auctions",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Static Analysis with Slither and Foundry Lints",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Building a Frontend for Your dApp",
+   "why": "Users need a web page to connect their wallet and use your contract.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why a Smart Contract Dev Needs React",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Components and JSX",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Props: Passing Data Down",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "State with useState",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Handling Events and Forms",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "useEffect: Connecting to the Wallet",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Calling Contracts with ethers.js in React",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Lists, Keys, and Conditional Rendering",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Context for Wallet State",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Custom Hooks for Contract Reads and Writes",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Handling Pending, Success, and Error States",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Formatting Addresses, Balances, and Timestamps",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Network Switching and Wrong-Chain Warnings",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Testing, Deploying, and Shipping a Real dApp",
+   "why": "Putting all the pieces together is what makes you job-ready.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Writing End-to-End Tests for a dApp",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Deploying Contracts to a Testnet and Mainnet",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Verifying Source Code on Block Explorers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Managing Environment Variables and Secrets",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "CI with GitHub Actions for Contracts and Frontend",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Monitoring Events and Alerts in Production",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Upgrade Paths and Multisig Ownership",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Writing a README and Demo for Your Portfolio",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

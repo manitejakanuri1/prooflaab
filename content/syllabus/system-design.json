@@ -1,0 +1,956 @@
+{
+ "course": "system-design",
+ "title": "System design",
+ "sources": [
+  "donnemartin/system-design-primer",
+  "microsoft/api-guidelines"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What system design is and how to approach a design question",
+   "why": "System design is planning how to build a computer program that many people can use at once without breaking.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Learn how to design large-scale systems",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Prep for the system design interview",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Study guide",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "How to approach a system design interview question",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Step 1: Outline use cases, constraints, and assumptions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Step 2: Create a high-level design",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Step 3: Design core components",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Basics of the web: HTTP, REST, and JSON",
+   "why": "Most apps talk to each other over the web using simple rules called HTTP, REST, and JSON.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Building Blocks: HTTP, REST, & JSON",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "HTTP methods and status codes",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "REST resource modeling",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "JSON data format",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Performing an Action",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Repeatability of requests",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Domain Name System (DNS)",
+   "why": "DNS is like a phone book that turns a website name into the number computers use to find it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Domain Name System",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "How DNS resolution works",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "DNS record types",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "DNS caching and TTL",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Load balancing and reverse proxies",
+   "why": "A load balancer shares incoming visitors across many computers so no single one gets too tired.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Load balancer",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reverse proxy (web server)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Layer 4 vs Layer 7 load balancing",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Health checks and failover",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Session persistence",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Caching",
+   "why": "Caching saves often-used answers so the computer does not have to figure them out again.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Caching",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "When to update the cache",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Cache eviction policies",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Cache invalidation strategies",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Expanding the Memory Cache to many machines",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Databases: SQL and NoSQL",
+   "why": "Databases store information; SQL is like a strict table, NoSQL is like a flexible box.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "SQL",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "NoSQL",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "SQL or NoSQL?",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "When to use SQL vs NoSQL",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Database replication",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Database sharding",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Object-oriented design basics",
+   "why": "Object-oriented design is a way to organize code into small pieces that each do one job.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Object-oriented design interview questions and answers",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Classes, objects, and interfaces",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "SOLID principles",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Design patterns overview",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "API design guidelines",
+   "why": "API design guidelines are rules for making web services that are easy for others to use.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Microsoft REST API Guidelines",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Guidance for Azure service teams",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Azure Management Plane vs Data Plane",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Start with the Developer Experience",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Focus on Hero Scenarios",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Start with your API Definition",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Design for Change Resiliency",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "API versioning and deprecation",
+   "why": "Versioning lets you change an API without breaking apps that already use it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "API Versioning",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Deprecating Behavior Notification",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Deprecation guidelines",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Example of property annotation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "API naming and data types",
+   "why": "Clear names and types make an API easy to understand and use.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Naming",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Casing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Names to avoid",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Forming compound names",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Identity properties",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Date and time properties",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Collections and counts",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Common property names",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Core types",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Nullable Properties",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "API error handling",
+   "why": "Good error messages help developers fix problems quickly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Error condition responses",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Error object",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "InnerError object",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Examples of error responses",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "API collection patterns",
+   "why": "Collections are lists of items; APIs need ways to sort, filter, and page through them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Item keys",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Collection URL patterns",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Big collections",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Changing collections",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Sorting collections",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Interpreting a sorting expression",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Filtering",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Filter operations",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Filter as segment",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "API patterns for relationships and operations",
+   "why": "APIs often need to handle relationships between things and long-running actions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Navigation property",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Many-to-one relationships",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Zero-or-one-to-one relationships",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "One-to-many relationships",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Operations",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Long running operations",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Create a new resource using RELO",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Cancel RELO operation",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Poll on a stepwise operation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "API patterns for data modeling",
+   "why": "These patterns help you model complex data in simple ways.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Alternate key",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Change tracking",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Delta payload",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Default properties",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Dictionary",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "String dictionary",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Complex typed dictionary",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Evolvable enums",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Flag enum examples",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Facets",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Flat bag",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Namespace",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Subsets",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Subtypes",
+     "existing": false
+    },
+    {
+     "n": 15,
+     "title": "Upsert",
+     "existing": false
+    },
+    {
+     "n": 16,
+     "title": "Viewpoint",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Design a URL shortener (Pastebin/Bit.ly)",
+   "why": "A URL shortener takes a long web address and gives back a short one that redirects.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Design Pastebin.com (or Bit.ly)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Design a query cache",
+   "why": "A query cache stores the results of common questions so answers come faster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use case: User sends a request resulting in a cache hit",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Expanding the Memory Cache to many machines",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Caching",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Design a social graph",
+   "why": "A social graph shows who is friends with whom and how people are connected.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use case: User searches for someone and sees shortest path",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Caching",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Design a web crawler",
+   "why": "A web crawler is a robot that visits web pages and collects information from them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use case: Service crawls a list of urls",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Handling duplicates",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Determining when to update the crawl results",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use case: User inputs a search term and sees a list of relevant results",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Design a sales rank system",
+   "why": "A sales rank system figures out which products are most popular.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use case: Service needs to calculate most popular items by category for last week",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Caching",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Design a scaling system on AWS",
+   "why": "Scaling on AWS means using cloud services to handle more users automatically.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Users++",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Users+++",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Caching",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Design Twitter timeline and search",
+   "why": "Twitter shows a stream of short messages and lets you search them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Design the Twitter timeline and search",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Caching",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Design an online chat system",
+   "why": "An online chat lets people send messages to each other in real time.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Design a call center",
+   "why": "A call center system routes phone calls to available agents.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "title": "Design a deck of cards",
+   "why": "A deck of cards system models a set of playing cards and shuffling.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 25,
+   "title": "Design a hash map",
+   "why": "A hash map stores key-value pairs and finds values quickly by key.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 26,
+   "title": "Design an LRU cache",
+   "why": "An LRU cache keeps the most recently used items and throws away the least recently used.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 27,
+   "title": "Design a parking lot",
+   "why": "A parking lot system tracks which parking spots are free and assigns them to cars.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints and assumptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 28,
+   "title": "Design a mint (currency system)",
+   "why": "A mint system handles creating and tracking digital money.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use cases",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Caching",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 4: Scale the design",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

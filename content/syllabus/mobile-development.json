@@ -1,0 +1,1186 @@
+{
+ "course": "mobile-development",
+ "title": "Mobile development",
+ "sources": [
+  "swiftlang/swift-book",
+  "dart-lang/site-www",
+  "flutter/samples",
+  "mdn/content",
+  "react/react-native-website",
+  "microsoft/api-guidelines",
+  "donnemartin/system-design-primer",
+  "iluwatar/java-design-patterns",
+  "TheAlgorithms/Java"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What Kotlin Is and Why Android Uses It",
+   "why": "Kotlin is the language Android apps are written in, and it is easier and safer than Java.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Kotlin Is and Why Android Uses It",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "val, var, and Kotlin's Type Inference",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Null Safety: The Whole Reason You're Here",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "if, when, and Loops",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Functions, Default Arguments, and Named Parameters",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Classes, Data Classes, and Properties",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Collections and Lambdas: map, filter, forEach",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Coroutines: suspend, launch, and async",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Extension Functions and Scope Functions",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "What Compose Actually Is",
+   "why": "Compose lets you build Android screens by writing simple functions instead of XML layouts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Compose Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Your First Composable and Preview",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Layout: Column, Row, Box",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "State and Recomposition",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Lists with LazyColumn",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Material 3 Components",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "State Hoisting and ViewModels",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Navigation Between Screens",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Side Effects and LaunchedEffect",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Swift Syntax and Variables",
+   "why": "Swift is the language used to build iPhone and iPad apps.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Swift Syntax and Variables",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Control Flow: If, Guard, Switch",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Functions and Closures",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Optionals and Optional Chaining",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Structs, Classes, and Properties",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Protocols and Extensions",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Error Handling and Codable",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Memory Management and ARC",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Views Are Values",
+   "why": "In SwiftUI, you describe your screen using small building blocks called views.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Views Are Values",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Stacks, Text, and Images",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "State: @State and @Binding",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Lists and ForEach",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Navigation and Sheets",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Observable Models",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Async Data and Loading States",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Previews, Environment, and Polish",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Why Flutter Exists",
+   "why": "Flutter lets you write one app that runs on both Android and iPhone.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Flutter Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Installing Flutter and Running Your First App",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Dart Syntax You Actually Need",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Widgets: Everything Is a Widget",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Stateless vs Stateful and setState",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Navigation with Navigator and Routes",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Calling REST APIs and Parsing JSON",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "State Management: Provider, Riverpod, Bloc",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Packages, pubspec.yaml, and Platform Channels",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Building and Shipping: flutter build",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Dart Basics: Variables and Types",
+   "why": "Dart is the programming language Flutter uses, and it is easy to learn.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Dart Basics: Variables and Types",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Control Flow: If, Else, and Loops",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Functions and Parameters",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Classes and Objects",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Collections: Lists, Maps, and Sets",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Asynchronous Dart: Futures and async/await",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Null Safety and Error Handling",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Dart for Flutter: Widgets and BuildContext",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "What a REST API Actually Is",
+   "why": "A REST API is how your app talks to a server to get or send data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a REST API Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "HTTP Verbs and Status Codes",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Endpoints, Paths, and Query Parameters",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Headers, Auth, and Content Types",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Request Bodies and JSON Payloads",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Making Calls from Flutter and Swift",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Error Handling and Retries",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Caching and Offline Behavior",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "What JSON Actually Is",
+   "why": "JSON is a simple text format for sending data between apps and servers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What JSON Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Objects, Arrays, and Nesting",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Valid JSON vs Almost-JSON",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Parsing JSON in Dart",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Codable in Swift",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Sending JSON Back to the Server",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Handling Bad Responses Without Crashing",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Codegen and Tools That Write the Boring Code",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Why Room Exists",
+   "why": "Room makes it easy to save data on an Android phone using a database.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Room Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Entity: Your First Table",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "DAO: Your Query Interface",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Database: Tying It Together",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Type Converters",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Migrations: Changing Your Schema",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Room with Coroutines and Flow",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Testing Your Room Database",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "What SQLite Actually Is",
+   "why": "SQLite is a tiny database that lives inside your phone and stores data in tables.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What SQLite Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "CREATE TABLE and the Types That Aren't",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "SELECT, WHERE, and ORDER BY",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "INSERT, UPDATE, DELETE, and Transactions",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Indexes: The Only Performance Trick That Matters",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Using SQLite from Kotlin (Android) and Swift (iOS)",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Migrations: Changing Schema Without Losing Data",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "WAL Mode, Concurrency, and When SQLite Isn't Enough",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "What Firebase Actually Is",
+   "why": "Firebase is a set of tools from Google that helps you store data, log in users, and send messages without running your own server.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Firebase Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Creating a Project and Adding the SDK",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Firestore Data Model: Collections and Documents",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Writing and Reading Documents",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Queries and Indexes",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Authentication",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Security Rules",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Cloud Storage and Cloud Messaging",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Offline Persistence and Crashlytics",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Apple Developer Program Enrollment",
+   "why": "To put an app on the App Store, you need to join Apple's developer program.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Apple Developer Program Enrollment",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "App IDs and Bundle Identifiers",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Code Signing and Provisioning Profiles",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Building and Archiving in Xcode",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "App Store Connect Metadata",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Uploading a Build",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "App Review Guidelines and Common Rejections",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "TestFlight and Beta Testing",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Release Management and Phased Release",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Java Syntax and Your First Class",
+   "why": "Java is the older language for Android, and many apps still use it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Java Syntax and Your First Class",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Variables, Types, and Control Flow",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Methods, Parameters, and Return Values",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Classes, Objects, and Constructors",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Inheritance, Interfaces, and Polymorphism",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Collections: List, Map, and Set",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Exception Handling: try, catch, finally",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Threads, AsyncTask, and Modern Concurrency",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Java on Android: Activities, Views, and Lifecycle",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Why React Native Exists",
+   "why": "React Native lets you build mobile apps using JavaScript, which many web developers already know.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why React Native Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "JSX and Your First Component",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Props and State with useState",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Styling with StyleSheet and Flexbox",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Lists with FlatList",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Navigation with React Navigation",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Platform APIs and Permissions",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Debugging and the Metro Bundler",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Building and Shipping to Both Stores",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Swift Language Deep Dive",
+   "why": "Swift has many features that make your code safe and expressive.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Basics: Constants, Variables, and Types",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Basic Operators and Advanced Operators",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Strings and Characters",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Collection Types: Arrays, Dictionaries, Sets",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Control Flow: Loops, Conditionals, and Switch",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Functions and Closures",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Enumerations and Structures",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Properties, Methods, and Subscripts",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Initialization and Deinitialization",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Inheritance and Polymorphism",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Generics and Opaque Types",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Automatic Reference Counting (ARC)",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Memory Safety and Access Control",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Concurrency: async/await and Actors",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Dart Language Deep Dive",
+   "why": "Dart has powerful features that help you write clean and safe code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables, Null Safety, and Late",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Built-in Types and Collections",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Functions and Parameters",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Classes, Constructors, and Modifiers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Inheritance, Mixins, and Interfaces",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Enums and Extension Methods",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Generics and Variance",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Asynchronous Programming: Futures and Streams",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Isolates and Concurrency",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Pattern Matching and Records",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Metadata and Annotations",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Effective Dart: Style and Usage",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "HTTP and Networking Fundamentals",
+   "why": "HTTP is the set of rules that apps use to talk to servers over the internet.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "HTTP Messages: Requests and Responses",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "HTTP Methods: GET, POST, PUT, DELETE, PATCH",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Status Codes: 1xx, 2xx, 3xx, 4xx, 5xx",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Headers: Content-Type, Authorization, Caching",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Cookies and Sessions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "CORS and Cross-Origin Requests",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Caching: Cache-Control, ETag, Last-Modified",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Compression: gzip, Brotli",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "HTTP/2 and HTTP/3",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "WebSockets and Server-Sent Events",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "REST API Design and Best Practices",
+   "why": "Good API design makes it easy for apps to use your server.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Resources and URLs",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "HTTP Methods and Idempotency",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Status Codes and Error Responses",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Versioning and Deprecation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Pagination, Filtering, and Sorting",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Long-Running Operations and Async Patterns",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Caching and Conditional Requests",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Security: Authentication and Authorization",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Rate Limiting and Throttling",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Documentation and SDK Generation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "System Design for Mobile Apps",
+   "why": "Mobile apps are part of a bigger system that includes servers, databases, and networks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Client-Server Architecture",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Load Balancing and Reverse Proxies",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Caching Strategies: Client, CDN, Server",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Databases: SQL vs NoSQL",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Sharding and Replication",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Message Queues and Event-Driven Design",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Microservices and API Gateways",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Offline-First and Sync Patterns",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Monitoring, Logging, and Analytics",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Scalability and Performance",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Design Patterns for Mobile Development",
+   "why": "Design patterns are reusable solutions to common problems in app code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creational Patterns: Singleton, Factory, Builder",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Structural Patterns: Adapter, Facade, Decorator",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Behavioral Patterns: Observer, Strategy, Command",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Model-View-Controller (MVC)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Model-View-ViewModel (MVVM)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Model-View-Presenter (MVP)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Repository Pattern",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Dependency Injection",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Clean Architecture",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Reactive Patterns: Observer, Streams",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Testing and Debugging Mobile Apps",
+   "why": "Testing and debugging help you find and fix problems before your users do.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Unit Testing Basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Testing Kotlin and Android Code",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Testing Swift and iOS Code",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Testing Flutter and Dart Code",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "UI Testing and Integration Testing",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Debugging Tools: Logcat, Xcode Debugger, Flutter DevTools",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Performance Profiling",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Crash Reporting and Analytics",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Continuous Integration and Delivery",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Publishing and Monetizing Mobile Apps",
+   "why": "After building your app, you need to publish it so people can download it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Google Play Console: Setup and Publishing",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "App Store Connect: Setup and Publishing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "App Store Optimization (ASO)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Monetization: Ads, In-App Purchases, Subscriptions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Analytics and User Engagement",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Push Notifications",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "App Updates and Versioning",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Privacy Policies and Compliance",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

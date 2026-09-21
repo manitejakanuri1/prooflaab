@@ -1,0 +1,848 @@
+{
+ "course": "machine-learning",
+ "title": "Machine learning",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "microsoft/generative-ai-for-beginners",
+  "fastapi/fastapi",
+  "microsoft/ML-For-Beginners",
+  "ageron/handson-ml3",
+  "CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers",
+  "guipsamora/pandas_exercises",
+  "tensorflow/docs",
+  "rougier/numpy-100",
+  "huggingface/course",
+  "huggingface/transformers",
+  "mrdbourke/pytorch-deep-learning",
+  "pytorch/tutorials",
+  "enochtangg/quick-SQL-cheatsheet",
+  "anthropics/claude-cookbooks",
+  "openai/openai-cookbook",
+  "d2l-ai/d2l-en"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Python Basics for Machine Learning",
+   "why": "You need to write and run simple Python programs before you can train any model.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Running Python and Printing",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Variables and the Core Types",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Control Flow: if, for, while",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Functions and Arguments",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Lists, Dicts, and Comprehensions",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Imports and the Standard Library",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Errors, Exceptions, and Reading Tracebacks",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Classes and Objects (Lightly)",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Virtual Environments and pip",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "NumPy Arrays and Vectorized Computing",
+   "why": "Numbers stored in arrays let the computer do math on thousands of values at once.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Arrays vs Lists: Why NumPy Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Creating and Inspecting Arrays",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Indexing, Slicing, and Boolean Masks",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Vectorized Math and Broadcasting",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Aggregations and the axis Argument",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Reshaping, Stacking, and Transposing",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Matrix Multiplication: dot, matmul, and @",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Handling NaNs and Real Data Hygiene",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Random Number Generation and Reproducibility",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "pandas for Tabular Data",
+   "why": "Real datasets come as tables, and pandas is the tool for reading, cleaning, and reshaping them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Series and DataFrame: The Two Objects You'll Live In",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Selecting: loc, iloc, and Why Chained Indexing Bites",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Filtering, Sorting, and Grouping: Where Insight Comes From",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Missing Data: isnull, fillna, dropna",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "dtypes, astype, and Dates: Getting Types Right",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "apply, map, and Vectorization: Speed Matters",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Merging and Concatenating: Joining Tables",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Pivot Tables, Crosstab, and Reshaping",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Reading and Writing CSV, Excel, and JSON Files",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Plotting Quick Charts from a DataFrame",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "SQL for Pulling Data",
+   "why": "Most company data lives in databases, and SQL is how you ask for it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What SQL Is and Why an ML Engineer Cares",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "SELECT, FROM, WHERE: The Three Words You'll Type Forever",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "ORDER BY, LIMIT, and Aggregates: COUNT, SUM, AVG",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "GROUP BY: Building Features by Category",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "JOINs: Combining Tables Without Losing Your Mind",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Subqueries and CTEs: Breaking Big Queries Into Pieces",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Window Functions: Running Totals and Rankings",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Pulling SQL Into Python: pandas.read_sql and Parameterized Queries",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Linear Algebra for Machine Learning",
+   "why": "Models are built from vectors and matrices, so you must know how they add and multiply.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Vectors: The Building Blocks",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Matrices: Batches of Vectors",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Matrix Multiplication Rules",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Linear Transformations and Basis",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Eigenvalues and Eigenvectors",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Singular Value Decomposition (SVD)",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Norms and Distances",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Matrix Decompositions in Practice",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Probability and Statistics for Machine Learning",
+   "why": "Machine learning is guessing under uncertainty, and probability is the language of uncertainty.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Probability Beats Guessing",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Random Variables: Turning Outcomes into Numbers",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Conditional Probability: The 'Given That' Game",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Independence and Dependence: When Events Talk",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Expected Value and Variance: The Summary Stats",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Common Distributions: Bernoulli, Binomial, Normal",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Bayes' Theorem in ML: The Classifier Engine",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Maximum Likelihood Estimation: Fitting Models",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Classical Machine Learning with scikit-learn",
+   "why": "scikit-learn gives you ready-made models and a clean way to train and test them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why scikit-learn, and the Estimator API",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Train/Test Split and the Golden Rule",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Preprocessing: Scaling and Encoding",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Pipelines: Bundle Preprocessing and Model",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Model Selection: Cross-Validation and Grid Search",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Classification Metrics Beyond Accuracy",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Saving and Loading Models with joblib",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Linear and Logistic Regression",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Decision Trees and Random Forests",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "K-Nearest Neighbors and Support Vector Machines",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "K-Means Clustering and Silhouette Score",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Bias, Variance, and the Overfitting Tradeoff",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Feature Engineering",
+   "why": "Better inputs usually beat fancier models, so you must learn to build good features.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Feature Engineering Matters",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Scaling Numeric Features",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Encoding Categorical Variables",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Binning and Discretization",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Dates, Times, and Cyclical Features",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Text Features: Bag-of-Words and TF-IDF",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Interaction and Polynomial Features",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Avoiding Data Leakage",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Building a Feature Pipeline",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Deep Learning with PyTorch",
+   "why": "Neural networks learn patterns too complex for hand-written rules, and PyTorch is how you build them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Tensors: The Only Data Structure You Need",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Autograd: The Engine Behind Learning",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Building Models with nn.Module",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "The Training Loop: Where the Magic Happens",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "DataLoader: Feeding the Beast",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Saving and Loading Models",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Moving to GPU: Faster Training",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Loss Functions and Optimizers",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Overfitting, Regularization, and Dropout",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Convolutional Neural Networks for Images",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Transfer Learning with Pretrained Models",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Experiment Tracking and Reproducibility",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Deep Learning with TensorFlow and Keras",
+   "why": "TensorFlow is another major framework, and knowing both makes you flexible on the job.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Tensors: The Only Data Structure That Matters",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Eager Execution and Autodiff with GradientTape",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Building Models with Keras Sequential and Functional APIs",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Compile, Fit, and Evaluate: The Training Loop in Three Lines",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Data Pipelines with tf.data",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Saving, Loading, and Serving Models",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Custom Layers, Losses, and Training Loops",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Attention and Transformers",
+   "why": "Transformers power modern language models, and attention is the idea that makes them work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Attention Beats Recurrence",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Scaled Dot-Product Attention",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Multi-Head Attention",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Positional Encoding",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "The Full Transformer Block",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Encoder, Decoder, and the Three Families",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Using Hugging Face Transformers",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Fine-Tuning vs. Feature Extraction",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Tokenizers: Word, Character, and Subword",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Pretraining Objectives: Masked and Causal Language Modeling",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Working with LLM APIs",
+   "why": "You can build useful AI features by calling a hosted model instead of training your own.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an LLM API Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Messages, Roles, and the Chat Format",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Calling It From Python",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Tokens, Pricing, and Context Windows",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Temperature, Top-P, and Determinism",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Streaming Responses",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Structured Output and Function Calling",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Errors, Rate Limits, and Retries",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Embeddings and the Same API Shape",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Prompt Engineering: Zero-Shot, Few-Shot, Chain-of-Thought",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Evaluating LLM Outputs",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Retrieval-Augmented Generation",
+   "why": "RAG lets a model answer questions using your own documents instead of only its training data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What RAG Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Chunking Documents",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Embeddings and Vector Stores",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Retrieval: Top-k Similarity Search",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Building the Augmented Prompt",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Generating the Grounded Answer",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Evaluating and Fixing RAG",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Serving Models with FastAPI",
+   "why": "A model is only useful when other programs can send it requests over the network.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why FastAPI Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Your First App and the Route Decorator",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Pydantic Models: Validating Inputs",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Loading Your Model Once at Startup",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Async vs Sync: When It Actually Matters",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Response Models and Status Codes",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Dependencies and API Keys",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Testing and the Auto Docs",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Packaging and Deploying with Docker",
+   "why": "Docker makes your model run the same way on your laptop and on the server.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Your Model Works on Your Laptop and Dies on the Server",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Your First Dockerfile: FROM, RUN, COPY, CMD",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Building, Tagging, and Running Images",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Volumes and Bind Mounts: Keeping Your Data and Checkpoints",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Docker Compose: Model Server Plus Database Plus Redis",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "GPU Containers: The NVIDIA Container Toolkit",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Slimming Images and Debugging a Broken Build",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "End-to-End ML Project Workflow",
+   "why": "Real projects need a repeatable process from problem framing to launch.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Frame the Problem and Look at the Big Picture",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Get the Data and Explore It",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Prepare the Data and Short-List Models",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Fine-Tune and Evaluate the Chosen Model",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Present Results and Launch the System",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Monitoring, Drift, and Retraining",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Fairness, Privacy, and Responsible AI",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

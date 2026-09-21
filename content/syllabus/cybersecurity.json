@@ -1,0 +1,1237 @@
+{
+ "course": "cybersecurity",
+ "title": "Cybersecurity",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "OWASP/Top10",
+  "OWASP/CheatSheetSeries",
+  "OWASP/wstg",
+  "donnemartin/system-design-primer"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Linux and the Command Line for Security",
+   "why": "Most security tools run on Linux, so you need to move around and read files without a mouse.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Getting Around the Filesystem",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Reading and Searching Files",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Permissions and Ownership",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Users, Groups, and Sudo",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Processes and Services",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Networking Basics",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Log Analysis and Monitoring",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Scripting for Automation",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Networking Fundamentals for Security",
+   "why": "Every attack travels over a network, so you must know how computers talk to each other.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an IP Address Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Ports: The Apartment Numbers",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "TCP, UDP, and the Three-Way Handshake",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "DNS: Turning Names Into Addresses",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "HTTP and HTTPS: Reading a Request",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Subnets and CIDR Notation",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Reading a Packet Capture in Wireshark",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Firewalls, NAT, and Why Logs Look Weird",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Windows and Active Directory Basics",
+   "why": "Most company computers run Windows and Active Directory, so you need to understand how they work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Windows Filesystem & Paths",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Command Line: cmd.exe vs PowerShell",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Users, Groups, and Permissions",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Processes, Services, and Scheduled Tasks",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "The Registry: Windows' Configuration Database",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Windows Event Logs: Your Investigation Trail",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Built-in Security Tools: Defender, Firewall, and More",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "PowerShell for Incident Response",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Active Directory in Depth",
+   "why": "Active Directory controls who can access what in most companies, so attackers target it first.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Active Directory Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Users, Groups, and OUs",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Domains, Trees, and Forests",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Authentication: Kerberos and NTLM",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Group Policy: The Good, the Bad, and the Ugly",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Common AD Attacks You'll See",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Auditing and Monitoring AD",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "SIEM and Splunk for Security Monitoring",
+   "why": "Companies collect logs in one place to spot attacks, and Splunk is a common tool for that.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Splunk Actually Is (and Why SOCs Live In It)",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Your First SPL Search: index, sourcetype, and the Time Picker",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "The Pipe: filter, table, stats, and the Commands You'll Type Daily",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Fields, Extraction, and Why Your Search Returns Nothing",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Detection Queries: Brute Force, Lateral Movement, and Suspicious Logons",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Alerts and Scheduled Searches: Making Splunk Yell For You",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Dashboards and Reports: Showing the Boss What's Happening",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Forwarders, Indexes, and the Admin Stuff You'll Eventually Touch",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Endpoint Detection and Response with Wazuh",
+   "why": "Wazuh watches computers for bad behavior and alerts you, like a security camera for servers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Wazuh Is and Why Analysts Use It",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Install Manager and Agent, Get One Alert",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "The Agent Config: ossec.conf",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Decoders: Turning Raw Logs into Fields",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Rules: The Alert Logic",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "File Integrity Monitoring in Practice",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "The Dashboard: Triage Without Drowning",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Active Response: Making Wazuh Do Something",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Investigating an Alert End to End",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Log Analysis and Incident Response",
+   "why": "When something bad happens, logs are the clues you follow to figure out what happened.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Log Line Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Timestamps, Timezones, and Ordering",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Grepping for Signal",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Structured Logs and JSON",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Windows Event Logs in Practice",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Correlating Across Sources",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Building a Timeline",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Writing the Finding",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Packet Analysis with Wireshark",
+   "why": "Wireshark lets you see the actual data moving on the network, which helps you spot attacks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Wireshark Is and Why Analysts Use It",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Capturing Traffic: Interfaces and Promiscuous Mode",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Display Filters: The Analyst's Best Friend",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Following Streams: Reconstructing Conversations",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Protocol Dissection: HTTP, DNS, TCP, TLS",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Expert Info and Anomaly Detection",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Extracting Files and Objects",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Command-Line Wireshark: tshark and capinfos",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Network Scanning with Nmap",
+   "why": "Before attacking or defending, you need to know what devices and services are on the network.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Nmap Exists and What It Answers",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Host Discovery: Finding Live Targets",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Port Scanning Basics: TCP Connect vs SYN",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Service and Version Detection",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Nmap Scripting Engine (NSE) for Vulnerability Checks",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Output Formats and Saving Results",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Timing and Performance Tuning",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Firewall Evasion and Stealth Techniques",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Web Application Testing with Burp Suite",
+   "why": "Websites are a common target, and Burp Suite helps you find and test their weaknesses.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Burp Suite Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Setting Up Your Proxy and Certificate",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Reading and Modifying HTTP Requests",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Using Repeater for Manual Testing",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Automating Attacks with Intruder",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Mapping the Attack Surface with Target and Spider",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Decoding and Encoding with Decoder",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Extending Burp with BApp Store",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Python for Security Automation",
+   "why": "Python lets you automate boring security tasks and analyze data quickly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables, Types, and the print() Function",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Control Flow: if, for, and while",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Functions and Importing Modules",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Reading Files and Parsing Logs",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Making HTTP Requests with requests",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Regular Expressions for IOC Extraction",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Running Tools with subprocess",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Building a Reusable IOC Enrichment Script",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "OWASP Top 10: Common Web Vulnerabilities",
+   "why": "The OWASP Top 10 lists the most critical web security risks, so you know what to look for.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What the OWASP Top 10 Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "A01: Broken Access Control",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "A02: Cryptographic Failures",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "A03: Injection",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "A04: Insecure Design",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "A05: Security Misconfiguration",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "A06: Vulnerable and Outdated Components",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "A07: Identification and Authentication Failures",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "A08: Software and Data Integrity Failures",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "A09 and A10: Logging Failures and SSRF",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Security+ Certification Preparation",
+   "why": "Security+ is a basic certification that proves you know security fundamentals, helping you get a job.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Security+ Actually Tests (and Why You Care)",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Threats, Vulnerabilities, and the CIA Triad",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Architecture, Zero Trust, and Secure Design",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Implementation: Hardening, Identity, and Crypto in Practice",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Operations and Monitoring: The Analyst's Daily Grind",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Governance, Risk, and Compliance Without Falling Asleep",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Performance-Based Questions: The Part That Scares Everyone",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Study Plan, Exam Day, and Keeping the Cert Alive",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Cryptography Basics for Security",
+   "why": "Cryptography protects data, and you need to know how it works to understand many attacks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Cryptography Is and Why It Matters",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Symmetric Encryption: Same Key for Lock and Unlock",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Asymmetric Encryption: Public and Private Keys",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Hashing: One-Way Fingerprints",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Digital Signatures and Certificates",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "TLS: How HTTPS Actually Works",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Common Crypto Mistakes and Attacks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Threat Modeling and Risk Assessment",
+   "why": "Thinking like an attacker helps you find problems before they are exploited.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Threat Modeling Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Identifying Assets and Attack Surfaces",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "STRIDE: A Simple Threat Model",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Risk = Likelihood x Impact",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Prioritizing What to Fix First",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Documenting and Communicating Risks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Incident Response Process",
+   "why": "When a breach happens, following a plan reduces damage and helps you recover faster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Incident Response Lifecycle",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Preparation: Tools, Playbooks, and Training",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Detection and Analysis: Spotting the Bad Stuff",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Containment: Stopping the Bleeding",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Eradication and Recovery: Cleaning Up",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Post-Incident Activity: Lessons Learned",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Digital Forensics Fundamentals",
+   "why": "After an attack, you need to collect and analyze evidence to understand what happened.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Digital Forensics Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Chain of Custody and Evidence Handling",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Disk Imaging and Memory Capture",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "File System Analysis: Deleted Files and Timestamps",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Windows Artifacts: Registry, Event Logs, Prefetch",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Network Forensics: PCAP Analysis",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Reporting Forensic Findings",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Vulnerability Management",
+   "why": "Finding and fixing weaknesses before attackers use them is a core security job.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Vulnerability Management Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Scanning with Tools like Nessus and OpenVAS",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Interpreting Scan Results and False Positives",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Prioritizing Vulnerabilities by Risk",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Patching and Mitigation Strategies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Reporting and Metrics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Cloud Security Basics",
+   "why": "Many companies use cloud services, so you need to know how to secure them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Shared Responsibility Model",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Identity and Access Management (IAM)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Securing Storage: S3 Buckets and Blobs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Network Security in the Cloud: VPCs and Security Groups",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Logging and Monitoring in the Cloud",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Common Cloud Misconfigurations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Secure Coding Practices",
+   "why": "Writing secure code prevents many vulnerabilities from ever being created.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Input Validation and Output Encoding",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Parameterized Queries and ORM",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Authentication and Session Management",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Access Control Checks",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Error Handling and Logging",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Dependency Management and SBOM",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Code Review for Security",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Network Security Monitoring",
+   "why": "Watching network traffic helps you detect and respond to attacks in real time.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Network Security Monitoring Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Intrusion Detection Systems (IDS) and IPS",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using Zeek for Network Analysis",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using Suricata for Signature-Based Detection",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Analyzing Alerts and Triaging",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Integrating NSM with SIEM",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Endpoint Security",
+   "why": "Endpoints like laptops and servers are where attacks often land, so they need protection.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Antivirus and EDR: What They Do",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Host-Based Firewalls",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Application Whitelisting",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Patch Management",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Disk Encryption",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Endpoint Hardening Checklist",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Identity and Access Management",
+   "why": "Controlling who can access what is fundamental to security.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Authentication vs Authorization",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Multi-Factor Authentication (MFA)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Single Sign-On (SSO) and Federation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Role-Based Access Control (RBAC)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Privileged Access Management (PAM)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Identity Governance",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "title": "Security Operations Center (SOC) Workflow",
+   "why": "SOCs are where analysts monitor and respond to threats, so you need to know how they operate.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "SOC Roles and Responsibilities",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Tier 1, Tier 2, Tier 3: Escalation Paths",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Alert Triage and Prioritization",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using Playbooks and Runbooks",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Communication and Handoff",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Metrics and Continuous Improvement",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 25,
+   "title": "Malware Analysis Basics",
+   "why": "Understanding malware helps you detect and remove it from infected systems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Types of Malware: Viruses, Worms, Trojans, Ransomware",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Static Analysis: Strings, Hashes, PE Headers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Dynamic Analysis: Sandboxes and Behavioral Monitoring",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Indicators of Compromise (IOCs)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Basic Reverse Engineering Concepts",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Malware Handling Safety",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 26,
+   "title": "Wireless Security",
+   "why": "Wi-Fi networks are everywhere and can be attacked if not secured properly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Wi-Fi Standards and Encryption: WEP, WPA2, WPA3",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Common Wireless Attacks: Evil Twin, Deauth",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Capturing Handshakes with Aircrack-ng",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Securing Wireless Networks",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Wireless Intrusion Detection",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 27,
+   "title": "Mobile Security",
+   "why": "Phones and tablets hold sensitive data and are often targeted.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Mobile Threat Landscape",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Android Security Model",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "iOS Security Model",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Mobile App Testing Basics",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Mobile Device Management (MDM)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Securing Mobile Devices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 28,
+   "title": "Social Engineering and Phishing",
+   "why": "Attackers often trick people instead of hacking computers, so you need to recognize and defend against it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Social Engineering Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Common Phishing Techniques",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Analyzing Email Headers and Links",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Phishing Simulation and Training",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reporting and Response",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Building a Security Awareness Program",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 29,
+   "title": "Governance, Risk, and Compliance (GRC)",
+   "why": "Companies must follow laws and standards, so you need to know the basics of GRC.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What GRC Is and Why It Matters",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Common Frameworks: NIST, ISO 27001, PCI DSS",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Risk Assessment and Management",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Policy Development and Enforcement",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Auditing and Compliance Reporting",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Business Continuity and Disaster Recovery",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

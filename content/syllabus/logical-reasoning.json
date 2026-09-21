@@ -1,0 +1,781 @@
+{
+ "course": "logical-reasoning",
+ "title": "Logical reasoning",
+ "sources": [],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Foundations of Logical Reasoning",
+   "why": "Logical reasoning is about thinking clearly and solving puzzles step by step.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Logical Reasoning Tests Measure",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Deduction vs Induction: Two Ways to Reason",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Statements, Premises, and Conclusions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Validity and Truth: Why They Are Different",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Fallacies and Traps",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "How to Read a Reasoning Question",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Time Management and Accuracy Strategies",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Syllogisms",
+   "why": "Syllogisms help you decide what must be true when you know some facts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Syllogism Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Four Quantifiers and What They Mean",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Drawing Venn Diagrams for Two Terms",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "The Middle Term and Why It Disappears",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "The Two Rules That Catch Most Errors",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Possible vs Definite Conclusions",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Handling Three or More Terms",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Eliminating Options Like a Pro",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Blood Relations",
+   "why": "Blood relations puzzles ask you to figure out how people in a family are related.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Family Tree Vocabulary",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Reading a Single Sentence",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Drawing the Family Tree",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Coded Blood Relations",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Blood Relations with Puzzles",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Common Traps and How to Dodge Them",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Speed Techniques for Placement Tests",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Seating Arrangement and Puzzles",
+   "why": "Seating puzzles test your ability to place people in order based on clues.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Linear Seating: One Row, One Direction",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Two Rows Face-to-Face: The Left-Right Flip",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Circular Arrangement: Facing Center vs Outside",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Immediate Neighbors and Gaps: 'Only One Person Between'",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Combining Clues: The Elimination Grid",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Blood Relations Meets Seating: Family on a Bench",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Time-Saving Shortcuts for the Exam",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Coding-Decoding",
+   "why": "Coding-decoding is about finding the secret rule that changes words or numbers into codes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Coding-Decoding Actually Asks",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Letter Shifting: The Caesar Salad of Coding",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Number Coding: When Letters Become Digits",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Position Swapping and Reversal",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Mixed Coding: Combining Shifts and Swaps",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Symbol and Substitution Coding",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Conditional and Matrix Coding",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Speed Strategies and Common Traps",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Series Completion",
+   "why": "Series problems ask you to find the next number or letter by spotting the pattern.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Number Series: The Basics",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Alternating and Mixed Series",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Letter Series and Alphabet Positions",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Fibonacci and Recursive Series",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Difference Tables and Second Differences",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Series with Operations on Previous Terms",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Common Traps and Verification",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Analogy",
+   "why": "Analogies compare two pairs of things to find how they are alike.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an Analogy Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Word Analogies: Synonyms, Antonyms, and More",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Number Analogies: Operations and Patterns",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Letter Analogies: Position and Shifts",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Mixed Analogies: Words, Numbers, Letters",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Odd One Out",
+   "why": "Odd one out asks you to find the item that does not belong with the others.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Odd One Out Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Odd One Out in Words",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Odd One Out in Numbers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Odd One Out in Letters",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Mixed Odd One Out",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Strategies and Common Traps",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Direction Sense",
+   "why": "Direction sense puzzles ask you to track where someone is going and how far.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Directions and Turns: North, South, East, West",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Drawing a Path Diagram",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Calculating Distance: Pythagoras and More",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Shadow and Time-Based Direction",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Ranking and Order",
+   "why": "Ranking puzzles ask you to find someone's position in a line or list.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Ranking and Order Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Finding Rank from Top and Bottom",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Total Number of People from Ranks",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Interchanging Positions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Mathematical Operations",
+   "why": "Mathematical operations puzzles use symbols in place of numbers or operations.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Symbol Substitution: When + Means -",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "BODMAS and Order of Operations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Balancing Equations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Missing Numbers and Operators",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Logical Deduction and Connectives",
+   "why": "Logical deduction uses 'if-then', 'and', 'or' to draw conclusions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Statements and Logical Connectives",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "If-Then: Conditional Statements",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "And, Or, Not: Combining Conditions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Truth Tables for Connectives",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Valid Arguments and Fallacies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Data Sufficiency",
+   "why": "Data sufficiency asks whether the given information is enough to answer a question.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Data Sufficiency Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Analyzing Statement I Alone",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Analyzing Statement II Alone",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Combining Both Statements",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Decision Making",
+   "why": "Decision making asks you to choose the best action based on given rules or conditions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Decision Making Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Identifying Conditions and Constraints",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Evaluating Options Against Criteria",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Choosing the Best Course of Action",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Input-Output",
+   "why": "Input-output puzzles ask you to follow a set of steps that change a sequence of numbers or words.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Input-Output Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Following a Single Step",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Multiple Steps and Patterns",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Finding the Rule",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Logical Sequence and Arrangement",
+   "why": "Logical sequence puzzles ask you to put events or objects in the correct order.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Logical Sequence Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Ordering Events by Time",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Ordering Objects by Size or Value",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using Clues to Arrange",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Statement and Assumption",
+   "why": "Statement and assumption asks you to find what is taken for granted in a statement.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an Assumption Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Identifying Implicit Assumptions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Distinguishing Assumptions from Conclusions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Statement and Conclusion",
+   "why": "Statement and conclusion asks you to decide what logically follows from a statement.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Conclusion Is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Drawing Valid Conclusions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Avoiding Invalid Conclusions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Cause and Effect",
+   "why": "Cause and effect asks you to link events as cause and result.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Cause and Effect Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Identifying the Cause",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Identifying the Effect",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Distinguishing Cause from Effect",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Course and Action",
+   "why": "Course and action asks you to choose the best action to solve a problem.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Course of Action Means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Evaluating Possible Actions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Choosing the Most Effective Action",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common Traps and Verification",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Logical Reasoning in Puzzles",
+   "why": "This topic combines many reasoning skills to solve complex puzzles.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Combining Syllogisms and Blood Relations",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Combining Seating and Direction Sense",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Combining Coding and Series",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Multi-Step Puzzles",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Time Management for Complex Puzzles",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Practice and Mock Tests",
+   "why": "Practice makes you faster and more accurate at logical reasoning.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Topic-Wise Practice Sets",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Mixed Practice Sets",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Timed Mock Tests",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Analyzing Mistakes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Final Revision Tips",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

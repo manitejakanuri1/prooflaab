@@ -1,0 +1,1054 @@
+{
+ "course": "iot",
+ "title": "IoT and embedded",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "AnthonyCalandra/modern-cpp-features"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Why C Still Runs the World",
+   "why": "C is the language that talks directly to computer chips, so it runs almost everything from toys to rockets.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why C Still Runs the World",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Your First Program and the Compiler",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Variables, Types, and Why int Is Not Always 32 Bits",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Control Flow: if, for, while, switch",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Functions and the Stack",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Pointers: The Whole Point of C",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Arrays, Strings, and Buffers",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Structs: Grouping Related Data",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "The Preprocessor and Header Files",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Bit Manipulation: Talking to Hardware",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Why C++ on a Microcontroller",
+   "why": "C++ lets you write safer and cleaner code for tiny computers without making the programs slower.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why C++ on a Microcontroller",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "References, const, and auto",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Classes as Hardware Drivers",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Templates for Register-Safe Code",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "RAII: The Embedded Superpower",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "volatile, atomics, and ISRs",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "constexpr and Flash Tables",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "No Exceptions, No RTTI, No Heap",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "ESP32: The Chip That Talks Wi-Fi",
+   "why": "The ESP32 is a cheap chip that can connect to Wi-Fi, so it is perfect for making smart home gadgets.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "ESP32: The Chip That Talks Wi-Fi",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "GPIO: Blinking an LED and Reading a Button",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "UART: Talking to Your Computer",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Wi-Fi: Connecting to the Internet",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "HTTP Client: Fetching Data from the Web",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "FreeRTOS Tasks: Multitasking on a Single Core",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "I2C: Talking to Sensors with Two Wires",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Deep Sleep: Saving Battery for IoT",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "What an STM32 Actually Is",
+   "why": "STM32 chips are powerful microcontrollers used in industry, and learning them helps you build professional devices.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an STM32 Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Bare-Metal Blink: Registers and the Datasheet",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "STM32CubeMX and the HAL",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Clocks, SysTick, and Timing",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Interrupts and the NVIC",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Debugging with SWD and printf",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Timers and PWM",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Low Power Modes",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Serial Basics: UART Framing and Baud",
+   "why": "UART is the simplest way for chips to talk to each other using just two wires.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Serial Basics: UART Framing and Baud",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "I2C: Two Wires, Many Friends",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "SPI: Fast and Full-Duplex",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Choosing Your Bus: UART vs I2C vs SPI",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Debugging with a Logic Analyzer",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Writing a Robust I2C Driver",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "SPI with DMA: Freeing the CPU",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Why an RTOS at All",
+   "why": "An RTOS helps you run many tasks at once on a small chip without them crashing into each other.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why an RTOS at All",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Tasks, Stacks, and xTaskCreate",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "vTaskDelay vs vTaskDelayUntil",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Queues: Passing Data Between Tasks",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Semaphores and Mutexes",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Task Notifications and Event Groups",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Priorities, Starvation, and the Watchdog",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "ISRs and the FromISR Rules",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "What MQTT Is and Why It Beats HTTP for IoT",
+   "why": "MQTT is a lightweight messaging system that lets tiny devices send data to the internet without using much power.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What MQTT Is and Why It Beats HTTP for IoT",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Topics, Wildcards, and the Broker's Address Book",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Connecting: Client ID, Clean Session, and Keep Alive",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Publishing and Subscribing: QoS 0, 1, 2",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Retained Messages and Last Will",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "MQTT on Microcontrollers: Paho, lwIP, and Memory",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Security: TLS, Username/Password, and Client Certificates",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "What a Sensor Actually Is",
+   "why": "Sensors are the eyes and ears of your device, turning real-world things like temperature into electrical signals.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Sensor Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Analog Sensors and the ADC",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Digital Sensors: GPIO, Interrupts, and Debouncing",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "I2C and SPI Sensor Communication",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Calibration, Filtering, and Fusion",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Sensor Drivers and Abstraction",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Sensor Data in IoT: MQTT and FreeRTOS",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "What a Circuit Actually Is",
+   "why": "A circuit is a path that lets electricity flow to make things work, like lighting a bulb or spinning a motor.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Circuit Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Reading a Schematic Without Panic",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Breadboards and Prototyping",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "From Breadboard to PCB",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Decoupling, Grounding, and Noise",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Soldering and Assembly",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Reading Datasheets and Pinouts",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Bring-Up and Debugging a New Board",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Python Basics: Variables, Types, and Control Flow",
+   "why": "Python is a friendly language that lets you control hardware with simple commands.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Python Basics: Variables, Types, and Control Flow",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Functions and Modules: Reusable Code",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Working with Hardware: GPIO and Peripherals",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Networking: Sockets and MQTT for IoT",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Asynchronous Programming: asyncio for Responsive Devices",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Memory and Performance: Writing Efficient MicroPython",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Debugging and Error Handling in Embedded Python",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Python Syntax and Indentation",
+   "why": "Python uses spaces to group code, so you must line things up correctly or it won't run.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Python Syntax",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Python Indentations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "What is Python",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "What can Python do?",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Why Python?",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Good to know",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Bit Manipulation in Python",
+   "why": "Bit tricks let you pack data tightly and talk to hardware registers directly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Bitwise addition recursive",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Largest power of two less than or equal to a number",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Binary to hexadecimal conversion",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Hexadecimal to RGB conversion",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Electronics Calculations in Python",
+   "why": "You can use Python to calculate how circuits behave, like how fast a capacitor charges.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Ohm's law",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Charging capacitor",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Pressure conversions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Data Structures for Embedded Systems",
+   "why": "Data structures help you organize information so your program runs fast and uses little memory.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Arrays: monotonic array",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Linked list: merge sort linked list",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Queues: circular queue linked list",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Stacks: lexicographical numbers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Binary tree: binary tree path sum",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Binary tree: lazy segment tree",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Binary tree: splay tree",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "KD-tree: nearest neighbour search",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Suffix tree",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Algorithms for Embedded Systems",
+   "why": "Algorithms are step-by-step recipes to solve problems, like finding the shortest path or sorting numbers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Searches: double linear search",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Searches: simulated annealing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sorts: circle sort",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sorts: gnome sort",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Sorts: odd even transposition parallel",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sorts: reverse selection",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Sorts: topological sort",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Graphs: A*",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Graphs: check cycle",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Graphs: Eulerian path and circuit for undirected graph",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Graphs: Kahn's algorithm long",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Graphs: multi heuristic A*",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Greedy methods: fractional knapsack 2",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Dynamic programming: fibonacci",
+     "existing": false
+    },
+    {
+     "n": 15,
+     "title": "Dynamic programming: longest increasing subsequence iterative",
+     "existing": false
+    },
+    {
+     "n": 16,
+     "title": "Dynamic programming: minimum size subarray sum",
+     "existing": false
+    },
+    {
+     "n": 17,
+     "title": "Dynamic programming: Smith-Waterman",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Math and Number Theory for Embedded",
+   "why": "Math helps you calculate things like distances, angles, and how to secure data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Maths: average mode",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Maths: Chebyshev distance",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Maths: derangement",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Maths: factorial",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Maths: geometric mean",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Maths: Josephus problem",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Maths: Manhattan distance",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Maths: number of digits",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Maths: Pell number",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Maths: prime check",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Maths: remove digit",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Maths: trailing zeroes",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "Number theory: prime numbers",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Special numbers: abundant numbers",
+     "existing": false
+    },
+    {
+     "n": 15,
+     "title": "Special numbers: hexagonal number",
+     "existing": false
+    },
+    {
+     "n": 16,
+     "title": "Special numbers: ugly numbers",
+     "existing": false
+    },
+    {
+     "n": 17,
+     "title": "Series: logarithmic series",
+     "existing": false
+    },
+    {
+     "n": 18,
+     "title": "Numerical analysis: numerical integration",
+     "existing": false
+    },
+    {
+     "n": 19,
+     "title": "Linear algebra: Jacobi iteration method",
+     "existing": false
+    },
+    {
+     "n": 20,
+     "title": "Matrix: count paths",
+     "existing": false
+    },
+    {
+     "n": 21,
+     "title": "Matrix: nth Fibonacci using matrix exponentiation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Cryptography and Security Basics",
+   "why": "Cryptography keeps your messages secret so others can't read them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Ciphers: Bifid",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Ciphers: Hill cipher",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Ciphers: RC4",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Ciphers: Trifid cipher",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Hashes: Enigma machine",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Blockchain: Merkle tree",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Machine Learning for IoT",
+   "why": "Machine learning lets your device learn from data and make smart decisions without being told exactly what to do.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Machine learning: A*",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Machine learning: k medoids",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Machine learning: polynomial regression",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Machine learning: word frequency functions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Neural network: back propagation neural network",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Activation functions: binary step",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Modern C++ Features for Embedded",
+   "why": "New C++ features help you write code that is both fast and safe for tiny computers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Move semantics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Variadic templates",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Initializer lists",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "auto",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Lambda expressions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "constexpr",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "User-defined literals",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Inline namespaces",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Lambda capture initializers",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Relaxing constraints on constexpr functions",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "User-defined literals for standard library types",
+     "existing": false
+    },
+    {
+     "n": 12,
+     "title": "Compile-time integer sequences",
+     "existing": false
+    },
+    {
+     "n": 13,
+     "title": "std::make_unique",
+     "existing": false
+    },
+    {
+     "n": 14,
+     "title": "Declaring non-type template parameters with auto",
+     "existing": false
+    },
+    {
+     "n": 15,
+     "title": "Folding expressions",
+     "existing": false
+    },
+    {
+     "n": 16,
+     "title": "Lambda capture this by value",
+     "existing": false
+    },
+    {
+     "n": 17,
+     "title": "Inline variables",
+     "existing": false
+    },
+    {
+     "n": 18,
+     "title": "Structured bindings",
+     "existing": false
+    },
+    {
+     "n": 19,
+     "title": "[[fallthrough]], [[nodiscard]], [[maybe_unused]]",
+     "existing": false
+    },
+    {
+     "n": 20,
+     "title": "__has_include",
+     "existing": false
+    },
+    {
+     "n": 21,
+     "title": "Coroutines",
+     "existing": false
+    },
+    {
+     "n": 22,
+     "title": "Concepts",
+     "existing": false
+    },
+    {
+     "n": 23,
+     "title": "Three-way comparison",
+     "existing": false
+    },
+    {
+     "n": 24,
+     "title": "[[likely]] and [[unlikely]] attributes",
+     "existing": false
+    },
+    {
+     "n": 25,
+     "title": "Text formatting",
+     "existing": false
+    },
+    {
+     "n": 26,
+     "title": "Concepts library",
+     "existing": false
+    },
+    {
+     "n": 27,
+     "title": "std::span",
+     "existing": false
+    },
+    {
+     "n": 28,
+     "title": "Uniform container erasure",
+     "existing": false
+    },
+    {
+     "n": 29,
+     "title": "Increasing range-based for safety",
+     "existing": false
+    },
+    {
+     "n": 30,
+     "title": "Stacktrace library",
+     "existing": false
+    },
+    {
+     "n": 31,
+     "title": "Input/output pointers",
+     "existing": false
+    },
+    {
+     "n": 32,
+     "title": "std::expected",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

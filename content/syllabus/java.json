@@ -1,0 +1,857 @@
+{
+ "course": "java",
+ "title": "Java and Spring backend",
+ "sources": [
+  "TheAlgorithms/Java",
+  "iluwatar/java-design-patterns",
+  "spring-guides"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Java Basics: Syntax, Types, and Control Flow",
+   "why": "You need to know how to write simple Java programs before you can build anything bigger.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Write and run a Hello World program",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use variables and primitive data types",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use operators and expressions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Write if-else and switch statements",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Write for, while, and do-while loops",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use arrays and the enhanced for loop",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Read input from the console",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Object-Oriented Programming in Java",
+   "why": "Java programs are built from classes and objects, so you must understand them to write any real code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Define classes and create objects",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use fields, methods, and constructors",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use access modifiers (private, public, protected)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use inheritance and the super keyword",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Override methods and use polymorphism",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use abstract classes and interfaces",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Use the static keyword",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Use packages and imports",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Java Core APIs: Strings, Collections, and Generics",
+   "why": "Most Java code uses built-in classes for text and data storage, so you need to know them well.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use String and StringBuilder",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use wrapper classes and autoboxing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use List, Set, and Map interfaces",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use ArrayList, HashSet, and HashMap",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use iterators and the for-each loop",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Write generic classes and methods",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Use the Comparable and Comparator interfaces",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Exceptions, I/O, and File Handling",
+   "why": "Programs must handle errors and read/write files to work with real data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use try-catch-finally blocks",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Throw and declare exceptions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Create custom exceptions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Read and write text files",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use try-with-resources",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use the java.nio.file package",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Java 8+ Features: Lambdas, Streams, and Optional",
+   "why": "Modern Java uses these features to write shorter and clearer code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Write lambda expressions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use functional interfaces (Predicate, Function, Consumer)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use method references",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Process collections with the Stream API",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use Optional to avoid null checks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use default and static methods in interfaces",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Concurrency and Multithreading",
+   "why": "Many programs need to do several things at once, so you must learn how to run code in parallel.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create threads by extending Thread or implementing Runnable",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use synchronized and volatile",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use wait, notify, and notifyAll",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use the Executor framework and thread pools",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use ConcurrentHashMap and atomic classes",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use CompletableFuture for asynchronous tasks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Build Tools: Maven and Gradle",
+   "why": "Real projects use build tools to compile, test, and package code automatically.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understand the purpose of build tools",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Create a Maven project and write a pom.xml",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Add dependencies and plugins in Maven",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Run Maven goals (clean, compile, test, package)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Create a Gradle project and write build.gradle",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Add dependencies and tasks in Gradle",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Version Control with Git",
+   "why": "You need to track changes and collaborate with others using Git.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Initialize a repository and commit changes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Create and merge branches",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Resolve merge conflicts",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use remote repositories (GitHub, GitLab)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use pull requests and code reviews",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Testing with JUnit and Mockito",
+   "why": "Tests make sure your code works and keeps working when you change it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Write unit tests with JUnit 5",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use assertions and test lifecycle annotations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use parameterized tests",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Mock dependencies with Mockito",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Test exceptions and timeouts",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Measure test coverage",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "SQL and Relational Databases",
+   "why": "Most backend applications store data in relational databases, so you must know SQL.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understand tables, rows, and columns",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Write SELECT queries with WHERE, ORDER BY, and LIMIT",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use JOINs to combine tables",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Write INSERT, UPDATE, and DELETE statements",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use aggregate functions and GROUP BY",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Create tables and constraints",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Use indexes and understand transactions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "JDBC: Java Database Connectivity",
+   "why": "JDBC lets Java programs talk to databases directly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Connect to a database with DriverManager",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Execute queries with Statement and ResultSet",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use PreparedStatement to prevent SQL injection",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Handle transactions with commit and rollback",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use connection pooling with HikariCP",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Spring Framework Core: IoC and Dependency Injection",
+   "why": "Spring manages objects and their dependencies so you can focus on business logic.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understand Inversion of Control and Dependency Injection",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Configure beans with annotations (@Component, @Service, @Repository)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use @Autowired for injection",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use Java-based configuration (@Configuration, @Bean)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Manage bean scopes and lifecycle",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use @Value and @PropertySource for external configuration",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Spring Boot: Building Standalone Applications",
+   "why": "Spring Boot makes it easy to create production-ready Spring applications with minimal setup.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create a Spring Boot project with Spring Initializr",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Understand auto-configuration and starters",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Write a main application class with @SpringBootApplication",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use application.properties and application.yml",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use profiles for different environments",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Package and run a Spring Boot application",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Building REST APIs with Spring MVC",
+   "why": "REST APIs let different applications communicate over HTTP.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create a REST controller with @RestController",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Map requests with @GetMapping, @PostMapping, etc.",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use @RequestBody and @ResponseBody",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Return different HTTP status codes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use @PathVariable and @RequestParam",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Handle exceptions with @ExceptionHandler",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Document APIs with Swagger/OpenAPI",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Data Persistence with Spring Data JPA",
+   "why": "Spring Data JPA makes it easy to work with databases using Java objects.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Define entities with @Entity and @Id",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Create repositories with JpaRepository",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Write query methods and @Query",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use relationships (@OneToMany, @ManyToOne, etc.)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use transactions with @Transactional",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use Flyway or Liquibase for database migrations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Spring Security: Authentication and Authorization",
+   "why": "Security protects your application from unauthorized access.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Add Spring Security to a Spring Boot project",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Configure in-memory and database authentication",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use password encoders (BCrypt)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Secure endpoints with roles and authorities",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use JWT for stateless authentication",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Enable CORS and CSRF protection",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Spring Boot Testing",
+   "why": "Testing Spring Boot applications ensures your APIs and services work correctly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Write unit tests for services with @SpringBootTest",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Test REST controllers with MockMvc",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use @DataJpaTest for repository tests",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Mock beans with @MockBean",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use Testcontainers for integration tests",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Microservices with Spring Cloud",
+   "why": "Microservices break a large application into smaller, independent services.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understand microservices architecture",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use Spring Cloud Config for centralized configuration",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Implement service discovery with Eureka",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use Spring Cloud Gateway for routing",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Implement circuit breakers with Resilience4j",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use Feign for declarative REST clients",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Distributed tracing with Sleuth and Zipkin",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Messaging with Spring Boot",
+   "why": "Messaging allows services to communicate asynchronously and reliably.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use JMS with ActiveMQ",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use RabbitMQ with Spring AMQP",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use Kafka with Spring Kafka",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use Redis for pub/sub messaging",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Implement idempotent consumers",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Caching and Performance",
+   "why": "Caching speeds up applications by storing frequently used data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Enable caching with @EnableCaching",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use @Cacheable, @CachePut, @CacheEvict",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Configure cache providers (Ehcache, Redis)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Monitor performance with Spring Boot Actuator",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use metrics and health checks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Deployment and DevOps",
+   "why": "You need to deploy your application to a server so others can use it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Build a Docker image for a Spring Boot app",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use Docker Compose for multi-container setups",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Deploy to a cloud platform (AWS, Azure, GCP)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Set up CI/CD with GitHub Actions or Jenkins",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Monitor logs and metrics in production",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Design Patterns in Java",
+   "why": "Design patterns are proven solutions to common problems, making your code easier to maintain.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use creational patterns (Singleton, Factory, Builder)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use structural patterns (Adapter, Decorator, Proxy)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use behavioral patterns (Observer, Strategy, Template Method)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use architectural patterns (MVC, Repository, Service Layer)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use concurrency patterns (Thread Pool, Producer-Consumer)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Algorithms and Data Structures in Java",
+   "why": "Knowing algorithms and data structures helps you write efficient code and pass coding interviews.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Implement sorting algorithms (QuickSort, MergeSort)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Implement searching algorithms (Binary Search, BFS, DFS)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use data structures (LinkedList, Stack, Queue, Tree, Graph)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Solve dynamic programming problems (Knapsack, LCS)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Practice with coding challenges (LeetCode, HackerRank)",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

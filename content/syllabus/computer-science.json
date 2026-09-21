@@ -1,0 +1,486 @@
+{
+ "course": "computer-science",
+ "title": "Computer science foundations",
+ "sources": [
+  "ossu/computer-science"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Introduction to Computer Science and Programming",
+   "why": "Computers follow instructions, and learning to give them instructions lets you make them do useful things.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is computer science",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "What is programming",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "How computers store and process information",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Writing your first program",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Running and testing your program",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Variables and data types",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Basic input and output",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Core Programming Concepts",
+   "why": "Programs need to make decisions and repeat actions to solve real problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Conditional statements",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Loops",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Functions and parameters",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Return values",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Scope and lifetime of variables",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Basic debugging",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Data Structures and Algorithms Basics",
+   "why": "Organizing data well makes programs faster and easier to write.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Lists and arrays",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Dictionaries and maps",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sets",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Stacks and queues",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Searching algorithms",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sorting algorithms",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Algorithm efficiency",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Introduction to Programming with Python",
+   "why": "Python is a popular language that is easy to read and used in many jobs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Setting up Python",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Python syntax and style",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Working with strings",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Working with files",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using libraries",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Error handling",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Writing modular code",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Systematic Program Design",
+   "why": "Following a step-by-step method helps you build programs that work correctly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Design recipes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Data definitions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Templates",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Testing",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Refactoring",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Recursive data",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Abstracting functions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Class-Based Program Design",
+   "why": "Classes let you group data and actions together to model real-world things.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Objects and classes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Fields and methods",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Constructors",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Inheritance",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Polymorphism",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Interfaces",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Design patterns",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Core Mathematics for Computer Science",
+   "why": "Math gives you tools to reason about programs and solve problems precisely.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Discrete mathematics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Logic and proofs",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sets and relations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Graph theory",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Combinatorics",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Probability",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Linear algebra",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Calculus basics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Computer Systems and Tools",
+   "why": "Knowing how computers work under the hood helps you write better software.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Operating systems basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Processes and threads",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Memory management",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "File systems",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Command line and shell",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Version control with Git",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Build tools",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Debugging tools",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Operating Systems Engineering",
+   "why": "Operating systems manage hardware and software, and building parts of one teaches you how computers really work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Introduction to operating systems",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Processes and scheduling",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Memory virtualization",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Concurrency",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Persistence",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Project: initial xv6",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Project: processes and shell",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Project: scheduling lottery",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Project: virtual memory",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Software Engineering Practices",
+   "why": "Writing code is only part of building software; you also need to plan, test, and work with others.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Requirements and specifications",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Design and architecture",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Testing and quality assurance",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Version control workflows",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Code reviews",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Project management",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Documentation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Advanced Programming and Projects",
+   "why": "Building complete projects prepares you for real-world programming jobs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Working with APIs",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Databases and SQL",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Web development basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Concurrency and parallelism",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Testing frameworks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Deployment",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Capstone project",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

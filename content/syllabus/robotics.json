@@ -1,0 +1,624 @@
+{
+ "course": "robotics",
+ "title": "Robotics",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "AnthonyCalandra/modern-cpp-features",
+  "ageron/handson-ml3",
+  "ros2/ros2_documentation",
+  "AtsushiSakai/PythonRobotics"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Python Programming for Robotics",
+   "why": "Robots need software to think, and Python is the easiest language to start writing that software.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Running Python and Using the REPL",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Variables, Numbers, and Strings",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Lists, Tuples, and Dictionaries",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Control Flow: if, for, while",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Functions and Modules",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Classes and Objects",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "NumPy Arrays for Sensor Data",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Reading Sensors and Publishing with ROS 2",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "C++ for Robotics",
+   "why": "Robots often need to react quickly, and C++ gives you the speed to control motors and sensors in real time.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Hello, Robot: Your First C++ Program",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Types, References, and Why C++ Hates You",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Control Flow and Functions",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Classes and Structs: Modeling a Robot",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Pointers, Smart Pointers, and Avoiding Crashes",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "The Standard Library: vector, string, and Algorithms",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Headers, Compilation, and CMake",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Concurrency: Threads and the Real-Time Problem",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Robot Operating System 2 (ROS 2) Basics",
+   "why": "ROS 2 is the standard way to connect all the parts of a robot so they can talk to each other.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Nodes, Topics, and Your First Talker",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Packages, Workspaces, and colcon build",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Writing a Publisher in rclpy",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Subscribers and Callbacks That Don't Block",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Services: Ask and Answer",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Parameters and Launch Files",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "TF2 and Frames: Where Is Everything?",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Bags, Debugging, and ros2 doctor",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Control Systems",
+   "why": "Control systems are like the robot's reflexes, keeping it on track and stable.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Control System Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Proportional Control: The First Knob",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "PID: Adding Memory and Patience",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Tuning Without Burning the Robot Down",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Reading a Step Response",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "State-Space and Why It Shows Up",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Discrete Control and Loop Timing",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Control in ROS 2: Controllers and Topics",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Computer Vision for Robotics",
+   "why": "Cameras are the robot's eyes, and computer vision helps it understand what it sees.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Images as NumPy Arrays",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Displaying and Saving Results",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Color Spaces and Thresholding",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Blurring and Morphology",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Finding Contours and Centroids",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Feature Detection with ORB",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Camera Calibration and Undistortion",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Embedded Systems for Robotics",
+   "why": "Embedded systems are the tiny computers inside robots that directly control motors and read sensors.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an Embedded System Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Bare-Metal C: Registers and Memory-Mapped I/O",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Interrupts: Stop Polling, Start Responding",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Timers and PWM for Motor Control",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "UART, I2C, and SPI: Talking to Sensors",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "RTOS Basics: Tasks, Scheduling, and Priorities",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Debugging Embedded: SWD, Logic Analyzers, and Printf",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Power, Clocks, and Bootloaders",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Robot Simulation with Gazebo",
+   "why": "Simulation lets you test robot ideas safely and cheaply before trying them in the real world.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Installing Gazebo and Spawning Your First World",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Building a World with Models and SDF",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Loading a Robot Model from URDF",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Adding Sensors: Cameras, Lidar, and IMU",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Controlling Joints with ROS Controllers",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Using Plugins to Extend Gazebo",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Debugging Common Gazebo Issues",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Linear Algebra for Robotics",
+   "why": "Linear algebra is the math that describes how robots move and see the world.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Vectors: The Language of Robot State",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Matrices: Transforming Robot Frames",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Solving Systems: Ax = b and Robot Kinematics",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Eigenvalues and Eigenvectors: Stability and PCA",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Singular Value Decomposition: The Swiss Army Knife",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Least Squares: Fitting Sensor Data",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Rotations: Quaternions and SO(3)",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Putting It Together: A Kalman Filter Step",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Robot Kinematics and Dynamics",
+   "why": "Kinematics and dynamics explain how robot parts move and the forces that make them move.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Coordinate Frames and Transformations",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Forward Kinematics: Where Is the End Effector?",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Inverse Kinematics: How to Reach a Point",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Jacobian and Velocity Kinematics",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Newton-Euler and Lagrangian Dynamics",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Trajectory Generation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Path Planning and Navigation",
+   "why": "Path planning helps a robot find a safe route from one place to another.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Graph Search: BFS, DFS, and Dijkstra",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "A* and Heuristics",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sampling-Based Planning: RRT and PRM",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Obstacle Avoidance and Local Planning",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Map Representations: Occupancy Grids",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Navigation Stack in ROS 2",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Localization and Mapping",
+   "why": "Localization and mapping let a robot know where it is and build a map of its surroundings.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Odometry and Dead Reckoning",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Kalman Filters and Extended Kalman Filters",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Particle Filters",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "SLAM: Simultaneous Localization and Mapping",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Graph-Based SLAM",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Loop Closure and Map Merging",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Machine Learning for Robotics",
+   "why": "Machine learning helps robots recognize patterns and make decisions from data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Supervised Learning: Regression and Classification",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Neural Networks and Backpropagation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Convolutional Neural Networks for Vision",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reinforcement Learning: Q-Learning and DQN",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Imitation Learning and Behavior Cloning",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Deploying Models on Robots",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Robot Manipulation",
+   "why": "Manipulation is about using robot arms and hands to grasp and move objects.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Grippers and End Effectors",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Grasp Planning",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Force Control and Compliance",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Pick and Place with MoveIt",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Visual Servoing",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Human-Robot Interaction",
+   "why": "Human-robot interaction designs how people and robots work together safely and naturally.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Speech Recognition and Synthesis",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Gesture and Pose Recognition",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Safety Standards for Collaborative Robots",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Social Navigation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "User Interfaces for Robot Control",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Robot Ethics and Society",
+   "why": "Robots affect people's lives, so we must think about what is right and fair.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Autonomy and Accountability",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Privacy and Surveillance",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Bias in Robot Decision Making",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Job Displacement and Economic Impact",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Laws and Regulations for Robotics",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

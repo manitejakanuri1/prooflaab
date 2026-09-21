@@ -1,0 +1,720 @@
+{
+ "course": "verbal-ability",
+ "title": "Verbal ability",
+ "sources": [],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Foundations of Verbal Ability",
+   "why": "This topic builds the basic skills you need to understand and answer verbal questions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Verbal Ability Tests and Why It Matters",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Building a Strong Vocabulary: Context and Word Parts",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Grammar Basics: Parts of Speech and Sentence Structure",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reading for Meaning: Main Idea and Supporting Details",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Introduction to Question Types and Test Format",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Time Management and Stress Reduction Techniques",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Reading Comprehension",
+   "why": "This topic teaches you how to read passages carefully and answer questions about them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Reading Comprehension Actually Tests",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Skimming vs. Scanning: When to Use Each",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "The Four Question Types You'll See",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Eliminating Wrong Answers Like a Pro",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Time Management: The 3-Minute Rule",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Handling Unfamiliar Topics Without Panic",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Full Walkthrough: A Sample Passage",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Sentence Correction",
+   "why": "This topic helps you find and fix mistakes in sentences.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Spot the Error: Subject-Verb Agreement",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Pronoun Precision: Agreement and Case",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Verb Tense Consistency and Sequence",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Modifier Mayhem: Misplaced and Dangling",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Parallel Structure: Keeping Lists Consistent",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Comparatives and Superlatives: More Than Just -er and -est",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Idioms and Prepositions: The Tricky Bits",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Redundancy and Wordiness: Say More with Less",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Punctuation: Commas, Semicolons, and Colons",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Putting It All Together: Strategy for Sentence Correction",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Vocabulary in Context",
+   "why": "This topic shows you how to figure out what words mean from the words around them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Context Changes Everything",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Using Synonyms and Antonyms as Clues",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Inference from Examples and Explanations",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Tone and Connotation: The Hidden Meaning",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Common Word Roots, Prefixes, and Suffixes",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Handling Multiple-Blank and Sentence Equivalence",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Avoiding Common Traps: False Friends and Distractors",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Timed Practice and Review Strategy",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Para Jumbles",
+   "why": "This topic teaches you how to put mixed-up sentences in the right order.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a Para Jumble Actually Tests",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Finding the Opening Sentence",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Pronouns, Articles, and the Backward Chain",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Transition Words as Signposts",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Chronology, Cause, and General-to-Specific",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Pairing and Elimination Under Time Pressure",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Common Traps and How to Dodge Them",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "A Full Walkthrough, Start to Finish",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Critical Reasoning",
+   "why": "This topic helps you think logically about arguments and draw correct conclusions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Identifying Premises and Conclusions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Common Logical Fallacies",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Strengthening and Weakening Arguments",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Assumption Questions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Inference and Conclusion Questions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Paradox and Discrepancy Questions",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Practice with Mixed Reasoning Questions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Grammar and Usage",
+   "why": "This topic covers the rules of English grammar that you need to know.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Parts of Speech in Depth",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Phrases, Clauses, and Sentence Types",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Subject-Verb Agreement: Advanced Cases",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Pronoun Reference and Case",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Verb Tenses and Moods",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Modifiers and Parallelism",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Punctuation Rules",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Common Errors and How to Avoid Them",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Vocabulary Building",
+   "why": "This topic helps you learn new words and use them correctly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Word Roots, Prefixes, and Suffixes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Synonyms and Antonyms",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Homonyms, Homophones, and Homographs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Idioms and Phrases",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "One-Word Substitutions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Foreign Words and Phrases",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Vocabulary in Context",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Practice Exercises",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Cloze Test",
+   "why": "This topic teaches you how to fill in missing words in a passage.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understanding Cloze Test Format",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using Context Clues",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Grammar and Vocabulary Clues",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Types of Cloze Tests",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Strategies for Answering",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Practice with Sample Cloze Tests",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Analogies",
+   "why": "This topic helps you see relationships between pairs of words.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Types of Analogies",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Identifying Relationships",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Solving Analogies Step by Step",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common Traps",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Practice Exercises",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Sentence Completion",
+   "why": "This topic teaches you how to choose the right words to complete sentences.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Single-Blank Sentences",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Double-Blank Sentences",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Triple-Blank Sentences",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using Context and Logic",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Elimination Strategies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Practice Exercises",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Synonyms and Antonyms",
+   "why": "This topic helps you learn words that mean the same or opposite.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understanding Synonyms",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Understanding Antonyms",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using Them in Context",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common Pairs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Practice Exercises",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Idioms and Phrases",
+   "why": "This topic teaches you common expressions that don't mean exactly what the words say.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Are Idioms?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Common Idioms and Their Meanings",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Phrasal Verbs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using Idioms Correctly",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Practice Exercises",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "One-Word Substitutions",
+   "why": "This topic helps you replace long phrases with single words.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Common One-Word Substitutions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Learning Strategies",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Practice Exercises",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Spelling",
+   "why": "This topic helps you spell words correctly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Common Spelling Rules",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Frequently Misspelled Words",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Homophones and Confusing Words",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Practice Exercises",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Reading Skills",
+   "why": "This topic builds your overall reading speed and understanding.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Skimming and Scanning",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Understanding Main Idea and Details",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Making Inferences",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Identifying Tone and Purpose",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Practice with Different Passages",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Writing Skills",
+   "why": "This topic helps you write clear and correct sentences and paragraphs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Sentence Structure",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Paragraph Writing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Essay Writing",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Editing and Proofreading",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common Writing Errors",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Test-Taking Strategies",
+   "why": "This topic gives you tips to do well on verbal ability tests.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Time Management",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Question Prioritization",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Guessing Techniques",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Stress Management",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Review and Practice",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Practice Tests and Review",
+   "why": "This topic lets you practice with full tests and learn from your mistakes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Full-Length Practice Test 1",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Review and Analysis",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Full-Length Practice Test 2",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Review and Analysis",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Final Tips and Strategies",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

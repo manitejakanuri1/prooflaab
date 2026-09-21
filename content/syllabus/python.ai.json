@@ -1,0 +1,852 @@
+{
+ "course": "python",
+ "title": "Python, start to finish",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "jakevdp/PythonDataScienceHandbook",
+  "ossu/computer-science"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Getting started with Python",
+   "why": "Python is a popular language that lets you tell a computer what to do.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Python",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "What can Python do",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Why Python",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Good to know",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Installing Python",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Running Python code",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Python syntax",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Python indentations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Basic building blocks",
+   "why": "You need to store and work with information like numbers and words.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables and assignment",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Numbers and arithmetic",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Strings and text",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Booleans and comparisons",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Type conversion",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Getting input from the user",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Printing output",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Making decisions and repeating actions",
+   "why": "Programs need to choose what to do and do things many times.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "if statements",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "else and elif",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "while loops",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "for loops",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "break and continue",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Nested loops",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Organizing data with lists and tuples",
+   "why": "You often need to keep many items together in order.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating lists",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Accessing list items",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Modifying lists",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "List methods",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Tuples",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "When to use lists vs tuples",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Dictionaries and sets",
+   "why": "Sometimes you need to look up things by a key or keep unique items.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating dictionaries",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Accessing and modifying dictionary items",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Dictionary methods",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sets and set operations",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "When to use dictionaries vs sets",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Writing reusable code with functions",
+   "why": "Functions let you avoid repeating code and make programs easier to understand.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Defining functions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Parameters and arguments",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Return values",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Default arguments",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Keyword arguments",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Variable scope",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Lambda functions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Working with files",
+   "why": "Programs often need to read from or write to files on your computer.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Opening and closing files",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reading from files",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Writing to files",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using with statements",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Working with file paths",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Handling errors and exceptions",
+   "why": "Things go wrong, and you need to handle mistakes gracefully.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understanding exceptions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "try and except",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "else and finally",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Raising exceptions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common built-in exceptions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Modules and packages",
+   "why": "You can use code that others have written to save time.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Importing modules",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using the standard library",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Installing packages with pip",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Creating your own modules",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Understanding __name__ and __main__",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Object-oriented programming",
+   "why": "You can group data and actions together to model real-world things.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Classes and objects",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Attributes and methods",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The __init__ method",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Inheritance",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Polymorphism",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Encapsulation",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Special methods",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Using IPython and Jupyter",
+   "why": "These tools make it easy to run code, see results, and write notes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Launching the IPython shell",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Launching the Jupyter Notebook",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Help and documentation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Keyboard shortcuts",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Magic commands",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Input and output history",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Shell commands",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Errors and debugging",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Timing and profiling",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Introduction to NumPy",
+   "why": "NumPy helps you work with large arrays of numbers quickly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understanding data types",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Creating arrays",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Array indexing and slicing",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Array operations",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Aggregations",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Broadcasting",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Boolean masks",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Fancy indexing",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Sorting arrays",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Structured arrays",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Data manipulation with Pandas",
+   "why": "Pandas makes it easy to work with tables of data, like spreadsheets.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Introducing Pandas objects",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Data indexing and selection",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Operations on data",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Handling missing data",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Hierarchical indexing",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Combining datasets: concat and append",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Combining datasets: merge and join",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Aggregation and grouping",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Pivot tables",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Vectorized string operations",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "High-performance pandas: eval and query",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Visualization with Matplotlib",
+   "why": "Pictures help you understand data and share what you found.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Importing Matplotlib",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Simple line plots",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Simple scatter plots",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Visualizing uncertainties",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Histograms and binnings",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Customizing plot legends",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Customizing colorbars",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Multiple subplots",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Text and annotation",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Customizing ticks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Introduction to machine learning",
+   "why": "Computers can learn from data to make predictions or decisions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is machine learning",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Introducing Scikit-Learn",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Hyperparameters and model validation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Feature engineering",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Naive Bayes classification",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Linear regression",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Decision trees and random forests",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Kernel density estimation",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Image features",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Algorithms and data structures",
+   "why": "These are the building blocks for solving many computer problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Sorting algorithms",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Searching algorithms",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Linked lists",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Stacks and queues",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Trees",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Graphs",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Dynamic programming",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Greedy algorithms",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Backtracking",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Working with data formats",
+   "why": "Data comes in many forms, and you need to read and write them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "JSON",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "CSV",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "XML",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Binary data",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Regular expressions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Testing and debugging",
+   "why": "You need to make sure your code works and find mistakes when it doesn't.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Writing tests with unittest",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Writing tests with pytest",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Debugging techniques",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using assertions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Logging",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Version control with Git",
+   "why": "Git helps you keep track of changes and work with others.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is version control",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Basic Git commands",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Branching and merging",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Working with remote repositories",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using GitHub",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Building a project",
+   "why": "Putting everything together to create something useful.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Planning your project",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting up a project structure",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Writing the code",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Testing your project",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Documenting your project",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sharing your project",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

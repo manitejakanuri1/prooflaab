@@ -1,0 +1,794 @@
+{
+ "course": "prompt-engineering",
+ "title": "Prompt engineering",
+ "sources": [
+  "dair-ai/Prompt-Engineering-Guide",
+  "openai/openai-cookbook"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What a Prompt Actually Is",
+   "why": "A prompt is the instruction you give to an AI to get a useful answer.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Anatomy of a Chat Prompt",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Instructions vs. Data",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Being Specific: Constraints and Format",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Zero-Shot vs. One-Shot: When Examples Help",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Temperature and Determinism",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Iterating: Test, Measure, Rewrite",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "What Few-Shot Prompting Actually Is",
+   "why": "Showing the AI a few examples helps it copy the pattern you want.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Choosing Good Examples",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Formatting Examples Consistently",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Few-Shot for Classification",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Few-Shot for Structured Output",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Few-Shot for Text Transformation",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Few-Shot for Reasoning Tasks",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Evaluating and Iterating",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Why the Model Rushes to an Answer",
+   "why": "AI often guesses fast, so we ask it to think step by step first.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Magic Phrase: Let's Think Step by Step",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Few-Shot CoT: Examples That Show the Steps",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Structuring the Output: Answer After Reasoning",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "When CoT Backfires: Overthinking and Hallucination",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "CoT with Self-Consistency: Sample Multiple Times",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "CoT for Code Generation and Debugging",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Measuring CoT Impact: A/B Testing Prompts",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "What a System Prompt Actually Is",
+   "why": "A system prompt sets the AI's rules and personality before you chat.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Role, Persona, and Scope",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Hard Constraints and Refusals",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Formatting and Output Contracts",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Few-Shot Inside the System Prompt",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Testing and Iterating System Prompts",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "System Prompts in Production",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Why Structured Output",
+   "why": "Structured output makes the AI reply in a fixed format that code can read.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "JSON Schema Basics",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Prompting for JSON",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Parsing and Validating",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Retries and Fallbacks",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Function Calling and Tools",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Structured Output in Practice",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Why the Model Doesn't Know Your Docs",
+   "why": "The AI only knows what it was trained on, so we fetch your documents and give them as context.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Chunking: Cutting Documents Into Bite-Sized Pieces",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Embeddings: Turning Text Into Coordinates",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Vector Stores: Where the Vectors Live",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "The Retrieval Step: Query In, Chunks Out",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Grounded Generation: Prompting With the Retrieved Context",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Evaluating RAG: Did It Actually Work?",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "What an Agentic Loop Actually Is",
+   "why": "An agentic loop lets the AI take actions, see results, and decide what to do next.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Defining Tools the Model Can Call",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The ReAct Pattern: Reason, Act, Observe",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Stopping Conditions and Max Iterations",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Managing Message History and Context",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Parallel Tool Calls and Error Recovery",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Logging, Tracing, and Debugging Loops",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Why Evaluate Prompts at All",
+   "why": "Testing prompts with scores helps you know if changes make them better or worse.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Building a Tiny Eval Set",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Exact Match and Regex Scoring",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "LLM-as-Judge Scoring",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Running the Eval Harness",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "A/B Testing Prompt Versions",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Regression Testing and CI",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Human Review and Error Analysis",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "How Language Models Work",
+   "why": "Knowing how the AI predicts words helps you write better prompts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Tokens and Tokenization",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Next-Token Prediction",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Context Window and Limits",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Instruction vs. Completion Prompts",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Model Parameters and Settings",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Prompting Techniques for Reasoning",
+   "why": "Special tricks make the AI solve harder problems by thinking more carefully.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Generated Knowledge Prompting",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Program-Aided Language Models (PAL)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Active-Prompt",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Directional Stimulus Prompting",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Automatic Reasoning and Tool-use (ART)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Multimodal Chain-of-Thought",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Prompt Chaining and Workflows",
+   "why": "Breaking a big job into small prompt steps makes the AI more reliable.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Introduction to Prompt Chaining",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Sequential Prompting",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Routing Between Prompts",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Parallel Prompt Execution",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Document QA with Prompt Chaining",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Context Engineering",
+   "why": "Context engineering means carefully choosing what information the AI sees.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Context Engineering?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "System Prompt and Instructions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "User Input and Structured Inputs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Tools and RAG",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Memory and State",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Context Caching",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Reasoning Models and Hybrid Approaches",
+   "why": "Some AI models are built to reason step by step, and you prompt them differently.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What are Reasoning LLMs?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Top Reasoning Models",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Design Patterns for Reasoning Models",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Prompting Tips for Reasoning Models",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using Hybrid Reasoning Models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Adversarial Prompting and Safety",
+   "why": "Some prompts try to trick the AI, so you need to know how to defend against them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Prompt Injection",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Prompt Leaking",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Jailbreaking",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Illegal Behavior and DAN",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "The Waluigi Effect",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Defense in the Instruction",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Bias and Factuality in LLMs",
+   "why": "AI can be unfair or make things up, so you must check and balance its answers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Types of Bias",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Sample Distribution and Order",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Factuality and Hallucination",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Trustworthiness in LLMs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Mitigation Strategies",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Synthetic Data Generation",
+   "why": "You can use AI to create practice data for training and testing.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Generating Data with Prompts",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Tackling Dataset Diversity",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Iterative Synthetic Data Generation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Synthetic Data for RAG",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Best Practices and Lessons Learned",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Fine-Tuning and Distillation",
+   "why": "Sometimes you train the AI further on your own examples to make it better at a task.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "When to Fine-Tune vs. Prompt",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Data Preparation for Fine-Tuning",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Supervised Fine-Tuning (SFT)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Direct Preference Optimization (DPO)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Model Distillation",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Evaluating Fine-Tuned Models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Prompt Optimization and Automatic Prompt Engineering",
+   "why": "You can use tools and methods to automatically find better prompts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Automatic Prompt Engineer (APE)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Optimizing Prompts with Evaluations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Best Practices in Agent Instructions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Iterative Prompt Improvement",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Multimodal Prompting",
+   "why": "AI can also understand images and videos, so you prompt it with pictures too.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Vision Capabilities",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Prompting with Images",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Video Understanding",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Image Generation Prompts",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Multimodal CoT",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Code Generation and Debugging with Prompts",
+   "why": "You can ask AI to write, explain, and fix code using clear prompts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Basic Code Generation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Converting Comments to Code",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Generating SQL Queries",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Explaining Code",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Debugging with Prompts",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Unit Test Writing",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Evaluating LLM Applications",
+   "why": "You need to measure if your AI app works well using tests and scores.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Building an Eval Set",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "LLM-as-Judge",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Hallucination Guardrails",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using Logprobs for Confidence",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Regression Testing",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Human Review",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Production and Deployment Considerations",
+   "why": "When you put AI in a real app, you must handle speed, cost, and errors.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Rate Limits and Retries",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Caching and Cost Optimization",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Monitoring and Logging",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Batch Processing",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Security and Compliance",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

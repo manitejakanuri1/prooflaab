@@ -1,0 +1,1030 @@
+{
+ "course": "cloud-computing",
+ "title": "Cloud computing",
+ "sources": [
+  "trekhleb/learn-python",
+  "TheAlgorithms/Python",
+  "dylanaraps/pure-bash-bible",
+  "GoogleCloudPlatform/training-data-analyst",
+  "open-guides/og-aws",
+  "kelseyhightower/kubernetes-the-hard-way",
+  "donnemartin/system-design-primer",
+  "MicrosoftLearning/AZ-104-MicrosoftAzureAdministrator"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What Cloud Computing Actually Is",
+   "why": "Cloud computing means renting computers and services over the internet instead of buying your own machines.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What AWS Actually Is (and What It Isn't)",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Console, the Region Selector, and the Account Trap",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Cloud Service Models: IaaS, PaaS, SaaS",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Cloud Deployment Models: Public, Private, Hybrid",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Regions, Availability Zones, and Edge Locations",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "The Shared Responsibility Model and the Bill",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Creating a Free Tier Account Safely",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Tools and Services Market Landscape",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Linux and the Command Line for Cloud Engineers",
+   "why": "Almost every cloud server runs Linux, so you must be able to talk to it through typed commands.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Shell and Your First Commands",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Files, Permissions, and Ownership",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Pipes, Redirection, and Text Tools",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Processes, Signals, and systemd",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Package Management and Environment Variables",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Networking Basics: ip, ss, curl, and DNS",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Writing Your First Bash Script",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Logs, Monitoring, and Troubleshooting",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Networking Foundations",
+   "why": "Cloud machines talk to each other and to users over networks, so you need to know how addresses and ports work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "IP Addresses and CIDR: Who Lives Where",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Subnets, Route Tables, and the Default Gateway",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Ports, TCP, and UDP: The Doors on the House",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "DNS: Turning Names into Addresses",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "HTTP and HTTPS: The Language of the Web",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Load Balancers and Health Checks",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Debugging with ping, traceroute, dig, and curl",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Python for Cloud Automation",
+   "why": "Python is the main language used to write scripts and serverless functions that control cloud services.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Python and What Can It Do?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Python Syntax and Indentation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Variables, Types, and f-strings",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Control Flow: if, for, while",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Functions and Imports",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Lists, Dicts, and Comprehensions",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Error Handling with try/except",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Reading and Writing Files (JSON, YAML)",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Bash Scripting for Cloud Automation",
+   "why": "Bash scripts let you repeat cloud tasks quickly without clicking through web pages.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Bash Is and Why Cloud Engineers Live in It",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Variables, Quoting, and Command Substitution",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Conditionals and Exit Codes",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Loops: for, while, and Iterating Over Lists",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Functions and Script Structure",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Pipes, Redirection, and Text Processing",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Error Handling and Debugging Scripts",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Real-World Cloud Automation with Bash",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "AWS Core Services: Compute, Storage, and Identity",
+   "why": "AWS is the biggest cloud provider, and these are the basic building blocks you will use every day.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "IAM: Users, Roles, and Why Root Is a Bad Habit",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "EC2: Renting a Computer by the Hour",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "S3: Buckets, Keys, and Why It's Not a File System",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "VPC: Your Own Private Network in the Cloud",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "The CLI and Credentials: Stop Clicking, Start Scripting",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "AWS Global Infrastructure and Service Categories",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "AWS Free Tier and Cost Explorer Basics",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Getting Help and Support",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "AWS Identity and Access Management in Depth",
+   "why": "IAM controls who can do what in your cloud account, and getting it wrong is the most common security mistake.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What IAM Is and Why It Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Users, Groups, and Policies",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "IAM Roles and Temporary Credentials",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Writing IAM Policies: Actions, Resources, Conditions",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "IAM Best Practices: Least Privilege and MFA",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Troubleshooting IAM: Access Denied and Policy Evaluation",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "AWS EC2 in Depth",
+   "why": "EC2 is the virtual computer service where most cloud workloads run.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What EC2 Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Instance Types and Sizing",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "AMIs, Keys, and Security Groups",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Connecting and Managing the Box",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "User Data: Bootstrapping on First Boot",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Storage: EBS Volumes and Snapshots",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Pricing Models: On-Demand, Reserved, Spot",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Auto Scaling Groups and Load Balancers",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "AWS S3 in Depth",
+   "why": "S3 is the storage service where you keep files, backups, and website assets.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What S3 Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Buckets and Keys: Naming and Structure",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Uploading and Downloading with the CLI",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Storage Classes and Lifecycle Rules",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Versioning, Encryption, and Block Public Access",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Bucket Policies and Presigned URLs",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Static Website Hosting and CORS",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Events, Replication, and Cost Awareness",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "AWS VPC in Depth",
+   "why": "A VPC is your own private network inside AWS where you control who can reach what.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a VPC Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Subnets: Public vs Private",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Route Tables: Directing Traffic",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Internet and NAT Gateways",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Security Groups and NACLs",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "VPC Peering and Endpoints",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "VPC Flow Logs and Troubleshooting",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "AWS Lambda and Serverless",
+   "why": "Lambda runs your code without you managing any server, and you pay only when it runs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Lambda Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Handler Function",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Triggers and Event Sources",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "IAM Roles and Permissions",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Environment Variables and Configuration",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Logging and Monitoring with CloudWatch",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Cold Starts and Concurrency",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Deployment and Versioning",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Docker and Containers",
+   "why": "Containers package your app with everything it needs so it runs the same everywhere.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Docker Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Images, Layers, and the Registry",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Writing a Dockerfile",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Building, Tagging, and Caching",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Running Containers: Ports, Volumes, Env",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Compose for Local Multi-Container Dev",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Shipping Containers to AWS",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Security and Image Hygiene",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Kubernetes Fundamentals",
+   "why": "Kubernetes runs and heals many containers across many machines automatically.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Kubernetes: The Control Plane and Nodes",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Pods: The Smallest Deployable Unit",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Deployments and ReplicaSets: Keeping Pods Alive",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Services: Stable Networking for Fleeting Pods",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "ConfigMaps and Secrets: Injecting Configuration",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Namespaces and RBAC: Multi-Tenancy and Permissions",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Ingress: HTTP Routing into the Cluster",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "kubectl: Your Daily Driver",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Debugging Common Failures",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Infrastructure as Code with Terraform",
+   "why": "Terraform lets you describe your cloud setup in files so you can create and change it reliably.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Terraform Actually Does",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "HCL Syntax: Blocks, Arguments, and Expressions",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Providers and Resources: Talking to AWS",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Variables, Outputs, and Locals",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "State: The Source of Truth",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Modules: Reusable Infrastructure",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Loops and Conditionals: count, for_each, and dynamic",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Lifecycle, Dependencies, and Provisioners",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Managing Infrastructure State and Change",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "AWS SDK and Automation with boto3",
+   "why": "boto3 lets Python programs create and manage AWS resources automatically.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "boto3: Talking to AWS from Python",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Writing a Lambda Handler",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Using Sessions, Clients, and Resources",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Pagination and Waiters",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Error Handling and Retries in boto3",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Automating S3 and EC2 Tasks with Python",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Microsoft Azure Fundamentals",
+   "why": "Azure is Microsoft's cloud, and many companies use it alongside or instead of AWS.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Azure Resource Manager & Resource Groups",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Azure CLI & Cloud Shell",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Azure Storage Accounts & Blob Containers",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Azure Virtual Machines & Scale Sets",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Azure Networking: VNets, Subnets, NSGs",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Azure App Service & Containers",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Azure Monitoring & Log Analytics",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Azure Identity: Entra ID, RBAC, Managed Identities",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Azure Administration and Governance",
+   "why": "Real Azure work needs templates, policies, and backups to keep things safe and repeatable.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Manage Entra ID Identities: Users and Groups",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Manage Subscriptions and RBAC",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Manage Governance via Azure Policy",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Manage Azure Resources by Using ARM Templates",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Implement Intersite Connectivity",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Implement Network Traffic Management",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Implement Data Protection and Recovery",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Google Cloud Platform Fundamentals",
+   "why": "GCP is Google's cloud, known for data tools and Kubernetes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "GCP Projects, Billing & the gcloud CLI",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "IAM: Roles, Members, and Least Privilege",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "VPC Networking: Subnets, Firewalls, and Routes",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Compute Engine: VMs, Images, and Startup Scripts",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Cloud Storage: Buckets, Classes, and IAM",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "GKE: Clusters, Node Pools, and Workloads",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Cloud Run & Cloud Functions: Serverless on GCP",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Observability: Cloud Logging, Monitoring & Error Reporting",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "System Design for the Cloud",
+   "why": "Knowing how to combine cloud pieces into a working system is what job interviews and real projects test.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "How to Approach a System Design Question",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Load Balancers and Reverse Proxies",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Caching Strategies and When to Invalidate",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "SQL vs NoSQL: Choosing a Database",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Designing for Scale: Users+++",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Designing Pastebin or Bit.ly",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Designing a Web Crawler",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Designing a Social Graph or Timeline",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Kubernetes the Hard Way: Building a Cluster by Hand",
+   "why": "Building Kubernetes manually teaches you what managed services hide from you.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Provisioning Virtual or Physical Machines",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting Up the Jumpbox and kubectl",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Provisioning Compute Resources and SSH",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Provisioning a CA and Generating TLS Certificates",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Generating Kubernetes Configuration Files",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Generating Data Encryption Keys",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Bootstrapping Kubernetes Controllers",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Bootstrapping Kubernetes Workers",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Configuring kubectl and Pod Network Routes",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Running the Smoke Test and Cleanup",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Cloud Data and Machine Learning Services",
+   "why": "Clouds offer ready-made tools for storing, processing, and learning from large amounts of data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "BigQuery: Serverless Data Warehouse Basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Cloud Dataflow and Apache Beam Pipelines",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Cloud Dataproc: Managed Hadoop and Spark",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "AI Platform: Training and Deploying Models",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Cloud Composer: Workflow Orchestration",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Document AI and Cloud DLP Basics",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Monitoring Batch and Streaming Pipelines",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Capstone: Deploying a Real Application on the Cloud",
+   "why": "Putting everything together on one project proves you are job-ready.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Choosing an Architecture and Drawing It",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Provisioning Infrastructure with Terraform",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Containerizing the Application with Docker",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Deploying to Kubernetes or a Managed Service",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Setting Up CI/CD and Secrets",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Adding Monitoring, Logging, and Alerts",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Cost Review and Cleanup",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Writing a README and Demo",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

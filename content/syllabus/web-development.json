@@ -1,0 +1,1190 @@
+{
+ "course": "web-development",
+ "title": "Web development",
+ "sources": [
+  "vuejs/docs",
+  "microsoft/Web-Dev-For-Beginners",
+  "mdn/content",
+  "AllThingsSmitty/css-protips",
+  "freeCodeCamp/freeCodeCamp",
+  "goldbergyoni/nodebestpractices",
+  "reactjs/react.dev",
+  "type-challenges/type-challenges",
+  "expressjs/expressjs.com",
+  "expressjs/express",
+  "vercel/next.js",
+  "enochtangg/quick-SQL-cheatsheet",
+  "microsoft/api-guidelines",
+  "donnemartin/system-design-primer",
+  "leonardomso/33-js-concepts",
+  "ryanmcdermott/clean-code-javascript",
+  "airbnb/javascript",
+  "trekhleb/javascript-algorithms",
+  "Chalarangelo/30-seconds-of-code",
+  "OWASP/CheatSheetSeries"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Web Foundations and Developer Setup",
+   "why": "Before you build websites you need to know how the web and your tools work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "How the Web Works: Browsers, Servers, and HTTP",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using a Code Editor: VS Code and VSCode.dev",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Git Basics: Repositories, Commits, and Branches",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "GitHub: Pushing, Pulling, and Pull Requests",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Developer Tools & Workflow",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Command Line Basics for Developers",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "HTML: Structure of a Page",
+   "why": "HTML is the skeleton that tells the browser what each piece of content is.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "HTML: The Skeleton",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Document Structure: DOCTYPE, head, and body",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Text, Links, Images, and Lists",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Semantic HTML: header, nav, main, section, footer",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Tables and Media Elements",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Forms & Inputs",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "CSS: Styling and the Cascade",
+   "why": "CSS decides how your HTML looks, from colors to spacing to fonts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "CSS: The Style",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Selectors, Specificity, and the Cascade",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Colors, Fonts, and Text Styling",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "The Box Model & Layout Basics",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Display, Position, and z-index",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "CSS Reset and Normalizing Styles",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Modern CSS Layout and Responsive Design",
+   "why": "Layout tools let you arrange content that works on phones, tablets, and desktops.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Flexbox: One-Dimensional Layout",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "CSS Grid: Two-Dimensional Layout",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Responsive Design",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Media Queries and Mobile-First Thinking",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "CSS Variables and Theming",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Transitions, Transforms, and Animations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Accessibility and Web Quality",
+   "why": "Websites must work for everyone, including people using screen readers or keyboards.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Accessibility Basics",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Semantic HTML for Assistive Technology",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Color Contrast and Focus States",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "ARIA Roles and Labels",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Keyboard Navigation and Skip Links",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Testing with Screen Readers and Audits",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "JavaScript Fundamentals",
+   "why": "JavaScript makes pages react to what users do.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Your First Variables and Types",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Numbers, Strings, and Booleans",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Operators and Type Coercion",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Control Flow: if, else, and Loops",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Functions: Reusable Blocks",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Scope, Hoisting, and Closures",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "JavaScript Data and Objects",
+   "why": "Real programs need ways to store and organize many values.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Arrays and Objects: Your Data Structures",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Array Methods: map, filter, reduce",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Object Methods and Property Descriptors",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Destructuring and Spread/Rest",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "JSON: Reading and Writing Data",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Map, Set, WeakMap, and WeakSet",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "The DOM and Browser APIs",
+   "why": "The DOM is how JavaScript reads and changes what is on the page.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "DOM Manipulation: Making Pages Interactive",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Selecting and Modifying Elements",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Events: Bubbling, Capturing, and Delegation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Forms, Inputs, and Validation in JS",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Local Storage, Session Storage, and Cookies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Timers, requestAnimationFrame, and Observers",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Async JavaScript and the Event Loop",
+   "why": "Some tasks take time, and JavaScript needs a way to wait without freezing.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Async JavaScript: Callbacks, Promises, async/await",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Call Stack, Task Queue, and Event Loop",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Promises: then, catch, finally, and chaining",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "async/await and Error Handling",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Fetch API and HTTP Requests",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Debouncing, Throttling, and AbortController",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Modern JavaScript and Modules",
+   "why": "Modern syntax and modules keep large codebases organized.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "ES Modules and Modern Syntax",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "let, const, and Block Scope",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Arrow Functions and this Binding",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Classes, Prototypes, and Inheritance",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Iterators and Generators",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Error Handling and Debugging",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "TypeScript for Safer JavaScript",
+   "why": "TypeScript catches mistakes before your code ever runs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why TypeScript Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Primitive Types and Inference",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Interfaces and Type Aliases",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Functions, Parameters, and Return Types",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Unions, Narrowing, and Literal Types",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Generics: Reusable, Type-Safe Code",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Typing Async Code and API Responses",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Configuring tsconfig and Strict Mode",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "React: Components and State",
+   "why": "React lets you build UIs out of small reusable pieces.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Components and JSX",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Props and State",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Handling Events",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Conditional Rendering and Lists",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Forms and Controlled Components",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Hooks: useEffect and Custom Hooks",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "React Router for SPA Navigation",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Data Fetching and API Integration",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "State Management with Context and Reducers",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Tailwind CSS for Fast Styling",
+   "why": "Tailwind lets you style by combining small utility classes directly in your markup.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Tailwind?",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Setting Up Tailwind",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Core Utility Classes",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Layout with Flexbox and Grid",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Responsive Design",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Styling States",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Customizing with Configuration",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Composing with @apply",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Node.js: JavaScript on the Server",
+   "why": "Node lets you run JavaScript outside the browser to build servers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Node Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Running a Script and Using npm",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Modules: require and import",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Async JavaScript: Callbacks to Promises",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Building an HTTP Server with Express",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Environment Variables and Config",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Error Handling and Debugging",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Connecting to a Database",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Testing and Scripts",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Express: Building Web Servers",
+   "why": "Express gives you a simple way to handle web requests in Node.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Express Exists",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Routes and HTTP Verbs",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Reading the Request",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Sending the Response",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Middleware and next()",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Routers for Bigger Apps",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Error Handling and async",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Config, CORS, and Serving React",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "SQL: Talking to Relational Databases",
+   "why": "SQL is the language almost every company uses to store and query data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What SQL Is and Why It Outlives Frameworks",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "SELECT: Reading Data Without Losing Your Mind",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "INSERT, UPDATE, DELETE: Changing the World",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "JOINs: Bringing Tables Together",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "GROUP BY and Aggregates: Summarizing Data",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Subqueries and CTEs: Queries Inside Queries",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Indexes and EXPLAIN: Making Queries Fast",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Transactions: All or Nothing",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Using SQL from Node.js: Parameterized Queries",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "PostgreSQL in Practice",
+   "why": "Postgres is a popular, powerful database you will meet on the job.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What PostgreSQL Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Connecting and Running Your First Query",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "SELECT, WHERE, and ORDER BY",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "INSERT, UPDATE, DELETE",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Keys, Constraints, and Relationships",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "JOINs: Getting Related Rows Together",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Aggregates and GROUP BY",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Using Postgres from Node.js with pg",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Indexes and Reading EXPLAIN",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Transactions and Migrations",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "MongoDB and Document Databases",
+   "why": "Some apps store data as flexible documents instead of tables.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "MongoDB vs SQL: Documents, Collections, and Why You'd Choose It",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Connecting from Node.js with the Official Driver",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "CRUD: insertOne, find, updateOne, deleteOne",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Query Operators: $gt, $in, $regex, and Logical $and/$or",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Update Operators: $set, $inc, $push, $pull",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Indexes: Making Queries Fast with createIndex",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Aggregation Pipeline: $match, $group, $sort, $lookup",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Mongoose: Schemas, Models, and Validation",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Embedding vs Referencing: Modeling Relationships",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Environment Variables, Atlas, and Connecting from a Deployed App",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "REST APIs: Designing and Building",
+   "why": "REST is the common way apps talk to each other over HTTP.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What REST Actually Means",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "The Five HTTP Verbs You'll Actually Use",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Designing URLs and Status Codes",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Building Your First CRUD Routes in Express",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Sending and Receiving JSON Correctly",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Pagination, Filtering, and Sorting",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Error Handling and Validation",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Testing and Documenting Your API",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Authentication with JWT",
+   "why": "JWT is a common way to prove who a user is on every request.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why Sessions Break and JWT Shows Up",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Anatomy of a JWT: Header, Payload, Signature",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Signing a Token on Login with jsonwebtoken",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Verifying Tokens in Express Middleware",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Sending the Token from the Client",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Refresh Tokens and Real Logout",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Common JWT Mistakes That Bite in Production",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Next.js: React with a Backend",
+   "why": "Next.js adds routing, rendering, and APIs on top of React.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Pages and File-Based Routing",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Linking Between Pages",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Pre-rendering: Static Generation vs Server-Side Rendering",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Dynamic Routes and getStaticPaths",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "API Routes: Building Your Backend",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Built-in CSS and Asset Support",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Deploying and Environment Variables",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Deploying to Vercel",
+   "why": "Vercel puts your app on the internet with a few clicks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Vercel Actually Is",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Deploying Your First Repo",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Preview vs Production Deployments",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Serverless Functions and the /api Folder",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Connecting MongoDB from a Serverless Function",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Environment Variables and Secrets",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "vercel.json and Build Configuration",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Edge vs Node Runtime and When to Care",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Custom Domains, HTTPS, and Analytics",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Debugging a Failed Vercel Deploy",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Vue 3: A Progressive Framework",
+   "why": "Vue is another popular way to build interactive UIs with less code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Vue 3 via CDN: Reactivity Without a Build Step",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Directives: v-if, v-for, v-bind, v-model",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Components: Single-File .vue Files and Props",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Reactive State with ref and reactive",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Computed Properties and Watchers",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Lifecycle Hooks and Fetching Data on Mount",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Vue Router: Pages, Params, and Navigation",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Pinia: Shared State Across Components",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Vite, npm Scripts, and Building for Production",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "title": "Angular: A Full Framework",
+   "why": "Angular is a complete framework used in many large companies.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Angular's Big Idea: Components, Not Pages",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Templates: Interpolation, Binding, and Events",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Directives: *ngIf, *ngFor, and When to Use Each",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Services and Dependency Injection",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "HTTP: Calling Your Backend with HttpClient",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Routing: Pages, Params, and Guards",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Reactive Forms with Validation",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "RxJS: Observables, Operators, and Not Leaking",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Building and Deploying Your Angular App",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 25,
+   "title": "Testing, Security, and Production Readiness",
+   "why": "Real jobs expect code that is tested, safe, and ready for real users.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Unit Testing with Jest and Vitest",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Testing React Components",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "End-to-End Testing Basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Input Validation and SQL Injection Prevention",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "XSS, CSRF, and Secure Cookies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Environment Variables and Secrets Management",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Logging, Monitoring, and Error Tracking",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Performance: Bundles, Caching, and Core Web Vitals",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 26,
+   "title": "System Design and Scaling Basics",
+   "why": "Knowing how big systems are put together helps you grow beyond small apps.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Client-Server, DNS, and Load Balancers",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Caching: Browser, CDN, and Server",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "SQL vs NoSQL: Choosing a Database",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Horizontal vs Vertical Scaling",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Queues, Workers, and Background Jobs",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Designing a Simple URL Shortener",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Designing a Simple Chat App",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

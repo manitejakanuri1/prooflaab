@@ -1,0 +1,410 @@
+{
+ "course": "game-development",
+ "title": "Game development",
+ "sources": [
+  "AnthonyCalandra/modern-cpp-features"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Getting Started with Unity 2D",
+   "why": "You will make a simple 2D game in Unity so you can see your code come alive on screen.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Install Unity Hub and Create a 2D Project",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "GameObjects, Components, and the Transform",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Your First C# Script: Start and Update",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Variables, Public Fields, and the Inspector",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Reading Input and Moving a GameObject",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Prefabs: Reusable GameObjects",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Collisions and Triggers",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Building and Running Your Game",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "C# Programming for Games",
+   "why": "You need to learn the language that tells Unity what to do.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "C# Syntax and Variables",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Control Flow: If, Else, Switch",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Loops: For, While, Foreach",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Methods and Parameters",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Classes and Objects",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Inheritance and Polymorphism",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Collections: Lists and Dictionaries",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Coroutines and Async Basics",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "Events and Delegates",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Unreal Engine Basics with Blueprints",
+   "why": "You can build a 3D game in Unreal by connecting visual blocks instead of typing code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Installing Unreal Engine and Creating a Project",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Navigating the Viewport and Placing Actors",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Blueprints: Visual Scripting Basics",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Variables and Data Types in Blueprints",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Functions and Events in Blueprints",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Actors, Components, and the Actor Lifecycle",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Input Handling and Player Control",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Collision, Overlaps, and Hit Events",
+     "existing": true
+    },
+    {
+     "n": 9,
+     "title": "User Interfaces with UMG",
+     "existing": true
+    },
+    {
+     "n": 10,
+     "title": "Packaging and Sharing Your Game",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "C++ Fundamentals for Game Engines",
+   "why": "Many game engines are written in C++, so learning it helps you understand how games work under the hood.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Hello, C++: Compiling Your First Program",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Variables and Types: Storing Player Stats",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Control Flow: If, Else, and Loops",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Functions: Reusable Code for Game Logic",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Pointers and References: Managing Game Memory",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Classes and Objects: Building Game Entities",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "The Standard Template Library (STL): Vectors, Strings, and Algorithms",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Memory Management: Stack vs Heap, new/delete, and Smart Pointers",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Modern C++ Features",
+   "why": "Newer C++ versions give you tools that make your code shorter, safer, and faster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Move Semantics and Rvalue References",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Lambda Expressions and Capture Lists",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "auto, constexpr, and Compile-Time Programming",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Variadic Templates and Fold Expressions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Structured Bindings and Inline Variables",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Smart Pointers and std::make_unique",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Attributes: [[nodiscard]], [[maybe_unused]], [[fallthrough]]",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Concepts and Three-Way Comparison",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Coroutines and std::span",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Text Formatting and std::expected",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Math for Game Developers",
+   "why": "Games use math to move characters, aim cameras, and make things look real.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Vectors: Position, Direction, and Why They're the Same Thing",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Dot Product: The Angle Detector",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Cross Product: Finding the Third Axis",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Normalization and Length: Making Vectors Behave",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Matrices: The Transform Machine",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Quaternions: Rotation Without Gimbal Lock",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Raycasts and Intersections: Asking the World Questions",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Interpolation and Easing: Making Motion Feel Right",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Game Physics",
+   "why": "Physics makes objects fall, bounce, and collide in a believable way.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What Physics Actually Means in a Game",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Vectors, Units, and the Frame Loop",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Rigid Bodies, Colliders, and Mass",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "Forces, Impulses, and Torque",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Collision Channels and Query Filters",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Raycasts, Sweeps, and Overlaps",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Constraints, Joints, and Ragdolls",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Tuning: Substeps, Damping, and Sleeping",
+     "existing": true
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "3D Modeling and Animation with Blender",
+   "why": "You need to create 3D models and animations to put into your game.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Viewport and the 3D Cursor",
+     "existing": true
+    },
+    {
+     "n": 2,
+     "title": "Objects, Modes, and the Outliner",
+     "existing": true
+    },
+    {
+     "n": 3,
+     "title": "Modeling: Extrude, Bevel, Loop Cut",
+     "existing": true
+    },
+    {
+     "n": 4,
+     "title": "UV Unwrapping Without Tears",
+     "existing": true
+    },
+    {
+     "n": 5,
+     "title": "Materials, PBR, and Baking",
+     "existing": true
+    },
+    {
+     "n": 6,
+     "title": "Armatures and Rigging Basics",
+     "existing": true
+    },
+    {
+     "n": 7,
+     "title": "Animation and the Timeline",
+     "existing": true
+    },
+    {
+     "n": 8,
+     "title": "Exporting to Unreal and glTF",
+     "existing": true
+    }
+   ]
+  }
+ ]
+}

@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import TrackerBridge from "@/components/TrackerBridge";
 import AppGuideChatbot from "@/components/AppGuideChatbot";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -72,6 +73,7 @@ const App = () => (
                 has them and a reload lands back on the same URL. */}
             <ErrorBoundary area="page">
             <Suspense fallback={<PageLoader />}>
+              <TrackerBridge />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />

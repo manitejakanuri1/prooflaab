@@ -35,8 +35,16 @@ const restFetch: typeof fetch = (input, init) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   const fixed = url.replace(`${POSTGREST_URL}/rest/v1`, POSTGREST_URL);
 
-  if (typeof input === 'string' || input instanceof URL) return fetch(fixed, init);
-  return fetch(new Request(fixed, input), init);
+  const started = performance.now();
+  const path = new URL(fixed, "http://x").pathname.replace(/^\//, "");
+  const target = path.startsWith("rpc/") ? path : path.split("/")[0];
+  const done = (status: "ok" | "error", http?: number) =>
+    observe({ lane: "rest", target, status, http, duration_ms: Math.round(performance.now() - started) });
+  const call = typeof input === 'string' || input instanceof URL ? fetch(fixed, init) : fetch(new Request(fixed, input), init);
+  return call.then(
+    (res) => { done(res.ok ? "ok" : "error", res.status); return res; },
+    (err) => { done("error"); throw err; },
+  );
 };
 
 /**
@@ -44,7 +52,7 @@ const restFetch: typeof fetch = (input, init) => {
  * must not construct a client from environment variables it was never given.
  */
 /** One id per browser tab, kept for the tab's life. Falls back to a fresh id if storage is blocked. */
-const SESSION_ID = (() => {
+export const SESSION_ID = (() => {
   try {
     let id = sessionStorage.getItem("pl_session");
     if (!id) { id = crypto.randomUUID(); sessionStorage.setItem("pl_session", id); }
@@ -54,12 +62,25 @@ const SESSION_ID = (() => {
   }
 })();
 
-/** fetch that adds x-request-id and x-session-id. Adds no body, no personal data. */
+/** Told about every call (function calls and table calls) so the step trail can record them. */
+export interface CallInfo { lane: "function" | "rest"; target: string; status: "ok" | "error"; http?: number; duration_ms: number; request_id?: string }
+let callObserver: ((c: CallInfo) => void) | null = null;
+export const setCallObserver = (fn: ((c: CallInfo) => void) | null) => { callObserver = fn; };
+const observe = (c: CallInfo) => { try { callObserver?.(c); } catch { /* never affects the call */ } };
+
+/** fetch that adds x-request-id and x-session-id, and reports how the call ended. Adds no body, no personal data. */
 const tracedFetch: typeof fetch = (input, init) => {
   const headers = new Headers(init?.headers);
-  if (!headers.has("x-request-id")) headers.set("x-request-id", crypto.randomUUID());
+  const requestId = headers.get("x-request-id") ?? crypto.randomUUID();
+  headers.set("x-request-id", requestId);
   headers.set("x-session-id", SESSION_ID);
-  return fetch(input, { ...init, headers });
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  const target = new URL(url, "http://x").pathname.replace(/^\/functions\/v1\//, "").replace(/^\//, "").split("/")[0];
+  const started = performance.now();
+  return fetch(input, { ...init, headers }).then(
+    (res) => { observe({ lane: "function", target, status: res.ok ? "ok" : "error", http: res.status, duration_ms: Math.round(performance.now() - started), request_id: requestId }); return res; },
+    (err) => { observe({ lane: "function", target, status: "error", duration_ms: Math.round(performance.now() - started), request_id: requestId }); throw err; },
+  );
 };
 
 export function createGoogleClient() {

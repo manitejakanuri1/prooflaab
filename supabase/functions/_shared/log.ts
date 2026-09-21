@@ -90,6 +90,8 @@ export function installStructuredConsole() {
 
 /** Normal successful requests can be sampled at scale (LOG_SAMPLE=0.1); errors and slow calls are always kept. */
 const SAMPLE = Math.min(1, Math.max(0, Number(Deno.env.get('LOG_SAMPLE') ?? '1')));
+/** Chatty by design (one batch every few seconds per student): only its failures and slow calls are logged. */
+const QUIET = new Set(['client-log']);
 
 /** Run one request inside its context, log how it ended, and hand the id back to the caller. */
 export async function withRequestContext(
@@ -118,7 +120,7 @@ export async function withRequestContext(
       return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
     } finally {
       const ms = Math.round(performance.now() - started);
-      if (status >= 400 || ms > 2000 || Math.random() < SAMPLE) {
+      if (status >= 400 || ms > 2000 || (!QUIET.has(fn) && Math.random() < SAMPLE)) {
         emit(status >= 500 ? 'ERROR' : status >= 400 ? 'WARNING' : 'INFO', `${fn} ${status} ${ms}ms`, {
           event: 'request.end', status, duration_ms: ms, method: req.method,
         });

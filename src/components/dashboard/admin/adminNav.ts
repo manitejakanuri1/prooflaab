@@ -33,6 +33,7 @@ export const ADMIN_GROUPS = [
     { id: "content-library", label: "Content Library" },
     { id: "token-usage", label: "Token Usage" },
     { id: "security-events", label: "Security Events" },
+    { id: "student-trace", label: "Student Trace" },
     { id: "settings", label: "Settings & Roles" },
   ] },
 ];

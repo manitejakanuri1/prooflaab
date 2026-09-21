@@ -1,3 +1,4 @@
+import { track } from "@/lib/tracker";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 /**
@@ -47,6 +48,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error(`Render error${this.props.area ? ` in ${this.props.area}` : ""}:`, error, info);
+    track({ kind: "error", screen: location.pathname, action: `render${this.props.area ? `: ${this.props.area}` : ""}`, status: "error", detail: { message: String(error?.message ?? error).slice(0, 200) } });
     this.setState({ info });
   }
 

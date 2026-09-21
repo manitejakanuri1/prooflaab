@@ -21,6 +21,7 @@ const JOBS: Record<string, string> = {
   'weekly-seasons':   'run_all_seasons',         // Sunday 23:30 IST
   'weekly-progress':  'notify_weekly_progress',  // Sunday 23:45 IST
   'weekly-plan':      'plan_all_weeks',          // Monday 08:00 IST
+  'prune-events':     'prune_app_events',        // daily  03:10 IST (keeps the step trail 90 days)
 };
 
 const reply = (body: unknown, status = 200) =>

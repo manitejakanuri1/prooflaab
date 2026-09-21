@@ -9,6 +9,8 @@ export interface TestMistake {
   why: string;
   action: string;
   status: "Pending" | "In Progress" | "Under Review" | "Completed";
+  /** The task behind this item, so Start can open exactly it. */
+  taskId?: string;
 }
 
 /** Same rule the server uses to match skills: case, spaces, dots, dashes ignored. */
@@ -25,7 +27,7 @@ const STATUS_LABEL: Record<TestMistake["status"], string> = {
  * Mistakes shown as suggestions to revise. They never lock or unlock anything:
  * the ladder's order stays as it is, these just say what is worth going back to.
  */
-const TestMistakes = ({ mistakes, onGoToTasks }: { mistakes: TestMistake[]; onGoToTasks?: () => void }) => (
+const TestMistakes = ({ mistakes, onGoToTasks }: { mistakes: TestMistake[]; onGoToTasks?: (taskId?: string) => void }) => (
   <ul className="space-y-2">
     {mistakes.map((m, i) => (
       <li key={i} className="rounded-md border border-amber-400/40 bg-amber-500/5 px-3 py-2">
@@ -39,7 +41,7 @@ const TestMistakes = ({ mistakes, onGoToTasks }: { mistakes: TestMistake[]; onGo
         <p className="mt-1 text-xs text-muted-foreground">{m.why}</p>
         <p className="mt-0.5 text-xs">Next step: {m.action}</p>
         {m.status !== "Completed" && onGoToTasks && (
-          <Button size="sm" variant="ghost" className="mt-1 h-7 px-2 text-xs" onClick={onGoToTasks}>
+          <Button size="sm" variant="ghost" className="mt-1 h-7 px-2 text-xs" onClick={() => onGoToTasks(m.taskId)}>
             {m.status === "Pending" ? "Start" : "Continue"}
           </Button>
         )}

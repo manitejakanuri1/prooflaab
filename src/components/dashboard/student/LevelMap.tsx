@@ -92,7 +92,7 @@ const STATE_STYLE: Record<LevelState, { ring: string; line: string }> = {
 interface LevelMapProps {
   /** What the resume test caught, each tagged with a ladder skill. */
   mistakes?: TestMistake[];
-  onGoToTasks?: () => void;
+  onGoToTasks?: (taskId?: string) => void;
 }
 
 const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {

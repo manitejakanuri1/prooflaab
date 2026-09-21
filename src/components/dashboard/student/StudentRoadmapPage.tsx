@@ -29,6 +29,7 @@ const StudentRoadmapPage = () => {
   const [loading, setLoading] = useState(true);
   const [stages, setStages] = useState<RoadmapStage[] | null>(null);
   const [taskStatusByStage, setTaskStatusByStage] = useState<Record<number, StageTask["status"]>>({});
+  const [taskIdByStage, setTaskIdByStage] = useState<Record<number, string>>({});
   const [hasScorecard, setHasScorecard] = useState(false);
 
   useEffect(() => {
@@ -56,11 +57,13 @@ const StudentRoadmapPage = () => {
 
       const { data: tasks } = await supabase
         .from("tasks")
-        .select("roadmap_stage_index, started_at, proof_uploads(status)")
+        .select("id, roadmap_stage_index, started_at, proof_uploads(status)")
         .eq("roadmap_scorecard_id", scorecard.id);
 
       const statusMap: Record<number, StageTask["status"]> = {};
+      const idMap: Record<number, string> = {};
       (tasks || []).forEach((t: any) => {
+        idMap[t.roadmap_stage_index] = t.id;
         const proofs = Array.isArray(t.proof_uploads) ? t.proof_uploads : [];
         let status: StageTask["status"] = "Pending";
         if (proofs.length > 0) {
@@ -71,6 +74,7 @@ const StudentRoadmapPage = () => {
         statusMap[t.roadmap_stage_index] = status;
       });
       setTaskStatusByStage(statusMap);
+      setTaskIdByStage(idMap);
       setLoading(false);
     })();
   }, [user]);
@@ -78,13 +82,14 @@ const StudentRoadmapPage = () => {
   // The test's roadmap, shown on the ladder: each stage under the step whose
   // skill it names (anything unmatched goes in the "Other" box on the map).
   // "Clean sweep" is the no-mistakes placeholder, not something to revise.
-  const mistakes: TestMistake[] = (stages ?? []).filter((st) => st.title !== "Clean sweep").map((st, i) => ({
+  const mistakes: TestMistake[] = (stages ?? []).map((st, i) => ({
     skill: st.skill ?? "other",
     title: st.title,
     why: st.why,
     action: st.action,
     status: taskStatusByStage[i] ?? "Pending",
-  }));
+    taskId: taskIdByStage[i],
+  })).filter((m) => m.title !== "Clean sweep");
 
   return (
     <div className="space-y-6">
@@ -93,7 +98,7 @@ const StudentRoadmapPage = () => {
       </p>
       <ThisWeekPlan />
       <div id="ladder">
-        <LevelMap mistakes={mistakes} onGoToTasks={() => navigate("/student/tasks/assigned")} />
+        <LevelMap mistakes={mistakes} onGoToTasks={(taskId) => navigate(taskId ? `/student/tasks/assigned?open=${taskId}` : "/student/tasks/assigned")} />
       </div>
     </div>
   );

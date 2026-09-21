@@ -44,7 +44,7 @@ import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Code2, PenLine } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
@@ -191,6 +191,28 @@ const StudentAssignedTasksPage = () => {
 
     return sortedTasks;
   }, [assignedTasks, searchQuery, statusFilter, sortBy]);
+
+  // "Start" on the Roadmap sends the student here with ?open=<task id>: start that task and open
+  // its writing (or coding) box straight away, instead of leaving them in the list to find it.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const id = params.get("open");
+    if (!id || loading) return;
+    setParams({}, { replace: true });              // only once
+    const task = allTasks.find((t) => t.id === id);
+    if (!task || (task.status !== "Applied" && task.status !== "In Progress")) return;
+    void (async () => {
+      try {
+        if (task.can_start) { await startTask(id); toast.success("Task started successfully!"); }
+      } catch (error) {
+        console.error("Error starting task:", error);
+        toast.error("Failed to start task");
+        return;
+      }
+      if (task.sandbox_config_id) setCodingTaskId(id); else setWritingTaskId(id);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, loading, allTasks]);
 
   if (loading) {
     return (

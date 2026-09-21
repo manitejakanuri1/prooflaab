@@ -1,0 +1,550 @@
+{
+ "track": "python",
+ "title": "Python, start to finish",
+ "skill": "Python",
+ "source_books": [
+  "trekhleb/learn-python"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Meet Python",
+   "why": "What Python is and how to run your first lines",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Python and what is it used for"
+    },
+    {
+     "n": 2,
+     "title": "Installing Python and running a file"
+    },
+    {
+     "n": 3,
+     "title": "The interactive shell (REPL)"
+    },
+    {
+     "n": 4,
+     "title": "Your first program: print()"
+    },
+    {
+     "n": 5,
+     "title": "Comments: notes for humans"
+    },
+    {
+     "n": 6,
+     "title": "Reading error messages without panic"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Variables and Types",
+   "why": "Boxes that hold values",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables: labelled boxes"
+    },
+    {
+     "n": 2,
+     "title": "Numbers: int and float"
+    },
+    {
+     "n": 3,
+     "title": "Arithmetic operators and precedence"
+    },
+    {
+     "n": 4,
+     "title": "Strings: text in quotes"
+    },
+    {
+     "n": 5,
+     "title": "Booleans: True and False"
+    },
+    {
+     "n": 6,
+     "title": "Type checking and converting types"
+    },
+    {
+     "n": 7,
+     "title": "Getting input from the user"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Working with Text",
+   "why": "Everything you can do with strings",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Indexing and slicing strings"
+    },
+    {
+     "n": 2,
+     "title": "Useful string methods"
+    },
+    {
+     "n": 3,
+     "title": "f-strings: putting values into text"
+    },
+    {
+     "n": 4,
+     "title": "Splitting and joining"
+    },
+    {
+     "n": 5,
+     "title": "Escape characters and multi-line strings"
+    },
+    {
+     "n": 6,
+     "title": "Formatting numbers"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Making Decisions",
+   "why": "Programs that choose",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Comparison operators"
+    },
+    {
+     "n": 2,
+     "title": "if, elif and else"
+    },
+    {
+     "n": 3,
+     "title": "and, or, not"
+    },
+    {
+     "n": 4,
+     "title": "Truthy and falsy values"
+    },
+    {
+     "n": 5,
+     "title": "Nested decisions"
+    },
+    {
+     "n": 6,
+     "title": "match-case"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Loops",
+   "why": "Doing things again and again",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The for loop"
+    },
+    {
+     "n": 2,
+     "title": "range(): counting"
+    },
+    {
+     "n": 3,
+     "title": "The while loop"
+    },
+    {
+     "n": 4,
+     "title": "break and continue"
+    },
+    {
+     "n": 5,
+     "title": "Loop else"
+    },
+    {
+     "n": 6,
+     "title": "Nested loops"
+    },
+    {
+     "n": 7,
+     "title": "Common loop patterns: sum, count, max"
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Lists and Tuples",
+   "why": "Ordered collections",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating and reading lists"
+    },
+    {
+     "n": 2,
+     "title": "Adding, removing, changing items"
+    },
+    {
+     "n": 3,
+     "title": "Slicing lists"
+    },
+    {
+     "n": 4,
+     "title": "Sorting and reversing"
+    },
+    {
+     "n": 5,
+     "title": "Looping over lists (enumerate, zip)"
+    },
+    {
+     "n": 6,
+     "title": "List comprehensions"
+    },
+    {
+     "n": 7,
+     "title": "Tuples: lists that cannot change"
+    },
+    {
+     "n": 8,
+     "title": "Copying lists safely"
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Dictionaries and Sets",
+   "why": "Collections with names and uniqueness",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Dictionaries: key and value"
+    },
+    {
+     "n": 2,
+     "title": "Reading, adding and deleting keys"
+    },
+    {
+     "n": 3,
+     "title": "Looping over dictionaries"
+    },
+    {
+     "n": 4,
+     "title": "Nested dictionaries"
+    },
+    {
+     "n": 5,
+     "title": "Dictionary comprehensions"
+    },
+    {
+     "n": 6,
+     "title": "Sets: unique items"
+    },
+    {
+     "n": 7,
+     "title": "Set operations: union, intersection, difference"
+    },
+    {
+     "n": 8,
+     "title": "Choosing the right collection"
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Functions",
+   "why": "Reusable recipes",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Defining and calling functions"
+    },
+    {
+     "n": 2,
+     "title": "Parameters and return values"
+    },
+    {
+     "n": 3,
+     "title": "Default and keyword arguments"
+    },
+    {
+     "n": 4,
+     "title": "*args and **kwargs"
+    },
+    {
+     "n": 5,
+     "title": "Scope: local and global"
+    },
+    {
+     "n": 6,
+     "title": "Docstrings and type hints"
+    },
+    {
+     "n": 7,
+     "title": "Lambda functions"
+    },
+    {
+     "n": 8,
+     "title": "Recursion"
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Modules and Packages",
+   "why": "Using other people's code",
+   "steps": [
+    {
+     "n": 1,
+     "title": "import and from-import"
+    },
+    {
+     "n": 2,
+     "title": "The standard library tour: math, random, datetime"
+    },
+    {
+     "n": 3,
+     "title": "Writing your own module"
+    },
+    {
+     "n": 4,
+     "title": "Installing packages with pip"
+    },
+    {
+     "n": 5,
+     "title": "Virtual environments"
+    },
+    {
+     "n": 6,
+     "title": "if __name__ == '__main__'"
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Files and Data Formats",
+   "why": "Reading and writing",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Opening, reading and writing text files"
+    },
+    {
+     "n": 2,
+     "title": "The with statement"
+    },
+    {
+     "n": 3,
+     "title": "Paths with pathlib"
+    },
+    {
+     "n": 4,
+     "title": "CSV files"
+    },
+    {
+     "n": 5,
+     "title": "JSON files"
+    },
+    {
+     "n": 6,
+     "title": "Working with folders"
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Errors and Testing",
+   "why": "When things go wrong",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Kinds of errors: syntax, runtime, logic"
+    },
+    {
+     "n": 2,
+     "title": "try, except, else, finally"
+    },
+    {
+     "n": 3,
+     "title": "Raising your own errors"
+    },
+    {
+     "n": 4,
+     "title": "Debugging with print and the debugger"
+    },
+    {
+     "n": 5,
+     "title": "Writing tests with assert"
+    },
+    {
+     "n": 6,
+     "title": "pytest basics"
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Objects and Classes",
+   "why": "Building your own types",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Classes and objects"
+    },
+    {
+     "n": 2,
+     "title": "__init__ and self"
+    },
+    {
+     "n": 3,
+     "title": "Methods and attributes"
+    },
+    {
+     "n": 4,
+     "title": "Inheritance"
+    },
+    {
+     "n": 5,
+     "title": "Special methods: __str__, __repr__, __eq__"
+    },
+    {
+     "n": 6,
+     "title": "Class methods and static methods"
+    },
+    {
+     "n": 7,
+     "title": "Dataclasses"
+    },
+    {
+     "n": 8,
+     "title": "Encapsulation and properties"
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Writing Pythonic Code",
+   "why": "Cleaner, shorter, faster",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Iterators and iterables"
+    },
+    {
+     "n": 2,
+     "title": "Generators and yield"
+    },
+    {
+     "n": 3,
+     "title": "Decorators"
+    },
+    {
+     "n": 4,
+     "title": "Context managers"
+    },
+    {
+     "n": 5,
+     "title": "Useful modules: collections, itertools, functools"
+    },
+    {
+     "n": 6,
+     "title": "Naming, PEP 8 and readable code"
+    },
+    {
+     "n": 7,
+     "title": "Unpacking and the walrus operator"
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Python for Real Work",
+   "why": "Small real programs",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Regular expressions basics"
+    },
+    {
+     "n": 2,
+     "title": "Working with dates and times"
+    },
+    {
+     "n": 3,
+     "title": "Calling a web API with requests"
+    },
+    {
+     "n": 4,
+     "title": "Command-line programs with argparse"
+    },
+    {
+     "n": 5,
+     "title": "Simple scripts that automate a boring task"
+    },
+    {
+     "n": 6,
+     "title": "A small project: to-do list app in the terminal"
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Data Structures in Python",
+   "why": "Interview favourites",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Stacks and queues with lists and deque"
+    },
+    {
+     "n": 2,
+     "title": "Linked lists"
+    },
+    {
+     "n": 3,
+     "title": "Hashing and why dictionaries are fast"
+    },
+    {
+     "n": 4,
+     "title": "Trees and binary search"
+    },
+    {
+     "n": 5,
+     "title": "Sorting: bubble, merge, quick"
+    },
+    {
+     "n": 6,
+     "title": "Big-O: how fast is my code"
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Getting Ready for Interviews",
+   "why": "Python questions that get asked",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Mutable vs immutable"
+    },
+    {
+     "n": 2,
+     "title": "Shallow vs deep copy"
+    },
+    {
+     "n": 3,
+     "title": "Pass by object reference"
+    },
+    {
+     "n": 4,
+     "title": "The GIL in simple words"
+    },
+    {
+     "n": 5,
+     "title": "Common Python interview problems: two-sum, palindrome, anagram"
+    },
+    {
+     "n": 6,
+     "title": "Reading and fixing broken code"
+    }
+   ]
+  }
+ ]
+}

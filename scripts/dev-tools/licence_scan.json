@@ -1,0 +1,298 @@
+{
+ "AtsushiSakai/PythonRobotics": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "Chalarangelo/30-seconds-of-code": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "Cyfrin/foundry-full-course-cu": {
+  "class": "GPL",
+  "file": "LICENSE"
+ },
+ "EbookFoundation/free-programming-books": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "FreeRTOS/FreeRTOS": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "MicrosoftDocs/azure-docs": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "NirDiamant/GenAI_Agents": {
+  "class": "NC",
+  "file": "LICENSE"
+ },
+ "NirDiamant/RAG_Techniques": {
+  "class": "NC",
+  "file": "LICENSE"
+ },
+ "NomicFoundation/hardhat": {
+  "class": "UNKNOWN",
+  "file": "LICENSE"
+ },
+ "OWASP/Top10": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "Snailclimb/JavaGuide": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "TheAlgorithms/Java": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "TheAlgorithms/Python": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "ZOUHAIRFGRA/100-Project-Ideas-for-Full-Stack-Developers": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "airbnb/javascript": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "android/codelab-android-room-with-a-view": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "android/compose-samples": {
+  "class": "UNKNOWN",
+  "file": "LICENSE"
+ },
+ "anthropics/courses": {
+  "class": "NC",
+  "file": "LICENSE"
+ },
+ "anthropics/prompt-eng-interactive-tutorial": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "basarat/typescript-book": {
+  "class": "UNKNOWN",
+  "file": "LICENSE.md"
+ },
+ "bregman-arie/devops-exercises": {
+  "class": "UNKNOWN",
+  "file": "LICENSE"
+ },
+ "codecrafters-io/build-your-own-x": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "crytic/building-secure-contracts": {
+  "class": "GPL",
+  "file": "LICENSE"
+ },
+ "dart-lang/site-www": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "denysdovhan/bash-handbook": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "donnemartin/system-design-primer": {
+  "class": "OK",
+  "file": "LICENSE.txt"
+ },
+ "doocs/advanced-java": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "ellisonleao/magictools": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "espressif/esp-idf": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "ethereumbook/ethereumbook": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "ethers-io/ethers.js": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "expressjs/express": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "fastai/numerical-linear-algebra": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "fastlane/fastlane": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "firebase/quickstart-android": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "firebase/quickstart-js": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "flutter/samples": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "freeCodeCamp/freeCodeCamp": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "fullstack-hy2020/fullstack-hy2020.github.io": {
+  "class": "NC",
+  "file": "LICENSE"
+ },
+ "getify/You-Dont-Know-JS": {
+  "class": "NC",
+  "file": "LICENSE.txt"
+ },
+ "git-tips/tips": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "grafana/grafana": {
+  "class": "GPL",
+  "file": "LICENSE"
+ },
+ "iluwatar/java-design-patterns": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "infosecn1nja/AD-Attack-Defense": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "jackfrued/Python-100-Days": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "jasonniebauer/Nmap-Cheatsheet": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "javascript-tutorial/en.javascript.info": {
+  "class": "NC",
+  "file": "LICENSE.md"
+ },
+ "jenkinsci/pipeline-examples": {
+  "class": "OK",
+  "file": "LICENSE.txt"
+ },
+ "jlevy/the-art-of-command-line": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "jvns/pandas-cookbook": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "krahets/hello-algo": {
+  "class": "NC",
+  "file": "LICENSE"
+ },
+ "mdn/content": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "microsoft/api-guidelines": {
+  "class": "OK",
+  "file": "license.txt"
+ },
+ "opencv/opencv": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "practical-tutorials/project-based-learning": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "public-apis/public-apis": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "rougier/matplotlib-tutorial": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "rougier/scientific-visualization-book": {
+  "class": "OK",
+  "file": "LICENSE.txt"
+ },
+ "splunk/security_content": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "spmallick/learnopencv": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "spring-projects/spring-boot": {
+  "class": "OK",
+  "file": "LICENSE.txt"
+ },
+ "spring-projects/spring-petclinic": {
+  "class": "OK",
+  "file": "LICENSE.txt"
+ },
+ "thedaviddias/Front-End-Checklist": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "trekhleb/javascript-algorithms": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "trimstray/the-book-of-secret-knowledge": {
+  "class": "OK",
+  "file": "LICENSE.md"
+ },
+ "vercel/examples": {
+  "class": "OK",
+  "file": "license.md"
+ },
+ "vuejs/docs": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "wazuh/wazuh-documentation": {
+  "class": "UNKNOWN",
+  "file": "no LICENSE file"
+ },
+ "wevm/viem": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "ossu/computer-science": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "d2l-ai/d2l-en": {
+  "class": "OK",
+  "file": "LICENSE"
+ },
+ "spring-guides/gs-rest-service": {
+  "class": "UNKNOWN",
+  "file": "LICENSE.writing.txt"
+ },
+ "spring-guides/gs-accessing-data-jpa": {
+  "class": "UNKNOWN",
+  "file": "LICENSE.writing.txt"
+ },
+ "spring-guides/gs-securing-web": {
+  "class": "UNKNOWN",
+  "file": "LICENSE.writing.txt"
+ }
+}

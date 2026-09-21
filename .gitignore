@@ -43,3 +43,6 @@ supabase/.temp/
 # Screenshots and measurements from scripts/screens.mjs. Regenerated on demand,
 # and 5 MB of PNGs is not history worth keeping.
 screenshots/
+scripts/dev-tools/sections.json
+scripts/dev-tools/matches.json
+scripts/dev-tools/__pycache__/

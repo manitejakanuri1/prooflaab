@@ -10,10 +10,15 @@ SKIP = {"public-apis/public-apis", "ellisonleao/magictools", "trimstray/the-book
         "splunk/security_content", "spring-projects/spring-petclinic", "firebase/quickstart-android",
         "firebase/quickstart-js", "android/compose-samples", "android/codelab-android-room-with-a-view",
         "ethers-io/ethers.js", "FreeRTOS/FreeRTOS", "fastlane/fastlane", "vercel/examples", "esp-idf",
-        "espressif/esp-idf", "MicrosoftDocs/azure-docs", "jenkinsci/pipeline-examples", "TheAlgorithms/Python",
-        "TheAlgorithms/Java", "opencv/opencv"}
+        "espressif/esp-idf", "MicrosoftDocs/azure-docs", "jenkinsci/pipeline-examples", "opencv/opencv"}
 EXTRA_LIC = {"trekhleb/javascript-algorithms": "MIT", "airbnb/javascript": "MIT",
              "Chalarangelo/30-seconds-of-code": "CC-BY-4.0", "microsoft/generative-ai-for-beginners": "MIT"}
+
+SCAN = json.load(open("licence_scan.json")) if __import__("os").path.exists("licence_scan.json") else {}
+CODE_REPOS = {"TheAlgorithms/Python": (".py",), "TheAlgorithms/Java": (".java",)}      # sections are whole source files
+MDN_KEEP = ("files/en-us/learn/", "files/en-us/web/javascript/guide/", "files/en-us/web/html/element/", "files/en-us/web/http/")
+LINK_LISTS = {"practical-tutorials/project-based-learning", "EbookFoundation/free-programming-books",
+              "ZOUHAIRFGRA/100-Project-Ideas-for-Full-Stack-Developers", "codecrafters-io/build-your-own-x"}   # links, no lessons
 
 def repos():
     out = {}
@@ -24,13 +29,18 @@ def repos():
                 out[r] = EXTRA_LIC[r]
             elif i.get("copy_ok") and "awesome" not in r.lower() and r not in SKIP:
                 out[r] = i["lic"]
+            elif SCAN.get(r, {}).get("class") == "OK" and "awesome" not in r.lower() and r not in SKIP | LINK_LISTS:
+                out[r] = "see LICENSE"          # GitHub could not name it, its own LICENSE file says OK
+    for r in ["ossu/computer-science", "d2l-ai/d2l-en", "donnemartin/system-design-primer"]:
+        if SCAN.get(r, {}).get("class") == "OK": out[r] = "see LICENSE"
     return out
 
 LANG_DIR = re.compile(r"(^|/)(translations?|translated_images|i18n|locales?|zh|zh-cn|zh-tw|cn|es|ja|ko|fr|de|pt|pt-br|ru|it|tr|hi|ar|fa|id|vi|pl|uk|bn|ta|te|he|th|nl|sw|ms|el)(/|$)", re.I)
 TEXT_EXT = (".md", ".mdx", ".markdown", ".ipynb")
 
 def tree(repo):
-    branch = info.get(repo, {}).get("branch") or "main"
+    branch = info.get(repo, {}).get("branch") or subprocess.run(
+        ["gh", "api", f"repos/{repo}", "--jq", ".default_branch"], capture_output=True, text=True).stdout.strip() or "main"
     p = subprocess.run(["gh", "api", f"repos/{repo}/git/trees/{branch}?recursive=1", "--jq",
                         '.tree[] | select(.type=="blob") | "\\(.size) \\(.path)"'],
                        capture_output=True, text=True, encoding="utf-8")
@@ -38,6 +48,14 @@ def tree(repo):
     for line in p.stdout.splitlines():
         size, path = line.split(" ", 1)
         low = path.lower()
+        if repo in CODE_REPOS or repo.startswith("spring-guides/"):
+            exts = CODE_REPOS.get(repo, (".java",))
+            spring_ok = not repo.startswith("spring-guides/") or "/complete/src/main/" in "/" + low   # the finished guide code only
+            if low.endswith(exts) and 300 < int(size) < 9000 and "test" not in low and spring_ok:
+                files.append(path)
+            continue
+        if repo == "mdn/content" and not low.startswith(MDN_KEEP):
+            continue
         if not low.endswith(TEXT_EXT) or int(size) > 400_000 or LANG_DIR.search(low):
             continue
         if re.search(r"(changelog|license|contributing|code_of_conduct|security|\.github/)", low):
@@ -48,7 +66,7 @@ def tree(repo):
     # Repos that keep every language side by side: keep English only.
     if any("/en/" in f or f.startswith("en/") for f in files):
         files = [f for f in files if "/en/" in f or f.startswith("en/")] or files
-    return branch, files[:400]
+    return branch, files[:400 if repo not in CODE_REPOS else 1600]
 
 def fetch(url):
     try:
@@ -114,6 +132,15 @@ def do_repo(item):
     secs = []
     with ThreadPoolExecutor(12) as ex:
         raws = list(ex.map(lambda f: (f, fetch(base + f)), files))
+    if repo in CODE_REPOS or repo.startswith("spring-guides/"):
+        lang = "python" if repo.endswith("Python") else "java"
+        for f, raw in raws:
+            if raw.strip():
+                title = f.rsplit("/", 1)[-1].rsplit(".", 1)[0].replace("_", " ")
+                secs.append({"repo": repo, "licence": lic, "path": f, "heading": f"{f.rsplit('/',2)[-2]}: {title}"[:120],
+                             "text": "```" + lang + "\n" + raw[:5800] + "\n```"})
+        print(f"{repo}: {len(files)} files, {len(secs)} sections", flush=True)
+        return secs
     for f, raw in raws:
         md = notebook_to_md(raw) if f.endswith(".ipynb") else raw
         for h, t in split_sections(clean(md)):
@@ -124,10 +151,20 @@ def do_repo(item):
 
 if __name__ == "__main__":
     rs = repos()
+    only = set(__import__("os").environ.get("ONLY", "").split())
+    if __import__("os").environ.get("SPRING"):      # Spring guides: the writing is CC BY-ND (no changes allowed), the code is Apache-2.0
+        names = subprocess.run(["gh", "api", "orgs/spring-guides/repos?per_page=100", "--jq", ".[].name"], capture_output=True, text=True).stdout.split()
+        rs = {f"spring-guides/{n}": "Apache-2.0 (code)" for n in names if n.startswith("gs-")}
+        only = set(rs)
+    if only:
+        rs = {r: l for r, l in rs.items() if r in only}
     print(len(rs), "repos")
     allsecs = []
     with ThreadPoolExecutor(4) as ex:
         for secs in ex.map(do_repo, rs.items()):
             allsecs += secs
+    if only:                                        # add to the corpus we already have
+        old = [x for x in json.load(open("sections.json", encoding="utf-8")) if x["repo"] not in only]
+        allsecs = old + allsecs
     json.dump(allsecs, open("sections.json", "w", encoding="utf-8"))
     print("TOTAL sections", len(allsecs))

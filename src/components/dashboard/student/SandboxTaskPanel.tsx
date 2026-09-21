@@ -147,7 +147,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 lg:sticky lg:top-0 lg:self-start">
       <div className="overflow-hidden rounded-lg border">
         <Editor
           height="420px"

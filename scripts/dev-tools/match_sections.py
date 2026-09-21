@@ -1,6 +1,8 @@
 """Pick, for every lesson step, up to 2 repo sections that teach the same thing.
 BM25 over each skill's own open-licence repos. Output: matches.json {level_id: [section,...]}. No AI."""
-import json, math, re, collections
+import json, math, re, collections, os
+SC_MIN = float(os.environ.get("SC_MIN", 15))          # loosen with SC_MIN=8
+HEAD_REQ = os.environ.get("HEAD_REQ", "1") == "1"       # HEAD_REQ=0: title words may sit in the body, not the heading
 from pl import token, http, API
 from repo_candidates import C
 from add_repo_links import EXTRA
@@ -72,7 +74,7 @@ for lv in sorted(levels, key=lambda x: (x["track_slug"], x["level_number"], x["s
         body = set(tok(d["heading"] + " " + d["text"][:2000]))
         # The heading itself must be about this step, the section must be about
         # this skill, and a second pick must be nearly as good as the first.
-        if sc < 15 or not head & set(title_terms) or key in used[topic]:
+        if sc < SC_MIN or (HEAD_REQ and not head & set(title_terms)) or key in used[topic]:
             continue
         if skill_terms and not skill_terms & body:
             continue
@@ -81,7 +83,7 @@ for lv in sorted(levels, key=lambda x: (x["track_slug"], x["level_number"], x["s
         picked.append({"repo": d["repo"], "licence": d["licence"], "heading": d["heading"],
                        "text": d["text"][:3500], "score": round(sc, 1)})
         used[topic].add(key)
-        if len(picked) == 2:
+        if len(picked) == 3:
             break
     if picked:
         matches[lv["id"]] = picked

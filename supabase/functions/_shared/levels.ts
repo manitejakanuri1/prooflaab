@@ -397,6 +397,7 @@ function buildTopicPrompt(
   totalTopics: number,
   before: string[],
   after: string[],
+  syllabus: { steps: string[] } | null = null,
 ): string {
   // One call writes the whole topic — every sub-step plus the checkpoint —
   // rather than one call per step. Same total depth, same one-time-per-topic
@@ -406,14 +407,14 @@ function buildTopicPrompt(
 Path "${trackName}", topic ${topic.level_number}/${totalTopics}. Teaches: ${topic.skill}. Called: "${topic.title}".
 Just covered: ${before.length ? before.join(', ') : 'nothing, this is the first topic'}. Coming next: ${after.length ? after.join(', ') : 'nothing, this is the last'}.
 
-If "${topic.skill}" is itself a broad, whole-language/whole-tool skill (Python, SQL, Git, Java, and similar — not a narrow concept like "REST APIs" or "Git & GitHub" workflow basics), do NOT try to survey the whole language. Structure the steps as: first, the small set of fundamentals every developer needs regardless of role (syntax, variables, control flow, functions — whatever is truly universal for this skill); then, for the remaining steps, cover ONLY the parts of "${topic.skill}" a working ${role} actually reaches for on the job for "${trackName}" — skip the corners of the language a ${role} would never touch. This is a path, not a reference manual: depth on what matters for this role, not coverage of everything the language can do.
+${syllabus ? '' : `If "${topic.skill}" is itself a broad, whole-language/whole-tool skill (Python, SQL, Git, Java, and similar — not a narrow concept like "REST APIs" or "Git & GitHub" workflow basics), do NOT try to survey the whole language. Structure the steps as: first, the small set of fundamentals every developer needs regardless of role (syntax, variables, control flow, functions — whatever is truly universal for this skill); then, for the remaining steps, cover ONLY the parts of "${topic.skill}" a working ${role} actually reaches for on the job for "${trackName}" — skip the corners of the language a ${role} would never touch. This is a path, not a reference manual: depth on what matters for this role, not coverage of everything the language can do.`}
 
 Return JSON:
 {"steps":[{"title":"...","explanation":"...","needs_sandbox":false,"sandbox_template":null,"sandbox_files":null,"code_language":null,"code_example":null},...],"quiz":[{"prompt":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."},...],"proof_title":"...","proof_brief":"...","resources":[{"kind":"docs","label":"...","url":"...","search":null},{"kind":"video","label":"...","url":null,"search":"..."}]}
 
-steps — between ${MIN_TOPIC_STEPS} and ${MAX_TOPIC_STEPS} of them, however many the topic actually needs (a small topic gets fewer, a broad one gets more — you decide, but do not undershoot: this has to actually teach the topic, not tease it). Each step:
-- title: short, specific (e.g. "Reading a Stack Trace", not "Debugging Part 1").
-- explanation: 150-220 words, a message from a funny senior who has the job, not a lecture — but a funny voice is not an excuse to be vague. Use the REAL terminology a working ${role} would actually say out loud (the exact keyword, flag, HTTP verb, command, or concept name), then immediately explain what that term means in plain words the first time it shows up — teach the vocabulary, don't dodge it. Plain sentences, blank lines between them, one idea per step — don't try to cover the whole topic in step 1. No headings, bullets, markdown, code blocks or emoji IN the explanation text itself — code goes in code_example below, not inline.
+steps — ${syllabus ? `EXACTLY these ${syllabus.steps.length} steps, in this order, using these titles word for word (do not merge, skip, add or rename any): ${syllabus.steps.map((t, i) => `${i + 1}. ${t}`).join(' | ')}. This is a full course: each step teaches its idea completely, nothing is left as a teaser.` : `between ${MIN_TOPIC_STEPS} and ${MAX_TOPIC_STEPS} of them, however many the topic actually needs (do not undershoot: this has to actually teach the topic, not tease it).`} Each step:
+- title: short, specific${syllabus ? ' (the syllabus title, unchanged)' : ' (e.g. "Reading a Stack Trace", not "Debugging Part 1")'}.
+- explanation: written so a 12-year-old can follow it. SHORT LINES, not a paragraph: 5 to 9 lines, each line ONE short sentence (under 20 words), lines separated by a blank line, about 60-110 words in all. Line 1 is a real-life comparison (a labelled box, a recipe, a queue at a canteen). The next lines say what the thing is, then how it is used, then the one mistake beginners make. Use the REAL term (the exact keyword, command, verb) and say what it means in plain words the first time. No headings, bullets, markdown, code or emoji in the explanation text: code goes ONLY in code_example, never inline.
 resources — 2 to 4 places to go and learn this topic properly before the quiz. A student who reads only our explanation and fails should have somewhere obvious to go.
 - kind: "docs" for written reference or a tutorial site, "video" for YouTube.
 - label: what it is, in plain words ("MDN: Array methods", "Amigoscode: Spring Boot REST API").
@@ -424,7 +425,7 @@ resources — 2 to 4 places to go and learn this topic properly before the quiz.
 - needs_sandbox: true ONLY if this step teaches something runnable as plain HTML/CSS/JS in a browser (a web page, DOM manipulation, a JS snippet). False for anything else.
 - sandbox_template: "html" for a page/markup/CSS step, "javascript" for a JS-logic step, when needs_sandbox is true, else null.
 - sandbox_files: when needs_sandbox is true, an object of {filename: starter code} — a minimal, runnable starting point illustrating THIS step, not a finished solution (e.g. {"index.html": "<!doctype html>..."}). Else null.
-- code_language / code_example: when needs_sandbox is FALSE but a short real code snippet would make the step concrete (a Python function, a SQL query, a shell command, a Java class, a git command sequence — anything that isn't HTML/CSS/JS but the step is still specifically about writing or reading code/commands), set code_language to that language (e.g. "python", "sql", "bash", "java") and code_example to a short (3-15 line) realistic, runnable-looking snippet that illustrates exactly what this step just explained. This is shown read-only, not executed, so it can use anything real code would. For conceptual steps with no code to show (soft skills, architecture, "what is X"), leave both null.
+- code_language / code_example: when needs_sandbox is FALSE but a short real code snippet would make the step concrete (a Python function, a SQL query, a shell command, a Java class, a git command sequence — anything that isn't HTML/CSS/JS but the step is still specifically about writing or reading code/commands), set code_language to that language (e.g. "python", "sql", "bash", "java") and code_example to a short (3-15 line) REAL, runnable snippet that illustrates exactly what this step just explained. It is ONLY code: no prose, no markdown fences. Put what it prints as a last comment line in that language (for example "# prints: 6"). Short comments inside the code are fine. This is shown read-only, not executed, so it can use anything real code would. For conceptual steps with no code to show (soft skills, architecture, "what is X"), leave both null.
 
 quiz — exactly ${QUIZ_POOL_SIZE} questions covering the WHOLE topic (draw from across every step, not just the last one), answerable by someone who went through all the steps. This is a POOL: each attempt only shows the student ${QUIZ_LENGTH} of these at random, so the ${QUIZ_POOL_SIZE} must be genuinely different questions, not near-duplicates reworded — vary which step, which term, which "what happens if" each one targets. Test understanding and real terminology, not trivia. At least 3 of them should be a realistic "what happens if" or "why did this break" rather than a definition lookup. Exactly 4 options, one correct, wrong ones genuinely tempting (a common misconception or an almost-right term). Vary which index is correct. Each explanation is one short sentence in the same voice.
 
@@ -480,11 +481,10 @@ interface ParsedStep {
   codeExample: CodeExampleSpec | null;
 }
 
-function validSteps(steps: unknown): steps is ParsedStep[] {
+function validSteps(steps: unknown, exact?: number): steps is ParsedStep[] {
   return (
     Array.isArray(steps) &&
-    steps.length >= MIN_TOPIC_STEPS &&
-    steps.length <= MAX_TOPIC_STEPS &&
+    (exact ? steps.length === exact : steps.length >= MIN_TOPIC_STEPS && steps.length <= MAX_TOPIC_STEPS) &&
     steps.every(
       (s: any) =>
         typeof s?.title === 'string' &&
@@ -558,6 +558,14 @@ export async function ensureTopicSteps(
     .slice(0, 3)
     .map((l) => l.skill);
 
+  // A topic that came from a course syllabus carries its exact step list: the lesson is written
+  // for those steps, in that order, so nothing the syllabus promises is left out.
+  const { data: sylRow } = await supabase
+    .from('level_syllabus').select('steps').eq('level_id', seed.id).maybeSingle();
+  const syllabus = Array.isArray(sylRow?.steps) && sylRow.steps.length > 0
+    ? { steps: (sylRow.steps as unknown[]).map((x) => String(x)) }
+    : null;
+
   const prompt = buildTopicPrompt(
     seed,
     track?.name ?? seed.track_slug,
@@ -565,6 +573,7 @@ export async function ensureTopicSteps(
     allTopics.length,
     before,
     after,
+    syllabus,
   );
 
   const result = await generateText(
@@ -588,7 +597,7 @@ export async function ensureTopicSteps(
   const parsed = JSON.parse(jsonMatch[0].replace(/,\s*([}\]])/g, '$1'));
 
   if (
-    !validSteps(parsed?.steps) ||
+    !validSteps(parsed?.steps, syllabus?.steps.length) ||
     !validQuiz(parsed?.quiz) ||
     typeof parsed?.proof_title !== 'string' ||
     typeof parsed?.proof_brief !== 'string'
@@ -598,8 +607,8 @@ export async function ensureTopicSteps(
     throw new Error('Topic content failed validation');
   }
 
-  const steps: ParsedStep[] = parsed.steps.map((s: any) => ({
-    title: s.title.trim(),
+  const steps: ParsedStep[] = parsed.steps.map((s: any, i: number) => ({
+    title: (syllabus?.steps[i] ?? s.title).trim(),
     explanation: s.explanation.trim(),
     sandbox: s.needs_sandbox && validSandbox({ template: s.sandbox_template, files: s.sandbox_files })
       ? { template: s.sandbox_template, files: s.sandbox_files }

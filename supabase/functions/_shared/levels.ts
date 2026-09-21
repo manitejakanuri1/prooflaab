@@ -330,6 +330,7 @@ export async function placeStudent(
     const { data: tracks } = await supabase
       .from('level_tracks')
       .select('slug, interest')
+      .eq('is_course', false)          // a full course is never joined from an interest keyword
       .in('interest', opts.interests as string[]);
     trackSlugs = (tracks ?? []).map((t: any) => t.slug);
   }
@@ -337,9 +338,11 @@ export async function placeStudent(
 
   const { data: trackRows } = await supabase
     .from('level_tracks')
-    .select('slug, name')
+    .select('slug, name, is_course')
     .in('slug', trackSlugs);
   const nameBySlug = new Map<string, string>((trackRows ?? []).map((t: any) => [t.slug, t.name]));
+  // A resume line ("Python") proves a topic, not a 140-step course: full courses are joined at step 1, never ticked.
+  const isCourse = new Set<string>((trackRows ?? []).filter((t: any) => t.is_course).map((t: any) => t.slug));
 
   // Whichever track they were put on first stays the one the map opens to.
   // Without this, adding a second track later also claimed "primary" and the map
@@ -389,7 +392,7 @@ export async function placeStudent(
     );
 
     const toInsert = levels
-      .filter((l: any) => have.has(normSkill(l.skill)) && !existing.has(l.id))
+      .filter((l: any) => !isCourse.has(slug) && have.has(normSkill(l.skill)) && !existing.has(l.id))
       .map((l: any) => ({
         student_id: studentId,
         level_id: l.id,

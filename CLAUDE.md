@@ -103,3 +103,7 @@ The owner is not a developer.
 - 18 standalone courses for skills that role tracks teach only as primers: sql, docker, cpp, linux, networking, html-css, javascript, react, pandas, numpy, aws, terraform, linear-algebra, probability, rest-apis, bash, kubernetes, git (defined in `build_syllabus.py` SKILL_COURSES). Built like the first six: `build_syllabus.py <slugs>` -> `apply_syllabus.py <slugs>` (incremental; writes migration/32-skill-courses.sql, splits topics over 10 steps) -> apply -> `warm_all.py <slugs>` -> `match_sections.py --apply`.
 - Each skill course links the FIRST topic with that skill in every role track (`topic_links`), so the same course-card flow applies (open / skip / short version, credited once the course is finished).
 - Now 41 tracks, 817 topics, 6,087 rows. Docker, Linux, AWS, Terraform, Bash, Kubernetes, SQL have almost no book text in the corpus (licences / link lists): their syllabus and lessons come from the model's own knowledge, with few Read more cards.
+
+## College / admin wiring (21 Sep 2026, migration 33)
+- `tpo_student_learning(_student_id)` (same college/admin/self check as `tpo_student_profile`) returns each path a student joined with topics done/total. The college student profile shows it as "Learning paths". The admin Students screen does not show it yet; the RPC already works for admin.
+- Neither dashboard had any track/level code before; nothing there reads the 41 tracks, so nothing broke. No college-wide course report exists yet.

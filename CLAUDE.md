@@ -81,3 +81,10 @@ The owner is not a developer.
 - Numbered steps, one action each.
 - Diagrams and tables rather than paragraphs.
 - Say what changed, what you tested, and what you deliberately did not touch.
+
+## Books corpus and course plan (21 Sep 2026)
+- Book text is NOT in the database. `scripts/dev-tools/collect_sections.py` (no AI) cuts open-licence repos into sections; the result is `gs://prooflab-private-508214/books/sections.jsonl.gz` (35,654 sections, 65 sources, 13.8 MB). Re-run: `python licence_scan.py <repos>` first, then `ONLY="repo1 repo2" python collect_sections.py` (adds to sections.json), then gzip + upload.
+- Licence rule: a repo is copied only if its own LICENSE says permissive / attribution / share-alike (`licence_scan.py`). Non-commercial (You-Dont-Know-JS, javascript.info, hello-algo, fullstack-hy2020, anthropics/courses, NirDiamant/*) and GPL repos are NOT copied. Spring guides: code only (writing is CC BY-ND). Link lists (awesome-*, project-based-learning, free-programming-books) have no lessons and are skipped.
+- Task screens show `tasks.code_sample` ("Given") and sample tests as Examples (`GivenMaterial.tsx`); coding panel is two columns.
+- Roadmap Start opens the exact task: `/student/tasks/assigned?open=<task id>`.
+- Course plan: `content/syllabus/python.json` (16 topics, 107 steps) is the first full syllabus. Loosening BM25 matching gave noisy cards, so topics are to be written FROM a book section instead.

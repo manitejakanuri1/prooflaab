@@ -88,3 +88,9 @@ The owner is not a developer.
 - Task screens show `tasks.code_sample` ("Given") and sample tests as Examples (`GivenMaterial.tsx`); coding panel is two columns.
 - Roadmap Start opens the exact task: `/student/tasks/assigned?open=<task id>`.
 - Course plan: `content/syllabus/python.json` (16 topics, 107 steps) is the first full syllabus. Loosening BM25 matching gave noisy cards, so topics are to be written FROM a book section instead.
+
+## Course syllabi applied (21 Sep 2026)
+- `content/syllabus/<course>.json` (23 courses, made by `scripts/dev-tools/build_syllabus.py` from book outlines, ~Rs 20) was applied by migration 28 (`scripts/dev-tools/apply_syllabus.py` writes it). Old topics were kept whole and renumbered into syllabus order; missing steps became 295 new topics (seed row + `level_syllabus.steps`), six new tracks (python, java, dsa, computer-science, system-design, deep-learning). Phases rebuilt as four equal parts; `student_tracks` unlocked/placed remapped so nothing that was open got locked. Migration 29 reloads the PostgREST schema.
+- `ensureTopicSteps` (`_shared/levels.ts`, functions v31) writes a new topic FROM its `level_syllabus` steps (exact titles, exact count) in the short-line style: 5-9 one-sentence lines, real-life comparison first, code only in `code_example` with a final "# prints:" comment. A topic with more than ~10-12 steps can be cut off ("Topic content was cut off"): split it (iot "Modern C++" was split into 4 parts).
+- All 465 topics / 3,578 steps are written. `scripts/dev-tools/warm_all.py [track...]` writes anything unwritten (safe to re-run; caches one admin sign-in because Firebase limits password checks). `match_sections.py --apply` fills Read more cards only where a step has none (1,392 of 3,113 steps have cards; the rest have no matching book text, which is fine).
+- New steps have no "Go deeper" block yet (only the original 1,325 do).

@@ -45,17 +45,24 @@ class BM25:
                 f = t[w]; s += qw * self.idf[w] * f * 2.2 / (f + 1.2 * (0.25 + 0.75 * L / self.avg))
         return s
 
+import build_syllabus as B                       # a topic whose skill has no repos of its own uses its whole track's repos
+_by, _lv = B.load()
+TRACK_REPOS = {k: v[1] for k, v in B.courses(_by, _lv).items()}
+_spring = [r for r in by_repo if r.startswith("spring-guides/")]
 pools = {}
-def pool(skill):
-    if skill not in pools:
+def pool(skill, track=None):
+    key = (skill, track if not [r for r in C.get(skill, []) + EXTRA.get(skill, []) if r in by_repo] else None)
+    if key not in pools:
         repos = [r for r in dict.fromkeys(C.get(skill, []) + EXTRA.get(skill, [])) if r in by_repo]
+        if not repos and track:
+            repos = [r for r in TRACK_REPOS.get(track, []) if r in by_repo] + (_spring if track == "java" else [])
         docs = [s for r in repos for s in by_repo[r]]
-        pools[skill] = BM25(docs) if docs else None
-    return pools[skill]
+        pools[key] = BM25(docs) if docs else None
+    return pools[key]
 
 matches, used = {}, collections.defaultdict(set)
 for lv in sorted(levels, key=lambda x: (x["track_slug"], x["level_number"], x["sub_level"])):
-    bm = pool(lv["skill"])
+    bm = pool(lv["skill"], lv["track_slug"])
     if not bm:
         continue
     title_terms = tok(lv["title"])
@@ -89,7 +96,19 @@ for lv in sorted(levels, key=lambda x: (x["track_slug"], x["level_number"], x["s
         matches[lv["id"]] = picked
 
 json.dump(matches, open("matches.json", "w", encoding="utf-8"))
-steps_with_pool = sum(1 for lv in levels if pool(lv["skill"]))
+steps_with_pool = sum(1 for lv in levels if pool(lv["skill"], lv["track_slug"]))
 print(f"steps {len(levels)}; with a repo pool {steps_with_pool}; matched {len(matches)}; sections used {sum(len(v) for v in matches.values())}")
 by_track = collections.Counter(lv["track_slug"] for lv in levels if lv["id"] in matches)
 print(by_track.most_common())
+
+if "--apply" in __import__("sys").argv:            # write cards only into steps that have none yet
+    st, have = http(f"{API}/level_content?select=level_id&read_more=not.is.null&limit=5000", headers=H, method="GET")
+    done = {h["level_id"] for h in have}
+    n = 0
+    for lid, cards in matches.items():
+        if lid in done:
+            continue
+        body = [{"heading": c["heading"], "text": c["text"], "source": c["repo"], "licence": c["licence"]} for c in cards]
+        st, _ = http(f"{API}/level_content?level_id=eq.{lid}", body and {"read_more": body}, {**H, "Prefer": "return=minimal"}, "PATCH")
+        n += st < 300
+    print("read_more written to", n, "steps")

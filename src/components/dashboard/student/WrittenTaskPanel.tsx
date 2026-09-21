@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SimpleQuestion } from "./SimpleQuestion";
+import { GivenMaterial } from "./GivenMaterial";
 import { Loader2, Send, Clock } from "lucide-react";
 
 interface RubricView {
@@ -114,6 +115,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
       <div>
         <h2 className="text-lg font-semibold">{view.title}</h2>
         <div className="mt-3"><SimpleQuestion taskId={taskId} original={view.prompt_text} /></div>
+        <div className="mt-3"><GivenMaterial taskId={taskId} /></div>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           pass mark {view.pass_threshold}% · {view.min_words}–{view.max_words} words
         </p>

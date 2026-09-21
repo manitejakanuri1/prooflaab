@@ -374,7 +374,7 @@ const StudentDailyCard = () => {
 
       {lot && lot.sandbox_config_id && (
         <Dialog open={coding} onOpenChange={setCoding}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <SandboxTaskPanel taskId={lot.id} onCompleted={() => { setCoding(false); void load(); }} />
           </DialogContent>
         </Dialog>

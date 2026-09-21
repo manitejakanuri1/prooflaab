@@ -3,6 +3,7 @@ import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SimpleQuestion } from "./SimpleQuestion";
+import { GivenMaterial, SampleExamples } from "./GivenMaterial";
 import { CheckCircle2, Loader2, Play, Send, XCircle } from "lucide-react";
 
 interface SandboxView {
@@ -130,10 +131,12 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   const shownResults = result?.results ?? runResults;
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="space-y-4">
         <h2 className="text-lg font-semibold">{view.title}</h2>
         <SimpleQuestion taskId={taskId} original={view.description} />
+        <GivenMaterial taskId={taskId} language={view.language} />
+        <SampleExamples tests={view.visible_tests} />
         {view.constraints && (
           <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
         )}
@@ -144,9 +147,10 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
         </p>
       </div>
 
+      <div className="space-y-4">
       <div className="overflow-hidden rounded-lg border">
         <Editor
-          height="320px"
+          height="420px"
           language={view.language === "cpp" || view.language === "c" ? "cpp" : view.language}
           value={code}
           onChange={(v) => saveDraft(v ?? "")}
@@ -206,6 +210,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
       {view.completed && !result && (
         <p className="text-sm text-emerald-600">You already completed this task.</p>
       )}
+      </div>
     </div>
   );
 }

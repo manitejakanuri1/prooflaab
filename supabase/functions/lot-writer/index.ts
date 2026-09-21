@@ -81,6 +81,7 @@ Rules:
 - Say exactly what to submit at the end.
 - No greeting, no praise, no "in this task you will learn".
 - If a short piece of starter or broken code makes the work concrete, include it (max 15 lines). Otherwise use null.
+- If the scenario mentions code, a transcript, a log or any text "below", "pasted" or "attached", that exact material MUST be in code_sample. The student cannot see anything that is not in code_sample.
 ${realSource?.kind === 'job' ? `- A real job posting for "${realSource.role}" at ${realSource.company} is the source for this Lot. Ground the scenario in what it actually asks for, quoted below. Do not invent a different company or role.
 - Leave source_jd as null — the real posting is attached separately, you do not need to name it.
 

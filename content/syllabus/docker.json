@@ -1,0 +1,688 @@
+{
+ "course": "docker",
+ "title": "Docker and containers",
+ "sources": [],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What is a container and why it exists",
+   "why": "Containers let you pack an app with everything it needs so it runs the same on any computer.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a container",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Difference between container and virtual machine",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Why containers are useful",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Container vs image",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Docker architecture overview",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Installing Docker on Linux, Windows, macOS",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Running your first container",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Basic Docker commands and container lifecycle",
+   "why": "You need to start, stop, and look at containers to use Docker.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "docker run: starting a container",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Listing containers with docker ps",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Stopping and removing containers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Viewing logs with docker logs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Executing commands inside a running container",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Inspecting container details",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Container lifecycle states",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Working with Docker images",
+   "why": "Images are the blueprints for containers, so you must find, download, and manage them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a Docker image",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Pulling images from Docker Hub",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Listing and removing images",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Image tags and versions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Saving and loading images",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Pushing images to a registry",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Building custom images with Dockerfiles",
+   "why": "You create your own image by writing a recipe called a Dockerfile.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Dockerfile syntax and instructions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "FROM: choosing a base image",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "RUN: executing commands during build",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "COPY and ADD: adding files",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "WORKDIR: setting the working directory",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "CMD and ENTRYPOINT: defining the startup command",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "EXPOSE: documenting ports",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "ENV and ARG: environment variables and build arguments",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Building an image with docker build",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Understanding image layers and caching",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Managing data with volumes and bind mounts",
+   "why": "Containers lose data when they stop, so you need a way to keep data safe.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why containers are ephemeral",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Named volumes: creating and using",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Bind mounts: linking host directories",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "tmpfs mounts: in-memory storage",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Sharing data between containers",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Backing up and restoring volumes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Container networking basics",
+   "why": "Containers need to talk to each other and to the outside world.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Default bridge network",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "User-defined bridge networks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Host and none networks",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Port mapping with -p",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Container DNS and service discovery",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Inspecting networks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Docker Compose for multi-container apps",
+   "why": "Most apps need more than one container, and Compose lets you define and run them together.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Docker Compose",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Writing a docker-compose.yml file",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Defining services, networks, and volumes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Starting and stopping with docker compose up/down",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Scaling services",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Environment variables and .env files",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Depends_on and healthchecks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Container registries and image distribution",
+   "why": "You share images by pushing them to a registry so others can pull and run them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a container registry",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using Docker Hub",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Private registries",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Tagging images for a registry",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Pushing and pulling images",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Registry authentication",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Docker best practices for building images",
+   "why": "Good images are small, secure, and fast to build.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Using .dockerignore",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Multi-stage builds",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Minimizing layers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Choosing minimal base images",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Running as non-root user",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Keeping images small",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Container security essentials",
+   "why": "Containers share the kernel, so you must secure them to avoid attacks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Namespaces and cgroups basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "User namespaces and rootless containers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Capabilities and seccomp",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "AppArmor and SELinux profiles",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Scanning images for vulnerabilities",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Signing and verifying images",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Docker in development workflows",
+   "why": "Docker makes it easy to set up a consistent development environment.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Using Docker for local development",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Live code reloading with bind mounts",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Debugging containers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Running tests in containers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Docker Compose for dev environments",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Introduction to container orchestration",
+   "why": "When you have many containers on many machines, you need a tool to manage them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why orchestration is needed",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Docker Swarm basics",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Kubernetes overview",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Comparing Swarm and Kubernetes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "When to use orchestration",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Docker in CI/CD pipelines",
+   "why": "You can automate building, testing, and deploying containers with CI/CD.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Building images in CI",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Running tests in containers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Pushing images to a registry from CI",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Deploying containers to production",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using Docker with Jenkins, GitLab CI, GitHub Actions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Monitoring and logging containers",
+   "why": "You need to see what containers are doing to fix problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Docker logs and log drivers",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Monitoring with docker stats",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using Prometheus and Grafana",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Centralized logging with ELK stack",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Healthchecks and alerts",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Troubleshooting and debugging containers",
+   "why": "Things go wrong, so you need ways to find and fix issues.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Common container errors",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Inspecting container state",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Debugging with docker exec",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Checking resource usage",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Network troubleshooting",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Volume troubleshooting",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Docker under the hood",
+   "why": "Knowing how Docker works helps you use it better.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Linux namespaces",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Control groups (cgroups)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Union filesystems",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Container runtime (runc, containerd)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Docker daemon and CLI",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Alternatives and ecosystem",
+   "why": "Docker is not the only tool; knowing others helps you choose.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Podman",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "containerd and CRI-O",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Buildah and Skopeo",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Open Container Initiative (OCI)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Comparing Docker with alternatives",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Capstone project: containerize a multi-service application",
+   "why": "Put everything together by containerizing a real app with a database and web server.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Project overview and requirements",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Writing Dockerfiles for each service",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Setting up Docker Compose",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Configuring networking and volumes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Building and running the app",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Testing and debugging",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Optimizing images",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Documenting and sharing the project",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

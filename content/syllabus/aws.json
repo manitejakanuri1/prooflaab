@@ -1,0 +1,948 @@
+{
+ "course": "aws",
+ "title": "Amazon Web Services",
+ "sources": [
+  "open-guides/og-aws"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What Cloud Computing Is",
+   "why": "Instead of buying your own computers, you rent them from someone else over the internet.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a server is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Why companies rent servers instead of buying them",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "What a data center is",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "What cloud computing means",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "The main cloud providers",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "What Amazon Web Services is",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "How to Use AWS for the First Time",
+   "why": "You need an account and a way to log in before you can use anything.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating an AWS account",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The AWS Management Console",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The root user and why it is dangerous",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Creating an IAM user",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Setting up multi-factor authentication",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "AWS regions and availability zones",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "The AWS free tier",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "AWS Global Infrastructure",
+   "why": "AWS has computers in many places around the world so your apps are fast and safe.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Regions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Availability zones",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Edge locations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Local zones",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Choosing a region for your app",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "How AWS keeps running when one zone fails",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Identity and Access Management (IAM)",
+   "why": "You must control who can do what in your AWS account.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Users, groups, and roles",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Policies and permissions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "How AWS decides if a request is allowed",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Password policies",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Access keys and when to use them",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "IAM roles for services",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Best practices for IAM",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Command Line and SDK Access",
+   "why": "You can control AWS from your keyboard instead of clicking buttons.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Installing the AWS CLI",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Configuring the AWS CLI",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Running basic AWS CLI commands",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "What an SDK is",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using the AWS SDK in Python (boto3)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Using the AWS SDK in JavaScript",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Elastic Compute Cloud (EC2)",
+   "why": "EC2 gives you virtual computers in the cloud that you can start and stop.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a virtual machine is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "EC2 instances",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Instance types and sizes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Amazon Machine Images (AMIs)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Key pairs and SSH access",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Security groups",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Elastic IP addresses",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Starting, stopping, and terminating instances",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "EC2 pricing models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Storage on AWS",
+   "why": "You need places to keep files and data in the cloud.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Block storage vs file storage vs object storage",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Amazon EBS volumes",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "EBS snapshots",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Amazon S3 buckets and objects",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "S3 storage classes",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "S3 versioning and lifecycle rules",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "S3 static website hosting",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Amazon EFS",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Amazon Glacier",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Virtual Private Cloud (VPC)",
+   "why": "Your cloud computers need their own private network to talk to each other safely.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a network is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "IP addresses and CIDR blocks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Subnets",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Route tables",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Internet gateways",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "NAT gateways",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Security groups vs network ACLs",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "VPC peering",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "VPC endpoints",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Load Balancing and Auto Scaling",
+   "why": "When many users come, you need more computers and a way to share the work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why load balancing is needed",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Elastic Load Balancer types",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Target groups and health checks",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Launch templates",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Auto Scaling groups",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Scaling policies",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Putting load balancing and auto scaling together",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Databases on AWS",
+   "why": "Apps need a place to store and search data quickly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a database is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Relational databases and SQL",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Amazon RDS",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "RDS backups and snapshots",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Amazon Aurora",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Amazon DynamoDB",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "DynamoDB tables, items, and keys",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Amazon ElastiCache",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Amazon Redshift",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Domain Names and Content Delivery",
+   "why": "People need an easy name to reach your app, and your files should load fast everywhere.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What DNS is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Amazon Route 53 hosted zones",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "DNS record types",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Routing policies",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Amazon CloudFront",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "CloudFront distributions and origins",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "SSL certificates with AWS Certificate Manager",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Messaging and Queues",
+   "why": "Different parts of your app need to send messages to each other without waiting.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why queues are used",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Amazon SQS",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Standard queues vs FIFO queues",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Amazon SNS",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Topics and subscriptions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Amazon EventBridge",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Serverless Computing",
+   "why": "You can run code without managing any servers at all.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What serverless means",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "AWS Lambda",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Lambda triggers and events",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Lambda permissions and roles",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "API Gateway",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Building a simple serverless API",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "AWS Step Functions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Containers on AWS",
+   "why": "Containers pack your app so it runs the same everywhere.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a container is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Docker basics",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Amazon ECR",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Amazon ECS",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "ECS tasks and services",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "AWS Fargate",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Amazon EKS",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Infrastructure as Code",
+   "why": "You can write your cloud setup in files instead of clicking in the console.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why infrastructure as code matters",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "AWS CloudFormation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "CloudFormation templates and stacks",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "AWS CDK",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Managing infrastructure state and change",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Terraform basics on AWS",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Monitoring, Logging, and Auditing",
+   "why": "You need to see what your cloud is doing and find problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Amazon CloudWatch metrics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "CloudWatch logs",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "CloudWatch alarms",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "AWS CloudTrail",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "AWS Config",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "AWS Trusted Advisor",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "AWS Health Dashboard",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Security and Compliance",
+   "why": "You must protect your data and follow rules.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The shared responsibility model",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "AWS WAF and Shield",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "AWS KMS and encryption",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "AWS Secrets Manager",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "AWS Artifact and compliance reports",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Compliance basics",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Restrictions and other notes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Cost Management",
+   "why": "You should not pay more than you need to for the cloud.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "How AWS pricing works",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "AWS Free Tier limits",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "AWS Budgets",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Cost Explorer",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reserved instances and savings plans",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Tagging resources for cost tracking",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Getting Help and Support",
+   "why": "When you are stuck, you need to know where to ask.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "AWS documentation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "AWS Support plans",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "AWS re:Post and forums",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Opening a support case",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Getting help and support",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Well-Architected Design",
+   "why": "Good cloud systems follow a few proven rules.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The AWS Well-Architected Framework",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Operational excellence pillar",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Security pillar",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reliability pillar",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Performance efficiency pillar",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Cost optimization pillar",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Sustainability pillar",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Building and Deploying a Real App",
+   "why": "Putting everything together shows you can actually build something.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Planning a simple web app",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting up the network",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Setting up the database",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Deploying the app on EC2 or containers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Adding a load balancer and auto scaling",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Adding a domain and HTTPS",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Adding monitoring and alarms",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Cleaning up resources",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Certifications and Career",
+   "why": "Certificates and skills help you get a job in cloud computing.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "AWS certification paths",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Cloud Practitioner exam topics",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Solutions Architect Associate exam topics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Developer Associate exam topics",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "SysOps Administrator exam topics",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Certifications",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Tools and services market landscape",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Common concepts",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Preparing for cloud job interviews",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

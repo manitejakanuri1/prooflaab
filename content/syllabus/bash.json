@@ -1,0 +1,932 @@
+{
+ "course": "bash",
+ "title": "Bash and the command line",
+ "sources": [
+  "dylanaraps/pure-bash-bible"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What a command line is and why it matters",
+   "why": "The command line lets you tell the computer what to do by typing instead of clicking.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an operating system and a shell are",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Opening a terminal on Linux, macOS, and Windows",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Running your first command and seeing output",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reading the prompt and knowing where you are",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Stopping a running command with Ctrl+C",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Getting help with man, --help, and info",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Files, directories, and moving around",
+   "why": "Everything on a computer is a file or a folder, and you need to walk around them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What files and directories are",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Printing the working directory with pwd",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Listing contents with ls and its common flags",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Changing directory with cd and using .. and ~",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Making directories with mkdir and removing them with rmdir",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Copying, moving, and renaming with cp and mv",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Deleting files with rm and why rm -rf is dangerous",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Looking at and editing file contents",
+   "why": "You need to read what is inside a file and change it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Viewing whole files with cat",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Viewing files page by page with less and more",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Looking at the start and end with head and tail",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Counting lines, words, and bytes with wc",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Editing files with nano",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Editing files with vim: modes, saving, and quitting",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Paths, wildcards, and finding files",
+   "why": "You need to point at files exactly and find them when you forget where they are.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Absolute versus relative paths",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using . and .. in paths",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Matching names with * and ?",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Matching character sets with [ ]",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Finding files with find by name, type, and size",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Finding commands and files with which and whereis",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Searching inside files with grep",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Input, output, and pipes",
+   "why": "Commands can pass information to each other like water through pipes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Standard input, standard output, and standard error",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Redirecting output with > and >>",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Redirecting input with <",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sending errors with 2> and combining streams with 2>&1",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Connecting commands with the pipe |",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Discarding output with /dev/null",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Using tee to write and display at the same time",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Text processing with filters",
+   "why": "Most command line work is cutting, sorting, and reshaping text.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Cutting columns with cut",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Sorting lines with sort and removing duplicates with uniq",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Translating and deleting characters with tr",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Substituting text with sed",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Extracting fields with awk",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Comparing files with diff and comm",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Joining lines with paste",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Permissions, users, and ownership",
+   "why": "Files have owners and rules about who may read or change them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Users, groups, and the root user",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reading permission strings from ls -l",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Changing permissions with chmod in symbolic and numeric form",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Changing ownership with chown and chgrp",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using sudo safely",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Understanding the umask",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Special permission bits: setuid, setgid, and sticky",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Processes and jobs",
+   "why": "Programs that are running are called processes, and you can watch and control them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a process and a PID are",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Listing processes with ps and top",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Ending processes with kill and killall",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Running jobs in the background with &",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Managing jobs with jobs, fg, and bg",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Keeping work alive with nohup",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Changing priority with nice and renice",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Environment, variables, and startup files",
+   "why": "The shell remembers settings and values that shape how commands behave.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Shell variables versus environment variables",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting and reading variables with = and $",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Exporting variables with export",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Viewing the environment with env and printenv",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Understanding PATH and why commands are found",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Startup files: .bashrc, .bash_profile, and .profile",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Aliases and functions for shortcuts",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Writing your first shell script",
+   "why": "A script is a file of commands you can run again and again.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a script is and how the shell runs it",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The shebang line and choosing an interpreter",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Making a script executable with chmod +x",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Running a script with ./script.sh and bash script.sh",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Adding comments with #",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Reading arguments with $1, $2, and $@",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Exiting with a status code using exit",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Variables, quoting, and expansion in scripts",
+   "why": "Quoting decides whether the shell treats characters as text or as special instructions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Single quotes, double quotes, and no quotes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Command substitution with $( ) and backticks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Arithmetic expansion with $(( ))",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Parameter expansion basics: ${var} and defaults",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Trimming leading and trailing whitespace from a string",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Using regex on a string with =~",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Removing duplicate array elements",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Escape sequences and how the shell interprets backslashes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Conditionals and tests",
+   "why": "Scripts need to make decisions based on values and files.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The if, then, else, and fi structure",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Testing numbers with -eq, -lt, and friends",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Testing strings with =, !=, and -z",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Testing files with -e, -f, and -d",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Combining tests with &&, ||, and !",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "The case statement for many choices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Loops and repetition",
+   "why": "Loops repeat work so you do not type the same thing many times.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The for loop over words and lists",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The for loop over files and command output",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The while loop and reading a file line by line",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "The until loop",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Controlling loops with break and continue",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Looping over arrays",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Arrays and string handling",
+   "why": "Arrays hold many values under one name, and strings need careful handling.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating and indexing arrays",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Adding, removing, and slicing array elements",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Iterating over arrays safely",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "String length and substring extraction",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Replacing and removing patterns in strings",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Changing case of strings",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Functions and code reuse",
+   "why": "Functions let you name a block of commands and call it many times.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Defining and calling a function",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Passing arguments to functions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Returning values and status codes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Local variables with local",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Organizing scripts into functions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Reading input and interactive scripts",
+   "why": "Scripts often need to ask the user for information.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Reading a line with read",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Prompting with read -p",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reading passwords silently with read -s",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reading with a timeout",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Validating user input",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Error handling and debugging",
+   "why": "Scripts fail, and you need to find out why and stop cleanly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Exit codes and $?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using set -e, set -u, and set -o pipefail",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Trapping signals and errors with trap",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Debugging with bash -x and set -x",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Writing messages to stderr",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Checking that required commands exist",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Working with files and data in scripts",
+   "why": "Scripts often create, read, and clean up files and data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating temporary files and directories with mktemp",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reading and writing files safely",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using here documents and here strings",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Parsing simple CSV and delimited data",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using xargs to build command lines",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Compressing and archiving with tar and gzip",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Terminal display and colors",
+   "why": "You can make terminal output easier to read with colors and formatting.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "ANSI escape sequences and how terminals read them",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting text colors",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Setting text attributes like bold and underline",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Moving the cursor and clearing the screen",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Building simple progress and status output",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Networking and remote work from the shell",
+   "why": "You can move files and run commands on other computers from your terminal.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Checking connectivity with ping",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Downloading files with curl and wget",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Connecting to remote machines with ssh",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Copying files with scp and rsync",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Transferring files with sftp",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Checking open ports with ss and netstat",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Package management and installing tools",
+   "why": "You need to install and update software from the command line.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Package managers: apt, dnf, yum, and pacman",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Updating package lists and upgrading packages",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Installing and removing packages",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Searching for packages",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Building from source with make and configure",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Version control with git from the command line",
+   "why": "Git keeps a history of your work so you can go back and share it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What version control and a repository are",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Initializing a repo with git init",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Checking status and staging with git add",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Committing changes with git commit",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Viewing history with git log and git diff",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Branching and merging",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Working with remotes: clone, pull, and push",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Automation, cron, and real tasks",
+   "why": "You can make the computer do repeated work on a schedule.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Writing a script that does a real job",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Scheduling with cron and crontab",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using at for one-time jobs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Logging output and rotating logs",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Backing up files with a script",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Cleaning up old files safely",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "title": "Putting it together: a job-ready project",
+   "why": "You combine everything into one useful tool you can show to employers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Planning a small command line tool",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Writing the script with functions and error handling",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Adding options with getopts",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Testing the script with sample data",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Documenting usage with a help message",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Publishing the script on GitHub",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

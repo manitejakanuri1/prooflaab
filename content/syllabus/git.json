@@ -1,0 +1,384 @@
+{
+ "course": "git",
+ "title": "Git and GitHub",
+ "sources": [
+  "k88hudson/git-flight-rules"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What Version Control Is",
+   "why": "Version control keeps every change you make to your files so you can go back or work with others.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why we need version control",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Local vs remote repositories",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "What Git is and what GitHub is",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Installing Git on Windows, macOS, and Linux",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Checking Git version and basic setup",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Your First Git Repository",
+   "why": "A repository is a folder where Git watches your files and remembers their history.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating a new repository with git init",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Understanding the working directory, staging area, and commit history",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Checking status with git status",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Staging files with git add",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Saving a snapshot with git commit",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Viewing history with git log",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Tracking Changes and Undoing Simple Mistakes",
+   "why": "You can see what changed and fix small mistakes before they become big problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Seeing differences with git diff",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Unstaging a file with git reset",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Discarding changes in the working directory with git checkout",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "What did I just commit?",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "I wrote the wrong thing in a commit message",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "I committed with the wrong name and email in the configuration",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Branching and Merging",
+   "why": "Branches let you try new ideas without breaking the main version of your project.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a branch is and why use one",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Creating and switching branches with git branch and git checkout",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Merging branches with git merge",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Resolving simple merge conflicts",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Deleting branches",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Working with Remote Repositories",
+   "why": "A remote repository lets you back up your work online and share it with others.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What a remote is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "I want to clone a remote repository",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Adding a remote with git remote add",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Pushing changes with git push",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Pulling changes with git pull",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "I set the wrong remote repository",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Collaborating on GitHub",
+   "why": "GitHub is a website where people work together on code using Git.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating a GitHub account and a new repository",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Connecting a local repository to GitHub",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "I want to add code to someone else's repository",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Forking a repository",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Creating a pull request",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Reviewing and merging pull requests",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Issues",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Fixing Common Git Problems",
+   "why": "Even experts make mistakes, and Git has ways to undo almost anything.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "I want to remove a file from the previous commit",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "I want to delete or remove my last commit",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "I accidentally did a hard reset and want my changes back",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "I accidentally committed and pushed a merge",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "I want to stage only new files, not all",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "I want to ignore unstaged changes in my local repository",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "I tried to push my amended commit to the remote repository, but got an error",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Rewriting History with Rebase",
+   "why": "Rebase lets you clean up your commits so the history looks neat and easy to read.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What rebase is and when to use it",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Interactive rebase basics",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "I need to combine several commits",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "I want to move changes from one commit to another",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "I want to keep an entire file from another ref-ish",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "I committed several commits to the same branch that should be on different branches",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Problems that can happen with interactive rebase",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Advanced Git Tools and Techniques",
+   "why": "These tools help you find bugs, clean up big files, and work faster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Using git stash to save work temporarily",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using git cherry-pick to copy a commit",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using git bisect to find a bad commit",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "I want to remove large files from history",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Scripts and tools",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "GUI clients",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Git Workflows and Best Practices",
+   "why": "Good habits make teamwork smooth and keep your project history useful.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Writing good commit messages",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Keeping commits small and focused",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using .gitignore to skip files",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common branching workflows",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Contributing to open source",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Translation",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

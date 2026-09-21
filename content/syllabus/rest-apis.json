@@ -1,0 +1,755 @@
+{
+ "course": "rest-apis",
+ "title": "REST APIs",
+ "sources": [
+  "microsoft/api-guidelines",
+  "donnemartin/system-design-primer"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What an API Is and Why REST Exists",
+   "why": "An API is a way for two computer programs to talk to each other, and REST is a simple set of rules for that talk.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is an API",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Client and server roles",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Request and response",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "What REST means",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "REST vs other API styles",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Why REST is popular",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "HTTP Basics for APIs",
+   "why": "REST APIs use HTTP, so you need to know how HTTP messages carry requests and responses.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "HTTP methods",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "HTTP status codes",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "HTTP headers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Request and response bodies",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "URL structure",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Statelessness",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "JSON and Data Formats",
+   "why": "Most REST APIs send data as JSON, so you must be able to read and write it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is JSON",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "JSON syntax",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "JSON data types",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Nested JSON",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "JSON vs XML",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Parsing JSON in code",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Designing Resources and URLs",
+   "why": "In REST, everything is a resource, and the URL tells the server which resource you mean.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Resources and collections",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "URL patterns for collections",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Item keys in URLs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Naming resources",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Casing and names to avoid",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Compound names and identity properties",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Date and time properties",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Collections and counts",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "CRUD Operations with HTTP Methods",
+   "why": "You create, read, update, and delete resources using the standard HTTP methods.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create with POST",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Read with GET",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Update with PUT and PATCH",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Delete with DELETE",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Idempotency and repeatability",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Performing an action",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Status Codes and Error Responses",
+   "why": "The server tells the client what happened using status codes and error messages.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Success status codes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Client error status codes",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Server error status codes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Error response object",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "InnerError object",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Error examples",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Query Parameters: Filtering, Sorting, and Pagination",
+   "why": "Clients often need to narrow down or page through large collections.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Filtering collections",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Filter operations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sorting collections",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Interpreting a sorting expression",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Pagination with page size and page number",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Big collections",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Changing collections",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Partial Responses and Default Properties",
+   "why": "Clients should be able to ask for only the fields they need to save bandwidth.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Selecting fields with $select",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Default properties",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Calling an API with default properties",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Calling an API without using $select",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Subsets pattern",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "API Versioning and Deprecation",
+   "why": "APIs change over time, so you need a way to add new versions without breaking old clients.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why versioning matters",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Versioning guidelines",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Deprecating behavior notification",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Deprecation guidelines",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Example of property annotation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Long-Running Operations",
+   "why": "Some operations take a long time, so the API must let clients check progress later.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Problem of long operations",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Create a new resource using RELO",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Cancel RELO operation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Poll on a stepwise operation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "When to use this pattern",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Issues and considerations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Relationships and Navigation Properties",
+   "why": "Resources often link to each other, and navigation properties show those links.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Many-to-one relationships",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Zero-or-one-to-one relationships",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "One-to-many relationships",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Navigation property pattern",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Issues and considerations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Advanced Resource Patterns",
+   "why": "Real APIs need patterns for common situations like upserts, change tracking, and alternate keys.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Upsert pattern",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Change tracking pattern",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Alternate key pattern",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Dictionary pattern",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Facets pattern",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Flat bag pattern",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Namespace pattern",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Subtypes pattern",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Viewpoint pattern",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Operations pattern",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "API Design Process and Guidelines",
+   "why": "Good APIs are designed carefully before coding, using clear guidelines.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Start with the developer experience",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Focus on hero scenarios",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Start with your API definition",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Design for change resiliency",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Azure Management Plane vs Data Plane",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Prescriptive guidance",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Building blocks: HTTP, REST, and JSON",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Security and Authentication Basics",
+   "why": "APIs must protect data, so clients need to prove who they are.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Authentication vs authorization",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "API keys",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "OAuth 2.0 basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "JWT tokens",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "HTTPS and TLS",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Rate limiting",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Testing and Debugging APIs",
+   "why": "You need to check that your API works correctly and fix problems when it does not.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Unit testing API endpoints",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Integration testing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using curl and Postman",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reading logs and error messages",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common HTTP errors and fixes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Building a Simple REST API",
+   "why": "You learn best by building a small API from scratch.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Choosing a language and framework",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting up a project",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Defining routes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Handling requests and responses",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Connecting to a database",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Running and testing locally",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Scaling and Performance",
+   "why": "As more people use your API, you need to make it faster and handle more traffic.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Caching basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Load balancing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Database scaling",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "CDN for static content",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Monitoring and metrics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "System Design for APIs",
+   "why": "Large systems need careful planning to handle many users and data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Outline use cases and constraints",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Design core components",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Scale the design",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Case study: Pastebin",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Case study: Twitter timeline",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Case study: Web crawler",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "API Documentation and Developer Experience",
+   "why": "Good documentation helps other developers use your API without asking you.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Writing API docs",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "OpenAPI specification",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Generating docs from code",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Providing examples",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "SDK and client libraries",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Deployment and Maintenance",
+   "why": "After building, you must put your API online and keep it running.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Deploying to a server",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Environment variables and config",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "CI/CD basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Monitoring in production",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Handling deprecation and sunset",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

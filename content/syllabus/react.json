@@ -1,0 +1,1558 @@
+{
+ "course": "react",
+ "title": "React",
+ "sources": [
+  "reactjs/react.dev"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What React Is and Why It Exists",
+   "why": "React is a way to build web pages out of small reusable pieces called components.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What React solves: building UIs from components",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Components: UI building blocks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Thinking in React: start with the mockup",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Step 1: Break the UI into a component hierarchy",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Step 2: Build a static version in React",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Step 3: Find the minimal but complete representation of UI state",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Step 4: Identify where your state should live",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Step 5: Add inverse data flow",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Setting Up a React Project",
+   "why": "You need a place to write and run React code before you can build anything.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Try React in the browser without installing",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Add React to an existing project",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Full-stack frameworks: Next.js (App Router)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "React Router (v7)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Expo for native apps",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Other frameworks and build tools",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Your editor setup",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Linting and formatting",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Browser extension: React Developer Tools",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Writing Markup with JSX",
+   "why": "JSX lets you write HTML-like markup inside JavaScript so components are easy to read.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "JSX: putting markup into JavaScript",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Converting HTML to JSX",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Return a single root element",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Close all the tags",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "camelCase all most of the things",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "JavaScript in JSX with curly braces",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Passing strings with quotes and expressions with braces",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Your First Components",
+   "why": "A component is a JavaScript function that returns markup, and you can use it like a tag.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Defining a component",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Step 1: Export the component",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 2: Define the function",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Step 3: Add markup",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using a component",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "The root component file",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Exporting and importing a component",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Exporting and importing multiple components from the same file",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Keeping Components Pure",
+   "why": "A pure component always gives the same output for the same input and does not change things outside itself.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Purity: components as formulas",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Side effects: (un)intended consequences",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Local mutation: your component's little secret",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Where you can cause side effects",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Why React cares about purity",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Showing Data with Props",
+   "why": "Props are how a parent component gives data to a child component.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Passing props to a component",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reading props in the child",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Specifying a default value for a prop",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Forwarding props with the JSX spread syntax",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Passing JSX as children",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "How props change over time",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Rendering Lists and Conditional Content",
+   "why": "You often need to show many items or show different things depending on a condition.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Rendering data from arrays",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Filtering arrays of items",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Keeping list items in order with key",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Where to get your key",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Conditional rendering with if and ternary",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Conditionally returning nothing with null",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Responding to Events",
+   "why": "Events let your app react when a user clicks, types, or does something.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Responding to events",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Adding event handlers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reading props in event handlers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Passing event handlers as props",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Naming event handler props",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Event propagation and stopping it",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Preventing default behavior",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "State: A Component's Memory",
+   "why": "State lets a component remember things that change, like a counter value.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Adding state to a component",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "useState(initialState)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "set functions, like setSomething(nextState)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Giving a component multiple state variables",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "State is isolated and private",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Updating state based on the previous state",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Render and Commit",
+   "why": "React shows your UI by rendering components and then putting the result on the screen.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Initial render",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Re-renders when state updates",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 2: React renders your components",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Step 3: React commits changes to the DOM",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Render and commit",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "State as a Snapshot",
+   "why": "State values are fixed for one render, like a photo taken at that moment.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Setting state triggers renders",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Rendering takes a snapshot in time",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "State over time",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "State as a snapshot",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Queueing a Series of State Updates",
+   "why": "When you set state many times, React queues them and applies them in order.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Queueing a series of state updates",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "React batches state updates",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Updating the same state multiple times before the next render",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using updater functions in the queue",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Updating Objects in State",
+   "why": "You should not change objects directly; instead you make a copy with the changes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Updating objects in state",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Treat state as read-only",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Copying objects with the spread syntax",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Updating a nested object",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Writing concise update logic with Immer",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Updating Arrays in State",
+   "why": "Arrays in state are also read-only, so you make new arrays instead of changing the old one.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Updating arrays without mutation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Adding to an array",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Removing from an array",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Transforming an array",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Replacing items in an array",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sorting an array",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Avoiding mutation with slice and spread",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Managing State Structure",
+   "why": "How you organize state affects how easy your app is to build and fix.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Principles for structuring state",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Group related state",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Avoid contradictions in state",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Avoid redundant state",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Avoid duplication in state",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Avoid deeply nested state",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Sharing State Between Components",
+   "why": "When two components need the same changing data, you move that state to their closest common parent.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Lifting state up by example",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Step 1: Remove state from the child components",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 2: Pass hardcoded data from the common parent",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Step 3: Add state to the common parent",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "A single source of truth for any data that changes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Preserving and Resetting State",
+   "why": "React keeps state as long as the same component stays in the same place in the tree.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "State is tied to a position in the render tree",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Same component at the same position preserves state",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Different components at the same position reset state",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Resetting state at the same position",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Resetting state with a key",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Reducers and Context for Complex State",
+   "why": "A reducer groups all the ways state can change, and context lets many components read that state without passing props.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Extracting state logic into a reducer",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "useReducer(reducer, initialArg, init?)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "dispatch function",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Adding a reducer to a component",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Comparing useState and useReducer",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "The problem with passing props",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Context: an alternative to passing props",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Step 1: Create the context",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Step 2: Put state and dispatch into context",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Step 3: Use the context anywhere in the tree",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Refs and the DOM",
+   "why": "Refs let you keep a value that does not cause a re-render and let you touch real DOM elements.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Referencing values with refs",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Adding a ref to your component",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Example: building a stopwatch",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Differences between refs and state",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "When to use refs",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Manipulating the DOM with refs",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Accessing another component's DOM nodes with ref forwarding",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Synchronizing with Effects",
+   "why": "Effects let a component do something after rendering, like talk to a server or a non-React widget.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Synchronizing with Effects",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "useEffect(setup, dependencies?)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Step 1: Declare an Effect",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Step 2: Specify the Effect dependencies",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Step 3: Add cleanup if needed",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Controlling a non-React widget",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Fetching data with Effects",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Specifying reactive dependencies",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Removing unnecessary object and function dependencies",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "You Might Not Need an Effect",
+   "why": "Many things people do in Effects can be done simpler during rendering or in event handlers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "You Might Not Need an Effect",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Removing unnecessary Effects",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Updating state based on props or state",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Caching expensive calculations",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Resetting all state when a prop changes",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Adjusting some state when a prop changes",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Sharing logic between event handlers",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Sending a POST request",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Chains of computations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Separating Events from Effects",
+   "why": "Some logic should run only when a value changes, not every time an Effect re-runs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Separating Events from Effects",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Extracting non-reactive logic out of Effects",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Declaring an Effect Event",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reading latest props and state with Effect Events",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Limitations of Effect Events",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Removing Effect Dependencies",
+   "why": "You can often rewrite an Effect so it needs fewer dependencies and runs less often.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Removing Effect Dependencies",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Should this code go inside the Effect?",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Should this code go outside the Effect?",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Should this code go into an event handler?",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reading latest props and state with refs",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "title": "Reusing Logic with Custom Hooks",
+   "why": "A custom Hook is a function that starts with use and lets you share logic between components.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Custom Hooks: sharing logic between components",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Extracting your own custom Hook from a component",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Hook names always start with use",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Custom Hooks let you share logic, not state",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Passing reactive values between Hooks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "When to use custom Hooks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 25,
+   "title": "Rules of Hooks and Linting",
+   "why": "Hooks must be called in the same order every render, so React can keep track of them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Rules of Hooks",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Only call Hooks at the top level",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Only call Hooks from React functions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Components and Hooks must be pure",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "React calls Components and Hooks",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Recommended ESLint rules",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Rule details for exhaustive-deps",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Rule details for refs",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Rule details for set-state-in-effect",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 26,
+   "title": "Performance Hooks",
+   "why": "Some Hooks help you skip work when nothing important changed, so your app stays fast.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "useMemo(calculateValue, dependencies)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Preventing an Effect from firing too often",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Memoizing a dependency of another Hook",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Memoizing a function with useCallback",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "useTransition()",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "startTransition(action)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "useDeferredValue(value, initialValue?)",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Indicating that the content is stale",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 27,
+   "title": "TypeScript with React",
+   "why": "TypeScript adds types to JavaScript so mistakes are caught before you run the code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Adding TypeScript to an existing React project",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "TypeScript with React Components",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Typing useState",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Typing useReducer",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Typing useContext",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Typing useMemo and useCallback",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Typing DOM events",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 28,
+   "title": "Forms and Actions",
+   "why": "Forms collect user input, and Actions let you handle that input with functions that can be async.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Handle form submission with an event handler",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Handle form submission with an action prop",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Handle form submission with a Server Function",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Display a pending state during form submission",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Optimistically updating form data",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "useActionState(reducerAction, initialState, permalink?)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Adding state to an Action",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "useFormStatus",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 29,
+   "title": "React Server Components and Server Functions",
+   "why": "Server Components run on the server and can send HTML to the browser without shipping their code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Server Components overview",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "'use server' directive",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Creating a Server Function from a Server Component",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Importing Server Functions from Client Components",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Server Functions with Actions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Serializable arguments and return values",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Security considerations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 30,
+   "title": "Suspense and Streaming",
+   "why": "Suspense lets you show a fallback while part of the UI is still loading, and streaming sends HTML as it becomes ready.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Suspense component",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Streaming Server Rendering with Suspense",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "renderToPipeableStream(reactNode, options?)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "renderToReadableStream(reactNode, options?)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "renderToString(reactNode, options?)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "prerender(reactNode, options?)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "resumeToPipeableStream(node, postponed, options?)",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "resumeAndPrerender(reactNode, postponedState, options?)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 31,
+   "title": "React DOM APIs and Hydration",
+   "why": "React DOM is the part of React that puts your components into the browser page.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "createRoot(domNode, options?)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "hydrateRoot(domNode, reactNode, options?)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Hydrating server-rendered HTML",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Suppressing unavoidable hydration mismatch errors",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "flushSync(callback)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Resource preloading APIs: prefetchDNS, preinitModule, preloadModule",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "browser(reason?)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 32,
+   "title": "Built-in Components and Metadata",
+   "why": "React has special components for things like titles, styles, scripts, and links that work with the page head.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "<title>",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "<link>",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "<meta>",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "<script>",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "<style>",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "<option>",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Resource and Metadata Components",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Custom HTML elements",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 33,
+   "title": "Class Components and Legacy APIs",
+   "why": "Older React code uses classes, so you need to read them even if you write new code with functions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Component class overview",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "constructor(props)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "componentDidMount()",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "componentDidUpdate(prevProps, prevState)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "componentWillUnmount()",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "componentDidCatch(error, info)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "createRef()",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Legacy APIs and removed APIs",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 34,
+   "title": "Strict Mode, Profiler, and Developer Tools",
+   "why": "These tools help you find bugs and slow parts in your React app.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "StrictMode",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Enabling Strict Mode for entire app",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Enabling Strict Mode for a part of the app",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Fixing deprecation warnings enabled by Strict Mode",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Profiler",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "onRender callback",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Measuring rendering performance programmatically",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "React Developer Tools browser extension",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 35,
+   "title": "React Compiler",
+   "why": "The React Compiler automatically makes your components faster so you write less manual optimization.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use React Compiler today",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Basic setup",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Vite setup",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "ESLint integration",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Check React DevTools",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Opting out specific components",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Compiler errors vs runtime issues",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Common breaking patterns",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "gating",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "panicThreshold",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 36,
+   "title": "Building and Deploying a React App",
+   "why": "You need to turn your code into files a browser can load and put them on a server.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Deprecating Create React App",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "How to migrate to a framework",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "How to migrate to a build tool",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Limitations of build tools",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Choosing between framework and build tool",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Deploying static files",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 37,
+   "title": "React Versions and What Changed",
+   "why": "React keeps improving, and knowing what changed helps you use new features and avoid old advice.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What's coming in React 18",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Updates to client rendering APIs",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Updates to server rendering APIs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Automatic batching",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "React 19 is now stable",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Actions in React 19",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "New hook: useActionState",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "React 19.2: Activity, useEffectEvent, cacheSignal",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "React 19.3: Fragment refs, Trusted Types",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "React Compiler 1.0",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

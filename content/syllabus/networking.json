@@ -1,0 +1,476 @@
+{
+ "course": "networking",
+ "title": "Computer networking",
+ "sources": [
+  "donnemartin/system-design-primer",
+  "ossu/computer-science"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What is a Computer Network?",
+   "why": "A computer network lets computers talk to each other so you can share files, play games, and send messages.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a network?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Why do we need networks?",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Types of networks: LAN, WAN, MAN",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Network topologies: bus, star, ring, mesh",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Client-server and peer-to-peer models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "How Data Moves: Packets and Protocols",
+   "why": "Data is broken into small packets that travel like letters with addresses, and protocols are the rules for sending them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a packet?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "What is a protocol?",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The need for layered models",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "OSI model: 7 layers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "TCP/IP model: 4 layers",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Encapsulation and decapsulation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "The Physical Layer: Sending Bits",
+   "why": "Computers send 0s and 1s as electrical signals, light, or radio waves through cables or air.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Analog and digital signals",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Transmission media: copper, fiber, wireless",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Bandwidth, throughput, and latency",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Multiplexing: sharing a medium",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Switching: circuit vs packet",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "The Data Link Layer: Frames and MAC Addresses",
+   "why": "On a local network, devices use MAC addresses to send frames to each other directly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Framing: grouping bits into frames",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Error detection: parity, checksum, CRC",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "MAC addresses and ARP",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Ethernet and Wi-Fi (802.11)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Switches and bridges",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "VLANs and trunking",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "The Network Layer: IP Addressing and Routing",
+   "why": "IP addresses are like postal addresses that help data find its way across the Internet.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "IPv4 addresses and subnetting",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "CIDR and VLSM",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "IPv6 addresses",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Routers and routing tables",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Routing protocols: RIP, OSPF, BGP",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "NAT and PAT",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "ICMP and ping",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "The Transport Layer: TCP and UDP",
+   "why": "TCP makes sure all data arrives in order, while UDP is faster but doesn't check.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Ports and sockets",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "UDP: connectionless",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "TCP: connection-oriented",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "TCP handshake and teardown",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Flow control and congestion control",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "TCP vs UDP use cases",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "The Application Layer: Protocols We Use",
+   "why": "These are the rules for services like web browsing, email, and file transfer.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "HTTP and HTTPS",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "DNS: domain name system",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "DHCP: dynamic host configuration",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "SMTP, POP3, IMAP for email",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "FTP and SFTP",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Telnet and SSH",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "SNMP for network management",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Network Security Basics",
+   "why": "Security keeps bad people from reading or changing your data when it travels over networks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Threats: eavesdropping, spoofing, DoS",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Firewalls and ACLs",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "TLS/SSL and certificates",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "VPNs and IPsec",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Intrusion detection and prevention",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Security best practices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Wireless and Mobile Networks",
+   "why": "Wireless lets devices connect without cables, using radio waves.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Wi-Fi standards and security",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Bluetooth and personal area networks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Cellular networks: 4G, 5G",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Mobile IP and handoff",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "IoT and low-power networks",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Network Programming and APIs",
+   "why": "Programs use sockets to send and receive data over networks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Socket programming basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "TCP client-server example",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "UDP client-server example",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "HTTP client and server",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "REST APIs and web services",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "WebSockets for real-time",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Network Performance and Troubleshooting",
+   "why": "We measure how fast and reliable a network is and fix problems when they happen.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Metrics: latency, jitter, packet loss",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Tools: ping, traceroute, netstat, tcpdump",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Network monitoring and analysis",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Common issues and solutions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Quality of Service (QoS)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Scaling Networks and System Design",
+   "why": "Big websites need many computers working together to handle millions of users.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Load balancing",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Caching strategies",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Content Delivery Networks (CDNs)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Database scaling: replication, sharding",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Microservices and API gateways",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Case study: designing a scalable system",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Advanced Topics and Emerging Technologies",
+   "why": "New technologies keep making networks faster and smarter.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Software-Defined Networking (SDN)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Network Function Virtualization (NFV)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Cloud networking and virtual private clouds",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Edge computing and 5G integration",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Quantum networking (intro)",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

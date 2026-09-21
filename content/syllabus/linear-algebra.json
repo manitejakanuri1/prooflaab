@@ -1,0 +1,490 @@
+{
+ "course": "linear-algebra",
+ "title": "Linear algebra",
+ "sources": [
+  "ageron/handson-ml3",
+  "d2l-ai/d2l-en"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Numbers and Arithmetic",
+   "why": "Numbers are the basic things we use to count and measure, and we need them before we can do any math.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Natural numbers, integers, rational numbers, real numbers",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Addition, subtraction, multiplication, division",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Order of operations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Fractions and decimals",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Powers and roots",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Basic Algebra",
+   "why": "Algebra uses letters to stand for numbers, so we can solve problems with unknown values.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Variables and expressions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Linear equations in one variable",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Quadratic equations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Polynomials",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Factoring",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Coordinate Geometry",
+   "why": "We can draw numbers on a grid to see how they relate, like plotting points on a map.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Cartesian coordinate system",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Distance between two points",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Slope of a line",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Equation of a line",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Parallel and perpendicular lines",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Systems of Linear Equations",
+   "why": "Many problems involve several equations that must be true at the same time, like finding where two lines cross.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Systems of two linear equations",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Graphical method",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Substitution method",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Elimination method",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Consistent and inconsistent systems",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Matrices and Matrix Operations",
+   "why": "Matrices are like tables of numbers that help us organize and solve many equations at once.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of a matrix",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Matrix addition and scalar multiplication",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Matrix multiplication",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Transpose of a matrix",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Identity matrix",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Determinants",
+   "why": "A determinant is a single number that tells us if a matrix can be used to solve a system of equations.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Determinant of 2x2 matrix",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Determinant of 3x3 matrix",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Properties of determinants",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Cofactor expansion",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Applications of determinants",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Inverse of a Matrix",
+   "why": "The inverse of a matrix is like the reciprocal of a number, and it helps us solve matrix equations.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of inverse matrix",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Finding inverse using adjugate",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Finding inverse using row operations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Solving systems using inverse",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Singular matrices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Vectors in 2D and 3D",
+   "why": "Vectors are arrows that have length and direction, and they help us describe movement and forces.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of a vector",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Vector addition and scalar multiplication",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Dot product",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Cross product",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Vector equations of lines and planes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Vector Spaces",
+   "why": "A vector space is a collection of vectors that we can add and scale, like all arrows in a plane.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of a vector space",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Subspaces",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Linear independence",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Spanning sets",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Basis and dimension",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Linear Transformations",
+   "why": "A linear transformation is a rule that moves vectors in a straight-line way, like stretching or rotating.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of linear transformation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Matrix representation of linear transformations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Kernel and range",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Rank and nullity",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Composition of linear transformations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Eigenvalues and Eigenvectors",
+   "why": "Eigenvalues and eigenvectors help us understand how a transformation stretches or shrinks vectors.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of eigenvalues and eigenvectors",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Characteristic equation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Finding eigenvalues and eigenvectors",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Diagonalization",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Applications of eigenvalues",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Orthogonality",
+   "why": "Orthogonal vectors are perpendicular, and they make calculations simpler, like using right angles in geometry.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Orthogonal vectors",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Orthogonal sets and bases",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Orthogonal projection",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Gram-Schmidt process",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "QR decomposition",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Singular Value Decomposition",
+   "why": "SVD breaks a matrix into simpler parts, which is useful for compressing data and solving problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of SVD",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Computing SVD",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Low-rank approximation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Applications of SVD",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Relationship to eigenvalues",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Numerical Linear Algebra",
+   "why": "Computers use numerical methods to solve linear algebra problems when exact answers are hard.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Floating point arithmetic",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Condition number",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "LU decomposition",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Iterative methods for linear systems",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Numerical stability",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Linear Algebra in Machine Learning",
+   "why": "Machine learning uses linear algebra to handle data and build models, like recognizing images.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Data as matrices",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Linear regression",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Principal Component Analysis (PCA)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Neural networks and matrix multiplication",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Gradient descent and linear algebra",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

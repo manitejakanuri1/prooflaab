@@ -1,0 +1,665 @@
+{
+ "course": "sql",
+ "title": "SQL and databases",
+ "sources": [
+  "enochtangg/quick-SQL-cheatsheet"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What a database is and why we use it",
+   "why": "A database is a safe place where computers keep information so we can find and use it later.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is data and information",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "What is a database",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Why not just use files or spreadsheets",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Tables, rows, and columns",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Primary keys and how rows are identified",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "What SQL is and what it is used for",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Setting up and running SQL",
+   "why": "To practice SQL, you need a database program and a way to type commands into it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Installing a database engine",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using a command-line client",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using a graphical database tool",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Creating a practice database",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Running your first SQL statement",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Saving and loading SQL scripts",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Getting data out of one table",
+   "why": "The main job of SQL is to ask questions and get answers from a table.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "SELECT and FROM",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Selecting specific columns",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Selecting all columns with *",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Column aliases with AS",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "DISTINCT values",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Limiting rows with SELECT TOP",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Filtering rows with WHERE",
+   "why": "WHERE lets you pick only the rows that match what you are looking for.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "WHERE clause basics",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Comparison operators",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "AND, OR, and NOT",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "BETWEEN and IN",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "IS NULL and IS NOT NULL",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "LIKE and wildcards",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Sorting and shaping results",
+   "why": "Sorting and grouping makes query results easier to read and understand.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "ORDER BY one column",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "ORDER BY multiple columns",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "ASC and DESC",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "LIMIT and OFFSET",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using expressions in SELECT",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Comments in SQL",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Built-in functions for data",
+   "why": "SQL has ready-made tools to change or summarize data without writing long code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "String functions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Number functions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Date and time functions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Conversion functions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "NULL handling functions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "CASE expressions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Summarizing data with GROUP BY",
+   "why": "GROUP BY helps you answer questions like total sales per city or average marks per class.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Aggregate functions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "GROUP BY one column",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "GROUP BY multiple columns",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "HAVING clause",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "WHERE vs HAVING",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Grouping with expressions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Combining tables with JOIN",
+   "why": "Real data is split across tables, and JOIN lets you bring it back together.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why tables are split",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "INNER JOIN",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "LEFT JOIN and RIGHT JOIN",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "FULL OUTER JOIN",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "CROSS JOIN",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Self join",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Joining more than two tables",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Combining results with set operators",
+   "why": "Set operators stack or compare the results of two queries.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "UNION",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "UNION ALL",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "INTERSECT",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "EXCEPT or MINUS",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Rules for set operations",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Subqueries and derived tables",
+   "why": "A subquery is a query inside another query, useful when one answer depends on another.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Subquery in WHERE",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Subquery in FROM",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Subquery in SELECT",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "IN, ANY, and ALL",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "EXISTS and NOT EXISTS",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Correlated subqueries",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Creating and changing tables",
+   "why": "To store your own data, you need to create tables and change their structure when needed.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "CREATE TABLE",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Data types",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "NOT NULL and DEFAULT",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "PRIMARY KEY and FOREIGN KEY",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "ALTER TABLE",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "DROP TABLE and TRUNCATE TABLE",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Adding, changing, and removing data",
+   "why": "SQL is not just for reading data; it also lets you put data in and update it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "INSERT INTO",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "INSERT multiple rows",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "UPDATE",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "DELETE",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Safe update and delete practices",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Transactions and COMMIT/ROLLBACK",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Views and temporary results",
+   "why": "Views save a query so you can use it again like a table.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "CREATE VIEW",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using views in queries",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Updatable views",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "DROP VIEW",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common table expressions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Making queries faster with indexes",
+   "why": "Indexes help the database find rows quickly instead of checking every row.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What an index is",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "CREATE INDEX",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Unique indexes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Composite indexes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "When indexes help and when they hurt",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Reading a simple query plan",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Keeping data correct and safe",
+   "why": "Rules and permissions stop bad data and protect information from the wrong people.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Constraints",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "CHECK constraints",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "UNIQUE constraints",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Users and roles",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "GRANT and REVOKE",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "SQL injection and parameterized queries",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Designing a small database",
+   "why": "Good design stops duplicate data and makes questions easier to answer.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Entities and relationships",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "One-to-many and many-to-many",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Normalization basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "First normal form",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Second normal form",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Third normal form",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Drawing a simple ER diagram",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Using SQL from a programming language",
+   "why": "Most real programs talk to a database using SQL from inside code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Connecting to a database",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Running queries from code",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reading result sets",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using parameters safely",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Handling errors and transactions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Practice projects and interview preparation",
+   "why": "Building small projects and solving common questions gets you ready for a job.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Designing a practice schema",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Writing queries for reports",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Solving common SQL puzzles",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Explaining a query step by step",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reviewing and improving a query",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

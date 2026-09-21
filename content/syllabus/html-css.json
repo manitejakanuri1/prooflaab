@@ -1,0 +1,692 @@
+{
+ "course": "html-css",
+ "title": "HTML and CSS",
+ "sources": [
+  "microsoft/Web-Dev-For-Beginners",
+  "mdn/content",
+  "AllThingsSmitty/css-protips",
+  "freeCodeCamp/freeCodeCamp"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "How the Web Works",
+   "why": "Before you build a webpage, you need to know how a browser gets it from the internet.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What happens when you type a web address",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Clients, servers, and HTTP requests",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "How browsers turn code into a visible page",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Static vs dynamic websites",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Setting up a code editor and folder",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "HTML Document Structure",
+   "why": "Every webpage starts with a basic skeleton that tells the browser what it is.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The DOCTYPE declaration and root element",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The head and body sections",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Adding a page title and metadata",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Creating your first HTML file",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Viewing your page in a browser",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Text and Content Elements",
+   "why": "You need to put words, headings, and lists on the page before you can style them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Headings and paragraphs",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Emphasis and importance with em and strong",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Ordered and unordered lists",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Line breaks and horizontal rules",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Quotations and citations",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Comments in HTML",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Links and Navigation",
+   "why": "Links connect your pages together and let people move around your site.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The anchor element and href attribute",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Linking to other pages and external sites",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Linking to sections within a page",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Opening links in a new tab",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Building a simple navigation menu",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Images and Media",
+   "why": "Pictures and videos make a page interesting and help explain things.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Adding images with the img element",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Alternative text for accessibility",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Image formats and when to use them",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Adding video and audio with controls",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Embedding content with iframe",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Tables and Data",
+   "why": "Tables organize information into rows and columns so it is easy to read.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Basic table structure: table, tr, td",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Table headers with th",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Spanning rows and columns",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Adding captions and summaries",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Styling tables with borders and spacing",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Forms and User Input",
+   "why": "Forms let people type information and send it to a website.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The form element and its attributes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Text inputs, labels, and placeholders",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Checkboxes, radio buttons, and dropdowns",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Buttons and submit actions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "HTML5 input types like email, date, and number",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Form validation attributes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Semantic HTML and Accessibility",
+   "why": "Using the right tags helps screen readers and search engines understand your page.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why semantic elements matter",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Header, nav, main, article, section, aside, footer",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "ARIA roles and labels",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Keyboard navigation and focus",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Color contrast and readable text",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Testing with a screen reader",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Introduction to CSS",
+   "why": "CSS controls how your HTML looks, from colors to spacing.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What CSS is and how it works",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Three ways to add CSS: inline, internal, external",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "CSS syntax: selectors, properties, values",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Linking an external stylesheet",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Your first style rule",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Selectors and the Cascade",
+   "why": "Selectors let you target specific elements, and the cascade decides which rule wins.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Element, class, and ID selectors",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Descendant and child combinators",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Pseudo-classes like :hover and :focus",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Pseudo-elements like ::before and ::after",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Specificity and the cascade",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Inheritance and the inherit keyword",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "The Box Model",
+   "why": "Every element is a box, and understanding the box model helps you control layout.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Content, padding, border, and margin",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Box-sizing: content-box vs border-box",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Setting width and height",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Overflow and how to handle it",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using browser developer tools to inspect boxes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Colors, Backgrounds, and Typography",
+   "why": "Colors and fonts make your page readable and attractive.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Color values: named, hex, rgb, hsl",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Background colors and images",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Font families, sizes, and weights",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Text alignment, decoration, and transformation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Line height and letter spacing",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Web-safe fonts and Google Fonts",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Layout with Flexbox",
+   "why": "Flexbox makes it easy to arrange items in rows or columns.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Display: flex and flex direction",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Justify-content and align-items",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Flex-grow, flex-shrink, and flex-basis",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Wrapping with flex-wrap",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Building a navigation bar with flexbox",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Layout with CSS Grid",
+   "why": "Grid is a powerful way to create two-dimensional layouts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Display: grid and grid-template-columns",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Grid rows and gaps",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Placing items with grid-column and grid-row",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Named grid areas",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Responsive grids with auto-fit and minmax",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Positioning and Stacking",
+   "why": "Positioning lets you place elements exactly where you want them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Static, relative, absolute, fixed, sticky",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Top, right, bottom, left offsets",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Z-index and stacking context",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Centering with position and transform",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "When to use positioning vs flexbox/grid",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Responsive Design and Media Queries",
+   "why": "People use phones, tablets, and computers, so your page must adapt.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The viewport meta tag",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Media query syntax and breakpoints",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Mobile-first vs desktop-first",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Fluid layouts with percentages and max-width",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Responsive images with srcset and sizes",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Testing on different screen sizes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Transitions, Transforms, and Animations",
+   "why": "Small movements and changes make a page feel alive.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "CSS transitions for hover effects",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "2D transforms: translate, rotate, scale",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "3D transforms basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Keyframe animations",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Animation timing functions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "CSS Variables and Organization",
+   "why": "Variables and good file structure keep your CSS easy to change.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Custom properties (CSS variables)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using variables for colors and spacing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Organizing CSS with comments and sections",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "BEM naming convention",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Splitting CSS into multiple files",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Debugging and Developer Tools",
+   "why": "You need to find and fix mistakes quickly to build anything real.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Opening browser developer tools",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Inspecting and editing HTML/CSS live",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Using the console for errors",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Validating HTML and CSS",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Common mistakes and how to spot them",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Building a Complete Website",
+   "why": "Putting everything together into a real project shows you are job-ready.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Planning a multi-page site",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Creating a reusable header and footer",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Styling a homepage with flexbox/grid",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Making the site responsive",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Adding a contact form",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Testing across browsers",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Deploying with GitHub Pages",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

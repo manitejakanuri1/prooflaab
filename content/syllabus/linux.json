@@ -1,0 +1,882 @@
+{
+ "course": "linux",
+ "title": "Linux",
+ "sources": [],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What is Linux and why use it",
+   "why": "Linux is a free computer system that runs most of the internet and many phones.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is an operating system",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Linux vs Windows vs macOS",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Where Linux is used (servers, Android, supercomputers)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Linux distributions (Ubuntu, Fedora, Debian)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Installing Linux in a virtual machine",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Open source and free software ideas",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Getting started with the terminal",
+   "why": "The terminal lets you tell the computer what to do by typing commands.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Opening a terminal",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Command structure: command, options, arguments",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Getting help: man, --help, info",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Basic commands: echo, date, whoami, clear",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Command history and tab completion",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Keyboard shortcuts (Ctrl+C, Ctrl+D, Ctrl+L)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Files and directories",
+   "why": "Everything in Linux is a file, and you need to find and organize them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Understanding the filesystem tree",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Listing files: ls and its options",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Changing directories: cd, pwd",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Creating files and directories: touch, mkdir",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Copying, moving, renaming: cp, mv",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Removing files and directories: rm, rmdir",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Viewing file contents: cat, less, head, tail",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "File permissions and ownership",
+   "why": "Permissions control who can read, write, or run each file.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Users and groups in Linux",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reading permission strings (rwx)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Changing permissions: chmod (symbolic and numeric)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Changing ownership: chown, chgrp",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Special permissions: setuid, setgid, sticky bit",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Default permissions: umask",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Working with text files",
+   "why": "You often need to search, edit, and process text files.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Editing with nano",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Editing with vim basics (modes, save, quit)",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Searching text: grep and regular expressions basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Stream editing with sed",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Text processing with awk",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sorting and removing duplicates: sort, uniq",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Comparing files: diff, cmp",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Input/output redirection and pipes",
+   "why": "You can connect commands so the output of one becomes the input of another.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Standard input, output, and error",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Redirecting output: > and >>",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Redirecting input: <",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Pipes: |",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using tee to split output",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Redirecting error: 2>, 2>&1",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Process management",
+   "why": "Programs running on the computer are processes, and you can control them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a process",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Viewing processes: ps, top, htop",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Foreground and background jobs: &, jobs, fg, bg",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Killing processes: kill, killall, pkill",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Process priorities: nice, renice",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Signals and how they work",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Package management",
+   "why": "You install and update software using a package manager.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a package manager",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "APT for Debian/Ubuntu: apt, apt-get",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "YUM/DNF for Red Hat/Fedora",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Installing, updating, removing packages",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Searching for packages",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Adding repositories (PPA, EPEL)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Users and groups administration",
+   "why": "You can create and manage user accounts and groups.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Adding users: useradd, adduser",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting passwords: passwd",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Modifying users: usermod",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Deleting users: userdel",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Creating and managing groups: groupadd, groupmod, groupdel",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Switching users: su, sudo",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Important user files: /etc/passwd, /etc/shadow, /etc/group",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Networking basics",
+   "why": "Computers talk to each other over networks, and you need to check and configure connections.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "IP addresses and subnet masks",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Checking network interfaces: ip, ifconfig",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Testing connectivity: ping, traceroute",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "DNS and hostname resolution: /etc/hosts, /etc/resolv.conf",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Downloading files: wget, curl",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Remote access: ssh, scp",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Shell scripting basics",
+   "why": "You can write scripts to automate repetitive tasks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a shell script",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Variables and quoting",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reading input: read",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Conditionals: if, case",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Loops: for, while, until",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Functions",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Exit status and error handling",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Archiving and compression",
+   "why": "You can bundle many files into one and make them smaller.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating and extracting tar archives",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Compression with gzip, bzip2, xz",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Working with zip files",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Combining tar with compression",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Disk and filesystem management",
+   "why": "You need to see how storage is used and manage disks.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Viewing disk usage: df, du",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Partitioning disks: fdisk, parted",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Creating filesystems: mkfs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Mounting and unmounting: mount, umount",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Checking filesystem health: fsck",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Logical Volume Manager (LVM) basics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "System monitoring and logging",
+   "why": "You can watch how the system is doing and read logs to find problems.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Viewing system logs: /var/log, journalctl",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Monitoring resources: top, free, vmstat, iostat",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Checking uptime and load average",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using dmesg for kernel messages",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Scheduling tasks",
+   "why": "You can make the computer run jobs automatically at set times.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "One-time scheduling: at",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Recurring scheduling: cron",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Editing crontab: crontab -e",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "System-wide cron directories",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using systemd timers",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Basic security practices",
+   "why": "You need to keep your system safe from unauthorized access.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Password policies and strong passwords",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "SSH key authentication",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Firewall basics: ufw, firewalld",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "SELinux and AppArmor overview",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Keeping software updated",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Shell environment and customization",
+   "why": "You can change how your shell behaves to suit your needs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Environment variables: PATH, HOME, etc.",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Shell configuration files: .bashrc, .profile",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Aliases and functions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Command prompt customization (PS1)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Startup scripts",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Advanced text processing and regular expressions",
+   "why": "You can find and change complex patterns in text.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Regular expressions: metacharacters, quantifiers",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using grep with regex",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Advanced sed commands",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Advanced awk programming",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using cut, paste, join, tr",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Systemd and service management",
+   "why": "Modern Linux uses systemd to manage services and the boot process.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is systemd",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Managing services: systemctl start/stop/status",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Enabling and disabling services",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Viewing logs with journalctl",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Understanding targets (runlevels)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Troubleshooting and recovery",
+   "why": "You need to fix common problems when things go wrong.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Boot process overview",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Rescue mode and single-user mode",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Fixing bootloader issues (GRUB)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Recovering lost passwords",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Checking disk and filesystem errors",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Version control with Git",
+   "why": "You can track changes to files and collaborate with others.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is version control",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Initializing a repository: git init",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Adding and committing: git add, git commit",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Viewing history: git log, git status",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Branching and merging",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Working with remote repositories: git clone, push, pull",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Containers and virtualization basics",
+   "why": "You can run isolated environments for applications.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is virtualization",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Virtual machines vs containers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Docker basics: images, containers, Dockerfile",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Running and managing containers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Container networking and volumes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Cloud and remote server management",
+   "why": "You can manage Linux servers in the cloud.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Connecting to a cloud server via SSH",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Transferring files with scp and rsync",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Basic cloud CLI tools (aws, gcloud, az)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Monitoring remote servers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Security groups and firewalls in cloud",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "title": "Shell scripting projects",
+   "why": "You can practice by building useful scripts.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Backup script",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "System monitoring script",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "User management script",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Log analysis script",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Automating tasks with cron and scripts",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 25,
+   "title": "Career preparation and next steps",
+   "why": "You can prepare for Linux-related jobs and certifications.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Linux certifications (LPIC, RHCSA, CompTIA Linux+)",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Building a home lab",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Contributing to open source",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Interview preparation: common Linux questions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Resume and portfolio tips",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

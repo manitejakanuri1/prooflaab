@@ -15,7 +15,7 @@ from pl import token, http, API
 
 HERE = os.path.dirname(__file__)
 SYL = os.path.join(HERE, "..", "..", "content", "syllabus")
-OUT = os.path.join(HERE, "..", "..", "migration", "28-syllabus.sql")
+OUT = os.path.join(HERE, "..", "..", "migration", "32-skill-courses.sql" if any(not a.startswith("--") for a in sys.argv[1:]) else "28-syllabus.sql")
 NEW_COURSES = {  # slug: (name, emoji, interest, role, skill)
     "python": ("Python", "🐍", "coding", "Python developer", "Python"),
     "java": ("Java and Spring", "☕", "coding", "Java backend developer", "Java"),
@@ -24,6 +24,13 @@ NEW_COURSES = {  # slug: (name, emoji, interest, role, skill)
     "system-design": ("System Design", "🏗️", "coding", "backend engineer", "System Design"),
     "deep-learning": ("Deep Learning and LLMs", "🧠", "ai", "machine learning engineer", "Deep Learning"),
 }
+from build_syllabus import SKILL_COURSES
+EMOJI = {"sql": "🗄️", "docker": "🐳", "cpp": "⚙️", "linux": "🐧", "networking": "🌐", "html-css": "🎨", "javascript": "🟨", "react": "⚛️",
+         "pandas": "🐼", "numpy": "🔢", "aws": "☁️", "terraform": "🧱", "linear-algebra": "📐", "probability": "🎲", "rest-apis": "🔌",
+         "bash": "💻", "kubernetes": "☸️", "git": "🌿"}
+for _slug, (_t, _skill, _role, _x) in SKILL_COURSES.items():
+    NEW_COURSES[_slug] = (_t, EMOJI.get(_slug, "📘"), _skill, _role, _skill)
+ONLY = [a for a in sys.argv[1:] if not a.startswith("--")]
 PHASES = ["Foundations", "Core Skills", "Real Systems", "Job Ready"]
 q = lambda s: "'" + str(s).replace("'", "''") + "'"
 H = lambda: {"Authorization": f"Bearer {token('svc')}"}
@@ -62,6 +69,8 @@ def main():
                        f"({q(slug)},{q(name)},{q(emoji)},{q(interest)},{q(role)},{sort_base}) on conflict (slug) do nothing;")
 
     all_slugs = [t["slug"] for t in tracks] + [s for s in NEW_COURSES if s not in [t["slug"] for t in tracks]]
+    if ONLY:
+        all_slugs = [s for s in all_slugs if s in ONLY]
     for slug in all_slugs:
         S = sylls.get(slug)
         if not S:
@@ -86,7 +95,12 @@ def main():
             if reuse is not None:
                 claimed[reuse] = i
             new_steps = [s["title"] for s in t["steps"] if title_to_old.get(s["title"].strip().lower()) is None]
-            if new_steps:
+            if new_steps and slug in NEW_COURSES and len(new_steps) > 10:      # too big for one lesson call: split
+                parts = [new_steps[k:k + 8] for k in range(0, len(new_steps), 8)]
+                for pi, part in enumerate(parts, start=1):
+                    newtopics.append({"key": i + 0.3 + pi * 0.001, "title": f"{t['title']}, part {pi}", "why": t.get("why", ""), "steps": part,
+                                      "skill": NEW_COURSES[slug][4]})
+            elif new_steps:
                 newtopics.append({"key": i + (0.5 if reuse is not None else 0.3), "title": t["title"] + (" — part 2" if reuse is not None else ""),
                                   "why": t.get("why", ""), "steps": new_steps,
                                   "skill": NEW_COURSES[slug][4] if slug in NEW_COURSES else t["title"]})
@@ -126,6 +140,11 @@ def main():
             a, b = round(p * total / 4) + 1, round((p + 1) * total / 4)
             if b >= a:
                 sql.append(f"insert into public.track_phases (track_slug, phase_number, name, from_level, to_level) values ({q(slug)}, {p + 1}, {q(PHASES[p])}, {a}, {b});")
+        if slug in SKILL_COURSES:
+            sk = SKILL_COURSES[slug][1]
+            allc = ",".join(q(x) for x in list(NEW_COURSES) + ["python", "java"])
+            sql.append(f"insert into public.topic_links (level_id, course_slug) select id, {q(slug)} from (select distinct on (track_slug) id from public.levels "
+                       f"where skill = {q(sk)} and sub_level = 1 and track_slug not in ({allc}) order by track_slug, level_number) x on conflict (level_id) do nothing;")
         summary.append((slug, "ok", len(old), len(newtopics), sum(len(nt['steps']) for nt in newtopics)))
     sql.append("commit;")
     open(OUT, "w", encoding="utf-8").write("\n".join(sql) + "\n")

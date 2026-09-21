@@ -1,0 +1,298 @@
+{
+ "course": "kubernetes",
+ "title": "Kubernetes",
+ "sources": [
+  "kelseyhightower/kubernetes-the-hard-way"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Introduction to Kubernetes",
+   "why": "Kubernetes helps run and manage many computer programs across many computers automatically.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Kubernetes?",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Why use Kubernetes?",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Kubernetes architecture overview",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Key concepts: pods, nodes, clusters",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Setting up a learning environment",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Prerequisites and Jumpbox Setup",
+   "why": "You need a control computer to set up and manage the Kubernetes cluster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Virtual or Physical Machines",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Set Up The Jumpbox",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sync GitHub Repository",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Download Binaries",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Install kubectl",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Compute Resources and Networking",
+   "why": "You need to prepare the computers that will become the cluster and make them talk to each other.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Machine Database",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Configuring SSH Access",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Enable root SSH Access",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Generate and Distribute SSH Keys",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Hostnames",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Host Lookup Table",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Adding /etc/hosts Entries To A Local Machine",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Adding /etc/hosts Entries To Remote Machines",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Certificate Authority and TLS Certificates",
+   "why": "Secure communication between cluster parts needs digital certificates.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Provisioning a CA and Generating TLS Certificates",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Certificate Authority",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Create Client and Server Certificates",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Distribute the Client and Server Certificates",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Kubernetes Configuration Files",
+   "why": "Configuration files tell Kubernetes tools how to connect to the cluster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The kubelet Kubernetes Configuration File",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The kube-proxy Kubernetes Configuration File",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The kube-controller-manager Kubernetes Configuration File",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "The kube-scheduler Kubernetes Configuration File",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "The admin Kubernetes Configuration File",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Data Encryption Keys",
+   "why": "Encryption keys keep cluster data secret and safe.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Generating the Data Encryption Config and Key",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Distributing the Encryption Config",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Bootstrapping Kubernetes Controllers",
+   "why": "Controllers are the brain of Kubernetes that make decisions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Start the Controller Services",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "RBAC for Kubelet Authorization",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Bootstrapping Kubernetes Workers",
+   "why": "Workers are the computers that actually run your applications.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Prerequisites",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Provisioning a Kubernetes Worker Node",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Configuring kubectl",
+   "why": "kubectl is the command-line tool to talk to your cluster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Admin Kubernetes Configuration File",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Testing kubectl Configuration",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Pod Network Routes",
+   "why": "Pods need network routes to communicate across nodes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Provisioning Pod Network Routes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Verifying Pod Network Routes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Smoke Test",
+   "why": "A smoke test checks if the cluster is working properly.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Data Encryption",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Port Forwarding",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Services",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Cleanup",
+   "why": "Cleanup removes all the resources you created to avoid costs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Compute Instances",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

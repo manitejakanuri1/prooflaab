@@ -1,0 +1,934 @@
+{
+ "course": "javascript",
+ "title": "JavaScript",
+ "sources": [
+  "leonardomso/33-js-concepts",
+  "ryanmcdermott/clean-code-javascript",
+  "airbnb/javascript",
+  "trekhleb/javascript-algorithms",
+  "Chalarangelo/30-seconds-of-code",
+  "freeCodeCamp/freeCodeCamp",
+  "mdn/content"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Running JavaScript and Your First Program",
+   "why": "You need to see your code actually run before anything else makes sense.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What JavaScript is and where it runs",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The browser console",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Linking a script file to an HTML page",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Writing and running your first statement",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reading errors in the console",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Installing Node.js and running a file",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Values, Variables, and Types",
+   "why": "Programs store and change information, so you must learn how to name and hold values.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Primitive types: string, number, boolean, null, undefined, symbol, bigint",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Declaring variables with let, const, and var",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Naming rules and conventions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "typeof and checking types",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "null vs undefined",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Numbers, Math, and BigInt basics",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Strings and template literals",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Operators and Type Coercion",
+   "why": "You combine and compare values constantly, and JavaScript converts types in surprising ways.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Arithmetic and assignment operators",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Comparison operators: == vs ===",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Truthy and falsy values",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Logical operators &&, ||, ??",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Implicit and explicit type coercion",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "The + operator's string/number behavior",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Operator precedence",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Control Flow and Error Handling",
+   "why": "Programs must make decisions and react when something goes wrong.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "if, else if, else",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "switch statements",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Loops: for, while, do...while",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "break and continue",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "try, catch, finally",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Built-in error types and throwing errors",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Strict mode",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Functions",
+   "why": "Functions let you package reusable instructions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Function declarations and expressions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Parameters, arguments, and default parameters",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Return values",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Arrow functions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Rest and spread in function calls",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Function hoisting",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Pure functions and side effects",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Higher-order functions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Scope, Closures, and the Call Stack",
+   "why": "You must know where variables live and how function calls stack up.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Global, function, and block scope",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "var vs let vs const scoping",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Hoisting and the temporal dead zone",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Lexical scope",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Closures",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "The call stack and execution context",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Recursion",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Objects and Arrays",
+   "why": "Almost all real data is stored in objects and lists.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating objects and accessing properties",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Computed property names",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Object methods and this inside them",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Getters and setters",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Property descriptors",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Arrays: creation, indexing, length",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Array methods: push, pop, shift, unshift, splice, slice",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "map, filter, reduce, find, some, every",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Destructuring objects and arrays",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Shallow vs deep copy and structuredClone",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Equality, JSON, and Dates",
+   "why": "Comparing and serializing data is a daily task.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Object equality vs primitive equality",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "JSON.parse and JSON.stringify",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "JSON limitations and deep dive",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Date object basics",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Formatting dates with Intl",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "The DOM and Events",
+   "why": "JavaScript in the browser changes the page and reacts to the user.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What the DOM is and the node tree",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Selecting elements",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Changing text, HTML, attributes, and classes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Creating and removing elements",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "addEventListener and event objects",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Event bubbling and capturing",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Event delegation",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Forms and input events",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Custom events",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Asynchronous JavaScript",
+   "why": "Many tasks take time, and you must not freeze the page waiting.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Callbacks",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "The event loop, tasks, and microtasks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Promises: states, then, catch, finally",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Promise chaining and combinators",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "async and await",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Error handling with async code",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Timers: setTimeout, setInterval",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Debouncing and throttling",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Prototypes, Classes, and this",
+   "why": "JavaScript builds objects from other objects, and this depends on how you call a function.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The prototype chain",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Object.create and constructor functions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "The new operator",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Class syntax and constructors",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "extends, super, and inheritance",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Polymorphism and method overriding",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "this binding rules",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "call, apply, and bind",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Factory functions vs classes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Modules and Code Organization",
+   "why": "Real projects split code into files with clear boundaries.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "ES modules: import and export",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Default vs named exports",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "ESM vs CommonJS",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "IIFEs and the module pattern",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Namespaces and private variables",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Clean code principles",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Design patterns in JavaScript",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Iterators, Generators, and Functional Patterns",
+   "why": "Some problems are cleaner with lazy sequences and composed functions.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Iterables and the for...of loop",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Iterator protocol",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Generator functions and yield",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Passing values into generators",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Currying and partial application",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Function composition: compose and pipe",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Memoization",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Regular Expressions",
+   "why": "Pattern matching text saves enormous manual work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Creating regex: literal and constructor",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Character classes and quantifiers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Anchors and boundaries",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Groups and capturing",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Flags",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "test, match, replace, split",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Errors, Debugging, and Testing",
+   "why": "You must find and prevent bugs before users do.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Reading stack traces",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Browser DevTools debugging",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "console methods beyond log",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Writing simple assertions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Introduction to unit testing",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Handling unhandled promise rejections",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "The Browser Platform and Storage",
+   "why": "Browsers give you APIs to store data and observe changes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "localStorage and sessionStorage",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Cookies",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "IndexedDB basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Blob and FileReader",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Fetch API and HTTP basics",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "HTTP methods and status codes",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "CORS basics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Observer APIs and Animation",
+   "why": "Modern browsers can notify you about visibility, size, and changes without polling.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "requestAnimationFrame",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "IntersectionObserver",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "ResizeObserver",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "MutationObserver",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "PerformanceObserver",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Memory, Performance, and Advanced Objects",
+   "why": "Efficient programs avoid leaks and unnecessary work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Memory lifecycle and garbage collection",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "WeakMap, WeakSet, and WeakRef",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Proxy and Reflect",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Typed arrays and ArrayBuffer",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Big O notation and complexity",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Profiling and measuring performance",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Concurrency and Workers",
+   "why": "Heavy work can run off the main thread to keep the page responsive.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Why async is not enough for CPU work",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Web Workers basics",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Module workers",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Structured clone and message passing",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Transferable objects",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Data Structures and Algorithms in JavaScript",
+   "why": "Choosing the right structure and algorithm makes programs fast and clear.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Stacks and queues",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Linked lists",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Hash tables and Map/Set",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Trees and binary search trees",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Graphs and traversal: BFS, DFS",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sorting algorithms",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Searching: linear and binary",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Dynamic programming basics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "JavaScript Engines and Language Mechanics",
+   "why": "Knowing how the engine works helps you write faster, more predictable code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Parsing, interpreting, and JIT compilation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Ignition and TurboFan overview",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Deoptimization and hidden classes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "The ECMAScript specification and proposals",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Primitives vs objects and mutability",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Enumerability and property ownership",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Building and Shipping a Project",
+   "why": "You prove your skills by making something real that others can use.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Project setup and folder structure",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using npm and package.json",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Bundling and build tools overview",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Linting and formatting with ESLint and Prettier",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Git basics for projects",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Deploying a static site",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Writing a README and documenting your work",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

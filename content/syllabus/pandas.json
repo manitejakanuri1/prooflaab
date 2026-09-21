@@ -1,0 +1,792 @@
+{
+ "course": "pandas",
+ "title": "Pandas",
+ "sources": [
+  "guipsamora/pandas_exercises",
+  "jakevdp/PythonDataScienceHandbook"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Python and Jupyter Setup for Pandas",
+   "why": "You need a place to write and run Python code before you can use Pandas.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Install Python and Jupyter Notebook",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Launch the Jupyter Notebook",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Run your first Python cell",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use ? to get help on any function",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use Tab completion to explore modules",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Save and reopen a notebook",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Python Data Types and Lists",
+   "why": "Pandas is built on Python, so you must know how Python stores numbers, text, and lists.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Python integers and floats",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Python strings",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Python lists",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Python dictionaries",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Loop over a list",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Write a simple function",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "NumPy Arrays Basics",
+   "why": "Pandas uses NumPy arrays inside, so learning arrays makes Pandas easier.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create a NumPy array from a list",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Check array shape and dtype",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Index and slice a 1D array",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Index and slice a 2D array",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Do math on whole arrays",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use min, max, sum, mean on arrays",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "NumPy Boolean Masks and Fancy Indexing",
+   "why": "You often need to pick only some values from data, like all rows where marks are above 50.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Compare an array to a number",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use a boolean mask to filter values",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Combine conditions with & and |",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Select values with a list of positions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Change values using a mask",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sort an array with np.sort",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Introducing Pandas Series and DataFrame",
+   "why": "Pandas gives you two main objects: a Series for one column and a DataFrame for a full table.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Import pandas as pd",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Create a Series from a list",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Create a Series with a custom index",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Create a DataFrame from a dictionary",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Create a DataFrame from a list of lists",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Look at head, tail, shape, and columns",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Reading and Writing Data Files",
+   "why": "Real data lives in files like CSV and Excel, so you must load them into Pandas.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Read a CSV file with pd.read_csv",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Read an Excel file with pd.read_excel",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Set a column as the index",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Check the first and last rows",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Write a DataFrame to CSV",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Write a DataFrame to Excel",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Selecting Rows and Columns",
+   "why": "You need to pick the exact rows and columns you want from a big table.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Select one column with df['col']",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Select many columns with a list",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Select rows by position with iloc",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Select rows by label with loc",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Select rows and columns together",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use boolean conditions to filter rows",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Changing and Adding Columns",
+   "why": "You often need to create new columns or fix values in existing ones.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Add a new column from a calculation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Change values in a column",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Rename columns",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Drop a column",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Change a column data type",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sort rows by one or more columns",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Handling Missing Data",
+   "why": "Real data often has empty cells, and you must decide what to do with them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Find missing values with isna",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Count missing values per column",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Drop rows with missing values",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Fill missing values with a number",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Fill missing values with the mean",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Forward fill and backward fill",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Operations and Index Alignment",
+   "why": "When you add or compare two Pandas objects, they match by index automatically.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Add a number to a whole column",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Add two Series together",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "See how indexes align",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Add a DataFrame and a Series",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use NumPy functions on a DataFrame",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Handle missing values in math",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Grouping and Aggregation",
+   "why": "You often want totals or averages for each group, like average marks per branch.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Group by one column with groupby",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Get the mean of each group",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Get count, sum, min, max per group",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Group by many columns",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use agg with many functions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Filter groups by size",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Combining DataFrames with concat",
+   "why": "You may need to stack tables on top of each other or side by side.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Stack two DataFrames vertically",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Stack two DataFrames horizontally",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Keep or reset the index",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Add a key to identify each table",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Handle duplicate indexes",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Concatenate with different columns",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Merging and Joining DataFrames",
+   "why": "You often need to join two tables using a common column, like roll number.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Merge two DataFrames on one column",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Inner join",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Left join",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Right join",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Outer join",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Merge on columns with different names",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Pivot Tables",
+   "why": "A pivot table turns long data into a small summary table, like a report card.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Make a pivot table with one index",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Add a column to the pivot",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Add values and an aggregation function",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Make a pivot table with many indexes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Fill missing values in a pivot",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Compare pivot with groupby",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Working with Text Data",
+   "why": "Names, cities, and emails are text, and you often need to clean or search them.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Convert a column to string",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Change case with upper and lower",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Split a string column",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Replace text in a column",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Check if text contains a word",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Extract text with regular expressions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Working with Dates and Times",
+   "why": "Dates like order dates or birth dates need special handling in Pandas.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Convert a column to datetime",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Get year, month, and day",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Get day of the week",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Filter rows by date range",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Resample time series by month",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Calculate time differences",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "MultiIndex and Hierarchical Data",
+   "why": "Some tables have two levels of row labels, like state and city together.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create a MultiIndex from columns",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Select data with loc on a MultiIndex",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use xs to pick one level",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Swap and sort index levels",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reset a MultiIndex to columns",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Stack and unstack a DataFrame",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Plotting with Pandas and Matplotlib",
+   "why": "A picture makes patterns in data easy to see and explain.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Plot a line chart from a DataFrame",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Plot a bar chart",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Plot a histogram",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Plot a scatter plot",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Add title and axis labels",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Save a plot as an image",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Faster Pandas with eval and query",
+   "why": "Big tables can be slow, and these tools make some operations much faster.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Filter rows with query",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use query with two conditions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Create a column with eval",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use local variables in query",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Compare speed with normal filtering",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Know when eval helps",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Cleaning a Real Dataset End to End",
+   "why": "You must practice on messy real data to become job-ready.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Load a real CSV dataset",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Check shape, types, and missing values",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Fix column names and types",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Remove duplicate rows",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Create new useful columns",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Group and summarize the data",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Plot the final summary",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "Pandas with Machine Learning Basics",
+   "why": "Pandas is the first step before training any machine learning model.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Split data into features and target",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Encode text columns as numbers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Fill missing values before training",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Split into train and test sets",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Train a simple model with scikit-learn",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Check model accuracy",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

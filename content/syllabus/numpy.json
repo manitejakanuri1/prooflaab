@@ -1,0 +1,896 @@
+{
+ "course": "numpy",
+ "title": "NumPy",
+ "sources": [
+  "rougier/numpy-100",
+  "jakevdp/PythonDataScienceHandbook"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Setting Up Python and NumPy",
+   "why": "You need a working Python with NumPy installed before you can run any array code.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Install Python and a package manager",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Install NumPy with pip or conda",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Start an interactive Python shell",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Start a Jupyter notebook",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Import NumPy as np and check its version",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Read built-in help with np.info and ?",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Python Lists and Why NumPy Exists",
+   "why": "NumPy arrays are faster and smaller than Python lists for numbers, so you first see what a list costs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create a Python list of numbers",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Loop over a list to do arithmetic",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Time a loop over a large list",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "See how much memory a list of ints uses",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Compare with a fixed-type array",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "State when to use a list and when to use an array",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Creating NumPy Arrays",
+   "why": "You must be able to make an array from data before you can do anything with it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create an array from a Python list",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Create an array from a nested list",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use np.zeros and np.ones",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use np.full and np.empty",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use np.arange and np.linspace",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use np.random for random arrays",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Set the dtype when creating an array",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Data Types in NumPy",
+   "why": "Every array holds one kind of number, and the kind decides memory and accuracy.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "List the common dtypes: int, float, bool, complex",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Check an array's dtype",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Convert an array with astype",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "See what happens when a float becomes an int",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Understand overflow in small integer types",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use float32 and float64 and know the difference",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Array Attributes and Shape",
+   "why": "Shape, size and ndim tell you the layout of any array at a glance.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Read ndim, shape and size",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Read itemsize and nbytes",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reshape an array with reshape",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Flatten an array with ravel and flatten",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Transpose an array with .T",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Add a new axis with np.newaxis",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Indexing Single Elements",
+   "why": "You pick one value out of an array using its position.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Index a 1-D array with a positive number",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Index with a negative number from the end",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Index a 2-D array with [row, col]",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Index a 3-D array",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Change a value by assigning to an index",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Know that indexing returns a view for slices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Slicing Subarrays",
+   "why": "Slicing lets you take a rectangular piece of an array without copying it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Slice a 1-D array with start:stop:step",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Slice a 2-D array by rows and columns",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use a colon to mean all rows or all columns",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Reverse an array with a negative step",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "See that slices are views, not copies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Make a real copy with .copy()",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Reshaping and Combining Arrays",
+   "why": "Real data often needs to be rearranged or glued together before maths.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Concatenate arrays with np.concatenate",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Stack arrays with np.vstack and np.hstack",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Split arrays with np.split",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Repeat and tile arrays",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use np.resize and np.append",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Understand when a copy is made",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Universal Functions (ufuncs)",
+   "why": "Ufuncs do maths on whole arrays at once, without writing loops.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Add, subtract, multiply and divide arrays",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use np.add, np.subtract and friends",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Apply np.abs, np.sqrt and np.exp",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Apply np.sin, np.cos and np.tan",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Apply np.log and np.log10",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use in-place operators like +=",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Use the out= argument to save memory",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Aggregations: min, max, sum and more",
+   "why": "Aggregations boil a whole array down to one number or one row of numbers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Sum all values with np.sum",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Find min and max with np.min and np.max",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Find the index of min and max with argmin and argmax",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Compute mean, median and standard deviation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Aggregate along an axis with axis=0 and axis=1",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use np.any and np.all on boolean arrays",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Use np.percentile and np.quantile",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Broadcasting",
+   "why": "Broadcasting lets NumPy combine arrays of different shapes without copying data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Add a scalar to an array",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Add a 1-D array to a 2-D array",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "State the three broadcasting rules",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Broadcast a column against a row",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Centre a matrix by subtracting the row mean",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use np.newaxis to control broadcasting",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Spot shape errors from broadcasting",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Boolean Masks and Filtering",
+   "why": "You can select values that meet a condition using a true/false mask.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Compare an array with >, <, == and !=",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Combine conditions with & and |",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Use a boolean mask to pick values",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Count true values with np.count_nonzero",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use np.where to choose between two arrays",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Replace values with np.where or masked assignment",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Use np.any and np.all on conditions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Fancy Indexing",
+   "why": "Fancy indexing picks many arbitrary positions at once using an index array.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Index with a list or array of positions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Index a 2-D array with row and column arrays",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Combine fancy indexing with slicing",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Modify values with fancy indexing",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Use np.take and np.put",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Bin data with np.digitize",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Sorting and Searching",
+   "why": "Sorting puts data in order and searching finds where values belong.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Sort with np.sort",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Get sort order with np.argsort",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Sort along a chosen axis",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Partition with np.partition",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Search with np.searchsorted",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Find unique values with np.unique",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Use np.sort for a k-nearest-neighbours example",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Structured Arrays",
+   "why": "Structured arrays store rows with named fields, like a simple table.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Create a structured dtype",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Create a structured array from a list of tuples",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Access fields by name",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use nested and compound dtypes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Sort a structured array by a field",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Know when to move on to pandas",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "Reading and Writing Files",
+   "why": "You need to save arrays to disk and load them back for real work.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Save one array with np.save",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Load one array with np.load",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Save many arrays with np.savez",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Save and load text with np.savetxt and np.loadtxt",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Read CSV data into an array",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use np.genfromtxt for missing values",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Random Numbers",
+   "why": "Random numbers are needed for simulations, sampling and machine learning.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Use np.random.rand and np.random.randn",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use np.random.randint",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Set a seed with np.random.seed",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use the new Generator API",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Shuffle and choose with np.random.shuffle and choice",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sample from a normal distribution",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Linear Algebra with NumPy",
+   "why": "Matrix maths is the core of engineering and machine-learning models.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Multiply matrices with np.dot and @",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Do element-wise multiplication with *",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Transpose and reshape for matrix maths",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Solve linear systems with np.linalg.solve",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Compute inverse and determinant",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Find eigenvalues and eigenvectors",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Compute norms with np.linalg.norm",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "title": "Performance: Vectorisation and Memory",
+   "why": "Fast NumPy code avoids Python loops and unnecessary copies.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Compare a Python loop with a vectorised version",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Use %timeit to measure code",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Avoid temporary arrays with out=",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Use views instead of copies where possible",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Know when NumPy is slower than plain Python",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use np.vectorize only as a last resort",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "title": "Plotting NumPy Data with Matplotlib",
+   "why": "A picture of the numbers often shows what the numbers alone hide.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Import matplotlib.pyplot as plt",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Plot a line from two arrays",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Plot a scatter of two arrays",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Draw a histogram of one array",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Label axes and add a title",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Save a figure to a file",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "title": "NumPy in Machine Learning",
+   "why": "Machine-learning models take NumPy arrays as input and give arrays back.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Represent a dataset as a 2-D array",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Split data into features X and labels y",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Split into train and test sets",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Compute a simple linear regression by hand",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Compute mean squared error",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Use NumPy arrays with scikit-learn",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "title": "Practice Set: 100 NumPy Exercises",
+   "why": "Doing many small exercises builds the speed you need for interviews and projects.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Do exercises 1 to 20 on array creation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Do exercises 21 to 40 on indexing and slicing",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Do exercises 41 to 60 on maths and aggregation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Do exercises 61 to 80 on broadcasting and sorting",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Do exercises 81 to 100 on random and linear algebra",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Redo any exercise you got wrong",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "title": "Capstone: A Small End-to-End Project",
+   "why": "A finished project proves you can use NumPy on real data from start to end.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Load a CSV dataset into a NumPy array",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Clean missing and odd values",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Compute summary statistics per column",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Filter rows with boolean masks",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Plot two or three key charts",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Write a short report of what you found",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

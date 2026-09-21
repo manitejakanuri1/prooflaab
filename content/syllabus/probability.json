@@ -1,0 +1,625 @@
+{
+ "course": "probability",
+ "title": "Probability",
+ "sources": [
+  "CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers",
+  "d2l-ai/d2l-en"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Counting and Basic Probability",
+   "why": "Probability starts with counting how many ways things can happen.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Multiplication Principle",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Permutations",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Combinations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sample Space and Events",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Axioms of Probability",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Equally Likely Outcomes",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Inclusion-Exclusion Principle",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Conditional Probability and Independence",
+   "why": "Knowing that something happened can change how likely other things are.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of Conditional Probability",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Multiplication Rule",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Law of Total Probability",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Bayes' Theorem",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Independent Events",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Conditional Independence",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Random Variables",
+   "why": "A random variable turns outcomes into numbers we can work with.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of Random Variable",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Discrete Random Variables",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Continuous Random Variables",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Probability Mass Function (PMF)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Probability Density Function (PDF)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Cumulative Distribution Function (CDF)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "From Discrete to Continuous",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Expectation and Variance",
+   "why": "Expectation is the average value, variance tells how spread out it is.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Expected Value",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Expectation of a Function",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Variance",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Standard Deviation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Properties of Expectation and Variance",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Mean Squared Error",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Statistical Bias",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Bias-Variance Trade-off",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Common Discrete Distributions",
+   "why": "Some patterns of randomness come up so often they have names.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Bernoulli Distribution",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Binomial Distribution",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Poisson Distribution",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Discrete Uniform Distribution",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Geometric Distribution",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Negative Binomial Distribution",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Hypergeometric Distribution",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Common Continuous Distributions",
+   "why": "Continuous distributions describe measurements like height or time.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Continuous Uniform Distribution",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Exponential Distribution",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Normal (Gaussian) Distribution",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Gamma Distribution",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Beta Distribution",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Exponential Family",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Joint and Conditional Distributions",
+   "why": "When two random variables are involved, we need to describe them together.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Joint PMF and PDF",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Marginal Distributions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Conditional Distributions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Independence of Random Variables",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Covariance",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Correlation",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Bivariate Normal Distribution",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Transformations and Sums of Random Variables",
+   "why": "We often need the distribution of a function of random variables.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Change of Variables",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Distribution of a Function of a Random Variable",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Convolution",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sums of Independent Random Variables",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Moment Generating Functions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Characteristic Functions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Limit Theorems",
+   "why": "With many random events, averages become predictable.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Law of Large Numbers",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Central Limit Theorem",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Normal Approximation to the Binomial",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Chebyshev's Inequality",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Convergence in Probability",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Convergence in Distribution",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Statistical Inference",
+   "why": "Inference means using data to guess about the world.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Point Estimation",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Maximum Likelihood Estimation",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Method of Moments",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Confidence Intervals",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Hypothesis Testing",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "p-values",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Type I and Type II Errors",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Bayesian Inference",
+   "why": "Bayesian inference updates beliefs with data using probability.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "The Bayesian State of Mind",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Bayesian Inference in Practice",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Are Frequentist Methods Incorrect Then?",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Prior and Posterior Distributions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Conjugate Priors",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Credible Intervals",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Bayesian Model Checking",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Markov Chains",
+   "why": "Markov chains model sequences where the next step depends only on the current state.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Definition of Markov Chain",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Transition Matrix",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Chapman-Kolmogorov Equations",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Classification of States",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Stationary Distribution",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Limiting Probabilities",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Markov Models",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Information Theory",
+   "why": "Information theory measures how much surprise or uncertainty there is.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Information",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Self-information",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Entropy",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Joint Entropy",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Conditional Entropy",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Mutual Information",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "KL Divergence",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Cross-Entropy",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Probabilistic Programming",
+   "why": "Probabilistic programming lets computers do Bayesian inference for us.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Introduction to Probabilistic Programming",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "PyMC",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Pyro",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Model Specification",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Inference Algorithms",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Markov Chain Monte Carlo (MCMC)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Variational Inference",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Applications in Machine Learning",
+   "why": "Probability is the foundation for many machine learning methods.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Naive Bayes Classifier",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Logistic Regression",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Gaussian Processes",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Bayesian Neural Networks",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Reinforcement Learning",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Q-Learning",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

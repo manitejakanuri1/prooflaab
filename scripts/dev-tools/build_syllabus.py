@@ -26,6 +26,30 @@ NEW = {  # courses that did not exist as a track
     "system-design": ("System design", ["donnemartin/system-design-primer", "microsoft/api-guidelines"]),
     "deep-learning": ("Deep learning and LLMs", ["d2l-ai/d2l-en", "ageron/handson-ml3", "huggingface/course", "mrdbourke/pytorch-deep-learning"]),
 }
+# One standalone course per skill that role tracks teach only as a short primer.
+SKILL_COURSES = {  # slug: (title, skill, role, extra repos beyond repo_candidates)
+    "sql": ("SQL and databases", "SQL", "database developer", ["pingcap/awesome-database-learning"]),
+    "docker": ("Docker and containers", "Docker", "DevOps engineer", []),
+    "cpp": ("C++", "C++", "C++ developer", ["AnthonyCalandra/modern-cpp-features"]),
+    "linux": ("Linux", "Linux", "systems engineer", []),
+    "networking": ("Computer networking", "Networking", "network engineer", ["donnemartin/system-design-primer", "ossu/computer-science"]),
+    "html-css": ("HTML and CSS", "HTML/CSS", "front-end developer", ["mdn/content", "freeCodeCamp/freeCodeCamp"]),
+    "javascript": ("JavaScript", "JavaScript", "JavaScript developer", ["mdn/content", "airbnb/javascript", "Chalarangelo/30-seconds-of-code", "trekhleb/javascript-algorithms"]),
+    "react": ("React", "React", "React developer", []),
+    "pandas": ("Pandas", "Pandas", "data analyst", ["jakevdp/PythonDataScienceHandbook"]),
+    "numpy": ("NumPy", "NumPy", "data analyst", ["jakevdp/PythonDataScienceHandbook"]),
+    "aws": ("Amazon Web Services", "AWS", "cloud engineer", []),
+    "terraform": ("Terraform", "Terraform", "DevOps engineer", []),
+    "linear-algebra": ("Linear algebra", "Linear Algebra", "machine learning engineer", ["d2l-ai/d2l-en"]),
+    "probability": ("Probability", "Probability", "data scientist", ["d2l-ai/d2l-en"]),
+    "rest-apis": ("REST APIs", "REST APIs", "backend developer", ["microsoft/api-guidelines"]),
+    "bash": ("Bash and the command line", "Bash", "systems engineer", []),
+    "kubernetes": ("Kubernetes", "Kubernetes", "DevOps engineer", []),
+    "git": ("Git and GitHub", "Git", "software engineer", ["git-tips/tips"]),
+}
+for _slug, (_t, _skill, _role, _extra) in SKILL_COURSES.items():
+    NEW[_slug] = (_t, list(dict.fromkeys(C.get(_skill, []) + EXTRA.get(_skill, []) + _extra)))
+
 TITLES = {"web-development": "Web development", "mobile-development": "Mobile development", "data-science": "Data science",
           "machine-learning": "Machine learning", "cloud-computing": "Cloud computing", "devops": "DevOps", "cybersecurity": "Cybersecurity",
           "ui-ux-design": "UI/UX design", "game-development": "Game development", "blockchain": "Blockchain", "iot": "IoT and embedded",

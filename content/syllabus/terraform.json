@@ -1,0 +1,673 @@
+{
+ "course": "terraform",
+ "title": "Terraform",
+ "sources": [],
+ "topics": [
+  {
+   "n": 1,
+   "title": "What is Infrastructure as Code",
+   "why": "Infrastructure as Code means writing down what computers you need in a file instead of clicking buttons.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is infrastructure",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Manual infrastructure problems",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "What is Infrastructure as Code",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Benefits of Infrastructure as Code",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Declarative vs imperative",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Idempotency concept",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Introduction to Terraform",
+   "why": "Terraform is a tool that reads your infrastructure file and makes the computers match it.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Terraform",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Terraform vs other IaC tools",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Terraform architecture",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Terraform workflow",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Installing Terraform",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Terraform CLI basics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "HCL Syntax Basics",
+   "why": "HCL is the language you write Terraform files in, like a recipe for computers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "HCL file structure",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Blocks and arguments",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Data types: string, number, bool",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Collections: list, map, set",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Comments and formatting",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Style conventions",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Providers and Resources",
+   "why": "Providers are plugins that let Terraform talk to different cloud services.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a provider",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Provider configuration",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Resource blocks",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Resource arguments and attributes",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Resource dependencies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Provider version constraints",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Terraform Workflow",
+   "why": "The workflow is init, plan, apply, destroy — the steps to build and remove infrastructure.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "terraform init",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "terraform validate",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "terraform plan",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "terraform apply",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "terraform destroy",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Understanding plan output",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Variables and Outputs",
+   "why": "Variables let you change values without editing the main file, and outputs show results.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Input variables",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Variable types and defaults",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Variable validation",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Output values",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using variables in resources",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Sensitive variables",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "State Management",
+   "why": "State is Terraform's memory of what it already built, so it knows what to change.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Terraform state",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Local state file",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "State locking",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Remote state backends",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "State commands: list, show, mv, rm",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Importing existing resources",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Modules",
+   "why": "Modules are reusable groups of Terraform code you can share and use many times.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is a module",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Creating a module",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Module inputs and outputs",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Using modules from registry",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Module versioning",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Best practices for modules",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Expressions and Functions",
+   "why": "Expressions and functions let you compute values and transform data in Terraform.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Conditional expressions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "For expressions",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Splat expressions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Built-in functions: string, numeric, collection",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Type conversion functions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Using functions in practice",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Meta-Arguments and Lifecycle",
+   "why": "Meta-arguments control how Terraform creates, counts, and manages resources.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "count",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "for_each",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "depends_on",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "provider meta-argument",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "lifecycle rules",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "precondition and postcondition",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Provisioners and Data Sources",
+   "why": "Provisioners run scripts on machines, and data sources fetch information from providers.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What are provisioners",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "file, local-exec, remote-exec",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "When to use provisioners",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Data sources",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Using data sources in configuration",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Data source vs resource",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Managing Multiple Environments",
+   "why": "You can use the same code for dev, staging, and prod by separating settings.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Workspaces",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Directory structure for environments",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Variable files per environment",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Backend configuration per environment",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Promoting changes across environments",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Best practices",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Terraform Cloud and Enterprise",
+   "why": "Terraform Cloud is a service that runs Terraform for you and stores state safely.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is Terraform Cloud",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Remote runs and state",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Workspaces in Terraform Cloud",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "VCS integration",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Sentinel policies",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Cost estimation",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Security and Secrets",
+   "why": "You must keep passwords and keys safe when using Terraform.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Managing secrets",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Using environment variables",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Vault integration",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Sensitive data in state",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Encryption of state",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "IAM and least privilege",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Testing and Validation",
+   "why": "Testing checks your Terraform code works before you use it on real infrastructure.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "terraform validate",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "terraform fmt",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Linting with tflint",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Static analysis with checkov",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Terratest basics",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Integration testing",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "CI/CD with Terraform",
+   "why": "CI/CD automatically runs Terraform when you change code, so it's fast and safe.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "CI/CD concepts",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Running Terraform in pipelines",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "GitHub Actions example",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "GitLab CI example",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Automated plan and apply",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Approval gates",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Advanced Terraform Patterns",
+   "why": "Advanced patterns help you manage large and complex infrastructure with Terraform.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Composite modules",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Dynamic blocks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Nested modules",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Terragrunt introduction",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Dependency management",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Scaling state",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Real-World Project",
+   "why": "Build a complete infrastructure from scratch using everything you learned.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Project requirements",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Designing the architecture",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Writing Terraform code",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Testing and validation",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Deployment",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Cleanup and review",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

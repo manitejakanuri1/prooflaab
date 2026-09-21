@@ -1,0 +1,725 @@
+{
+ "course": "cpp",
+ "title": "C++",
+ "sources": [
+  "AnthonyCalandra/modern-cpp-features"
+ ],
+ "topics": [
+  {
+   "n": 1,
+   "title": "Getting Started with C++",
+   "why": "You need to know how to write and run your first C++ program before you can do anything else.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "What is C++ and why learn it",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Setting up a compiler and IDE",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Your first program: Hello World",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Basic input and output with cin and cout",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Comments and code structure",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Compiling and running from the command line",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Variables, Types, and Basic Operations",
+   "why": "Programs store and change data, so you need to know how to name and use different kinds of values.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Integer types: int, short, long",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Floating-point types: float, double",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Character and boolean types",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Declaring and initializing variables",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Arithmetic operators",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Type conversion and casting",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Constants and constexpr",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "auto type deduction",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Control Flow",
+   "why": "You need to make decisions and repeat actions to write useful programs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "if, else if, else",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "switch statements",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "while and do-while loops",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "for loops",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "break and continue",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Range-based for loops",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Functions",
+   "why": "Functions let you break big problems into small, reusable pieces.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Defining and calling functions",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Parameters and return values",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Function overloading",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Default arguments",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Inline functions",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Lambda expressions",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Recursion",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Arrays and Strings",
+   "why": "You often need to store many values of the same type and work with text.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "C-style arrays",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Multidimensional arrays",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "std::string basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "String operations: concatenation, comparison, length",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "std::string_view",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Pointers and References",
+   "why": "Pointers and references let you work directly with memory and avoid copying large data.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Memory addresses and pointer variables",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Dereferencing pointers",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Null pointers and nullptr",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "References vs pointers",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Pass by value, reference, and pointer",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Pointer arithmetic",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Smart pointers: unique_ptr, shared_ptr, weak_ptr",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Structures, Classes, and Objects",
+   "why": "You can group related data and functions into your own types to model real-world things.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Defining structs",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Defining classes and objects",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Access specifiers: public, private, protected",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Constructors and destructors",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Member functions and this pointer",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Static members",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Friend functions and classes",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Operator Overloading and Conversions",
+   "why": "You can make your own types work with operators like + and == just like built-in types.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Overloading arithmetic operators",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Overloading comparison operators",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Overloading stream operators << and >>",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Conversion operators",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Three-way comparison operator (C++20)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Inheritance and Polymorphism",
+   "why": "You can build new classes from existing ones and let objects of different types respond to the same call.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Base and derived classes",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Virtual functions and overriding",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Abstract classes and pure virtual functions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Virtual destructors",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Multiple inheritance",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Dynamic_cast and RTTI",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Templates and Generic Programming",
+   "why": "Templates let you write code that works with any type, so you don't repeat yourself.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Function templates",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Class templates",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Template specialization",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Variadic templates",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Concepts (C++20)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Folding expressions (C++17)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Non-type template parameters with auto (C++17)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "The Standard Library: Containers and Algorithms",
+   "why": "The standard library gives you ready-made containers and algorithms so you don't reinvent the wheel.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "std::vector",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "std::array",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "std::list, std::forward_list",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "std::map, std::set, and unordered versions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Iterators",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Standard algorithms: sort, find, transform, etc.",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Lambda expressions with algorithms",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "std::span (C++20)",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Uniform container erasure (C++20)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Memory Management and RAII",
+   "why": "You need to manage memory correctly to avoid leaks and crashes.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Stack vs heap memory",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "new and delete",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "RAII (Resource Acquisition Is Initialization)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Smart pointers in depth",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Move semantics and rvalue references",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Copy and move constructors/assignment",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Rule of Three/Five/Zero",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Exception Handling",
+   "why": "Errors happen, and you need a way to handle them without crashing your program.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "try, catch, throw",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Standard exception classes",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Custom exceptions",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "noexcept specifier",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "std::expected (C++23)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "title": "Modern C++ Features (C++11/14/17/20/23)",
+   "why": "Modern C++ makes code safer, faster, and easier to write.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Initializer lists",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Uniform initialization",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Structured bindings (C++17)",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Inline variables (C++17)",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Attributes: [[fallthrough]], [[nodiscard]], [[maybe_unused]] (C++17)",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "[[likely]] and [[unlikely]] (C++20)",
+     "existing": false
+    },
+    {
+     "n": 7,
+     "title": "Text formatting (C++20)",
+     "existing": false
+    },
+    {
+     "n": 8,
+     "title": "Coroutines (C++20)",
+     "existing": false
+    },
+    {
+     "n": 9,
+     "title": "Stacktrace library (C++23)",
+     "existing": false
+    },
+    {
+     "n": 10,
+     "title": "Input/output pointers (C++23)",
+     "existing": false
+    },
+    {
+     "n": 11,
+     "title": "Increasing range-based for safety (C++23)",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "title": "Concurrency and Multithreading",
+   "why": "Modern computers have many cores, and you can make programs faster by doing things at the same time.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "std::thread",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Mutexes and locks",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Condition variables",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "std::async and std::future",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Atomics",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Memory model basics",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "title": "File I/O and Streams",
+   "why": "Programs often need to read from and write to files.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "File streams: ifstream, ofstream, fstream",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Reading and writing text files",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Reading and writing binary files",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "String streams",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Formatting output",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "title": "Debugging, Testing, and Best Practices",
+   "why": "Good developers test their code and follow conventions to avoid bugs.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Using a debugger",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Assertions and static_assert",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Unit testing basics",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Code style and naming conventions",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Version control with Git",
+     "existing": false
+    },
+    {
+     "n": 6,
+     "title": "Building with CMake",
+     "existing": false
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "title": "Project: Building a Real Application",
+   "why": "Putting everything together by building a complete program gives you job-ready skills.",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Project planning and design",
+     "existing": false
+    },
+    {
+     "n": 2,
+     "title": "Implementing core features",
+     "existing": false
+    },
+    {
+     "n": 3,
+     "title": "Testing and debugging",
+     "existing": false
+    },
+    {
+     "n": 4,
+     "title": "Refactoring and improving code",
+     "existing": false
+    },
+    {
+     "n": 5,
+     "title": "Documenting and presenting",
+     "existing": false
+    }
+   ]
+  }
+ ]
+}

@@ -107,11 +107,21 @@ interface LevelDetailProps {
   onCleared: () => void;
   /** Jump straight into the next topic instead of closing back to the map. */
   onContinue: (levelNumber: number) => void;
+  /** Open a full course (Python, Java...) from a short primer topic, remembering where to come back to. */
+  onOpenCourse?: (courseSlug: string) => void;
 }
 
-type Phase = "loading" | "read" | "quiz" | "result" | "error";
+interface CourseLinkInfo {
+  course_slug: string;
+  course_name: string;
+  topics: number;
+  steps: number;
+  done_topics: number;
+}
 
-const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContinue }: LevelDetailProps) => {
+type Phase = "loading" | "read" | "quiz" | "result" | "error" | "course";
+
+const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContinue, onOpenCourse }: LevelDetailProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("loading");
@@ -122,17 +132,19 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
   const [advancing, setAdvancing] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [result, setResult] = useState<SubmitPayload | null>(null);
+  const [courseLink, setCourseLink] = useState<CourseLinkInfo | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const open = levelNumber !== null;
 
-  const fetchStep = async (advanceStep: boolean, skipToCheckpoint = false) => {
+  const fetchStep = async (advanceStep: boolean, skipToCheckpoint = false, courseChoice?: "skip" | "short") => {
     const { data: payload, error } = await supabase.functions.invoke("level-open", {
       body: {
         track_slug: trackSlug,
         level_number: levelNumber,
         advance_step: advanceStep,
         skip_to_checkpoint: skipToCheckpoint,
+        course_choice: courseChoice,
       },
     });
     if (error) {
@@ -141,7 +153,20 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
       setPhase("error");
       return;
     }
-    setData(payload as LevelPayload);
+    const p = payload as (LevelPayload & { course_link?: CourseLinkInfo; credited?: boolean }) | null;
+    if (p?.credited) {                 // skipped, or already covered by the full course: back to the map
+      onCleared();
+      onOpenChange(false);
+      return;
+    }
+    if (p?.course_link) {              // this topic is a short primer of a full course
+      setCourseLink(p.course_link);
+      setData({ ...(p as LevelPayload), level: { ...p.level, kind: "explanation", sub_level: 1, id: "", skill: p.level.skill } });
+      setPhase("course");
+      return;
+    }
+    setCourseLink(null);
+    setData(p as LevelPayload);
     setPhase("read");
   };
 
@@ -251,6 +276,31 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Back to the map
               </Button>
+            </div>
+          )}
+
+          {phase === "course" && courseLink && (
+            <div className="space-y-4 animate-level-in">
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                <p className="text-base font-semibold">This topic is the start of the full {courseLink.course_name} course</p>
+                <p className="text-sm text-muted-foreground">
+                  {courseLink.topics} levels · {courseLink.steps} steps · you have finished {courseLink.done_topics} of {courseLink.topics}.
+                  Do it once, here, and every other path that needs {courseLink.course_name} counts it as done. You come straight back to this path afterwards.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {onOpenCourse && (
+                  <Button onClick={() => { onOpenChange(false); onOpenCourse(courseLink.course_slug); }}>
+                    Open the full {courseLink.course_name} course
+                  </Button>
+                )}
+                <Button variant="outline" onClick={async () => { setAdvancing(true); await fetchStep(false, false, "skip"); setAdvancing(false); }} disabled={advancing}>
+                  I already know {courseLink.course_name}: skip (I will revise later)
+                </Button>
+                <Button variant="ghost" onClick={async () => { setAdvancing(true); await fetchStep(false, false, "short"); setAdvancing(false); }} disabled={advancing}>
+                  Just read the short version here
+                </Button>
+              </div>
             </div>
           )}
 

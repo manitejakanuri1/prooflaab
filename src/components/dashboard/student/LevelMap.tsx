@@ -116,6 +116,8 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
   // evidence line under each level, which will not fit on a game node.
   const [view, setView] = useState<"map" | "list">("map");
   const [celebrating, setCelebrating] = useState(false);
+  // Where to come back to after a full course opened from a short primer (Python inside Data Science...).
+  const [returnTo, setReturnTo] = useState<{ slug: string; level: number | null } | null>(null);
 
   const loadProgress = useCallback(async (sid: string) => {
     const { data: myTracks } = await supabase
@@ -259,6 +261,13 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
       setActiveSlug(slug);
       if (summaries.length > 0) setAllTracks([]);
     }
+  };
+
+  const openCourse = async (courseSlug: string) => {
+    if (activeSlug) setReturnTo({ slug: activeSlug, level: openLevel });
+    setOpenLevel(null);
+    if (tracks.some((t) => t.track_slug === courseSlug)) setActiveSlug(courseSlug);
+    else await startTrack(courseSlug);
   };
 
   const refresh = useCallback(() => {
@@ -464,6 +473,14 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
 
   return (
     <div className="space-y-4">
+      {returnTo && returnTo.slug !== activeSlug && tracks.some((t) => t.track_slug === returnTo.slug) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          <span>You came here from {tracks.find((t) => t.track_slug === returnTo.slug)?.name}. Finish this course, then go back to where you were.</span>
+          <Button size="sm" onClick={() => { setActiveSlug(returnTo.slug); setOpenLevel(returnTo.level); setReturnTo(null); }}>
+            Back to {tracks.find((t) => t.track_slug === returnTo.slug)?.name}
+          </Button>
+        </div>
+      )}
       {tracks.length > 1 && (
         <div className="flex gap-2 flex-wrap">
           {tracks.map((t) => (
@@ -809,6 +826,7 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
             refresh();
             setOpenLevel(nextLevelNumber);
           }}
+          onOpenCourse={openCourse}
         />
       )}
     </div>

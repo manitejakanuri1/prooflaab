@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { advanceUnlock, LEVEL_CLEAR_XP, QUIZ_PASS_MARK } from "../_shared/levels.ts";
+import { advanceUnlock, LEVEL_CLEAR_XP, QUIZ_PASS_MARK, syncCourseLinks } from "../_shared/levels.ts";
 import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 
 /**
@@ -245,6 +245,8 @@ serve(async (req) => {
     }
 
     const unlockedThrough = await advanceUnlock(supabase, profile.id, level.track_slug);
+    // Finishing a whole course credits its short primers in the student's other tracks.
+    await syncCourseLinks(supabase, profile.id).catch((e) => console.error('syncCourseLinks:', e));
 
     // The checkpoint is always a topic's last row, so passing it always
     // finishes that topic — unlockedThrough has moved to whatever topic comes

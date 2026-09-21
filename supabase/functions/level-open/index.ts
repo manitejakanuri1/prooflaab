@@ -3,6 +3,8 @@ import { createClient } from "../_shared/backend.ts";
 import {
   advanceUnlock,
   ensureTopicSteps,
+  courseLinkFor,
+  syncCourseLinks,
   quizForStudent,
   type LevelRow,
 } from "../_shared/levels.ts";
@@ -47,7 +49,7 @@ serve(async (req) => {
     if (claimsError || !claims?.claims?.sub) return json({ error: 'Unauthorized' }, 401);
     const callerId = claims.claims.sub as string;
 
-    const { track_slug, level_number, advance_step, skip_to_checkpoint } = await req.json();
+    const { track_slug, level_number, advance_step, skip_to_checkpoint, course_choice } = await req.json();
     if (typeof track_slug !== 'string' || !Number.isInteger(level_number)) {
       return json({ error: 'track_slug and level_number are required' }, 400);
     }
@@ -60,6 +62,9 @@ serve(async (req) => {
       .eq('user_id', callerId)
       .maybeSingle();
     if (!profile) return json({ error: 'Student profile not found' }, 404);
+
+    // A full course finished elsewhere counts for its short primers here.
+    await syncCourseLinks(supabase, profile.id).catch((e) => console.error('syncCourseLinks:', e));
 
     // The seed row (sub_level=1) always exists — it's what the original
     // curriculum migration/seed created. ensureTopicSteps expands it into the
@@ -189,6 +194,28 @@ serve(async (req) => {
         },
         403,
       );
+    }
+
+    // This topic is a short primer of a full course (Python inside Data Science, ...). Unless the
+    // student already worked in it, offer the full course, or skipping it, or the short version.
+    const link = await courseLinkFor(supabase, profile.id, seed.id);
+    const touched = (progressRows ?? []).some((p: any) => ['cleared', 'mastered', 'placed', 'revise'].includes(p.status));
+    if (link && !touched && course_choice !== 'short') {
+      if (course_choice === 'skip') {
+        await supabase.from('student_levels').upsert({
+          student_id: profile.id,
+          level_id: seed.id,
+          status: 'revise',
+          evidence: `You chose to skip this. The full ${link.course_name} course is there whenever you want it.`,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'student_id,level_id' });
+        const unlocked = await advanceUnlock(supabase, profile.id, track_slug);
+        return json({ credited: true, status: 'revise', unlocked_through: unlocked });
+      }
+      return json({
+        course_link: link,
+        level: { track_slug, level_number, title: seed.title, skill: seed.skill },
+      });
     }
 
     const content = contentByLevelId[target.id];

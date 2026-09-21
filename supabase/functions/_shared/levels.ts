@@ -171,6 +171,82 @@ export async function advanceUnlock(
   return unlockedThrough;
 }
 
+export interface CourseLink {
+  course_slug: string;
+  course_name: string;
+  topics: number;
+  steps: number;
+  done_topics: number;
+  finished: boolean;
+}
+
+/** How far a student is through a whole course. A topic counts once it is finished or credited/skipped. */
+async function courseProgress(supabase: any, studentId: string, courseSlug: string) {
+  const { data: levels } = await supabase
+    .from('levels').select('id, level_number, kind').eq('track_slug', courseSlug);
+  const { data: progress } = await supabase
+    .from('student_levels').select('level_id, status').eq('student_id', studentId);
+  const status = new Map<string, string>((progress ?? []).map((p: any) => [p.level_id, p.status]));
+  const byTopic = new Map<number, string[]>();
+  let steps = 0;
+  for (const l of levels ?? []) {
+    if (l.kind === 'explanation') steps++;
+    const arr = byTopic.get(l.level_number) ?? [];
+    arr.push(status.get(l.id) ?? '');
+    byTopic.set(l.level_number, arr);
+  }
+  let done = 0;
+  for (const arr of byTopic.values()) {
+    if (arr.some((s) => s === 'placed' || s === 'revise') || arr.every((s) => DONE_STATUSES.has(s))) done++;
+  }
+  return { topics: byTopic.size, steps, done_topics: done, finished: byTopic.size > 0 && done === byTopic.size };
+}
+
+/** If this topic is a short primer of a full course (Python inside Data Science, ...), say which course. */
+export async function courseLinkFor(supabase: any, studentId: string, levelId: string): Promise<CourseLink | null> {
+  const { data: link } = await supabase.from('topic_links').select('course_slug').eq('level_id', levelId).maybeSingle();
+  if (!link) return null;
+  const { data: course } = await supabase.from('level_tracks').select('name').eq('slug', link.course_slug).maybeSingle();
+  const p = await courseProgress(supabase, studentId, link.course_slug);
+  return { course_slug: link.course_slug, course_name: course?.name ?? link.course_slug, ...p };
+}
+
+/**
+ * Once a student has finished a full course, every short primer of it in their other tracks
+ * counts as done, so nothing is taught twice. Never locks anything.
+ */
+export async function syncCourseLinks(supabase: any, studentId: string): Promise<number> {
+  const { data: mine } = await supabase.from('student_tracks').select('track_slug').eq('student_id', studentId);
+  const tracks = new Set<string>((mine ?? []).map((t: any) => t.track_slug));
+  const { data: links } = await supabase.from('topic_links').select('level_id, course_slug, levels(track_slug)');
+  const mineLinks = (links ?? []).filter((l: any) => tracks.has(l.levels?.track_slug));
+  if (mineLinks.length === 0) return 0;
+  const { data: progress } = await supabase
+    .from('student_levels').select('level_id, status').eq('student_id', studentId)
+    .in('level_id', mineLinks.map((l: any) => l.level_id));
+  const statusOf = new Map<string, string>((progress ?? []).map((p: any) => [p.level_id, p.status]));
+  const finished = new Map<string, boolean>();
+  const touchedTracks = new Set<string>();
+  let credited = 0;
+  for (const l of mineLinks) {
+    if (DONE_STATUSES.has(statusOf.get(l.level_id) ?? '')) continue;
+    if (!finished.has(l.course_slug)) finished.set(l.course_slug, (await courseProgress(supabase, studentId, l.course_slug)).finished);
+    if (!finished.get(l.course_slug)) continue;
+    const { data: course } = await supabase.from('level_tracks').select('name').eq('slug', l.course_slug).maybeSingle();
+    const { error } = await supabase.from('student_levels').upsert({
+      student_id: studentId,
+      level_id: l.level_id,
+      status: 'placed',
+      evidence: `Covered by the full ${course?.name ?? l.course_slug} course you finished.`,
+      cleared_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'student_id,level_id' });
+    if (!error) { credited++; touchedTracks.add(l.levels.track_slug); }
+  }
+  for (const t of touchedTracks) await advanceUnlock(supabase, studentId, t);
+  return credited;
+}
+
 /** The parts of a parsed resume that can justify crediting a skill. */
 export interface ResumeEvidenceSource {
   skills?: string[];

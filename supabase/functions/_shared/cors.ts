@@ -68,7 +68,7 @@ export function cors(req: Request): Record<string, string> {
     // x-webhook-secret is listed for every function, not only the three that
     // read it. Naming a header here merely permits the browser to send it.
     'Access-Control-Allow-Headers':
-      'authorization, x-client-info, apikey, content-type, x-webhook-secret',
+      'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-request-id, x-session-id',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Vary': 'Origin',
   };
@@ -83,7 +83,7 @@ export function cors(req: Request): Record<string, string> {
 export const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': ALLOWED[0] ?? FALLBACK,
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-webhook-secret',
+    'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-request-id, x-session-id',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Vary': 'Origin',
 };

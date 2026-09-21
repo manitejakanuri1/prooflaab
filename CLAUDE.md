@@ -107,3 +107,11 @@ The owner is not a developer.
 ## College / admin wiring (21 Sep 2026, migration 33)
 - `tpo_student_learning(_student_id)` (same college/admin/self check as `tpo_student_profile`) returns each path a student joined with topics done/total. The college student profile shows it as "Learning paths". The admin Students screen does not show it yet; the RPC already works for admin.
 - Neither dashboard had any track/level code before; nothing there reads the 41 tracks, so nothing broke. No college-wide course report exists yet.
+
+## Logging standard (21 Sep 2026, functions v34, migration 36)
+- Every browser call to a function carries `x-request-id` (one per call) and `x-session-id` (one per tab) - `src/integrations/google/client.ts` `tracedFetch`. CORS allows both (`_shared/cors.ts`).
+- `_shared/log.ts`: the router (`functions-service/main.ts`) runs each request inside `withRequestContext`; every `console.*` line becomes one JSON line with `severity`, `message`, `request_id`, `session_id`, `function`, hashed `user`, and Cloud Run `trace`. The response carries `x-request-id`. A `request.end` line records status and duration (errors and calls over 2 s always; set `LOG_SAMPLE=0.1` on the service to sample normal ones at scale).
+- Never log resume text, answers, voice, passwords, keys. `scrub()` removes emails, tokens and keys and cuts long strings, but do not rely on it: do not print such things.
+- `llm_usage.request_id` links each AI call to the request that caused it.
+- Find one action: Logs Explorer, `jsonPayload.request_id="<id>"`. Errors are grouped in Error Reporting (API enabled). Database Query Insights is on.
+- Not done yet: alerts and uptime checks (Phase 5), the `app_events` step trail and admin Student Trace page (Phases 3-4).

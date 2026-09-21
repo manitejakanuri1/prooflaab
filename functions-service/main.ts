@@ -17,6 +17,7 @@
 // ../supabase/functions/_shared/serve.ts.
 
 import { takeHandler, type Handler } from '../supabase/functions/_shared/serve.ts';
+import { installStructuredConsole, withRequestContext } from '../supabase/functions/_shared/log.ts';
 
 const PORT = Number(Deno.env.get('PORT') ?? 8080);
 const ROOT = new URL('../supabase/functions/', import.meta.url);
@@ -127,7 +128,7 @@ async function router(req: Request): Promise<Response> {
   }
 
   try {
-    return await handler(req);
+    return await withRequestContext(slug, req, handler);
   } catch (err) {
     // One handler throwing must not take the other 40 down with it.
     console.error(`${slug} threw:`, err);
@@ -139,6 +140,7 @@ async function router(req: Request): Promise<Response> {
 }
 
 if (import.meta.main) {
+  installStructuredConsole();   // every console line becomes one JSON line with the request id
   await loadAll();
   await checkMetadata();
   console.log(`credentials: ${metadataStatus}`);

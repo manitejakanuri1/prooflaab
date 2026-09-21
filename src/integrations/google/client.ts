@@ -43,6 +43,25 @@ const restFetch: typeof fetch = (input, init) => {
  * Built on demand rather than at import time. A build that never turns Google on
  * must not construct a client from environment variables it was never given.
  */
+/** One id per browser tab, kept for the tab's life. Falls back to a fresh id if storage is blocked. */
+const SESSION_ID = (() => {
+  try {
+    let id = sessionStorage.getItem("pl_session");
+    if (!id) { id = crypto.randomUUID(); sessionStorage.setItem("pl_session", id); }
+    return id;
+  } catch {
+    return crypto.randomUUID();
+  }
+})();
+
+/** fetch that adds x-request-id and x-session-id. Adds no body, no personal data. */
+const tracedFetch: typeof fetch = (input, init) => {
+  const headers = new Headers(init?.headers);
+  if (!headers.has("x-request-id")) headers.set("x-request-id", crypto.randomUUID());
+  headers.set("x-session-id", SESSION_ID);
+  return fetch(input, { ...init, headers });
+};
+
 export function createGoogleClient() {
   const base = createClient<Database>(POSTGREST_URL, 'postgrest-needs-no-api-key', {
     // Supplying accessToken tells supabase-js that something else owns the
@@ -57,9 +76,12 @@ export function createGoogleClient() {
   // <url>/functions/v1/<name>, and the router accepts that path as well as the
   // bare /<name>, so nothing here needs rewriting. The same session token goes
   // with the call: the functions verify it against the secret they already hold.
+  // Every call to a function carries a request id (one per call) and a session id (one per
+  // browser tab), so one student action can be found in the server logs by searching that id.
+  // The functions accept both headers (CORS) and write them into every log line.
   const functionsClient = createClient<Database>(FUNCTIONS_URL, 'functions-need-no-api-key', {
     accessToken: async () => (await currentAccessToken()) ?? '',
-    global: { fetch },
+    global: { fetch: tracedFetch },
   });
 
   return new Proxy(base, {

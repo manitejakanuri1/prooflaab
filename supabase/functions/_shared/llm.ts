@@ -13,6 +13,7 @@
 
 import { checkRateLimit, RateLimitError } from './rate-limit.ts';
 import { logSecurityEvent } from './audit.ts';
+import { als } from './log.ts';
 
 interface GenOptions {
   temperature?: number;
@@ -105,6 +106,7 @@ export async function logUsage(
         completion_tokens: result.usage.completion_tokens,
         total_tokens: result.usage.total_tokens,
         truncated: result.truncated,
+        request_id: als.getStore()?.request_id ?? null,
       }),
     });
   } catch (err) {

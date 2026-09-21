@@ -41,6 +41,11 @@ interface Profile {
   error?: string;
 }
 
+interface LearningPath {
+  slug: string; name: string; emoji: string;
+  topics_total: number; topics_done: number; steps_done: number; last_active: string | null;
+}
+
 interface Props {
   studentId: string | null;
   onClose: () => void;
@@ -77,18 +82,21 @@ const EVENT_LABEL: Record<string, string> = {
 const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props) => {
   const { toast } = useToast();
   const [data, setData] = useState<Profile | null>(null);
+  const [paths, setPaths] = useState<LearningPath[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     if (!studentId) return;
-    setData(null); setError(null);
+    setData(null); setError(null); setPaths([]);
     const { data: res, error: err } = await supabase.rpc(
       "tpo_student_profile" as never, { _student_id: studentId } as never);
     if (err) { setError(err.message); return; }
     const p = res as unknown as Profile;
     if (p?.error) { setError(p.error); return; }
     setData(p);
+    const { data: lp } = await supabase.rpc("tpo_student_learning" as never, { _student_id: studentId } as never);
+    setPaths(Array.isArray(lp) ? (lp as unknown as LearningPath[]) : []);
   }, [studentId]);
 
   useEffect(() => { void load(); }, [load]);
@@ -236,6 +244,30 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                         {s.status.replace("_", " ")}
                       </span>
                     </Badge>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
+              <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                Learning paths
+              </h4>
+              {paths.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Has not opened a learning path yet.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {paths.map((lp) => (
+                    <div key={lp.slug} className="flex items-center gap-3 text-sm py-1.5 border-b last:border-b-0">
+                      <span>{lp.emoji}</span>
+                      <p className="truncate">{lp.name}</p>
+                      <div className="ml-auto flex items-center gap-3">
+                        <span className="font-mono text-xs tabular-nums">{lp.topics_done}/{lp.topics_total} topics</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {lp.last_active ? format(new Date(lp.last_active), "d MMM") : "not started"}
+                        </span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

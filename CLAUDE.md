@@ -122,3 +122,9 @@ The owner is not a developer.
 - Admin: Platform -> Student Trace (timeline per student, funnels, top errors, slowest calls). Funnel steps are fixed in `admin_trace_funnels` (function name -> step label).
 - `client-log` is quiet in server logs (only failures and slow calls). It records students only; other roles get a 204.
 - At 1 lakh students move the trail to BigQuery / sample normal events: about 10 million rows a day is too much for the main database.
+
+## Alerts and uptime checks (22 Sep 2026)
+- `python scripts/setup_monitoring.py [email]` creates (idempotent, by display name) one email channel, 4 uptime checks (site, functions `/ready` with `"ok":true`, API, voice `/ready`) and 19 alert policies named `[P1] ...` (urgent) and `[P2] ...` (look today): uptime down x4, Cloud Run 5xx, slow p95, voice/code busy (429/503), voice/code 5xx, login 4xx spike, container CPU/memory, database down / CPU / disk / memory / connections, scheduler job failed, crawler failed, AI providers failing.
+- Alerts go to the email channel "ProofLab alerts (<email>)" - by default the gcloud account (`deploy.openfloor@gmail.com`). Add more people with `python scripts/setup_monitoring.py other@x.com` (creates another channel) and attach it to the policies in the console.
+- A temporary policy `[TEST] alert pipeline check (delete me)` fires on any ERROR log named `alert-test`: `gcloud logging write alert-test "test" --severity=ERROR`. Delete it once delivery is confirmed.
+- Not yet: billing budget alerts (needs billing admin), "daily tasks not created by 06:00" and "Sunday scoring did not run" (need a small database check), deploy-failed alert, queue backlog alerts (no queues yet), database connection limit is a guess (40) until the real limit is known.

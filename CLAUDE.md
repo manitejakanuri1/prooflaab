@@ -115,3 +115,10 @@ The owner is not a developer.
 - `llm_usage.request_id` links each AI call to the request that caused it.
 - Find one action: Logs Explorer, `jsonPayload.request_id="<id>"`. Errors are grouped in Error Reporting (API enabled). Database Query Insights is on.
 - Not done yet: alerts and uptime checks (Phase 5), the `app_events` step trail and admin Student Trace page (Phases 3-4).
+
+## Student step trail (21 Sep 2026, functions v35, migration 37)
+- Table `app_events` (90 days; RLS on, no policy; written only by the `client-log` function, read only through `admin_trace_search/student/funnels/errors/slow`, which refuse non-admins). Pruned daily by Cloud Scheduler `prooflab-prune-events` (03:10 IST -> `scheduled-job?job=prune-events` -> `prune_app_events()`).
+- Browser: `src/lib/tracker.ts` (queue, batches of up to 50 every 5 s, sent to `client-log`), `TrackerBridge` (on only for logged-in students under `/student`), call timings from `client.ts` (`setCallObserver`: all function calls; table calls only when failed or over 1.5 s). Records pages, button labels (50 chars), calls, errors. Never typed text, answers, resume text or voice.
+- Admin: Platform -> Student Trace (timeline per student, funnels, top errors, slowest calls). Funnel steps are fixed in `admin_trace_funnels` (function name -> step label).
+- `client-log` is quiet in server logs (only failures and slow calls). It records students only; other roles get a 204.
+- At 1 lakh students move the trail to BigQuery / sample normal events: about 10 million rows a day is too much for the main database.

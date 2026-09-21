@@ -25,6 +25,7 @@ import time
 import urllib.robotparser as robotparser
 from urllib.parse import urlparse
 
+import httpx
 import trafilatura
 from dotenv import load_dotenv
 from markdownify import markdownify
@@ -42,15 +43,40 @@ MIN_TEXT_CHARS = 200
 db = Database()
 
 
+ROBOTS_TIMEOUT = 15
+_robots: dict[str, "robotparser.RobotFileParser | bool"] = {}
+
+
 def robots_allows(url: str) -> bool:
+    """May our crawler read this page, according to the site's robots.txt?
+
+    Asked with our own name, with a time limit. urllib's RobotFileParser.read() has no time
+    limit: Naukri's server holds that connection open, and the weekly job sat there for 30
+    minutes. A site that refuses our name (403), errors (5xx) or does not answer in time is
+    skipped this week: better a skipped page than reading around a block. Only a missing
+    robots.txt (404/410) means "no rules".
+    """
     parsed = urlparse(url)
-    rp = robotparser.RobotFileParser()
-    rp.set_url(f"{parsed.scheme}://{parsed.netloc}/robots.txt")
-    try:
-        rp.read()
-    except Exception:
-        return True  # no robots.txt reachable -> not blocked
-    return rp.can_fetch(USER_AGENT, url)
+    host = f"{parsed.scheme}://{parsed.netloc}"
+    if host not in _robots:
+        try:
+            r = httpx.get(f"{host}/robots.txt", headers={"User-Agent": USER_AGENT},
+                          timeout=ROBOTS_TIMEOUT, follow_redirects=True)
+        except Exception:
+            _robots[host] = False
+        else:
+            if r.status_code in (404, 410):
+                _robots[host] = True
+            elif r.status_code != 200:
+                _robots[host] = False
+            else:
+                rp = robotparser.RobotFileParser()
+                rp.parse(r.text.splitlines())
+                _robots[host] = rp
+    rules = _robots[host]
+    if isinstance(rules, bool):
+        return rules
+    return rules.can_fetch(USER_AGENT, url)
 
 
 def to_markdown(content: str, kind: str) -> str:

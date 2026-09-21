@@ -2,6 +2,7 @@ import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
 import { explainTask } from "../_shared/explain.ts";
+import { pageExcerpt } from "../_shared/excerpt.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
 
 /**
@@ -220,7 +221,7 @@ serve(async (req) => {
           kind: 'content',
           title: contentTitle,
           origin: content.submitted_by_college_id ? 'college' : 'web',
-          excerpt: String(content.markdown ?? '').slice(0, 800),
+          excerpt: pageExcerpt(String(content.markdown ?? '')),
         };
 
     // stage76: a real, hand-checked signal beats the keyword guess whenever
@@ -229,7 +230,7 @@ serve(async (req) => {
     const gradingMode: AutoConfigMode =
       content.grading_mode_hint === 'sandbox' || content.grading_mode_hint === 'rubric'
         ? content.grading_mode_hint
-        : guessGradingMode(contentTitle, String(content.markdown ?? ''));
+        : guessGradingMode(contentTitle, pageExcerpt(String(content.markdown ?? '')));
 
     const genResult = await generateGradedConfig({
       db: supabase,

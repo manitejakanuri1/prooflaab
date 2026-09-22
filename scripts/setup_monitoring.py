@@ -188,6 +188,9 @@ policy("P1", "Daily tasks were not created", log_match("daily-lots made 0 tasks"
 policy("P1", "Sunday scoring did not run", log_match("weekly-seasons scored 0 rows",
        f'{RUN} resource.labels.service_name="prooflab-functions" jsonPayload.message:"JOB SANITY: weekly-seasons"'),
        "The Sunday 23:30 IST job ran without error but wrote 0 `student_weekly_scores` rows, though seasons are active. Squad standings will be wrong for the week. Check `run_all_seasons`.", True)
+policy("P1", "Bug finder found a broken step", log_match("bug finder run failed",
+       'resource.type="cloud_run_job" resource.labels.job_name="prooflab-bug-finder" jsonPayload.message:"BUG FINDER RUN FAILED"'),
+       "The robot that uses the live app like a student found a broken step (runs every 6 hours). Open Admin -> Platform -> Bug Finder to see exactly which step and why.", True)
 
 policies = existing("alertPolicies")
 made = 0

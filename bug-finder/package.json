@@ -1,0 +1,8 @@
+{
+  "name": "prooflab-bug-finder",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright": "1.47.0"
+  }
+}

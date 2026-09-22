@@ -21,6 +21,7 @@ import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
 import ContentLibrary from "@/components/dashboard/admin/ContentLibrary";
 import StudentTrace from "@/components/dashboard/admin/StudentTrace";
+import BugFinder from "@/components/dashboard/admin/BugFinder";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groupOf } from "@/components/dashboard/admin/adminNav";
 
@@ -101,6 +102,8 @@ const AdminDashboard = () => {
         return <SecurityEvents />;
       case "student-trace":
         return <StudentTrace />;
+      case "bug-finder":
+        return <BugFinder />;
       case "xp-moderation":
         return <TrustXPModeration />;
       case "college-oversight":

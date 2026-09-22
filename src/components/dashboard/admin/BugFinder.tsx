@@ -57,17 +57,20 @@ const BugFinder = () => {
           <Card>
             <CardHeader><CardTitle className="text-sm">Runs</CardTitle></CardHeader>
             <CardContent className="space-y-1">
-              {runs.map((r) => (
-                <button key={r.run_id} type="button" onClick={() => openRun(r.run_id)}
-                  className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted ${open === r.run_id ? "border-primary bg-muted" : ""}`}>
-                  <div className="flex items-center gap-2">
-                    {r.failed_steps.length === 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-destructive" />}
-                    <span className="font-medium">{format(new Date(r.started_at), "d MMM HH:mm")}</span>
-                    <span className="ml-auto font-mono text-xs text-muted-foreground">{r.passed}/{r.total}</span>
-                  </div>
-                  {r.failed_steps.length > 0 && <div className="mt-1 text-xs text-destructive">{r.failed_steps.join(", ")}</div>}
-                </button>
-              ))}
+              {runs.map((r) => {
+                const failed = r.failed_steps ?? [];        // the database sends null, not [], when nothing failed
+                return (
+                  <button key={r.run_id} type="button" onClick={() => openRun(r.run_id)}
+                    className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted ${open === r.run_id ? "border-primary bg-muted" : ""}`}>
+                    <div className="flex items-center gap-2">
+                      {failed.length === 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-destructive" />}
+                      <span className="font-medium">{format(new Date(r.started_at), "d MMM HH:mm")}</span>
+                      <span className="ml-auto font-mono text-xs text-muted-foreground">{r.passed}/{r.total}</span>
+                    </div>
+                    {failed.length > 0 && <div className="mt-1 text-xs text-destructive">{failed.join(", ")}</div>}
+                  </button>
+                );
+              })}
             </CardContent>
           </Card>
           <Card>

@@ -55,24 +55,31 @@ UPTIME = [
     ("ProofLab code runner ready", "prooflab-code-runner-ysn2mpe6sa-el.a.run.app", "/ready", None, None),
     # These two run an older image with no /ready route: an unknown path answers 404 with this body.
     # A dead container gives a different failure (timeout/503), so 404-with-this-body still proves it is up.
-    ("ProofLab login bridge answering", "prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app", "/__uptime", '"error":"not found"', "4xx"),
-    ("ProofLab files service answering", "prooflab-files-ysn2mpe6sa-el.a.run.app", "/__uptime", '"error":"not found"', "4xx"),
+    # Google's own edge intercepts /healthz on a bare Cloud Run URL and returns ITS OWN 404 page
+    # before the request ever reaches the container (confirmed: identical on old and new images,
+    # so it is not our code). "/" is not reserved and reliably returns our app's own 404 JSON, which
+    # proves the container answered (a dead container times out or gives a different error).
+    ("ProofLab login bridge answering", "prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app", "/", '"error":"not found"', "4xx"),
+    ("ProofLab files service answering", "prooflab-files-ysn2mpe6sa-el.a.run.app", "/", '"error":"not found"', "4xx"),
 ]
 checks = existing("uptimeCheckConfigs")
 check_ids = {}
 for dn, host, path, match, status_class in UPTIME:
+    body = {
+        "displayName": dn,
+        "monitoredResource": {"type": "uptime_url", "labels": {"project_id": P, "host": host}},
+        "httpCheck": {"path": path, "port": 443, "useSsl": True, "validateSsl": True, "requestMethod": "GET",
+                      "acceptedResponseStatusCodes": [{"statusClass": f"STATUS_CLASS_{status_class or '2XX'}"}]},
+        "period": "60s", "timeout": "10s",
+    }
+    if match:
+        body["contentMatchers"] = [{"content": match, "matcher": "CONTAINS_STRING"}]
     if dn not in checks:
-        body = {
-            "displayName": dn,
-            "monitoredResource": {"type": "uptime_url", "labels": {"project_id": P, "host": host}},
-            "httpCheck": {"path": path, "port": 443, "useSsl": True, "validateSsl": True, "requestMethod": "GET",
-                          "acceptedResponseStatusCodes": [{"statusClass": f"STATUS_CLASS_{status_class or '2XX'}"}]},
-            "period": "60s", "timeout": "10s",
-        }
-        if match:
-            body["contentMatchers"] = [{"content": match, "matcher": "CONTAINS_STRING"}]
         checks[dn] = api("POST", f"{BASE}/uptimeCheckConfigs", body)
         print("created uptime check", dn)
+    elif checks[dn].get("httpCheck", {}).get("path") != path:
+        checks[dn] = api("PATCH", f"https://monitoring.googleapis.com/v3/{checks[dn]['name']}?updateMask=httpCheck,period,timeout", {**body, "name": checks[dn]["name"]})
+        print("updated uptime check", dn, "-> path", path)
     check_ids[dn] = checks[dn]["name"].split("/")[-1]
 
 

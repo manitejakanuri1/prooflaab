@@ -47,20 +47,26 @@ print("channel", name, "| verification:", channels[name].get("verificationStatus
 
 # ---------------------------------------------------------------- uptime checks
 UPTIME = [
-    ("ProofLab site", "prooflab.co.in", "/", None),
-    ("ProofLab functions ready (all 38 loaded)", "prooflab-functions-ysn2mpe6sa-el.a.run.app", "/ready", '"ok":true'),
-    ("ProofLab API (PostgREST)", "prooflab-api-ysn2mpe6sa-el.a.run.app", "/", None),
-    ("ProofLab voice service ready", "prooflab-transcriber-135298577404.asia-south1.run.app", "/ready", None),
+    ("ProofLab site", "prooflab.co.in", "/", None, None),
+    ("ProofLab functions ready (all 38 loaded)", "prooflab-functions-ysn2mpe6sa-el.a.run.app", "/ready", '"ok":true', None),
+    ("ProofLab API (PostgREST)", "prooflab-api-ysn2mpe6sa-el.a.run.app", "/", None, None),
+    ("ProofLab voice service ready", "prooflab-transcriber-ysn2mpe6sa-el.a.run.app", "/ready", None, None),
+    ("ProofLab accounts service ready", "prooflab-accounts-ysn2mpe6sa-el.a.run.app", "/ready", None, None),
+    ("ProofLab code runner ready", "prooflab-code-runner-ysn2mpe6sa-el.a.run.app", "/ready", None, None),
+    # These two run an older image with no /ready route: an unknown path answers 404 with this body.
+    # A dead container gives a different failure (timeout/503), so 404-with-this-body still proves it is up.
+    ("ProofLab login bridge answering", "prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app", "/__uptime", '"error":"not found"', "4xx"),
+    ("ProofLab files service answering", "prooflab-files-ysn2mpe6sa-el.a.run.app", "/__uptime", '"error":"not found"', "4xx"),
 ]
 checks = existing("uptimeCheckConfigs")
 check_ids = {}
-for dn, host, path, match in UPTIME:
+for dn, host, path, match, status_class in UPTIME:
     if dn not in checks:
         body = {
             "displayName": dn,
             "monitoredResource": {"type": "uptime_url", "labels": {"project_id": P, "host": host}},
             "httpCheck": {"path": path, "port": 443, "useSsl": True, "validateSsl": True, "requestMethod": "GET",
-                          "acceptedResponseStatusCodes": [{"statusClass": "STATUS_CLASS_2XX"}]},
+                          "acceptedResponseStatusCodes": [{"statusClass": f"STATUS_CLASS_{status_class or '2XX'}"}]},
             "period": "60s", "timeout": "10s",
         }
         if match:
@@ -169,6 +175,12 @@ policy("P2", "The weekly crawler failed", log_match("Crawler job error", 'resour
 policy("P1", "AI provider failing", log_match("AI providers exhausted or failing",
        f'{RUN} resource.labels.service_name="prooflab-functions" severity>=ERROR jsonPayload.message:"LLM providers"'),
        "Every AI provider failed or rate-limited. Resume reading, grading and roadmaps will fail. Check the DeepSeek account balance and limits.", True)
+policy("P1", "Daily tasks were not created", log_match("daily-lots made 0 tasks",
+       f'{RUN} resource.labels.service_name="prooflab-functions" jsonPayload.message:"JOB SANITY: daily-lots"'),
+       "The 05:40 IST job ran without error but created 0 tasks for today, though students were active recently. Check `assign_todays_lots` and `source_content` (does content exist to assign?).", True)
+policy("P1", "Sunday scoring did not run", log_match("weekly-seasons scored 0 rows",
+       f'{RUN} resource.labels.service_name="prooflab-functions" jsonPayload.message:"JOB SANITY: weekly-seasons"'),
+       "The Sunday 23:30 IST job ran without error but wrote 0 `student_weekly_scores` rows, though seasons are active. Squad standings will be wrong for the week. Check `run_all_seasons`.", True)
 
 policies = existing("alertPolicies")
 made = 0

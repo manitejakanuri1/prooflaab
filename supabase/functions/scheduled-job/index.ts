@@ -54,5 +54,39 @@ serve(async (req) => {
   }
 
   console.log(`scheduled-job ${job} (${fn}) ok in ${ms}ms`, JSON.stringify(data ?? null).slice(0, 500));
+
+  // The job can succeed (no thrown error) while doing nothing useful - that is exactly how this
+  // broke before Cloud Scheduler existed (see the comment at the top). These checks catch that:
+  // a distinct log line, watched by its own alert, rather than folding into the job's own success/fail.
+  await sanityCheck(db, job, data).catch((e) => console.error(`scheduled-job ${job}: sanity check itself failed:`, e));
+
   return reply({ ok: true, job, ms, result: data ?? null });
 });
+
+/**
+ * A job can return ok (no thrown error) while doing nothing useful - that is exactly how this broke
+ * before Cloud Scheduler existed (see the comment at the top). daily-lots: check the real table, since
+ * "0 created" is only wrong when nobody already has today's task. weekly-seasons: trust the function's
+ * own count rather than re-deriving it - a rerun that finds everyone already scored also legitimately
+ * writes 0 new rows, and re-guessing that from a timestamp window produced a false alarm in testing.
+ */
+// deno-lint-ignore no-explicit-any
+async function sanityCheck(db: any, job: string, data: any) {
+  if (job === 'daily-lots') {
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ count: active }, { count: made }] = await Promise.all([
+      db.from('student_profiles').select('id', { count: 'exact', head: true }).gte('last_active', new Date(Date.now() - 14 * 86400_000).toISOString()),
+      db.from('tasks').select('id', { count: 'exact', head: true }).eq('lot_date', today),
+    ]);
+    if ((active ?? 0) > 0 && (made ?? 0) === 0) {
+      console.error(`JOB SANITY: daily-lots ran but ${today} has 0 tasks in total (new or existing), though ${active} students were active in the last 14 days.`);
+    }
+  }
+  if (job === 'weekly-seasons') {
+    const seasons = Number(data?.seasons_scored ?? 0) + Number(data?.seasons_closed ?? 0) + Number(data?.seasons_advanced ?? 0);
+    const { count: active } = await db.from('seasons').select('id', { count: 'exact', head: true }).eq('status', 'active');
+    if ((active ?? 0) > 0 && seasons === 0) {
+      console.error(`JOB SANITY: weekly-seasons ran but scored/closed/advanced 0 seasons, though ${active} seasons are active.`);
+    }
+  }
+}

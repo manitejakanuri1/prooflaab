@@ -23,6 +23,21 @@
 -- a NOT EXISTS check can lose that race, a unique index cannot. Other
 -- notification types are untouched: the index only applies where a caller
 -- sets dedupe_key, via the partial WHERE clause.
+--
+-- Deployment-safety fix (found in staging before this ever touched
+-- production): a real production database already has weekly_progress
+-- notifications sent before this column existed, with dedupe_key = NULL.
+-- The unique index only catches a NEW row colliding with another row that
+-- also HAS a dedupe_key - it does nothing against a legacy NULL row, since
+-- NULL never equals NULL for uniqueness purposes. Reproduced in staging: a
+-- legacy row for an already-notified week, then a first run of the fixed
+-- function, produced a second notification for that same week. Fixed with
+-- one extra guard that only matters during the rollout window: skip a week
+-- that already has a legacy (dedupe_key is null) notification whose message
+-- names that same week - the old message format always starts with
+-- 'Week <n>:', which is exactly what a legacy row for that week looks like.
+-- This guard is harmless once every week has a real dedupe_key; the unique
+-- index remains the permanent mechanism for everything created from here on.
 begin;
 
 alter table public.notifications add column if not exists dedupe_key text;
@@ -58,6 +73,13 @@ begin
    where w.week = (select max(w2.week) from public.student_weekly_scores w2 where w2.season_id = w.season_id)
      and w.computed_at >= now() - interval '2 hours'
      and w.points > 0
+     and not exists (
+       select 1 from public.notifications legacy
+        where legacy.user_id = w.student_id
+          and legacy.type = 'weekly_progress'
+          and legacy.dedupe_key is null
+          and legacy.message like 'Week ' || w.week || ':%'
+     )
   on conflict (user_id, type, dedupe_key) where dedupe_key is not null do nothing;
   get diagnostics n = row_count;
   return n;

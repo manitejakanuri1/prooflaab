@@ -42,6 +42,12 @@ create table if not exists auth.users (
 -- Re-runnable: adds the columns to a table an earlier version of this file made.
 alter table auth.users add column if not exists raw_user_meta_data jsonb not null default '{}'::jsonb;
 alter table auth.users add column if not exists last_sign_in_at    timestamptz;
+-- resolve_account() (called by auth-bridge on every login) writes and reads
+-- this column. Missing it doesn't fail loudly at bootstrap time - it fails
+-- later, the first time someone actually logs in, as "could not establish
+-- your account". Found by rebuilding staging from this file and testing a
+-- real login end to end, not by reading resolve_account's definition alone.
+alter table auth.users add column if not exists email_confirmed_at timestamptz;
 
 comment on table auth.users is
   'Stand-in for Supabase auth.users. Rows mirror the Cognito user pool: the id
@@ -158,3 +164,36 @@ begin
 
   raise notice 'compat layer OK: auth.uid(), auth.role(), auth.email() all behave';
 end $$;
+
+-- ── 5. the connecting user's own membership in those roles ──────────────────
+-- Section 2 created anon/authenticated/service_role, but never made the
+-- database user PostgREST actually connects as (here, "postgres") a MEMBER of
+-- them. Without this, every request fails at the first step with
+-- 'permission denied to set role "authenticated"' - PostgREST does `SET ROLE`
+-- after connecting, and Postgres only allows that to a role you belong to
+-- (Cloud SQL's "postgres" is not a true superuser, so it does not get the
+-- superuser bypass a self-hosted Postgres would). On a fresh install this
+-- membership already exists because the original setup granted it once by
+-- hand; a database rebuilt from a schema-only copy of this one does not carry
+-- it, because role membership is a property of the cluster, not of any one
+-- database, so pg_dump never includes it.
+grant anon, authenticated, service_role to postgres;
+
+-- ── 6. baseline table/sequence/routine privileges ───────────────────────────
+-- The 145 RLS policies decide which ROWS anon/authenticated/service_role may
+-- touch. They say nothing about whether the OPERATION is allowed at all -
+-- that base permission is a separate, coarser grant, and on the real project
+-- it was set up once through Supabase's own project bootstrap, never as a
+-- line in any of our migrations. A schema-only dump of this database does not
+-- carry it either. Without it, every query fails with something like
+-- 'permission denied for table tasks', even though the matching RLS policy
+-- would have allowed the row. This does not widen who can see what: it
+-- matches Supabase's own long-standing default for a fresh project, and the
+-- 145 policies remain the real access control on top of it.
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to anon, authenticated, service_role;
+grant all on all sequences in schema public to anon, authenticated, service_role;
+grant all on all routines in schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on routines to anon, authenticated, service_role;

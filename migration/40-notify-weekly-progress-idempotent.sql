@@ -38,6 +38,17 @@
 -- 'Week <n>:', which is exactly what a legacy row for that week looks like.
 -- This guard is harmless once every week has a real dedupe_key; the unique
 -- index remains the permanent mechanism for everything created from here on.
+--
+-- Cross-season fix: the message-text guard above matched on week number
+-- alone ("Week 4:"), with no season. Reproduced in staging: Season A's old
+-- week-4 notification wrongly blocked Season B's genuinely new week-4
+-- notification for the same student. A legacy row has no season_id column,
+-- but it does have a real created_at from when it was actually sent - which
+-- falls inside THAT season's own week-4 date window
+-- (season_week_start(season_id, week) for 7 days), not some other season's.
+-- Narrowing the guard to that exact window ties a legacy row to the one
+-- season it could actually belong to, instead of any season that ever had
+-- a week with that number.
 begin;
 
 alter table public.notifications add column if not exists dedupe_key text;
@@ -79,6 +90,8 @@ begin
           and legacy.type = 'weekly_progress'
           and legacy.dedupe_key is null
           and legacy.message like 'Week ' || w.week || ':%'
+          and legacy.created_at >= public.season_week_start(w.season_id, w.week)
+          and legacy.created_at <  public.season_week_start(w.season_id, w.week) + interval '7 days'
      )
   on conflict (user_id, type, dedupe_key) where dedupe_key is not null do nothing;
   get diagnostics n = row_count;

@@ -7,12 +7,29 @@
 -- staging: two calls with the same qualifying score row produced 2 notifications
 -- instead of 1.
 --
--- Fix: add one more condition to the function's own existing WHERE clause, using
--- the same 2-hour window it already checks elsewhere in this function - skip a
--- student who was already sent a weekly_progress notification in that window.
--- No business rule changes: a student who has NOT been notified in the last 2
--- hours gets notified exactly as before.
+-- First fix (superseded below): a 2-hour time-window check. Replaced because a
+-- time window is the wrong shape for this - it would also block a genuinely
+-- different week's notification if it happened to fall within 2 hours of
+-- another, and it would NOT block a duplicate if the same week's score was
+-- recomputed hours later (exactly the case that matters: scoring reruns,
+-- weekly_progress reruns, same week - a time window has already expired by
+-- then and does nothing).
+--
+-- Durable fix: one weekly_progress notification per (student, season, week),
+-- forever, regardless of when it's sent - a permanent business key, not a
+-- clock. `notifications.dedupe_key` + a partial unique index on
+-- (user_id, type, dedupe_key) enforces this at the database level, so even a
+-- genuine race (two calls at the exact same instant) can't create two rows -
+-- a NOT EXISTS check can lose that race, a unique index cannot. Other
+-- notification types are untouched: the index only applies where a caller
+-- sets dedupe_key, via the partial WHERE clause.
 begin;
+
+alter table public.notifications add column if not exists dedupe_key text;
+
+create unique index if not exists notifications_user_type_dedupe_key_uniq
+  on public.notifications (user_id, type, dedupe_key)
+  where dedupe_key is not null;
 
 create or replace function public.notify_weekly_progress()
 returns integer
@@ -22,7 +39,7 @@ set search_path to 'public', 'pg_temp'
 as $function$
 declare n integer;
 begin
-  insert into public.notifications (user_id, audience, source, type, title, message, link)
+  insert into public.notifications (user_id, audience, source, type, title, message, link, dedupe_key)
   select w.student_id, 'student', 'system', 'weekly_progress',
          case when prev.points is null or w.points >= prev.points
               then 'Your week: ' || w.points || ' points'
@@ -33,19 +50,15 @@ begin
                      || (w.points - prev.points) || ' vs last week'
                 else '' end ||
            '. Open your season report for where it came from.',
-         '/student/dashboard'
+         '/student/dashboard',
+         'weekly_progress:' || w.season_id || ':' || w.week
     from public.student_weekly_scores w
     left join public.student_weekly_scores prev
       on prev.student_id = w.student_id and prev.season_id = w.season_id and prev.week = w.week - 1
    where w.week = (select max(w2.week) from public.student_weekly_scores w2 where w2.season_id = w.season_id)
      and w.computed_at >= now() - interval '2 hours'
      and w.points > 0
-     and not exists (
-       select 1 from public.notifications existing
-        where existing.user_id = w.student_id
-          and existing.type = 'weekly_progress'
-          and existing.created_at >= now() - interval '2 hours'
-     );
+  on conflict (user_id, type, dedupe_key) where dedupe_key is not null do nothing;
   get diagnostics n = row_count;
   return n;
 end $function$;

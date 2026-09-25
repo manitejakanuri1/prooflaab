@@ -56,7 +56,7 @@ serve(async (req) => {
 
     const { data: rec } = await supabase
       .from('voice_explanations')
-      .select('id, student_id, transcript, duration_seconds, word_count, task_id')
+      .select('id, student_id, transcript, duration_seconds, word_count, task_id, communication_score, communication_notes')
       .eq('id', voice_id)
       .maybeSingle();
     if (!rec) return json({ error: 'Recording not found' }, 404);
@@ -67,6 +67,15 @@ serve(async (req) => {
         .update({ status: 'failed', communication_notes: 'Too little speech to score.' })
         .eq('id', voice_id);
       return json({ success: false, reason: 'transcript too short' });
+    }
+
+    // Step 6F: an atomic claim, not a read-then-write - two concurrent calls
+    // for the same recording (two tabs, or a retry racing a reopen) can
+    // never both pass this. The loser skips DeepSeek entirely and hands
+    // back whatever score already exists rather than grading twice.
+    const { data: claimed } = await supabase.rpc('claim_voice_scoring', { _id: voice_id });
+    if (!claimed) {
+      return json({ success: true, communication_score: rec.communication_score, notes: rec.communication_notes });
     }
 
     // What they were asked to explain, so the grader can tell whether the
@@ -117,7 +126,10 @@ Return ONLY JSON:
     } catch (e) {
       console.error('voice-score: could not grade', e);
       await supabase.from('voice_explanations')
-        .update({ status: 'failed', communication_notes: 'Scoring failed. A person can still listen to this.' })
+        // Releases the claim (scoring_claimed_at) in the same write, so a
+        // prompt retry - a reopened modal - does not have to wait out the
+        // claim's TTL just because this attempt failed.
+        .update({ status: 'failed', communication_notes: 'Scoring failed. A person can still listen to this.', scoring_claimed_at: null })
         .eq('id', voice_id);
       return json({ error: 'Scoring failed' }, 502);
     }

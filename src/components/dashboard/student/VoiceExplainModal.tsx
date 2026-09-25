@@ -181,10 +181,19 @@ const VoiceExplainModal = ({
 
     if (status === "completed") {
       stopPolling();
-      writeStoredJob(null);
       const transcript = row.transcript ?? "";
       const words = row.word_count ?? 0;
       const scored = await attemptScoring(voiceId, row.status === "scored", words);
+      // Step 6F: only stop tracking this job once scoring is actually
+      // resolved (already scored, this attempt just scored it, or scoring
+      // never applies at all - too few words). If DeepSeek is still down,
+      // the marker stays, so a reopen genuinely retries scoring against
+      // the same transcript instead of doing nothing forever - the earlier
+      // version cleared this unconditionally the moment transcription
+      // finished, which left a failed score stuck with no way to recover
+      // short of a fresh network call typed into a console.
+      const scoringResolved = row.status === "scored" || scored.score != null || words < MIN_WORDS;
+      if (scoringResolved) writeStoredJob(null);
       setSavedResult((prev) => ({
         transcript,
         segments: (row.transcript_segments as TranscriptSegment[] | null) ?? [],

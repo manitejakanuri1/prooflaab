@@ -97,6 +97,29 @@ serve(async (req) => {
       .from("student_profiles").select("id").eq("user_id", callerId).maybeSingle();
     if (!profile) return json({ error: "Student profile not found" }, 404);
 
+    // (Step 6B) storage_path names an object inside the student's OWN folder
+    // (files-service enforces this exact "<uid>/<file>" shape for a real
+    // upload - matching it here rather than trusting the client's claim,
+    // since this is the only thing standing between a caller and enqueueing
+    // someone else's audio under their own name).
+    if (!storage_path.startsWith(`${profile.id}/`)) {
+      return json({ error: "storage_path does not belong to you" }, 403);
+    }
+
+    // (Step 6B) task_id/proof_id, if given, must also belong to this student -
+    // otherwise a completed transcript could be attached to someone else's
+    // task or proof.
+    if (task_id) {
+      const { data: task } = await supabase.from("tasks")
+        .select("id").eq("id", task_id).eq("student_id", profile.id).maybeSingle();
+      if (!task) return json({ error: "task_id does not belong to you" }, 403);
+    }
+    if (proof_id) {
+      const { data: proof } = await supabase.from("proof_uploads")
+        .select("id").eq("id", proof_id).eq("student_id", profile.id).maybeSingle();
+      if (!proof) return json({ error: "proof_id does not belong to you" }, 403);
+    }
+
     const { data: inserted } = await supabase.from("voice_explanations").insert({
       student_id: profile.id,
       task_id: task_id ?? null,
@@ -112,9 +135,17 @@ serve(async (req) => {
     let voiceId: string | undefined = inserted?.id;
     if (!voiceId) {
       // A retried enqueue call with the same key: the row already exists,
-      // reuse it rather than erroring or creating a duplicate.
+      // reuse it rather than erroring or creating a duplicate. Scoped to
+      // THIS student (Step 6B) - a key collision with a row that belongs to
+      // someone else is a rejection, never a silent handoff of their job,
+      // and the existing row's storage_path is never touched here even if
+      // this retry supplied a different one.
       const { data: existing } = await supabase.from("voice_explanations")
-        .select("id").eq("transcription_idempotency_key", idempotency_key).maybeSingle();
+        .select("id, student_id")
+        .eq("transcription_idempotency_key", idempotency_key).maybeSingle();
+      if (existing && existing.student_id !== profile.id) {
+        return json({ error: "idempotency_key is already in use" }, 403);
+      }
       voiceId = existing?.id;
     }
     if (!voiceId) return json({ error: "Could not create or find the recording" }, 500);

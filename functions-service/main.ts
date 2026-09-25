@@ -35,7 +35,7 @@ const SLUGS = [
   'resume-retest-generate', 'run-code', 'run-sandbox', 'security-log',
   'scheduled-job', 'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
   'submit-written-task', 'task-explain', 'trust-compute',
-  'verify-proof', 'voice-score', 'client-log', 'transcription-enqueue',
+  'verify-proof', 'voice-score', 'client-log', 'transcription-enqueue', 'transcription-reap',
 ];
 
 const handlers = new Map<string, Handler>();

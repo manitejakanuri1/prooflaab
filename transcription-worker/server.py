@@ -7,9 +7,19 @@ service account may call it).
 
 Idempotency lives in the database, not here: claim_transcription_job() only
 lets one live attempt hold a row at a time, and a stale claim (worker crashed
-mid-job) expires on its own after STALE_AFTER_SECONDS so a retry can pick it
-back up. A duplicate delivery of the same task finds nothing to claim and
-returns success having done nothing twice.
+mid-job) expires on its own after STALE_AFTER_SECONDS. A duplicate delivery of
+the same task finds nothing to claim and returns success having done nothing
+twice. A lease token (returned by the claim, required by complete/fail) means
+a call from an attempt that turned out to be stale - not dead, just slow -
+can never overwrite what a newer attempt already saved.
+
+STALE_AFTER_SECONDS (180s) is deliberately longer than this queue's own retry
+window (3 attempts, 5-30s backoff exhausts in well under a minute) - a
+genuinely crashed worker's claim outlives every Cloud Tasks retry attempt, so
+Cloud Tasks alone cannot rediscover it. transcription-reap (a separate,
+staging-only function) is what actually recovers a crashed job: it finds rows
+stale past this same window and re-enqueues them, independent of whatever is
+left of the original task's retry budget.
 
 Reuses the EXISTING faster-whisper service (prooflab-staging-transcriber) for
 the actual transcription - this worker does not run Whisper itself, it only
@@ -42,22 +52,24 @@ def b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
 
-def service_token(ttl: int = 300) -> str:
+def mint_token(role: str, ttl: int = 300) -> str:
     """A short-lived, self-issued token this service is trusted to hold - the
     same HS256 scheme every other internal call in this project already uses.
-    role=authenticated (not service_role) because that is what the existing
-    prooflab-staging-transcriber already accepts, unchanged."""
+    Two different roles are minted on purpose: claim/complete/fail_transcription_job
+    are now service_role-only (Step 6B - they used to also accept `authenticated`,
+    which let any signed-in student call them directly), while the existing
+    prooflab-staging-transcriber is unchanged and still only accepts `authenticated`."""
     now = int(time.time())
     header = b64url(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
     payload = b64url(json.dumps({
-        "role": "authenticated", "sub": "transcription-worker", "iat": now, "exp": now + ttl,
+        "role": role, "sub": "transcription-worker", "iat": now, "exp": now + ttl,
     }).encode())
     sig = hmac.new(JWT_SECRET, f"{header}.{payload}".encode(), hashlib.sha256).digest()
     return f"{header}.{payload}.{b64url(sig)}"
 
 
 def db_rpc(name: str, args: dict):
-    token = service_token()
+    token = mint_token("service_role")
     req = urllib.request.Request(
         f"{POSTGREST_URL}/rpc/{name}",
         data=json.dumps(args).encode(),
@@ -96,7 +108,7 @@ def fetch_audio(storage_path: str) -> tuple[bytes, str]:
 
 
 def transcribe(audio: bytes, content_type: str) -> dict:
-    token = service_token()
+    token = mint_token("authenticated")
     req = urllib.request.Request(
         f"{TRANSCRIBER_URL}/transcribe", data=audio, method="POST",
         headers={"Authorization": f"Bearer {token}", "Content-Type": content_type})
@@ -146,6 +158,7 @@ class Handler(BaseHTTPRequestHandler):
 
         job = claimed[0]
         storage_path = job["storage_path"]
+        lease_token = job["lease_token"]
         try:
             if not storage_path:
                 raise ValueError("job has no storage_path")
@@ -154,14 +167,20 @@ class Handler(BaseHTTPRequestHandler):
             text = result.get("text") or ""
             segments = result.get("segments")
             words = len(text.split()) if text else 0
+            # The lease token must match: if a NEWER attempt already reclaimed
+            # this row (this attempt was actually stale, just slow to finish
+            # rather than truly dead), this call correctly does nothing rather
+            # than overwriting whatever the newer attempt already saved.
             ok = db_rpc("complete_transcription_job",
-                        {"_id": voice_id, "_transcript": text, "_segments": segments, "_word_count": words})[1]
+                        {"_id": voice_id, "_lease_token": lease_token,
+                         "_transcript": text, "_segments": segments, "_word_count": words})[1]
             print(f"WORKER: completed {voice_id} (task={task_name}, attempt={job['attempts']}) words={words} db_updated={ok}", flush=True)
             return self.reply(200, {"ok": True, "voice_id": voice_id, "words": words})
         except Exception as e:
             err = str(e)[:300]
             terminal = retry_count >= QUEUE_MAX_ATTEMPTS - 1
-            db_rpc("fail_transcription_job", {"_id": voice_id, "_error": err, "_terminal": terminal})
+            db_rpc("fail_transcription_job",
+                   {"_id": voice_id, "_lease_token": lease_token, "_error": err, "_terminal": terminal})
             print(f"WORKER: failed {voice_id} (task={task_name}, attempt={job['attempts']}, "
                   f"retry_count={retry_count}, terminal={terminal}): {err}", flush=True)
             # 500 so Cloud Tasks retries per the queue's own policy - a transient

@@ -34,9 +34,12 @@ type JobStatus = "pending" | "processing" | "completed" | "failed";
 /** What a resumable in-flight job looks like in localStorage - just enough
  * to recover it after a close/reopen or a page refresh, never the transcript
  * itself (that always comes back from the server, never from the browser's
- * own storage). */
+ * own storage). voiceId is written BEFORE the enqueue call resolves, as
+ * null - if the HTTP response never arrives (network drop after the server
+ * already created the job), a later mount still has the idempotency key and
+ * storage path to find or safely retry it. */
 interface StoredJob {
-  voiceId: string;
+  voiceId: string | null;
   idempotencyKey: string;
   storagePath: string;
 }
@@ -83,12 +86,16 @@ const VoiceExplainModal = ({
     { transcript: string; segments: TranscriptSegment[]; score: number | null; notes: string | null; audioUrl: string } | null
   >(null);
 
-  // Step 6D (async path only, see ASYNC_TRANSCRIPTION above).
+  // Step 6D/6E (async path only, see ASYNC_TRANSCRIPTION above).
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef(false);
+  // Every voiceId a scoring call is currently in flight for, so two
+  // overlapping poll ticks (or a poll tick racing the initial synchronous
+  // check) can never both invoke voice-score for the same recording.
+  const scoringInFlightRef = useRef<Set<string>>(new Set());
 
   const jobStorageKey = useCallback(
     () => `pl.voiceJob.${studentId}.${taskId ?? proofId ?? "general"}`,
@@ -116,6 +123,31 @@ const VoiceExplainModal = ({
     if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
   }, []);
 
+  /** Transcription completing and scoring completing are two different
+   * events - a recording is "done" the moment the server has a transcript,
+   * whether or not DeepSeek has graded it yet, and a scoring failure must
+   * never look like a transcription failure or force a re-record. Safe to
+   * call more than once for the same voiceId (a reopen after scoring failed
+   * the first time): it only sends anything to DeepSeek when the row's own
+   * `status` says it has not been scored yet, and the in-flight guard stops
+   * two overlapping calls (two poll ticks racing) from both firing at once. */
+  const attemptScoring = useCallback(async (
+    voiceId: string, alreadyScored: boolean, words: number,
+  ): Promise<{ score: number | null; notes: string | null }> => {
+    if (alreadyScored || words < MIN_WORDS || scoringInFlightRef.current.has(voiceId)) {
+      return { score: null, notes: null };
+    }
+    scoringInFlightRef.current.add(voiceId);
+    try {
+      const { data: scored } = await supabase.functions.invoke("voice-score", { body: { voice_id: voiceId } });
+      return { score: scored?.communication_score ?? null, notes: scored?.notes ?? null };
+    } catch {
+      return { score: null, notes: null }; // scoring failed; the transcript is still saved and shown
+    } finally {
+      scoringInFlightRef.current.delete(voiceId);
+    }
+  }, []);
+
   /** One check of the job's current row, shared by the poll loop and by a
    * reopened modal's first look - both need the exact same "what do I show
    * right now" logic. Reads only this student's own row (RLS scopes every
@@ -125,7 +157,7 @@ const VoiceExplainModal = ({
     // same reason the sync insert below already casts transcript_segments.
     const { data: row, error } = await supabase
       .from("voice_explanations")
-      .select("id, transcription_status, transcript, transcript_segments, word_count, transcription_error")
+      .select("id, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes")
       .eq("id", voiceId)
       .maybeSingle()
       .then((r) => r as unknown as {
@@ -136,6 +168,9 @@ const VoiceExplainModal = ({
           transcript_segments: TranscriptSegment[] | null;
           word_count: number | null;
           transcription_error: string | null;
+          status: string | null;
+          communication_score: number | null;
+          communication_notes: string | null;
         } | null;
         error: unknown;
       });
@@ -149,21 +184,12 @@ const VoiceExplainModal = ({
       writeStoredJob(null);
       const transcript = row.transcript ?? "";
       const words = row.word_count ?? 0;
-      let score: number | null = null;
-      let notes: string | null = null;
-      // Never graded before the transcript exists - status only reaches
-      // 'completed' once the worker has written it back (migration 42's
-      // complete_transcription_job), so this is the earliest safe moment.
-      if (words >= MIN_WORDS) {
-        const { data: scored } = await supabase.functions.invoke("voice-score", { body: { voice_id: voiceId } });
-        score = scored?.communication_score ?? null;
-        notes = scored?.notes ?? null;
-      }
+      const scored = await attemptScoring(voiceId, row.status === "scored", words);
       setSavedResult((prev) => ({
         transcript,
         segments: (row.transcript_segments as TranscriptSegment[] | null) ?? [],
-        score,
-        notes,
+        score: scored.score ?? row.communication_score ?? null,
+        notes: scored.notes ?? row.communication_notes ?? null,
         audioUrl: prev?.audioUrl ?? "",
       }));
       setPhase("done");
@@ -174,7 +200,24 @@ const VoiceExplainModal = ({
       setJobError(row.transcription_error || "Could not transcribe this recording.");
       setPhase("error");
     }
-  }, [onSaved, stopPolling, writeStoredJob]);
+  }, [attemptScoring, onSaved, stopPolling, writeStoredJob]);
+
+  /** The recovery path for a lost enqueue response: the job may already
+   * exist under this key even though this browser never saw its id.
+   * Scoped to the caller's own rows by RLS the same as every other select
+   * here - a key can only ever belong to one student anyway (unique
+   * constraint, and transcription-enqueue itself refuses to hand out
+   * someone else's row for a colliding key), but this never even reaches
+   * the database with anyone else's identity to try. */
+  const findJobByIdempotencyKey = useCallback(async (key: string): Promise<string | null> => {
+    const { data } = await supabase
+      .from("voice_explanations")
+      .select("id")
+      .eq("transcription_idempotency_key" as "id", key)
+      .maybeSingle()
+      .then((r) => r as unknown as { data: { id: string } | null });
+    return data?.id ?? null;
+  }, []);
 
   const startPolling = useCallback((voiceId: string) => {
     stopPolling();
@@ -182,16 +225,61 @@ const VoiceExplainModal = ({
     pollTimerRef.current = setInterval(() => void checkJob(voiceId), 2500);
   }, [checkJob, stopPolling]);
 
+  /** Resume whatever this student's localStorage says is in flight - called
+   * on reopen/remount, and again right after an enqueue call whose HTTP
+   * response never arrived. A record with voiceId already known just
+   * resumes polling; one without it means the browser saw no response at
+   * all, so it first asks the server whether the job exists anyway (the
+   * enqueue could have succeeded and only the response been lost), and only
+   * retries the enqueue itself - with the SAME idempotency key and storage
+   * path, never a new recording - if the server genuinely never heard it. */
+  const resumeStoredJob = useCallback(async () => {
+    const stored = readStoredJob();
+    if (!stored) return;
+    idempotencyKeyRef.current = stored.idempotencyKey;
+
+    if (stored.voiceId) {
+      setPhase("queued");
+      startPolling(stored.voiceId);
+      return;
+    }
+
+    setPhase("saving");
+    const found = await findJobByIdempotencyKey(stored.idempotencyKey);
+    if (found) {
+      writeStoredJob({ ...stored, voiceId: found });
+      setPhase("queued");
+      startPolling(found);
+      return;
+    }
+
+    const { data: enq, error: enqErr } = await supabase.functions.invoke("transcription-enqueue", {
+      body: {
+        storage_path: stored.storagePath,
+        task_id: taskId ?? null,
+        proof_id: proofId ?? null,
+        idempotency_key: stored.idempotencyKey,
+      },
+    });
+    if (enqErr || !enq?.voice_id) {
+      // Still recoverable: the marker stays, with no voiceId, so the next
+      // open tries exactly this again rather than losing the submission.
+      setError("Could not confirm your recording was queued. Reopen this to try again.");
+      setPhase("error");
+      return;
+    }
+    writeStoredJob({ ...stored, voiceId: enq.voice_id });
+    setPhase("queued");
+    startPolling(enq.voice_id);
+  }, [findJobByIdempotencyKey, proofId, readStoredJob, startPolling, taskId, writeStoredJob]);
+
   // Reopening the modal (or a fresh mount after a page refresh) recovers an
   // existing job instead of offering to start a new recording over it.
   useEffect(() => {
     if (!open || !ASYNC_TRANSCRIPTION) return;
-    const stored = readStoredJob();
-    if (!stored) return;
-    setPhase("queued");
-    startPolling(stored.voiceId);
+    void resumeStoredJob();
     return () => stopPolling();
-  }, [open, readStoredJob, startPolling, stopPolling]);
+  }, [open, resumeStoredJob, stopPolling]);
 
   const cleanup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -224,6 +312,14 @@ const VoiceExplainModal = ({
       if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
       const idempotencyKey = idempotencyKeyRef.current;
 
+      // Written BEFORE the call, voiceId still unknown: if the response is
+      // lost between the server creating the job and this browser hearing
+      // about it, resumeStoredJob (next mount, or the catch block below)
+      // has the key and path needed to find or safely retry it - never the
+      // audio or a transcript, only enough to recover the submission.
+      writeStoredJob({ voiceId: null, idempotencyKey, storagePath: path });
+      setSavedResult((prev) => ({ ...(prev ?? { transcript: "", segments: [], score: null, notes: null }), audioUrl }));
+
       const { data: enq, error: enqErr } = await supabase.functions.invoke("transcription-enqueue", {
         body: {
           storage_path: path,
@@ -233,17 +329,21 @@ const VoiceExplainModal = ({
           idempotency_key: idempotencyKey,
         },
       });
-      if (enqErr || !enq?.voice_id) throw new Error(enqErr?.message || "Could not queue this recording.");
+      if (enqErr || !enq?.voice_id) {
+        // The request may still have landed - the response is what was
+        // lost, not necessarily the job. Same recovery path a reopen uses.
+        await resumeStoredJob();
+        return;
+      }
 
       writeStoredJob({ voiceId: enq.voice_id, idempotencyKey, storagePath: path });
-      setSavedResult((prev) => ({ ...(prev ?? { transcript: "", segments: [], score: null, notes: null }), audioUrl }));
       setPhase("queued");
       startPolling(enq.voice_id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save the recording.");
       setPhase("error");
     }
-  }, [studentId, taskId, proofId, writeStoredJob, startPolling]);
+  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob]);
 
   const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string) => {
     if (savingRef.current) return; // a double-click or a duplicate onstop must not enqueue/insert twice
@@ -300,7 +400,7 @@ const VoiceExplainModal = ({
   }, [studentId, taskId, proofId, onSaved, saveAsync]);
 
   const stop = useCallback(() => {
-    recorderRef.current?.state === "recording" && recorderRef.current.stop();
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
   }, []);
 
   const start = useCallback(async () => {

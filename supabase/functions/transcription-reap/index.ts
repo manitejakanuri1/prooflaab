@@ -44,6 +44,10 @@ serve(async (req) => {
   const WORKER_URL = Deno.env.get("TRANSCRIPTION_WORKER_URL") ?? "";
   const INVOKER_SA = Deno.env.get("TASKS_INVOKER_SA") ?? "";
   const STALE_AFTER_SECONDS = Number(Deno.env.get("STALE_AFTER_SECONDS") ?? "180");
+  // Step 6D test use only: overrides the RPC's own default of 8, so the
+  // bounded-recovery limit can be proven on a real job in real time instead
+  // of waiting through 8 real stale/reap cycles. Unset in normal operation.
+  const MAX_REAP_ATTEMPTS = Deno.env.get("MAX_REAP_ATTEMPTS");
 
   const FAULT_INJECT_REAP_FAIL = Deno.env.get("FAULT_INJECT_REAP_FAIL") === "true";
 
@@ -51,6 +55,7 @@ serve(async (req) => {
     const db = createClient("", "");
     const { data: candidates, error } = await db.rpc("claim_transcription_recovery", {
       _stale_after_seconds: STALE_AFTER_SECONDS,
+      ...(MAX_REAP_ATTEMPTS ? { _max_reap_attempts: Number(MAX_REAP_ATTEMPTS) } : {}),
     });
     if (error) throw error;
 

@@ -46,6 +46,12 @@ STALE_AFTER_SECONDS = int(os.environ.get("STALE_AFTER_SECONDS", "180"))
 # Must match the queue's own configured max-attempts (prooflab-staging-transcription: 3).
 # Cloud Tasks' retry-count header is 0-indexed, so attempt 2 is the last one it will make.
 QUEUE_MAX_ATTEMPTS = int(os.environ.get("QUEUE_MAX_ATTEMPTS", "3"))
+# Step 6C, staging test use only: after a REAL claim (a genuine Cloud Tasks
+# delivery, not a hand-crafted RPC call) for this one voice_id, hang instead
+# of transcribing - simulating a worker that crashed mid-job while holding a
+# live lease, so scheduled recovery can be proven against a claim the worker
+# itself made. Must not be left set after a test.
+FAULT_INJECT_VOICE_ID = os.environ.get("FAULT_INJECT_VOICE_ID", "")
 
 
 def b64url(data: bytes) -> str:
@@ -159,6 +165,13 @@ class Handler(BaseHTTPRequestHandler):
         job = claimed[0]
         storage_path = job["storage_path"]
         lease_token = job["lease_token"]
+
+        if FAULT_INJECT_VOICE_ID and (FAULT_INJECT_VOICE_ID == "ANY" or voice_id == FAULT_INJECT_VOICE_ID):
+            print(f"WORKER: FAULT INJECTION - simulating a crash after a genuine claim "
+                  f"for {voice_id} (task={task_name}, lease={lease_token})", flush=True)
+            time.sleep(3600)
+            return
+
         try:
             if not storage_path:
                 raise ValueError("job has no storage_path")

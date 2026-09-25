@@ -151,6 +151,13 @@ serve(async (req) => {
     if (!voiceId) return json({ error: "Could not create or find the recording" }, 500);
 
     const { already } = await enqueueTask(voiceId);
+    // (Step 6C) Marks this row as "a task was actually handed to Cloud Tasks" -
+    // the signal transcription-reap uses to tell a row whose enqueue is still
+    // in flight from one whose enqueue never happened at all (see reap.ts's
+    // grace-period check). Only reached when enqueueTask did not throw.
+    await supabase.from("voice_explanations")
+      .update({ transcription_enqueued_at: new Date().toISOString() })
+      .eq("id", voiceId);
     return json({ voice_id: voiceId, status: "pending", already_enqueued: already });
   } catch (error) {
     console.error("transcription-enqueue error:", error);

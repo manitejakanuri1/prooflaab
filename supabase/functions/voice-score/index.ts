@@ -69,14 +69,33 @@ serve(async (req) => {
       return json({ success: false, reason: 'transcript too short' });
     }
 
-    // Step 6F: an atomic claim, not a read-then-write - two concurrent calls
-    // for the same recording (two tabs, or a retry racing a reopen) can
-    // never both pass this. The loser skips DeepSeek entirely and hands
+    // Step 6F/6G: an atomic claim, not a read-then-write - two concurrent
+    // calls for the same recording (two tabs, or a retry racing a reopen)
+    // can never both pass this. The loser skips DeepSeek entirely and hands
     // back whatever score already exists rather than grading twice.
-    const { data: claimed } = await supabase.rpc('claim_voice_scoring', { _id: voice_id });
-    if (!claimed) {
-      return json({ success: true, communication_score: rec.communication_score, notes: rec.communication_notes });
+    //
+    // The claim itself is not enough on its own: a lease token (minted
+    // fresh by every successful claim) is what actually prevents a claim
+    // that has since gone stale - a slow DeepSeek call outliving its own
+    // TTL - from overwriting a result a NEWER claim already saved. Every
+    // write below is fenced on this exact token, not just "is there a
+    // score now" (migration 45).
+    const { data: claimRows } = await supabase.rpc('claim_voice_scoring', { _id: voice_id });
+    const claim = claimRows?.[0] as { claimed?: boolean; lease_token?: string } | undefined;
+    if (!claim?.claimed) {
+      // Either already scored, or another live claim currently holds this
+      // recording - re-read rather than trust rec's now-possibly-stale
+      // values, since a concurrent winner may have just finished.
+      const { data: current } = await supabase
+        .from('voice_explanations').select('communication_score, communication_notes')
+        .eq('id', voice_id).maybeSingle();
+      return json({
+        success: true,
+        communication_score: current?.communication_score ?? rec.communication_score,
+        notes: current?.communication_notes ?? rec.communication_notes,
+      });
     }
+    const leaseToken = claim.lease_token;
 
     // What they were asked to explain, so the grader can tell whether the
     // answer is about this work or a general speech about anything.
@@ -125,22 +144,31 @@ Return ONLY JSON:
       parsed = JSON.parse(match ? match[0] : text);
     } catch (e) {
       console.error('voice-score: could not grade', e);
-      await supabase.from('voice_explanations')
-        // Releases the claim (scoring_claimed_at) in the same write, so a
-        // prompt retry - a reopened modal - does not have to wait out the
-        // claim's TTL just because this attempt failed.
-        .update({ status: 'failed', communication_notes: 'Scoring failed. A person can still listen to this.', scoring_claimed_at: null })
-        .eq('id', voice_id);
+      // fail_voice_scoring only releases THIS lease - if this claim has
+      // already gone stale and a newer one has since taken over, this
+      // correctly does nothing rather than clearing the newer claim's lock
+      // out from under it.
+      await supabase.rpc('fail_voice_scoring', {
+        _id: voice_id, _lease_token: leaseToken, _notes: 'Scoring failed. A person can still listen to this.',
+      });
       return json({ error: 'Scoring failed' }, 502);
     }
 
     const score = Math.max(0, Math.min(100, Math.round(Number(parsed.communication_score) || 0)));
 
-    await supabase.from('voice_explanations').update({
-      communication_score: score,
-      communication_notes: parsed.notes ?? null,
-      status: 'scored',
-    }).eq('id', voice_id);
+    const { data: committed } = await supabase.rpc('complete_voice_scoring', {
+      _id: voice_id, _lease_token: leaseToken, _score: score, _notes: parsed.notes ?? null,
+    });
+    if (!committed) {
+      // This claim went stale before the write - a newer claim already
+      // holds (or has already saved) this recording's result. Report
+      // whatever is actually in the database now, never this now-discarded
+      // grading, so the caller never sees a result that lost the race.
+      const { data: current } = await supabase
+        .from('voice_explanations').select('communication_score, communication_notes')
+        .eq('id', voice_id).maybeSingle();
+      return json({ success: true, communication_score: current?.communication_score ?? null, notes: current?.communication_notes ?? null });
+    }
 
     // Speaking about your work is work. The streak counts the day either way.
     await supabase.rpc('touch_streak', { _student_id: profile.id });

@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProofFileButton from "@/components/proof/ProofFileButton";
 import { hasOpenableProof, proofFileLabel } from "@/lib/proofFile";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import StudentVoiceExplanationsCard from "./StudentVoiceExplanationsCard";
 
 const StudentUploadsPage = () => {
   const currentDate = new Date();
@@ -269,6 +270,7 @@ const StudentUploadsPage = () => {
 
   return (
     <div className="space-y-6">
+      <StudentVoiceExplanationsCard />
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold flex items-center gap-2">

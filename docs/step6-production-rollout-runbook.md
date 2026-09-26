@@ -276,6 +276,27 @@ Before the canary:
   request latency p50/p95 (this is the number that tells you whether the
   "matches staging" capacity assumption in §0 was actually fine).
 
+### 10a. Cost limits (added Step 6L — not yet configured, documentation only)
+
+No cost/capacity cap exists today for this pipeline in either environment
+(confirmed by inspection — no Cloud Tasks queue rate limit, no Cloud Run
+max-instance cap tied to transcription specifically, no GCP budget alert
+scoped to this feature). Before the canary, set:
+
+- Cloud Tasks queue `maxDispatchesPerSecond` / `maxConcurrentDispatches` on
+  the production transcription queue, sized from staging's observed load.
+- A Cloud Run max-instances limit on `transcription-worker` and
+  `prooflab-transcriber`, so a stuck-retry storm cannot scale unboundedly.
+- A GCP budget alert (or reuse of an existing project-wide one) that
+  includes the transcriber's Whisper/DeepSeek call volume, since that is
+  the highest per-request cost in this path.
+
+These are config values applied at deploy time (step 5/6/7), not code
+changes — flagged here as a gap this runbook did not previously call out
+explicitly, per Step 6L's review request. Setting them is part of the
+production rollout itself and therefore still requires the same approval
+as any other production change in this runbook.
+
 ## 11. Canary
 
 Using step 9's preview-channel build, run the canary for at least one
@@ -335,11 +356,22 @@ explanation (score 80) and one browser-authored explanation (score 99,
 deliberately higher, on the same proof).
 
 Result: the browser-authored row (99) did not appear anywhere in
-`recruiter_proof_profile`'s `explanations` list, and did not affect its
-`communication` average or `recruiter_talent`'s `comms_score` — both
-reflected only the server-verified 80. `recruiter_talent` also confirmed
-the target student was discoverable at all (`total_matches: 1`), proving
-the search path, not just the profile-detail path.
+`recruiter_proof_profile`'s `explanations` list, and both `communication`
+and `recruiter_talent`'s `comms_score` came back as `43` — **not** 80,
+and not 89.5 (a naive average of 80 and 99). 43 is the average of every
+`transcript_source = 'server'` scored explanation this test student
+already had (this account has been reused across Steps 6E–6K, so several
+older eligible rows - 55, 25, 20, 45 and others not shown in the
+`explanations` list's top-5 - already existed before this fixture's 80
+was added). The correct, precise claim is: **the 99 contributed nothing
+to either number, and every number that appeared was built only from
+`'server'`-sourced rows** - not that the average should have equaled 80
+alone. (An earlier draft of this note stated the result as "both
+reflected only the server-verified 80," which reads as claiming the
+average *equalled* 80; it did not - corrected here in Step 6L.)
+`recruiter_talent` also confirmed the target student was discoverable at
+all (`total_matches: 1`), proving the search path, not just the
+profile-detail path.
 
 Fixture cleaned up afterward: the test task/proof/both voice rows deleted,
 the `recruiters` row's `verified` flag set back to `false` (row kept, not

@@ -381,8 +381,12 @@ has not been deployed to production — migration 46 is one of the six
 pending migrations in §9). Proven with a real verified recruiter session
 in staging (Step 6K): a fabricated, higher-scored `'browser'` explanation
 was completely absent from both the recruiter-visible explanations list
-and the averaged communication score for a real test student; only the
-`'server'`-sourced score for the same proof appeared.
+and the averaged communication score for a real test student — that
+average (43) was built entirely from that student's other existing
+`'server'`-sourced scores, not from the fabricated 99 (see the runbook
+appendix for the exact numbers; the average is not simply the one
+`'server'` score added for this specific test, since the test account
+already had several eligible rows from earlier steps).
 
 ---
 

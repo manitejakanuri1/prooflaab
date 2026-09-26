@@ -112,6 +112,45 @@ prefix, in that same project.
    where rolname in ('anon', 'authenticated', 'service_role');
   ```
 
+  **Step 6M: UNBLOCKED and confirmed.** Project owner ran these via Cloud SQL
+  Studio, connected with a temporary Cloud SQL IAM database user created
+  and deleted the same session (no password, no role membership granted,
+  no lingering access). Results:
+
+  - `has_table_privilege('authenticated', ...)` = **TRUE**.
+  - Table-level `UPDATE` grant on `public.voice_explanations` is held by
+    four roles: `prooflab_app`, `anon`, `authenticated`, `service_role`.
+  - No separate column-level `UPDATE` grant exists — this is the same
+    "table-level, not column-level" shape migration 42 already fixed in
+    staging (Step 6C), confirmed to exist in production too.
+  - RLS is **enabled**, **not forced**. Existing policies:
+    `voice_own_insert` (INSERT), `voice_own_read` (SELECT),
+    `voice_own_delete` (DELETE) — **no UPDATE policy exists**.
+
+  **Interpretation (per the explicit instruction not to call a raw grant a
+  vulnerability by itself):** because RLS is enabled and no policy matches
+  the `UPDATE` command for `authenticated`/`anon`, PostgREST's own
+  default-deny for an unmatched command likely already blocks real
+  exploitation today, independent of the table grant. Confirmed by code
+  inspection (Step 6M) that no legitimate path needs this grant either:
+  every server-side function's `createClient()` (`_shared/backend.ts`)
+  always mints a `service_role` token on this backend regardless of which
+  key is passed in, and grepping the frontend found only `.select()`,
+  `.insert()` (a student's own new recording) and `.delete()`
+  (`StudentPrivacy.tsx`'s delete-my-recording flow) against this table —
+  never `.update()`. Migration 42's own comment already said the same
+  thing about staging: "every real UPDATE of this table already runs as
+  service_role."
+
+  **Correction prepared, not applied:** `migration/47-production-voice-explanations-update-revoke.sql`
+  — the same table-level `revoke update ... from authenticated, anon`
+  migration 42 already uses in staging, given its own unused migration
+  number since it has no dependency on the async job/queue schema and can
+  ship to production independently of the larger 41–46 rollout. Does not
+  touch `service_role` or `prooflab_app` — both are used for real UPDATEs
+  server-side and are never reachable directly by a student's browser.
+  Not applied to production; requires separate explicit approval to run.
+
   **If the first query returns `true`** (table-level `UPDATE` granted to
   `authenticated`): migration 42's column-level revoke will be silently
   ineffective in production, identically to the staging bug found in Step

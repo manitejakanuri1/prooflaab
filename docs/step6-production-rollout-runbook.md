@@ -102,15 +102,40 @@ direct catalog query rather than only by migration history this time.
 
 **4. Manual production execution plan for migration 47 (not executed):**
 
-Pre-check — expect `TRUE` (documents current exposure before the fix):
+**Correction (Step 6O) — the expected post-migration ACL below was wrong.**
+The version of this section written in Step 6N said the post-migration
+ACL should contain exactly `postgres` and `service_role`. That is
+**staging's** baseline (staging's owner is `postgres`), not production's.
+Production's actual pre-migration ACL, from the real Step 6M inspection,
+is four roles: `prooflab_app`, `anon`, `authenticated`, `service_role` —
+no `postgres` row at all. Migration 47 removes only `anon` and
+`authenticated`. The corrected expectation is **`prooflab_app` and
+`service_role` remaining** — not `postgres`/`service_role`. Production
+and staging are not assumed to share an owner or grant list anywhere in
+what follows.
+
+Pre-check — capture the full ACL *before* the change, not just a
+boolean, so a real before/after diff is possible (also explicitly checks
+for a `PUBLIC` row and lets `has_table_privilege` account for any
+inherited/role-membership grant on `authenticated`/`anon`, not only a
+direct one):
 ```sql
-select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE');
+select case when a.grantee = 0 then 'PUBLIC' else a.grantee::regrole::text end as grantee, a.privilege_type
+  from pg_class c
+  cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) a
+ where c.relname = 'voice_explanations' and c.relnamespace = 'public'::regnamespace
+   and a.privilege_type = 'UPDATE';
+-- expect this pre-check to list: prooflab_app, anon, authenticated, service_role (no PUBLIC row)
+
+select has_table_privilege('authenticated', 'UPDATE') as auth_update,
+       has_table_privilege('anon', 'UPDATE') as anon_update,
+       has_table_privilege('prooflab_app', 'UPDATE') as app_update,
+       has_table_privilege('service_role', 'UPDATE') as svc_update;
+-- expect: t, t, t, t (all four currently TRUE)
 ```
 
-Apply (must be run by a role with sufficient privilege to revoke — the
-same superuser/owner-equivalent session used for the Step 6M read-only
-inspection, e.g. `postgres` via Cloud SQL Studio; a lower-privileged role
-cannot revoke a grant it does not itself hold GRANT OPTION on):
+Apply (see access determination below — **not yet known to be
+executable by any credential this session has**):
 ```sql
 begin;
 revoke update on public.voice_explanations from authenticated, anon;
@@ -118,43 +143,102 @@ commit;
 notify pgrst, 'reload schema';
 ```
 
-Verify — expect both `FALSE`:
-```sql
-select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE') as authenticated_update,
-       has_table_privilege('anon', 'public.voice_explanations', 'UPDATE') as anon_update;
-```
-
-Verify backend roles untouched — expect exactly `postgres` and
-`service_role` remaining:
+Verify — compare directly against the pre-check capture above. Expect
+`authenticated`/`anon` gone from the ACL and `false` from
+`has_table_privilege`; expect `prooflab_app`/`service_role` unchanged in
+both the ACL listing and `has_table_privilege`:
 ```sql
 select case when a.grantee = 0 then 'PUBLIC' else a.grantee::regrole::text end as grantee, a.privilege_type
   from pg_class c
   cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) a
  where c.relname = 'voice_explanations' and c.relnamespace = 'public'::regnamespace
    and a.privilege_type = 'UPDATE';
+-- expect exactly: prooflab_app, service_role
+
+select has_table_privilege('authenticated', 'UPDATE') as auth_update,
+       has_table_privilege('anon', 'UPDATE') as anon_update,
+       has_table_privilege('prooflab_app', 'UPDATE') as app_update,
+       has_table_privilege('service_role', 'UPDATE') as svc_update;
+-- expect: f, f, t, t
 ```
 
-Rollback, if ever needed (single statement — the migration never touches
-any row's data, only a grant, so there is nothing to restore beyond
-re-adding the grant):
+**Rollback is not automatic and not routine.** Re-granting `UPDATE` to
+`authenticated`/`anon` recreates the exact standing risk this migration
+removes — it is a separate, security-sensitive production change in its
+own right, not a no-op undo. If migration 47 is ever found to have broken
+something, the correct first response is to diagnose *why* a legitimate
+path needed that grant (Step 6N's code/function audit found none — a
+break would mean that audit missed something, which itself needs
+understanding before reversing). Only re-grant with the same kind of
+explicit, separate approval this migration itself required:
 ```sql
+-- SECURITY-SENSITIVE — requires its own explicit approval, same as migration 47 did.
+-- Do not run this as a default/automatic rollback step.
 grant update on public.voice_explanations to authenticated, anon;
 notify pgrst, 'reload schema';
 ```
 
-**Backup check (read-only, confirmed this step):** most recent automated
-Cloud SQL backup for `prooflab-db` succeeded 2026-09-25 (an on-demand one
-also exists from 2026-09-24). Given this migration changes only a grant
-and no data or schema, that existing backup posture is likely sufficient
-— an additional on-demand backup immediately before running it is cheap
-and still recommended as normal production-change hygiene, but is not
-being treated here as a hard blocker the way it would be for a
-data/schema-changing migration.
+**Fresh backup-status check, immediately before running the change**
+(read-only, must be re-checked at execution time — the 2026-09-25 backup
+cited in Step 6N will be stale by the time this actually runs):
+```
+gcloud sql backups list --instance=prooflab-db --project=prooflab-508214 --limit=1
+```
+Confirm a recent `SUCCESSFUL` backup exists right before applying —
+this is a required check at execution time, not something satisfied by
+an earlier session's read.
 
 **Migrations 41–46 stay entirely separate**, with their own approvals for
 Cloud Tasks/IAM/worker infrastructure, `WEBHOOK_SECRET` rotation, cost
 limits (§10a), and the Firebase preview-channel canary (§9/§11) —
 migration 47 does not imply or require approving any of that.
+
+**5. Execution access — table owner and required authority (Step 6O):**
+
+Production's table owner was never directly queried (the Step 6M
+inspection asked for the ACL, not `pg_class.relowner`) — **not
+confirmed**, only inferred: `prooflab_app` is the strongest candidate,
+since it is the one non-`anon`/`authenticated`/`service_role` row in
+production's own ACL, matching the common pattern of an app's dedicated
+role owning the tables it manages. This is a production-specific
+inference from production's own evidence, not an assumption carried over
+from staging (staging's owner, `postgres`, is different — confirmed, not
+assumed to match).
+
+To `REVOKE` a privilege in Postgres, the session must be either the
+table owner, a superuser, or the original grantor holding `GRANT
+OPTION` on that privilege. A bare Cloud SQL IAM login — like the one
+created and deleted in Step 6M — has none of these by default; it was
+sufficient for the *read-only* inspection but grants no authority to
+change anything, and it no longer exists regardless.
+
+**Simplest authorized method, if/when this is approved:** a human who
+already holds real production credentials for either `postgres`
+(superuser) or `prooflab_app` (if confirmed as owner) signs in to Cloud
+SQL Studio — the exact same manual, no-new-infrastructure path used for
+the Step 6M read-only inspection — and runs the apply/verify statements
+above directly. No new IAM login, database user, or password is created
+for this; it reuses whatever access that human already has.
+
+**Execution: BLOCKED.** No session available to me or created by me
+this engagement has ever held `REVOKE` authority on this table — the
+temporary IAM user was deliberately never granted any privilege beyond
+existing, and it is now deleted. Applying migration 47 requires one of:
+- A human with existing `postgres` or `prooflab_app` production
+  credentials runs it themselves via Cloud SQL Studio, or
+- A separate, explicit decision to grant `deploy.openfloor@gmail.com` (or
+  another identity) owner-or-superuser-equivalent authority specifically
+  for this — a new, distinct approval this report does not assume or
+  request, and materially different from the read-only-only access
+  Step 6M's temporary login had.
+
+Confirming the actual table owner (a one-line read-only query,
+`select tableowner from pg_tables where schemaname='public' and
+tablename='voice_explanations';`) would remove the "inferred, not
+confirmed" caveat above, but doing so needs the same kind of
+already-existing or newly-approved access as running the migration
+itself — not requested proactively here, since this step was told not
+to create users or assume elevated access.
 
 ## 0. Corrections to the Step 6G draft of this checklist
 

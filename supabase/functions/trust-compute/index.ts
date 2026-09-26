@@ -186,20 +186,34 @@ serve(async (req) => {
     // already awarded. Capped at +10, so it can lift a borderline submission
     // into review or over the line without ever carrying one on its own.
     //
-    // It is also the only signal here that cannot be produced by pasting, so
-    // the sign matters: a strong explanation helps, and a missing one simply
+    // The sign matters: a strong explanation helps, and a missing one simply
     // does not help. It is never a penalty — a student with a broken
     // microphone has not cheated.
+    //
+    // Step 6H: restricted to transcript_source = 'server' - a real staging
+    // test found a student could POST a fabricated transcript directly
+    // (migration 43 correctly labels this 'browser', it does not block it -
+    // that insert is also the legitimate synchronous recording path) and
+    // get it graded by voice-score with no audio ever recorded. 'browser'
+    // transcripts are exactly as easy to paste as anything else on this
+    // form, so they cannot carry the trust adjustment the comment above
+    // used to claim only this signal earns. Only 'server' - written back by
+    // complete_transcription_job after the async worker actually ran
+    // Whisper on audio the student actually uploaded - has that property.
+    // A 'browser' explanation is still shown to the student and still
+    // scored (the synchronous path and its UX are unchanged); it just does
+    // not move trust until it has gone through the queue.
     const { data: voice } = await supabase
       .from('voice_explanations')
-      .select('communication_score')
+      .select('communication_score, transcript_source')
       .eq('proof_id', proof_id)
       .eq('status', 'scored')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const voiceScore: number | null = voice?.communication_score ?? null;
+    const voiceScore: number | null =
+      voice?.transcript_source === 'server' ? (voice?.communication_score ?? null) : null;
     const voiceAdjustment = voiceScore === null
       ? 0
       : Math.round((voiceScore / 100) * 10);

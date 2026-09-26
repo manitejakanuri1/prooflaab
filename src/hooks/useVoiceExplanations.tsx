@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface VoiceExplanation {
   id: string;
   transcript: string | null;
+  transcript_source: "browser" | "server" | "manual" | null;
   transcription_status: "pending" | "processing" | "completed" | "failed" | null;
   transcription_error: string | null;
   communication_score: number | null;
@@ -12,6 +13,7 @@ export interface VoiceExplanation {
   status: string | null;
   created_at: string;
   task_id: string | null;
+  storage_path: string;
   tasks?: { title: string } | null;
 }
 
@@ -42,7 +44,7 @@ export const useVoiceExplanations = () => {
       // friends) - same reason VoiceExplainModal.tsx already casts these.
       const { data, error } = await supabase
         .from("voice_explanations")
-        .select("id, transcript, transcription_status, transcription_error, communication_score, communication_notes, status, created_at, task_id, tasks(title)")
+        .select("id, transcript, transcript_source, transcription_status, transcription_error, communication_score, communication_notes, status, created_at, task_id, storage_path, tasks(title)")
         .eq("student_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20)

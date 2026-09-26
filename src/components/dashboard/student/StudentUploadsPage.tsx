@@ -26,13 +26,18 @@ import { hasOpenableProof, proofFileLabel } from "@/lib/proofFile";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import StudentVoiceExplanationsCard from "./StudentVoiceExplanationsCard";
 
+interface ConceptualTestSummary {
+  proof_id: string;
+  status: "pending" | "submitted" | "graded" | string;
+}
+
 const StudentUploadsPage = () => {
   const currentDate = new Date();
   const { data: uploads, isLoading, error, refetch } = useProofUploads(currentDate);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Newest First");
-  const [conceptualTests, setConceptualTests] = useState<Record<string, any>>({});
+  const [conceptualTests, setConceptualTests] = useState<Record<string, ConceptualTestSummary>>({});
   const [selectedProofId, setSelectedProofId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [appealModalOpen, setAppealModalOpen] = useState(false);
@@ -111,7 +116,7 @@ const StudentUploadsPage = () => {
 
       if (error) throw error;
 
-      const testsMap: Record<string, any> = {};
+      const testsMap: Record<string, ConceptualTestSummary> = {};
       data?.forEach(test => {
         testsMap[test.proof_id] = test;
       });

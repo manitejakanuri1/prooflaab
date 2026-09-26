@@ -19,7 +19,7 @@ state, and whether anything legitimate depends on the grant it removes:
 |---|---|---|
 | No legitimate student flow needs direct `UPDATE` | **PASS** | Grepped every frontend call site against `voice_explanations` (`src/`): only `.select()`, `.insert()`, `.delete()` exist — never `.update()`. Grepped every edge function: all real updates go through `_shared/backend.ts`'s `createClient()`, which always mints a `service_role` token on this backend regardless of which key is passed in. |
 | Frontend recording creation, reading, deletion remain supported | **PASS (unaffected)** | Migration 47 revokes only `UPDATE` — `INSERT`/`SELECT`/`DELETE` grants and the matching `voice_own_insert`/`voice_own_read`/`voice_own_delete` RLS policies are untouched by this migration. |
-| Server-side voice scoring/transcription use authorized backend roles | **PASS** | `voice-score/index.ts` and `transcription-enqueue/index.ts` both write via the service-role-minting client. Migrations 41/44/45's `claim/complete/fail_*` RPCs are `SECURITY DEFINER` and `GRANT EXECUTE ... TO authenticated, service_role` — callers invoke the function, the function (running as its owner) does the actual `UPDATE`; the caller's own table grant is irrelevant to these RPCs. |
+| Server-side voice scoring/transcription use authorized backend roles | **PASS** | `voice-score/index.ts` and `transcription-enqueue/index.ts` both write via the service-role-minting client. The `claim/complete/fail_*` RPCs are `SECURITY DEFINER` — the function (running as its owner) does the actual `UPDATE`, so the caller's own table grant is irrelevant to these RPCs regardless of who can call them. **Correction (Step 6N):** the sentence here previously said these are granted to `authenticated, service_role`, citing migration 41's *initial* grant only — migration 41's grant is superseded by migration 42's `revoke all ... from public, anon, authenticated` immediately followed by `grant execute ... to service_role` alone (same pattern in migration 45 for the voice-scoring functions). Live staging query confirms the corrected claim: `authenticated_can_exec = false`, `service_role_can_exec = true` for all seven job/scoring functions — see §0b. |
 | Relevant functions/triggers/RLS don't depend on these two grants | **PASS** | No `CREATE POLICY ... FOR UPDATE` on `voice_explanations` exists in any migration (checked all of 01–47). Migration 43's `guard_voice_explanations_insert` trigger fires `BEFORE INSERT`, not `UPDATE`. |
 | `service_role`/`prooflab_app` retain required privileges | **PASS** | Migration 47's `revoke` statement names only `authenticated, anon` — confirmed by reading the file. |
 | Ordinary student `UPDATE` attempt is actually denied in staging | **NOT TESTED** | Attempted a real live test (sign in as the `t07` fixture, `PATCH` a `voice_explanations` row directly against the staging PostgREST API) but the credential this session had access to (`prooflab-staging-student-password`) did not match `t07`'s account (`INVALID_LOGIN_CREDENTIALS`) — did not retry with guessed credentials, since repeated login guesses against a real auth system is not acceptable. Falling back to indirect evidence instead of claiming this passed: staging's migration history (re-read via the existing `prooflab-staging-inspect4` job's logs) shows migration 42 — which contains the identical `revoke update ... from authenticated, anon` statement — already ran successfully in staging. A Postgres `REVOKE` is a hard deterministic guarantee once applied, not a probabilistic one, so this is strong indirect evidence, but it is not the same as a live, observed denial and is reported as such. |
@@ -29,6 +29,132 @@ state, and whether anything legitimate depends on the grant it removes:
 
 No unsafe permission was re-granted to `authenticated`/`anon` at any point
 to run this check.
+
+## 0b. Step 6N: live staging catalog audit + manual production plan for 47
+
+Ran a real, live, read-only catalog query against staging using the
+**existing** `prooflab-staging-inspect4` Cloud Run job (its execution-time
+`--args` were overridden for this one run only — the job's permanent
+definition, service account, and bound `STAGING_DB_URI` secret were not
+changed; nothing new was created).
+
+**1. Staging permissions, confirmed live:**
+
+```
+authenticated_update | anon_update
+----------------------+-------------
+ f                    | f
+```
+Table-level `UPDATE` on `voice_explanations` is held only by `postgres`
+and `service_role`. No column-level `UPDATE` ACL exists. RLS: enabled
+(`t`), not forced (`f`). Deployed policies: `voice_own_delete` (DELETE),
+`voice_own_insert` (INSERT), `voice_own_read` (SELECT) — all
+`{authenticated}`, none for `UPDATE`. This matches migration 42's
+intended end-state exactly.
+
+**2. Privileged function audit, all seven job/scoring functions:**
+
+```
+proname                       security_definer  owner     anon  authenticated  service_role  public
+claim_transcription_job       t                 postgres  f     f              t             f
+claim_transcription_recovery  t                 postgres  f     f              t             f
+claim_voice_scoring           t                 postgres  f     f              t             f
+complete_transcription_job    t                 postgres  f     f              t             f
+complete_voice_scoring        t                 postgres  f     f              t             f
+fail_transcription_job        t                 postgres  f     f              t             f
+fail_voice_scoring            t                 postgres  f     f              t             f
+```
+Every one: `SECURITY DEFINER`, owned by `postgres`, executable **only**
+by `service_role` — not `anon`, not `authenticated`, not even `PUBLIC`.
+Confirms migration 42/45's later `revoke ... from public, anon,
+authenticated` / `grant ... to service_role` correctly superseded
+migration 41's initial broader grant, in the actually-deployed database,
+not just in the source file.
+
+Read the live function bodies (`claim_transcription_job`,
+`claim_voice_scoring`, `complete_voice_scoring`, `fail_voice_scoring`)
+and confirmed the misuse-prevention shape matches the migration source
+exactly: `claim_*` only succeeds on a row that is `pending` or
+past-stale-`processing`, generates a fresh random `lease_token` itself
+(never caller-supplied), and returns it only to whichever caller's claim
+actually matched a row (no double-claim race). `complete_*`/`fail_*`
+require the *exact* `lease_token` the matching claim returned — an
+unguessable UUID — so a caller cannot complete or fail a job/score it
+did not itself just claim. None of the four check the caller's own
+identity against `student_id` — deliberately not needed, since the
+`EXECUTE` grant boundary already restricts every caller to `service_role`
+alone, which is fully trusted server code.
+
+**No privilege problem found.** No fix needed in staging.
+
+**3. Targeted student test:** attempted again this step (a second
+distinct attempt, not a retry of the same guess) is not applicable —
+the same credential gap from Step 6M's attempt stands (the only
+`prooflab-staging-student-password` secret available did not
+authenticate as `t07`, `INVALID_LOGIN_CREDENTIALS`). Did not try a
+different email/password combination — that would cross into guessing
+credentials against a real account, which is not acceptable regardless
+of how the goal is phrased. **Remains NOT TESTED**, same as Step 6M,
+backed by the same indirect evidence (migration 42 confirmed live above)
+plus the new direct evidence in part 1 of this section — staging's
+`authenticated`/`anon` genuinely lack the grant today, confirmed by
+direct catalog query rather than only by migration history this time.
+
+**4. Manual production execution plan for migration 47 (not executed):**
+
+Pre-check — expect `TRUE` (documents current exposure before the fix):
+```sql
+select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE');
+```
+
+Apply (must be run by a role with sufficient privilege to revoke — the
+same superuser/owner-equivalent session used for the Step 6M read-only
+inspection, e.g. `postgres` via Cloud SQL Studio; a lower-privileged role
+cannot revoke a grant it does not itself hold GRANT OPTION on):
+```sql
+begin;
+revoke update on public.voice_explanations from authenticated, anon;
+commit;
+notify pgrst, 'reload schema';
+```
+
+Verify — expect both `FALSE`:
+```sql
+select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE') as authenticated_update,
+       has_table_privilege('anon', 'public.voice_explanations', 'UPDATE') as anon_update;
+```
+
+Verify backend roles untouched — expect exactly `postgres` and
+`service_role` remaining:
+```sql
+select case when a.grantee = 0 then 'PUBLIC' else a.grantee::regrole::text end as grantee, a.privilege_type
+  from pg_class c
+  cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) a
+ where c.relname = 'voice_explanations' and c.relnamespace = 'public'::regnamespace
+   and a.privilege_type = 'UPDATE';
+```
+
+Rollback, if ever needed (single statement — the migration never touches
+any row's data, only a grant, so there is nothing to restore beyond
+re-adding the grant):
+```sql
+grant update on public.voice_explanations to authenticated, anon;
+notify pgrst, 'reload schema';
+```
+
+**Backup check (read-only, confirmed this step):** most recent automated
+Cloud SQL backup for `prooflab-db` succeeded 2026-09-25 (an on-demand one
+also exists from 2026-09-24). Given this migration changes only a grant
+and no data or schema, that existing backup posture is likely sufficient
+— an additional on-demand backup immediately before running it is cheap
+and still recommended as normal production-change hygiene, but is not
+being treated here as a hard blocker the way it would be for a
+data/schema-changing migration.
+
+**Migrations 41–46 stay entirely separate**, with their own approvals for
+Cloud Tasks/IAM/worker infrastructure, `WEBHOOK_SECRET` rotation, cost
+limits (§10a), and the Firebase preview-channel canary (§9/§11) —
+migration 47 does not imply or require approving any of that.
 
 ## 0. Corrections to the Step 6G draft of this checklist
 

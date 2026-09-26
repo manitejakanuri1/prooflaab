@@ -405,7 +405,7 @@ already had several eligible rows from earlier steps).
 | Cross-student RLS/file isolation | **assumed LIVE** (RLS predates this engagement) | **STAGING, PASS (repeated evidence, Steps 6H/6J/6K)** | Not independently re-verified against production this engagement — see §9 |
 | Scoring-claim lease-token fencing | **PLANNED** | **STAGING, PASS** | |
 | Production webhook-secret rotation | **NOT DONE** | done (Step 6D) | Needs its own separate approval (§9) |
-| Production DB grant-shape check (does `authenticated` have table-level UPDATE?) | **CONFIRMED (Step 6M): TRUE.** No legitimate code path depends on it (see runbook §0a). Correction migration prepared (`migration/47-production-voice-explanations-update-revoke.sql`), not yet applied — needs explicit approval | n/a | `docs/step6-production-rollout-runbook.md` §0/§0a/§1 |
+| Production DB grant-shape check (does `authenticated` have table-level UPDATE?) | **CONFIRMED (Step 6M): TRUE.** No legitimate code path depends on it. Staging already lacks this grant, confirmed live (Step 6N) — same for all 7 SECURITY DEFINER job/scoring functions, callable only by `service_role`, never `authenticated`/`anon`/`PUBLIC`. Correction migration prepared (`migration/47-production-voice-explanations-update-revoke.sql`) with a concise manual execution plan, not yet applied — needs explicit approval | n/a | `docs/step6-production-rollout-runbook.md` §0/§0a/§0b/§1 |
 | Load testing under realistic concurrency | **NOT DONE**, anywhere | **NOT DONE** | See §11 |
 | DeepSeek-only enforcement | Code supports fallback chain; only DeepSeek key configured | same | Not a hard guarantee, a configuration fact |
 

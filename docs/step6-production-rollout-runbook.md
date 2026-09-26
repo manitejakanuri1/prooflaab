@@ -11,6 +11,18 @@ prefix, in that same project.
 
 ## 0. Corrections to the Step 6G draft of this checklist
 
+- **Step 6M re-verification (no changes found):** re-checked migration
+  order 41–46, migration 01 exclusion, backup-before-migration, Cloud
+  Tasks concurrency limit, Cloud Run max-instances/budget alert gap
+  (§10a), `PGRST_JWT_SECRET`/`WEBHOOK_SECRET` separation, the
+  separately-approved rotation gate (§3), the Firebase preview-channel
+  canary (§9/§11), and rollback limits (§12) against the current file.
+  All still correct as of commit `8ba9aaa`; no drift, nothing to
+  change. Part 2 (production `voice_explanations` grant check) remains
+  **BLOCKED** pending a DBA running the read-only queries below against
+  production and pasting results back — no new production access has
+  become available this session.
+
 - **Backup precedes migrations, not the other way round.** Step 6G's draft
   listed "database backup and migration preflight" as its own late item.
   It must run *before* step 2 below, not after it.

@@ -127,11 +127,23 @@ select case when a.grantee = 0 then 'PUBLIC' else a.grantee::regrole::text end a
    and a.privilege_type = 'UPDATE';
 -- expect this pre-check to list: prooflab_app, anon, authenticated, service_role (no PUBLIC row)
 
-select has_table_privilege('authenticated', 'UPDATE') as auth_update,
-       has_table_privilege('anon', 'UPDATE') as anon_update,
-       has_table_privilege('prooflab_app', 'UPDATE') as app_update,
-       has_table_privilege('service_role', 'UPDATE') as svc_update;
+select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE') as auth_update,
+       has_table_privilege('anon', 'public.voice_explanations', 'UPDATE') as anon_update,
+       has_table_privilege('prooflab_app', 'public.voice_explanations', 'UPDATE') as app_update,
+       has_table_privilege('service_role', 'public.voice_explanations', 'UPDATE') as svc_update;
 -- expect: t, t, t, t (all four currently TRUE)
+
+-- Alternative, if the connecting IAM account lacks USAGE on schema
+-- "public" (regclass name resolution, above, needs that permission):
+-- find the OID via pg_catalog directly, which is world-readable, then
+-- pass the OID form of has_table_privilege instead of a table name.
+select has_table_privilege('authenticated', c.oid, 'UPDATE') as auth_update,
+       has_table_privilege('anon', c.oid, 'UPDATE') as anon_update,
+       has_table_privilege('prooflab_app', c.oid, 'UPDATE') as app_update,
+       has_table_privilege('service_role', c.oid, 'UPDATE') as svc_update
+  from pg_catalog.pg_class c
+  join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'public' and c.relname = 'voice_explanations';
 ```
 
 Apply (see access determination below — **not yet known to be
@@ -155,10 +167,10 @@ select case when a.grantee = 0 then 'PUBLIC' else a.grantee::regrole::text end a
    and a.privilege_type = 'UPDATE';
 -- expect exactly: prooflab_app, service_role
 
-select has_table_privilege('authenticated', 'UPDATE') as auth_update,
-       has_table_privilege('anon', 'UPDATE') as anon_update,
-       has_table_privilege('prooflab_app', 'UPDATE') as app_update,
-       has_table_privilege('service_role', 'UPDATE') as svc_update;
+select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE') as auth_update,
+       has_table_privilege('anon', 'public.voice_explanations', 'UPDATE') as anon_update,
+       has_table_privilege('prooflab_app', 'public.voice_explanations', 'UPDATE') as app_update,
+       has_table_privilege('service_role', 'public.voice_explanations', 'UPDATE') as svc_update;
 -- expect: f, f, t, t
 ```
 
@@ -193,52 +205,55 @@ Cloud Tasks/IAM/worker infrastructure, `WEBHOOK_SECRET` rotation, cost
 limits (§10a), and the Firebase preview-channel canary (§9/§11) —
 migration 47 does not imply or require approving any of that.
 
-**5. Execution access — table owner and required authority (Step 6O):**
+**5. Execution access — table owner and required authority (Step 6P
+correction):**
 
-Production's table owner was never directly queried (the Step 6M
-inspection asked for the ACL, not `pg_class.relowner`) — **not
-confirmed**, only inferred: `prooflab_app` is the strongest candidate,
-since it is the one non-`anon`/`authenticated`/`service_role` row in
-production's own ACL, matching the common pattern of an app's dedicated
-role owning the tables it manages. This is a production-specific
-inference from production's own evidence, not an assumption carried over
-from staging (staging's owner, `postgres`, is different — confirmed, not
-assumed to match).
+**The table owner is UNKNOWN.** Step 6O's draft of this section guessed
+`prooflab_app` from its presence in the ACL — that was a guess, not
+evidence, and is withdrawn. ACL membership does not establish ownership;
+Postgres does not require or imply that an owner appears in its own
+table's ACL at all. The owner has never been directly queried. This
+read-only query resolves it exactly, with no guessing, whenever an
+authorized operator can run it:
+```sql
+select pg_get_userbyid(c.relowner) as table_owner
+  from pg_catalog.pg_class c
+  join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'public' and c.relname = 'voice_explanations';
+```
 
-To `REVOKE` a privilege in Postgres, the session must be either the
-table owner, a superuser, or the original grantor holding `GRANT
-OPTION` on that privilege. A bare Cloud SQL IAM login — like the one
-created and deleted in Step 6M — has none of these by default; it was
-sufficient for the *read-only* inspection but grants no authority to
-change anything, and it no longer exists regardless.
+**`postgres` is not a Postgres superuser here, and that was also stated
+too strongly before.** Cloud SQL's `postgres` account carries the
+`cloudsqlsuperuser` role — a Cloud-SQL-specific bundle of administrative
+privileges (`CREATEROLE`, `CREATEDB`, and similar), not the actual
+Postgres `rolsuper` attribute, which Cloud SQL does not grant to anyone.
+`cloudsqlsuperuser` does **not** automatically confer `REVOKE` authority
+over every table in the database the way real `SUPERUSER` would — that
+has to be checked, not assumed. The read-only way to check, once the
+owner above is known, is whether `postgres` either *is* that owner or
+holds `GRANT OPTION` on this specific `UPDATE` privilege:
+```sql
+select grantee, privilege_type, is_grantable
+  from information_schema.role_table_grants
+ where table_schema = 'public' and table_name = 'voice_explanations'
+   and grantee = 'postgres';
+-- if this returns no UPDATE row with is_grantable = 'YES', postgres
+-- cannot REVOKE this privilege purely from being cloudsqlsuperuser
+```
 
-**Simplest authorized method, if/when this is approved:** a human who
-already holds real production credentials for either `postgres`
-(superuser) or `prooflab_app` (if confirmed as owner) signs in to Cloud
-SQL Studio — the exact same manual, no-new-infrastructure path used for
-the Step 6M read-only inspection — and runs the apply/verify statements
-above directly. No new IAM login, database user, or password is created
-for this; it reuses whatever access that human already has.
-
-**Execution: BLOCKED.** No session available to me or created by me
-this engagement has ever held `REVOKE` authority on this table — the
-temporary IAM user was deliberately never granted any privilege beyond
-existing, and it is now deleted. Applying migration 47 requires one of:
-- A human with existing `postgres` or `prooflab_app` production
-  credentials runs it themselves via Cloud SQL Studio, or
-- A separate, explicit decision to grant `deploy.openfloor@gmail.com` (or
-  another identity) owner-or-superuser-equivalent authority specifically
-  for this — a new, distinct approval this report does not assume or
-  request, and materially different from the read-only-only access
-  Step 6M's temporary login had.
-
-Confirming the actual table owner (a one-line read-only query,
-`select tableowner from pg_tables where schemaname='public' and
-tablename='voice_explanations';`) would remove the "inferred, not
-confirmed" caveat above, but doing so needs the same kind of
-already-existing or newly-approved access as running the migration
-itself — not requested proactively here, since this step was told not
-to create users or assume elevated access.
+**Execution: BLOCKED**, and the exact requirement is now honestly
+"unknown until the two queries above are run" rather than a specific
+named role. No session held by or created for this engagement has ever
+had `REVOKE` authority on this table — the Step 6M temporary IAM login
+was deliberately read-only by design and is already deleted. Do not
+create another login or change any permission to resolve this. Applying
+migration 47 needs a human with an already-existing production
+credential who is confirmed (by the two queries above, not assumed) to
+either be the table's owner or hold `GRANT OPTION` on this `UPDATE`
+privilege — most simply, the account that originally ran whatever
+bootstrap script granted `authenticated`/`anon` this privilege in the
+first place, since the grantor always retains authority to revoke what
+it granted.
 
 ## 0. Corrections to the Step 6G draft of this checklist
 

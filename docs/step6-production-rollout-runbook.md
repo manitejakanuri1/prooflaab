@@ -321,33 +321,28 @@ worker error-rate spikes.
   real `psql` session, not a read-only REST probe (see §0). This is the
   one open fact-finding item before step 2.
 
-## Appendix: staging test-fixture gap found in Step 6J
+## Appendix: verified-recruiter test — closed in Step 6K
 
-The `recruiters` table in staging is empty — no verified recruiter test
-account exists, so `recruiter_talent`/`recruiter_proof_profile`'s
-provenance filter (migration 46) has only been verified by replicating
-its exact query shape and by a live `trust-compute` call (same filter,
-different function), never through an actual verified-recruiter session.
-Unrelated to the production rollout itself, but a gap in this feature's
-staging test coverage. Minimal plan to close it, **not executed** without
-explicit approval (creating a new Identity Platform login is a
-project-wide identity action):
+Step 6J found the `recruiters` table empty and left this plan unexecuted
+pending approval. **Approved and executed in Step 6K.** One new staging
+Identity Platform account was created (real `accounts:signUp`, real
+sign-in through the staging auth-bridge to resolve its uuid), one
+`recruiters` row was inserted for that uuid with `verified = true`, and
+the real recruiter session (the actual bridge-issued token, not a
+hand-minted one) called the real `recruiter_talent` and
+`recruiter_proof_profile` RPCs against a fixture with one server-verified
+explanation (score 80) and one browser-authored explanation (score 99,
+deliberately higher, on the same proof).
 
-1. Create one new real account through the app's normal staging sign-up
-   flow, with an email that clearly marks it as a test fixture (e.g.
-   `staging-recruiter-test+6j@<domain>`) and role `recruiter`.
-2. Sign in once for real, so `resolve_account` maps it to a `student_profiles`-style
-   uuid in `auth.users` (same mechanism documented in Step 6H's identity
-   review).
-3. Insert one `recruiters` row for that uuid directly in the staging DB
-   (a plain insert, not an Identity Platform action, no approval gate of
-   its own): `company`, `contact_name` set to obvious test values,
-   `verified = true`.
-4. Sign in as that account for real and call `recruiter_talent`/
-   `recruiter_proof_profile` against a fixture with both a server-verified
-   and a browser-authored scored explanation on the same student, and
-   confirm only the server-verified one appears/filters.
-5. Afterward, either delete the `recruiters` row or set `verified = false`
-   to retire the fixture; the Identity Platform login itself can be left
-   inert (it is a harmless staging-only test account, same treatment as
-   the existing `t07`/`t16` fixtures) or removed if the approver prefers.
+Result: the browser-authored row (99) did not appear anywhere in
+`recruiter_proof_profile`'s `explanations` list, and did not affect its
+`communication` average or `recruiter_talent`'s `comms_score` — both
+reflected only the server-verified 80. `recruiter_talent` also confirmed
+the target student was discoverable at all (`total_matches: 1`), proving
+the search path, not just the profile-detail path.
+
+Fixture cleaned up afterward: the test task/proof/both voice rows deleted,
+the `recruiters` row's `verified` flag set back to `false` (row kept, not
+deleted, for reproducibility - matches how `t07`/`t16` are kept as
+standing staging fixtures rather than torn down after each use). The
+Identity Platform login itself was left in place, inert, same treatment.

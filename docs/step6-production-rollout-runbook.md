@@ -33,6 +33,45 @@ prefix, in that same project.
   originally, not evidence it has been exercised under the load this
   feature will add. Capacity planning (step 10) must treat it as
   unvalidated until the canary (step 11) actually produces data.
+- **`PGRST_JWT_SECRET` is not `WEBHOOK_SECRET`.** Step 6H's draft of step 6
+  (worker deployment) said the worker's `PGRST_JWT_SECRET` should come
+  from "the freshly rotated, step 3 production secret" — step 3 rotates
+  `webhook-secret` only. That sentence would have pointed the worker's
+  database-authentication secret at the wrong Secret Manager entry
+  entirely. Corrected in step 6 below: the worker's `PGRST_JWT_SECRET`
+  is `prooflab-jwt-secret`, a completely different secret that this
+  rollout does not rotate and step 3 never touches. Rotating
+  `webhook-secret` must never change what the worker signs its own
+  PostgREST tokens with.
+- **Migration 01 (the staging compat layer) must never run against
+  production.** It bootstraps `auth`/`anon`/`authenticated`/`service_role`
+  and a permissive baseline `GRANT ALL` from nothing, for a database
+  rebuilt from a schema-only dump with `auth` excluded — that is staging's
+  situation, not production's. Production has served real traffic under
+  this same role/JWT model the whole time migration 41 assumes, which
+  means the roles and baseline grants migration 01 creates from scratch
+  already exist there, from whatever originally stood the database up.
+  Migration 41's actual dependency is "these roles and functions already
+  work," verified below, not "migration 01 has run" — it has not, and
+  should not.
+- **Actual production roles/grants were not fully verifiable read-only.**
+  Confirmed via ordinary read traffic (real GETs, which production already
+  serves) that `anon`/`authenticated`/`service_role` function as expected
+  for reads. What could **not** be safely confirmed without risking an
+  actual write is whether `authenticated` currently holds an overly broad
+  table-level `UPDATE` on `voice_explanations` in production — the exact
+  baseline-grant shape that made migration 43's column-level revoke
+  ineffective in staging (Step 6C) and had to be fixed with a table-level
+  one instead. This determines whether migration 42's revoke will actually
+  take effect in production or needs the same table-level correction.
+  **Action required before step 2**, using a real (human-supervised)
+  `psql` session, not PostgREST: run
+  `select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE');`
+  and confirm the answer, or run
+  `select grantee, privilege_type from information_schema.role_table_grants where table_name='voice_explanations';`
+  and read the actual grant shape. If `authenticated` has table-level
+  `UPDATE`, migration 42 must be adjusted the same way migration 43 was in
+  staging before this rollout proceeds.
 
 ## 1. Migration dependency order (41 → 46)
 
@@ -41,7 +80,7 @@ numbering:
 
 | # | Adds | Depends on |
 |---|---|---|
-| 41 | `transcription_status` and friends on `voice_explanations`; `claim/complete/fail_transcription_job` | Migration 01 (compat layer roles) only |
+| 41 | `transcription_status` and friends on `voice_explanations`; `claim/complete/fail_transcription_job` | Working `anon`/`authenticated`/`service_role` roles and baseline grants already existing in production (not migration 01 — see §0) |
 | 42 | Lease-token columns/fencing on the 41 functions; table-level `UPDATE` revoke | 41 (alters its columns and functions) |
 | 43 | `claim_transcription_recovery`; `guard_voice_explanations_insert` trigger | 41, 42 (reads/writes 42's columns; the trigger forces values in columns 41/42 added) |
 | 44 | `scoring_claimed_at`; `claim_voice_scoring` (timestamp-only) | None of 41–43 — independent column/function on the same table |
@@ -115,8 +154,11 @@ Deploy the same image already built and proven in staging
 (`prooflab-transcription-worker`) to a new production service, env vars
 pointed at production's own `POSTGREST_URL`/`TRANSCRIBER_URL`/
 `PRIVATE_BUCKET=prooflab-private-508214`, `STALE_AFTER_SECONDS=180`,
-`QUEUE_MAX_ATTEMPTS=3`, `PGRST_JWT_SECRET` from the (freshly rotated,
-step 3) production secret. `--no-allow-unauthenticated`, the step 4 SA.
+`QUEUE_MAX_ATTEMPTS=3`. `PGRST_JWT_SECRET` is `prooflab-jwt-secret` — the
+existing database-signing secret every other production service already
+uses, untouched by and unrelated to step 3's `webhook-secret` rotation
+(see §0). Do not point this at anything step 3 rotates.
+`--no-allow-unauthenticated`, the step 4 SA.
 
 ## 7. functions-service deployment
 
@@ -136,9 +178,41 @@ creation time. Verify one real execution succeeds before moving on.
 
 ## 9. Feature flag
 
-`VITE_ASYNC_TRANSCRIPTION` stays absent from `.env.production` through
-steps 1–8. It is switched on only for the canary (step 11), and only after
-every step above has independently verified working.
+`VITE_ASYNC_TRANSCRIPTION` is a **build-time** Vite env var — confirmed
+empirically across Steps 6E/6G by grepping built output: with it set, the
+async code path's strings (`transcription-enqueue`, the "Uploading your
+recording…" UI text) are compiled into the bundle; with it unset, they are
+not. One build has exactly one value, for every visitor of whatever URL
+serves that build. **A single real production account cannot be switched
+to the async path by itself while sharing the main production URL with
+everyone else** — there is no per-account runtime check anywhere in the
+current code, only this one build-time constant. Do not attempt a
+"canary" by editing `.env.production` and redeploying the main site: that
+flips the flag for every current production user simultaneously, which is
+exactly what a canary is meant to avoid.
+
+Production's frontend deploys via Firebase Hosting (`scripts/deploy-hosting.py`,
+site `prooflab-508214`). Firebase Hosting's own **preview channels**
+(`firebase hosting:channel:deploy <channel-id>`) publish to a separate,
+temporary URL without touching the live site's traffic at all — this is
+the real isolated-canary mechanism, available today with no code change:
+
+1. Build once with `VITE_ASYNC_TRANSCRIPTION=true` and every other
+   `.env.production` value unchanged (real production backend URLs — a
+   canary tests the real pipeline, not staging's).
+2. Deploy that build to a preview channel, not the live site.
+3. Give the channel's own URL to the one real account (or small cohort)
+   running the canary. Everyone else continues using the unchanged main
+   production URL/build, still flag-off.
+4. Retire the channel (`firebase hosting:channel:delete`) once the canary
+   concludes, whether it succeeds or is abandoned.
+
+This isolates by URL, not by account identity — the canary participant
+must actually be given and use the channel URL rather than the normal one.
+That is a real, if manual, isolation boundary; a proper per-account runtime
+flag (a column checked at app load, replacing or supplementing the
+build-time constant) would be the scalable version of this, and is a
+Step 7-sized change, not part of this rollout.
 
 ## 10. Monitoring and alerts
 
@@ -157,10 +231,13 @@ Before the canary:
 
 ## 11. Canary
 
-Flip the flag for a single real low-stakes account, or the smallest real
-cohort the product owner accepts, for at least one full day. Watch every
-metric in step 10. Do not widen the cohort until a full day has produced
-zero unexplained stuck jobs and zero worker error-rate spikes.
+Using step 9's preview-channel build, run the canary for at least one
+full day with the one real low-stakes account (or the smallest real
+cohort the product owner accepts) actually using that channel's URL.
+Watch every metric in step 10. Do not widen the cohort — by adding more
+people to the same channel, then eventually flipping the flag on the main
+site — until a full day has produced zero unexplained stuck jobs and zero
+worker error-rate spikes.
 
 ## 12. Rollback limits
 
@@ -189,3 +266,10 @@ zero unexplained stuck jobs and zero worker error-rate spikes.
   `transcription-enqueue`/`transcription-reap`).
 - Migration 40 (`notifications.dedupe_key`) is also not yet applied —
   independent of this rollout (see §0).
+- Production frontend deploys via Firebase Hosting (`scripts/deploy-hosting.py`,
+  site `prooflab-508214`), not a Cloud Run service — relevant to how the
+  canary in §9/§11 is actually isolated.
+- Whether `authenticated` holds table-level `UPDATE` on production's
+  `voice_explanations` was **not** determined this session — it needs a
+  real `psql` session, not a read-only REST probe (see §0). This is the
+  one open fact-finding item before step 2.

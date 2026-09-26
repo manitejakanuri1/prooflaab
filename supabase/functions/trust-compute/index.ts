@@ -85,7 +85,8 @@ serve(async (req) => {
         .eq('id', proof_id)
         .maybeSingle();
 
-      const owner = (ownerRow as any)?.student_profiles;
+      const owner = (ownerRow as { student_profiles?: { user_id: string | null; college_id: string | null } } | null)
+        ?.student_profiles;
       const mayAct = await mayActOnStudentWork(supabase, callerId, {
         ownerUserId: owner?.user_id ?? null,
         collegeId: owner?.college_id ?? null,
@@ -162,10 +163,10 @@ serve(async (req) => {
     // Get conceptual_understanding_score
     let conceptualUnderstandingScore = 0;
     if (conceptualTest && conceptualTest.answer_scores) {
-      const answerScores = conceptualTest.answer_scores as any[];
+      const answerScores = conceptualTest.answer_scores as { final_score?: number }[];
       if (answerScores.length > 0) {
         conceptualUnderstandingScore = Math.round(
-          answerScores.reduce((sum: number, score: any) => sum + (score.final_score || 0), 0) / answerScores.length
+          answerScores.reduce((sum, score) => sum + (score.final_score || 0), 0) / answerScores.length
         );
       }
     }
@@ -203,17 +204,27 @@ serve(async (req) => {
     // A 'browser' explanation is still shown to the student and still
     // scored (the synchronous path and its UX are unchanged); it just does
     // not move trust until it has gone through the queue.
+    //
+    // Step 6I: the provenance check must be a query filter, not a check
+    // against whichever row "order by created_at desc limit 1" happened to
+    // return first. The first version picked the single newest scored row
+    // regardless of source and only THEN asked whether it was eligible - so
+    // a newer 'browser' explanation for the same proof made an older,
+    // perfectly eligible 'server' one invisible, instead of just not
+    // counting itself. Filtering transcript_source in the query means the
+    // newest ELIGIBLE row is what gets found, whether or not a newer
+    // ineligible one also exists.
     const { data: voice } = await supabase
       .from('voice_explanations')
-      .select('communication_score, transcript_source')
+      .select('communication_score')
       .eq('proof_id', proof_id)
       .eq('status', 'scored')
+      .eq('transcript_source', 'server')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const voiceScore: number | null =
-      voice?.transcript_source === 'server' ? (voice?.communication_score ?? null) : null;
+    const voiceScore: number | null = voice?.communication_score ?? null;
     const voiceAdjustment = voiceScore === null
       ? 0
       : Math.round((voiceScore / 100) * 10);

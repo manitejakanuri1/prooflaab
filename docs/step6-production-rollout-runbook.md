@@ -64,14 +64,61 @@ prefix, in that same project.
   ineffective in staging (Step 6C) and had to be fixed with a table-level
   one instead. This determines whether migration 42's revoke will actually
   take effect in production or needs the same table-level correction.
-  **Action required before step 2**, using a real (human-supervised)
-  `psql` session, not PostgREST: run
-  `select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE');`
-  and confirm the answer, or run
-  `select grantee, privilege_type from information_schema.role_table_grants where table_name='voice_explanations';`
-  and read the actual grant shape. If `authenticated` has table-level
-  `UPDATE`, migration 42 must be adjusted the same way migration 43 was in
-  staging before this rollout proceeds.
+
+  **Step 6J: still BLOCKED.** No existing authorized read-only `psql`
+  session against production exists in this environment — only a
+  staging-scoped one (the Cloud Run job used throughout this engagement
+  is bound to `prooflab-staging-db` and was not repointed at production,
+  since creating or repointing any job against production infrastructure
+  is itself a production change this step must not make). A human with
+  real production DB access must run the queries below **before step 2**
+  of this runbook. Read-only, catalog/privilege functions only — none of
+  these write anything:
+
+  ```sql
+  -- table-level UPDATE on authenticated (the specific question):
+  select has_table_privilege('authenticated', 'public.voice_explanations', 'UPDATE');
+
+  -- every grant on the table, by role, so a "yes" above can be understood:
+  select grantee, privilege_type
+    from information_schema.role_table_grants
+   where table_schema = 'public' and table_name = 'voice_explanations'
+   order by grantee, privilege_type;
+
+  -- column-level grants specifically, in case UPDATE was scoped narrowly
+  -- rather than at the table level (the shape that would make it SAFE):
+  select grantee, column_name, privilege_type
+    from information_schema.column_privileges
+   where table_schema = 'public' and table_name = 'voice_explanations'
+     and privilege_type = 'UPDATE'
+   order by grantee, column_name;
+
+  -- confirms the roles/functions this rollout's migrations assume exist
+  -- (the actual dependency migration 41 has - see the correction above,
+  -- not migration 01):
+  select rolname from pg_roles
+   where rolname in ('anon', 'authenticated', 'service_role');
+  ```
+
+  **If the first query returns `true`** (table-level `UPDATE` granted to
+  `authenticated`): migration 42's column-level revoke will be silently
+  ineffective in production, identically to the staging bug found in Step
+  6C. Proposed patch (do not apply until the query above confirms it is
+  needed) — a new migration, e.g. `47-production-voice-explanations-update-revoke.sql`:
+
+  ```sql
+  begin;
+  revoke update on public.voice_explanations from authenticated, anon;
+  commit;
+  notify pgrst, 'reload schema';
+  ```
+
+  This is the exact statement migration 43 already used to fix the
+  identical staging bug (see that file) — table-level, not column-level,
+  for the same reason: a column-level revoke cannot narrow a privilege a
+  table-level grant already made broad. Apply it in the same migration
+  window as 41–46 if and only if the DBA confirms it is needed; do not
+  apply it speculatively if the query returns `false`.
 
 ## 1. Migration dependency order (41 → 46)
 
@@ -273,3 +320,34 @@ worker error-rate spikes.
   `voice_explanations` was **not** determined this session — it needs a
   real `psql` session, not a read-only REST probe (see §0). This is the
   one open fact-finding item before step 2.
+
+## Appendix: staging test-fixture gap found in Step 6J
+
+The `recruiters` table in staging is empty — no verified recruiter test
+account exists, so `recruiter_talent`/`recruiter_proof_profile`'s
+provenance filter (migration 46) has only been verified by replicating
+its exact query shape and by a live `trust-compute` call (same filter,
+different function), never through an actual verified-recruiter session.
+Unrelated to the production rollout itself, but a gap in this feature's
+staging test coverage. Minimal plan to close it, **not executed** without
+explicit approval (creating a new Identity Platform login is a
+project-wide identity action):
+
+1. Create one new real account through the app's normal staging sign-up
+   flow, with an email that clearly marks it as a test fixture (e.g.
+   `staging-recruiter-test+6j@<domain>`) and role `recruiter`.
+2. Sign in once for real, so `resolve_account` maps it to a `student_profiles`-style
+   uuid in `auth.users` (same mechanism documented in Step 6H's identity
+   review).
+3. Insert one `recruiters` row for that uuid directly in the staging DB
+   (a plain insert, not an Identity Platform action, no approval gate of
+   its own): `company`, `contact_name` set to obvious test values,
+   `verified = true`.
+4. Sign in as that account for real and call `recruiter_talent`/
+   `recruiter_proof_profile` against a fixture with both a server-verified
+   and a browser-authored scored explanation on the same student, and
+   confirm only the server-verified one appears/filters.
+5. Afterward, either delete the `recruiters` row or set `verified = false`
+   to retire the fixture; the Identity Platform login itself can be left
+   inert (it is a harmless staging-only test account, same treatment as
+   the existing `t07`/`t16` fixtures) or removed if the approver prefers.

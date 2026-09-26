@@ -405,7 +405,7 @@ already had several eligible rows from earlier steps).
 | Cross-student RLS/file isolation | **assumed LIVE** (RLS predates this engagement) | **STAGING, PASS (repeated evidence, Steps 6H/6J/6K)** | Not independently re-verified against production this engagement — see §9 |
 | Scoring-claim lease-token fencing | **PLANNED** | **STAGING, PASS** | |
 | Production webhook-secret rotation | **NOT DONE** | done (Step 6D) | Needs its own separate approval (§9) |
-| Production DB grant-shape check (does `authenticated` have table-level UPDATE?) | **UNKNOWN — BLOCKED**, no authorized read-only access available this engagement | n/a | Exact DBA commands in `docs/step6-production-rollout-runbook.md` |
+| Production DB grant-shape check (does `authenticated` have table-level UPDATE?) | **CONFIRMED (Step 6M): TRUE.** No legitimate code path depends on it (see runbook §0a). Correction migration prepared (`migration/47-production-voice-explanations-update-revoke.sql`), not yet applied — needs explicit approval | n/a | `docs/step6-production-rollout-runbook.md` §0/§0a/§1 |
 | Load testing under realistic concurrency | **NOT DONE**, anywhere | **NOT DONE** | See §11 |
 | DeepSeek-only enforcement | Code supports fallback chain; only DeepSeek key configured | same | Not a hard guarantee, a configuration fact |
 
@@ -467,8 +467,10 @@ be read as claiming progress on:
 ## 9. Exactly what's unverified, and why
 
 - **Production's Postgres role/grant shape** for `voice_explanations` —
-  genuinely blocked on access, not on effort. Real commands are ready for
-  whoever has the access.
+  resolved in Step 6M via a temporary Cloud SQL IAM login (created, used,
+  deleted same session). `authenticated` does hold table-level `UPDATE`;
+  no legitimate code depends on it; a correction migration is prepared
+  but not applied. See runbook §0a.
 - **Whether RLS on production actually behaves identically to staging's**
   for the cross-student isolation tests — staging's RLS policies were
   never *rewritten* in this engagement (they predate it), and the same

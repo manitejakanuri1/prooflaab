@@ -9,6 +9,27 @@ Production and staging are the same GCP project (`prooflab-508214`).
 "Production" resources below just means resources without a `staging-`
 prefix, in that same project.
 
+## 0a. Step 6M staging validation for migration 47
+
+Checked whether migration 47's revoke (`authenticated`/`anon` lose
+table-level `UPDATE` on `voice_explanations`) is already staging's live
+state, and whether anything legitimate depends on the grant it removes:
+
+| Check | Result | Evidence |
+|---|---|---|
+| No legitimate student flow needs direct `UPDATE` | **PASS** | Grepped every frontend call site against `voice_explanations` (`src/`): only `.select()`, `.insert()`, `.delete()` exist — never `.update()`. Grepped every edge function: all real updates go through `_shared/backend.ts`'s `createClient()`, which always mints a `service_role` token on this backend regardless of which key is passed in. |
+| Frontend recording creation, reading, deletion remain supported | **PASS (unaffected)** | Migration 47 revokes only `UPDATE` — `INSERT`/`SELECT`/`DELETE` grants and the matching `voice_own_insert`/`voice_own_read`/`voice_own_delete` RLS policies are untouched by this migration. |
+| Server-side voice scoring/transcription use authorized backend roles | **PASS** | `voice-score/index.ts` and `transcription-enqueue/index.ts` both write via the service-role-minting client. Migrations 41/44/45's `claim/complete/fail_*` RPCs are `SECURITY DEFINER` and `GRANT EXECUTE ... TO authenticated, service_role` — callers invoke the function, the function (running as its owner) does the actual `UPDATE`; the caller's own table grant is irrelevant to these RPCs. |
+| Relevant functions/triggers/RLS don't depend on these two grants | **PASS** | No `CREATE POLICY ... FOR UPDATE` on `voice_explanations` exists in any migration (checked all of 01–47). Migration 43's `guard_voice_explanations_insert` trigger fires `BEFORE INSERT`, not `UPDATE`. |
+| `service_role`/`prooflab_app` retain required privileges | **PASS** | Migration 47's `revoke` statement names only `authenticated, anon` — confirmed by reading the file. |
+| Ordinary student `UPDATE` attempt is actually denied in staging | **NOT TESTED** | Attempted a real live test (sign in as the `t07` fixture, `PATCH` a `voice_explanations` row directly against the staging PostgREST API) but the credential this session had access to (`prooflab-staging-student-password`) did not match `t07`'s account (`INVALID_LOGIN_CREDENTIALS`) — did not retry with guessed credentials, since repeated login guesses against a real auth system is not acceptable. Falling back to indirect evidence instead of claiming this passed: staging's migration history (re-read via the existing `prooflab-staging-inspect4` job's logs) shows migration 42 — which contains the identical `revoke update ... from authenticated, anon` statement — already ran successfully in staging. A Postgres `REVOKE` is a hard deterministic guarantee once applied, not a probabilistic one, so this is strong indirect evidence, but it is not the same as a live, observed denial and is reported as such. |
+| Synchronous voice scoring | **PASS (pre-existing evidence)** | 72/100 `browser`-sourced score, retested after every fix in Steps 6B–6K. |
+| Asynchronous transcription + scoring | **PASS (pre-existing evidence)** | 55/100 `server`-sourced score through the full queue/worker/reap pipeline, retested after every fix in Steps 6B–6K. |
+| Server-side updates continuing to work | **PASS (pre-existing evidence)** | Same evidence as the two rows above — these are the server-side updates in question. |
+
+No unsafe permission was re-granted to `authenticated`/`anon` at any point
+to run this check.
+
 ## 0. Corrections to the Step 6G draft of this checklist
 
 - **Step 6M re-verification (no changes found):** re-checked migration
@@ -151,27 +172,12 @@ prefix, in that same project.
   server-side and are never reachable directly by a student's browser.
   Not applied to production; requires separate explicit approval to run.
 
-  **If the first query returns `true`** (table-level `UPDATE` granted to
-  `authenticated`): migration 42's column-level revoke will be silently
-  ineffective in production, identically to the staging bug found in Step
-  6C. Proposed patch (do not apply until the query above confirms it is
-  needed) — a new migration, e.g. `47-production-voice-explanations-update-revoke.sql`:
+  (Superseded — this paragraph was Step 6J's speculative "if the query
+  returns true" draft, written before production access existed. The
+  query has since run for real; see the confirmed findings and prepared
+  migration above. Left removed rather than kept as dead text.)
 
-  ```sql
-  begin;
-  revoke update on public.voice_explanations from authenticated, anon;
-  commit;
-  notify pgrst, 'reload schema';
-  ```
-
-  This is the exact statement migration 43 already used to fix the
-  identical staging bug (see that file) — table-level, not column-level,
-  for the same reason: a column-level revoke cannot narrow a privilege a
-  table-level grant already made broad. Apply it in the same migration
-  window as 41–46 if and only if the DBA confirms it is needed; do not
-  apply it speculatively if the query returns `false`.
-
-## 1. Migration dependency order (41 → 46)
+## 1. Migration dependency order (41 → 47)
 
 Actual dependencies, verified by reading each file, not assumed from
 numbering:
@@ -184,6 +190,7 @@ numbering:
 | 44 | `scoring_claimed_at`; `claim_voice_scoring` (timestamp-only) | None of 41–43 — independent column/function on the same table |
 | 45 | `scoring_lease_token`; rewrites `claim/complete/fail_voice_scoring` with fencing | 44 (replaces its function, extends its column) |
 | 46 | `recruiter_talent`/`recruiter_proof_profile` provenance filter | Reads `transcript_source`, which predates all of 41–45 (stage6) — otherwise independent of 41–45, but ships with them since it closes the gap they collectively created |
+| 47 | Table-level `revoke update ... from authenticated, anon` on `voice_explanations` (Step 6M) | None of 41–46 — only touches grants on columns/roles that already exist in production today. Order-independent: safe to ship before, with, or after 41–46. If applied first and 41–46 follow later, migration 42's identical `revoke` statement becomes a documented Postgres no-op (revoking a privilege already absent succeeds silently, no error) |
 
 All six are additive (new columns, new/replaced functions) — none drops or
 renames anything an existing production code path reads. `prooflab-functions`

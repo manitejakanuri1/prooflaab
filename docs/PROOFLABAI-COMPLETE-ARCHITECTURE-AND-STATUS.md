@@ -399,6 +399,7 @@ already had several eligible rows from earlier steps).
 | Proof upload + trust-compute | **LIVE** | **LIVE** | Provenance-aware trust adjustment is staging-only until migration 41–46 ships (§9) |
 | Synchronous voice recording | **LIVE** | **LIVE** | Has the fabrication gap described in §5.4; UI-side mitigation (Build-Log provenance badge) is staging-only |
 | Asynchronous voice pipeline (Cloud Tasks/worker/scheduler) | **PLANNED** (not deployed) | **STAGING**, extensively tested | See §9 for exact blockers |
+| Transcription job schema + functions (migrations 41+42) | **APPLIED to production, 2026-09-27** (Steps 6U–6W's combined script, connected as `prooflab_app`). Schema/functions only — no queue, worker, or scheduler exists yet, so no row ever actually enters this state in production today | **STAGING**, live | Applied together in one transaction, never 41 alone — see runbook §1 |
 | Build-Log recording detail view + provenance badges | **PLANNED** | **STAGING** | |
 | Recruiter search/profile | **LIVE** | **LIVE** | Provenance filter (migration 46) is staging-only |
 | Verified-recruiter provenance test | — | **STAGING, PASS (Step 6K)** | Real session, real evidence, fixture retired after |

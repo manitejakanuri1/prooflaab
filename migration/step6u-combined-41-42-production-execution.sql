@@ -238,9 +238,32 @@ revoke update on public.voice_explanations from authenticated, anon;
 do $$
 declare
   v_count integer;
-  v_grantee text;
-  v_priv text;
   v_row record;
+  v_acl_row record;
+  -- Exact argument-TYPE strings, no names, no defaults, via Postgres's
+  -- own oidvectortypes() - the canonical, name-free rendering of
+  -- proargtypes (confirmed empirically this step: 'uuid, integer' etc.,
+  -- exactly matching these literals). Immune to
+  -- pg_get_function_identity_arguments() rendering parameter names,
+  -- which made the original name-based string comparisons unreliable
+  -- (Step 6W correction: the old-overload checks below used un-named
+  -- strings that could never match a real named signature, so they
+  -- silently never fired regardless of whether the unsafe overload
+  -- existed). Also NOT comparing proargtypes::oid[] directly against an
+  -- array[...]::oid[] literal - that was tried first and found
+  -- unreliable in this same step: proargtypes casts to an oid[] with a
+  -- 0-based lower bound ([0:1]={...}), which compared as unequal to a
+  -- plain array[...]::oid[] literal (1-based) despite identical
+  -- elements - a real, confirmed pitfall, not a hypothetical one, so
+  -- oidvectortypes()'s plain text output is used instead.
+  t_claim_old      text := 'uuid, integer';
+  t_complete_old   text := 'uuid, text, jsonb, integer';
+  t_fail_old_3     text := 'uuid, text, boolean';
+  t_fail_old_2     text := 'uuid, text';
+  t_claim_final    text := 'uuid, integer';
+  t_complete_final text := 'uuid, uuid, text, jsonb, integer';
+  t_fail_final     text := 'uuid, uuid, text, boolean';
+  t_reap_final     text := 'integer';
 begin
   -- (a) all six transcription columns exist
   select count(*) into v_count from information_schema.columns
@@ -252,88 +275,115 @@ begin
     raise exception 'expected 6 transcription columns on voice_explanations, found %', v_count;
   end if;
 
-  -- (b) no unsafe old-signature overload remains
-  if exists (
-    select 1 from pg_proc where pronamespace = 'public'::regnamespace
-     and proname = 'complete_transcription_job'
-     and pg_get_function_identity_arguments(oid) = 'uuid, text, jsonb, integer'
-  ) then
-    raise exception 'unsafe old 4-arg complete_transcription_job(uuid,text,jsonb,integer) overload still exists';
+  -- (b) no unsafe old-signature overload remains - exact type-array match,
+  -- not a name-formatted string, so parameter names cannot hide a match.
+  -- (claim_transcription_job's old (41-only) and final (42) signatures
+  -- share the same input TYPES - only the OUT/return columns differ,
+  -- which a type array cannot see - so it is checked separately below
+  -- by return shape instead, not here.)
+  if exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
+      and proname = 'complete_transcription_job' and oidvectortypes(proargtypes) = t_complete_old) then
+    raise exception 'unsafe old complete_transcription_job(uuid,text,jsonb,integer) overload still exists (no lease token)';
   end if;
-  if exists (
-    select 1 from pg_proc where pronamespace = 'public'::regnamespace
-     and proname = 'fail_transcription_job'
-     and pg_get_function_identity_arguments(oid) in ('uuid, text, boolean', 'uuid, text')
-  ) then
-    raise exception 'unsafe old fail_transcription_job overload still exists';
+  if exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
+      and proname = 'fail_transcription_job' and oidvectortypes(proargtypes) = t_fail_old_3) then
+    raise exception 'unsafe old fail_transcription_job(uuid,text,boolean) overload still exists (no lease token)';
+  end if;
+  if exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
+      and proname = 'fail_transcription_job' and oidvectortypes(proargtypes) = t_fail_old_2) then
+    raise exception 'unsafe old fail_transcription_job(uuid,text) overload still exists';
   end if;
 
-  -- (c) exactly the four final functions exist, with the correct final
-  -- signature, and are SECURITY DEFINER
-  if not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
-      and proname = 'claim_transcription_job'
-      and pg_get_function_identity_arguments(oid) = '_id uuid, _stale_after_seconds integer'
-      and prosecdef) then
-    raise exception 'claim_transcription_job missing, wrong signature, or not SECURITY DEFINER';
+  -- claim_transcription_job specifically: type array alone cannot
+  -- distinguish 41's shape from 42's (same input types, different OUT
+  -- columns), so confirm by return-shape instead - exactly one function
+  -- of this name+input-types, and it returns the lease_token column.
+  if (select count(*) from pg_proc where pronamespace = 'public'::regnamespace
+      and proname = 'claim_transcription_job' and oidvectortypes(proargtypes) = t_claim_final) <> 1 then
+    raise exception 'expected exactly one claim_transcription_job(uuid,integer) - found a different count';
   end if;
+  if not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
+      and p.proname = 'claim_transcription_job' and oidvectortypes(p.proargtypes) = t_claim_final
+      and p.prosecdef
+      and exists (select 1 from unnest(string_to_array(pg_get_function_result(p.oid), ', ')) col
+                  where col ilike '%lease_token%')) then
+    raise exception 'claim_transcription_job does not return lease_token - still the old (41-only) shape, or missing';
+  end if;
+
+  -- (c) the other three final functions exist with the correct exact
+  -- argument types and are SECURITY DEFINER
   if not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
-      and proname = 'complete_transcription_job'
-      and pg_get_function_identity_arguments(oid) = '_id uuid, _lease_token uuid, _transcript text, _segments jsonb, _word_count integer'
-      and prosecdef) then
+      and proname = 'complete_transcription_job' and oidvectortypes(proargtypes) = t_complete_final and prosecdef) then
     raise exception 'complete_transcription_job missing, wrong signature, or not SECURITY DEFINER';
   end if;
   if not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
-      and proname = 'fail_transcription_job'
-      and pg_get_function_identity_arguments(oid) = '_id uuid, _lease_token uuid, _error text, _terminal boolean'
-      and prosecdef) then
+      and proname = 'fail_transcription_job' and oidvectortypes(proargtypes) = t_fail_final and prosecdef) then
     raise exception 'fail_transcription_job missing, wrong signature, or not SECURITY DEFINER';
   end if;
   if not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
-      and proname = 'reap_stale_transcription_jobs'
-      and pg_get_function_identity_arguments(oid) = '_stale_after_seconds integer'
-      and prosecdef) then
+      and proname = 'reap_stale_transcription_jobs' and oidvectortypes(proargtypes) = t_reap_final and prosecdef) then
     raise exception 'reap_stale_transcription_jobs missing, wrong signature, or not SECURITY DEFINER';
   end if;
 
-  -- (d) EXECUTE ACL on each of the four functions: exactly one entry,
-  -- service_role, EXECUTE. Read the actual ACL via aclexplode, not
-  -- has_function_privilege('public', ...) - PUBLIC is not an ordinary
-  -- login role, it is grantee-oid 0 in the ACL itself, and this checks
-  -- that directly rather than assuming a role name lookup.
+  -- (d) for each of the four final functions: POSITIVELY require
+  -- service_role EXECUTE (not just "no unauthorized grantee found" -
+  -- Step 6W correction: the prior version only rejected bad grantees,
+  -- it never actually proved service_role's grant exists at all, so a
+  -- silently-failed GRANT would have passed unnoticed), and reject
+  -- PUBLIC/anon/authenticated explicitly, using the function's exact
+  -- oid/signature resolved by type array, not by name alone.
   for v_row in
-    select p.proname, p.proowner, a.grantee, a.privilege_type
-      from pg_proc p
-      cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
-     where p.pronamespace = 'public'::regnamespace
-       and p.proname in ('claim_transcription_job', 'complete_transcription_job',
-                          'fail_transcription_job', 'reap_stale_transcription_jobs')
-       and (p.proname != 'claim_transcription_job'
-            or pg_get_function_identity_arguments(p.oid) = '_id uuid, _stale_after_seconds integer')
-       and (p.proname != 'complete_transcription_job'
-            or pg_get_function_identity_arguments(p.oid) = '_id uuid, _lease_token uuid, _transcript text, _segments jsonb, _word_count integer')
-       and (p.proname != 'fail_transcription_job'
-            or pg_get_function_identity_arguments(p.oid) = '_id uuid, _lease_token uuid, _error text, _terminal boolean')
-       and (p.proname != 'reap_stale_transcription_jobs'
-            or pg_get_function_identity_arguments(p.oid) = '_stale_after_seconds integer')
+    select 'claim_transcription_job'::text as fname,
+           (select oid from pg_proc where proname = 'claim_transcription_job'
+             and pronamespace = 'public'::regnamespace and oidvectortypes(proargtypes) = t_claim_final) as foid
+    union all
+    select 'complete_transcription_job', (select oid from pg_proc where proname = 'complete_transcription_job'
+             and pronamespace = 'public'::regnamespace and oidvectortypes(proargtypes) = t_complete_final)
+    union all
+    select 'fail_transcription_job', (select oid from pg_proc where proname = 'fail_transcription_job'
+             and pronamespace = 'public'::regnamespace and oidvectortypes(proargtypes) = t_fail_final)
+    union all
+    select 'reap_stale_transcription_jobs', (select oid from pg_proc where proname = 'reap_stale_transcription_jobs'
+             and pronamespace = 'public'::regnamespace and oidvectortypes(proargtypes) = t_reap_final)
   loop
-    if v_row.grantee = 0 then
-      raise exception '% still grants EXECUTE to PUBLIC', v_row.proname;
+    if v_row.foid is null then
+      raise exception '% could not be resolved by exact signature for the ACL check', v_row.fname;
     end if;
-    -- Allow service_role, and separately allow the function's own owner:
-    -- Postgres materializes a function's default ACL (owner gets EXECUTE
-    -- WITH GRANT OPTION, PUBLIC gets plain EXECUTE) the first time any
-    -- GRANT/REVOKE runs against a function whose acl was previously NULL.
-    -- The owner's own row surviving that is normal - ownership already
-    -- grants full rights unconditionally, with or without an ACL row -
-    -- and is not reachable by anon/authenticated/PUBLIC. What actually
-    -- matters, and what this still rejects, is any OTHER grantee.
-    if v_row.grantee::regrole::text <> 'service_role'
-       and v_row.grantee <> v_row.proowner then
-      raise exception '% grants % to % (expected only service_role or the function owner)', v_row.proname, v_row.privilege_type, v_row.grantee::regrole::text;
+
+    -- positive requirement: service_role must actually be able to EXECUTE
+    if not has_function_privilege('service_role', v_row.foid, 'EXECUTE') then
+      raise exception '% : service_role EXECUTE grant is missing (required)', v_row.fname;
     end if;
-    if v_row.privilege_type <> 'EXECUTE' then
-      raise exception '% grants unexpected privilege % to %', v_row.proname, v_row.privilege_type, v_row.grantee::regrole::text;
+
+    -- negative requirement: PUBLIC/anon/authenticated must NOT be able to
+    if has_function_privilege('anon', v_row.foid, 'EXECUTE') then
+      raise exception '% : anon unexpectedly has EXECUTE', v_row.fname;
     end if;
+    if has_function_privilege('authenticated', v_row.foid, 'EXECUTE') then
+      raise exception '% : authenticated unexpectedly has EXECUTE', v_row.fname;
+    end if;
+
+    -- full ACL sweep: every grantee must be service_role or the owner
+    -- (ownership always implies full rights regardless of any ACL row -
+    -- see the Step 6U note this replaces), rejecting anything else,
+    -- including PUBLIC (grantee oid 0) explicitly rather than relying on
+    -- has_function_privilege('public', ...) treating it as a role name.
+    for v_acl_row in
+      select v_row.fname as fname, a.grantee, a.privilege_type,
+             (select proowner from pg_proc where oid = v_row.foid) as proowner
+        from aclexplode(coalesce((select proacl from pg_proc where oid = v_row.foid),
+                                  acldefault('f', (select proowner from pg_proc where oid = v_row.foid)))) a
+    loop
+      if v_acl_row.grantee = 0 then
+        raise exception '% still grants EXECUTE to PUBLIC', v_acl_row.fname;
+      end if;
+      if v_acl_row.grantee::regrole::text <> 'service_role' and v_acl_row.grantee <> v_acl_row.proowner then
+        raise exception '% grants % to % (expected only service_role or the function owner)', v_acl_row.fname, v_acl_row.privilege_type, v_acl_row.grantee::regrole::text;
+      end if;
+      if v_acl_row.privilege_type <> 'EXECUTE' then
+        raise exception '% grants unexpected privilege % to %', v_acl_row.fname, v_acl_row.privilege_type, v_acl_row.grantee::regrole::text;
+      end if;
+    end loop;
   end loop;
 
   -- (e) authenticated/anon still lack UPDATE on voice_explanations
@@ -365,7 +415,7 @@ begin
     raise exception 'service_role unexpectedly lost UPDATE on voice_explanations';
   end if;
 
-  raise notice 'Step 6U: all fail-closed checks passed. Committing.';
+  raise notice 'Step 6W: all fail-closed checks passed. Committing.';
 end $$;
 
 commit;

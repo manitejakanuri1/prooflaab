@@ -1,9 +1,11 @@
 # Step 6 production rollout runbook
 
-Status: **not executed**. This is a checklist to follow when a production
-rollout of the async transcription pipeline (Step 6B–6H) is explicitly
-approved. Every fact below comes from read-only inspection of production
-during Step 6G/6H — nothing in this document has been run.
+Status: **migration 47 APPLIED to production (Step 6S, 2026-09-27)** — the
+one narrowly-scoped permission fix, applied manually by the project owner
+via Cloud SQL Studio. **Migrations 41–46 and the rest of the async
+transcription rollout (Step 6B–6H) remain not executed.** Every other fact
+below comes from read-only inspection of production during Step 6G/6H —
+nothing beyond migration 47 has been run.
 
 Production and staging are the same GCP project (`prooflab-508214`).
 "Production" resources below just means resources without a `staging-`
@@ -100,7 +102,57 @@ plus the new direct evidence in part 1 of this section — staging's
 `authenticated`/`anon` genuinely lack the grant today, confirmed by
 direct catalog query rather than only by migration history this time.
 
-**4. Manual production execution plan for migration 47 (not executed):**
+**4. Migration 47 — APPLIED to production (Step 6S, 2026-09-27).**
+
+Applied manually by the project owner via Cloud SQL Studio, connected as
+`prooflab_app` (the confirmed table owner, Step 6R). Post-migration
+verification, as run and reported by the project owner:
+
+```
+authenticated UPDATE = FALSE
+anon UPDATE          = FALSE
+prooflab_app UPDATE  = TRUE
+service_role UPDATE  = TRUE
+```
+
+Final ACL query returned exactly two `UPDATE` rows: `prooflab_app`,
+`service_role`. No `PUBLIC` row, no column-level `UPDATE` grant. This
+matches the corrected expectation below exactly — `prooflab_app`/
+`service_role` retained, `anon`/`authenticated` removed, nothing else
+touched.
+
+**Migration tracking / ledger reconciliation:** there is no
+database-tracked ledger table for the files under `migration/` (unlike
+`supabase/migrations/`, which has its own separate timestamped ledger
+for a different, unrelated set of changes — see `DEPLOYING.md`). This
+runbook is the only record of which `migration/NN-*.sql` files have run
+against production. No database-side ledger entry exists to reconcile;
+this document being updated *is* the reconciliation. Not changing any
+database ledger, per instruction — none exists to change.
+
+**Live student UPDATE-denial test: still not performed.** The
+post-migration verification above was run directly as `prooflab_app`
+(the table owner), which does not exercise what an actual student's own
+authenticated session experiences through the PostgREST API. This
+remains the same NOT TESTED gap carried from Steps 6M/6N — the available
+staging credential never matched the `t07` fixture, and no different
+credential was guessed. The `has_table_privilege` results above are a
+direct, authoritative statement of the privilege itself, which is
+stronger evidence than staging's indirect migration-history check was,
+but it is still not a live request-response observation of a denial.
+
+**Will applying migration 42 later restore this?** No. Migration 42
+contains the *identical* statement — `revoke update on
+public.voice_explanations from authenticated, anon;` — not a `GRANT`.
+Once a `REVOKE` has already removed a privilege, running the same
+`REVOKE` again is a documented Postgres no-op (it succeeds silently,
+changes nothing, because there is nothing left to revoke). Migrations
+41, 43, 44, 45, 46 don't reference this table's `UPDATE` grant at all.
+Nothing in the pending 41–46 sequence re-grants `UPDATE` to
+`authenticated`/`anon` anywhere.
+
+**Original manual execution plan (superseded by the above, kept for
+reference):**
 
 **Correction (Step 6O) — the expected post-migration ACL below was wrong.**
 The version of this section written in Step 6N said the post-migration

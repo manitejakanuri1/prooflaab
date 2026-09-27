@@ -275,8 +275,9 @@ begin
     raise exception 'expected 6 transcription columns on voice_explanations, found %', v_count;
   end if;
 
-  -- (b) no unsafe old-signature overload remains - exact type-array match,
-  -- not a name-formatted string, so parameter names cannot hide a match.
+  -- (b) no unsafe old-signature overload remains - exact type-only match
+  -- via oidvectortypes(), not a name-formatted string, so parameter
+  -- names cannot hide a match.
   -- (claim_transcription_job's old (41-only) and final (42) signatures
   -- share the same input TYPES - only the OUT/return columns differ,
   -- which a type array cannot see - so it is checked separately below

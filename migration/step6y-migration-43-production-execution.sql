@@ -122,6 +122,21 @@ create trigger guard_voice_explanations_insert
   before insert on public.voice_explanations
   for each row execute function public.guard_voice_explanations_insert();
 
+-- Step 6Z addition, not part of migration 43's original file: the
+-- original migration never revoked the default PUBLIC EXECUTE that
+-- CREATE FUNCTION applies automatically - confirmed as a real gap on
+-- staging (public_exec/anon_exec/auth_exec all true before this fix).
+-- No GRANT is added for any role: a trigger's function is invoked
+-- directly by the trigger manager as part of the INSERT operation, not
+-- called as an ordinary RPC, so EXECUTE privilege is never checked for
+-- trigger firing - only for a direct SELECT/CALL-style invocation, which
+-- nothing legitimate ever does to a trigger function. Revoking PUBLIC
+-- here closes that direct-invocation surface without affecting the
+-- trigger itself - verified below by pre-check, staging ACL, and a live
+-- simulated-session insert that must still succeed after this revoke.
+revoke execute on function public.guard_voice_explanations_insert()
+  from public, anon, authenticated;
+
 -- ============================================================
 -- fail-closed verification, INSIDE the transaction, BEFORE commit.
 -- ============================================================
@@ -213,10 +228,30 @@ begin
   -- (f) the guard function itself exists (zero-argument trigger
   -- function - checked by pronargs, not oidvectortypes, to avoid relying
   -- on an unverified empty-string rendering) and is SECURITY DEFINER
-  if not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
-      and proname = 'guard_voice_explanations_insert' and pronargs = 0
-      and prosecdef) then
-    raise exception 'guard_voice_explanations_insert() function missing or not SECURITY DEFINER';
+  select oid into v_foid from pg_proc where pronamespace = 'public'::regnamespace
+   and proname = 'guard_voice_explanations_insert' and pronargs = 0;
+  if v_foid is null then
+    raise exception 'guard_voice_explanations_insert() function missing';
+  end if;
+  if not exists (select 1 from pg_proc where oid = v_foid and prosecdef) then
+    raise exception 'guard_voice_explanations_insert() is not SECURITY DEFINER';
+  end if;
+
+  -- (f2) Step 6Z: PUBLIC/anon/authenticated must NOT have EXECUTE on the
+  -- trigger function itself - a real gap confirmed on staging before
+  -- this fix (all three were true). No positive service_role
+  -- requirement here, unlike the RPC-style functions in the 41+42
+  -- script: nothing ever calls this function directly, including
+  -- service_role - it only ever runs as the trigger manager's own
+  -- invocation, which does not check EXECUTE at all.
+  if has_function_privilege('public', v_foid, 'EXECUTE') then
+    raise exception 'guard_voice_explanations_insert(): PUBLIC unexpectedly has EXECUTE';
+  end if;
+  if has_function_privilege('anon', v_foid, 'EXECUTE') then
+    raise exception 'guard_voice_explanations_insert(): anon unexpectedly has EXECUTE';
+  end if;
+  if has_function_privilege('authenticated', v_foid, 'EXECUTE') then
+    raise exception 'guard_voice_explanations_insert(): authenticated unexpectedly has EXECUTE';
   end if;
 
   -- (g) regression guard: table-level UPDATE grants unchanged from
@@ -244,7 +279,7 @@ begin
     raise exception 'RLS is not enabled on voice_explanations';
   end if;
 
-  raise notice 'Step 6Y: all fail-closed checks passed. Committing.';
+  raise notice 'Step 6Z: all fail-closed checks passed. Committing.';
 end $$;
 
 commit;

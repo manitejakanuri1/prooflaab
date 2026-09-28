@@ -1,6 +1,6 @@
 # Step 6 handoff — read this first if you're picking this up fresh
 
-Last updated: 2026-09-27, commit `c890889` on branch `work/step6j-release-gates`.
+Last updated: 2026-09-28 (migration 44 applied), on branch `work/step6j-release-gates`, at or after commit `36e6c39`.
 
 If you're a new Claude Code session (or a new person) starting on this
 work, read this whole file before touching anything. It replaces having
@@ -107,15 +107,15 @@ privilege.
 
 ---
 
-## Exact current state of production (2026-09-27)
+## Exact current state of production (2026-09-28)
 
 | Migration | Status | Notes |
 |---|---|---|
 | 41 + 42 | **APPLIED** | Together, in one transaction — never 41 alone. 41 alone has a real security exposure (grants `authenticated` EXECUTE on a function with no ownership/lease-token check, and never revokes the Postgres-default `PUBLIC EXECUTE`). Script: `migration/step6u-combined-41-42-production-execution.sql` |
 | 43 | **APPLIED** | Script: `migration/step6y-migration-43-production-execution.sql`. Includes a fix beyond the original migration file — an explicit revoke of default `PUBLIC EXECUTE` on the `guard_voice_explanations_insert()` trigger function, which the original migration never had |
 | 47 | **APPLIED** | Script: `migration/47-production-voice-explanations-update-revoke.sql`. Removes `UPDATE` on `voice_explanations` from `authenticated`/`anon` — nothing legitimate ever used that grant |
-| 44 | **PREPARED, NOT APPLIED — this is the next step** | Script: `migration/step6bb-migration-44-production-execution.sql`. Written, audited, safely rehearsed against staging (twice — once proving its safety guard correctly refuses to run against a database already past it, once proving the actual DDL/lock-down logic works, using an isolated proxy so staging's real function was never touched). **Waiting on the project owner's explicit approval to run it.** |
-| 45 | Not started | Depends on 44. Do NOT combine 44+45 into one script — unlike 41/42, each is independently self-contained and safe to apply separately (see runbook §1) |
+| 44 | **APPLIED (2026-09-28)** | Script: `migration/step6bb-migration-44-production-execution.sql` (commit `c890889`). Applied manually by the project owner via Cloud SQL Studio, connected as `prooflab_app`, and independently verified: `scoring_claimed_at` column exists; `claim_voice_scoring(uuid, integer)` returning `boolean` exists, owner `prooflab_app`, `SECURITY DEFINER`; EXECUTE for `service_role` only (`anon`/`authenticated`/`PUBLIC` = false). Recorded in the runbook and architecture doc in commit `36e6c39` |
+| 45 | Not started — **this is the next step** | Depends on 44 (now applied). Do NOT combine 44+45 into one script — unlike 41/42, each is independently self-contained and safe to apply separately (see runbook §1) |
 | 46 | Not started | Independent of 41–45 in practice; ships with them because it closes a gap they collectively created |
 | Async pipeline infrastructure | **Does not exist in production** | No Cloud Tasks queue, no dedicated worker/functions deploy for this, no dedicated IAM/service account, no scheduler, no webhook-secret rotation, no cost limits/budget scoping specific to this, no Firebase preview-channel canary. All of migrations 41–47 so far are dormant schema/function additions — nothing in currently-deployed production code calls any of them yet |
 
@@ -139,8 +139,8 @@ All in `migration/` (repo root), all committed to
 - `step6y-migration-43-production-execution.sql` — applied (fixed once
   more in a later commit — see its own header comments for the full
   history)
-- `step6bb-migration-44-production-execution.sql` — prepared, not
-  applied
+- `step6bb-migration-44-production-execution.sql` — applied
+  (2026-09-28)
 
 Plus the two docs listed above, updated after every applied change.
 
@@ -149,7 +149,7 @@ Plus the two docs listed above, updated after every applied change.
 ## What your machine needs to continue this
 
 1. Clone/pull the repo, check out `work/step6j-release-gates` at or
-   after commit `c890889`.
+   after commit `36e6c39`.
 2. `gcloud` CLI authenticated to GCP project `prooflab-508214`, with
    whatever account has Owner role there (needed for any read-only
    inspection via the existing staging job, and for anything Claude does
@@ -165,9 +165,9 @@ Plus the two docs listed above, updated after every applied change.
 Point Claude at this file directly. A prompt like:
 
 > Read `docs/STEP6-HANDOFF.md` first. Continue ProofLabAI Step 6 from
-> there. Branch `work/step6j-release-gates`, latest commit `c890889`.
-> Next action: [whatever you actually want — e.g. "review migration 44
-> and tell me if I should approve it" or "prepare migration 45"].
+> there. Branch `work/step6j-release-gates`, at or after commit `36e6c39`.
+> Next action: [whatever you actually want — e.g. "prepare migration 45
+> and rehearse it against staging"].
 
 That's enough — it does not need the full chat history re-pasted. The
 runbook and architecture doc carry all the technical detail; this file

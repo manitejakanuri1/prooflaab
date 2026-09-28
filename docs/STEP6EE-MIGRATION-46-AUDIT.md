@@ -2,6 +2,21 @@
 
 Date: 2026-09-28. Branch `work/step6j-release-gates`. Status: **PREPARED, NOT APPLIED — ready for independent review.**
 
+## 0. Revision 2 (2026-09-28): rebuilt from the actual production bodies
+
+- The owner's production pre-check returned **false** for both fingerprints. Production had talent `b47030ab…` and profile `642189a0…`; the scripts expected `f7c1eef2…` and `b467d6f7…`. The script would therefore have refused to run, as designed.
+- The owner exported the exact production definitions (`pg_get_functiondef`). They are saved in `migration/step6ee-production-before/`.
+  - Their fingerprints match production.
+  - Compared line by line with the repo's stage69 / stage35c versions: **the executable SQL is identical; only comments differ.**
+    - `recruiter_talent`: one comment line is absent in production.
+    - `recruiter_proof_profile`: 5 comments are reworded or added.
+  - The full diff is in `docs/STEP6EE-DIFFERENCES.md`.
+- The execution and rollback scripts are now built from the production text. They keep all existing logic and comments, and add only:
+  - the 3 server-only filters;
+  - the reviewed permission change: revoke from PUBLIC and anon, grant to authenticated.
+- The rollback restores the production bodies **byte for byte** (proven on staging), and keeps the tightened grants.
+- **Production grants are still unknown:** the export didn't include them. The script doesn't assume them. It revokes from PUBLIC and anon, grants to authenticated, and leaves every other grantee as it is. Part 3 of the pre-check file lists them one row per grantee. Please run it before approval.
+
 ## 1. Files
 
 | File | Use |
@@ -13,6 +28,8 @@ Date: 2026-09-28. Branch `work/step6j-release-gates`. Status: **PREPARED, NOT AP
 | `migration/46-recruiter-provenance-filter.sql` | ORIGINAL. **Never run in production** (header added) |
 | `scripts/dev-tools/step6ee_build.py` | Generates the execution, rollback and rehearsal SQL from the migration files |
 | `migration/step6ee-staging-rehearsal-2026-09-28.txt` | Full staging output |
+| `migration/step6ee-production-before/` | Exported production definitions (starting point and rollback target) |
+| `docs/STEP6EE-DIFFERENCES.md` | Exact diffs: production vs repo, and production vs Step 6EE |
 
 ## 2. What migration 46 does
 
@@ -26,7 +43,7 @@ A recruiter should only see, and filter on, communication scores from voice expl
 
 | # | Defect | Evidence | Fix |
 |---|---|---|---|
-| D1 | **It undoes stage69.** 46 was written from stage35c's `recruiter_talent`. stage69 later changed `proofs_verified` to also count passed `task_submissions`. Running 46 as written replaces the whole function, so that count is lost | Staging run R: original 46 applied on the stage69 body, then `task_submissions` counted = **f**. Staging itself is already in this regressed state (its body md5 `a8a046d7…` = the original 46) | The filter is applied to the **current** bodies: stage69 `recruiter_talent` + stage35c `recruiter_proof_profile` |
+| D1 | **It undoes stage69.** 46 was written from stage35c's `recruiter_talent`. stage69 later changed `proofs_verified` to also count passed `task_submissions`. Running 46 as written replaces the whole function, so that count is lost | Staging run R: original 46 applied on the stage69 body, then `task_submissions` counted = **f**. Staging itself is already in this regressed state (its body md5 `a8a046d7…` = the original 46) | The filter is applied to the **exported production** bodies (same logic as stage69 / stage35c) |
 | D2 | The permissions it leaves are wrong. Staging has EXECUTE for **PUBLIC and anon** on both functions. stage35c's intent was to revoke from public and anon, and grant to authenticated. Production's state is unknown | Staging ACL `{=X/postgres, …, anon=X/postgres, …}` | The script revokes from PUBLIC and anon, grants to authenticated, and checks this before COMMIT |
 | D3 | No pre-checks, and no check that nothing else changed | — | See section 4 |
 
@@ -36,12 +53,12 @@ A recruiter should only see, and filter on, communication scores from voice expl
 - **Pre-checks:**
   1. Exactly one of each function, with the expected signature and return type.
   2. It refuses if any `transcript_source` filter is already present, whether from the original 46 or this script.
-  3. It refuses unless the current bodies match the expected versions exactly. The comparison is an md5 of each body with its whitespace normalised: stage69 talent `f7c1eef2…`, stage35c profile `b467d6f7…`. So any drift in production stops the script instead of being overwritten.
+  3. It refuses unless the current bodies match the expected versions exactly. The comparison is an md5 of each body with its whitespace normalised: production talent `b47030ab…`, production profile `642189a0…` (the exported production bodies). So any drift in production stops the script instead of being overwritten.
   4. The current user must own both functions.
   5. `transcript_source` must exist, with a CHECK that allows `'server'`.
   6. `task_submissions` and the recruiter helper functions must exist.
 - **Post-checks:**
-  1. The new body md5s match exactly: talent `d3ec3dda…`, profile `2d048797…`.
+  1. The new body md5s match exactly: talent `66d86705…`, profile `95a23fd3…`.
   2. stage69's `task_submissions` count is still present.
   3. Return types are unchanged, SECURITY DEFINER is on, search_path is pinned, and the owner is unchanged.
   4. authenticated can run both functions. anon and PUBLIC can't.
@@ -52,7 +69,7 @@ A recruiter should only see, and filter on, communication scores from voice expl
   - No server function calls either function.
   - `CREATE OR REPLACE` keeps the owner and existing grants. Only the explicit revoke/grant changes the ACL.
 
-## 5. Staging test evidence (run `prooflab-staging-inspect4-6nsfr`, PostgreSQL 17.11)
+## 5. Staging test evidence (run `prooflab-staging-inspect4-qbrmx`, PostgreSQL 17.11)
 
 | Test | Result |
 |---|---|

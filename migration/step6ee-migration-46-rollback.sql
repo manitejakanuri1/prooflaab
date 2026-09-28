@@ -15,34 +15,22 @@ begin
 
   -- both functions carry the expected rollback pre-check bodies (whitespace-normalised md5)
   select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure;
-  if v <> 'd3ec3dda80922a036fc3d39460ced541' then
-    raise exception 'rollback pre-check: recruiter_talent body md5 is % (expected d3ec3dda80922a036fc3d39460ced541)', v;
+  if v <> '66d86705e34347c53d759b533dbca3c9' then
+    raise exception 'rollback pre-check: recruiter_talent body md5 is % (expected 66d86705e34347c53d759b533dbca3c9)', v;
   end if;
   select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_proof_profile(uuid)'::regprocedure;
-  if v <> '2d048797e2d64852834c65ef4d24170a' then
-    raise exception 'rollback pre-check: recruiter_proof_profile body md5 is % (expected 2d048797e2d64852834c65ef4d24170a)', v;
+  if v <> '95a23fd33dd0252b70492dfd31fc7818' then
+    raise exception 'rollback pre-check: recruiter_proof_profile body md5 is % (expected 95a23fd33dd0252b70492dfd31fc7818)', v;
   end if;
   raise notice 'Step 6EE rollback pre-check passed: the Step 6EE bodies are present.';
 end $$;
 
-create or replace function public.recruiter_talent(
-  _role text default null, _skills text[] default null, _branch text default null,
-  _min_skill integer default null, _min_comms integer default null,
-  _active_within integer default null, _limit integer default 50, _offset integer default 0
-)
-returns table(
-  student_id uuid, full_name text, branch text, batch text, target_role text,
-  total_xp integer, trust_score numeric, skills_proven bigint, skills_total bigint,
-  top_skills text[], lots_done bigint, proofs_verified bigint, comms_score integer,
-  explanations bigint, days_since_active integer, active_weeks bigint,
-  squad_name text, squad_rank integer, season_points integer, shortlisted boolean,
-  total_matches bigint
-)
-language sql
-stable
-security definer
-set search_path = public, pg_temp
-as $$
+CREATE OR REPLACE FUNCTION public.recruiter_talent(_role text DEFAULT NULL::text, _skills text[] DEFAULT NULL::text[], _branch text DEFAULT NULL::text, _min_skill integer DEFAULT NULL::integer, _min_comms integer DEFAULT NULL::integer, _active_within integer DEFAULT NULL::integer, _limit integer DEFAULT 50, _offset integer DEFAULT 0)
+ RETURNS TABLE(student_id uuid, full_name text, branch text, batch text, target_role text, total_xp integer, trust_score numeric, skills_proven bigint, skills_total bigint, top_skills text[], lots_done bigint, proofs_verified bigint, comms_score integer, explanations bigint, days_since_active integer, active_weeks bigint, squad_name text, squad_rank integer, season_points integer, shortlisted boolean, total_matches bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
   with me as (select public.my_recruiter_id() as rid,
                      public.is_verified_recruiter() as ok),
   candidates as (
@@ -71,7 +59,6 @@ as $$
              where s.student_id = c.id) as best_skill_score,
            (select count(*) from public.tasks t
              where t.student_id = c.id and t.status in ('Completed','completed')) as lots_done,
-           -- CHANGED (stage69): verified proofs + passed auto-graded submissions.
            (select count(*) from public.proof_uploads pu
              where pu.student_id = c.id and pu.status in ('Verified','verified'))
            + (select count(*) from public.task_submissions ts
@@ -120,10 +107,14 @@ as $$
    order by f.skills_proven desc, f.proofs_verified desc, f.total_xp desc
    limit greatest(1, least(coalesce(_limit, 50), 100))
   offset greatest(0, coalesce(_offset, 0));
-$$;
+$function$;
 
-create or replace function public.recruiter_proof_profile(_student_id uuid)
-returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $fn$
+CREATE OR REPLACE FUNCTION public.recruiter_proof_profile(_student_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare p record; rid uuid := public.my_recruiter_id(); accepted boolean;
 begin
   if not public.is_verified_recruiter() then
@@ -132,7 +123,7 @@ begin
 
   if not public.student_is_discoverable(_student_id) then
     -- Deliberately the same answer as "no such student": whether a particular
-    -- person is on this platform is itself something they did not consent to
+    -- person is on the platform is itself something they did not consent to
     -- share.
     return jsonb_build_object('error', 'No candidate found.');
   end if;
@@ -160,6 +151,8 @@ begin
     'days_since_active', case when p.last_active is null then 999
                               else (current_date - p.last_active::date) end,
 
+    -- Contact details are the one thing a shortlist buys, and only if the
+    -- student said yes.
     'contact_unlocked', coalesce(accepted, false),
     'contact', case when coalesce(accepted, false) then
         (select jsonb_build_object('email', c.email, 'phone', c.phone,
@@ -167,6 +160,7 @@ begin
            from public.student_contact c where c.student_id = p.id)
       else null end,
 
+    -- Skills, each with what earned the status rather than only the label.
     'skills', (select coalesce(jsonb_agg(jsonb_build_object(
                  'skill', s.skill, 'status', s.status, 'score', s.assessed_score,
                  'lots', s.proven_lots, 'explanations', s.proven_voice,
@@ -194,6 +188,7 @@ begin
                     from public.resume_scorecards s
                    where s.student_id = p.id order by s.created_at desc limit 1),
 
+    -- The work itself, which is what a score is a summary of.
     'work', (select coalesce(jsonb_agg(w order by w.submitted_at desc), '[]'::jsonb) from (
         select pu.id, pu.status, pu.ai_score, pu.submitted_at,
                (select t.title from public.tasks t where t.id = pu.task_id) as title,
@@ -214,8 +209,8 @@ begin
                         from public.voice_explanations v
                        where v.student_id = p.id and v.communication_score is not null),
 
-    -- Consistency as weeks actually turned up, not a streak a single good
-    -- fortnight can inflate.
+    -- Consistency: how many weeks they actually turned up, not a streak number
+    -- that a single good fortnight can inflate.
     'consistency', jsonb_build_object(
       'active_weeks', (select count(*) from public.student_weekly_scores w
                         where w.student_id = p.id and w.points > 0),
@@ -245,7 +240,7 @@ begin
                     from public.recruiter_shortlists sl
                    where sl.recruiter_id = rid and sl.student_id = p.id)
   );
-end $fn$;
+end $function$;
 
 do $$
 declare v text;
@@ -253,18 +248,22 @@ begin
 
   -- both functions carry the expected rollback post-check bodies (whitespace-normalised md5)
   select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure;
-  if v <> 'f7c1eef2f57c8d5b1f961ea76a661fda' then
-    raise exception 'rollback post-check: recruiter_talent body md5 is % (expected f7c1eef2f57c8d5b1f961ea76a661fda)', v;
+  if v <> 'b47030abb6be083cb964efa247e98eb6' then
+    raise exception 'rollback post-check: recruiter_talent body md5 is % (expected b47030abb6be083cb964efa247e98eb6)', v;
   end if;
   select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_proof_profile(uuid)'::regprocedure;
-  if v <> 'b467d6f7769c61887d854fb4358cd30e' then
-    raise exception 'rollback post-check: recruiter_proof_profile body md5 is % (expected b467d6f7769c61887d854fb4358cd30e)', v;
+  if v <> '642189a0d9c35aaeeabf4a622037194a' then
+    raise exception 'rollback post-check: recruiter_proof_profile body md5 is % (expected 642189a0d9c35aaeeabf4a622037194a)', v;
   end if;
   if has_function_privilege('anon', 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure, 'EXECUTE')
-     or not has_function_privilege('authenticated', 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure, 'EXECUTE') then
-    raise exception 'rollback post-check: grants on recruiter_talent unexpected';
+     or not has_function_privilege('authenticated', 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure, 'EXECUTE')
+     or has_function_privilege('anon', 'public.recruiter_proof_profile(uuid)'::regprocedure, 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.recruiter_proof_profile(uuid)'::regprocedure, 'EXECUTE')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+                 where p.oid in ('public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure, 'public.recruiter_proof_profile(uuid)'::regprocedure) and a.grantee = 0) then
+    raise exception 'rollback post-check: grants are not the tightened ones (authenticated yes; anon, PUBLIC no)';
   end if;
-  raise notice 'Step 6EE rollback: bodies restored to stage69 / stage35c. Committing.';
+  raise notice 'Step 6EE rollback: bodies restored to the exported production versions, tightened grants kept. Committing.';
 end $$;
 
 commit;

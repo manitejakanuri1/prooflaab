@@ -10,19 +10,19 @@ begin transaction read only;
 
 -- Part 1: prerequisites
 select n, check_name, detail, ok from (
-  select 1 as n, 'recruiter_talent is the stage69 body (46 not applied)' as check_name,
+  select 1 as n, 'recruiter_talent is the exported production pre-46 body' as check_name,
          (select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) from pg_proc
            where oid = to_regprocedure('public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)')) as detail,
          (select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) from pg_proc
            where oid = to_regprocedure('public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'))
-           = 'f7c1eef2f57c8d5b1f961ea76a661fda' as ok
+           = 'b47030abb6be083cb964efa247e98eb6' as ok
   union all
-  select 2, 'recruiter_proof_profile is the stage35c body (46 not applied)',
+  select 2, 'recruiter_proof_profile is the exported production pre-46 body',
          (select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) from pg_proc
            where oid = to_regprocedure('public.recruiter_proof_profile(uuid)')),
          (select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) from pg_proc
            where oid = to_regprocedure('public.recruiter_proof_profile(uuid)'))
-           = 'b467d6f7769c61887d854fb4358cd30e'
+           = '642189a0d9c35aaeeabf4a622037194a'
   union all
   select 3, 'exactly one of each function',
          (select string_agg(proname || '=' || c, ', ') from (select proname, count(*) c from pg_proc
@@ -68,5 +68,18 @@ select count(*) filter (where s > 0) as students_with_server_scores,
           from public.voice_explanations group by 1) x;
 
 select count(*) as verified_recruiters from public.recruiters where verified;
+
+-- Part 3: full current grants, one row per function and grantee (the export
+-- of 2026-09-28 did not include them). The execution script revokes EXECUTE
+-- from PUBLIC and anon and grants it to authenticated; any other grantee
+-- shown here is left exactly as it is.
+select p.proname,
+       case when a.grantee = 0 then 'PUBLIC' else a.grantee::regrole::text end as grantee,
+       a.privilege_type, a.grantor::regrole::text as grantor
+  from pg_proc p,
+       aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+ where p.oid in (to_regprocedure('public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'),
+                 to_regprocedure('public.recruiter_proof_profile(uuid)'))
+ order by 1, 2;
 
 rollback;

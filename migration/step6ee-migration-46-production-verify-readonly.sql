@@ -16,11 +16,11 @@ with f as (
 select n, check_name, detail, ok from (
   select 1 as n, 'recruiter_talent body is the Step 6EE version' as check_name,
          (select norm_md5 from f where proname = 'recruiter_talent') as detail,
-         (select norm_md5 from f where proname = 'recruiter_talent') = 'd3ec3dda80922a036fc3d39460ced541' as ok
+         (select norm_md5 from f where proname = 'recruiter_talent') = '66d86705e34347c53d759b533dbca3c9' as ok
   union all
   select 2, 'recruiter_proof_profile body is the Step 6EE version',
          (select norm_md5 from f where proname = 'recruiter_proof_profile'),
-         (select norm_md5 from f where proname = 'recruiter_proof_profile') = '2d048797e2d64852834c65ef4d24170a'
+         (select norm_md5 from f where proname = 'recruiter_proof_profile') = '95a23fd33dd0252b70492dfd31fc7818'
   union all
   select 3, 'recruiter_talent still counts passed task_submissions (stage69 kept)', '',
          (select position('task_submissions' in prosrc) > 0 from f where proname = 'recruiter_talent')
@@ -50,6 +50,9 @@ select n, check_name, detail, ok from (
          and (select pg_get_function_result(oid) from f where proname = 'recruiter_talent') like 'TABLE(student_id uuid,%total_matches bigint)'
   union all
   select 11, 'owner (info)', (select string_agg(distinct proowner::regrole::text, ',') from f), true
+  union all
+  select 12, 'full grants after (info)',
+         (select string_agg(proname || ': ' || coalesce(proacl::text, 'default'), ' | ') from f), true
 ) c order by n;
 
 rollback;

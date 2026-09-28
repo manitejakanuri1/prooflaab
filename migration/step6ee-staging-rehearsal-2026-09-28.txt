@@ -1,0 +1,127 @@
+=== 0
+ PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit | postgres
+=== A1 fingerprint BEFORE
+ recruiter_proof_profile | 2dcff9191049ed0e194a0ccd13d8de06 | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ recruiter_talent        | a8a046d776b01dd5160ef1870487b578 | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+=== A2 exact production script on real staging (must abort at pre-check)
+BEGIN
+SET
+psql:/tmp/prod.sql:96: ERROR:  pre-check: a transcript_source filter is already present - migration 46 (or a version of it) is already applied; refusing
+CONTEXT:  PL/pgSQL function inline_code_block line 22 at RAISE
+A2 exit=3
+=== A3 fingerprint AFTER
+ recruiter_proof_profile | 2dcff9191049ed0e194a0ccd13d8de06 | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ recruiter_talent        | a8a046d776b01dd5160ef1870487b578 | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+=== R original 46 on the stage69 state (rollback)
+BEGIN
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+DO
+psql:/tmp/m46.sql:452: NOTICE:  ORIGINAL 46 on the stage69 state: recruiter_talent still counts task_submissions = f
+ROLLBACK
+R exit=0
+=== B restore before-state, run script, behaviour, rollback script (all rolled back)
+BEGIN
+CREATE FUNCTION
+CREATE FUNCTION
+SET
+DO
+psql:/tmp/ok.sql:286: NOTICE:  Step 6EE pre-checks passed: current bodies are stage69 talent + stage35c profile, 46 not applied.
+SELECT 274
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+psql:/tmp/ok.sql:578: NOTICE:  Step 6EE: all fail-closed checks passed. Committing.
+DO
+DO
+psql:/tmp/ok.sql:637: NOTICE:  Step 6EE behaviour: comms_score 41 = server-only average (browser-inclusive would be 48), proofs_verified 1 includes 1 passed submission(s), filter and profile use server only, non-recruiter blocked. 7/7 passed.
+SET
+DO
+psql:/tmp/ok.sql:656: NOTICE:  Step 6EE rollback pre-check passed: the Step 6EE bodies are present.
+CREATE FUNCTION
+CREATE FUNCTION
+DO
+psql:/tmp/ok.sql:898: NOTICE:  Step 6EE rollback: bodies restored to stage69 / stage35c. Committing.
+ROLLBACK
+B exit=0
+=== N1 drifted before-body (must abort at pre-check)
+BEGIN
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+SET
+psql:/tmp/neg.sql:382: ERROR:  pre-check: recruiter_talent body md5 is 95895c106abec50c8c50d3cbf7a98d1b (expected f7c1eef2f57c8d5b1f961ea76a661fda)
+CONTEXT:  PL/pgSQL function inline_code_block line 28 at RAISE
+N1 exit=3
+=== N2 script run twice (second must abort)
+BEGIN
+CREATE FUNCTION
+CREATE FUNCTION
+SET
+psql:/tmp/twice.sql:286: NOTICE:  Step 6EE pre-checks passed: current bodies are stage69 talent + stage35c profile, 46 not applied.
+DO
+SELECT 274
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+psql:/tmp/twice.sql:578: NOTICE:  Step 6EE: all fail-closed checks passed. Committing.
+SET
+psql:/tmp/twice.sql:641: ERROR:  pre-check: a transcript_source filter is already present - migration 46 (or a version of it) is already applied; refusing
+CONTEXT:  PL/pgSQL function inline_code_block line 22 at RAISE
+N2 exit=3
+=== A4 fingerprint at END
+ recruiter_proof_profile | 2dcff9191049ed0e194a0ccd13d8de06 | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ recruiter_talent        | a8a046d776b01dd5160ef1870487b578 | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+=== C prereq read-only file on staging
+BEGIN
+ n |                          check_name                           |                                                                                                                       detail                                                                                                                       | ok 
+---+---------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----
+ 1 | recruiter_talent is the stage69 body (46 not applied)         | a8a046d776b01dd5160ef1870487b578                                                                                                                                                                                                                   | f
+ 2 | recruiter_proof_profile is the stage35c body (46 not applied) | 2dcff9191049ed0e194a0ccd13d8de06                                                                                                                                                                                                                   | f
+ 3 | exactly one of each function                                  | recruiter_proof_profile=1, recruiter_talent=1                                                                                                                                                                                                      | t
+ 4 | current user owns both functions                              | postgres / owners: postgres                                                                                                                                                                                                                        | t
+ 5 | transcript_source column + CHECK allowing server              |                                                                                                                                                                                                                                                    | t
+ 6 | task_submissions (stage69) exists                             |                                                                                                                                                                                                                                                    | t
+ 7 | recruiter helper functions exist                              |                                                                                                                                                                                                                                                    | t
+ 8 | current EXECUTE grants (info: script sets authenticated only) | recruiter_proof_profile: {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | recruiter_talent: {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | t
+(8 rows)
+ transcript_source | explanations | scored 
+-------------------+--------------+--------
+ browser           |           14 |     11
+ server            |           64 |     23
+(2 rows)
+ students_with_server_scores | students_whose_recruiter_score_becomes_empty | of_them_discoverable 
+-----------------------------+----------------------------------------------+----------------------
+                           1 |                                            0 |                    0
+(1 row)
+ verified_recruiters 
+---------------------
+                   0
+(1 row)
+ROLLBACK
+C exit=0
+=== D verify read-only file on staging
+BEGIN
+ n  |                              check_name                              |              detail              | ok 
+----+----------------------------------------------------------------------+----------------------------------+----
+  1 | recruiter_talent body is the Step 6EE version                        | a8a046d776b01dd5160ef1870487b578 | f
+  2 | recruiter_proof_profile body is the Step 6EE version                 | 2dcff9191049ed0e194a0ccd13d8de06 | f
+  3 | recruiter_talent still counts passed task_submissions (stage69 kept) |                                  | f
+  4 | server-only filter: 1 in talent, 2 in profile                        |                                  | t
+  5 | both SECURITY DEFINER                                                |                                  | t
+  6 | both pin search_path to public, pg_temp                              |                                  | t
+  7 | authenticated can EXECUTE both                                       |                                  | t
+  8 | anon can EXECUTE neither                                             |                                  | f
+  9 | no PUBLIC EXECUTE on either                                          |                                  | f
+ 10 | return types unchanged                                               |                                  | t
+ 11 | owner (info)                                                         | postgres                         | t
+(11 rows)
+ROLLBACK
+D exit=0
+=== END
+Container called exit(0).

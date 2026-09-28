@@ -476,13 +476,13 @@ numbering:
 | 42 | Lease-token columns/fencing on the 41 functions; table-level `UPDATE` revoke | 41 (alters its columns and functions) | **APPLIED 2026-09-27**, combined with 41 in one transaction |
 | 43 | `claim_transcription_recovery`; `guard_voice_explanations_insert` trigger | 41, 42 (reads/writes 42's columns; the trigger forces values in columns 41/42 added) | **APPLIED 2026-09-27** (Step 6Y/6Z's script, includes the PUBLIC-EXECUTE-revoke fix beyond the original file) |
 | 44 | `scoring_claimed_at`; `claim_voice_scoring` (timestamp-only) | None of 41–43 — independent column/function on the same table | **APPLIED 2026-09-28** (Step 6BB's script, commit `c890889`) |
-| 45 | `scoring_lease_token`; rewrites `claim/complete/fail_voice_scoring` with fencing | 44 (replaces its function, extends its column) | **PREPARED, NOT APPLIED.** Approved-for-review script: `migration/step6dd-migration-45-production-execution.sql` (Step 6DD, 4 fixes, see §1a). **Never run the original `45-voice-scoring-lease-token.sql` in production** |
-| 46 | `recruiter_talent`/`recruiter_proof_profile` provenance filter | Reads `transcript_source`, which predates all of 41–45 (stage6) — otherwise independent of 41–45, but ships with them since it closes the gap they collectively created | not applied |
+| 45 | `scoring_lease_token`; rewrites `claim/complete/fail_voice_scoring` with fencing | 44 (replaces its function, extends its column) | **APPLIED 2026-09-28** (owner reported 22/22 verification checks). Script: `migration/step6dd-migration-45-production-execution.sql` (Step 6DD, 4 fixes, see §1a). **Never run the original `45-voice-scoring-lease-token.sql` in production** |
+| 46 | `recruiter_talent`/`recruiter_proof_profile` provenance filter | Reads `transcript_source`, which predates all of 41–45 (stage6) — otherwise independent of 41–45, but ships with them since it closes the gap they collectively created | **PREPARED, NOT APPLIED (Step 6EE).** Use `migration/step6ee-migration-46-production-execution.sql` only; the original file undoes stage69. See `docs/STEP6EE-MIGRATION-46-AUDIT.md` |
 | 47 | Table-level `revoke update ... from authenticated, anon` on `voice_explanations` (Step 6M) | None of 41–46 — only touches grants on columns/roles that already exist in production today. Order-independent: safe to ship before, with, or after 41–46. If applied first and 41–46 follow later, migration 42's identical `revoke` statement becomes a documented Postgres no-op (revoking a privilege already absent succeeds silently, no error) | **APPLIED 2026-09-27 (Step 6S)** |
 
 ## 1a. Step 6DD: migration 45 prepared (final audit, 2026-09-28)
 
-**Status: PREPARED, NOT APPLIED. Ready for final human review.**
+**Status: APPLIED 2026-09-28 (owner reported all 22 verification checks passed).**
 
 | File | Use |
 |---|---|

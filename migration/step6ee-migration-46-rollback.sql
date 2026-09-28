@@ -1,63 +1,48 @@
--- ##########################################################################
--- DO NOT RUN THIS FILE IN PRODUCTION.
--- It was written from stage35c's recruiter_talent and would silently undo
--- stage69 (passed task_submissions counted in proofs_verified) - reproduced
--- on staging in Step 6EE (2026-09-28). The ONLY approved production script:
---   migration/step6ee-migration-46-production-execution.sql
--- Audit: docs/STEP6EE-MIGRATION-46-AUDIT.md. This header is a comment only.
--- ##########################################################################
---
--- 46: Step 6H - staging only, not applied to production.
---
--- Reproduced with an ordinary staging student token, no service_role: POST
--- a fabricated transcript directly to voice_explanations (no audio ever
--- uploaded - migration 43's insert guard correctly labels this row
--- transcript_source='browser' and recomputes word_count from the actual
--- text given, but does not and should not block the insert itself, since
--- that is also the legitimate synchronous recording path), then call
--- voice-score on it as that same student. It graded normally and returned
--- a real DeepSeek score - nothing anywhere checked transcript_source.
---
--- trust-compute (fixed in the same commit as this migration, not here -
--- it is Deno code) now only lets a 'server' explanation move trust. This
--- migration closes the other two real consumers: the recruiter-facing
--- functions from stage35c, which put communication_score directly in
--- front of a recruiter with no provenance check either -
--- recruiter_talent's comms_score (used for both display and the
--- _min_comms filter) and recruiter_proof_profile's per-explanation list
--- and averaged 'communication' field (this is RECRUITER_API.md's
--- documented shape). A fabricated explanation could not just inflate a
--- number a recruiter never sees; it could pass the actual filter a
--- recruiter searches candidates with.
---
--- Deliberately not touched: the raw explanations COUNT (recruiter_talent)
--- and the skills/proof_uploads-derived fields - this migration only gates
--- the communication_score signal itself, per the actual scope of what was
--- found exploitable. Existing 'browser' rows are not deleted, hidden from
--- the student, or reclassified - they simply no longer count toward a
--- number shown to a recruiter, exactly as an unscored recording already
--- would not.
+-- Step 6EE: UNDO of step6ee-migration-46-production-execution.sql.
+-- Emergency use only, with the project owner's approval. Restores the
+-- pre-46 bodies (stage69 recruiter_talent, stage35c recruiter_proof_profile).
+-- Grants are left as the execution script set them (authenticated only):
+-- re-opening them to anon/PUBLIC is not an improvement.
+-- Refuses unless the exact Step 6EE bodies are present.
+
 begin;
 
+set local lock_timeout = '5s';
+
+do $$
+declare v text;
+begin
+
+  -- both functions carry the expected rollback pre-check bodies (whitespace-normalised md5)
+  select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure;
+  if v <> 'd3ec3dda80922a036fc3d39460ced541' then
+    raise exception 'rollback pre-check: recruiter_talent body md5 is % (expected d3ec3dda80922a036fc3d39460ced541)', v;
+  end if;
+  select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_proof_profile(uuid)'::regprocedure;
+  if v <> '2d048797e2d64852834c65ef4d24170a' then
+    raise exception 'rollback pre-check: recruiter_proof_profile body md5 is % (expected 2d048797e2d64852834c65ef4d24170a)', v;
+  end if;
+  raise notice 'Step 6EE rollback pre-check passed: the Step 6EE bodies are present.';
+end $$;
+
 create or replace function public.recruiter_talent(
-  _role          text default null,
-  _skills        text[] default null,
-  _branch        text default null,
-  _min_skill     integer default null,
-  _min_comms     integer default null,
-  _active_within integer default null,   -- days
-  _limit         integer default 50,
-  _offset        integer default 0
-) returns table (
-  student_id uuid, full_name text, branch text, batch text,
-  target_role text, total_xp integer, trust_score numeric,
-  skills_proven bigint, skills_total bigint, top_skills text[],
-  lots_done bigint, proofs_verified bigint,
-  comms_score integer, explanations bigint,
-  days_since_active integer, active_weeks bigint,
-  squad_name text, squad_rank integer, season_points integer,
-  shortlisted boolean, total_matches bigint
-) language sql stable security definer set search_path = public, pg_temp as $fn$
+  _role text default null, _skills text[] default null, _branch text default null,
+  _min_skill integer default null, _min_comms integer default null,
+  _active_within integer default null, _limit integer default 50, _offset integer default 0
+)
+returns table(
+  student_id uuid, full_name text, branch text, batch text, target_role text,
+  total_xp integer, trust_score numeric, skills_proven bigint, skills_total bigint,
+  top_skills text[], lots_done bigint, proofs_verified bigint, comms_score integer,
+  explanations bigint, days_since_active integer, active_weeks bigint,
+  squad_name text, squad_rank integer, season_points integer, shortlisted boolean,
+  total_matches bigint
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
   with me as (select public.my_recruiter_id() as rid,
                      public.is_verified_recruiter() as ok),
   candidates as (
@@ -86,13 +71,13 @@ create or replace function public.recruiter_talent(
              where s.student_id = c.id) as best_skill_score,
            (select count(*) from public.tasks t
              where t.student_id = c.id and t.status in ('Completed','completed')) as lots_done,
+           -- CHANGED (stage69): verified proofs + passed auto-graded submissions.
            (select count(*) from public.proof_uploads pu
-             where pu.student_id = c.id and pu.status in ('Verified','verified')) as proofs_verified,
-           -- Step 6H: only a server-verified (Whisper-transcribed) explanation
-           -- may contribute to the score shown to, and filtered on by, a recruiter.
+             where pu.student_id = c.id and pu.status in ('Verified','verified'))
+           + (select count(*) from public.task_submissions ts
+             where ts.student_id = c.id and ts.status = 'passed') as proofs_verified,
            (select round(avg(v.communication_score))::integer from public.voice_explanations v
-             where v.student_id = c.id and v.communication_score is not null
-               and v.transcript_source = 'server') as comms_score,
+             where v.student_id = c.id and v.communication_score is not null) as comms_score,
            (select count(*) from public.voice_explanations v
              where v.student_id = c.id) as explanations,
            (select count(distinct w.week) from public.student_weekly_scores w
@@ -135,7 +120,7 @@ create or replace function public.recruiter_talent(
    order by f.skills_proven desc, f.proofs_verified desc, f.total_xp desc
    limit greatest(1, least(coalesce(_limit, 50), 100))
   offset greatest(0, coalesce(_offset, 0));
-$fn$;
+$$;
 
 create or replace function public.recruiter_proof_profile(_student_id uuid)
 returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $fn$
@@ -146,6 +131,9 @@ begin
   end if;
 
   if not public.student_is_discoverable(_student_id) then
+    -- Deliberately the same answer as "no such student": whether a particular
+    -- person is on this platform is itself something they did not consent to
+    -- share.
     return jsonb_build_object('error', 'No candidate found.');
   end if;
 
@@ -214,23 +202,20 @@ begin
          where pu.student_id = p.id and pu.is_public = true
          order by pu.submitted_at desc nulls last limit 10) w),
 
-    -- Step 6H: same provenance gate as recruiter_talent.comms_score above -
-    -- a recruiter must only ever see a score that came from a transcript
-    -- the async pipeline actually verified against uploaded audio.
     'explanations', (select coalesce(jsonb_agg(v order by v.created_at desc), '[]'::jsonb) from (
         select ve.id, ve.duration_seconds, ve.communication_score,
                ve.communication_notes, ve.created_at,
                (select t.title from public.tasks t where t.id = ve.task_id) as about
           from public.voice_explanations ve
          where ve.student_id = p.id and ve.communication_score is not null
-           and ve.transcript_source = 'server'
          order by ve.created_at desc limit 5) v),
 
     'communication', (select round(avg(v.communication_score))::integer
                         from public.voice_explanations v
-                       where v.student_id = p.id and v.communication_score is not null
-                         and v.transcript_source = 'server'),
+                       where v.student_id = p.id and v.communication_score is not null),
 
+    -- Consistency as weeks actually turned up, not a streak a single good
+    -- fortnight can inflate.
     'consistency', jsonb_build_object(
       'active_weeks', (select count(*) from public.student_weekly_scores w
                         where w.student_id = p.id and w.points > 0),
@@ -261,6 +246,26 @@ begin
                    where sl.recruiter_id = rid and sl.student_id = p.id)
   );
 end $fn$;
+
+do $$
+declare v text;
+begin
+
+  -- both functions carry the expected rollback post-check bodies (whitespace-normalised md5)
+  select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure;
+  if v <> 'f7c1eef2f57c8d5b1f961ea76a661fda' then
+    raise exception 'rollback post-check: recruiter_talent body md5 is % (expected f7c1eef2f57c8d5b1f961ea76a661fda)', v;
+  end if;
+  select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into v from pg_proc where oid = 'public.recruiter_proof_profile(uuid)'::regprocedure;
+  if v <> 'b467d6f7769c61887d854fb4358cd30e' then
+    raise exception 'rollback post-check: recruiter_proof_profile body md5 is % (expected b467d6f7769c61887d854fb4358cd30e)', v;
+  end if;
+  if has_function_privilege('anon', 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure, 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.recruiter_talent(text, text[], text, integer, integer, integer, integer, integer)'::regprocedure, 'EXECUTE') then
+    raise exception 'rollback post-check: grants on recruiter_talent unexpected';
+  end if;
+  raise notice 'Step 6EE rollback: bodies restored to stage69 / stage35c. Committing.';
+end $$;
 
 commit;
 notify pgrst, 'reload schema';

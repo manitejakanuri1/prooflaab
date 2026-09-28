@@ -37,19 +37,30 @@
 --      BEFORE COMMIT (a post-commit check cannot undo anything).
 --   3. the original's own begin/commit/notify are removed; one outer
 --      transaction wraps everything.
---   4. TWO deliberate logic fixes (Step 6DD, 2026-09-28). complete_voice_scoring
---      keeps the lease token after saving a score, so in the original file
---      a late or repeated call carrying that same token still matched the
---      row:
---        a. fail_voice_scoring turned a saved score into status 'failed'
---           (and cleared the claim);
---        b. a repeated complete_voice_scoring overwrote the saved score.
---      Both now also require status <> 'scored'. Both were reproduced on
---      staging in a rolled-back throwaway schema. Post-checks below refuse
---      to COMMIT without either guard.
+--   4. FOUR deliberate logic fixes (Step 6DD final audit, 2026-09-28),
+--      each reproduced against the original statements on staging in a
+--      rolled-back throwaway schema:
+--        a. fail_voice_scoring: a late or repeated fail with the token that
+--           just saved a score turned 'scored' into 'failed' (complete
+--           keeps the token). Now requires status <> 'scored'.
+--        b. complete_voice_scoring: a repeated complete with the same token
+--           overwrote the saved score. Now requires status <> 'scored'.
+--        c. claim_voice_scoring: a null / 0 / negative TTL made a live
+--           claim look stale, so a second caller could take it over. Now
+--           raises unless TTL >= 1.
+--        d. complete_voice_scoring: accepted any integer or null as the
+--           score. voice-score grades 0-100 and clamps to that range; the
+--           column has no CHECK. Now raises unless 0 <= score <= 100.
+--      Post-checks below refuse to COMMIT if any of the four is missing.
+--   5. pre-check: voice_explanations must NOT have FORCE ROW LEVEL
+--      SECURITY. These SECURITY DEFINER functions run as the table owner,
+--      which bypasses RLS only while FORCE is off; with FORCE on (and no
+--      UPDATE policy) every claim/complete/fail would silently update 0
+--      rows.
 -- Every other DDL statement is copied verbatim from
--- migration/45-voice-scoring-lease-token.sql. That file is not modified,
--- so it (and staging, which ran it) still carries the unfixed version.
+-- migration/45-voice-scoring-lease-token.sql. That file (and staging,
+-- which ran it) still carries the UNFIXED version: never run it in
+-- production. Undo script: step6dd-migration-45-rollback.sql.
 
 begin;
 
@@ -58,12 +69,18 @@ begin;
 create schema s6dd_rehearsal;
 create table s6dd_rehearsal.voice_explanations (
   id uuid primary key,
-  status text not null default 'pending',
+  status text not null default 'recorded'
+    check (status in ('recorded', 'scored', 'failed')),
+  transcript text,
   communication_score integer,
   communication_notes text,
   scoring_claimed_at timestamptz
 );
 alter table s6dd_rehearsal.voice_explanations enable row level security;
+-- same column protection trigger production has (stage6)
+create trigger protect_voice_explanations before update on s6dd_rehearsal.voice_explanations
+  for each row execute function public.protect_columns(
+    'communication_score', 'communication_notes', 'status', 'transcript');
 grant select, insert, update, delete on s6dd_rehearsal.voice_explanations to service_role;
 create function s6dd_rehearsal.guard_voice_explanations_insert() returns trigger
   language plpgsql as $f$ begin return new; end $f$;
@@ -152,6 +169,21 @@ begin
     raise exception 'pre-check: gen_random_uuid() not available';
   end if;
 
+  -- (7) FORCE RLS off, so the owner-run functions are not filtered by RLS
+  if exists (select 1 from pg_class where oid = 's6dd_rehearsal.voice_explanations'::regclass
+              and relforcerowsecurity) then
+    raise exception 'pre-check: voice_explanations has FORCE ROW LEVEL SECURITY - the scoring functions would silently update 0 rows; refusing to run';
+  end if;
+
+  -- (8) the status CHECK still allows every value these functions write
+  if not exists (select 1 from pg_constraint
+                  where conrelid = 's6dd_rehearsal.voice_explanations'::regclass and contype = 'c'
+                    and pg_get_constraintdef(oid) like '%status%'
+                    and pg_get_constraintdef(oid) like '%''scored''%'
+                    and pg_get_constraintdef(oid) like '%''failed''%') then
+    raise exception 'pre-check: no status CHECK constraint allowing scored and failed was found on voice_explanations';
+  end if;
+
   raise notice 'Step 6DD pre-checks passed: database is at migration 44, not 45.';
 end $$;
 
@@ -173,6 +205,11 @@ declare
   _lease uuid := gen_random_uuid();
   n integer;
 begin
+  -- Step 6DD fix: a null, zero or negative TTL made every existing claim
+  -- look stale at once, so any caller could take over a live claim.
+  if _claim_ttl_seconds is null or _claim_ttl_seconds < 1 then
+    raise exception 'claim_voice_scoring: _claim_ttl_seconds must be >= 1 (got %)', _claim_ttl_seconds;
+  end if;
   update s6dd_rehearsal.voice_explanations
      set scoring_claimed_at = now(),
          scoring_lease_token = _lease
@@ -198,6 +235,12 @@ set search_path to 's6dd_rehearsal', 'pg_temp'
 as $function$
 declare n integer;
 begin
+  -- Step 6DD fix: voice-score grades 0-100 and clamps to that range
+  -- (supabase/functions/voice-score/index.ts). The column itself has no
+  -- CHECK, so the database now refuses anything else.
+  if _score is null or _score < 0 or _score > 100 then
+    raise exception 'complete_voice_scoring: _score must be 0-100 (got %)', _score;
+  end if;
   update s6dd_rehearsal.voice_explanations
      set communication_score = _score,
          communication_notes = _notes,
@@ -295,6 +338,14 @@ begin
        and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
       raise exception 'post-check: complete_voice_scoring lacks the Step 6DD "status <> scored" guard';
     end if;
+    if v_fn.proname = 'complete_voice_scoring'
+       and position('_score < 0 or _score > 100' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
+      raise exception 'post-check: complete_voice_scoring lacks the Step 6DD 0-100 score guard';
+    end if;
+    if v_fn.proname = 'claim_voice_scoring'
+       and position('_claim_ttl_seconds < 1' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
+      raise exception 'post-check: claim_voice_scoring lacks the Step 6DD TTL guard';
+    end if;
     if v_fn.proname = 'fail_voice_scoring'
        and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
       raise exception 'post-check: fail_voice_scoring lacks the Step 6DD "status <> scored" guard';
@@ -346,8 +397,9 @@ begin
   if not has_table_privilege('service_role', 's6dd_rehearsal.voice_explanations', 'UPDATE') then
     raise exception 'regression: service_role lost UPDATE on voice_explanations';
   end if;
-  if not exists (select 1 from pg_class where oid = 's6dd_rehearsal.voice_explanations'::regclass and relrowsecurity) then
-    raise exception 'regression: RLS is not enabled on voice_explanations';
+  if not exists (select 1 from pg_class where oid = 's6dd_rehearsal.voice_explanations'::regclass
+                  and relrowsecurity and not relforcerowsecurity) then
+    raise exception 'regression: RLS must be enabled (and FORCE off) on voice_explanations';
   end if;
   if to_regprocedure('s6dd_rehearsal.guard_voice_explanations_insert()') is null then
     raise exception 'regression: guard_voice_explanations_insert() (migration 43) is missing';
@@ -363,8 +415,14 @@ declare
   r2 uuid := gen_random_uuid();
   r3 uuid := gen_random_uuid();
   c record; t1 uuid; t2 uuid; ok boolean; v record;
+  r4 uuid := gen_random_uuid();
+  r5 uuid := gen_random_uuid();
+  r6 uuid := gen_random_uuid();
+  raised boolean;
 begin
-  insert into s6dd_rehearsal.voice_explanations (id) values (r1), (r2), (r3);
+  -- run as PostgREST would for voice-score: service_role JWT claims
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  insert into s6dd_rehearsal.voice_explanations (id) values (r1), (r2), (r3), (r4), (r5), (r6);
 
   select * into c from s6dd_rehearsal.claim_voice_scoring(r1);
   if not c.claimed or c.lease_token is null then raise exception 'F1 first claim failed'; end if;
@@ -386,7 +444,7 @@ begin
   if s6dd_rehearsal.fail_voice_scoring(r1, t1, 'late fail') then
     raise exception 'F6 late fail from the expired lease released the new claim'; end if;
   select * into v from s6dd_rehearsal.voice_explanations where id = r1;
-  if v.communication_score is not null or v.status <> 'pending' then
+  if v.communication_score is not null or v.status <> 'recorded' then
     raise exception 'F7 row changed by a rejected write'; end if;
 
   if not s6dd_rehearsal.complete_voice_scoring(r1, t2, 80, 'ok') then raise exception 'F8 valid complete rejected'; end if;
@@ -420,7 +478,56 @@ begin
   if v.status <> 'scored' or v.communication_score <> 70 or v.communication_notes <> 'good' then
     raise exception 'F16 saved score was overwritten (score %, notes %)', v.communication_score, v.communication_notes; end if;
 
-  raise notice 'Step 6DD rehearsal: all 16 behaviour checks passed.';
+  -- F17-F19: invalid TTL must raise, never take over a live claim
+  select * into c from s6dd_rehearsal.claim_voice_scoring(r4);   -- live claim on r4
+  t1 := c.lease_token;
+  raised := false; begin perform s6dd_rehearsal.claim_voice_scoring(r4, 0); exception when others then raised := true; end;
+  if not raised then raise exception 'F17 TTL 0 accepted'; end if;
+  raised := false; begin perform s6dd_rehearsal.claim_voice_scoring(r4, null); exception when others then raised := true; end;
+  if not raised then raise exception 'F18 TTL null accepted'; end if;
+  raised := false; begin perform s6dd_rehearsal.claim_voice_scoring(r4, -5); exception when others then raised := true; end;
+  if not raised then raise exception 'F19 negative TTL accepted'; end if;
+  if (select scoring_lease_token from s6dd_rehearsal.voice_explanations where id = r4) <> t1 then
+    raise exception 'F19b live lease changed by an invalid-TTL call'; end if;
+
+  -- F20-F22: score outside 0-100 or null must raise and change nothing
+  raised := false; begin perform s6dd_rehearsal.complete_voice_scoring(r4, t1, 101, 'x'); exception when others then raised := true; end;
+  if not raised then raise exception 'F20 score 101 accepted'; end if;
+  raised := false; begin perform s6dd_rehearsal.complete_voice_scoring(r4, t1, -1, 'x'); exception when others then raised := true; end;
+  if not raised then raise exception 'F21 score -1 accepted'; end if;
+  raised := false; begin perform s6dd_rehearsal.complete_voice_scoring(r4, t1, null, 'x'); exception when others then raised := true; end;
+  if not raised then raise exception 'F22 null score accepted'; end if;
+  if (select status from s6dd_rehearsal.voice_explanations where id = r4) <> 'recorded' then
+    raise exception 'F22b row changed by a rejected score'; end if;
+
+  -- F23/F24: boundaries 0 and 100 are valid
+  if not s6dd_rehearsal.complete_voice_scoring(r4, t1, 0, 'zero') then raise exception 'F23 score 0 rejected'; end if;
+  select * into c from s6dd_rehearsal.claim_voice_scoring(r5);
+  if not s6dd_rehearsal.complete_voice_scoring(r5, c.lease_token, 100, 'hundred') then raise exception 'F24 score 100 rejected'; end if;
+
+  -- F25-F27: null / unknown inputs match nothing
+  if s6dd_rehearsal.complete_voice_scoring(r6, null, 50, 'x') then raise exception 'F25 null token complete accepted'; end if;
+  if s6dd_rehearsal.fail_voice_scoring(r6, null, 'x') then raise exception 'F26 null token fail accepted'; end if;
+  select * into c from s6dd_rehearsal.claim_voice_scoring(null);
+  if c.claimed then raise exception 'F27 null id claimed'; end if;
+  select * into c from s6dd_rehearsal.claim_voice_scoring(gen_random_uuid());
+  if c.claimed then raise exception 'F28 unknown id claimed'; end if;
+
+  -- F29: success after failure with the old token is rejected
+  select * into c from s6dd_rehearsal.claim_voice_scoring(r6);
+  t1 := c.lease_token;
+  if not s6dd_rehearsal.fail_voice_scoring(r6, t1, 'boom') then raise exception 'F29a fail rejected'; end if;
+  if s6dd_rehearsal.complete_voice_scoring(r6, t1, 60, 'late success') then
+    raise exception 'F29 complete accepted after the lease was released by fail'; end if;
+
+  -- F30: retry path - a failed row can be claimed again and scored
+  select * into c from s6dd_rehearsal.claim_voice_scoring(r6);
+  if not c.claimed or c.lease_token = t1 then raise exception 'F30a failed row not re-claimable'; end if;
+  if not s6dd_rehearsal.complete_voice_scoring(r6, c.lease_token, 60, 'retry ok') then raise exception 'F30 retry score rejected'; end if;
+  select * into v from s6dd_rehearsal.voice_explanations where id = r6;
+  if v.status <> 'scored' or v.communication_score <> 60 then raise exception 'F30b retry not saved'; end if;
+
+  raise notice 'Step 6DD rehearsal: all 30 behaviour checks passed (F1-F30).';
 end $$;
 
 rollback;

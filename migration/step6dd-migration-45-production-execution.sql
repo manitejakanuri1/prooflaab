@@ -34,19 +34,30 @@
 --      BEFORE COMMIT (a post-commit check cannot undo anything).
 --   3. the original's own begin/commit/notify are removed; one outer
 --      transaction wraps everything.
---   4. TWO deliberate logic fixes (Step 6DD, 2026-09-28). complete_voice_scoring
---      keeps the lease token after saving a score, so in the original file
---      a late or repeated call carrying that same token still matched the
---      row:
---        a. fail_voice_scoring turned a saved score into status 'failed'
---           (and cleared the claim);
---        b. a repeated complete_voice_scoring overwrote the saved score.
---      Both now also require status <> 'scored'. Both were reproduced on
---      staging in a rolled-back throwaway schema. Post-checks below refuse
---      to COMMIT without either guard.
+--   4. FOUR deliberate logic fixes (Step 6DD final audit, 2026-09-28),
+--      each reproduced against the original statements on staging in a
+--      rolled-back throwaway schema:
+--        a. fail_voice_scoring: a late or repeated fail with the token that
+--           just saved a score turned 'scored' into 'failed' (complete
+--           keeps the token). Now requires status <> 'scored'.
+--        b. complete_voice_scoring: a repeated complete with the same token
+--           overwrote the saved score. Now requires status <> 'scored'.
+--        c. claim_voice_scoring: a null / 0 / negative TTL made a live
+--           claim look stale, so a second caller could take it over. Now
+--           raises unless TTL >= 1.
+--        d. complete_voice_scoring: accepted any integer or null as the
+--           score. voice-score grades 0-100 and clamps to that range; the
+--           column has no CHECK. Now raises unless 0 <= score <= 100.
+--      Post-checks below refuse to COMMIT if any of the four is missing.
+--   5. pre-check: voice_explanations must NOT have FORCE ROW LEVEL
+--      SECURITY. These SECURITY DEFINER functions run as the table owner,
+--      which bypasses RLS only while FORCE is off; with FORCE on (and no
+--      UPDATE policy) every claim/complete/fail would silently update 0
+--      rows.
 -- Every other DDL statement is copied verbatim from
--- migration/45-voice-scoring-lease-token.sql. That file is not modified,
--- so it (and staging, which ran it) still carries the unfixed version.
+-- migration/45-voice-scoring-lease-token.sql. That file (and staging,
+-- which ran it) still carries the UNFIXED version: never run it in
+-- production. Undo script: step6dd-migration-45-rollback.sql.
 
 begin;
 
@@ -113,6 +124,21 @@ begin
     raise exception 'pre-check: gen_random_uuid() not available';
   end if;
 
+  -- (7) FORCE RLS off, so the owner-run functions are not filtered by RLS
+  if exists (select 1 from pg_class where oid = 'public.voice_explanations'::regclass
+              and relforcerowsecurity) then
+    raise exception 'pre-check: voice_explanations has FORCE ROW LEVEL SECURITY - the scoring functions would silently update 0 rows; refusing to run';
+  end if;
+
+  -- (8) the status CHECK still allows every value these functions write
+  if not exists (select 1 from pg_constraint
+                  where conrelid = 'public.voice_explanations'::regclass and contype = 'c'
+                    and pg_get_constraintdef(oid) like '%status%'
+                    and pg_get_constraintdef(oid) like '%''scored''%'
+                    and pg_get_constraintdef(oid) like '%''failed''%') then
+    raise exception 'pre-check: no status CHECK constraint allowing scored and failed was found on voice_explanations';
+  end if;
+
   raise notice 'Step 6DD pre-checks passed: database is at migration 44, not 45.';
 end $$;
 
@@ -134,6 +160,11 @@ declare
   _lease uuid := gen_random_uuid();
   n integer;
 begin
+  -- Step 6DD fix: a null, zero or negative TTL made every existing claim
+  -- look stale at once, so any caller could take over a live claim.
+  if _claim_ttl_seconds is null or _claim_ttl_seconds < 1 then
+    raise exception 'claim_voice_scoring: _claim_ttl_seconds must be >= 1 (got %)', _claim_ttl_seconds;
+  end if;
   update public.voice_explanations
      set scoring_claimed_at = now(),
          scoring_lease_token = _lease
@@ -159,6 +190,12 @@ set search_path to 'public', 'pg_temp'
 as $function$
 declare n integer;
 begin
+  -- Step 6DD fix: voice-score grades 0-100 and clamps to that range
+  -- (supabase/functions/voice-score/index.ts). The column itself has no
+  -- CHECK, so the database now refuses anything else.
+  if _score is null or _score < 0 or _score > 100 then
+    raise exception 'complete_voice_scoring: _score must be 0-100 (got %)', _score;
+  end if;
   update public.voice_explanations
      set communication_score = _score,
          communication_notes = _notes,
@@ -256,6 +293,14 @@ begin
        and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
       raise exception 'post-check: complete_voice_scoring lacks the Step 6DD "status <> scored" guard';
     end if;
+    if v_fn.proname = 'complete_voice_scoring'
+       and position('_score < 0 or _score > 100' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
+      raise exception 'post-check: complete_voice_scoring lacks the Step 6DD 0-100 score guard';
+    end if;
+    if v_fn.proname = 'claim_voice_scoring'
+       and position('_claim_ttl_seconds < 1' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
+      raise exception 'post-check: claim_voice_scoring lacks the Step 6DD TTL guard';
+    end if;
     if v_fn.proname = 'fail_voice_scoring'
        and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
       raise exception 'post-check: fail_voice_scoring lacks the Step 6DD "status <> scored" guard';
@@ -307,8 +352,9 @@ begin
   if not has_table_privilege('service_role', 'public.voice_explanations', 'UPDATE') then
     raise exception 'regression: service_role lost UPDATE on voice_explanations';
   end if;
-  if not exists (select 1 from pg_class where oid = 'public.voice_explanations'::regclass and relrowsecurity) then
-    raise exception 'regression: RLS is not enabled on voice_explanations';
+  if not exists (select 1 from pg_class where oid = 'public.voice_explanations'::regclass
+                  and relrowsecurity and not relforcerowsecurity) then
+    raise exception 'regression: RLS must be enabled (and FORCE off) on voice_explanations';
   end if;
   if to_regprocedure('public.guard_voice_explanations_insert()') is null then
     raise exception 'regression: guard_voice_explanations_insert() (migration 43) is missing';

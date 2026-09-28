@@ -1,3 +1,16 @@
+-- ##########################################################################
+-- DO NOT RUN THIS FILE IN PRODUCTION.
+-- This is the ORIGINAL, UNFIXED migration 45 (what staging ran). The Step 6DD
+-- final audit (2026-09-28) found and reproduced four defects in it: a
+-- repeated complete overwrites a saved score, a late fail turns 'scored'
+-- into 'failed', a TTL < 1 lets a live claim be taken over, and scores
+-- outside 0-100 are accepted.
+-- The ONLY approved production script is:
+--   migration/step6dd-migration-45-production-execution.sql
+-- then verify with step6dd-migration-45-production-verify-readonly.sql.
+-- This header is a comment only; nothing below it was changed.
+-- ##########################################################################
+--
 -- 45: Step 6G - staging only, not applied to production.
 --
 -- Migration 44's claim_voice_scoring only ever checked a timestamp at claim

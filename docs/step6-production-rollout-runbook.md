@@ -476,9 +476,43 @@ numbering:
 | 42 | Lease-token columns/fencing on the 41 functions; table-level `UPDATE` revoke | 41 (alters its columns and functions) | **APPLIED 2026-09-27**, combined with 41 in one transaction |
 | 43 | `claim_transcription_recovery`; `guard_voice_explanations_insert` trigger | 41, 42 (reads/writes 42's columns; the trigger forces values in columns 41/42 added) | **APPLIED 2026-09-27** (Step 6Y/6Z's script, includes the PUBLIC-EXECUTE-revoke fix beyond the original file) |
 | 44 | `scoring_claimed_at`; `claim_voice_scoring` (timestamp-only) | None of 41–43 — independent column/function on the same table | **APPLIED 2026-09-28** (Step 6BB's script, commit `c890889`) |
-| 45 | `scoring_lease_token`; rewrites `claim/complete/fail_voice_scoring` with fencing | 44 (replaces its function, extends its column) | not applied |
+| 45 | `scoring_lease_token`; rewrites `claim/complete/fail_voice_scoring` with fencing | 44 (replaces its function, extends its column) | **PREPARED, NOT APPLIED.** Approved-for-review script: `migration/step6dd-migration-45-production-execution.sql` (Step 6DD, 4 fixes, see §1a). **Never run the original `45-voice-scoring-lease-token.sql` in production** |
 | 46 | `recruiter_talent`/`recruiter_proof_profile` provenance filter | Reads `transcript_source`, which predates all of 41–45 (stage6) — otherwise independent of 41–45, but ships with them since it closes the gap they collectively created | not applied |
 | 47 | Table-level `revoke update ... from authenticated, anon` on `voice_explanations` (Step 6M) | None of 41–46 — only touches grants on columns/roles that already exist in production today. Order-independent: safe to ship before, with, or after 41–46. If applied first and 41–46 follow later, migration 42's identical `revoke` statement becomes a documented Postgres no-op (revoking a privilege already absent succeeds silently, no error) | **APPLIED 2026-09-27 (Step 6S)** |
+
+## 1a. Step 6DD: migration 45 prepared (final audit, 2026-09-28)
+
+**Status: PREPARED, NOT APPLIED. Ready for final human review.**
+
+| File | Use |
+|---|---|
+| `migration/step6dd-migration-45-production-execution.sql` | The only script to run in production (Cloud SQL Studio, as `prooflab_app`, after explicit approval) |
+| `migration/step6dd-migration-45-production-verify-readonly.sql` | Run after: 22 read-only checks, all must be `t` |
+| `migration/step6dd-migration-45-rollback.sql` | Emergency undo to the 44 state. Only if no deployed code calls the 45 functions |
+| `migration/45-voice-scoring-lease-token.sql` | ORIGINAL, UNFIXED. Staging ran it. **Never run in production** (header says so) |
+| `migration/step6dd-staging-rehearsal-2026-09-28.txt` | Full staging evidence |
+
+Four defects in the original 45, each reproduced on staging (throwaway
+schema, rolled back) and fixed in the production script:
+
+| # | Defect in original 45 | Fix |
+|---|---|---|
+| a | Repeated `complete` with the same token overwrote a saved score (70 -> 5) | `complete` requires `status <> 'scored'` |
+| b | Late `fail` with the same token turned `scored` into `failed` | `fail` requires `status <> 'scored'` |
+| c | TTL < 1 let a second caller take over a live claim | `claim` raises unless TTL >= 1 |
+| d | Any score accepted (150 saved). voice-score grades and clamps 0-100; column has no CHECK | `complete` raises unless 0 <= score <= 100 |
+
+Also added: pre-check that FORCE RLS is off (the owner-run functions
+would silently update 0 rows otherwise) and that the status CHECK allows
+`scored`/`failed`; `lock_timeout 5s`; post-checks for every guard.
+
+Staging rehearsal (execution `prooflab-staging-inspect4-s7bgt`): exact
+script aborted at the pre-check on staging, staging's real functions
+identical before/after; 30/30 behaviour checks on a throwaway 44-state
+copy (with production's `protect_columns` trigger, as a service_role
+request); injected bad grant, removed guard and FORCE RLS each aborted;
+rollback returned a fixed-45 copy to 44 and refused on the unfixed 45;
+0 throwaway objects left.
 
 **Post-application verification of migration 44 (project owner,
 2026-09-28, independent of this session's own checks), run in Cloud SQL

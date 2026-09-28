@@ -23,12 +23,18 @@ SETUP = f"""begin;
 create schema {S};
 create table {S}.voice_explanations (
   id uuid primary key,
-  status text not null default 'pending',
+  status text not null default 'recorded'
+    check (status in ('recorded', 'scored', 'failed')),
+  transcript text,
   communication_score integer,
   communication_notes text,
   scoring_claimed_at timestamptz
 );
 alter table {S}.voice_explanations enable row level security;
+-- same column protection trigger production has (stage6)
+create trigger protect_voice_explanations before update on {S}.voice_explanations
+  for each row execute function public.protect_columns(
+    'communication_score', 'communication_notes', 'status', 'transcript');
 grant select, insert, update, delete on {S}.voice_explanations to service_role;
 create function {S}.guard_voice_explanations_insert() returns trigger
   language plpgsql as $f$ begin return new; end $f$;
@@ -63,8 +69,14 @@ declare
   r2 uuid := gen_random_uuid();
   r3 uuid := gen_random_uuid();
   c record; t1 uuid; t2 uuid; ok boolean; v record;
+  r4 uuid := gen_random_uuid();
+  r5 uuid := gen_random_uuid();
+  r6 uuid := gen_random_uuid();
+  raised boolean;
 begin
-  insert into {S}.voice_explanations (id) values (r1), (r2), (r3);
+  -- run as PostgREST would for voice-score: service_role JWT claims
+  perform set_config('request.jwt.claims', '{{"role":"service_role"}}', true);
+  insert into {S}.voice_explanations (id) values (r1), (r2), (r3), (r4), (r5), (r6);
 
   select * into c from {S}.claim_voice_scoring(r1);
   if not c.claimed or c.lease_token is null then raise exception 'F1 first claim failed'; end if;
@@ -86,7 +98,7 @@ begin
   if {S}.fail_voice_scoring(r1, t1, 'late fail') then
     raise exception 'F6 late fail from the expired lease released the new claim'; end if;
   select * into v from {S}.voice_explanations where id = r1;
-  if v.communication_score is not null or v.status <> 'pending' then
+  if v.communication_score is not null or v.status <> 'recorded' then
     raise exception 'F7 row changed by a rejected write'; end if;
 
   if not {S}.complete_voice_scoring(r1, t2, 80, 'ok') then raise exception 'F8 valid complete rejected'; end if;
@@ -120,7 +132,56 @@ begin
   if v.status <> 'scored' or v.communication_score <> 70 or v.communication_notes <> 'good' then
     raise exception 'F16 saved score was overwritten (score %, notes %)', v.communication_score, v.communication_notes; end if;
 
-  raise notice 'Step 6DD rehearsal: all 16 behaviour checks passed.';
+  -- F17-F19: invalid TTL must raise, never take over a live claim
+  select * into c from {S}.claim_voice_scoring(r4);   -- live claim on r4
+  t1 := c.lease_token;
+  raised := false; begin perform {S}.claim_voice_scoring(r4, 0); exception when others then raised := true; end;
+  if not raised then raise exception 'F17 TTL 0 accepted'; end if;
+  raised := false; begin perform {S}.claim_voice_scoring(r4, null); exception when others then raised := true; end;
+  if not raised then raise exception 'F18 TTL null accepted'; end if;
+  raised := false; begin perform {S}.claim_voice_scoring(r4, -5); exception when others then raised := true; end;
+  if not raised then raise exception 'F19 negative TTL accepted'; end if;
+  if (select scoring_lease_token from {S}.voice_explanations where id = r4) <> t1 then
+    raise exception 'F19b live lease changed by an invalid-TTL call'; end if;
+
+  -- F20-F22: score outside 0-100 or null must raise and change nothing
+  raised := false; begin perform {S}.complete_voice_scoring(r4, t1, 101, 'x'); exception when others then raised := true; end;
+  if not raised then raise exception 'F20 score 101 accepted'; end if;
+  raised := false; begin perform {S}.complete_voice_scoring(r4, t1, -1, 'x'); exception when others then raised := true; end;
+  if not raised then raise exception 'F21 score -1 accepted'; end if;
+  raised := false; begin perform {S}.complete_voice_scoring(r4, t1, null, 'x'); exception when others then raised := true; end;
+  if not raised then raise exception 'F22 null score accepted'; end if;
+  if (select status from {S}.voice_explanations where id = r4) <> 'recorded' then
+    raise exception 'F22b row changed by a rejected score'; end if;
+
+  -- F23/F24: boundaries 0 and 100 are valid
+  if not {S}.complete_voice_scoring(r4, t1, 0, 'zero') then raise exception 'F23 score 0 rejected'; end if;
+  select * into c from {S}.claim_voice_scoring(r5);
+  if not {S}.complete_voice_scoring(r5, c.lease_token, 100, 'hundred') then raise exception 'F24 score 100 rejected'; end if;
+
+  -- F25-F27: null / unknown inputs match nothing
+  if {S}.complete_voice_scoring(r6, null, 50, 'x') then raise exception 'F25 null token complete accepted'; end if;
+  if {S}.fail_voice_scoring(r6, null, 'x') then raise exception 'F26 null token fail accepted'; end if;
+  select * into c from {S}.claim_voice_scoring(null);
+  if c.claimed then raise exception 'F27 null id claimed'; end if;
+  select * into c from {S}.claim_voice_scoring(gen_random_uuid());
+  if c.claimed then raise exception 'F28 unknown id claimed'; end if;
+
+  -- F29: success after failure with the old token is rejected
+  select * into c from {S}.claim_voice_scoring(r6);
+  t1 := c.lease_token;
+  if not {S}.fail_voice_scoring(r6, t1, 'boom') then raise exception 'F29a fail rejected'; end if;
+  if {S}.complete_voice_scoring(r6, t1, 60, 'late success') then
+    raise exception 'F29 complete accepted after the lease was released by fail'; end if;
+
+  -- F30: retry path - a failed row can be claimed again and scored
+  select * into c from {S}.claim_voice_scoring(r6);
+  if not c.claimed or c.lease_token = t1 then raise exception 'F30a failed row not re-claimable'; end if;
+  if not {S}.complete_voice_scoring(r6, c.lease_token, 60, 'retry ok') then raise exception 'F30 retry score rejected'; end if;
+  select * into v from {S}.voice_explanations where id = r6;
+  if v.status <> 'scored' or v.communication_score <> 60 then raise exception 'F30b retry not saved'; end if;
+
+  raise notice 'Step 6DD rehearsal: all 30 behaviour checks passed (F1-F30).';
 end $$;
 
 rollback;
@@ -138,12 +199,12 @@ for a, b in [("public.voice_explanations", f"{S}.voice_explanations"),
 REPRO = f"""begin;
 create schema {S};
 create table {S}.voice_explanations (
-  id uuid primary key, status text not null default 'pending',
+  id uuid primary key, status text not null default 'recorded' check (status in ('recorded', 'scored', 'failed')),
   communication_score integer, communication_notes text, scoring_claimed_at timestamptz);
 -- ORIGINAL migration 45 statements (unfixed), schema moved
 {orig_body}
 do $$
-declare r uuid := gen_random_uuid(); c record; ok boolean; v record;
+declare r uuid := gen_random_uuid(); c record; c2 record; ok boolean; v record;
 begin
   insert into {S}.voice_explanations (id) values (r);
   select * into c from {S}.claim_voice_scoring(r);
@@ -156,6 +217,14 @@ begin
   ok := {S}.fail_voice_scoring(r, c.lease_token, 'late fail after success');
   select * into v from {S}.voice_explanations where id = r;
   raise notice 'REPRO late fail accepted=% -> status=% score=% claimed_at=% token=%', ok, v.status, v.communication_score, v.scoring_claimed_at, v.scoring_lease_token;
+  r := gen_random_uuid();
+  insert into {S}.voice_explanations (id) values (r);
+  select * into c from {S}.claim_voice_scoring(r);
+  select * into c2 from {S}.claim_voice_scoring(r, -5);
+  raise notice 'REPRO TTL -5 took over a live claim=% (TTL 0 does the same across transactions; within one transaction now() is fixed)', c2.claimed;
+  ok := {S}.complete_voice_scoring(r, c2.lease_token, 150, 'out of range');
+  select * into v from {S}.voice_explanations where id = r;
+  raise notice 'REPRO score 150 accepted=% -> score=%', ok, v.communication_score;
 end $$;
 rollback;
 """
@@ -197,6 +266,34 @@ guard = "\n     and status <> 'scored';  -- Step 6DD fix: a saved score is final
 assert rest.count(guard) == 1
 negative2 = head + "\n" + SETUP + rest.replace(guard, ";") + "\nrollback;\n"
 
+# negative proof 3: FORCE RLS on the table must abort at the pre-check
+negative3 = head + "\n" + SETUP + f"alter table {S}.voice_explanations force row level security;\n" + rest + "\nrollback;\n"
+
+# rollback script, moved to the throwaway schema
+RB = (ROOT / "migration/step6dd-migration-45-rollback.sql").read_text(encoding="utf-8")
+for a, b in [("public.voice_explanations", f"{S}.voice_explanations"),
+             ("public.claim_voice_scoring", f"{S}.claim_voice_scoring"),
+             ("public.complete_voice_scoring", f"{S}.complete_voice_scoring"),
+             ("public.fail_voice_scoring", f"{S}.fail_voice_scoring"),
+             ("'public'::regnamespace", f"'{S}'::regnamespace"),
+             ("set search_path to 'public', 'pg_temp'", f"set search_path to '{S}', 'pg_temp'")]:
+    assert a in RB, a
+    RB = RB.replace(a, b)
+rb_body = RB.split("\nbegin;\n", 1)[1].split("\ncommit;", 1)[0]
+assert "public." not in rb_body.replace("from public, anon", "")
+AFTER_RB = f"""
+do $$ begin
+  if pg_get_function_result('{S}.claim_voice_scoring(uuid, integer)'::regprocedure) <> 'boolean' then
+    raise exception 'RB check: claim is not back to 44 shape'; end if;
+  raise notice 'Step 6DD rollback rehearsal: database is back at the 44 shape.';
+end $$;
+rollback;
+"""
+# B6: fixed 45 applied, then rollback -> back to 44
+rb_ok = head + "\n" + SETUP + rest + "\n" + rb_body + AFTER_RB
+# B7: UNFIXED original 45 applied, then rollback -> must refuse at its pre-check
+rb_refuse = head + "\n" + SETUP + "\ndrop function " + S + ".claim_voice_scoring(uuid, integer);\n" + orig_body + "\n" + rb_body + "\nrollback;\n"
+
 out = ROOT / "migration/step6dd-migration-45-staging-rehearsal-proxy.sql"
 out.write_text("-- GENERATED by scripts/dev-tools/step6dd_build_rehearsal.py - do not edit.\n"
                "-- Staging rehearsal of step6dd-migration-45-production-execution.sql in a\n"
@@ -215,6 +312,7 @@ def heredoc(name, text):
 bash = (
     heredoc("prod.sql", PROD) + heredoc("proxy.sql", proxy) + heredoc("neg.sql", negative)
     + heredoc("verify.sql", VERIFY) + heredoc("repro.sql", REPRO) + heredoc("neg2.sql", negative2)
+    + heredoc("neg3.sql", negative3) + heredoc("rb_ok.sql", rb_ok) + heredoc("rb_refuse.sql", rb_refuse)
     + 'P() { psql "$STAGING_DB_URI" "$@"; }\n'
     + 'echo "=== 0 server"; P -t -c "select version(), current_user"\n'
     + 'echo "=== R reproduce race on ORIGINAL 45 (throwaway schema, rollback)"; P -v ON_ERROR_STOP=1 -f /tmp/repro.sql; echo "R exit=$?"\n'
@@ -224,6 +322,9 @@ bash = (
     + 'echo "=== B1 proxy happy path + behaviour"; P -v ON_ERROR_STOP=1 -f /tmp/proxy.sql; echo "B1 exit=$?"\n'
     + 'echo "=== B2 proxy with a bad anon grant (must abort at post-check)"; P -v ON_ERROR_STOP=1 -f /tmp/neg.sql; echo "B2 exit=$?"\n'
     + 'echo "=== B4 proxy with the complete guard removed (must abort at post-check)"; P -v ON_ERROR_STOP=1 -f /tmp/neg2.sql; echo "B4 exit=$?"\n'
+    + 'echo "=== B5 proxy with FORCE RLS (must abort at pre-check)"; P -v ON_ERROR_STOP=1 -f /tmp/neg3.sql; echo "B5 exit=$?"\n'
+    + 'echo "=== B6 fixed 45 then rollback script (must return to 44)"; P -v ON_ERROR_STOP=1 -f /tmp/rb_ok.sql; echo "B6 exit=$?"\n'
+    + 'echo "=== B7 rollback on UNFIXED original 45 (must refuse)"; P -v ON_ERROR_STOP=1 -f /tmp/rb_refuse.sql; echo "B7 exit=$?"\n'
     + f'echo "=== B3 scratch schema left behind (must be 0)"; P -t -c "select count(*) from pg_namespace where nspname=\'{S}\'"\n'
     + 'echo "=== C read-only verification against staging (already at 45)"; P -f /tmp/verify.sql; echo "C exit=$?"\n'
     + 'echo "=== END"\n'

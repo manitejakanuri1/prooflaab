@@ -4,7 +4,7 @@
 -- in Cloud SQL Studio on prooflab-db / database prooflab. The transaction
 -- is READ ONLY, so Postgres itself refuses any write, and it ends in
 -- ROLLBACK. Every row should show ok = true. (On staging, which ran the
--- original unfixed 45, rows 18 and 19 are expected to show false.)
+-- original unfixed 45, rows 18-21 are expected to show false.)
 
 begin transaction read only;
 
@@ -94,6 +94,17 @@ select check_name, detail, ok from (
   select 19, 'complete_voice_scoring never overwrites a scored row (Step 6DD guard)', '',
          exists (select 1 from fns where proname = 'complete_voice_scoring'
                    and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = fns.oid)) > 0)
+  union all
+  select 20, 'claim_voice_scoring rejects TTL < 1 (Step 6DD guard)', '',
+         exists (select 1 from fns where proname = 'claim_voice_scoring'
+                   and position('_claim_ttl_seconds < 1' in (select prosrc from pg_proc where oid = fns.oid)) > 0)
+  union all
+  select 21, 'complete_voice_scoring only accepts scores 0-100 (Step 6DD guard)', '',
+         exists (select 1 from fns where proname = 'complete_voice_scoring'
+                   and position('_score < 0 or _score > 100' in (select prosrc from pg_proc where oid = fns.oid)) > 0)
+  union all
+  select 22, 'FORCE ROW LEVEL SECURITY is off on voice_explanations', '',
+         not (select relforcerowsecurity from pg_class where oid = 'public.voice_explanations'::regclass)
 ) c
 order by n;
 

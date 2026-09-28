@@ -3,7 +3,8 @@
 -- Run AFTER step6dd-migration-45-production-execution.sql has committed,
 -- in Cloud SQL Studio on prooflab-db / database prooflab. The transaction
 -- is READ ONLY, so Postgres itself refuses any write, and it ends in
--- ROLLBACK. Every row should show ok = true.
+-- ROLLBACK. Every row should show ok = true. (On staging, which ran the
+-- original unfixed 45, row 18 is expected to show false.)
 
 begin transaction read only;
 
@@ -85,6 +86,10 @@ select check_name, detail, ok from (
   union all
   select 17, 'guard_voice_explanations_insert() (43) still present', '',
          to_regprocedure('public.guard_voice_explanations_insert()') is not null
+  union all
+  select 18, 'fail_voice_scoring never overwrites a scored row (Step 6DD guard)', '',
+         exists (select 1 from fns where proname = 'fail_voice_scoring'
+                   and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = fns.oid)) > 0)
 ) c
 order by n;
 

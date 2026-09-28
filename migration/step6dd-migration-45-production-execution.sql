@@ -34,8 +34,16 @@
 --      BEFORE COMMIT (a post-commit check cannot undo anything).
 --   3. the original's own begin/commit/notify are removed; one outer
 --      transaction wraps everything.
--- Every DDL statement is copied verbatim from
--- migration/45-voice-scoring-lease-token.sql. That file is not modified.
+--   4. ONE deliberate logic fix (Step 6DD, 2026-09-28): fail_voice_scoring
+--      also requires status <> 'scored'. complete_voice_scoring keeps the
+--      lease token after saving a score, so in the original file a late
+--      or repeated fail call carrying that same token still matched the
+--      row and turned a saved score into status 'failed' (and cleared the
+--      claim). Reproduced on staging in a rolled-back throwaway schema.
+--      A post-check below refuses to COMMIT without this guard.
+-- Every other DDL statement is copied verbatim from
+-- migration/45-voice-scoring-lease-token.sql. That file is not modified,
+-- so it (and staging, which ran it) still carries the unfixed version.
 
 begin;
 
@@ -172,7 +180,8 @@ begin
          communication_notes = coalesce(_notes, communication_notes),
          scoring_claimed_at = null,
          scoring_lease_token = null
-   where id = _id and scoring_lease_token = _lease_token;
+   where id = _id and scoring_lease_token = _lease_token
+     and status <> 'scored';  -- Step 6DD fix: never turn a saved score into a failure
   get diagnostics n = row_count;
   return n > 0;
 end $function$;
@@ -238,6 +247,10 @@ begin
     if v_fn.proname = 'fail_voice_scoring'
        and (v_fn.args <> 'uuid, uuid, text' or v_fn.result <> 'boolean') then
       raise exception 'post-check: fail_voice_scoring is (%) -> %', v_fn.args, v_fn.result;
+    end if;
+    if v_fn.proname = 'fail_voice_scoring'
+       and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
+      raise exception 'post-check: fail_voice_scoring lacks the Step 6DD "status <> scored" guard';
     end if;
     if not v_fn.prosecdef then
       raise exception 'post-check: % is not SECURITY DEFINER', v_fn.proname;

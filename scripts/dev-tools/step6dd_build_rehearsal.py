@@ -61,9 +61,10 @@ do $$
 declare
   r1 uuid := gen_random_uuid();
   r2 uuid := gen_random_uuid();
+  r3 uuid := gen_random_uuid();
   c record; t1 uuid; t2 uuid; ok boolean; v record;
 begin
-  insert into {S}.voice_explanations (id) values (r1), (r2);
+  insert into {S}.voice_explanations (id) values (r1), (r2), (r3);
 
   select * into c from {S}.claim_voice_scoring(r1);
   if not c.claimed or c.lease_token is null then raise exception 'F1 first claim failed'; end if;
@@ -101,9 +102,50 @@ begin
   if v.status <> 'failed' or v.scoring_claimed_at is not null or v.scoring_lease_token is not null then
     raise exception 'F12 fail did not release the claim'; end if;
 
-  raise notice 'Step 6DD rehearsal: all 12 behaviour checks passed.';
+  -- F13/F14: the Step 6DD race. A late or repeated fail carrying the
+  -- SAME token that just saved a score must not undo the score.
+  select * into c from {S}.claim_voice_scoring(r3);
+  if not {S}.complete_voice_scoring(r3, c.lease_token, 70, 'good') then raise exception 'F13a complete rejected'; end if;
+  if {S}.fail_voice_scoring(r3, c.lease_token, 'late fail after success') then
+    raise exception 'F13 late fail with the same token was accepted on a scored row'; end if;
+  select * into v from {S}.voice_explanations where id = r3;
+  if v.status <> 'scored' or v.communication_score <> 70 or v.communication_notes <> 'good' then
+    raise exception 'F14 scored row was changed by a late fail (status %, score %)', v.status, v.communication_score; end if;
+
+  raise notice 'Step 6DD rehearsal: all 14 behaviour checks passed.';
 end $$;
 
+rollback;
+"""
+
+
+ORIG45 = (ROOT / "migration/45-voice-scoring-lease-token.sql").read_text(encoding="utf-8")
+orig_body = ORIG45.split("\nbegin;\n", 1)[1].split("\ncommit;", 1)[0]
+for a, b in [("public.voice_explanations", f"{S}.voice_explanations"),
+             ("public.claim_voice_scoring", f"{S}.claim_voice_scoring"),
+             ("public.complete_voice_scoring", f"{S}.complete_voice_scoring"),
+             ("public.fail_voice_scoring", f"{S}.fail_voice_scoring"),
+             ("set search_path to 'public', 'pg_temp'", f"set search_path to '{S}', 'pg_temp'")]:
+    orig_body = orig_body.replace(a, b)
+REPRO = f"""begin;
+create schema {S};
+create table {S}.voice_explanations (
+  id uuid primary key, status text not null default 'pending',
+  communication_score integer, communication_notes text, scoring_claimed_at timestamptz);
+-- ORIGINAL migration 45 statements (unfixed), schema moved
+{orig_body}
+do $$
+declare r uuid := gen_random_uuid(); c record; ok boolean; v record;
+begin
+  insert into {S}.voice_explanations (id) values (r);
+  select * into c from {S}.claim_voice_scoring(r);
+  perform {S}.complete_voice_scoring(r, c.lease_token, 70, 'good');
+  select * into v from {S}.voice_explanations where id = r;
+  raise notice 'REPRO after complete: status=% score=% token_kept=%', v.status, v.communication_score, v.scoring_lease_token = c.lease_token;
+  ok := {S}.fail_voice_scoring(r, c.lease_token, 'late fail after success');
+  select * into v from {S}.voice_explanations where id = r;
+  raise notice 'REPRO late fail accepted=% -> status=% score=% claimed_at=% token=%', ok, v.status, v.communication_score, v.scoring_claimed_at, v.scoring_lease_token;
+end $$;
 rollback;
 """
 
@@ -156,9 +198,10 @@ def heredoc(name, text):
 
 bash = (
     heredoc("prod.sql", PROD) + heredoc("proxy.sql", proxy) + heredoc("neg.sql", negative)
-    + heredoc("verify.sql", VERIFY)
+    + heredoc("verify.sql", VERIFY) + heredoc("repro.sql", REPRO)
     + 'P() { psql "$STAGING_DB_URI" "$@"; }\n'
     + 'echo "=== 0 server"; P -t -c "select version(), current_user"\n'
+    + 'echo "=== R reproduce race on ORIGINAL 45 (throwaway schema, rollback)"; P -v ON_ERROR_STOP=1 -f /tmp/repro.sql; echo "R exit=$?"\n'
     + f'echo "=== A1 fingerprint BEFORE"; P -t -c "{FP}"\n'
     + 'echo "=== A2 exact production script (must abort at pre-check)"; P -v ON_ERROR_STOP=1 -f /tmp/prod.sql; echo "A2 exit=$?"\n'
     + f'echo "=== A3 fingerprint AFTER"; P -t -c "{FP}"\n'

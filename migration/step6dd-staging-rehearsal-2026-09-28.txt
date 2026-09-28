@@ -1,5 +1,22 @@
 === 0 server
  PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit | postgres
+=== R reproduce race on ORIGINAL 45 (throwaway schema, rollback)
+BEGIN
+CREATE SCHEMA
+CREATE TABLE
+ALTER TABLE
+psql:/tmp/repro.sql:11: NOTICE:  function s6dd_rehearsal.claim_voice_scoring(uuid,pg_catalog.int4) does not exist, skipping
+DROP FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+psql:/tmp/repro.sql:102: NOTICE:  REPRO after complete: status=scored score=70 token_kept=t
+psql:/tmp/repro.sql:102: NOTICE:  REPRO late fail accepted=t -> status=failed score=70 claimed_at=<NULL> token=<NULL>
+DO
+ROLLBACK
+R exit=0
 === A1 fingerprint BEFORE
  claim_voice_scoring    | uuid, integer             | TABLE(claimed boolean, lease_token uuid) | 8246246163ba025bed98c67738005a63 | {postgres=X/postgres,service_role=X/postgres} | postgres
  complete_voice_scoring | uuid, uuid, integer, text | boolean                                  | ed6fa7097e73b92ec563559135fb770c | {postgres=X/postgres,service_role=X/postgres} | postgres
@@ -7,7 +24,7 @@
 === A2 exact production script (must abort at pre-check)
 BEGIN
 SET
-psql:/tmp/prod.sql:106: ERROR:  pre-check: claim_voice_scoring(uuid,integer) returns TABLE(claimed boolean, lease_token uuid) (expected boolean) - this database is already past migration 44 (likely 45 is applied); refusing to drop and recreate it
+psql:/tmp/prod.sql:114: ERROR:  pre-check: claim_voice_scoring(uuid,integer) returns TABLE(claimed boolean, lease_token uuid) (expected boolean) - this database is already past migration 44 (likely 45 is applied); refusing to drop and recreate it
 CONTEXT:  PL/pgSQL function inline_code_block line 27 at RAISE
 A2 exit=3
 === A3 fingerprint AFTER
@@ -25,7 +42,7 @@ CREATE FUNCTION
 REVOKE
 GRANT
 SET
-psql:/tmp/proxy.sql:142: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
+psql:/tmp/proxy.sql:150: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
 DO
 ALTER TABLE
 DROP FUNCTION
@@ -34,10 +51,10 @@ CREATE FUNCTION
 CREATE FUNCTION
 REVOKE
 GRANT
-psql:/tmp/proxy.sql:333: NOTICE:  Step 6DD: all fail-closed checks passed. Committing.
+psql:/tmp/proxy.sql:346: NOTICE:  Step 6DD: all fail-closed checks passed. Committing.
 DO
+psql:/tmp/proxy.sql:405: NOTICE:  Step 6DD rehearsal: all 14 behaviour checks passed.
 DO
-psql:/tmp/proxy.sql:381: NOTICE:  Step 6DD rehearsal: all 12 behaviour checks passed.
 ROLLBACK
 B1 exit=0
 === B2 proxy with a bad anon grant (must abort at post-check)
@@ -51,8 +68,8 @@ CREATE FUNCTION
 REVOKE
 GRANT
 SET
+psql:/tmp/neg.sql:150: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
 DO
-psql:/tmp/neg.sql:142: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
 ALTER TABLE
 DROP FUNCTION
 CREATE FUNCTION
@@ -61,8 +78,8 @@ CREATE FUNCTION
 REVOKE
 GRANT
 GRANT
-psql:/tmp/neg.sql:335: ERROR:  post-check: anon can EXECUTE complete_voice_scoring
-CONTEXT:  PL/pgSQL function inline_code_block line 64 at RAISE
+psql:/tmp/neg.sql:348: ERROR:  post-check: anon can EXECUTE complete_voice_scoring
+CONTEXT:  PL/pgSQL function inline_code_block line 68 at RAISE
 B2 exit=3
 === B3 scratch schema left behind (must be 0)
      0
@@ -87,7 +104,8 @@ BEGIN
  service_role still has UPDATE on voice_explanations                                 |                                          | t
  RLS still enabled on voice_explanations                                             |                                          | t
  guard_voice_explanations_insert() (43) still present                                |                                          | t
-(17 rows)
+ fail_voice_scoring never overwrites a scored row (Step 6DD guard)                   |                                          | f
+(18 rows)
 ROLLBACK
 C exit=0
 === END

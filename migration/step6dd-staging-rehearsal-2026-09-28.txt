@@ -1,0 +1,94 @@
+=== 0 server
+ PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit | postgres
+=== A1 fingerprint BEFORE
+ claim_voice_scoring    | uuid, integer             | TABLE(claimed boolean, lease_token uuid) | 8246246163ba025bed98c67738005a63 | {postgres=X/postgres,service_role=X/postgres} | postgres
+ complete_voice_scoring | uuid, uuid, integer, text | boolean                                  | ed6fa7097e73b92ec563559135fb770c | {postgres=X/postgres,service_role=X/postgres} | postgres
+ fail_voice_scoring     | uuid, uuid, text          | boolean                                  | ab4cf7b84cbc46ba2de5ab1dbd20dd48 | {postgres=X/postgres,service_role=X/postgres} | postgres
+=== A2 exact production script (must abort at pre-check)
+BEGIN
+SET
+psql:/tmp/prod.sql:106: ERROR:  pre-check: claim_voice_scoring(uuid,integer) returns TABLE(claimed boolean, lease_token uuid) (expected boolean) - this database is already past migration 44 (likely 45 is applied); refusing to drop and recreate it
+CONTEXT:  PL/pgSQL function inline_code_block line 27 at RAISE
+A2 exit=3
+=== A3 fingerprint AFTER
+ claim_voice_scoring    | uuid, integer             | TABLE(claimed boolean, lease_token uuid) | 8246246163ba025bed98c67738005a63 | {postgres=X/postgres,service_role=X/postgres} | postgres
+ complete_voice_scoring | uuid, uuid, integer, text | boolean                                  | ed6fa7097e73b92ec563559135fb770c | {postgres=X/postgres,service_role=X/postgres} | postgres
+ fail_voice_scoring     | uuid, uuid, text          | boolean                                  | ab4cf7b84cbc46ba2de5ab1dbd20dd48 | {postgres=X/postgres,service_role=X/postgres} | postgres
+=== B1 proxy happy path + behaviour
+BEGIN
+CREATE SCHEMA
+CREATE TABLE
+ALTER TABLE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+SET
+psql:/tmp/proxy.sql:142: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
+DO
+ALTER TABLE
+DROP FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+psql:/tmp/proxy.sql:333: NOTICE:  Step 6DD: all fail-closed checks passed. Committing.
+DO
+DO
+psql:/tmp/proxy.sql:381: NOTICE:  Step 6DD rehearsal: all 12 behaviour checks passed.
+ROLLBACK
+B1 exit=0
+=== B2 proxy with a bad anon grant (must abort at post-check)
+BEGIN
+CREATE SCHEMA
+CREATE TABLE
+ALTER TABLE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+SET
+DO
+psql:/tmp/neg.sql:142: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
+ALTER TABLE
+DROP FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+GRANT
+psql:/tmp/neg.sql:335: ERROR:  post-check: anon can EXECUTE complete_voice_scoring
+CONTEXT:  PL/pgSQL function inline_code_block line 64 at RAISE
+B2 exit=3
+=== B3 scratch schema left behind (must be 0)
+     0
+=== C read-only verification against staging (already at 45)
+BEGIN
+                                     check_name                                      |                  detail                  | ok 
+-------------------------------------------------------------------------------------+------------------------------------------+----
+ scoring_lease_token column is uuid                                                  | uuid                                     | t
+ scoring_claimed_at column still present                                             |                                          | t
+ exactly 3 voice scoring functions                                                   | 3                                        | t
+ claim_voice_scoring(uuid, integer) returns TABLE(claimed boolean, lease_token uuid) | TABLE(claimed boolean, lease_token uuid) | t
+ complete_voice_scoring(uuid, uuid, integer, text) returns boolean                   | boolean                                  | t
+ fail_voice_scoring(uuid, uuid, text) returns boolean                                | boolean                                  | t
+ all 3 are SECURITY DEFINER                                                          |                                          | t
+ all 3 pin search_path to public, pg_temp                                            |                                          | t
+ all 3 owned by the table owner                                                      | postgres                                 | t
+ service_role can EXECUTE all 3                                                      |                                          | t
+ anon can EXECUTE none                                                               |                                          | t
+ authenticated can EXECUTE none                                                      |                                          | t
+ no PUBLIC EXECUTE grant on any of the 3                                             |                                          | t
+ authenticated/anon still have no UPDATE on voice_explanations (47)                  |                                          | t
+ service_role still has UPDATE on voice_explanations                                 |                                          | t
+ RLS still enabled on voice_explanations                                             |                                          | t
+ guard_voice_explanations_insert() (43) still present                                |                                          | t
+(17 rows)
+ROLLBACK
+C exit=0
+=== END
+Container called exit(0).

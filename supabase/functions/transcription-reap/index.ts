@@ -1,5 +1,11 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
+import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
+
+// Same TTL claim_voice_scoring uses by default (migration 45): a scoring
+// claim older than this belongs to a caller that is gone.
+const SCORE_CLAIM_TTL_SECONDS = 120;
+const MAX_SCORE_PER_RUN = 5;
 
 /**
  * Step 6B/6C (staging only): recovers a transcription job stuck in one of two
@@ -106,8 +112,33 @@ serve(async (req) => {
       }
     }
 
+    // Step 6 G1: a server transcript that was saved but never scored - the
+    // worker died, or its scoring call failed, between complete_transcription_job
+    // and complete_voice_scoring. Scored here directly. A row whose scoring
+    // claim is still fresh (the worker is grading it right now) is skipped;
+    // even if one slipped through, claim_voice_scoring lets only one caller
+    // reach DeepSeek. A scoring failure marks the row 'failed', so it is not
+    // retried here forever. Capped per run to bound DeepSeek spend.
+    const scoreCutoff = new Date(Date.now() - SCORE_CLAIM_TTL_SECONDS * 1000).toISOString();
+    const { data: unscored, error: unscoredError } = await db.from("voice_explanations")
+      .select(VOICE_SCORE_COLUMNS)
+      .eq("transcript_source", "server")
+      .eq("transcription_status", "completed")
+      .eq("status", "recorded")
+      .or(`scoring_claimed_at.is.null,scoring_claimed_at.lt.${scoreCutoff}`)
+      .order("created_at", { ascending: true })
+      .limit(MAX_SCORE_PER_RUN);
+    if (unscoredError) throw unscoredError;
+    const scoreOutcomes: Record<string, number> = {};
+    for (const rec of unscored ?? []) {
+      const { outcome } = await scoreRecording(db, rec);
+      scoreOutcomes[outcome] = (scoreOutcomes[outcome] ?? 0) + 1;
+      console.log(`transcription-reap: scoring recovery ${rec.id} -> ${outcome}`);
+    }
+
     return new Response(JSON.stringify({
       ok: true, candidates: rows.length, reenqueued: reenqueued.length, failed: failed.length,
+      unscored: (unscored ?? []).length, scoring: scoreOutcomes,
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (error) {
     console.error("transcription-reap error:", error);

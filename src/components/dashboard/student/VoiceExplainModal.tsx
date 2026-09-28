@@ -92,10 +92,10 @@ const VoiceExplainModal = ({
   const idempotencyKeyRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef(false);
-  // Every voiceId a scoring call is currently in flight for, so two
-  // overlapping poll ticks (or a poll tick racing the initial synchronous
-  // check) can never both invoke voice-score for the same recording.
-  const scoringInFlightRef = useRef<Set<string>>(new Set());
+  // Step 6 G1: the voiceId onSaved was last reported for, so a poll that
+  // keeps running while the server grades does not report the same save twice.
+  const savedNotifiedRef = useRef<string | null>(null);
+  const [scoringPending, setScoringPending] = useState(false);
 
   const jobStorageKey = useCallback(
     () => `pl.voiceJob.${studentId}.${taskId ?? proofId ?? "general"}`,
@@ -121,31 +121,6 @@ const VoiceExplainModal = ({
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
-  }, []);
-
-  /** Transcription completing and scoring completing are two different
-   * events - a recording is "done" the moment the server has a transcript,
-   * whether or not DeepSeek has graded it yet, and a scoring failure must
-   * never look like a transcription failure or force a re-record. Safe to
-   * call more than once for the same voiceId (a reopen after scoring failed
-   * the first time): it only sends anything to DeepSeek when the row's own
-   * `status` says it has not been scored yet, and the in-flight guard stops
-   * two overlapping calls (two poll ticks racing) from both firing at once. */
-  const attemptScoring = useCallback(async (
-    voiceId: string, alreadyScored: boolean, words: number,
-  ): Promise<{ score: number | null; notes: string | null }> => {
-    if (alreadyScored || words < MIN_WORDS || scoringInFlightRef.current.has(voiceId)) {
-      return { score: null, notes: null };
-    }
-    scoringInFlightRef.current.add(voiceId);
-    try {
-      const { data: scored } = await supabase.functions.invoke("voice-score", { body: { voice_id: voiceId } });
-      return { score: scored?.communication_score ?? null, notes: scored?.notes ?? null };
-    } catch {
-      return { score: null, notes: null }; // scoring failed; the transcript is still saved and shown
-    } finally {
-      scoringInFlightRef.current.delete(voiceId);
-    }
   }, []);
 
   /** One check of the job's current row, shared by the poll loop and by a
@@ -180,36 +155,37 @@ const VoiceExplainModal = ({
     setJobStatus(status);
 
     if (status === "completed") {
-      stopPolling();
-      const transcript = row.transcript ?? "";
       const words = row.word_count ?? 0;
-      const scored = await attemptScoring(voiceId, row.status === "scored", words);
-      // Step 6F: only stop tracking this job once scoring is actually
-      // resolved (already scored, this attempt just scored it, or scoring
-      // never applies at all - too few words). If DeepSeek is still down,
-      // the marker stays, so a reopen genuinely retries scoring against
-      // the same transcript instead of doing nothing forever - the earlier
-      // version cleared this unconditionally the moment transcription
-      // finished, which left a failed score stuck with no way to recover
-      // short of a fresh network call typed into a console.
-      const scoringResolved = row.status === "scored" || scored.score != null || words < MIN_WORDS;
-      if (scoringResolved) writeStoredJob(null);
+      // Step 6 G1: scoring is started by the server (transcription-worker,
+      // or transcription-reap if the worker could not), never by this page.
+      // The transcript is shown the moment it exists; polling carries on,
+      // read-only, until the server has resolved the score (scored, failed,
+      // or too few words to score). Closing the page loses nothing.
+      const scoringResolved = row.status === "scored" || row.status === "failed" || words < MIN_WORDS;
+      setScoringPending(!scoringResolved);
+      if (scoringResolved) {
+        stopPolling();
+        writeStoredJob(null);
+      }
       setSavedResult((prev) => ({
-        transcript,
+        transcript: row.transcript ?? "",
         segments: (row.transcript_segments as TranscriptSegment[] | null) ?? [],
-        score: scored.score ?? row.communication_score ?? null,
-        notes: scored.notes ?? row.communication_notes ?? null,
+        score: row.communication_score ?? null,
+        notes: row.communication_notes ?? null,
         audioUrl: prev?.audioUrl ?? "",
       }));
       setPhase("done");
-      onSaved?.();
+      if (savedNotifiedRef.current !== voiceId || scoringResolved) {
+        savedNotifiedRef.current = voiceId;
+        onSaved?.();
+      }
     } else if (status === "failed") {
       stopPolling();
       writeStoredJob(null);
       setJobError(row.transcription_error || "Could not transcribe this recording.");
       setPhase("error");
     }
-  }, [attemptScoring, onSaved, stopPolling, writeStoredJob]);
+  }, [onSaved, stopPolling, writeStoredJob]);
 
   /** The recovery path for a lost enqueue response: the job may already
    * exist under this key even though this browser never saw its id.
@@ -620,6 +596,11 @@ const VoiceExplainModal = ({
                                    segments={savedResult.segments} />
                 {savedResult.score != null && (
                   <p className="mt-2 text-sm font-medium">Communication score {savedResult.score}/100</p>
+                )}
+                {savedResult.score == null && scoringPending && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Grading your explanation… You can close this; it will be scored either way.
+                  </p>
                 )}
                 {savedResult.notes && <p className="text-xs text-muted-foreground mt-1">{savedResult.notes}</p>}
               </div>

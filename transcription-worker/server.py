@@ -41,6 +41,9 @@ PORT = int(os.environ.get("PORT", "8080"))
 JWT_SECRET = os.environ.get("PGRST_JWT_SECRET", "").encode()
 POSTGREST_URL = os.environ.get("POSTGREST_URL", "").rstrip("/")
 TRANSCRIBER_URL = os.environ.get("TRANSCRIBER_URL", "").rstrip("/")
+# Step 6 G1: the functions service whose voice-score grades the transcript
+# this worker just saved, so scoring no longer waits for the student's browser.
+FUNCTIONS_URL = os.environ.get("FUNCTIONS_URL", "").rstrip("/")
 PRIVATE_BUCKET = os.environ.get("PRIVATE_BUCKET", "")
 STALE_AFTER_SECONDS = int(os.environ.get("STALE_AFTER_SECONDS", "180"))
 # Must match the queue's own configured max-attempts (prooflab-staging-transcription: 3).
@@ -111,6 +114,31 @@ def fetch_audio(storage_path: str) -> tuple[bytes, str]:
     with urllib.request.urlopen(req, timeout=60) as r:
         content_type = r.headers.get("Content-Type") or "audio/webm"
         return r.read(), content_type
+
+
+def request_scoring(voice_id: str):
+    """Step 6 G1: ask voice-score to grade a transcript this worker saved.
+
+    Best effort by design: the transcript is already safely stored, so a
+    failure here must not make Cloud Tasks retry the whole job (a retry would
+    find nothing to claim and do nothing). transcription-reap scores any
+    server transcript left unscored. voice-score's own migration-45 claim
+    makes a duplicate request (a retry, or reap racing this) grade nothing
+    twice."""
+    if not FUNCTIONS_URL:
+        return None, "FUNCTIONS_URL not set"
+    token = mint_token("service_role")
+    req = urllib.request.Request(
+        f"{FUNCTIONS_URL}/voice-score", data=json.dumps({"voice_id": voice_id}).encode(),
+        method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            return r.status, json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        return e.code, (e.read() or b"")[:300].decode(errors="replace")
+    except Exception as e:  # network / timeout
+        return None, str(e)[:300]
 
 
 def transcribe(audio: bytes, content_type: str) -> dict:
@@ -188,6 +216,11 @@ class Handler(BaseHTTPRequestHandler):
                         {"_id": voice_id, "_lease_token": lease_token,
                          "_transcript": text, "_segments": segments, "_word_count": words})[1]
             print(f"WORKER: completed {voice_id} (task={task_name}, attempt={job['attempts']}) words={words} db_updated={ok}", flush=True)
+            # Only the attempt whose transcript was actually saved asks for
+            # scoring; a stale attempt (ok false) leaves it to the newer one.
+            if ok:
+                s_status, s_body = request_scoring(voice_id)
+                print(f"WORKER: scoring requested for {voice_id}: {s_status} {s_body}", flush=True)
             return self.reply(200, {"ok": True, "voice_id": voice_id, "words": words})
         except Exception as e:
             err = str(e)[:300]

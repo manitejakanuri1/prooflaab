@@ -37,13 +37,16 @@
 --      BEFORE COMMIT (a post-commit check cannot undo anything).
 --   3. the original's own begin/commit/notify are removed; one outer
 --      transaction wraps everything.
---   4. ONE deliberate logic fix (Step 6DD, 2026-09-28): fail_voice_scoring
---      also requires status <> 'scored'. complete_voice_scoring keeps the
---      lease token after saving a score, so in the original file a late
---      or repeated fail call carrying that same token still matched the
---      row and turned a saved score into status 'failed' (and cleared the
---      claim). Reproduced on staging in a rolled-back throwaway schema.
---      A post-check below refuses to COMMIT without this guard.
+--   4. TWO deliberate logic fixes (Step 6DD, 2026-09-28). complete_voice_scoring
+--      keeps the lease token after saving a score, so in the original file
+--      a late or repeated call carrying that same token still matched the
+--      row:
+--        a. fail_voice_scoring turned a saved score into status 'failed'
+--           (and cleared the claim);
+--        b. a repeated complete_voice_scoring overwrote the saved score.
+--      Both now also require status <> 'scored'. Both were reproduced on
+--      staging in a rolled-back throwaway schema. Post-checks below refuse
+--      to COMMIT without either guard.
 -- Every other DDL statement is copied verbatim from
 -- migration/45-voice-scoring-lease-token.sql. That file is not modified,
 -- so it (and staging, which ran it) still carries the unfixed version.
@@ -199,7 +202,8 @@ begin
      set communication_score = _score,
          communication_notes = _notes,
          status = 'scored'
-   where id = _id and scoring_lease_token = _lease_token;
+   where id = _id and scoring_lease_token = _lease_token
+     and status <> 'scored';  -- Step 6DD fix: a saved score is final
   get diagnostics n = row_count;
   return n > 0;
 end $function$;
@@ -286,6 +290,10 @@ begin
     if v_fn.proname = 'fail_voice_scoring'
        and (v_fn.args <> 'uuid, uuid, text' or v_fn.result <> 'boolean') then
       raise exception 'post-check: fail_voice_scoring is (%) -> %', v_fn.args, v_fn.result;
+    end if;
+    if v_fn.proname = 'complete_voice_scoring'
+       and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
+      raise exception 'post-check: complete_voice_scoring lacks the Step 6DD "status <> scored" guard';
     end if;
     if v_fn.proname = 'fail_voice_scoring'
        and position('and status <> ''scored''' in (select prosrc from pg_proc where oid = v_fn.oid)) = 0 then
@@ -404,7 +412,15 @@ begin
   if v.status <> 'scored' or v.communication_score <> 70 or v.communication_notes <> 'good' then
     raise exception 'F14 scored row was changed by a late fail (status %, score %)', v.status, v.communication_score; end if;
 
-  raise notice 'Step 6DD rehearsal: all 14 behaviour checks passed.';
+  -- F15/F16: a repeated complete with the SAME token must not overwrite
+  -- the saved score.
+  if s6dd_rehearsal.complete_voice_scoring(r3, c.lease_token, 5, 'overwrite attempt') then
+    raise exception 'F15 repeated complete with the same token was accepted on a scored row'; end if;
+  select * into v from s6dd_rehearsal.voice_explanations where id = r3;
+  if v.status <> 'scored' or v.communication_score <> 70 or v.communication_notes <> 'good' then
+    raise exception 'F16 saved score was overwritten (score %, notes %)', v.communication_score, v.communication_notes; end if;
+
+  raise notice 'Step 6DD rehearsal: all 16 behaviour checks passed.';
 end $$;
 
 rollback;

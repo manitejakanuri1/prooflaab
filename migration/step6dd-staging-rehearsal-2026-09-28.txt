@@ -5,15 +5,16 @@ BEGIN
 CREATE SCHEMA
 CREATE TABLE
 ALTER TABLE
-psql:/tmp/repro.sql:11: NOTICE:  function s6dd_rehearsal.claim_voice_scoring(uuid,pg_catalog.int4) does not exist, skipping
 DROP FUNCTION
+psql:/tmp/repro.sql:11: NOTICE:  function s6dd_rehearsal.claim_voice_scoring(uuid,pg_catalog.int4) does not exist, skipping
 CREATE FUNCTION
 CREATE FUNCTION
 CREATE FUNCTION
 REVOKE
 GRANT
-psql:/tmp/repro.sql:102: NOTICE:  REPRO after complete: status=scored score=70 token_kept=t
-psql:/tmp/repro.sql:102: NOTICE:  REPRO late fail accepted=t -> status=failed score=70 claimed_at=<NULL> token=<NULL>
+psql:/tmp/repro.sql:105: NOTICE:  REPRO after complete: status=scored score=70 token_kept=t
+psql:/tmp/repro.sql:105: NOTICE:  REPRO repeated complete accepted=t -> status=scored score=5 notes=overwrite attempt
+psql:/tmp/repro.sql:105: NOTICE:  REPRO late fail accepted=t -> status=failed score=5 claimed_at=<NULL> token=<NULL>
 DO
 ROLLBACK
 R exit=0
@@ -24,7 +25,7 @@ R exit=0
 === A2 exact production script (must abort at pre-check)
 BEGIN
 SET
-psql:/tmp/prod.sql:114: ERROR:  pre-check: claim_voice_scoring(uuid,integer) returns TABLE(claimed boolean, lease_token uuid) (expected boolean) - this database is already past migration 44 (likely 45 is applied); refusing to drop and recreate it
+psql:/tmp/prod.sql:117: ERROR:  pre-check: claim_voice_scoring(uuid,integer) returns TABLE(claimed boolean, lease_token uuid) (expected boolean) - this database is already past migration 44 (likely 45 is applied); refusing to drop and recreate it
 CONTEXT:  PL/pgSQL function inline_code_block line 27 at RAISE
 A2 exit=3
 === A3 fingerprint AFTER
@@ -42,7 +43,7 @@ CREATE FUNCTION
 REVOKE
 GRANT
 SET
-psql:/tmp/proxy.sql:150: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
+psql:/tmp/proxy.sql:153: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
 DO
 ALTER TABLE
 DROP FUNCTION
@@ -51,9 +52,9 @@ CREATE FUNCTION
 CREATE FUNCTION
 REVOKE
 GRANT
-psql:/tmp/proxy.sql:346: NOTICE:  Step 6DD: all fail-closed checks passed. Committing.
+psql:/tmp/proxy.sql:354: NOTICE:  Step 6DD: all fail-closed checks passed. Committing.
 DO
-psql:/tmp/proxy.sql:405: NOTICE:  Step 6DD rehearsal: all 14 behaviour checks passed.
+psql:/tmp/proxy.sql:421: NOTICE:  Step 6DD rehearsal: all 16 behaviour checks passed.
 DO
 ROLLBACK
 B1 exit=0
@@ -68,7 +69,7 @@ CREATE FUNCTION
 REVOKE
 GRANT
 SET
-psql:/tmp/neg.sql:150: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
+psql:/tmp/neg.sql:153: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
 DO
 ALTER TABLE
 DROP FUNCTION
@@ -78,9 +79,32 @@ CREATE FUNCTION
 REVOKE
 GRANT
 GRANT
-psql:/tmp/neg.sql:348: ERROR:  post-check: anon can EXECUTE complete_voice_scoring
-CONTEXT:  PL/pgSQL function inline_code_block line 68 at RAISE
+psql:/tmp/neg.sql:356: ERROR:  post-check: anon can EXECUTE complete_voice_scoring
+CONTEXT:  PL/pgSQL function inline_code_block line 72 at RAISE
 B2 exit=3
+=== B4 proxy with the complete guard removed (must abort at post-check)
+BEGIN
+CREATE SCHEMA
+CREATE TABLE
+ALTER TABLE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+SET
+DO
+psql:/tmp/neg2.sql:153: NOTICE:  Step 6DD pre-checks passed: database is at migration 44, not 45.
+ALTER TABLE
+DROP FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+psql:/tmp/neg2.sql:353: ERROR:  post-check: complete_voice_scoring lacks the Step 6DD "status <> scored" guard
+CONTEXT:  PL/pgSQL function inline_code_block line 49 at RAISE
+B4 exit=3
 === B3 scratch schema left behind (must be 0)
      0
 === C read-only verification against staging (already at 45)
@@ -105,7 +129,8 @@ BEGIN
  RLS still enabled on voice_explanations                                             |                                          | t
  guard_voice_explanations_insert() (43) still present                                |                                          | t
  fail_voice_scoring never overwrites a scored row (Step 6DD guard)                   |                                          | f
-(18 rows)
+ complete_voice_scoring never overwrites a scored row (Step 6DD guard)               |                                          | f
+(19 rows)
 ROLLBACK
 C exit=0
 === END

@@ -1,6 +1,6 @@
 # Step 6 production rollout runbook
 
-Status: **migrations 41, 42, 43 and 47 APPLIED to production (2026-09-27)** —
+Status: **migrations 41, 42, 43 and 47 APPLIED to production (2026-09-27); migration 44 APPLIED to production (2026-09-28)** —
 all applied manually by the project owner via Cloud SQL Studio, connected
 as `prooflab_app`. 41+42 were applied together in one transaction (Step
 6U–6W's combined script), never 41 alone, specifically to avoid the
@@ -9,11 +9,13 @@ intermediate broad-EXECUTE exposure documented in that script. 43 (Step
 explicit `revoke execute ... from public, anon, authenticated` on
 `guard_voice_explanations_insert()`, which the original never had — Cloud
 FUNCTION's default PUBLIC EXECUTE grant was a real, confirmed gap, closed
-before this application, not after. **Migrations 44–46 and the rest of
+before this application, not after. 44 (Step 6BB's script, commit
+`c890889`) was applied manually on 2026-09-28 via Cloud SQL Studio as
+`prooflab_app` and independently verified (see §1). **Migrations 45–46 and the rest of
 the async transcription rollout's infrastructure (Cloud Tasks queue,
 worker/functions deploy, IAM, scheduler, webhook rotation, cost limits,
 canary) remain not executed in production.** No schema/DB change beyond
-41, 42, 43 and 47 has been made. Everything else below comes from
+41, 42, 43, 44 and 47 has been made. Everything else below comes from
 read-only inspection of production during Step 6G/6H.
 
 Production and staging are the same GCP project (`prooflab-508214`).
@@ -473,10 +475,26 @@ numbering:
 | 41 | `transcription_status` and friends on `voice_explanations`; `claim/complete/fail_transcription_job` | Working `anon`/`authenticated`/`service_role` roles and baseline grants already existing in production (not migration 01 — see §0) | **APPLIED 2026-09-27**, combined with 42 in one transaction (Step 6U–6W's script), never applied alone |
 | 42 | Lease-token columns/fencing on the 41 functions; table-level `UPDATE` revoke | 41 (alters its columns and functions) | **APPLIED 2026-09-27**, combined with 41 in one transaction |
 | 43 | `claim_transcription_recovery`; `guard_voice_explanations_insert` trigger | 41, 42 (reads/writes 42's columns; the trigger forces values in columns 41/42 added) | **APPLIED 2026-09-27** (Step 6Y/6Z's script, includes the PUBLIC-EXECUTE-revoke fix beyond the original file) |
-| 44 | `scoring_claimed_at`; `claim_voice_scoring` (timestamp-only) | None of 41–43 — independent column/function on the same table | not applied |
+| 44 | `scoring_claimed_at`; `claim_voice_scoring` (timestamp-only) | None of 41–43 — independent column/function on the same table | **APPLIED 2026-09-28** (Step 6BB's script, commit `c890889`) |
 | 45 | `scoring_lease_token`; rewrites `claim/complete/fail_voice_scoring` with fencing | 44 (replaces its function, extends its column) | not applied |
 | 46 | `recruiter_talent`/`recruiter_proof_profile` provenance filter | Reads `transcript_source`, which predates all of 41–45 (stage6) — otherwise independent of 41–45, but ships with them since it closes the gap they collectively created | not applied |
 | 47 | Table-level `revoke update ... from authenticated, anon` on `voice_explanations` (Step 6M) | None of 41–46 — only touches grants on columns/roles that already exist in production today. Order-independent: safe to ship before, with, or after 41–46. If applied first and 41–46 follow later, migration 42's identical `revoke` statement becomes a documented Postgres no-op (revoking a privilege already absent succeeds silently, no error) | **APPLIED 2026-09-27 (Step 6S)** |
+
+**Post-application verification of migration 44 (project owner,
+2026-09-28, independent of this session's own checks), run in Cloud SQL
+Studio on database `prooflab` as `prooflab_app`:**
+
+| Check | Result |
+|---|---|
+| `voice_explanations.scoring_claimed_at` column exists | 1 |
+| `claim_voice_scoring(uuid, integer)` returning `boolean` exists | 1 |
+| Function owner | `prooflab_app` |
+| `SECURITY DEFINER` | true |
+| `service_role` EXECUTE | true |
+| `anon` / `authenticated` / `PUBLIC` EXECUTE | false |
+
+Migration 45 replaces this function and extends this column; it is not
+applied.
 
 **Post-application verification (project owner, 2026-09-27, independent of
 this session's own checks):** all 6 transcription columns exist; exactly

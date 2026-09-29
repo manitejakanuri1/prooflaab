@@ -98,3 +98,39 @@ The tests use a fake database that follows the migration-45 rules exactly as Ste
 | L2 duplicate (ef5c2d62…, 2 tasks) | 1 claim, scored 45. The dup task: "nothing to claim" |
 | L3 too-short via reap (801792b3…) | `claimed` → `too short` → `-> too_short`. Row `failed`, notes "Too little speech to score.", claim released |
 | Unscored server rows left | 0 |
+
+---
+
+# voice-score access-control fix (2026-09-29, staging image `staging-g1t`, 40/40)
+
+Rule now:
+- A student may score only their **own browser** recording (the synchronous path).
+- A server-transcribed recording is scored only by an authorised server (`service_role`), and only once its transcription is `completed`.
+
+Read errors return **503** (not 404), and a malformed `voice_id` returns **400**.
+
+Live test: `scripts/dev-tools/g1_access_test.py` (never prints secrets or tokens). It inserts 5 labelled `g1s-test-*` rows and makes 2 real DeepSeek calls.
+
+Student identity: the `t07` password in Secret Manager was rejected (INVALID_LOGIN_CREDENTIALS, tried once). So the test mints the same HS256 token the staging auth-bridge issues after login (`role=authenticated`, `sub` = t07 user id), signed with the key voice-score verifies. This is equivalent for voice-score, but Identity Platform itself was not exercised.
+
+```
+rows: {
+ "unfinished_server": "e8d628cb-cc84-40ae-878d-5d1366f1e1c5",
+ "completed_server": "ed199088-faa5-4b71-95b3-e883dbf28625",
+ "own_browser": "e150e8d7-f388-42de-a84b-31898cc3a6e0",
+ "other_browser": "6fbf2d96-53c0-49af-b824-893816374919",
+ "completed_server_2": "2ea9bbbf-e409-422f-9eb7-d10b2ef11257"
+}
+PASS  S1 student scores own UNFINISHED server recording: HTTP 403 (want 403) {'success': False, 'reason': 'This recording is scored automatically by the server.'}  row unchanged=True  -> status=recorded score=None
+PASS  S2 student scores own COMPLETED server recording (server-only): HTTP 403 (want 403) {'success': False, 'reason': 'This recording is scored automatically by the server.'}  row unchanged=True  -> status=recorded score=None
+PASS  S3 student scores own BROWSER recording (sync path): HTTP 200 (want 200) {'success': True, 'communication_score': 85}  row unchanged=False  -> status=scored score=85
+PASS  S4 student scores ANOTHER student's browser recording: HTTP 403 (want 403) {'error': 'Forbidden'}  row unchanged=True  -> status=recorded score=None
+PASS  S5 server scores COMPLETED server recording: HTTP 200 (want 200) {'success': True, 'communication_score': 85}  row unchanged=False  -> status=scored score=85
+PASS  S6 server scores UNFINISHED server recording: HTTP 409 (want 409) {'success': False, 'reason': 'not a completed server transcription'}  row unchanged=True  -> status=recorded score=None
+PASS  S7 server scores a BROWSER recording: HTTP 409 (want 409) {'success': False, 'reason': 'not a completed server transcription'}  row unchanged=True  -> status=recorded score=None
+PASS  S8 malformed voice_id: HTTP 400 (want 400) {'error': 'voice_id is not a valid id'}
+
+8/8 passed
+```
+
+Not live-tested: a real database read failure returning 503. There is no safe way to force one on staging; the 503 path was verified by reading the code and type-checking it.

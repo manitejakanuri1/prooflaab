@@ -14,7 +14,7 @@ import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
  * textbook phrasing.
  *
  * Two callers:
- *  - a student, for their own recording (the synchronous browser path);
+ *  - a student, for their own BROWSER recording only (the synchronous path);
  *  - transcription-worker (Step 6 G1), right after it saves a server
  *    transcript, so a recording is scored even if the student closed the
  *    browser. It sends a service_role token; that path only accepts a
@@ -53,22 +53,36 @@ serve(async (req) => {
 
     const { voice_id } = await req.json();
     if (!voice_id) return json({ error: 'voice_id is required' }, 400);
+    // A malformed id is the caller's mistake (400), not a database failure (503)
+    // and not a missing recording (404).
+    if (typeof voice_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(voice_id)) {
+      return json({ error: 'voice_id is not a valid id' }, 400);
+    }
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
     let profileId: string | null = null;
     if (!isService) {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('student_profiles').select('id').eq('user_id', callerId).maybeSingle();
+      // A failed read is not "no such student" - say so, rather than a misleading 404.
+      if (profileError) {
+        console.error('voice-score: profile read failed', profileError);
+        return json({ error: 'Could not read your profile. Please try again.' }, 503);
+      }
       if (!profile) return json({ error: 'Student profile not found' }, 404);
       profileId = profile.id;
     }
 
-    const { data: rec } = await supabase
+    const { data: rec, error: recError } = await supabase
       .from('voice_explanations')
       .select(VOICE_SCORE_COLUMNS)
       .eq('id', voice_id)
       .maybeSingle();
+    if (recError) {
+      console.error('voice-score: recording read failed', recError);
+      return json({ error: 'Could not read the recording. Please try again.' }, 503);
+    }
     if (!rec) return json({ error: 'Recording not found' }, 404);
 
     if (isService) {
@@ -77,8 +91,15 @@ serve(async (req) => {
       if (rec.transcript_source !== 'server' || rec.transcription_status !== 'completed') {
         return json({ success: false, reason: 'not a completed server transcription' }, 409);
       }
-    } else if (rec.student_id !== profileId) {
-      return json({ error: 'Forbidden' }, 403);
+    } else {
+      if (rec.student_id !== profileId) return json({ error: 'Forbidden' }, 403);
+      // A server-transcribed recording is scored only by the server, after its
+      // transcript exists (transcription-worker / transcription-reap). A student
+      // asking early could otherwise mark an unfinished recording "too short".
+      // The student's own browser recordings (the synchronous path) are unchanged.
+      if (rec.transcript_source === 'server') {
+        return json({ success: false, reason: 'This recording is scored automatically by the server.' }, 403);
+      }
     }
 
     const result = await scoreRecording(supabase, rec);

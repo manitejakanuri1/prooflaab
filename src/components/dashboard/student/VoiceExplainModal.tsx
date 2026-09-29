@@ -126,12 +126,13 @@ interface VoiceExplainModalProps {
  * "checking": an older recovery record is being checked with the server.
  * "legacy": we cannot confirm which work a record belongs to (an older build's
  * record, or a server row that does not match it); the student chooses.
- * "interrupted": a recording that confirmably never reached the server (the
- * page was closed/reloaded while recording or uploading) - said plainly.
+ * "unconfirmed": a recording whose audio is not on this page and not on the
+ * server (yet). The page that recorded it may be closed - or only suspended and
+ * still able to send it - so it is kept (aside), never deleted (audit R4-3).
  */
 type Phase =
   | "idle" | "recording" | "transcribing" | "saving" | "queued" | "done"
-  | "uncertain" | "checking" | "legacy" | "interrupted" | "error";
+  | "uncertain" | "checking" | "legacy" | "unconfirmed" | "error";
 
 interface SavedResult {
   transcript: string;
@@ -164,6 +165,10 @@ interface Recording {
  * from an older recorder only ever touches its own session. */
 interface MediaSession {
   stream: MediaStream;
+  /** Date.now() when this recorder started, and when a stop was asked of it
+   * (audit R4-2): a late onstop computes its OWN length, never another's. */
+  startedAt: number;
+  stopAt: number | null;
   recorder: MediaRecorder | null;
   chunks: BlobPart[];
   meter: AudioContext | null;
@@ -175,7 +180,7 @@ interface MediaSession {
  * `statusCode` is set when the service answered, absent when it could not be reached. */
 type FileResult = { data: unknown; error: { message: string; statusCode?: string } | null };
 
-type AsideCheck = "checking" | "saved" | "can-save" | "lost" | "unknown";
+type AsideCheck = "checking" | "saved" | "can-save" | "absent" | "unknown";
 interface AsideEntry { key: string; job: StoredJob }
 
 /** Real decoded length of a recording, or null when this browser cannot tell. */
@@ -286,7 +291,6 @@ const VoiceExplainModal = ({
   const [slotBusy, setSlotBusy] = useState(false); // a recording for this slot is still in progress on this page
   const waitingForSlotRef = useRef(false);          // this dialog is waiting for that save
   const recordStartedAtRef = useRef(0);             // Date.now() when recording began
-  const stopAtRef = useRef<number | null>(null);    // Date.now() when a stop was asked for
   const releaseLocalAudio = useCallback(() => {
     blobOwnerRef.current?.release();
     setSavedResult((prev) => withoutLocalAudio(prev));
@@ -295,6 +299,7 @@ const VoiceExplainModal = ({
   /** Stops one recorder session's own microphone and meter; clears the
    * dialog's reference only if it still points at this session. */
   const endMedia = useCallback((m: MediaSession) => {
+    if (m.stopAt === null) m.stopAt = Date.now();   // closing/leaving stops it now
     m.ended = true;
     if (m.raf !== null) cancelAnimationFrame(m.raf);
     m.raf = null;
@@ -502,14 +507,16 @@ const VoiceExplainModal = ({
    * still on this page it is (re)sent to its own path - a 409 means an earlier
    * attempt already stored it. Without the audio (the page that recorded it is
    * gone) an upload that was in progress is checked for on the server.
-   *   stored  - the file is there; the record now says "uploaded"
-   *   refused - the server answered no; nothing was stored
-   *   lost    - never reached the server and the audio is gone
-   *   unknown - no answer; the record and any audio on this page are kept
-   *   account - the signed-in account is not the owner; nothing was sent
+   *   stored      - the file is there; the record now says "uploaded"
+   *   refused     - the server permanently refused THIS file (e.g. too large); nothing stored
+   *   unconfirmed - this page has no audio and the file is not on the server (yet): another
+   *                 tab may still be sending it (audit R4-3) - never treated as proof of loss
+   *   unknown     - no answer, a timeout or a transient error (408/429/5xx...) and the file
+   *                 is not confirmed (audit R4-1); the record and any audio on this page are kept
+   *   account     - the signed-in account is not the owner; nothing was sent
    */
   const ensureUploaded = useCallback(async (key: string, job: StoredJob): Promise<
-    { kind: "stored"; job: StoredJob } | { kind: "refused"; message: string } | { kind: "lost" | "unknown" | "account" }
+    { kind: "stored"; job: StoredJob } | { kind: "refused"; message: string } | { kind: "unconfirmed" | "unknown" | "account" }
   > => {
     if (!job.stage || job.stage === "uploaded") return { kind: "stored", job };
     const recId = job.recordingId ?? "";
@@ -523,10 +530,11 @@ const VoiceExplainModal = ({
       return stored;
     };
     if (!blob) {
-      if (job.stage === "recording") return { kind: "lost" };
+      // The audio is not on this page. Whichever page recorded it may be
+      // suspended rather than gone, so absence is never proof of loss.
       const exists = await fileExists(job.studentId, job.storagePath);
       if (exists === true) return { kind: "stored", job: markStored() };
-      return { kind: exists === false ? "lost" : "unknown" };
+      return { kind: exists === false ? "unconfirmed" : "unknown" };
     }
     try {
       await requireAccount(job.studentId);
@@ -542,8 +550,10 @@ const VoiceExplainModal = ({
     if (outcome === "refused") {
       return { kind: "refused", message: result !== "timeout" && result.error ? result.error.message : "refused" };
     }
-    // No answer yet: if the upload does finish later, record that.
+    // No answer, a timeout or a transient error: the file may still have been
+    // stored, so ask the server with the owner's session before saying anything.
     if (result === "timeout") void attempt.then((late) => { if (uploadOutcome(late) === "stored" && readJob(key)) markStored(); });
+    if ((await fileExists(job.studentId, job.storagePath)) === true) return { kind: "stored", job: markStored() };
     return { kind: "unknown" };
   }, [fileExists, readJob, updateJobIfSame]);
 
@@ -611,8 +621,9 @@ const VoiceExplainModal = ({
     if (current()) activeKeyRef.current = key;
     const up = await ensureUploaded(key, job);
     if (up.kind === "stored") return enqueueAndFollow(key, up.job, current);
-    if (up.kind === "refused") {
-      // The server answered and refused: nothing was stored, so the record goes.
+    if (up.kind === "refused" && readJob(key)?.stage !== "uploaded") {
+      // A permanent refusal of this file: nothing was stored, so the record goes -
+      // unless an earlier attempt has meanwhile been confirmed stored.
       writeJob(key, null);
       pendingAudio.delete(job.recordingId ?? "");
       unsentRecordings.delete(job.recordingId ?? "");
@@ -623,16 +634,16 @@ const VoiceExplainModal = ({
       releaseLocalAudio();
       setError(`The recording was not saved (${up.message}). Please record again.`);
       setPhase("error");
-    } else if (up.kind === "lost") {
-      setPhase("interrupted");
+    } else if (up.kind === "unconfirmed") {
+      setPhase("unconfirmed");
     } else if (up.kind === "unknown") {
       becomeUncertain(pendingAudio.has(job.recordingId ?? "")
-        ? "We couldn't confirm the upload finished (no answer from the server). The recording is still on this page - keep this tab open and resume to try again."
+        ? "We couldn't confirm the upload finished (no answer, or a temporary server problem). The recording is still on this page - keep this tab open and resume to try again."
         : "We couldn't check whether your recording reached the server.");
     } else {
       becomeUncertain("You are now signed in as a different account, so this recording was not sent. Sign back in as its owner to continue.");
     }
-  }, [becomeUncertain, enqueueAndFollow, ensureUploaded, releaseLocalAudio, writeJob]);
+  }, [becomeUncertain, enqueueAndFollow, ensureUploaded, readJob, releaseLocalAudio, writeJob]);
 
   /**
    * An older build's marker (key `taskId ?? proofId`, shared by every proof
@@ -744,7 +755,9 @@ const VoiceExplainModal = ({
    * deleted without being asked) and record a new one here. */
   const keepAside = useCallback((key: string, job: StoredJob, legacy: boolean) => {
     if (legacy) moveRecord(key, { ...job, studentId: job.studentId ?? ctx.studentId, aside: true });
-    else { touchMarker(key, { aside: true }); releaseMarker(key); }
+    // This page stops handling it: clear its heartbeat too, or for the next 15 s
+    // this very browser (after a reload) would think another tab still owns it.
+    else { touchMarker(key, { aside: true, heartbeatAt: 0 }); releaseMarker(key); }
     unresolvedRef.current = null;
     activeKeyRef.current = null;
     refreshAside();
@@ -880,7 +893,7 @@ const VoiceExplainModal = ({
   const stop = useCallback(() => {
     const m = mediaRef.current;
     if (m?.recorder?.state === "recording") {
-      stopAtRef.current = Date.now();
+      m.stopAt = Date.now();
       m.recorder.stop();
     }
   }, []);
@@ -917,7 +930,6 @@ const VoiceExplainModal = ({
     setScoringPending(false);
     blobOwnerRef.current?.release(); // the previous recording's local copy
     setSavedResult(null);
-    stopAtRef.current = null;
 
     // The recording belongs to the signed-in account, which must be this student.
     if ((await signedInAs()) !== startCtx.studentId) {
@@ -950,7 +962,7 @@ const VoiceExplainModal = ({
     startingRef.current = false;
     setStarting(false);
 
-    const media: MediaSession = { stream, recorder: null, chunks: [], meter: null, raf: null, ended: false };
+    const media: MediaSession = { stream, startedAt: 0, stopAt: null, recorder: null, chunks: [], meter: null, raf: null, ended: false };
     mediaRef.current = media;
     let recorder: MediaRecorder;
     try {
@@ -989,6 +1001,7 @@ const VoiceExplainModal = ({
       idempotencyKey: crypto.randomUUID(), type, epoch,
     };
     const started = Date.now();
+    media.startedAt = started;
     // From now until it is stored, this recording holds its slot on this page,
     // has its own recovery record (async path) and warns before the page closes.
     const token = uploadRegistry.begin(rec.slot);
@@ -1005,7 +1018,7 @@ const VoiceExplainModal = ({
       endMedia(media);                                     // this recorder's own microphone only
       // Real elapsed time up to the moment a stop was asked for, capped -
       // never more than the limit, even if a throttled tab stopped it late.
-      const seconds = recordedSeconds(started, stopAtRef.current ?? Date.now(), MAX_SECONDS);
+      const seconds = recordedSeconds(media.startedAt, media.stopAt ?? Date.now(), MAX_SECONDS);
       const blob = new Blob(media.chunks, { type: rec.type });
       if (isCurrent()) setPhase(ASYNC_TRANSCRIPTION ? "saving" : "transcribing");
 
@@ -1079,15 +1092,16 @@ const VoiceExplainModal = ({
     setPhase("idle");
   }, [keepAside, readJob, stopPolling]);
 
-  /** A recording that confirmably never reached the server: the student
-   * acknowledges it and records again (its record is removed). */
-  const acknowledgeInterrupted = useCallback(() => {
+  /** The student moves on from an unconfirmed recording. Its record is KEPT
+   * (aside, listed under Start): if another tab still sends it, that tab
+   * completes it and it reappears; nothing is deleted on a guess. */
+  const acknowledgeUnconfirmed = useCallback(() => {
     const key = activeKeyRef.current;
-    if (key) { writeJob(key, null); releaseMarker(key); }
-    activeKeyRef.current = null;
+    const job = key ? readJob(key) : null;
+    if (key && job) keepAside(key, job, false);
     setSavedResult(null);
     setPhase("idle");
-  }, [writeJob]);
+  }, [keepAside, readJob]);
 
   /** "Check" on a kept-aside recording: on the server, can be saved here, or gone? */
   const checkAside = useCallback(async (e: AsideEntry) => {
@@ -1102,8 +1116,8 @@ const VoiceExplainModal = ({
     else if (row && (row.storage_path === j.storagePath || row.transcription_idempotency_key === j.idempotencyKey)) result = "saved";
     else if (pendingAudio.has(j.recordingId ?? "")) result = "can-save";
     else {
-      const exists = j.stage === "recording" ? false : await fileExists(j.studentId, j.storagePath);
-      result = exists === true ? "can-save" : exists === false ? "lost" : "unknown";
+      const exists = await fileExists(j.studentId, j.storagePath);
+      result = exists === true ? "can-save" : exists === false ? "absent" : "unknown";
     }
     setAsideChecks((m) => ({ ...m, [e.key]: result }));
   }, [fileExists, findOwnRow]);
@@ -1111,7 +1125,7 @@ const VoiceExplainModal = ({
   /** Explicit: this kept-aside recording (never processed on the server) is for this work. */
   const saveAsideHere = useCallback((e: AsideEntry) => {
     if (hasPendingRecovery()) return;
-    writeJob(e.key, { ...e.job, ...ctx, voiceId: null, aside: false, createdAt: Date.now() });
+    writeJob(e.key, { ...e.job, ...ctx, voiceId: null, aside: false, heartbeatAt: 0, createdAt: Date.now() });
     refreshAside();
     void resumeStoredJob();
   }, [ctx, hasPendingRecovery, refreshAside, resumeStoredJob, writeJob]);
@@ -1132,7 +1146,7 @@ const VoiceExplainModal = ({
   // A page that is hidden, left or frozen cannot be trusted to run the clock at
   // all, so the recording is stopped at that moment. Hidden: the page keeps
   // running and sends it. Left/closed: it may not be sent - the recovery
-  // record then says so on the next visit ("interrupted"), never "saved".
+  // record then says so on the next visit ("unconfirmed"), never "saved".
   useEffect(() => {
     if (phase !== "recording") return;
     const startedAt = recordStartedAtRef.current;
@@ -1336,7 +1350,12 @@ const VoiceExplainModal = ({
                       </p>
                       {state === "saved" && <p className="text-xs text-green-700">It is saved on the server — you'll find it in your build-log.</p>}
                       {state === "can-save" && <p className="text-xs">It was never processed. You can save it to this work.</p>}
-                      {state === "lost" && <p className="text-xs">It never reached the server and the audio is gone. It can't be recovered.</p>}
+                      {state === "absent" && (
+                        <p className="text-xs">
+                          It isn't on the server. If another tab or window is still sending it, keep that open;
+                          otherwise it can't be recovered.
+                        </p>
+                      )}
                       {state === "unknown" && <p className="text-xs">We couldn't check right now. Try again later.</p>}
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" disabled={state === "checking"} onClick={() => void checkAside(e)}>
@@ -1345,7 +1364,12 @@ const VoiceExplainModal = ({
                         {state === "can-save" && (
                           <Button size="sm" variant="outline" onClick={() => saveAsideHere(e)}>Save it to this work</Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => removeAside(e)}>Remove from this list</Button>
+                        <Button
+                          size="sm" variant="ghost" onClick={() => removeAside(e)}
+                          disabled={ownerOf(e.job, TAB_ID, Date.now()) === "other-page"}
+                        >
+                          Remove from this list
+                        </Button>
                       </div>
                     </div>
                   );
@@ -1473,16 +1497,22 @@ const VoiceExplainModal = ({
           </div>
         )}
 
-        {phase === "interrupted" && (
-          <div className="space-y-3" data-testid="voice-interrupted">
+        {phase === "unconfirmed" && (
+          <div className="space-y-3" data-testid="voice-unconfirmed">
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Your last recording for this work was interrupted before it reached the server (for
-                example, the page was closed or reloaded), so it was not saved.
+                Your last recording for this work hasn't reached the server. If it is still being sent
+                from another tab or window, keep that one open and check again. If you closed or
+                reloaded the page while recording, it was not saved.
               </AlertDescription>
             </Alert>
-            <Button className="w-full" onClick={acknowledgeInterrupted}>Record it again</Button>
+            <Button className="w-full" onClick={() => void resumeStoredJob()}>
+              <RotateCcw className="h-4 w-4 mr-2" /> Check again
+            </Button>
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={acknowledgeUnconfirmed}>
+              Keep it aside and record a new one
+            </Button>
           </div>
         )}
 

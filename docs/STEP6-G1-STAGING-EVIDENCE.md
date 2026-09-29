@@ -650,3 +650,51 @@ Behaviour change to note: resuming a record now also retries a lost enqueue answ
 - Staging counts were identical before and after every run.
 - Simulations: F2d (crashed holder, via a clock 20 s ahead), H6 (throttled clock), H36 (hidden tab), H37 (75 s of decoded audio). Every network write is faked.
 - Not run: `voice_buildlog_browser.mjs` and `voice_modal_blob_browser.mjs` (they open real pages without blocking `touch_my_activity`, which would update t07's `last_active`); `voice_playback_browser.mjs` and `voice_modal_browser.mjs` (they create recordings).
+
+## Lifecycle round 5 (round-4 independent audit, R4-1 to R4-3)
+
+Browser code only. No SQL, migrations, deployment, production configuration or staging row changes.
+
+| Item | Change |
+|---|---|
+| R4-1 transient HTTP errors | `uploadOutcome`: only 400, 413, 415 and 422 are a permanent refusal of the file. Every other failure (no answer, a timeout, 401, 403, 404, 408, 429, 5xx) is "unknown". On "unknown", the file is first looked for with the owner's session: if it is there, the recording carries on. If not, the record and the in-page audio are kept, the student sees "couldn't confirm", and resume re-sends to the same path with the same key. A record is never deleted on a refusal if an earlier attempt has meanwhile been confirmed stored. |
+| R4-2 per-recorder times | `MediaSession` holds its own `startedAt` and `stopAt`, set by Stop, or by close/leave through `endMedia`. A delayed `onstop` computes its length from its own session. The shared `stopAtRef` is removed. |
+| R4-3 heartbeat silence | A missing heartbeat never produces "lost". When the audio is not on this page and the file is not on the server, the new "unconfirmed" screen says so: "hasn't reached the server; if another tab or window is still sending it, keep that open; if you closed or reloaded the page while recording, it was not saved". Its choices are "Check again" and "Keep it aside" (the record is kept, never deleted). "Remove from this list" is disabled while another open tab still owns the record. If the other tab finishes later, it completes the same record and then clears it. |
+| Test-only session hook | `__setSessionForTests` now does nothing unless `import.meta.env.DEV` (the Vite dev server). Its body is removed from production builds. |
+
+### Identity mapping (read-only evidence)
+- **Parent components pass `studentId={profile.id}`:**
+  - `src/components/dashboard/student/StudentAssignedTasksPage.tsx:602`
+  - `src/components/dashboard/student/StudentDailyCard.tsx:395`
+  - Both components get `profile` from `useStudentProfile()`.
+- **`useStudentProfile` loads the profile by the signed-in user:** `src/hooks/useStudentProfile.tsx:37-46` runs `supabase.auth.getUser()` and then `student_profiles ... .eq("user_id", user.id)`.
+- **The session's `user.id` is the database token's subject:** `src/integrations/google/identity.ts:266` and `:330` set `id: subjectOf(token)`.
+- **The schema enforces equality:** `supabase/migrations/20260815000000_stage1_identity_and_intake.sql:75-98` defines `id uuid primary key references auth.users(id)`, `user_id uuid not null unique references auth.users(id)`, and `constraint student_profiles_one_id_space check (id = user_id)`. No later migration drops it (searched the repository).
+- **Server side:** `transcription-enqueue` resolves the profile by `user_id = JWT sub` and requires `storage_path` to start with `profile.id/`. The two are the same value because of the constraint.
+- **Staging data (read-only GET, service token minted in memory):**
+  - `student_profiles` rows = 24; `id == user_id` for 24, different for 0, `user_id` null for 0.
+  - t07 and t16 each have `id == user_id`.
+  - `voice_explanations`: 105 of 109 `storage_path` values start with `student_id/`. Of the other 4:
+    - 3 are `fake/...` test fixtures from 2026-09-25.
+    - 1 (created 2026-09-29) has a path inside ANOTHER existing student's folder. It is probably one of this week's cross-student isolation test rows, but that is not confirmed. It is reported for the reviewer and has not been touched (no staging data changes).
+- **Not verified:**
+  - Production data was not queried.
+  - The live staging constraint was not read from `pg_constraint`, because there is no read-only path for that. The equality above is shown by the schema file and by all 24 staging rows.
+
+### Also fixed during this round's testing
+- Keeping a record aside did not clear its heartbeat. For up to 15 s after a reload, the same browser treated the record as owned by another live tab, and "Save it to this work" silently did nothing. The F6c test failed intermittently because of this, and it reproduced 3 times in 6 runs. Keep-aside and "Save it to this work" now clear the heartbeat. New check F6e covers it, and F6c then passed 6 of 6.
+- Two older tests assumed the pre-R4-1 behaviour. "Stored, but the answer was lost" (F5c) and "reload while an already-stored upload's answer is pending" (F5f) now complete by themselves through the existence check. L3 now waits until the upload has really started, as H8 does.
+
+### Test results (round 5, actually executed)
+- Unit: 75/75. Includes the full `voiceLifecycle.test.ts`, with R4-1 status tables and the R4-2 before/after calculation, and R4-3 in `voiceRound4.test.ts`.
+- `tsc`: clean. ESLint on the 7 changed files: 0 problems. Full repo: 286 errors / 16 warnings (unchanged baseline).
+- Build: OK. `dist` contains no `__setSessionForTests`, `voice-modal-harness` or `__harness`.
+- Browser harness, queued path: 85/85, run twice back to back on the final code.
+- Browser harness, non-queued path: 8/8.
+- Real task page: 13/13, run twice.
+- The new tests on the previous code (024c8d5, with only the new test script added):
+  - Queued path: 3/9. R4-2b A=5 s; R4-1a/R4-1b a 502 was treated as final, the record was deleted and nothing was enqueued; R4-3 failed; F6e/F6c heartbeat failed.
+  - Non-queued path: S5c A=5 s.
+- Staging counts identical before and after.
+- R4-3 suspension is REAL script suspension (the page's JavaScript paused through the DevTools debugger, so no timers or heartbeat) in a real second tab, with real waiting (16.5 s). Chromium's `Page.setWebLifecycleState 'frozen'` is ignored for a visible headless page (probe: timers kept running), so it was not used. The upload request stayed open in the browser throughout.
+- Simulations elsewhere: the throttled clock, hidden-tab visibility, the decoded audio length, delayed recorder events (a MediaRecorder subclass queues them), the crashed holder (a clock 20 s ahead), and every network write (faked).

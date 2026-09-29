@@ -630,5 +630,8 @@ export function __resetForTests(): void {
  * sign-in. Not called by the app.
  */
 export function __setSessionForTests(session: GoogleSession | null): void {
+  // Dev server only: in a production build import.meta.env.DEV is false, the
+  // body is removed, and calling it does nothing.
+  if (!import.meta.env.DEV) return;
   setSessionInternal(session, session ? 'SIGNED_IN' : 'SIGNED_OUT');
 }

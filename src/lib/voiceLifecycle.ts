@@ -252,16 +252,25 @@ export function ownerOf(
 }
 
 /**
- * What an upload attempt's result proves (audit F5).
+ * Answers that permanently refuse THIS file (audit R4-1): the request itself
+ * is invalid, so retrying the same bytes can never succeed and nothing was
+ * stored. files-service: 400 empty file, 413 too large; 415/422 invalid type.
+ */
+const PERMANENT_REFUSALS = new Set(["400", "413", "415", "422"]);
+
+/**
+ * What an upload attempt's result proves (audit F5, R4-1).
  *  - "stored":   the server has the object (success, or 409: it already exists)
- *  - "refused":  the server answered and refused it - nothing was stored
- *  - "unknown":  no answer (network error, timeout) - it may or may not be stored
+ *  - "refused":  a permanent refusal of this file (see PERMANENT_REFUSALS) - nothing stored
+ *  - "unknown":  everything else - no answer, a timeout, or a transient/ambiguous
+ *                status (401, 403, 404, 408, 429, 5xx...): it may or may not be
+ *                stored, so the audio and the record are kept and the file is checked for
  */
 export function uploadOutcome(r: { error: { statusCode?: string } | null } | "timeout"): "stored" | "refused" | "unknown" {
   if (r === "timeout") return "unknown";
   if (!r.error) return "stored";
   if (r.error.statusCode === "409") return "stored";
-  return r.error.statusCode ? "refused" : "unknown";
+  return r.error.statusCode && PERMANENT_REFUSALS.has(r.error.statusCode) ? "refused" : "unknown";
 }
 
 /** What a download-for-existence check proves: true, false, or unknown (undefined). */

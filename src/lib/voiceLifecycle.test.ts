@@ -218,3 +218,26 @@ test("audio longer than the limit (plus tolerance) is refused; unknown length is
   assert.equal(audioTooLong(null, 60), false);
   assert.equal(audioTooLong(Number.POSITIVE_INFINITY, 60), false); // no usable length: unknown
 });
+
+// ---------- round-4 audit R4-1: transient HTTP answers never discard a recording ----------
+import { uploadOutcome } from "./voiceLifecycle.ts";
+test("R4-1 transient or ambiguous upload answers are 'unknown' (kept, checked, retried), never 'refused'", () => {
+  for (const code of ["408", "429", "500", "502", "503", "504", "401", "403", "404"]) {
+    assert.equal(uploadOutcome({ error: { statusCode: code } }), "unknown", `status ${code}`);
+  }
+  for (const code of ["400", "413", "415", "422"]) {
+    assert.equal(uploadOutcome({ error: { statusCode: code } }), "refused", `status ${code}`);   // permanent: this file can never be stored
+  }
+  assert.equal(uploadOutcome({ error: { statusCode: "409" } }), "stored");
+  assert.equal(uploadOutcome({ error: null }), "stored");
+  assert.equal(uploadOutcome({ error: {} }), "unknown");
+  assert.equal(uploadOutcome("timeout"), "unknown");
+});
+
+// ---------- round-4 audit R4-2: each recorder's own start/stop ----------
+test("R4-2 defect reproduced: a shared stop time gives a delayed recording another's length; per-recorder times do not", () => {
+  const a = { startedAt: 100_000, stopAt: 103_500 };          // A: 3.5 s
+  const bStop = 105_700;                                      // B stops before A's delayed onstop runs
+  assert.equal(recordedSeconds(a.startedAt, bStop, 60), 6);   // previous build: shared ref held B's stop
+  assert.equal(recordedSeconds(a.startedAt, a.stopAt, 60), 4); // corrected: A's own stop time
+});

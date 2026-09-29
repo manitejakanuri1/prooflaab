@@ -184,7 +184,13 @@ async function addPage(ctx, state, opts = {}) {
     state.puts.push({ path, size, sub: subOf(req.headers().authorization) });
     if (state.putHold) await state.putHold.promise;
     const mode = state.putMode;
-    if (mode === 'hang') return;                                        // never answers
+    if (mode && typeof mode === 'object') {                            // one answer with this status (R4-1)
+      state.putMode = null;
+      if (mode.store) state.uploaded.add(path);                        // ...the file WAS stored despite the error
+      return json(route, mode.status, { error: `test status ${mode.status}` });
+    }
+    if (mode === 'hang') return;
+    if (mode === 'store-then-hang') { state.uploaded.add(path); return; }   // stored, but the answer never arrives                                        // never answers
     if (mode === 'abort') { state.putMode = null; return route.abort('failed'); }          // nothing stored, no answer
     if (mode === 'store-then-abort') { state.putMode = null; state.uploaded.add(path); return route.abort('failed'); }  // stored, answer lost
     if (mode === 'refuse') return json(route, 413, { error: 'That file is too large' });
@@ -767,11 +773,13 @@ async function round4Tests(browser) {
     await waitFor(() => state.puts.length === 1);
     await tab1.close({ runBeforeUnload: false });                     // the tab holding it is closed
     const tab2 = await addPage(ctx, state);
-    await tab2.getByTestId('voice-interrupted').waitFor({ timeout: 20000 });
-    check('F2c tab holding an unfinished upload is closed: another tab checks the server, finds no file, and says plainly it was NOT saved',
+    await tab2.getByTestId('voice-unconfirmed').waitFor({ timeout: 20000 });
+    check('F2c tab holding an unfinished upload is closed: another tab checks the server, finds no file, and says it has not reached the server (not "lost")',
       state.gets.length === 1 && state.enqueue.length === 0, `gets=${state.gets.length}`);
-    await tab2.getByRole('button', { name: /Record it again/ }).click();
-    check('F2c acknowledging it clears the record and offers Start', await startBtn(tab2).waitFor({ timeout: 10000 }).then(() => true, () => false) && (await v3Records(tab2)).length === 0);
+    await tab2.getByRole('button', { name: /Keep it aside and record a new one/ }).click();
+    const kept = await v3Records(tab2);
+    check('F2c/R4-3 moving on KEEPS the record (aside, listed) and offers Start - nothing deleted on a guess',
+      await startBtn(tab2).waitFor({ timeout: 10000 }).then(() => true, () => false) && kept.length === 1 && kept[0].aside === true);
     await ctx.close();
   });
   await group('F2 holder crashed', async () => {
@@ -813,6 +821,23 @@ async function round4Tests(browser) {
       bRecording && tracks[0] === 'ended' && tracks[1] === 'live', JSON.stringify(tracks));
     check('F3b each recording uploaded only its own audio (A 3.5 s > B 1.5 s), once each, to its own proof',
       byProof[P1] > 0 && byProof[P2] > 0 && byProof[P1] > byProof[P2] && state.puts.length === 2, JSON.stringify(byProof));
+    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, e.body.duration_seconds]));
+    check('R4-2a A\'s delayed onstop uses A\'s OWN stop time: A 3-4 s, B 1-3 s (not A measured to its late callback)',
+      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+    await ctx.close();
+  });
+  await group('R4-2 delayed onstop after B stopped', async () => {
+    const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
+    await recordAndStop(page, 3500);                                  // A: 3.5 s, events held
+    await H(page, 'setProof', P2);
+    await recordAndStop(page, 1500);                                  // B records AND stops first
+    await waitFor(() => state.enqueue.some((e) => e.body.proof_id === P2), 20000);
+    await page.waitForTimeout(2200);                                  // time passes before A's callback
+    await ev(page, () => window.__releaseRecorder(1));                // A's onstop runs only now
+    await waitFor(() => state.enqueue.some((e) => e.body.proof_id === P1), 20000);
+    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, e.body.duration_seconds]));
+    check('R4-2b A\'s onstop delayed until after B stopped: A still reports its own 3-4 s (B\'s stop time never used), B 1-3 s',
+      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('F3 delayed events after unmount', async () => {
@@ -877,13 +902,12 @@ async function round4Tests(browser) {
   });
   await group('F5 answer lost', async () => {
     const { page, state, ctx } = await setup(browser);
-    state.putMode = 'store-then-abort';                               // stored, but the answer is lost
+    state.putMode = 'store-then-abort';                               // stored, but the answer is lost (no status)
     await recordAndStop(page, 1500);
-    await page.getByTestId('voice-uncertain').waitFor({ timeout: 20000 });
-    await page.getByRole('button', { name: /Resume existing recording/ }).click();
     const ok = await score77(page, 25000);
-    check('F5c stored-but-answer-lost: resume gets "already exists" (409) and treats it as stored - one job, no duplicate object',
-      ok && state.puts.length === 2 && state.uploaded.size === 1 && state.enqueue.length === 1);
+    check('F5c stored-but-answer-lost: the owner\'s existence check finds the file and it completes by itself - one upload, one job, no duplicate object',
+      ok && state.puts.length === 1 && state.gets.length >= 1 && state.uploaded.size === 1 && state.enqueue.length === 1,
+      `puts=${state.puts.length} gets=${state.gets.length} enqueues=${state.enqueue.length}`);
     await ctx.close();
   });
   await group('F5 refused', async () => {
@@ -895,19 +919,92 @@ async function round4Tests(browser) {
       (await v3Records(page)).length === 0 && state.enqueue.length === 0);
     await ctx.close();
   });
+  // R4-1: transient HTTP answers keep the audio and the record; retry uses the same path and key.
+  await group('R4-1 transient statuses', async () => {
+    for (const status of [408, 429, 500, 502, 503]) {
+      const { page, state, ctx } = await setup(browser);
+      state.putMode = { status };
+      await recordAndStop(page, 1500);
+      await page.getByTestId('voice-uncertain').waitFor({ timeout: 20000 });
+      const rec = (await v3Records(page))[0];
+      const text = await page.getByTestId('voice-uncertain').innerText();
+      await page.getByRole('button', { name: /Resume existing recording/ }).click();
+      const ok = await score77(page, 25000);
+      check(`R4-1a upload answered ${status}: record and audio kept ("couldn't confirm", not "not saved"); resume re-sends to the SAME path; one job`,
+        !!rec && rec.stage === 'uploading' && /couldn't confirm/i.test(text) && !/not saved/i.test(text) && ok &&
+        state.puts.length === 2 && state.puts[0].path === state.puts[1].path && state.enqueue.length === 1 &&
+        new Set(state.enqueue.map((e) => e.body.idempotency_key)).size === 1, `puts=${state.puts.length} enqueues=${state.enqueue.length}`);
+      await ctx.close();
+    }
+  });
+  await group('R4-1 stored despite error', async () => {
+    const { page, state, ctx } = await setup(browser);
+    state.putMode = { status: 502, store: true };                   // the file IS stored; a gateway returns 502
+    await recordAndStop(page, 1500);
+    const ok = await score77(page, 25000);
+    check('R4-1b stored despite a 502: the owner\'s existence check finds the file; completed once with no retry upload and no user action',
+      ok && state.puts.length === 1 && state.gets.length >= 1 && state.enqueue.length === 1 && state.uploaded.size === 1,
+      `puts=${state.puts.length} gets=${state.gets.length} enqueues=${state.enqueue.length}`);
+    await ctx.close();
+  });
+  await group('R4-1 permanent refusal kept safe', async () => {
+    const { page, state, ctx } = await setup(browser);
+    state.putMode = 'refuse';                                       // 413: this file can never be stored
+    await recordAndStop(page, 1500);
+    await page.getByText(/was not saved/).waitFor({ timeout: 20000 });
+    check('R4-1c a permanent refusal (413) is still reported as not saved and cleared', (await v3Records(page)).length === 0 && state.enqueue.length === 0);
+    await ctx.close();
+  });
+
+  // R4-3: a suspended tab's unfinished upload is never declared lost or deleted.
+  await group('R4-3 suspended tab', async () => {
+    const { page: tab1, state, ctx } = await setup(browser);
+    state.putHold = deferred();
+    await recordAndStop(tab1, 1500);
+    await waitFor(() => state.puts.length === 1);                     // tab1's upload is in flight
+    const cdp = await ctx.newCDPSession(tab1);
+    // SUSPEND tab1: its JavaScript is paused (DevTools debugger) - no timers, no heartbeat - while its
+    // upload request stays open in the browser. (Page.setWebLifecycleState 'frozen' is ignored for a
+    // visible headless page, so the debugger pause is used instead.)
+    await cdp.send('Debugger.enable');
+    await cdp.send('Debugger.pause');
+    await new Promise((r) => setTimeout(r, 16_500));                  // real time: the heartbeat goes stale
+    const tab2 = await addPage(ctx, state);
+    await tab2.getByTestId('voice-unconfirmed').waitFor({ timeout: 20000 });
+    const text = await tab2.getByTestId('voice-unconfirmed').innerText();
+    const during = await v3Records(tab2);
+    check('R4-3a suspended tab, upload unfinished: the other tab says "hasn\'t reached the server ... another tab" - not lost; record kept; nothing enqueued',
+      /another tab or window/.test(text) && during.length === 1 && state.enqueue.length === 0, `records=${during.length}`);
+    await tab2.getByRole('button', { name: /Keep it aside and record a new one/ }).click();
+    await startBtn(tab2).waitFor({ timeout: 10000 });
+    const acked = await v3Records(tab2);
+    check('R4-3b acknowledging in the other tab keeps the record (aside) - never deleted while another tab may finish it',
+      acked.length === 1 && acked[0].aside === true);
+    await cdp.send('Debugger.resume');                                // tab1 resumes...
+    state.putHold.resolve();                                          // ...and its upload completes late
+    const done1 = await score77(tab1, 30000);
+    const after = await v3Records(tab2);
+    check('R4-3c late completion in the resumed tab: the SAME recording is stored and enqueued once; its record survives until then',
+      done1 && state.enqueue.length === 1 && state.uploaded.size === 1, `enqueues=${state.enqueue.length} records=${after.length}`);
+    await tab2.reload({ waitUntil: 'domcontentloaded' });
+    await startBtn(tab2).waitFor({ timeout: 20000 });
+    const left = await v3Records(tab2);
+    const saved = left.length === 0 && (await tab2.getByTestId('voice-unconfirmed').count()) === 0 && (await tab2.getByTestId('voice-aside-item').count()) === 0;
+    check('R4-3d reconciled: once the resumed tab finished (final result), the record is cleared everywhere - the other tab shows no stale "unconfirmed" or kept-aside entry', saved);
+    await ctx.close();
+  });
   await group('F5 reload mid-upload', async () => {
-    for (const [label, mode, stored] of [['not stored', 'hang', false], ['already stored', 'store-then-abort', true]]) {
+    for (const [label, mode, stored] of [['not stored', 'hang', false], ['already stored', 'store-then-hang', true]]) {
       const { page, state, ctx } = await setup(browser);
       state.putMode = mode;
-      if (stored) state.putHold = deferred();
       await recordAndStop(page, 1500);
       await waitFor(() => state.puts.length === 1);
-      if (stored) { state.putHold.resolve(); await page.waitForTimeout(300); }
       await page.reload({ waitUntil: 'domcontentloaded' });
       await page.getByRole('dialog').waitFor({ timeout: 20000 });
       if (!stored) {
-        await page.getByTestId('voice-interrupted').waitFor({ timeout: 20000 });
-        check(`F5e reload during an upload (${label}): the server is checked and the student is told it was NOT saved`, state.gets.length === 1 && state.enqueue.length === 0);
+        await page.getByTestId('voice-unconfirmed').waitFor({ timeout: 20000 });
+        check(`F5e reload during an upload (${label}): the server is checked; "hasn't reached the server" shown; record kept`,
+          state.gets.length === 1 && state.enqueue.length === 0 && (await v3Records(page)).length === 1);
       } else {
         const ok = await score77(page, 25000);
         check(`F5f reload during an upload (${label}): the server is checked, the file is found, the SAME recording is enqueued once`, ok && state.enqueue.length === 1);
@@ -923,6 +1020,9 @@ async function round4Tests(browser) {
     await page.getByTestId('voice-uncertain').waitFor({ timeout: 20000 });
     await page.getByRole('button', { name: /Keep it aside/ }).click();
     await page.getByTestId('voice-aside-item').waitFor({ timeout: 10000 });
+    const asideRec = (await v3Records(page))[0];
+    check('F6e keeping it aside releases it: its heartbeat is cleared, so this browser never mistakes it for another live tab after a reload',
+      asideRec?.aside === true && asideRec?.heartbeatAt === 0, `heartbeatAt=${asideRec?.heartbeatAt}`);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByTestId('voice-aside-item').waitFor({ timeout: 20000 });
     check('F6a a kept-aside recording is listed under Start and survives a reload', (await page.getByTestId('voice-aside-item').count()) === 1);
@@ -937,7 +1037,8 @@ async function round4Tests(browser) {
     await page.getByRole('button', { name: /Save it to this work/ }).click();
     const ok = await score77(page, 25000);
     check('F6c "Check" finds it was never processed (file present, no job); "Save it to this work" completes it with its own key',
-      ok && state.enqueue.filter((e) => e.id).length === 1 && new Set(state.enqueue.map((e) => e.body.idempotency_key)).size === 1);
+      ok && state.enqueue.filter((e) => e.id).length === 1 && new Set(state.enqueue.map((e) => e.body.idempotency_key)).size === 1,
+      `score=${ok} enqueues=${JSON.stringify(state.enqueue.map((e) => [!!e.id, e.sub === A ? 'A' : e.sub, e.body.idempotency_key.slice(0, 6)]))} text=${(await page.getByRole('dialog').innerText()).slice(60, 220).replace(/\s+/g, ' ')}`);
     await ctx.close();
   });
   await group('F6 aside remove', async () => {
@@ -974,8 +1075,8 @@ async function round4Tests(browser) {
     await page.waitForTimeout(1500);
     await page.goto('about:blank');                                   // leave mid-recording (warning accepted)
     await page.goto(HARNESS, { waitUntil: 'domcontentloaded' });
-    await page.getByTestId('voice-interrupted').waitFor({ timeout: 20000 });
-    check('F9a navigating away mid-recording: the browser warned first; next visit says plainly it was NOT saved (no upload claimed)',
+    await page.getByTestId('voice-unconfirmed').waitFor({ timeout: 20000 });
+    check('F9a navigating away mid-recording: the browser warned first; next visit says it has not reached the server (never "saved")',
       (state.dialogs ?? []).includes('beforeunload') && state.enqueue.length === 0, `dialogs=${JSON.stringify(state.dialogs)} puts=${state.puts.length}`);
     await ctx.close();
   });
@@ -987,8 +1088,8 @@ async function round4Tests(browser) {
     await page.close({ runBeforeUnload: true });
     await waitFor(() => page.isClosed(), 10000);
     const tab2 = await addPage(ctx, state);
-    await tab2.getByTestId('voice-interrupted').waitFor({ timeout: 20000 });
-    check('F9b closing the tab mid-recording: warned first; the next tab says it was NOT saved',
+    await tab2.getByTestId('voice-unconfirmed').waitFor({ timeout: 20000 });
+    check('F9b closing the tab mid-recording: warned first; the next tab says it has not reached the server (never "saved")',
       (state.dialogs ?? []).includes('beforeunload') && state.enqueue.length === 0);
     await ctx.close();
   });
@@ -1033,6 +1134,23 @@ async function syncTests(browser) {
     const size = (proof) => state.puts.find((p) => p.path === state.inserts.find((i) => i.body.proof_id === proof)?.body.storage_path)?.size ?? 0;
     check('S5 sync path (F3): A\'s late events did not stop B; each upload holds only its own audio',
       bRecording && size(P1) > size(P2) && size(P2) > 0 && state.inserts.length === 2, `A=${size(P1)} B=${size(P2)}`);
+    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.proof_id, i.body.duration_seconds]));
+    check('S5b sync path (R4-2): each insert carries its own recording length (A 3-4 s, B 1-3 s)',
+      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+    await ctx.close();
+  });
+  await group('S5c delayed onstop after B stopped', async () => {
+    const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
+    await recordAndStop(page, 3500);                                  // A: 3.5 s, events held
+    await H(page, 'setProof', P2);
+    await recordAndStop(page, 1500);                                  // B records AND stops first
+    await waitFor(() => state.inserts.some((i) => i.body.proof_id === P2), 20000);
+    await page.waitForTimeout(2200);
+    await ev(page, () => window.__releaseRecorder(1));                // A's onstop runs only now
+    await waitFor(() => state.inserts.some((i) => i.body.proof_id === P1), 20000);
+    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.proof_id, i.body.duration_seconds]));
+    check('S5c sync path (R4-2): A\'s onstop delayed until after B stopped still inserts A\'s own 3-4 s; B 1-3 s',
+      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('S6 account change mid-transcription', async () => {

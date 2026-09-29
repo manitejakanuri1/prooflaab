@@ -230,6 +230,8 @@ try {
     await openExplain(page);
     await recordAndStop(page);
     await page.getByText(/Uploading your recording/).waitFor({ timeout: 20000 });
+    // wait until the upload (and its local copy) has really started: "Uploading" shows first
+    for (let i = 0; i < 80 && state.putCount === 0; i++) await page.waitForTimeout(250);
     await closeDialog(page);
     const afterClose = await ev(page, () => window.__blobLog);
     const localUrl = afterClose.created.find((c) => c.type.startsWith('audio') || c.type.includes('webm') || c.type === '')?.url;

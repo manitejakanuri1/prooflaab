@@ -166,3 +166,14 @@ test("F8 corrected: the row's own student/task/proof, path and key must all agre
   assert.deepEqual(classifyLegacy(legacy, ctxA, { ...row, storage_path: "s1/other.webm", transcription_idempotency_key: "k9" }),
     { kind: "unresolved", canAttach: false });
 });
+
+// ---------- round-4 audit R4-3: heartbeat silence is not proof of loss ----------
+test("R4-3 a silent tab's unfinished recording is still resumable, and the decision never says 'lost'", () => {
+  const now = 1_000_000;
+  const silent = job({ recordingId: "r1", ...ctxA, stage: "uploading", tabId: "A", heartbeatAt: now - HEARTBEAT_STALE_MS - 1, createdAt: 1 });
+  const r = pickResumable([{ key: markerKey("r1"), job: silent }], ctxA, (j) => ownerOf(j, "B", now));
+  assert.equal(r.next?.job.recordingId, "r1");   // looked at (checked with the server)...
+  // ...and a missing file only means "not there YET": uploadOutcome/existenceOf have no "lost" answer at all
+  assert.equal(existenceOf({ data: null, error: { statusCode: "404" } }), false);
+  assert.notEqual(uploadOutcome({ error: { statusCode: "503" } }), "refused");
+});

@@ -346,3 +346,55 @@ Notes:
 - All test recordings use the same speech file, so 3a identifies the newest entry by position (newest first) plus matching transcript text.
 
 Found, not fixed (out of scope): in the Build-Log list, a recording the server marked "Too little speech" (`status=failed`) still shows a green "Completed" badge, because the badge only distinguishes transcription failures.
+
+---
+
+# Build-Log recordings card: badges and playback (2026-09-29)
+
+- **Status badge** (rules in `src/lib/voiceStatus.ts`):
+  - transcription failed → **Failed**
+  - pending/processing → **Transcribing**
+  - `scored` → **Scored**
+  - `failed` (incl. too little speech, AI failure) → **Not scored**
+  - `recorded` + server transcript → **Scoring**
+  - `recorded` + self-reported/legacy → **Not scored** (never shown as pending)
+
+  "Completed" is gone.
+- **Playback:**
+  - The one-hour signed URL was replaced by `useRecordingAudio` (logic in `src/lib/recordingAudio.ts`): an authenticated download into a temporary `blob:` URL.
+  - A second click while loading is ignored, loading always ends, and a failure shows "Could not load - try again".
+  - A replaced blob URL is revoked, and so is the last one when the dialog closes; nothing is created after close.
+  - `RecordingPlayback.tsx` now uses the same hook.
+
+Unit tests: `node --test src/lib/voiceJob.test.ts src/lib/recordingAudio.test.ts src/lib/voiceStatus.test.ts` → **22 passed** (8 audio loader, 6 status, 8 earlier). tsc and eslint are clean; `npm run build` is OK.
+
+Browser (local staging-mode site, t07 with a bridge-equivalent token):
+
+`scripts/dev-tools/voice_buildlog_browser.mjs` (no new recordings; 2 labelled rows `g1b-test-*` were added so a legacy self-reported row and a Scoring row appear):
+```
+PASS  1a every badge matches the database rules  (20 rows {"Not scored":3,"Scoring":1,"Scored":13,"Failed":3})
+PASS  1b no row says "Completed" any more
+PASS  1c a "too little speech" row shows "Not scored"
+PASS  1d a self-reported unscored row shows "Not scored", not pending
+PASS  2a failed download: retry button shown and enabled (not stuck)
+PASS  2b retry plays through a blob: URL (no signed/shareable link)  (ready=4)
+PASS  2c the download went to files-service with the student token  (requests=2)
+PASS  2d blob URL revoked when the dialog closes
+PASS  3a second student (t16) refused  (HTTP 404)
+PASS  3b owner control succeeds  (HTTP 200, 161432 bytes)
+```
+
+`scripts/dev-tools/voice_playback_browser.mjs` (RecordingPlayback now on the shared hook; the test was updated to the new failure label):
+```
+PASS  1 recording saved and queued  (voice aab95d8e)
+PASS  2a failed download: button shows "Could not load - try again" and is not stuck
+PASS  2b retry after the failure plays the audio  ({"scheme":"blob","ready":1})
+PASS  3a completed recording found in Build-Log after refresh  (status=scored score=85)
+PASS  3b Build-Log Play with a failed download shows an error, button not stuck
+PASS  3c Build-Log plays the completed recording after refresh  ({"scheme":"blob","ready":4})
+PASS  4a second student (t16) is refused t07's audio  (HTTP 404)
+PASS  4b owner (t07) control: same URL downloads  (HTTP 200 application/octet-stream 161926 bytes)
+PASS  4c no token at all is refused  (HTTP 401)
+```
+
+Not shown live: the Transcribing badge, which is unit-tested only because a job transcribes within seconds.

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Play } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useRecordingAudio } from "@/hooks/useRecordingAudio";
 import { clock, type TranscriptSegment } from "@/lib/transcribeAudio";
 
 interface RecordingPlaybackProps {
@@ -18,28 +18,13 @@ interface RecordingPlaybackProps {
  * was spoken; clicking it jumps the audio there.
  */
 const RecordingPlayback = ({ src, storagePath, transcript, segments }: RecordingPlaybackProps) => {
-  const [url, setUrl] = useState<string | null>(src ?? null);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
+  // A blob: URL passed in (just recorded) is used as is; otherwise the stored
+  // file is downloaded with the student's token when they press Play. Retry,
+  // always-ending loading and blob URL clean-up live in useRecordingAudio.
+  const stored = useRecordingAudio(src ? null : storagePath);
+  const url = src ?? stored.url;
+  const { loading, failed, load } = stored;
   const audioRef = useRef<HTMLAudioElement>(null);
-
-  useEffect(() => () => { if (!src && url) URL.revokeObjectURL(url); }, [src, url]);
-
-  const load = async () => {
-    if (!storagePath || loading) return;
-    setLoading(true);
-    setFailed(false);
-    try {
-      const { data, error } = await supabase.storage.from("voice-explanations").download(storagePath);
-      if (error || !data) { setFailed(true); return; }
-      setUrl(URL.createObjectURL(data));
-    } catch {
-      // A thrown network or storage error must never leave the button spinning.
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const seek = (s: number) => {
     if (!audioRef.current) return;

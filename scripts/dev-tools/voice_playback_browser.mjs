@@ -102,11 +102,11 @@ try {
   const detail = page.getByRole('dialog');
   await blockFiles();
   await detail.getByRole('button', { name: /Play recording/ }).click();
-  await detail.getByText(/Could not|reach file storage/i).first().waitFor({ timeout: 15000 });
+  await detail.getByRole('button', { name: /Could not load - try again/ }).waitFor({ timeout: 15000 });
   check('3b Build-Log Play with a failed download shows an error, button not stuck',
-    await detail.getByRole('button', { name: /Play recording/ }).isEnabled());
+    await detail.getByRole('button', { name: /Could not load - try again/ }).isEnabled());
   await unblockFiles();
-  await detail.getByRole('button', { name: /Play recording/ }).click();
+  await detail.getByRole('button', { name: /Could not load - try again/ }).click();
   const a2 = await audioState(detail.locator('audio').first());
   check('3c Build-Log plays the completed recording after refresh', a2.scheme === 'blob' && a2.ready >= 1, JSON.stringify(a2));
 

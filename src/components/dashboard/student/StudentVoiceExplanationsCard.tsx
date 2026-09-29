@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Mic, Loader2, CheckCircle, XCircle, ShieldCheck, MessageSquare } from "lucide-react";
+import { Mic, Loader2, CheckCircle, XCircle, ShieldCheck, MessageSquare, MinusCircle, Play } from "lucide-react";
 import { format, isValid } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
 import { useVoiceExplanations, type VoiceExplanation } from "@/hooks/useVoiceExplanations";
+import { useRecordingAudio } from "@/hooks/useRecordingAudio";
+import { recordingStatus, STATUS_LABEL, type RecordingStatusKind } from "@/lib/voiceStatus";
 
 /**
  * Where a completed "Explain 60s" recording actually shows up (Step 6G) -
@@ -14,9 +15,10 @@ import { useVoiceExplanations, type VoiceExplanation } from "@/hooks/useVoiceExp
  * destination until this. Deliberately narrow: transcript, status and
  * score only, no storage path of any kind in the list or the detail view -
  * nothing here can be turned into a link to the private GCS object. The
- * one exception is the recording itself, opened through the same
- * authenticated fetch-then-blob-URL mechanism ProofFileButton already uses
- * for proof files (googleStorage's createSignedUrl) - never a public link.
+ * one exception is the recording itself, played the same way
+ * RecordingPlayback plays it: downloaded with the student's own token
+ * (files-service only serves the owner) into a temporary blob: URL that is
+ * revoked when the dialog closes - never a public or shareable link.
  *
  * Step 6H: distinguishes a browser-authored transcript (typed/self-reported,
  * client-side speech recognition, or - as a real staging test found -
@@ -26,18 +28,23 @@ import { useVoiceExplanations, type VoiceExplanation } from "@/hooks/useVoiceExp
  * matching the same gate now applied everywhere the score is used for
  * anything (trust-compute, the recruiter-facing functions - migration 46).
  */
+const BADGE_STYLE: Record<RecordingStatusKind, { className: string; icon: JSX.Element }> = {
+  failed: { className: "bg-red-100 text-red-800 border-red-200", icon: <XCircle className="h-3 w-3" /> },
+  transcribing: { className: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+  scoring: { className: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+  scored: { className: "bg-green-100 text-green-800 border-green-200", icon: <CheckCircle className="h-3 w-3" /> },
+  not_scored: { className: "bg-muted text-muted-foreground", icon: <MinusCircle className="h-3 w-3" /> },
+};
+
+/** Rules in lib/voiceStatus.ts (tested there). */
 function statusBadge(v: VoiceExplanation) {
-  const status = v.transcription_status ?? "completed"; // legacy sync-path rows predate this column's default
-  if (status === "failed") {
-    return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200 gap-1"><XCircle className="h-3 w-3" /> Failed</Badge>;
-  }
-  if (status === "pending" || status === "processing") {
-    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Processing</Badge>;
-  }
-  if (v.status === "scored") {
-    return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 gap-1"><CheckCircle className="h-3 w-3" /> Scored</Badge>;
-  }
-  return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 gap-1"><CheckCircle className="h-3 w-3" /> Completed</Badge>;
+  const kind = recordingStatus(v);
+  const style = BADGE_STYLE[kind];
+  return (
+    <Badge variant="outline" className={`${style.className} gap-1`} data-status={kind}>
+      {style.icon} {STATUS_LABEL[kind]}
+    </Badge>
+  );
 }
 
 function provenanceBadge(v: VoiceExplanation) {
@@ -56,24 +63,8 @@ function provenanceBadge(v: VoiceExplanation) {
 }
 
 function VoiceExplanationDetail({ v, onClose }: { v: VoiceExplanation; onClose: () => void }) {
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioError, setAudioError] = useState<string | null>(null);
-  const [loadingAudio, setLoadingAudio] = useState(false);
-
-  const loadAudio = async () => {
-    setLoadingAudio(true);
-    setAudioError(null);
-    try {
-      const { data, error } = await supabase.storage.from("voice-explanations").createSignedUrl(v.storage_path, 3600);
-      if (error || !data) { setAudioError(error?.message ?? "Could not open the recording."); return; }
-      setAudioUrl(data.signedUrl);
-    } catch {
-      // Never leave the button spinning on a thrown error.
-      setAudioError("Could not open the recording.");
-    } finally {
-      setLoadingAudio(false);
-    }
-  };
+  // Authenticated download -> temporary blob: URL, revoked on close; retryable.
+  const audio = useRecordingAudio(v.storage_path);
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -105,15 +96,19 @@ function VoiceExplanationDetail({ v, onClose }: { v: VoiceExplanation; onClose: 
           )}
 
           <div>
-            {audioUrl ? (
-              <audio controls className="w-full" src={audioUrl} />
+            {audio.url ? (
+              <audio controls className="w-full" src={audio.url} />
             ) : (
-              <Button variant="outline" size="sm" onClick={() => void loadAudio()} disabled={loadingAudio}>
-                {loadingAudio ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                Play recording
+              <Button variant="outline" size="sm" onClick={audio.load} disabled={audio.loading}>
+                {audio.loading
+                  ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  : <Play className="h-4 w-4 mr-1" />}
+                {audio.failed ? "Could not load - try again" : "Play recording"}
               </Button>
             )}
-            {audioError && <p className="text-xs text-destructive mt-1">{audioError}</p>}
+            {audio.failed && (
+              <p className="text-xs text-destructive mt-1">Could not open the recording. Check your connection and try again.</p>
+            )}
           </div>
 
           <p className="text-xs text-muted-foreground">
@@ -146,6 +141,7 @@ const StudentVoiceExplanationsCard = () => {
           <button
             key={v.id}
             type="button"
+            data-voice-id={v.id}
             onClick={() => setOpenId(v.id)}
             className="w-full text-left rounded-lg border p-3 space-y-1.5 hover:bg-muted/40 transition-colors"
           >

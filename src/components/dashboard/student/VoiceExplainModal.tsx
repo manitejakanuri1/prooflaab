@@ -10,6 +10,7 @@ import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
 import RecordingPlayback from "./RecordingPlayback";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 import { createBlobUrlOwner, withoutLocalAudio } from "@/lib/blobUrlOwner";
+import { createEpoch, markerBelongsTo, safeStore, scoreToShow, uploadRegistry } from "@/lib/voiceLifecycle";
 import {
   enqueueBody, nextFailures, parseStoredJob, SavedNotifier, viewOf,
   type JobRow, type JobStatus, type PollTick, type StoredJob,
@@ -122,35 +123,56 @@ const VoiceExplainModal = ({
   // savedResult at the same time, so playback then uses storagePath instead.
   const blobOwnerRef = useRef<ReturnType<typeof createBlobUrlOwner> | null>(null);
   if (!blobOwnerRef.current) blobOwnerRef.current = createBlobUrlOwner();
+  // Lifecycle guards (lib/voiceLifecycle.ts). The epoch is bumped on close,
+  // unmount, abandon and every new recording: an async continuation from an
+  // older epoch (a late microphone grant, upload, enqueue answer or poll)
+  // never touches the screen, the blob URL or another recording's marker.
+  const epochRef = useRef<ReturnType<typeof createEpoch> | null>(null);
+  if (!epochRef.current) epochRef.current = createEpoch();
+  const mountedRef = useRef(true);
+  const openRef = useRef(open);
+  openRef.current = open;
+  const startingRef = useRef(false);            // one Start at a time
+  const [starting, setStarting] = useState(false);
+  const activePollIdRef = useRef<string | null>(null);
+  const [slotBusy, setSlotBusy] = useState(false); // a save for this slot is still in flight
+  const waitingForSlotRef = useRef(false);          // this dialog is waiting for that save
   const releaseLocalAudio = useCallback(() => {
     blobOwnerRef.current?.release();
     setSavedResult((prev) => withoutLocalAudio(prev));
   }, []);
-  useEffect(() => () => blobOwnerRef.current?.release(), []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      epochRef.current?.next();
+      blobOwnerRef.current?.release();
+    };
+  }, []);
 
   const jobStorageKey = useCallback(
     () => `pl.voiceJob.${studentId}.${taskId ?? proofId ?? "general"}`,
     [studentId, taskId, proofId],
   );
-  const readStoredJob = useCallback((): StoredJob | null => {
-    try {
-      return parseStoredJob(localStorage.getItem(jobStorageKey()));
-    } catch {
-      return null;
-    }
-  }, [jobStorageKey]);
+  // localStorage, or an in-memory copy for this page when storage is blocked
+  // (safeStore never throws): close-and-reopen recovery still works then; only
+  // a full page reload would lose it.
+  const readStoredJob = useCallback(
+    (): StoredJob | null => parseStoredJob(safeStore.get(jobStorageKey())),
+    [jobStorageKey],
+  );
   const writeStoredJob = useCallback((job: StoredJob | null) => {
-    try {
-      if (job) localStorage.setItem(jobStorageKey(), JSON.stringify(job));
-      else localStorage.removeItem(jobStorageKey());
-    } catch {
-      // Private browsing, or storage blocked - the job still runs server-side
-      // and this tab still shows it; only a reload in a fresh tab would miss it.
-    }
+    if (job) safeStore.set(jobStorageKey(), JSON.stringify(job));
+    else safeStore.remove(jobStorageKey());
   }, [jobStorageKey]);
+  /** Clears the marker only if it still belongs to this recording. */
+  const clearStoredJobFor = useCallback((voiceId: string) => {
+    if (markerBelongsTo(readStoredJob()?.voiceId, voiceId)) writeStoredJob(null);
+  }, [readStoredJob, writeStoredJob]);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
+    activePollIdRef.current = null;
   }, []);
 
   /** Recovery details are kept; the student chooses resume or abandon. */
@@ -165,7 +187,7 @@ const VoiceExplainModal = ({
    * scopes every select to student_id = auth.uid()). A failed read or a row
    * that cannot be seen counts as a failure; after MAX_POLL_FAILURES in a
    * row the page stops and asks, instead of spinning forever. */
-  const checkJob = useCallback(async (voiceId: string) => {
+  const checkJob = useCallback(async (voiceId: string, epoch: number) => {
     if (checkingRef.current) return;
     checkingRef.current = true;
     try {
@@ -176,6 +198,9 @@ const VoiceExplainModal = ({
         .eq("id", voiceId)
         .maybeSingle()
         .then((r) => r as unknown as { data: JobRow | null; error: unknown }, (e) => ({ data: null, error: e }));
+
+      // A late answer after close/abandon/another recording: ignore entirely.
+      if (!epochRef.current!.isCurrent(epoch) || activePollIdRef.current !== voiceId || !mountedRef.current) return;
 
       const failReason: "read_error" | "missing" | null = res.error ? "read_error" : !res.data ? "missing" : null;
       const tick: PollTick = failReason ? { ok: false, reason: failReason } : { ok: true, row: res.data as JobRow };
@@ -201,7 +226,7 @@ const VoiceExplainModal = ({
       if (view.kind === "transcription_failed") {
         // Confirmed final by the server: now a new recording is safe.
         stopPolling();
-        writeStoredJob(null);
+        clearStoredJobFor(voiceId);
         setJobError(view.error);
         setPhase("error");
         return;
@@ -214,12 +239,13 @@ const VoiceExplainModal = ({
       setScoringPending(!view.final);
       if (view.final) {
         stopPolling();
-        writeStoredJob(null);
+        clearStoredJobFor(voiceId);
       }
       setSavedResult((prev) => ({
         transcript: row.transcript ?? "",
         segments: (row.transcript_segments as TranscriptSegment[] | null) ?? [],
-        score: row.communication_score ?? null,
+        // Only a server status of 'scored' permits a number (shown and exported).
+        score: scoreToShow(row.status, row.communication_score),
         notes: row.communication_notes ?? null,
         audioUrl: prev?.audioUrl,
         storagePath: row.storage_path ?? prev?.storagePath,
@@ -230,7 +256,7 @@ const VoiceExplainModal = ({
     } finally {
       checkingRef.current = false;
     }
-  }, [becomeUncertain, stopPolling, writeStoredJob]);
+  }, [becomeUncertain, stopPolling, clearStoredJobFor]);
 
   /** The recovery path for a lost enqueue response: the job may already
    * exist under this key even though this browser never saw its id. Scoped
@@ -250,8 +276,10 @@ const VoiceExplainModal = ({
   const startPolling = useCallback((voiceId: string) => {
     stopPolling();
     pollFailuresRef.current = 0;
-    void checkJob(voiceId); // don't wait for the first tick to show current state
-    pollTimerRef.current = setInterval(() => void checkJob(voiceId), POLL_MS);
+    activePollIdRef.current = voiceId;
+    const epoch = epochRef.current!.current;
+    void checkJob(voiceId, epoch); // don't wait for the first tick to show current state
+    pollTimerRef.current = setInterval(() => void checkJob(voiceId, epoch), POLL_MS);
   }, [checkJob, stopPolling]);
 
   /** Resume whatever this student's localStorage says is in flight - on
@@ -260,9 +288,18 @@ const VoiceExplainModal = ({
    * server whether the job exists anyway, and only then retry the enqueue -
    * with the SAME idempotency key, storage path and duration. */
   const resumeStoredJob = useCallback(async () => {
+    // A save for this slot is still uploading (possibly from a dialog that has
+    // since closed): show that and wait - its finish triggers this again.
+    if (uploadRegistry.isActive(jobStorageKey())) {
+      waitingForSlotRef.current = true;
+      setPhase("saving");
+      return;
+    }
     const stored = readStoredJob();
     if (!stored || resumingRef.current) return;
     resumingRef.current = true;
+    const epoch = epochRef.current!.current;
+    const current = () => epochRef.current!.isCurrent(epoch) && mountedRef.current;
     try {
       idempotencyKeyRef.current = stored.idempotencyKey;
       setError(null);
@@ -284,11 +321,13 @@ const VoiceExplainModal = ({
       setPhase("saving");
       const found = await findJobByIdempotencyKey(stored.idempotencyKey);
       if (found) {
-        writeStoredJob({ ...stored, voiceId: found });
+        writeStoredJob({ ...stored, voiceId: found }); // recovery info, even if closed meanwhile
+        if (!current()) return;
         setPhase("queued");
         startPolling(found);
         return;
       }
+      if (!current()) return;
 
       // Not found, or the lookup failed: retrying the enqueue is still safe
       // (the server reuses the row for the same key), and it is the only way
@@ -297,16 +336,35 @@ const VoiceExplainModal = ({
         .invoke("transcription-enqueue", { body: enqueueBody(stored, taskId, proofId) })
         .then((r) => r, (e) => ({ data: null, error: e }));
       if (enqErr || !enq?.voice_id) {
-        becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
+        if (current()) becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
         return;
       }
       writeStoredJob({ ...stored, voiceId: enq.voice_id });
+      if (!current()) return;
       setPhase("queued");
       startPolling(enq.voice_id);
     } finally {
       resumingRef.current = false;
     }
-  }, [becomeUncertain, findJobByIdempotencyKey, proofId, readStoredJob, startPolling, taskId, writeStoredJob]);
+  }, [becomeUncertain, findJobByIdempotencyKey, jobStorageKey, proofId, readStoredJob, startPolling, taskId, writeStoredJob]);
+
+  // Follow a save for this slot that is in flight anywhere on the page. When
+  // it finishes, an open dialog resumes from the marker it left (if any).
+  useEffect(() => {
+    const key = jobStorageKey();
+    setSlotBusy(uploadRegistry.isActive(key));
+    return uploadRegistry.subscribe(key, () => {
+      const busy = uploadRegistry.isActive(key);
+      setSlotBusy(busy);
+      // Only a dialog that was WAITING for that save picks it up; the dialog
+      // that made the save is already following it.
+      if (!busy && waitingForSlotRef.current && openRef.current && mountedRef.current) {
+        waitingForSlotRef.current = false;
+        if (ASYNC_TRANSCRIPTION && readStoredJob()) void resumeStoredJob();
+        else setPhase("idle");
+      }
+    });
+  }, [jobStorageKey, readStoredJob, resumeStoredJob]);
 
   // Reopening the modal (or a fresh mount after a page refresh) recovers an
   // existing job instead of offering to start a new recording over it.
@@ -327,7 +385,11 @@ const VoiceExplainModal = ({
 
   /** Step 6D async path: upload, then hand off to the queue and poll for the
    * server's own transcript rather than trusting the browser's. */
-  const saveAsync = useCallback(async (blob: Blob, seconds: number, ext: string, audioUrl: string) => {
+  const saveAsync = useCallback(async (blob: Blob, seconds: number, ext: string, audioUrl: string, epoch: number) => {
+    // The server work (upload, marker, enqueue) always runs to the end so the
+    // recording is never lost; the screen and the blob URL are only touched
+    // while this dialog session is still current.
+    const current = () => epochRef.current!.isCurrent(epoch) && mountedRef.current;
     setPhase("saving");
     setJobStatus(null);
     setJobError(null);
@@ -350,39 +412,55 @@ const VoiceExplainModal = ({
       // retry it identically.
       writeStoredJob(job);
       jobRecorded = true;
-      setSavedResult({ transcript: "", segments: [], score: null, notes: null, audioUrl, storagePath: path });
+      if (current()) {
+        // Never restore a URL that close/replacement has already revoked.
+        const liveUrl = blobOwnerRef.current!.current === audioUrl ? audioUrl : undefined;
+        setSavedResult({ transcript: "", segments: [], score: null, notes: null, audioUrl: liveUrl, storagePath: path });
+      }
 
       const { data: enq, error: enqErr } = await supabase.functions
         .invoke("transcription-enqueue", { body: enqueueBody(job, taskId, proofId) })
         .then((r) => r, (e) => ({ data: null, error: e }));
       if (enqErr || !enq?.voice_id) {
         // The request may still have landed - the answer is what was lost.
-        await resumeStoredJob();
+        // If the dialog closed meanwhile, the marker stays for the next open.
+        if (current()) await resumeStoredJob();
         return;
       }
 
       writeStoredJob({ ...job, voiceId: enq.voice_id });
+      if (!current()) return;
       setPhase("queued");
       startPolling(enq.voice_id);
     } catch (err) {
       if (jobRecorded) {
-        becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
+        if (current()) becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
       } else {
         // Nothing reached the server yet: a fresh attempt is safe, and the
         // local copy of this failed recording is no longer needed.
-        releaseLocalAudio();
-        setError(err instanceof Error ? err.message : "Could not save the recording.");
-        setPhase("error");
+        if (blobOwnerRef.current!.current === audioUrl) blobOwnerRef.current!.release();
+        if (current()) {
+          setSavedResult((prev) => withoutLocalAudio(prev));
+          setError(err instanceof Error ? err.message : "Could not save the recording.");
+          setPhase("error");
+        }
       }
     }
-  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob, becomeUncertain, releaseLocalAudio]);
+  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob, becomeUncertain]);
 
-  const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string) => {
+  const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string, epoch: number) => {
     if (savingRef.current) return; // a double-click or a duplicate onstop must not enqueue/insert twice
     savingRef.current = true;
+    // Registered page-wide before anything is uploaded, so a closed-and-reopened
+    // dialog sees this save in flight even before its recovery marker exists.
+    const slot = jobStorageKey();
+    const token = uploadRegistry.begin(slot);
+    const current = () => epochRef.current!.isCurrent(epoch) && mountedRef.current;
     try {
       if (ASYNC_TRANSCRIPTION) {
-        await saveAsync(blob, seconds, ext, blobOwnerRef.current!.adopt(URL.createObjectURL(blob)));
+        // A local copy only if this dialog session is still showing it.
+        const url = current() ? blobOwnerRef.current!.adopt(URL.createObjectURL(blob)) : "";
+        await saveAsync(blob, seconds, ext, url, epoch);
         return;
       }
       setPhase("saving");
@@ -416,33 +494,45 @@ const VoiceExplainModal = ({
       let notes: string | null = null;
       if (words >= MIN_WORDS) {
         const { data: scored } = await supabase.functions.invoke("voice-score", { body: { voice_id: row.id } });
-        score = scored?.communication_score ?? null;
+        // A number only when the server actually scored it (not pending/failed).
+        score = scoreToShow(scored?.success === true ? "scored" : null, scored?.communication_score);
         notes = scored?.notes ?? null;
       }
 
+      onSaved?.(); // the row is saved whether or not this dialog is still open
+      if (!current()) return; // closed meanwhile: no blob URL, no screen update
       setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: blobOwnerRef.current!.adopt(URL.createObjectURL(blob)), storagePath: path });
       setPhase("done");
-      onSaved?.();
     } catch (err) {
-      releaseLocalAudio();
-      setError(err instanceof Error ? err.message : "Could not save the recording.");
-      setPhase("error");
+      if (current()) {
+        releaseLocalAudio();
+        setError(err instanceof Error ? err.message : "Could not save the recording.");
+        setPhase("error");
+      }
     } finally {
       savingRef.current = false;
+      uploadRegistry.end(slot, token);
     }
-  }, [studentId, taskId, proofId, onSaved, saveAsync, releaseLocalAudio]);
+  }, [jobStorageKey, studentId, taskId, proofId, onSaved, saveAsync, releaseLocalAudio]);
 
   const stop = useCallback(() => {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
   }, []);
 
   const start = useCallback(async () => {
+    // One Start at a time, and never while a recorder already exists.
+    if (startingRef.current || recorderRef.current) return;
+    // A save for this slot still in flight (maybe from a closed dialog): wait for it.
+    if (uploadRegistry.isActive(jobStorageKey())) { waitingForSlotRef.current = true; setPhase("saving"); return; }
     // Never start over a recording the server may still hold: resume it.
     // Only an explicit "abandon" (below) clears it first.
     if (ASYNC_TRANSCRIPTION && readStoredJob()) {
       await resumeStoredJob();
       return;
     }
+    startingRef.current = true;
+    setStarting(true);
+    const epoch = epochRef.current!.next(); // a new recording: older continuations are now stale
     setError(null);
     setSecondsLeft(MAX_SECONDS);
     idempotencyKeyRef.current = null; // a genuinely new recording gets its own key
@@ -457,10 +547,24 @@ const VoiceExplainModal = ({
     try {
       stream = await openMic();
     } catch {
-      setError("Microphone blocked. Allow it in your browser and try again.");
-      setPhase("error");
+      startingRef.current = false;
+      if (epochRef.current!.isCurrent(epoch) && mountedRef.current) {
+        setStarting(false);
+        setError("Microphone blocked. Allow it in your browser and try again.");
+        setPhase("error");
+      }
       return;
     }
+    // Permission can resolve after the dialog closed or unmounted: release the
+    // microphone at once and never start a recorder.
+    if (!epochRef.current!.isCurrent(epoch) || !mountedRef.current || !openRef.current) {
+      stream.getTracks().forEach((t) => t.stop());
+      startingRef.current = false;
+      if (mountedRef.current) setStarting(false);
+      return;
+    }
+    startingRef.current = false;
+    setStarting(false);
     streamRef.current = stream;
 
     // A moving level meter, so it is obvious the microphone is live. A silent
@@ -494,24 +598,25 @@ const VoiceExplainModal = ({
       if (ASYNC_TRANSCRIPTION) {
         // The whole point of this path: the browser never transcribes at
         // all, Whisper runs once, server-side, after upload+enqueue.
-        void save(blob, "", [], seconds, ext);
+        void save(blob, "", [], seconds, ext, epoch);
         return;
       }
       setPhase("transcribing");
       setTranscribeProgress(null);
       transcribeWithTimestamps(blob, setTranscribeProgress)
-        .then((r) => save(blob, r.text, r.segments, seconds, ext))
-        .catch(() => save(blob, "", [], seconds, ext)); // audio is still saved even if transcription fails
+        .then((r) => save(blob, r.text, r.segments, seconds, ext, epoch))
+        .catch(() => save(blob, "", [], seconds, ext, epoch)); // audio is still saved even if transcription fails
     };
     // A chunk every second, so a recording stopped by the clock or a closed
     // dialog still holds everything said up to that moment.
     rec.start(1000);
     setPhase("recording");
-  }, [cleanup, readStoredJob, resumeStoredJob, save]);
+  }, [cleanup, jobStorageKey, readStoredJob, resumeStoredJob, save]);
 
   /** Explicit, student-chosen: forget the uncertain recording and record anew.
    * The earlier one may still finish on the server and appear in the build-log. */
   const abandonAndRecordAgain = useCallback(() => {
+    epochRef.current!.next(); // late answers for the abandoned recording are ignored
     stopPolling();
     writeStoredJob(null);
     idempotencyKeyRef.current = null;
@@ -534,6 +639,8 @@ const VoiceExplainModal = ({
 
   // Asked once. After the first yes this query is the only cost.
   useEffect(() => {
+    // A different student (or a reopen) never inherits the previous answer.
+    setConsented(null);
     if (!open || !studentId) return;
     let cancelled = false;
     void supabase
@@ -541,9 +648,11 @@ const VoiceExplainModal = ({
       .select("voice_consent_at")
       .eq("id", studentId)
       .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setConsented(Boolean(data?.voice_consent_at));
-      });
+      .then(({ data, error: consentErr }) => {
+        if (cancelled) return;
+        // If the answer cannot be read, ask again rather than assume a yes.
+        setConsented(consentErr ? false : Boolean(data?.voice_consent_at));
+      }, () => { if (!cancelled) setConsented(false); });
     return () => { cancelled = true; };
   }, [open, studentId]);
 
@@ -560,7 +669,11 @@ const VoiceExplainModal = ({
 
   const close = (next: boolean) => {
     // Closing drops the local copy; reopening plays the stored file instead.
-    if (!next) { cleanup(); stopPolling(); releaseLocalAudio(); setPhase("idle"); }
+    if (!next) {
+      epochRef.current!.next(); // anything still in flight for this session is now stale
+      waitingForSlotRef.current = false;
+      cleanup(); stopPolling(); releaseLocalAudio(); setPhase("idle");
+    }
     onOpenChange(next);
   };
 
@@ -614,9 +727,16 @@ const VoiceExplainModal = ({
               Say it in your own words, as if to a teammate. Mention what you tried first
               and anything you changed your mind about.
             </p>
-            <Button onClick={() => void start()} className="w-full">
-              <Mic className="h-4 w-4 mr-2" /> Start recording
-            </Button>
+            {slotBusy ? (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="voice-slot-busy">
+                <Loader2 className="h-4 w-4 animate-spin" /> Your previous recording is still uploading…
+              </p>
+            ) : (
+              <Button onClick={() => void start()} className="w-full" disabled={starting}>
+                {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mic className="h-4 w-4 mr-2" />}
+                {starting ? "Starting microphone…" : "Start recording"}
+              </Button>
+            )}
           </div>
         )}
 

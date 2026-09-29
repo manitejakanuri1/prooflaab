@@ -454,3 +454,46 @@ PASS  3b owner control succeeds  (HTTP 200, 161926 bytes)
 ```
 
 **Genuine Google sign-in: UNTESTED.** Every browser run used a session minted like the staging auth-bridge issues it. voice_playback_browser.mjs was not re-run, because it creates a recording.
+
+---
+
+# VoiceExplainModal lifecycle and concurrency (2026-09-29)
+
+Helpers: `src/lib/voiceLifecycle.ts` (tested in `voiceLifecycle.test.ts`).
+- **Epoch:** bumped on close, unmount, abandon and each new recording. Every async continuation checks it before touching the UI, the blob URL or the marker.
+- **Page-wide `uploadRegistry`:** tracks a save from before the upload until it ends, so it outlives the dialog.
+- **`safeStore`:** localStorage with an in-memory fallback.
+- **`scoreToShow`:** returns a number only for status `scored`.
+- **`markerBelongsTo`:** a marker is cleared only by its own recording.
+
+Modal fixes:
+1. One Start at a time: a guard, plus the button is disabled while starting. A microphone grant that arrives after close or unmount stops the stream and starts no recorder.
+2. A save is registered page-wide before the upload. A reopened dialog shows "still uploading", offers no Start button, and resumes when the save ends.
+3. Server work (upload, marker, enqueue) always finishes after close; UI and blob updates happen only for the current epoch. The async path never restores a revoked URL. The sync path creates no blob URL after close (`onSaved` still fires). Reopening plays the stored file.
+4. Polls carry the epoch and voice id: a stale answer is ignored, and it can never clear another recordings marker.
+5. Scores are shown and exported only for server status `scored` (sync path: only on `success:true`). The recovery marker survives blocked localStorage (memory fallback). Consent resets per student and ignores stale answers; a failed lookup asks again.
+
+Unit: `node --test src/lib/voiceLifecycle.test.ts src/lib/blobUrlOwner.test.ts src/lib/voiceStatus.test.ts src/lib/recordingAudio.test.ts src/lib/voiceJob.test.ts` → **45/45**. tsc and eslint clean; `npm run build` OK.
+
+Browser: `scripts/dev-tools/voice_modal_lifecycle_browser.mjs`. It is deterministic: the upload, enqueue and polls are faked in the browser, every other write is blocked, and the microphone sits behind a test-controlled gate.
+
+Staging counts before → after: voice_explanations 109→109, app_events 240→240, llm_usage 0→0.
+```
+PASS  L1 late microphone grant after close: stream stopped at once, no recorder started  ({"calls":1,"recorders":0,"states":["ended"]})
+PASS  L2 rapid double Start: one microphone request, one recorder  ({"calls":1,"recorders":1})
+PASS  L2 the single recording completes normally (faked upload/enqueue, scripted poll)  (uploads=1 enqueues=1)
+PASS  L3 closing during upload revokes the local blob URL
+PASS  L3 the save still finished after close: marker with the job id was written
+PASS  L3 reopened: no revoked URL in the player; authenticated stored-file playback offered  (audio=0 playButton=1)
+PASS  L4 reopened during upload: waits for it, no Start button (no second recording)  (start buttons=0)
+PASS  L4 the in-flight save is picked up and finishes; still one upload, one enqueue, one recorder  (uploads=1 enqueues=1 recorders=1)
+PASS  L5 stale poll answer after close did not clear the recovery marker
+PASS  L5 reopened: current answer shown, stale "failed" never displayed
+PASS  L6 localStorage blocked (every access threw): close/reopen still resumed the job from memory  (storage throws=9)
+PASS  L7 inconsistent record (status failed + score 85): feedback shown, no number
+PASS  L8 consent lookup fails: consent is asked again, no Start button
+INFO  writes blocked in the browser: ["rpc touch_my_activity","function task-explain","function task-explain","rpc touch_my_activity","function task-explain","function task-explain","rpc touch_my_activity","function task-explain","function 
+INFO  RPCs the page called (allowed through): ["my_rank","my_todays_lot"]
+```
+
+The two earlier failed attempts of this script (a test wait bug, then a missing fake job completion) let the pages own `touch_my_activity` RPC reach staging a few times. That updated t07s `last_active` and created no rows. The script now blocks every RPC except the read-only `my_rank` and `my_todays_lot` (the latter is declared `stable`).

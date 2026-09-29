@@ -134,3 +134,45 @@ PASS  S8 malformed voice_id: HTTP 400 (want 400) {'error': 'voice_id is not a va
 ```
 
 Not live-tested: a real database read failure returning 503. There is no safe way to force one on staging; the 503 path was verified by reading the code and type-checking it.
+
+---
+
+# transcription-worker review fixes (2026-09-29, staging image `g1w`, `ENVIRONMENT=staging`)
+
+- **`complete_transcription_job`: the HTTP status and the boolean are both checked.**
+  - `200 + true`: saved. Only then is scoring requested.
+  - `200 + false`: stale lease. The task is acknowledged, but nothing is saved or scored here.
+  - Anything else (HTTP error, unreachable, malformed JSON, wrong type): **not acknowledged** (500). The lease is released for a retry. That release is safe even if the save actually happened, because `fail_transcription_job` only touches a row that is still `processing` under this lease.
+- **`fail_transcription_job`'s answer is checked.**
+  - `true`: released.
+  - `false`: a newer attempt holds the job. This is not an error.
+  - An HTTP, network or malformed failure is logged as `FAIL-REPORT ERROR`.
+- **Startup refuses bad config.** The worker won't start if any of these hold:
+  - a required setting is missing (including `FUNCTIONS_URL`);
+  - `ENVIRONMENT` is not staging or production;
+  - `ENVIRONMENT` and the database URL disagree;
+  - `FAULT_INJECT_VOICE_ID` is set outside staging.
+- Fault injection is also ignored at run time unless `ENVIRONMENT=staging`.
+- Scoring log lines show only the HTTP status and the success/pending/lost_race flags. Notes, score and response bodies are never logged.
+
+**Unit tests** (`transcription-worker/test_server.py`, stdlib unittest): **27 passed**.
+- Success.
+- Stale lease.
+- `complete` returning HTTP 500, unreachable, malformed JSON, or 5 wrong types.
+- Claim HTTP error and claim malformed.
+- Nothing to claim.
+- Failed scoring request.
+- Transcription error: release, and terminal on the last attempt.
+- Fail-report HTTP error, malformed, stale.
+- `complete` error and release error together.
+- Scoring summary contains no notes or score.
+- Config: every required setting, fault injection in production, staging label on a production DB, unknown environment, fault injection inert outside staging, and a real process exit on bad config.
+
+**Live staging:**
+
+| Check | Result |
+|---|---|
+| W1 normal | Completed, 1 scoring claim, scored. Log: `scoring requested …: HTTP 200 {'success': True}` |
+| W2 duplicate (2 tasks) | 1 transcription, 1 scoring claim. Dup: "nothing to claim" |
+| W3 missing audio | Attempts 1–2 `terminal=False … released`, attempt 3 `terminal=True … released`. Row `failed`, error "HTTP Error 404", not scored |
+| Worker log lines containing "notes" or "communication_score" since deploy | **0** |

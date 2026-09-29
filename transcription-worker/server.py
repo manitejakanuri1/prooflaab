@@ -31,6 +31,7 @@ import hashlib
 import hmac
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -49,12 +50,41 @@ STALE_AFTER_SECONDS = int(os.environ.get("STALE_AFTER_SECONDS", "180"))
 # Must match the queue's own configured max-attempts (prooflab-staging-transcription: 3).
 # Cloud Tasks' retry-count header is 0-indexed, so attempt 2 is the last one it will make.
 QUEUE_MAX_ATTEMPTS = int(os.environ.get("QUEUE_MAX_ATTEMPTS", "3"))
+# "staging" or "production". Fault injection is only ever honoured on staging.
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "")
 # Step 6C, staging test use only: after a REAL claim (a genuine Cloud Tasks
 # delivery, not a hand-crafted RPC call) for this one voice_id, hang instead
 # of transcribing - simulating a worker that crashed mid-job while holding a
 # live lease, so scheduled recovery can be proven against a claim the worker
-# itself made. Must not be left set after a test.
+# itself made. Must not be left set after a test. Refused outside staging
+# (see check_config).
 FAULT_INJECT_VOICE_ID = os.environ.get("FAULT_INJECT_VOICE_ID", "")
+
+REQUIRED = {
+    "PGRST_JWT_SECRET": JWT_SECRET, "POSTGREST_URL": POSTGREST_URL, "TRANSCRIBER_URL": TRANSCRIBER_URL,
+    "FUNCTIONS_URL": FUNCTIONS_URL, "PRIVATE_BUCKET": PRIVATE_BUCKET, "ENVIRONMENT": ENVIRONMENT,
+}
+
+
+def check_config() -> list[str]:
+    """Problems that must stop the worker from starting (empty list = fine).
+    A revision that fails here never becomes ready, so Cloud Run keeps
+    serving the previous, working one."""
+    problems = [f"{k} is not set" for k, v in REQUIRED.items() if not v]
+    if ENVIRONMENT and ENVIRONMENT not in ("staging", "production"):
+        problems.append(f"ENVIRONMENT must be staging or production, got {ENVIRONMENT!r}")
+    # Belt and braces: an ENVIRONMENT label that disagrees with the database
+    # it points at is refused, so a mislabelled production worker cannot
+    # switch fault injection on.
+    if ENVIRONMENT == "staging" and "-staging-" not in POSTGREST_URL:
+        problems.append("ENVIRONMENT=staging but POSTGREST_URL is not a staging URL")
+    if ENVIRONMENT == "production" and "-staging-" in POSTGREST_URL:
+        problems.append("ENVIRONMENT=production but POSTGREST_URL is a staging URL")
+    if FAULT_INJECT_VOICE_ID and ENVIRONMENT != "staging":
+        problems.append("FAULT_INJECT_VOICE_ID is set outside staging - refusing to start")
+    if QUEUE_MAX_ATTEMPTS < 1 or STALE_AFTER_SECONDS < 1:
+        problems.append("QUEUE_MAX_ATTEMPTS and STALE_AFTER_SECONDS must be >= 1")
+    return problems
 
 
 def b64url(data: bytes) -> str:
@@ -65,9 +95,8 @@ def mint_token(role: str, ttl: int = 300) -> str:
     """A short-lived, self-issued token this service is trusted to hold - the
     same HS256 scheme every other internal call in this project already uses.
     Two different roles are minted on purpose: claim/complete/fail_transcription_job
-    are now service_role-only (Step 6B - they used to also accept `authenticated`,
-    which let any signed-in student call them directly), while the existing
-    prooflab-staging-transcriber is unchanged and still only accepts `authenticated`."""
+    are service_role-only (Step 6B), while the existing transcriber only accepts
+    `authenticated`."""
     now = int(time.time())
     header = b64url(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
     payload = b64url(json.dumps({
@@ -77,7 +106,13 @@ def mint_token(role: str, ttl: int = 300) -> str:
     return f"{header}.{payload}.{b64url(sig)}"
 
 
+MALFORMED = object()  # a 200 whose body is not valid JSON
+
+
 def db_rpc(name: str, args: dict):
+    """(http_status, body). http_status is None when the database could not be
+    reached at all; body is MALFORMED when a 200 carried unreadable JSON.
+    Never raises, so every caller has to decide what each case means."""
     token = mint_token("service_role")
     req = urllib.request.Request(
         f"{POSTGREST_URL}/rpc/{name}",
@@ -88,9 +123,14 @@ def db_rpc(name: str, args: dict):
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             raw = r.read()
-            return r.status, (json.loads(raw) if raw else None)
+            try:
+                return r.status, (json.loads(raw) if raw else None)
+            except json.JSONDecodeError:
+                return r.status, MALFORMED
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read() or b"{}")
+        return e.code, None
+    except Exception as e:  # network failure, timeout
+        return None, str(e)[:200]
 
 
 def google_access_token() -> str:
@@ -102,11 +142,10 @@ def google_access_token() -> str:
 
 
 def fetch_audio(storage_path: str) -> tuple[bytes, str]:
-    """Reads the audio the browser already uploaded, straight from the staging
+    """Reads the audio the browser already uploaded, straight from the private
     bucket via the GCS API - this worker is a trusted backend process, not a
     student request, so it does not go through files-service's per-student
-    ownership check (that check exists for browser callers; it has nothing to
-    decide here, the job row it was handed already names the right file)."""
+    ownership check (the job row it was handed already names the right file)."""
     token = google_access_token()
     obj = urllib.parse.quote(f"voice-explanations/{storage_path}", safe="")
     url = f"https://storage.googleapis.com/storage/v1/b/{PRIVATE_BUCKET}/o/{obj}?alt=media"
@@ -116,31 +155,6 @@ def fetch_audio(storage_path: str) -> tuple[bytes, str]:
         return r.read(), content_type
 
 
-def request_scoring(voice_id: str):
-    """Step 6 G1: ask voice-score to grade a transcript this worker saved.
-
-    Best effort by design: the transcript is already safely stored, so a
-    failure here must not make Cloud Tasks retry the whole job (a retry would
-    find nothing to claim and do nothing). transcription-reap scores any
-    server transcript left unscored. voice-score's own migration-45 claim
-    makes a duplicate request (a retry, or reap racing this) grade nothing
-    twice."""
-    if not FUNCTIONS_URL:
-        return None, "FUNCTIONS_URL not set"
-    token = mint_token("service_role")
-    req = urllib.request.Request(
-        f"{FUNCTIONS_URL}/voice-score", data=json.dumps({"voice_id": voice_id}).encode(),
-        method="POST",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=90) as r:
-            return r.status, json.loads(r.read() or b"{}")
-    except urllib.error.HTTPError as e:
-        return e.code, (e.read() or b"")[:300].decode(errors="replace")
-    except Exception as e:  # network / timeout
-        return None, str(e)[:300]
-
-
 def transcribe(audio: bytes, content_type: str) -> dict:
     token = mint_token("authenticated")
     req = urllib.request.Request(
@@ -148,6 +162,125 @@ def transcribe(audio: bytes, content_type: str) -> dict:
         headers={"Authorization": f"Bearer {token}", "Content-Type": content_type})
     with urllib.request.urlopen(req, timeout=120) as r:
         return json.loads(r.read())
+
+
+def request_scoring(voice_id: str) -> str:
+    """Step 6 G1: ask voice-score to grade a transcript this worker saved.
+
+    Best effort by design: the transcript is already safely stored, so a
+    failure here must not make Cloud Tasks retry the whole job (a retry would
+    find nothing to claim and do nothing). transcription-reap scores any
+    server transcript left unscored, and voice-score's migration-45 claim
+    makes a duplicate request grade nothing twice.
+
+    Returns a short summary for the log: HTTP status and outcome flags only -
+    never the score notes or the response body, which are about the student."""
+    token = mint_token("service_role")
+    req = urllib.request.Request(
+        f"{FUNCTIONS_URL}/voice-score", data=json.dumps({"voice_id": voice_id}).encode(),
+        method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            status, raw = r.status, r.read()
+    except urllib.error.HTTPError as e:
+        status, raw = e.code, b""
+    except Exception as e:  # network failure, timeout
+        return f"unreachable ({type(e).__name__})"
+    try:
+        body = json.loads(raw) if raw else {}
+    except json.JSONDecodeError:
+        body = {}
+    flags = {k: body[k] for k in ("success", "pending", "lost_race") if isinstance(body, dict) and k in body}
+    return f"HTTP {status} {flags}" if flags else f"HTTP {status}"
+
+
+def release_lease(voice_id: str, lease_token: str, error: str, terminal: bool) -> tuple[bool, str]:
+    """fail_transcription_job, with its answer actually checked.
+    (True, ...)  the database confirms the job was released/failed;
+    (False, ...) it was not - either a newer attempt holds the row (a genuine
+             false: not an error) or the call itself failed (reported loudly)."""
+    status, body = db_rpc("fail_transcription_job", {
+        "_id": voice_id, "_lease_token": lease_token, "_error": error, "_terminal": terminal})
+    if status == 200 and body is True:
+        return True, "released"
+    if status == 200 and body is False:
+        return False, "not released: a newer attempt holds this job (stale lease)"
+    return False, f"FAIL-REPORT ERROR: fail_transcription_job returned status={status} body={'malformed' if body is MALFORMED else type(body).__name__}"
+
+
+def process_job(voice_id: str, task_name: str, retry_count: int) -> tuple[int, dict]:
+    """The whole job. Returns (http_code, body) for Cloud Tasks: 2xx acknowledges
+    the task, anything else makes Cloud Tasks retry it (per the queue policy)."""
+    status, claimed = db_rpc("claim_transcription_job",
+                             {"_id": voice_id, "_stale_after_seconds": STALE_AFTER_SECONDS})
+    if status != 200 or not isinstance(claimed, list):
+        print(f"WORKER: claim failed for {voice_id} (task={task_name}): status={status}", flush=True)
+        return 500, {"error": "claim failed"}
+    if not claimed:
+        # Nothing to do: already completed, already failed-and-not-retried,
+        # or another live attempt holds this row. Exactly the duplicate-delivery
+        # and concurrent-retry case this is meant to make safe.
+        print(f"WORKER: nothing to claim for {voice_id} (task={task_name}) - already handled or in progress", flush=True)
+        return 200, {"ok": True, "skipped": True}
+
+    job = claimed[0]
+    storage_path = job.get("storage_path")
+    lease_token = job.get("lease_token")
+    terminal = retry_count >= QUEUE_MAX_ATTEMPTS - 1
+
+    if ENVIRONMENT == "staging" and FAULT_INJECT_VOICE_ID and (
+            FAULT_INJECT_VOICE_ID == "ANY" or voice_id == FAULT_INJECT_VOICE_ID):
+        print(f"WORKER: FAULT INJECTION (staging) - simulating a crash after a genuine claim "
+              f"for {voice_id} (task={task_name})", flush=True)
+        time.sleep(3600)
+        return 500, {"error": "fault injection"}
+
+    try:
+        if not storage_path:
+            raise ValueError("job has no storage_path")
+        audio, content_type = fetch_audio(storage_path)
+        result = transcribe(audio, content_type)
+        text = result.get("text") or ""
+        segments = result.get("segments")
+        words = len(text.split()) if text else 0
+    except Exception as e:
+        err = str(e)[:300]
+        released, how = release_lease(voice_id, lease_token, err, terminal)
+        print(f"WORKER: failed {voice_id} (task={task_name}, attempt={job.get('attempts')}, "
+              f"retry_count={retry_count}, terminal={terminal}): {err} | {how}", flush=True)
+        # 500 either way so Cloud Tasks retries per the queue policy. If the
+        # release itself failed, the lease still expires (STALE_AFTER_SECONDS)
+        # and transcription-reap recovers the job.
+        return 500, {"error": err, "released": released}
+
+    # The lease token must match: if a NEWER attempt already reclaimed this row
+    # (this attempt was stale - slow, not dead), the database does nothing.
+    status, saved = db_rpc("complete_transcription_job",
+                           {"_id": voice_id, "_lease_token": lease_token,
+                            "_transcript": text, "_segments": segments, "_word_count": words})
+    if status == 200 and saved is True:
+        print(f"WORKER: completed {voice_id} (task={task_name}, attempt={job.get('attempts')}) words={words}", flush=True)
+        # Only the attempt whose transcript the database confirms saved asks
+        # for scoring.
+        print(f"WORKER: scoring requested for {voice_id}: {request_scoring(voice_id)}", flush=True)
+        return 200, {"ok": True, "voice_id": voice_id, "words": words}
+    if status == 200 and saved is False:
+        # A genuine "no": a newer attempt owns this job now. Acknowledge the
+        # task (retrying it cannot help) but never claim it completed here.
+        print(f"WORKER: stale lease for {voice_id} (task={task_name}) - transcript NOT saved by this attempt; "
+              f"a newer attempt owns the job", flush=True)
+        return 200, {"ok": True, "skipped": True, "stale_lease": True}
+
+    # HTTP error, unreachable database, or an unreadable answer: we do NOT know
+    # the transcript was saved, so this is never acknowledged as done. Release
+    # the lease (non-terminal, so the job goes back to pending for a retry) -
+    # safe even if the save secretly succeeded, because fail_transcription_job
+    # only touches a row still 'processing' under this lease.
+    what = "malformed response" if saved is MALFORMED else f"status={status} body={type(saved).__name__}"
+    released, how = release_lease(voice_id, lease_token, f"complete_transcription_job failed: {what}", False)
+    print(f"WORKER: complete_transcription_job FAILED for {voice_id} (task={task_name}): {what} | {how}", flush=True)
+    return 500, {"error": "could not confirm the transcript was saved", "released": released}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -170,71 +303,20 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length) or b"{}")
         except json.JSONDecodeError:
             return self.reply(400, {"error": "bad json"})
-
         voice_id = body.get("voice_id")
-        task_name = self.headers.get("X-Cloudtasks-Taskname", "")
-        retry_count = int(self.headers.get("X-Cloudtasks-Taskretrycount", "0"))
         if not voice_id:
             return self.reply(400, {"error": "voice_id required"})
-
-        status, claimed = db_rpc("claim_transcription_job",
-                                  {"_id": voice_id, "_stale_after_seconds": STALE_AFTER_SECONDS})
-        if status != 200:
-            print(f"WORKER: claim failed for {voice_id} (task={task_name}): {status} {claimed}", flush=True)
-            return self.reply(500, {"error": "claim failed"})
-        if not claimed:
-            # Nothing to do: already completed, already failed-and-not-retried,
-            # or another live attempt currently holds this row. Exactly the
-            # duplicate-delivery and concurrent-retry case this is meant to
-            # make safe - reprocessing was correctly skipped, not an error.
-            print(f"WORKER: nothing to claim for {voice_id} (task={task_name}) - already handled or in progress", flush=True)
-            return self.reply(200, {"ok": True, "skipped": True})
-
-        job = claimed[0]
-        storage_path = job["storage_path"]
-        lease_token = job["lease_token"]
-
-        if FAULT_INJECT_VOICE_ID and (FAULT_INJECT_VOICE_ID == "ANY" or voice_id == FAULT_INJECT_VOICE_ID):
-            print(f"WORKER: FAULT INJECTION - simulating a crash after a genuine claim "
-                  f"for {voice_id} (task={task_name}, lease={lease_token})", flush=True)
-            time.sleep(3600)
-            return
-
-        try:
-            if not storage_path:
-                raise ValueError("job has no storage_path")
-            audio, content_type = fetch_audio(storage_path)
-            result = transcribe(audio, content_type)
-            text = result.get("text") or ""
-            segments = result.get("segments")
-            words = len(text.split()) if text else 0
-            # The lease token must match: if a NEWER attempt already reclaimed
-            # this row (this attempt was actually stale, just slow to finish
-            # rather than truly dead), this call correctly does nothing rather
-            # than overwriting whatever the newer attempt already saved.
-            ok = db_rpc("complete_transcription_job",
-                        {"_id": voice_id, "_lease_token": lease_token,
-                         "_transcript": text, "_segments": segments, "_word_count": words})[1]
-            print(f"WORKER: completed {voice_id} (task={task_name}, attempt={job['attempts']}) words={words} db_updated={ok}", flush=True)
-            # Only the attempt whose transcript was actually saved asks for
-            # scoring; a stale attempt (ok false) leaves it to the newer one.
-            if ok:
-                s_status, s_body = request_scoring(voice_id)
-                print(f"WORKER: scoring requested for {voice_id}: {s_status} {s_body}", flush=True)
-            return self.reply(200, {"ok": True, "voice_id": voice_id, "words": words})
-        except Exception as e:
-            err = str(e)[:300]
-            terminal = retry_count >= QUEUE_MAX_ATTEMPTS - 1
-            db_rpc("fail_transcription_job",
-                   {"_id": voice_id, "_lease_token": lease_token, "_error": err, "_terminal": terminal})
-            print(f"WORKER: failed {voice_id} (task={task_name}, attempt={job['attempts']}, "
-                  f"retry_count={retry_count}, terminal={terminal}): {err}", flush=True)
-            # 500 so Cloud Tasks retries per the queue's own policy - a transient
-            # fetch/transcriber error gets another attempt automatically, and the
-            # row goes back to 'pending' (not 'failed') unless this was the last one.
-            return self.reply(500, {"error": err})
+        task_name = self.headers.get("X-Cloudtasks-Taskname", "")
+        retry_count = int(self.headers.get("X-Cloudtasks-Taskretrycount", "0"))
+        code, reply = process_job(voice_id, task_name, retry_count)
+        return self.reply(code, reply)
 
 
 if __name__ == "__main__":
-    print(f"transcription-worker listening on :{PORT}", flush=True)
+    problems = check_config()
+    if problems:
+        for p in problems:
+            print(f"transcription-worker: CONFIG ERROR: {p}", flush=True)
+        sys.exit(1)
+    print(f"transcription-worker listening on :{PORT} (environment={ENVIRONMENT})", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()

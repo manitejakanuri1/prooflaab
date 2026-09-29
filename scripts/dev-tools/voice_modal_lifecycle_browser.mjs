@@ -159,7 +159,14 @@ async function openExplain(page, { first = true } = {}) {
 }
 const closeDialog = async (page) => { await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 10000 }); };
 const marker = (page) => ev(page, (id) => {
-  try { for (const k of Object.keys(localStorage)) if (k.startsWith(`pl.voiceJob.${id}.`)) return JSON.parse(localStorage.getItem(k)); } catch { /* blocked */ }
+  // slot key: pl.voiceJob.v2:["<student>","<task>|null","<proof>|null"] (voiceJob.slotKey)
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (!k.startsWith('pl.voiceJob.v2:')) continue;
+      const v = localStorage.getItem(k);
+      if (JSON.parse(k.slice('pl.voiceJob.v2:'.length))[0] === id && v) return JSON.parse(v);
+    }
+  } catch { /* blocked */ }
   return null;
 }, T07);
 async function recordAndStop(page, ms = 2000) {

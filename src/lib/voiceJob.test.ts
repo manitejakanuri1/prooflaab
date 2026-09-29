@@ -90,11 +90,49 @@ test("a stored job carries its student/task/proof and a retry re-sends exactly t
     { storage_path: "s1/a.webm", task_id: "t1", proof_id: null, duration_seconds: 30, idempotency_key: "k" });
 });
 test("recovery is used only in the same student/task/proof context", () => {
+  const ctx = (studentId: string, taskId: string | null = null, proofId: string | null = null) => ({ studentId, taskId, proofId });
   const job: StoredJob = { voiceId: "v", idempotencyKey: "k", storagePath: "p", durationSeconds: 5, studentId: "s1", taskId: "t1", proofId: null };
-  assert.equal(jobMatchesContext(job, { studentId: "s1", taskId: "t1" }), true);
-  assert.equal(jobMatchesContext(job, { studentId: "s2", taskId: "t1" }), false);   // account changed
-  assert.equal(jobMatchesContext(job, { studentId: "s1", taskId: "t2" }), false);   // other task
-  assert.equal(jobMatchesContext(job, { studentId: "s1", taskId: "t1", proofId: "p9" }), false);
-  const legacy: StoredJob = { voiceId: "v", idempotencyKey: "k", storagePath: "p", durationSeconds: 5 };
-  assert.equal(jobMatchesContext(legacy, { studentId: "anyone" }), true);           // old marker: key decides
+  assert.equal(jobMatchesContext(job, ctx("s1", "t1")), "match");
+  assert.equal(jobMatchesContext(job, ctx("s2", "t1")), "other");        // account changed
+  assert.equal(jobMatchesContext(job, ctx("s1", "t2")), "other");        // other task
+  assert.equal(jobMatchesContext(job, ctx("s1", "t1", "p9")), "other");  // other proof under the same task
+  // an older marker's key/path do not prove task or proof: "unknown", never a match
+  const legacy: StoredJob = { voiceId: "v", idempotencyKey: "k", storagePath: "s1/1-explain.webm", durationSeconds: 5 };
+  assert.equal(jobMatchesContext(legacy, ctx("s1", "t1")), "unknown");
+  assert.equal(jobMatchesContext({ ...legacy, studentId: "s2" }, ctx("s1", "t1")), "other");
+});
+
+// ---------- slot identity ----------
+import { classifyLegacy, legacySlotKey, recordingContext, slotKey } from "./voiceJob.ts";
+test("slot key: student, task AND proof, nulls included - two proofs under one task never share", () => {
+  const a = slotKey(recordingContext("s1", "t1", "p1"));
+  const b = slotKey(recordingContext("s1", "t1", "p2"));
+  const c = slotKey(recordingContext("s1", "t1", null));
+  const d = slotKey(recordingContext("s1", null, "t1"));          // a proof whose id equals a task id
+  const e = slotKey(recordingContext("s1", undefined, undefined));
+  const f = slotKey(recordingContext("s1", null, null));
+  assert.equal(new Set([a, b, c, d]).size, 4);
+  assert.equal(e, f);                                              // undefined and null are the same "none"
+  assert.notEqual(slotKey(recordingContext("s1.t1", null, null)), slotKey(recordingContext("s1", "t1", null)));
+  // the old key really was shared: that is why older markers need checking
+  assert.equal(legacySlotKey(recordingContext("s1", "t1", "p1")), legacySlotKey(recordingContext("s1", "t1", "p2")));
+});
+
+test("legacy marker: only the server's own row decides; failure or absence never guesses", () => {
+  const here = recordingContext("s1", "t1", "p2");
+  const byKey: StoredJob = { voiceId: null, idempotencyKey: "k", storagePath: "s1/1-explain.webm", durationSeconds: 20 };
+  const byId: StoredJob = { ...byKey, voiceId: "v1" };
+  const row = (task_id: string | null, proof_id: string | null, student_id = "s1") => ({ id: "v1", student_id, task_id, proof_id });
+  // lookup failed / timed out: unresolved, and no "attach here" offered
+  assert.deepEqual(classifyLegacy(byKey, here, undefined), { kind: "unresolved", canAttach: false });
+  // never reached the server: unresolved; the student may explicitly attach it
+  assert.deepEqual(classifyLegacy(byKey, here, null), { kind: "unresolved", canAttach: true });
+  // had a voiceId but the row is gone/invisible: unresolved, no attach
+  assert.deepEqual(classifyLegacy(byId, here, null), { kind: "unresolved", canAttach: false });
+  // same task, different proof: belongs elsewhere - never attached here
+  assert.deepEqual(classifyLegacy(byKey, here, row("t1", "p1")), { kind: "elsewhere" });
+  assert.deepEqual(classifyLegacy(byKey, here, row("t1", "p2", "s2")), { kind: "elsewhere" });
+  // proven ours: stamped with the full context and the server's id
+  assert.deepEqual(classifyLegacy(byKey, here, row("t1", "p2")),
+    { kind: "ours", job: { ...byKey, voiceId: "v1", studentId: "s1", taskId: "t1", proofId: "p2" } });
 });

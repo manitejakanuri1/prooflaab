@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,11 +11,13 @@ import RecordingPlayback from "./RecordingPlayback";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 import { createBlobUrlOwner, withoutLocalAudio } from "@/lib/blobUrlOwner";
 import {
-  createEpoch, exportEntry, markerBelongsTo, recordedSeconds, recordingClock, safeStore, scoreToShow, uploadRegistry,
+  audioTooLong, createEpoch, exportEntry, markerBelongsTo, recordedSeconds, recordingClock, safeStore, scoreToShow,
+  settleWithin, uploadRegistry,
 } from "@/lib/voiceLifecycle";
 import {
-  enqueueBody, jobMatchesContext, nextFailures, parseStoredJob, SavedNotifier, viewOf,
-  type JobRow, type JobStatus, type PollTick, type StoredJob,
+  classifyLegacy, enqueueBody, jobMatchesContext, legacySlotKey, nextFailures, parseStoredJob, recordingContext,
+  SavedNotifier, slotKey, viewOf,
+  type JobRow, type JobStatus, type LegacyVerdict, type OwnerRow, type PollTick, type RecordingContext, type StoredJob,
 } from "@/lib/voiceJob";
 
 const MAX_SECONDS = 60;
@@ -39,6 +41,10 @@ const MIN_WORDS = 12;
 const ASYNC_TRANSCRIPTION = import.meta.env.VITE_ASYNC_TRANSCRIPTION === "true";
 
 const POLL_MS = 2500;
+/** A progress check or lookup that never answers counts as a failed one. */
+const CHECK_TIMEOUT_MS = 15_000;
+/** An enqueue that never answers is treated like a lost answer (same key is retried). */
+const ENQUEUE_TIMEOUT_MS = 30_000;
 
 interface VoiceExplainModalProps {
   open: boolean;
@@ -56,8 +62,11 @@ interface VoiceExplainModalProps {
  * (an enqueue whose answer was lost, or progress checks that keep failing).
  * The saved recovery details are kept, and the only choices are to resume it
  * or to explicitly abandon it - never a silent fresh start over it.
+ * "checking": an older build's recovery marker is being checked with the server.
+ * "legacy": that check could not tell which work the older marker belongs to;
+ * the student chooses (check again / keep it for this work / set it aside).
  */
-type Phase = "idle" | "recording" | "transcribing" | "saving" | "queued" | "done" | "uncertain" | "error";
+type Phase = "idle" | "recording" | "transcribing" | "saving" | "queued" | "done" | "uncertain" | "checking" | "legacy" | "error";
 
 interface SavedResult {
   transcript: string;
@@ -68,6 +77,34 @@ interface SavedResult {
   audioUrl?: string;
   /** the stored file, played through an authenticated download after a refresh. */
   storagePath?: string;
+}
+
+/**
+ * One recording, fixed when Start is pressed. Every later step - upload,
+ * recovery marker, enqueue, retry - uses these values, never the current
+ * props, so a save that finishes after the dialog moved to another student,
+ * task or proof still describes (and stores under) its own context.
+ */
+interface Recording {
+  id: string;
+  ctx: RecordingContext;
+  slot: string;
+  idempotencyKey: string;
+  epoch: number;
+}
+
+/** Real decoded length of a recording, or null when this browser cannot tell. */
+async function decodedSeconds(blob: Blob): Promise<number | null> {
+  let ctx: AudioContext | null = null;
+  try {
+    ctx = new AudioContext();
+    const buf = await settleWithin(ctx.decodeAudioData(await blob.arrayBuffer()), 10_000, null);
+    return buf ? buf.duration : null;
+  } catch {
+    return null;
+  } finally {
+    if (ctx) void ctx.close().catch(() => {});
+  }
 }
 
 /**
@@ -91,8 +128,15 @@ const VoiceExplainModal = ({
 }: VoiceExplainModalProps) => {
   const { toast } = useToast();
   const [phase, setPhase] = useState<Phase>("idle");
-  const [consented, setConsented] = useState<boolean | null>(null);
-  const [accepting, setAccepting] = useState(false);
+  // Consent is stored WITH the student it was answered for: another student's
+  // answer (a late read, or a late "I understand") never counts here.
+  const [consent, setConsent] = useState<{ student: string; value: boolean | null }>({ student: "", value: null });
+  const consented = consent.student === studentId ? consent.value : null;
+  const consentRef = useRef(consent);
+  consentRef.current = consent;
+  const consentGenRef = useRef(0);                 // bumped whenever the student or open state changes
+  const [acceptingFor, setAcceptingFor] = useState<string | null>(null);
+  const accepting = acceptingFor === studentId;
   const [secondsLeft, setSecondsLeft] = useState(MAX_SECONDS);
   const [transcribeProgress, setTranscribeProgress] = useState<TranscribeProgress | null>(null);
   const [level, setLevel] = useState(0);
@@ -104,17 +148,29 @@ const VoiceExplainModal = ({
   const rafRef = useRef<number | null>(null);
   const [savedResult, setSavedResult] = useState<SavedResult | null>(null);
 
+  // The context this dialog is showing right now, and its recovery/upload slot.
+  const ctx = useMemo(() => recordingContext(studentId, taskId, proofId), [studentId, taskId, proofId]);
+  const slot = slotKey(ctx);
+  const slotRef = useRef(slot);
+  slotRef.current = slot;
+
   // Step 6D/6E/G1 (async path only, see ASYNC_TRANSCRIPTION above).
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
   const [uncertainReason, setUncertainReason] = useState<string | null>(null);
   const [scoringPending, setScoringPending] = useState(false);
-  const idempotencyKeyRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollFailuresRef = useRef(0);
-  const checkingRef = useRef(false);        // one progress check at a time
-  const resumingRef = useRef(false);        // one resume at a time
-  const savingRef = useRef(false);
+  // In-flight work is owned by its session (epoch) and its job/slot/recording,
+  // never by the component: an old request that never answers cannot block a
+  // newer session, and the same recording is never saved twice.
+  const checksInFlightRef = useRef(new Set<string>());   // `${epoch}:${voiceId}`
+  const resumesInFlightRef = useRef(new Set<string>());  // `${epoch}:${slot}`
+  const savedRecordingsRef = useRef(new Set<string>());  // Recording.id, once each, forever
+  // An older build's marker that could not be matched to this work.
+  const legacyRef = useRef<{ key: string; job: StoredJob; raw: string } | null>(null);
+  const [legacyCanAttach, setLegacyCanAttach] = useState(false);
+  const elsewhereRef = useRef(new Set<string>());        // older markers proven to belong to other work
   const onSavedRef = useRef(onSaved);
   onSavedRef.current = onSaved;
   // onSaved once per recording per stage, however often polling reports it.
@@ -126,9 +182,9 @@ const VoiceExplainModal = ({
   const blobOwnerRef = useRef<ReturnType<typeof createBlobUrlOwner> | null>(null);
   if (!blobOwnerRef.current) blobOwnerRef.current = createBlobUrlOwner();
   // Lifecycle guards (lib/voiceLifecycle.ts). The epoch is bumped on close,
-  // unmount, abandon and every new recording: an async continuation from an
-  // older epoch (a late microphone grant, upload, enqueue answer or poll)
-  // never touches the screen, the blob URL or another recording's marker.
+  // unmount, abandon, a context change and every new recording: an async
+  // continuation from an older epoch (a late microphone grant, upload,
+  // enqueue answer or poll) never touches the screen or the blob URL.
   const epochRef = useRef<ReturnType<typeof createEpoch> | null>(null);
   if (!epochRef.current) epochRef.current = createEpoch();
   const mountedRef = useRef(true);
@@ -140,6 +196,7 @@ const VoiceExplainModal = ({
   const [slotBusy, setSlotBusy] = useState(false); // a save for this slot is still in flight
   const waitingForSlotRef = useRef(false);          // this dialog is waiting for that save
   const recordStartedAtRef = useRef(0);             // Date.now() when recording began
+  const stopAtRef = useRef<number | null>(null);    // Date.now() when a stop was asked for
   const releaseLocalAudio = useCallback(() => {
     blobOwnerRef.current?.release();
     setSavedResult((prev) => withoutLocalAudio(prev));
@@ -153,25 +210,31 @@ const VoiceExplainModal = ({
     };
   }, []);
 
-  const jobStorageKey = useCallback(
-    () => `pl.voiceJob.${studentId}.${taskId ?? proofId ?? "general"}`,
-    [studentId, taskId, proofId],
-  );
-  // localStorage, or an in-memory copy for this page when storage is blocked
-  // (safeStore never throws): close-and-reopen recovery still works then; only
-  // a full page reload would lose it.
-  const readStoredJob = useCallback(
-    (): StoredJob | null => parseStoredJob(safeStore.get(jobStorageKey())),
-    [jobStorageKey],
-  );
-  const writeStoredJob = useCallback((job: StoredJob | null) => {
-    if (job) safeStore.set(jobStorageKey(), JSON.stringify(job));
-    else safeStore.remove(jobStorageKey());
-  }, [jobStorageKey]);
+  // localStorage, with in-memory overrides for this page when writing or
+  // removing is blocked (safeStore never throws).
+  const readJob = useCallback((key: string): StoredJob | null => parseStoredJob(safeStore.get(key)), []);
+  const writeJob = useCallback((key: string, job: StoredJob | null) => {
+    if (job) safeStore.set(key, JSON.stringify(job));
+    else safeStore.remove(key);
+  }, []);
+  /** Updates a marker only while it is still the same recording's (never
+   * resurrects an abandoned one, never overwrites a newer one). */
+  const updateJobIfSame = useCallback((key: string, job: StoredJob) => {
+    if (readJob(key)?.idempotencyKey === job.idempotencyKey) writeJob(key, job);
+  }, [readJob, writeJob]);
   /** Clears the marker only if it still belongs to this recording. */
-  const clearStoredJobFor = useCallback((voiceId: string) => {
-    if (markerBelongsTo(readStoredJob()?.voiceId, voiceId)) writeStoredJob(null);
-  }, [readStoredJob, writeStoredJob]);
+  const clearJobFor = useCallback((key: string, voiceId: string) => {
+    if (markerBelongsTo(readJob(key)?.voiceId, voiceId)) writeJob(key, null);
+  }, [readJob, writeJob]);
+
+  /** Something recoverable exists for this exact context: its own marker, or
+   * an older build's marker not yet proven to belong to other work. */
+  const hasPendingRecovery = useCallback((): boolean => {
+    const own = readJob(slot);
+    if (own && jobMatchesContext(own, ctx) === "match") return true;
+    const legacy = readJob(legacySlotKey(ctx));
+    return !!legacy && jobMatchesContext(legacy, ctx) !== "other" && !elsewhereRef.current.has(legacy.idempotencyKey);
+  }, [ctx, readJob, slot]);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
@@ -187,20 +250,24 @@ const VoiceExplainModal = ({
 
   /** One check of the job's current row, shared by the poll loop and by a
    * reopened modal's first look. Reads only this student's own row (RLS
-   * scopes every select to student_id = auth.uid()). A failed read or a row
-   * that cannot be seen counts as a failure; after MAX_POLL_FAILURES in a
-   * row the page stops and asks, instead of spinning forever. */
-  const checkJob = useCallback(async (voiceId: string, epoch: number) => {
-    if (checkingRef.current) return;
-    checkingRef.current = true;
+   * scopes every select to student_id = auth.uid()). A failed, timed-out or
+   * empty read counts as a failure; after MAX_POLL_FAILURES in a row the page
+   * stops and asks, instead of spinning forever. */
+  const checkJob = useCallback(async (voiceId: string, epoch: number, key: string) => {
+    const flight = `${epoch}:${voiceId}`;
+    if (checksInFlightRef.current.has(flight)) return;    // one check at a time per job and session
+    checksInFlightRef.current.add(flight);
     try {
       // types.ts predates migrations 41-45 (transcription_status and friends).
-      const res = await supabase
-        .from("voice_explanations")
-        .select("id, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes, storage_path")
-        .eq("id", voiceId)
-        .maybeSingle()
-        .then((r) => r as unknown as { data: JobRow | null; error: unknown }, (e) => ({ data: null, error: e }));
+      const res = await settleWithin(
+        supabase
+          .from("voice_explanations")
+          .select("id, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes, storage_path")
+          .eq("id", voiceId)
+          .maybeSingle()
+          .then((r) => r as unknown as { data: JobRow | null; error: unknown }, (e) => ({ data: null, error: e })),
+        CHECK_TIMEOUT_MS, { data: null, error: "timeout" },
+      );
 
       // A late answer after close/abandon/another recording: ignore entirely.
       if (!epochRef.current!.isCurrent(epoch) || activePollIdRef.current !== voiceId || !mountedRef.current) return;
@@ -229,7 +296,7 @@ const VoiceExplainModal = ({
       if (view.kind === "transcription_failed") {
         // Confirmed final by the server: now a new recording is safe.
         stopPolling();
-        clearStoredJobFor(voiceId);
+        clearJobFor(key, voiceId);
         setJobError(view.error);
         setPhase("error");
         return;
@@ -242,7 +309,7 @@ const VoiceExplainModal = ({
       setScoringPending(!view.final);
       if (view.final) {
         stopPolling();
-        clearStoredJobFor(voiceId);
+        clearJobFor(key, voiceId);
       }
       setSavedResult((prev) => ({
         transcript: row.transcript ?? "",
@@ -257,57 +324,114 @@ const VoiceExplainModal = ({
       notifierRef.current?.notify(voiceId, "transcribed");
       if (view.final) notifierRef.current?.notify(voiceId, "final");
     } finally {
-      checkingRef.current = false;
+      checksInFlightRef.current.delete(flight);
     }
-  }, [becomeUncertain, stopPolling, clearStoredJobFor]);
+  }, [becomeUncertain, stopPolling, clearJobFor]);
 
-  /** The recovery path for a lost enqueue response: the job may already
-   * exist under this key even though this browser never saw its id. Scoped
-   * to the caller's own rows by RLS. `undefined` means the lookup itself
-   * failed (unknown), `null` means it genuinely is not there. */
-  const findJobByIdempotencyKey = useCallback(async (key: string): Promise<string | null | undefined> => {
-    const res = await supabase
-      .from("voice_explanations")
-      .select("id")
-      .eq("transcription_idempotency_key" as "id", key)
-      .maybeSingle()
-      .then((r) => r as unknown as { data: { id: string } | null; error: unknown }, (e) => ({ data: null, error: e }));
+  /** This student's own row (RLS), found by id, idempotency key or storage
+   * path, with who/what it belongs to. `undefined`: the lookup failed or
+   * timed out (unknown). `null`: genuinely not there. */
+  const findOwnRow = useCallback(async (
+    column: "id" | "transcription_idempotency_key" | "storage_path", value: string,
+  ): Promise<OwnerRow | null | undefined> => {
+    const res = await settleWithin(
+      supabase
+        .from("voice_explanations")
+        .select("id, student_id, task_id, proof_id")
+        .eq(column as "id", value)
+        .limit(1)
+        .then((r) => r as unknown as { data: OwnerRow[] | null; error: unknown }, (e) => ({ data: null, error: e })),
+      CHECK_TIMEOUT_MS, { data: null, error: "timeout" },
+    );
     if (res.error) return undefined;
-    return res.data?.id ?? null;
+    return res.data?.[0] ?? null;
   }, []);
 
-  const startPolling = useCallback((voiceId: string) => {
+  const startPolling = useCallback((voiceId: string, key: string) => {
     stopPolling();
     pollFailuresRef.current = 0;
     activePollIdRef.current = voiceId;
     const epoch = epochRef.current!.current;
-    void checkJob(voiceId, epoch); // don't wait for the first tick to show current state
-    pollTimerRef.current = setInterval(() => void checkJob(voiceId, epoch), POLL_MS);
+    void checkJob(voiceId, epoch, key); // don't wait for the first tick to show current state
+    pollTimerRef.current = setInterval(() => void checkJob(voiceId, epoch, key), POLL_MS);
   }, [checkJob, stopPolling]);
 
-  /** Resume whatever this student's localStorage says is in flight - on
+  /**
+   * An older build's marker (key `taskId ?? proofId`, shared by every proof
+   * under one task; older ones carry no student/task/proof). It is used here
+   * only when it is known to be this work's: by its own fields (written by the
+   * previous build), or by the server's row for it. Otherwise it stays exactly
+   * where it is and the student chooses - it is never silently attached,
+   * overwritten, deleted or re-enqueued with a guessed task/proof.
+   * Returns the marker to resume (now moved to this context's own slot), or null.
+   */
+  const adoptLegacy = useCallback(async (here: RecordingContext, epoch: number): Promise<StoredJob | null> => {
+    const lkey = legacySlotKey(here);
+    const raw = safeStore.get(lkey);
+    const legacy = parseStoredJob(raw);
+    if (!raw || !legacy || elsewhereRef.current.has(legacy.idempotencyKey)) return null;
+    const known = jobMatchesContext(legacy, here);
+    if (known === "other") return null;                 // its own fields say it is other work's
+    let verdict: LegacyVerdict;
+    if (known === "match") {
+      verdict = { kind: "ours", job: { ...legacy, ...here } };
+    } else {
+      setPhase("checking");
+      let row = legacy.voiceId
+        ? await findOwnRow("id", legacy.voiceId)
+        : await findOwnRow("transcription_idempotency_key", legacy.idempotencyKey);
+      if (row === null && !legacy.voiceId) row = await findOwnRow("storage_path", legacy.storagePath);
+      verdict = classifyLegacy(legacy, here, row);
+    }
+    if (!epochRef.current!.isCurrent(epoch) || !mountedRef.current) return null;   // stale: marker untouched
+    if (verdict.kind === "elsewhere") {
+      elsewhereRef.current.add(legacy.idempotencyKey);
+      setPhase("idle");
+      return null;
+    }
+    if (verdict.kind === "unresolved") {
+      legacyRef.current = { key: lkey, job: legacy, raw };
+      setLegacyCanAttach(verdict.canAttach);
+      setPhase("legacy");
+      return null;
+    }
+    // Proven this work's: move it to this context's own slot (never over
+    // another marker), and retire the old key only once the move is readable.
+    const key = slotKey(here);
+    if (!readJob(key)) writeJob(key, verdict.job);
+    if (readJob(key)?.idempotencyKey === verdict.job.idempotencyKey) writeJob(lkey, null);
+    return readJob(key);
+  }, [findOwnRow, readJob, writeJob]);
+
+  /** Resume whatever this context's recovery marker says is in flight - on
    * reopen/remount, after a lost enqueue response, or from the "Resume
    * existing recording" button. Known voiceId: just poll. Unknown: ask the
    * server whether the job exists anyway, and only then retry the enqueue -
-   * with the SAME idempotency key, storage path and duration. */
+   * with the SAME idempotency key, storage path, duration, task and proof. */
   const resumeStoredJob = useCallback(async (opts?: { ownSave?: boolean }) => {
+    const here = ctx;
+    const key = slotKey(here);
     // A save for this slot is still uploading (possibly from a dialog that has
     // since closed): show that and wait - its finish triggers this again. The
     // save's own recovery (a lost enqueue answer) does not wait for itself.
-    if (!opts?.ownSave && uploadRegistry.isActive(jobStorageKey())) {
+    if (!opts?.ownSave && uploadRegistry.isActive(key)) {
       waitingForSlotRef.current = true;
       setPhase("saving");
       return;
     }
-    const stored = readStoredJob();
-    if (!stored || resumingRef.current) return;
-    // Only this student's, this task's/proof's recording is ever resumed here.
-    if (!jobMatchesContext(stored, { studentId, taskId, proofId })) return;
-    resumingRef.current = true;
     const epoch = epochRef.current!.current;
+    const flight = `${epoch}:${key}`;
+    if (resumesInFlightRef.current.has(flight)) return;   // one resume per session and slot
+    resumesInFlightRef.current.add(flight);
     const current = () => epochRef.current!.isCurrent(epoch) && mountedRef.current;
     try {
-      idempotencyKeyRef.current = stored.idempotencyKey;
+      let stored = readJob(key);
+      if (stored && jobMatchesContext(stored, here) !== "match") stored = null; // never another context's
+      if (!stored) {
+        stored = await adoptLegacy(here, epoch);
+        if (!stored || !current()) return;
+      }
+      const job = stored;
       setError(null);
       setJobError(null);
       setUncertainReason(null);
@@ -315,22 +439,22 @@ const VoiceExplainModal = ({
       // authenticated download - never an empty URL.
       setSavedResult((prev) => ({
         ...(prev ?? { transcript: "", segments: [], score: null, notes: null }),
-        storagePath: stored.storagePath,
+        storagePath: job.storagePath,
       }));
 
-      if (stored.voiceId) {
+      if (job.voiceId) {
         setPhase("queued");
-        startPolling(stored.voiceId);
+        startPolling(job.voiceId, key);
         return;
       }
 
       setPhase("saving");
-      const found = await findJobByIdempotencyKey(stored.idempotencyKey);
+      const found = await findOwnRow("transcription_idempotency_key", job.idempotencyKey);
       if (found) {
-        writeStoredJob({ ...stored, voiceId: found }); // recovery info, even if closed meanwhile
+        updateJobIfSame(key, { ...job, voiceId: found.id }); // recovery info, even if closed meanwhile
         if (!current()) return;
         setPhase("queued");
-        startPolling(found);
+        startPolling(found.id, key);
         return;
       }
       if (!current()) return;
@@ -338,26 +462,51 @@ const VoiceExplainModal = ({
       // Not found, or the lookup failed: retrying the enqueue is still safe
       // (the server reuses the row for the same key), and it is the only way
       // forward if the first call never landed.
-      const { data: enq, error: enqErr } = await supabase.functions
-        .invoke("transcription-enqueue", { body: enqueueBody(stored, taskId, proofId) })
-        .then((r) => r, (e) => ({ data: null, error: e }));
+      const { data: enq, error: enqErr } = await settleWithin(
+        supabase.functions
+          .invoke("transcription-enqueue", { body: enqueueBody(job, here.taskId, here.proofId) })
+          .then((r) => r, (e) => ({ data: null, error: e })),
+        ENQUEUE_TIMEOUT_MS, { data: null, error: "timeout" },
+      );
       if (enqErr || !enq?.voice_id) {
         if (current()) becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
         return;
       }
-      writeStoredJob({ ...stored, voiceId: enq.voice_id });
+      updateJobIfSame(key, { ...job, voiceId: enq.voice_id });
       if (!current()) return;
       setPhase("queued");
-      startPolling(enq.voice_id);
+      startPolling(enq.voice_id, key);
     } finally {
-      resumingRef.current = false;
+      resumesInFlightRef.current.delete(flight);
     }
-  }, [becomeUncertain, findJobByIdempotencyKey, jobStorageKey, proofId, readStoredJob, startPolling, studentId, taskId, writeStoredJob]);
+  }, [adoptLegacy, becomeUncertain, ctx, findOwnRow, readJob, startPolling, updateJobIfSame]);
+
+  /** Student's explicit choice for an unresolved older marker that never
+   * reached the server: it is this work's recording - save it here. */
+  const attachLegacyHere = useCallback(() => {
+    const l = legacyRef.current;
+    if (!l || !legacyCanAttach) return;
+    if (!readJob(slot)) writeJob(slot, { ...l.job, voiceId: null, ...ctx });
+    if (readJob(slot)?.idempotencyKey === l.job.idempotencyKey) writeJob(l.key, null);
+    legacyRef.current = null;
+    void resumeStoredJob();
+  }, [ctx, legacyCanAttach, readJob, resumeStoredJob, slot, writeJob]);
+
+  /** Student's explicit choice: keep the older marker's details aside (not
+   * deleted) and record a new one here. */
+  const setLegacyAside = useCallback(() => {
+    const l = legacyRef.current;
+    if (!l) return;
+    safeStore.set(`pl.voiceJob.setAside:${l.job.idempotencyKey}`, l.raw);
+    writeJob(l.key, null);
+    legacyRef.current = null;
+    setPhase("idle");
+  }, [writeJob]);
 
   // Follow a save for this slot that is in flight anywhere on the page. When
   // it finishes, an open dialog resumes from the marker it left (if any).
   useEffect(() => {
-    const key = jobStorageKey();
+    const key = slot;
     setSlotBusy(uploadRegistry.isActive(key));
     return uploadRegistry.subscribe(key, () => {
       const busy = uploadRegistry.isActive(key);
@@ -366,11 +515,11 @@ const VoiceExplainModal = ({
       // that made the save is already following it.
       if (!busy && waitingForSlotRef.current && openRef.current && mountedRef.current) {
         waitingForSlotRef.current = false;
-        if (ASYNC_TRANSCRIPTION && readStoredJob()) void resumeStoredJob();
+        if (ASYNC_TRANSCRIPTION && hasPendingRecovery()) void resumeStoredJob();
         else setPhase("idle");
       }
     });
-  }, [jobStorageKey, readStoredJob, resumeStoredJob]);
+  }, [slot, hasPendingRecovery, resumeStoredJob]);
 
   // Reopening the modal (or a fresh mount after a page refresh) recovers an
   // existing job instead of offering to start a new recording over it.
@@ -391,33 +540,33 @@ const VoiceExplainModal = ({
 
   /** Step 6D async path: upload, then hand off to the queue and poll for the
    * server's own transcript rather than trusting the browser's. */
-  const saveAsync = useCallback(async (blob: Blob, seconds: number, ext: string, audioUrl: string, epoch: number) => {
+  const saveAsync = useCallback(async (blob: Blob, seconds: number, ext: string, audioUrl: string, rec: Recording) => {
     // The server work (upload, marker, enqueue) always runs to the end so the
     // recording is never lost; the screen and the blob URL are only touched
-    // while this dialog session is still current.
-    const current = () => epochRef.current!.isCurrent(epoch) && mountedRef.current;
-    setPhase("saving");
-    setJobStatus(null);
-    setJobError(null);
-    setScoringPending(false);
+    // while this dialog session - and this exact context - is still current.
+    const current = () => epochRef.current!.isCurrent(rec.epoch) && mountedRef.current && slotRef.current === rec.slot;
+    // Everything this recording is stored and enqueued with, fixed before any await.
+    const path = `${rec.ctx.studentId}/${Date.now()}-explain.${ext}`;
+    const job: StoredJob = {
+      voiceId: null, idempotencyKey: rec.idempotencyKey, storagePath: path, durationSeconds: seconds, ...rec.ctx,
+    };
+    if (current()) {
+      setPhase("saving");
+      setJobStatus(null);
+      setJobError(null);
+      setScoringPending(false);
+    }
     let jobRecorded = false;
     try {
-      const path = `${studentId}/${Date.now()}-explain.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("voice-explanations")
         .upload(path, blob, { contentType: blob.type, upsert: false });
       if (upErr) throw upErr;
 
-      // Stable for retries of THIS recording, fresh for every genuinely new one.
-      if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
-      const job: StoredJob = {
-        voiceId: null, idempotencyKey: idempotencyKeyRef.current, storagePath: path, durationSeconds: seconds,
-        studentId, taskId: taskId ?? null, proofId: proofId ?? null,
-      };
-      // Written BEFORE the call: if the answer is lost after the server
-      // created the job, the key, path and duration are here to find it or
-      // retry it identically.
-      writeStoredJob(job);
+      // Written BEFORE the call, under this recording's own slot: if the answer
+      // is lost after the server created the job, the key, path and duration
+      // are here to find it or retry it identically.
+      writeJob(rec.slot, job);
       jobRecorded = true;
       if (current()) {
         // Never restore a URL that close/replacement has already revoked.
@@ -425,22 +574,25 @@ const VoiceExplainModal = ({
         setSavedResult({ transcript: "", segments: [], score: null, notes: null, audioUrl: liveUrl, storagePath: path });
       }
 
-      const { data: enq, error: enqErr } = await supabase.functions
-        .invoke("transcription-enqueue", { body: enqueueBody(job, taskId, proofId) })
-        .then((r) => r, (e) => ({ data: null, error: e }));
+      const { data: enq, error: enqErr } = await settleWithin(
+        supabase.functions
+          .invoke("transcription-enqueue", { body: enqueueBody(job, rec.ctx.taskId, rec.ctx.proofId) })
+          .then((r) => r, (e) => ({ data: null, error: e })),
+        ENQUEUE_TIMEOUT_MS, { data: null, error: "timeout" },
+      );
       if (enqErr || !enq?.voice_id) {
         // The request may still have landed - the answer is what was lost.
-        // If the dialog closed meanwhile, the marker stays for the next open.
-        // ownSave: this save is still registered, so don't wait for itself -
-        // otherwise a lost answer would leave the student on "Uploading".
+        // If the dialog closed or moved on meanwhile, the marker stays for the
+        // next open of THIS context. ownSave: this save is still registered, so
+        // don't wait for itself - otherwise it would stay on "Uploading".
         if (current()) await resumeStoredJob({ ownSave: true });
         return;
       }
 
-      writeStoredJob({ ...job, voiceId: enq.voice_id });
+      updateJobIfSame(rec.slot, { ...job, voiceId: enq.voice_id });
       if (!current()) return;
       setPhase("queued");
-      startPolling(enq.voice_id);
+      startPolling(enq.voice_id, rec.slot);
     } catch (err) {
       if (jobRecorded) {
         if (current()) becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
@@ -455,25 +607,27 @@ const VoiceExplainModal = ({
         }
       }
     }
-  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob, becomeUncertain]);
+  }, [writeJob, updateJobIfSame, startPolling, resumeStoredJob, becomeUncertain]);
 
-  const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string, epoch: number) => {
-    if (savingRef.current) return; // a double-click or a duplicate onstop must not enqueue/insert twice
-    savingRef.current = true;
+  const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string, rec: Recording) => {
+    // Each recording is saved once (a double-click or a duplicate onstop must
+    // not upload/enqueue/insert twice); recordings of other contexts - or a
+    // newer one here - are never blocked by it.
+    if (savedRecordingsRef.current.has(rec.id)) return;
+    savedRecordingsRef.current.add(rec.id);
     // Registered page-wide before anything is uploaded, so a closed-and-reopened
     // dialog sees this save in flight even before its recovery marker exists.
-    const slot = jobStorageKey();
-    const token = uploadRegistry.begin(slot);
-    const current = () => epochRef.current!.isCurrent(epoch) && mountedRef.current;
+    const token = uploadRegistry.begin(rec.slot);
+    const current = () => epochRef.current!.isCurrent(rec.epoch) && mountedRef.current && slotRef.current === rec.slot;
     try {
       if (ASYNC_TRANSCRIPTION) {
         // A local copy only if this dialog session is still showing it.
         const url = current() ? blobOwnerRef.current!.adopt(URL.createObjectURL(blob)) : "";
-        await saveAsync(blob, seconds, ext, url, epoch);
+        await saveAsync(blob, seconds, ext, url, rec);
         return;
       }
-      setPhase("saving");
-      const path = `${studentId}/${Date.now()}-explain.${ext}`;
+      if (current()) setPhase("saving");
+      const path = `${rec.ctx.studentId}/${Date.now()}-explain.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("voice-explanations")
         .upload(path, blob, { contentType: blob.type, upsert: false });
@@ -484,9 +638,9 @@ const VoiceExplainModal = ({
       const { data: row, error: insErr } = await supabase
         .from("voice_explanations")
         .insert({
-          student_id: studentId,
-          task_id: taskId ?? null,
-          proof_id: proofId ?? null,
+          student_id: rec.ctx.studentId,
+          task_id: rec.ctx.taskId,
+          proof_id: rec.ctx.proofId,
           storage_path: path,
           duration_seconds: seconds,
           transcript: spoken.trim() || null,
@@ -508,8 +662,8 @@ const VoiceExplainModal = ({
         notes = scored?.notes ?? null;
       }
 
-      onSaved?.(); // the row is saved whether or not this dialog is still open
-      if (!current()) return; // closed meanwhile: no blob URL, no screen update
+      onSavedRef.current?.(); // the row is saved whether or not this dialog is still open
+      if (!current()) return; // closed or moved on meanwhile: no blob URL, no screen update
       setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: blobOwnerRef.current!.adopt(URL.createObjectURL(blob)), storagePath: path });
       setPhase("done");
     } catch (err) {
@@ -519,39 +673,45 @@ const VoiceExplainModal = ({
         setPhase("error");
       }
     } finally {
-      savingRef.current = false;
-      uploadRegistry.end(slot, token);
+      uploadRegistry.end(rec.slot, token);
     }
-  }, [jobStorageKey, studentId, taskId, proofId, onSaved, saveAsync, releaseLocalAudio]);
+  }, [saveAsync, releaseLocalAudio]);
 
   const stop = useCallback(() => {
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    if (recorderRef.current?.state === "recording") {
+      stopAtRef.current = Date.now();
+      recorderRef.current.stop();
+    }
   }, []);
 
   const start = useCallback(async () => {
     // One Start at a time, and never while a recorder already exists.
     if (startingRef.current || recorderRef.current) return;
+    // Never touch the microphone without this student's own consent.
+    if (consentRef.current.student !== ctx.studentId || consentRef.current.value !== true) return;
     // A save for this slot still in flight (maybe from a closed dialog): wait for it.
-    if (uploadRegistry.isActive(jobStorageKey())) { waitingForSlotRef.current = true; setPhase("saving"); return; }
-    // Never start over a recording the server may still hold: resume it.
-    // Only an explicit "abandon" (below) clears it first.
-    const existing = ASYNC_TRANSCRIPTION ? readStoredJob() : null;
-    if (existing && jobMatchesContext(existing, { studentId, taskId, proofId })) {
+    if (uploadRegistry.isActive(slot)) { waitingForSlotRef.current = true; setPhase("saving"); return; }
+    // Never start over a recording the server may still hold (or an older
+    // marker not yet matched to other work): resume it. Only an explicit
+    // "abandon" / "set aside" (below) clears it first.
+    if (ASYNC_TRANSCRIPTION && hasPendingRecovery()) {
       await resumeStoredJob();
       return;
     }
     startingRef.current = true;
     setStarting(true);
     const epoch = epochRef.current!.next(); // a new recording: older continuations are now stale
+    // Fixed now, before any await: this recording's context, slot and key.
+    const rec: Recording = { id: crypto.randomUUID(), ctx, slot, idempotencyKey: crypto.randomUUID(), epoch };
     setError(null);
     setSecondsLeft(MAX_SECONDS);
-    idempotencyKeyRef.current = null; // a genuinely new recording gets its own key
     setJobStatus(null);
     setJobError(null);
     setUncertainReason(null);
     setScoringPending(false);
     blobOwnerRef.current?.release(); // the previous recording's local copy
     setSavedResult(null);
+    stopAtRef.current = null;
 
     let stream: MediaStream;
     try {
@@ -565,9 +725,9 @@ const VoiceExplainModal = ({
       }
       return;
     }
-    // Permission can resolve after the dialog closed or unmounted: release the
-    // microphone at once and never start a recorder.
-    if (!epochRef.current!.isCurrent(epoch) || !mountedRef.current || !openRef.current) {
+    // Permission can resolve after the dialog closed, unmounted or moved to
+    // another context: release the microphone at once and never start a recorder.
+    if (!epochRef.current!.isCurrent(epoch) || !mountedRef.current || !openRef.current || slotRef.current !== rec.slot) {
       stream.getTracks().forEach((t) => t.stop());
       startingRef.current = false;
       if (mountedRef.current) setStarting(false);
@@ -577,16 +737,16 @@ const VoiceExplainModal = ({
     setStarting(false);
     streamRef.current = stream;
 
-    let ctx: AudioContext | null = null;
-    let rec: MediaRecorder;
+    let audioCtx: AudioContext | null = null;
+    let rec2: MediaRecorder;
     const started = Date.now();
     try {
       // A moving level meter, so it is obvious the microphone is live. A silent
       // dead recorder that looks fine is worse than no recorder.
-      ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
+      audioCtx = new AudioContext();
+      const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
-      ctx.createMediaStreamSource(stream).connect(analyser);
+      audioCtx.createMediaStreamSource(stream).connect(analyser);
       const buf = new Uint8Array(analyser.frequencyBinCount);
       const tick = () => {
         analyser.getByteTimeDomainData(buf);
@@ -598,8 +758,8 @@ const VoiceExplainModal = ({
       tick();
 
       chunksRef.current = [];
-      rec = makeRecorder(stream);
-      recorderRef.current = rec;
+      rec2 = makeRecorder(stream);
+      recorderRef.current = rec2;
     } catch {
       // The level meter or the recorder could not start on this device:
       // release everything and let the student try again.
@@ -608,45 +768,61 @@ const VoiceExplainModal = ({
       stream.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       recorderRef.current = null;
-      if (ctx) void ctx.close().catch(() => {});
+      if (audioCtx) void audioCtx.close().catch(() => {});
       setError("Couldn't start recording on this device. Close other apps using the microphone and try again.");
       setPhase("error");
       return;
     }
-    const audioCtx = ctx;
-    rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
-    rec.onstop = () => {
+    const meterCtx = audioCtx;
+    const recorder = rec2;
+    const isCurrent = () => epochRef.current!.isCurrent(epoch) && mountedRef.current && slotRef.current === rec.slot;
+    recorder.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+    recorder.onstop = async () => {
       cleanup();
-      void audioCtx.close().catch(() => {});
-      // Real elapsed time, capped - never more than the limit, even if a
-      // throttled background tab stopped the recorder a little late.
-      const seconds = recordedSeconds(started, Date.now(), MAX_SECONDS);
-      const { type, ext } = recordingFormat(rec);
+      void meterCtx.close().catch(() => {});
+      // Real elapsed time up to the moment a stop was asked for, capped -
+      // never more than the limit, even if a throttled tab stopped it late.
+      const seconds = recordedSeconds(started, stopAtRef.current ?? Date.now(), MAX_SECONDS);
+      const { type, ext } = recordingFormat(recorder);
       const blob = new Blob(chunksRef.current, { type });
+      if (isCurrent()) setPhase(ASYNC_TRANSCRIPTION ? "saving" : "transcribing");
+
+      // The audio itself must not be longer than the limit. A suspended or
+      // frozen page can keep capturing while no timer runs, so the capped
+      // duration_seconds alone does not bound it. When the browser can
+      // measure it and it is too long, nothing is uploaded. (A browser that
+      // cannot decode it falls through - see the server-side note in the
+      // Step 6 evidence doc.)
+      if (audioTooLong(await decodedSeconds(blob), MAX_SECONDS)) {
+        if (isCurrent()) {
+          setError("This recording ran past 60 seconds while the page was in the background, so it was not saved. Please record again.");
+          setPhase("error");
+        }
+        return;
+      }
 
       if (ASYNC_TRANSCRIPTION) {
         // The whole point of this path: the browser never transcribes at
         // all, Whisper runs once, server-side, after upload+enqueue.
-        void save(blob, "", [], seconds, ext, epoch);
+        void save(blob, "", [], seconds, ext, rec);
         return;
       }
-      setPhase("transcribing");
       setTranscribeProgress(null);
       transcribeWithTimestamps(blob, setTranscribeProgress)
-        .then((r) => save(blob, r.text, r.segments, seconds, ext, epoch))
-        .catch(() => save(blob, "", [], seconds, ext, epoch)); // audio is still saved even if transcription fails
+        .then((r) => save(blob, r.text, r.segments, seconds, ext, rec))
+        .catch(() => save(blob, "", [], seconds, ext, rec)); // audio is still saved even if transcription fails
     };
     // A chunk every second, so a recording stopped by the clock or a closed
     // dialog still holds everything said up to that moment.
     try {
-      rec.start(1000);
+      recorder.start(1000);
     } catch {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
       stream.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       recorderRef.current = null;
-      void audioCtx.close().catch(() => {});
+      void meterCtx.close().catch(() => {});
       setError("Couldn't start recording on this device. Close other apps using the microphone and try again.");
       setPhase("error");
       return;
@@ -654,28 +830,28 @@ const VoiceExplainModal = ({
     recordStartedAtRef.current = started;
     setSecondsLeft(MAX_SECONDS);
     setPhase("recording");
-  }, [cleanup, jobStorageKey, proofId, readStoredJob, resumeStoredJob, save, studentId, taskId]);
+  }, [cleanup, ctx, hasPendingRecovery, resumeStoredJob, save, slot]);
 
   /** Explicit, student-chosen: forget the uncertain recording and record anew.
    * The earlier one may still finish on the server and appear in the build-log. */
   const abandonAndRecordAgain = useCallback(() => {
     epochRef.current!.next(); // late answers for the abandoned recording are ignored
     stopPolling();
-    writeStoredJob(null);
-    idempotencyKeyRef.current = null;
+    writeJob(slot, null);
     setJobStatus(null);
     setJobError(null);
     setUncertainReason(null);
     blobOwnerRef.current?.release();
     setSavedResult(null);
     setPhase("idle");
-  }, [stopPolling, writeStoredJob]);
+  }, [slot, stopPolling, writeJob]);
 
   // The clock stops the recording rather than the student. Sixty seconds is the
   // whole point — a longer answer is a written answer read aloud. It is measured
   // from real elapsed time (not a count of timer ticks, which background tabs
-  // throttle), re-checked on every tick, on a timer aimed at the deadline, and
-  // whenever the tab becomes visible again.
+  // throttle), re-checked on every tick and on a timer aimed at the deadline.
+  // A page that is hidden, left or frozen cannot be trusted to run the clock at
+  // all, so the recording is stopped (and saved) at that moment instead.
   useEffect(() => {
     if (phase !== "recording") return;
     const startedAt = recordStartedAtRef.current;
@@ -684,45 +860,58 @@ const VoiceExplainModal = ({
       setSecondsLeft(c.secondsLeft);
       if (c.expired) stop();
     };
+    const onVisibility = () => { if (document.visibilityState === "hidden") stop(); else check(); };
     check();
     const every = setInterval(check, 250);
     const deadline = setTimeout(check, Math.max(0, startedAt + MAX_SECONDS * 1000 - Date.now()));
-    document.addEventListener("visibilitychange", check);
+    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("freeze", stop);
+    window.addEventListener("pagehide", stop);
     return () => {
       clearInterval(every);
       clearTimeout(deadline);
-      document.removeEventListener("visibilitychange", check);
+      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("freeze", stop);
+      window.removeEventListener("pagehide", stop);
     };
   }, [phase, stop]);
 
   // Asked once. After the first yes this query is the only cost.
   useEffect(() => {
-    // A different student (or a reopen) never inherits the previous answer.
-    setConsented(null);
+    // A different student (or a reopen) never inherits the previous answer,
+    // and any read or "I understand" still in flight becomes stale.
+    const gen = ++consentGenRef.current;
+    setConsent({ student: "", value: null });
+    setAcceptingFor(null);
     if (!open || !studentId) return;
-    let cancelled = false;
+    const forStudent = studentId;
     void supabase
       .from("student_profiles")
       .select("voice_consent_at")
-      .eq("id", studentId)
+      .eq("id", forStudent)
       .maybeSingle()
       .then(({ data, error: consentErr }) => {
-        if (cancelled) return;
+        if (consentGenRef.current !== gen) return;
         // If the answer cannot be read, ask again rather than assume a yes.
-        setConsented(consentErr ? false : Boolean(data?.voice_consent_at));
-      }, () => { if (!cancelled) setConsented(false); });
-    return () => { cancelled = true; };
+        setConsent({ student: forStudent, value: consentErr ? false : Boolean(data?.voice_consent_at) });
+      }, () => { if (consentGenRef.current === gen) setConsent({ student: forStudent, value: false }); });
   }, [open, studentId]);
 
   const acceptConsent = async () => {
-    setAccepting(true);
-    const { error } = await supabase.rpc("accept_voice_consent");
-    setAccepting(false);
+    const forStudent = studentId;
+    const gen = consentGenRef.current;
+    if (acceptingFor === forStudent) return;
+    setAcceptingFor(forStudent);
+    const { error } = await supabase.rpc("accept_voice_consent").then((r) => r, (e) => ({ error: e as Error }));
+    // Another student, a close or a reopen since: this answer is not theirs
+    // (the server recorded it for the account that sent it, nothing more).
+    if (consentGenRef.current !== gen || !mountedRef.current) return;
+    setAcceptingFor(null);
     if (error) {
       toast({ title: "Could not save that", description: error.message, variant: "destructive" });
       return;
     }
-    setConsented(true);
+    setConsent({ student: forStudent, value: true });
   };
 
   /** Ends this dialog session: everything in flight becomes stale (a late
@@ -733,6 +922,8 @@ const VoiceExplainModal = ({
     waitingForSlotRef.current = false;
     startingRef.current = false;
     setStarting(false);
+    legacyRef.current = null;
+    setLegacyCanAttach(false);
     cleanup();
     stopPolling();
     releaseLocalAudio();
@@ -753,13 +944,11 @@ const VoiceExplainModal = ({
 
   // The account (or the task/proof) can change while this stays mounted: never
   // carry anything over - not the session, the result, the key or the consent.
-  const contextKey = `${studentId}|${taskId ?? ""}|${proofId ?? ""}`;
-  const contextRef = useRef(contextKey);
+  const contextRef = useRef(slot);
   useEffect(() => {
-    if (contextRef.current === contextKey) return;
-    contextRef.current = contextKey;
+    if (contextRef.current === slot) return;
+    contextRef.current = slot;
     endSession();
-    idempotencyKeyRef.current = null;
     setSavedResult(null);
     setJobStatus(null);
     setJobError(null);
@@ -770,7 +959,7 @@ const VoiceExplainModal = ({
     // above may already have run for it; this reset just cancelled that, so
     // resume again - resumeStoredJob only ever uses this context's marker.)
     if (openRef.current && ASYNC_TRANSCRIPTION) void resumeStoredJob();
-  }, [contextKey, endSession, resumeStoredJob]);
+  }, [slot, endSession, resumeStoredJob]);
 
   return (
     <Dialog open={open} onOpenChange={close}>
@@ -917,6 +1106,35 @@ const VoiceExplainModal = ({
           </div>
         )}
 
+        {phase === "checking" && (
+          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Checking an earlier recording…
+          </div>
+        )}
+
+        {phase === "legacy" && (
+          <div className="space-y-3" data-testid="voice-legacy">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                We found an unfinished recording from an earlier visit, but we can't confirm which piece
+                of work it belongs to. It has not been deleted.
+              </AlertDescription>
+            </Alert>
+            <Button className="w-full" onClick={() => void resumeStoredJob()}>
+              <RotateCcw className="h-4 w-4 mr-2" /> Check again
+            </Button>
+            {legacyCanAttach && (
+              <Button variant="outline" className="w-full" onClick={attachLegacyHere}>
+                It was for this work — save it here
+              </Button>
+            )}
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={setLegacyAside}>
+              Keep it aside and record a new one
+            </Button>
+          </div>
+        )}
+
         {phase === "uncertain" && (
           <div className="space-y-3" data-testid="voice-uncertain">
             <Alert>
@@ -949,7 +1167,6 @@ const VoiceExplainModal = ({
                 // Only reached when nothing is in flight (the job failed for
                 // good, or nothing was sent) - start() still refuses to start
                 // over a stored job and resumes it instead.
-                idempotencyKeyRef.current = null;
                 setJobStatus(null);
                 setJobError(null);
                 setPhase("idle");

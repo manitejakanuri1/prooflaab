@@ -9,8 +9,9 @@
  *    which recording slots have a save in flight - before any recovery marker
  *    exists - so a closed-and-reopened dialog cannot start a second recording
  *    over it, and can wait for it instead.
- *  - createSafeStore: localStorage with an in-memory fallback, for browsers
- *    where storage is blocked or throws.
+ *  - createSafeStore: localStorage with in-memory overrides (values and
+ *    removal tombstones) for browsers where storage, or only writing to it,
+ *    is blocked.
  *  - scoreToShow: a number only for a server status that permits one.
  */
 
@@ -63,28 +64,44 @@ export interface KeyValueStore {
 }
 
 /**
- * localStorage when it works, an in-memory map when it does not (blocked
- * storage, private mode, quota). The memory copy only lives for this page,
- * but it keeps close-and-reopen recovery working without persistence.
+ * localStorage when it works; an in-memory override when a write or a removal
+ * fails (blocked storage, private mode, quota, a read-only profile).
+ *
+ * Reads can work while writes or removals throw. So a failed write keeps the
+ * new value in memory, and a failed removal keeps a tombstone - both win over
+ * whatever older value is still persisted, for the rest of this page. Each
+ * later access first tries to write the override through; once storage
+ * accepts it again the override is dropped and storage is the source of truth.
+ * A removal that cannot delete also tries to blank the value, so a reload
+ * does not bring an abandoned marker back where writes still work.
  */
 export function createSafeStore(getStorage: () => KeyValueStore) {
-  const memory = new Map<string, string>();
-  const tryStorage = <T>(fn: (s: KeyValueStore) => T): { ok: true; value: T } | { ok: false } => {
-    try { return { ok: true, value: fn(getStorage()) }; } catch { return { ok: false }; }
+  const override = new Map<string, string | null>();   // null = removed (tombstone)
+  const attempt = (fn: (s: KeyValueStore) => void): boolean => {
+    try { fn(getStorage()); return true; } catch { return false; }
+  };
+  const persist = (key: string, value: string | null): boolean =>
+    value === null
+      ? attempt((s) => s.removeItem(key)) || attempt((s) => s.setItem(key, ""))
+      : attempt((s) => s.setItem(key, value));
+  const flush = (key: string) => {
+    if (override.has(key) && persist(key, override.get(key)!)) override.delete(key);
   };
   return {
     get(key: string): string | null {
-      const r = tryStorage((s) => s.getItem(key));
-      if (r.ok && r.value !== null) return r.value;
-      return memory.has(key) ? memory.get(key)! : null;
+      flush(key);
+      if (override.has(key)) return override.get(key)!;
+      let v: string | null = null;
+      if (!attempt((s) => { v = s.getItem(key); })) return null;
+      return v || null;                       // "" is a blanked (removed) value
     },
     set(key: string, value: string): void {
-      memory.set(key, value);          // always, so a later blocked read still finds it
-      tryStorage((s) => s.setItem(key, value));
+      if (persist(key, value)) override.delete(key);
+      else override.set(key, value);
     },
     remove(key: string): void {
-      memory.delete(key);
-      tryStorage((s) => s.removeItem(key));
+      if (attempt((s) => s.removeItem(key))) override.delete(key);
+      else { override.set(key, null); attempt((s) => s.setItem(key, "")); }
     },
   };
 }
@@ -125,4 +142,32 @@ export function exportEntry(
 /** Clear a recovery marker only if it still belongs to this recording. */
 export function markerBelongsTo(storedVoiceId: string | null | undefined, voiceId: string): boolean {
   return storedVoiceId === voiceId;
+}
+
+/**
+ * A request's answer, or `fallback` after `ms`. The request itself may still
+ * finish later (the caller's epoch/ownership check then ignores it); what
+ * matters is that nothing waits forever on a request that never answers.
+ */
+export function settleWithin<T>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const t = setTimeout(() => resolve(fallback), ms);
+    Promise.resolve(p).then(
+      (v) => { clearTimeout(t); resolve(v); },
+      () => { clearTimeout(t); resolve(fallback); },
+    );
+  });
+}
+
+/**
+ * Tolerance for the decoded length of a recording (the recorder's last chunk
+ * and codec padding run slightly past the stop). Anything longer than the
+ * limit plus this was recorded while the page could not stop it in time - a
+ * suspended or frozen tab - and is not uploaded.
+ */
+export const LENGTH_TOLERANCE_SECONDS = 2;
+
+/** `true` only when the audio is known to be too long; unknown length (decode failed) is not. */
+export function audioTooLong(decodedSeconds: number | null, maxSeconds: number): boolean {
+  return decodedSeconds !== null && Number.isFinite(decodedSeconds) && decodedSeconds > maxSeconds + LENGTH_TOLERANCE_SECONDS;
 }

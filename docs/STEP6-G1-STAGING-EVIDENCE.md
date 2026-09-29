@@ -557,3 +557,53 @@ PASS  L6 localStorage blocked (every access threw): close/reopen still resumed t
 PASS  L7 inconsistent record (status failed + score 85): feedback shown, no number
 PASS  L8 consent lookup fails: consent is asked again, no Start button
 ```
+
+## Lifecycle round 3 (recovery identity, partial storage, cross-context saves, stale requests, consent, audio length)
+
+Staging only. No SQL, no migrations, no deployment, no staging rows created, changed or deleted.
+Browser tests fake every write in the browser; staging counts were identical before and after
+(voice_explanations 109, app_events 240, llm_usage 0, task_explainers 1, t07 last_active unchanged).
+
+What changed (VoiceExplainModal.tsx, lib/voiceJob.ts, lib/voiceLifecycle.ts):
+1. Recovery and upload slot = student + task + proof, nulls included: `pl.voiceJob.v2:["<student>",<task|null>,<proof|null>]`.
+   Two proofs under one task no longer share a marker or an upload slot.
+2. Older markers (old key `pl.voiceJob.<student>.<task ?? proof>`) are read but never trusted by key or path.
+   A marker with its own student/task/proof fields decides by itself. One without them is checked against
+   the student's own server row (by voiceId, else by idempotency key, else by storage path):
+   - row for this exact work: moved to the new slot, then resumed (no new job);
+   - row for other work: left untouched, Start offered;
+   - lookup failed: "Check again" / "Keep it aside" (details kept under `pl.voiceJob.setAside:<key>`, never deleted);
+   - never reached the server: the same two, plus an explicit "It was for this work - save it here".
+   No silent attach, overwrite, delete or re-enqueue with a guessed task/proof.
+3. safeStore: a failed write keeps the new value in memory, a failed removal keeps a tombstone (and blanks the
+   value where writes still work). Both win over older persisted values for this page; later accesses write them
+   through once storage works again.
+4. Each recording is fixed at Start (id, student, task, proof, slot, idempotency key, epoch). Saves are guarded per
+   recording, markers are written to the recording's own slot, and a marker is updated only while it still holds
+   the same key (an abandoned job is never written back).
+5. Progress checks, resumes and lookups are owned by session + job/slot, and time out (15 s checks/lookups,
+   30 s enqueue), so a request that never answers cannot block a newer session.
+6. Consent is stored with the student it was answered for. A late "I understand" from another student or a closed
+   session is ignored. Start refuses to open the microphone without the current student's own consent.
+
+### 60-second limit: what can still exceed it
+- Before: the clock used real elapsed time and capped `duration_seconds` at 60, but the AUDIO could be longer.
+  A tab that is suspended or frozen (mobile app switch, OS sleep, browser tab freezing) runs no timers, while the
+  recorder may keep capturing. On wake, the stop lands late. `duration_seconds` says 60, the file holds more.
+- Browser mitigations now:
+  1. The recording stops (and is saved) the moment the page is hidden, frozen or left (`visibilitychange` hidden, `freeze`, `pagehide`).
+  2. The length is measured from the stop request, not from when the recorder finished.
+  3. Before upload the audio is decoded; if it is longer than 60 s + 2 s it is NOT uploaded and the student is asked to record again.
+- Remaining gap: a browser that cannot decode its own recording (decode fails) is let through with only the capped
+  `duration_seconds`. A modified client can also upload anything. **Server-side enforcement is still required**:
+  the transcription worker (or files-service) should check the real audio duration and file size and reject or
+  trim anything over the limit. This is not implemented here; it needs a separate, approved backend change.
+
+### Test results (this round)
+- Unit: 60/60 (voiceLifecycle, voiceJob, blobUrlOwner, voiceStatus, recordingAudio).
+- `tsc --noEmit -p tsconfig.app.json`: clean. ESLint on changed files: 0 errors, 1 warning (test harness).
+  Full-repo `eslint .` still reports 286 errors, all in files this round did not touch.
+- Build: OK; the harness is not in `dist`.
+- Harness, async path: 45/45, run twice (H1-H37). H36 (hidden tab) and H37 (75 s decoded audio) are SIMULATIONS.
+- Harness, sync path (dev server with `VITE_ASYNC_TRANSCRIPTION=false`, `MODE=sync`): 3/3.
+- Real task page (`voice_modal_lifecycle_browser.mjs`): 13/13.

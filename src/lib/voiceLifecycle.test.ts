@@ -134,3 +134,87 @@ test("PDF export carries the score only when it is the confirmed score", () => {
   assert.equal(exportEntry({ transcript: "t", score: Number.NaN, notes: null }, "q").score, null);
   assert.deepEqual(exportEntry({ transcript: "t", score: 5, notes: "n" }, "q"), { question: "q", transcript: "t", score: 5, feedback: "n" });
 });
+
+// ---------- partially blocked storage (reads work, writes/removals throw) ----------
+function partialStore(initial: Record<string, string> = {}) {
+  const m = new Map(Object.entries(initial));
+  const flags = { setThrows: false, removeThrows: false, getThrows: false };
+  const store: KeyValueStore = {
+    getItem: (k) => { if (flags.getThrows) throw new Error("blocked"); return m.get(k) ?? null; },
+    setItem: (k, v) => { if (flags.setThrows) throw new Error("QuotaExceeded"); m.set(k, v); },
+    removeItem: (k) => { if (flags.removeThrows) throw new Error("blocked"); m.delete(k); },
+  };
+  return { m, flags, store };
+}
+test("failed write: the newer in-memory value wins over an older persisted one", () => {
+  const { flags, store } = partialStore({ k: "old" });
+  const s = createSafeStore(() => store);
+  flags.setThrows = true;
+  s.set("k", "new");
+  assert.equal(s.get("k"), "new");
+  assert.equal(s.get("k"), "new");            // later reads too
+});
+test("failed removal: a tombstone keeps the removed marker from reappearing", () => {
+  const { m, flags, store } = partialStore({ k: "abandoned-job" });
+  const s = createSafeStore(() => store);
+  flags.removeThrows = true;
+  s.remove("k");
+  assert.equal(s.get("k"), null);
+  assert.equal(s.get("k"), null);
+  assert.equal(m.get("k"), "");               // blanked where writes still work: a reload stays removed
+});
+test("failed removal AND failed write: still removed for this page", () => {
+  const { flags, store } = partialStore({ k: "abandoned-job" });
+  const s = createSafeStore(() => store);
+  flags.removeThrows = true; flags.setThrows = true;
+  s.remove("k");
+  assert.equal(s.get("k"), null);
+});
+test("storage access restored: overrides are written through and storage is the truth again", () => {
+  const { m, flags, store } = partialStore({ a: "old", b: "abandoned" });
+  const s = createSafeStore(() => store);
+  flags.setThrows = true; flags.removeThrows = true;
+  s.set("a", "new");
+  s.remove("b");
+  flags.setThrows = false; flags.removeThrows = false;
+  assert.equal(s.get("a"), "new");
+  assert.equal(m.get("a"), "new");            // persisted now
+  assert.equal(s.get("b"), null);
+  assert.equal(m.has("b"), false);            // really removed now
+  m.set("a", "from-another-tab");             // storage is authoritative again
+  assert.equal(s.get("a"), "from-another-tab");
+});
+test("a later successful write replaces an earlier tombstone", () => {
+  const { m, flags, store } = partialStore({ k: "v1" });
+  const s = createSafeStore(() => store);
+  flags.removeThrows = true;
+  s.remove("k");
+  s.set("k", "v2");                           // writes work: persisted, tombstone dropped
+  assert.equal(m.get("k"), "v2");
+  assert.equal(s.get("k"), "v2");
+});
+test("reads blocked with nothing held in memory: null, never a throw", () => {
+  const { flags, store } = partialStore({ k: "v" });
+  const s = createSafeStore(() => store);
+  flags.getThrows = true;
+  assert.equal(s.get("k"), null);
+});
+
+// ---------- requests that never answer ----------
+import { audioTooLong, settleWithin } from "./voiceLifecycle.ts";
+test("settleWithin: a request that never answers yields the fallback; answers and rejections pass", async () => {
+  const never = new Promise<string>(() => {});
+  assert.equal(await settleWithin(never, 10, "timeout"), "timeout");
+  assert.equal(await settleWithin(Promise.resolve("ok"), 1000, "timeout"), "ok");
+  assert.equal(await settleWithin(Promise.reject(new Error("x")), 1000, "failed"), "failed");
+});
+
+// ---------- audio length ----------
+test("audio longer than the limit (plus tolerance) is refused; unknown length is not", () => {
+  assert.equal(audioTooLong(60.9, 60), false);
+  assert.equal(audioTooLong(62, 60), false);
+  assert.equal(audioTooLong(62.5, 60), true);
+  assert.equal(audioTooLong(300, 60), true);  // a suspended tab kept capturing
+  assert.equal(audioTooLong(null, 60), false);
+  assert.equal(audioTooLong(Number.POSITIVE_INFINITY, 60), false); // no usable length: unknown
+});

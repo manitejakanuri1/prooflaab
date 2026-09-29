@@ -116,17 +116,69 @@ export class SavedNotifier {
   }
 }
 
-/** A stored job may be resumed only by the same student, task and proof it
- * was recorded for. Older markers without these fields match on the storage
- * key alone (which already contains the student and task/proof). */
-export function jobMatchesContext(
-  job: StoredJob,
-  ctx: { studentId: string; taskId?: string | null; proofId?: string | null },
-): boolean {
-  if (job.studentId !== undefined && job.studentId !== ctx.studentId) return false;
-  if (job.taskId !== undefined && job.taskId !== (ctx.taskId ?? null)) return false;
-  if (job.proofId !== undefined && job.proofId !== (ctx.proofId ?? null)) return false;
-  return true;
+/** Who and what a recording is for. Null means "none" (never "unknown"). */
+export interface RecordingContext {
+  studentId: string;
+  taskId: string | null;
+  proofId: string | null;
+}
+
+export function recordingContext(studentId: string, taskId?: string | null, proofId?: string | null): RecordingContext {
+  return { studentId, taskId: taskId ?? null, proofId: proofId ?? null };
+}
+
+/** The recovery-marker key AND the page-wide upload slot for one context:
+ * student, task and proof together, nulls included, so two proofs under the
+ * same task (or a task and a proof with the same id) never share a slot. */
+export function slotKey(ctx: RecordingContext): string {
+  return `pl.voiceJob.v2:${JSON.stringify([ctx.studentId, ctx.taskId, ctx.proofId])}`;
+}
+
+/** The key older builds used: `taskId ?? proofId`, so every proof under one
+ * task shared it. Read only for backward-compatible recovery; never written. */
+export function legacySlotKey(ctx: RecordingContext): string {
+  return `pl.voiceJob.${ctx.studentId}.${ctx.taskId ?? ctx.proofId ?? "general"}`;
+}
+
+/**
+ * Whose recording a stored job is. A marker that carries all three fields
+ * (every marker this build writes) decides by itself: "match" or "other". An
+ * older marker without them is "unknown" - its key and its storage path
+ * (`<student>/<time>-explain.webm`) do not prove which task/proof it was for,
+ * so it must be checked against the server before it is used here.
+ */
+export function jobMatchesContext(job: StoredJob, ctx: RecordingContext): "match" | "other" | "unknown" {
+  if (job.studentId !== undefined && job.studentId !== ctx.studentId) return "other";
+  if (job.studentId === undefined || job.taskId === undefined || job.proofId === undefined) return "unknown";
+  return job.taskId === ctx.taskId && job.proofId === ctx.proofId ? "match" : "other";
+}
+
+/** A row as the server holds it (RLS: only the student's own rows are visible). */
+export interface OwnerRow { id: string; student_id: string; task_id: string | null; proof_id: string | null }
+
+/**
+ * An older marker, checked against the server's own row for it (found by its
+ * voiceId, or by its idempotency key when the enqueue answer was never seen).
+ *  - `undefined`: the check itself failed           -> unresolved, try again later
+ *  - `null`:      no such row                        -> unresolved; the student may
+ *                 explicitly attach it here only if the row was looked up by key
+ *                 (the job never reached the server, so nothing else owns it)
+ *  - a row:       it decides - "ours" or "elsewhere"
+ * Never a silent guess: an unresolved marker is kept, not overwritten or deleted.
+ */
+export type LegacyVerdict =
+  | { kind: "ours"; job: StoredJob }
+  | { kind: "elsewhere" }
+  | { kind: "unresolved"; canAttach: boolean };
+
+export function classifyLegacy(
+  legacy: StoredJob, ctx: RecordingContext, row: OwnerRow | null | undefined,
+): LegacyVerdict {
+  if (row === undefined) return { kind: "unresolved", canAttach: false };
+  if (row === null) return { kind: "unresolved", canAttach: legacy.voiceId === null };
+  if (row.student_id !== ctx.studentId) return { kind: "elsewhere" };
+  if ((row.task_id ?? null) !== ctx.taskId || (row.proof_id ?? null) !== ctx.proofId) return { kind: "elsewhere" };
+  return { kind: "ours", job: { ...legacy, voiceId: row.id, ...ctx } };
 }
 
 /** A new recording may replace a stored job only when that job is known to be

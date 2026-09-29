@@ -29,6 +29,10 @@ export interface StoredJob {
   recordingId?: string;
   stage?: "recording" | "uploading" | "uploaded";
   aside?: boolean;
+  /** Hidden from the kept-aside list by the student, but NOT deleted: the
+   * server has not confirmed a job, so another (suspended) tab may still be
+   * finishing it (audit N1). That tab's own progress brings it back. */
+  dismissed?: boolean;
   tabId?: string;
   heartbeatAt?: number;
   createdAt?: number;
@@ -79,6 +83,7 @@ export function parseStoredJob(raw: string | null): StoredJob | null {
       ...(typeof j.recordingId === "string" ? { recordingId: j.recordingId } : {}),
       ...(j.stage === "recording" || j.stage === "uploading" || j.stage === "uploaded" ? { stage: j.stage } : {}),
       ...(j.aside === true ? { aside: true } : {}),
+      ...(j.dismissed === true ? { dismissed: true } : {}),
       ...(typeof j.tabId === "string" ? { tabId: j.tabId } : {}),
       ...(typeof j.heartbeatAt === "number" ? { heartbeatAt: j.heartbeatAt } : {}),
       ...(typeof j.createdAt === "number" ? { createdAt: j.createdAt } : {}),
@@ -254,4 +259,42 @@ export function pickResumable<T extends { job: StoredJob }>(
     .filter((e) => owner(e.job) !== "other-page")
     .sort((a, b) => (b.job.createdAt ?? 0) - (a.job.createdAt ?? 0));
   return { next: free[0] ?? null, otherPages };
+}
+
+/**
+ * What the server's row says about a kept-aside record (audit N2).
+ *  - "unknown":         the check failed or was inconclusive (never "none")
+ *  - "none":            no row for this recording
+ *  - "saved":           the row is this recording AND this record's own student/task/proof
+ *  - "saved-elsewhere": the row is this recording (same path, or same key), but its task/proof
+ *                       differ - or this older record has no task/proof to compare - so it is
+ *                       saved for the work it was recorded for, not confirmed as this one
+ *  - "conflict":        a row was found but is not this recording (another student, or a
+ *                       different key for the same path, or neither path nor key match)
+ * Never "saved" from path or key alone: that could credit another proof's job.
+ */
+export function asideStatus(
+  row: OwnerRow | null | undefined, job: StoredJob,
+): "unknown" | "none" | "saved" | "saved-elsewhere" | "conflict" {
+  if (row === undefined) return "unknown";
+  if (row === null) return "none";
+  if (!job.studentId || row.student_id !== job.studentId) return "conflict";
+  const pathOk = row.storage_path == null || row.storage_path === job.storagePath;
+  const keyOk = row.transcription_idempotency_key == null || row.transcription_idempotency_key === job.idempotencyKey;
+  const identified = (row.storage_path != null && row.storage_path === job.storagePath)
+    || (row.transcription_idempotency_key != null && row.transcription_idempotency_key === job.idempotencyKey);
+  if (!pathOk || !keyOk || !identified) return "conflict";
+  const hasContext = job.taskId !== undefined && job.proofId !== undefined;
+  return hasContext && rowMatchesMarker(row, job, recordingContext(job.studentId, job.taskId, job.proofId))
+    ? "saved" : "saved-elsewhere";
+}
+
+/**
+ * May a kept-aside record's local details be deleted (audit N1)? Only when the
+ * server has confirmed a job for this very recording. A stale or missing
+ * heartbeat, an empty check, "no row", or a failed check is never enough:
+ * another tab may be suspended mid-upload. Otherwise "Remove" only hides it.
+ */
+export function mayForgetRecord(status: ReturnType<typeof asideStatus> | undefined): boolean {
+  return status === "saved" || status === "saved-elsewhere";
 }

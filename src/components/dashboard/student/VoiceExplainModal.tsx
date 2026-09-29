@@ -15,7 +15,8 @@ import {
   recordingClock, recordingPath, safeStore, scoreToShow, settleWithin, uploadOutcome, uploadRegistry,
 } from "@/lib/voiceLifecycle";
 import {
-  classifyLegacy, enqueueBody, jobMatchesContext, legacySlotKey, MARKER_PREFIX, markerKey, nextFailures, parseStoredJob,
+  asideStatus, classifyLegacy, enqueueBody, jobMatchesContext, legacySlotKey, MARKER_PREFIX, markerKey, mayForgetRecord,
+  nextFailures, parseStoredJob,
   pickResumable, recordingContext, rowMatchesMarker, SavedNotifier, slotKey, viewOf,
   type JobRow, type JobStatus, type LegacyVerdict, type OwnerRow, type PollTick, type RecordingContext, type StoredJob,
 } from "@/lib/voiceJob";
@@ -180,7 +181,10 @@ interface MediaSession {
  * `statusCode` is set when the service answered, absent when it could not be reached. */
 type FileResult = { data: unknown; error: { message: string; statusCode?: string } | null };
 
-type AsideCheck = "checking" | "saved" | "can-save" | "absent" | "unknown";
+/** "saved" = a server job for THIS recording and THIS record's own work (full row match);
+ * "saved-elsewhere" = a job for this recording under other (or unrecorded) work;
+ * "conflict" = a row was found but it is not this recording (audit N2). */
+type AsideCheck = "checking" | "saved" | "saved-elsewhere" | "conflict" | "can-save" | "absent" | "unknown";
 interface AsideEntry { key: string; job: StoredJob }
 
 /** Real decoded length of a recording, or null when this browser cannot tell. */
@@ -265,6 +269,8 @@ const VoiceExplainModal = ({
   const elsewhereRef = useRef(new Set<string>());        // older markers proven to belong to other work
   const [asideList, setAsideList] = useState<AsideEntry[]>([]);
   const [asideChecks, setAsideChecks] = useState<Record<string, AsideCheck>>({});
+  const asideChecksRef = useRef(asideChecks);
+  asideChecksRef.current = asideChecks;
   const [otherTabs, setOtherTabs] = useState(0);         // recordings for this work another open tab is sending
   const onSavedRef = useRef(onSaved);
   onSavedRef.current = onSaved;
@@ -342,7 +348,7 @@ const VoiceExplainModal = ({
   ), [readJob]);
 
   const refreshAside = useCallback(() => {
-    setAsideList(listMarkers().filter((e) => e.job.aside && e.job.studentId === studentId));
+    setAsideList(listMarkers().filter((e) => e.job.aside && !e.job.dismissed && e.job.studentId === studentId));
   }, [listMarkers, studentId]);
 
   /**
@@ -522,7 +528,8 @@ const VoiceExplainModal = ({
     const recId = job.recordingId ?? "";
     const blob = pendingAudio.get(recId) ?? null;
     const markStored = (): StoredJob => {
-      const stored: StoredJob = { ...(readJob(key) ?? job), stage: "uploaded" };
+      // stored for real: if a student had hidden it meanwhile (in any tab), it is listed again
+      const stored: StoredJob = { ...(readJob(key) ?? job), stage: "uploaded", dismissed: false };
       updateJobIfSame(key, stored);
       pendingAudio.delete(recId);
       unsentRecordings.delete(recId);
@@ -1103,39 +1110,59 @@ const VoiceExplainModal = ({
     setPhase("idle");
   }, [keepAside, readJob]);
 
-  /** "Check" on a kept-aside recording: on the server, can be saved here, or gone? */
-  const checkAside = useCallback(async (e: AsideEntry) => {
-    setAsideChecks((m) => ({ ...m, [e.key]: "checking" }));
-    const j = e.job;
+  /** The server's row for a kept-aside recording: by its job id, else its key, else its path.
+   * undefined = the check failed or was inconclusive; null = genuinely no row. */
+  const findAsideRow = useCallback(async (j: StoredJob): Promise<OwnerRow | null | undefined> => {
     let row = j.voiceId
       ? await findOwnRow(j.studentId, "id", j.voiceId)
       : await findOwnRow(j.studentId, "transcription_idempotency_key", j.idempotencyKey);
     if (row === null) row = await findOwnRow(j.studentId, "storage_path", j.storagePath);
+    return row;
+  }, [findOwnRow]);
+
+  /** "Check" on a kept-aside recording (audit N2): "saved" only when the server's row is this
+   * recording for this record's own student, task and proof - never from path or key alone. */
+  const checkAside = useCallback(async (e: AsideEntry) => {
+    setAsideChecks((m) => ({ ...m, [e.key]: "checking" }));
+    const j = e.job;
+    const status = asideStatus(await findAsideRow(j), j);
     let result: AsideCheck;
-    if (row === undefined) result = "unknown";
-    else if (row && (row.storage_path === j.storagePath || row.transcription_idempotency_key === j.idempotencyKey)) result = "saved";
+    if (status !== "none") result = status;                         // unknown / saved / saved-elsewhere / conflict
     else if (pendingAudio.has(j.recordingId ?? "")) result = "can-save";
     else {
       const exists = await fileExists(j.studentId, j.storagePath);
       result = exists === true ? "can-save" : exists === false ? "absent" : "unknown";
     }
     setAsideChecks((m) => ({ ...m, [e.key]: result }));
-  }, [fileExists, findOwnRow]);
+  }, [fileExists, findAsideRow]);
 
-  /** Explicit: this kept-aside recording (never processed on the server) is for this work. */
-  const saveAsideHere = useCallback((e: AsideEntry) => {
+  /** Explicit: this kept-aside recording (never processed on the server) is for this work.
+   * The server is asked again first: if a job for it now exists (for example another tab
+   * completed it meanwhile) it is never re-attached here from local data (audit N2). */
+  const saveAsideHere = useCallback(async (e: AsideEntry) => {
     if (hasPendingRecovery()) return;
-    writeJob(e.key, { ...e.job, ...ctx, voiceId: null, aside: false, heartbeatAt: 0, createdAt: Date.now() });
+    setAsideChecks((m) => ({ ...m, [e.key]: "checking" }));
+    const status = asideStatus(await findAsideRow(e.job), e.job);
+    if (status !== "none") {
+      setAsideChecks((m) => ({ ...m, [e.key]: status }));
+      return;
+    }
+    writeJob(e.key, { ...e.job, ...ctx, voiceId: null, aside: false, dismissed: false, heartbeatAt: 0, createdAt: Date.now() });
     refreshAside();
     void resumeStoredJob();
-  }, [ctx, hasPendingRecovery, refreshAside, resumeStoredJob, writeJob]);
+  }, [ctx, findAsideRow, hasPendingRecovery, refreshAside, resumeStoredJob, writeJob]);
 
-  /** Explicit: forget a kept-aside recording on this device (the server's copy, if any, is not touched). */
+  /** "Remove from this list" (audit N1). The local details are deleted only when the server
+   * has confirmed a job for this recording. Otherwise - never checked, no row, check failed,
+   * or a heartbeat that merely went quiet - the entry is only hidden: another tab may be
+   * suspended mid-upload, and its own progress brings the entry back. */
   const removeAside = useCallback((e: AsideEntry) => {
-    writeJob(e.key, null);
-    pendingAudio.delete(e.job.recordingId ?? "");
-    unsentRecordings.delete(e.job.recordingId ?? "");
+    const recId = e.job.recordingId ?? "";
+    pendingAudio.delete(recId);                                      // this page's copy, if any, is let go
+    unsentRecordings.delete(recId);
     releaseMarker(e.key);
+    if (mayForgetRecord(asideChecksRef.current[e.key] as ReturnType<typeof asideStatus> | undefined)) writeJob(e.key, null);
+    else touchMarker(e.key, { dismissed: true });
     refreshAside();
   }, [refreshAside, writeJob]);
 
@@ -1348,7 +1375,16 @@ const VoiceExplainModal = ({
                         Recorded {e.job.createdAt ? new Date(e.job.createdAt).toLocaleString() : "earlier"}
                         {e.job.durationSeconds ? ` · ${e.job.durationSeconds}s` : ""}
                       </p>
-                      {state === "saved" && <p className="text-xs text-green-700">It is saved on the server — you'll find it in your build-log.</p>}
+                      {state === "saved" && <p className="text-xs text-green-700">It is saved on the server for this work — you'll find it in your build-log.</p>}
+                      {state === "saved-elsewhere" && (
+                        <p className="text-xs">
+                          It is saved on the server for a different piece of work (the one it was recorded for), not
+                          this one. You'll find it there in your build-log.
+                        </p>
+                      )}
+                      {state === "conflict" && (
+                        <p className="text-xs">A server record was found, but it doesn't match this recording. It was not treated as saved.</p>
+                      )}
                       {state === "can-save" && <p className="text-xs">It was never processed. You can save it to this work.</p>}
                       {state === "absent" && (
                         <p className="text-xs">
@@ -1362,7 +1398,7 @@ const VoiceExplainModal = ({
                           {state === "checking" ? "Checking…" : "Check"}
                         </Button>
                         {state === "can-save" && (
-                          <Button size="sm" variant="outline" onClick={() => saveAsideHere(e)}>Save it to this work</Button>
+                          <Button size="sm" variant="outline" onClick={() => void saveAsideHere(e)}>Save it to this work</Button>
                         )}
                         <Button
                           size="sm" variant="ghost" onClick={() => removeAside(e)}

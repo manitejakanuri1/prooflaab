@@ -698,3 +698,62 @@ Browser code only. No SQL, migrations, deployment, production configuration or s
 - Staging counts identical before and after.
 - R4-3 suspension is REAL script suspension (the page's JavaScript paused through the DevTools debugger, so no timers or heartbeat) in a real second tab, with real waiting (16.5 s). Chromium's `Page.setWebLifecycleState 'frozen'` is ignored for a visible headless page (probe: timers kept running), so it was not used. The upload request stayed open in the browser throughout.
 - Simulations elsewhere: the throttled clock, hidden-tab visibility, the decoded audio length, delayed recorder events (a MediaRecorder subclass queues them), the crashed holder (a clock 20 s ahead), and every network write (faked).
+
+## Lifecycle round 6 (round-5 audit N1, N2; N3 documented)
+
+Browser code only. No SQL, migrations, deployment, production configuration or staging row changes.
+
+| Item | Change |
+|---|---|
+| N1 premature removal across tabs | "Remove from this list" deletes a kept-aside record's local details only when "Check" has confirmed that the server holds a job for this very recording (`mayForgetRecord`: "saved" or "saved-elsewhere"). Otherwise it only hides the entry (`dismissed: true`), and the record stays in browser storage. The cases are: never checked; no row; the check failed; or a heartbeat that merely went quiet. If the tab that owns it later stores the upload, the entry comes back (`markStored` clears `dismissed`). If that tab later fails and is closed, the record remains. A heartbeat is never treated as proof of anything. |
+| N2 kept-aside ownership | `asideStatus` decides "Check". "saved" requires the row's student, task, proof, storage path and key (when set) to all match the record (`rowMatchesMarker`). The other results: same recording but other or unrecorded work gives "saved-elsewhere" (its own wording, no "save here"); a row that is not this recording gives "conflict"; a failed check gives "unknown" (inconclusive); and "none" is used only for a genuine "no row". "Save it to this work" asks the server again first, and never attaches the recording when a job for it now exists. |
+| N3 insert guard | Documented only: `docs/STEP6-BACKEND-PROPOSALS.md` has the exact guard text and six required tests. Nothing was applied. |
+
+### Before and after (the same new tests)
+- Before the fix (fa8a183): browser N1/N2 **4/13** passed.
+  - N1: the record was deleted (0 left), including after the tab's upload failed and it was closed.
+  - N2: rows for another proof, another task or a different key were all shown as "saved on the server".
+  - N2: a job completed elsewhere was still attached by "Save it to this work".
+  - The 4 passes are the keep-working checks: full match, failed check, and delete after a confirmed save.
+- Unit `voiceRound6.test.ts` before the fix: failed (the helpers did not exist).
+- After the fix: browser N1/N2 **13/13**, unit **4/4**.
+
+### 17-check release status (evidence-based; not a production approval)
+The statuses start from the round-5 audit's table. Round 6 changes the evidence for checks 3, 4 and 11 at the mocked-browser/code level only.
+
+| # | Check | Status | Round-6 evidence / what remains |
+|---|---|---|---|
+| 1 | Recording duration | Partial | Per-recorder clock with mocked tests; real Safari/mobile and a server-side length limit remain. |
+| 2 | Upload reliability | Partial | Transient-error handling with mocked tests; real flaky networks and concurrent PUTs remain. |
+| 3 | Recovery | Partial (N1/N2 corrected, mocked) | Two real tabs, one suspended: Remove no longer deletes; ownership-checked "Check". Real upload/enqueue crash recovery remains. |
+| 4 | Multiple tabs | Partial (N1 corrected, mocked) | Debugger-paused tab plus a real 16.5 s wait. True OS/browser tab freezing remains untested. |
+| 5 | Microphone lifecycle | Partial | Mocked device only; real devices and permissions remain. |
+| 6 | Playback | Code-level accepted | Real stored-file replay and expired tokens remain. |
+| 7 | Authentication | Unverified end-to-end | Real Google sessions, token refresh, a timed account switch, RLS. |
+| 8 | Student isolation | Partial | Folder rule plus earlier staged access tests; the N3 guard is proposed, not applied. |
+| 9 | Consent | Partial | Mocked; real-session persistence remains. |
+| 10 | Score integrity | Code-level accepted | The real worker → score → PDF chain remains. |
+| 11 | Data ownership | Partial (N2 corrected, mocked) | Full-row checks now also cover kept-aside records. N3 and live RLS tests remain. |
+| 12 | Processing performance | Unverified | No latency measurements. |
+| 13 | Concurrency / load | Unverified | No approved load run. |
+| 14 | Rate limits | Unverified | Not measured. |
+| 15 | Failure monitoring | Unverified | Alerts and traces for these flows not validated. |
+| 16 | AI operating costs | Unverified | Not measured for this flow. |
+| 17 | Operational security | Partial | The production-build hook check was re-run this round; deployed triggers and scheduler secrets remain. |
+
+Count: 2 code-level accepted, 9 partial, 6 unverified. The same counts as the round-5 audit: N1/N2 are corrected but only mock-verified, so no check moves to "accepted".
+
+### Round 6 test results (actually executed, on the final code)
+- Unit, 7 files including `voiceRound6.test.ts`: 79/79, 0 skipped.
+- `tsc`: clean.
+- ESLint: 0 problems on the 4 changed code files. The full repo is 286 errors / 16 warnings (unchanged baseline).
+- Build: OK. `dist` contains no test hook and no leftover `import.meta.env.DEV`.
+- Test-hook runtime check: production build INERT, dev server ACTIVE (the control).
+- Browser harness, queued path: 98/98, run twice back to back.
+- Browser harness, non-queued path: 8/8 twice. N1/N2 do not apply there: that path keeps no recovery or kept-aside records.
+- Real task page: 13/13 twice.
+- Staging counts identical before and after.
+- **Failures met during this round (logs kept in the review package):**
+  1. First full queued runs, 97/98 twice: F6d. That test still expected an unchecked "Remove" to delete the record, which is exactly what N1 forbids. Its expectation was updated: the entry is hidden and its record kept.
+  2. A later queued run, 97/98: F3c, intermittent (1 in 8 when repeated). Diagnosis: the harness's two quick prop changes (unmount, then mount) were sometimes merged by React, so no unmount happened. A test-only fix waits until the dialog has really gone; every close-then-reopen now uses it. F3c then passed 15 of 15.
+  Neither failure was a product-code defect.

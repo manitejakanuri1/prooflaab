@@ -207,6 +207,9 @@ async function addPage(ctx, state, opts = {}) {
       const body = JSON.parse(req.postData() || '{}');
       const sub = subOf(req.headers().authorization);
       if (state.enqueueLost > 0) { state.enqueueLost--; state.enqueue.push({ id: null, body, sub, lost: true }); return route.abort('failed'); }
+      // like the real function: a retry with the same key returns the existing row (Step 6B)
+      const existing = [...state.rows.keys()].find((rid) => rowOf(state, rid).transcription_idempotency_key === body.idempotency_key);
+      if (existing) { state.enqueue.push({ id: existing, body, sub, reused: true }); return json(route, 200, { voice_id: existing, status: 'pending' }); }
       const id = crypto.randomUUID();
       state.enqueue.push({ id, body, sub });
       state.owner.set(id, { student_id: sub, task_id: body.task_id, proof_id: body.proof_id, storage_path: body.storage_path, transcription_idempotency_key: body.idempotency_key });
@@ -299,6 +302,12 @@ const marker = (page, student = A, task = TASK, proof = null) => ev(page, ({ stu
     return all[0] ?? null;
   } catch { return 'blocked'; }
 }, { student, task, proof });
+/** Parent sets open=false, then waits until the dialog is really gone (two quick prop
+ * changes could otherwise be merged by React into none). */
+const closeByParent = async (page) => {
+  await H(page, 'setOpen', false);
+  await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 10000 });
+};
 const startBtn = (page) => page.getByRole('button', { name: /Start recording/ });
 const stopBtn = (page) => page.getByRole('button', { name: /Stop and save/ });
 async function recordAndStop(page, ms = 2000) {
@@ -331,7 +340,7 @@ const browser = await chromium.launch({
 });
 try {
   if (MODE === 'sync') await syncTests(browser);
-  else { await previousTests(browser); await round4Tests(browser); }
+  else { await previousTests(browser); await round4Tests(browser); await round6Tests(browser); }
 } finally {
   await browser.close();
 }
@@ -393,7 +402,7 @@ async function previousTests(browser) {
     await recordAndStop(page);
     await page.getByText(/Uploading your recording/).waitFor({ timeout: 20000 });
     await waitFor(() => state.puts.length === 1);            // the upload (and its local copy) has started
-    await H(page, 'setOpen', false);                          // parent closes during the upload
+    await closeByParent(page);                          // parent closes during the upload
     const log1 = await ev(page, () => window.__blobLog);
     const local = log1.created.find((c) => c.type.includes('webm') || c.type.includes('ogg') || c.type.startsWith('audio') || c.type === '')?.url;
     check('H8 close during upload: local blob URL revoked', !!local && log1.revoked.includes(local));
@@ -540,12 +549,12 @@ async function previousTests(browser) {
     await recordAndStop(page);
     await waitFor(() => state.enqueue.find((e) => e.id));
     const id = state.enqueue.find((e) => e.id).id;
-    await H(page, 'setOpen', false);
+    await closeByParent(page);
     state.hangOnce.add(id);
     await H(page, 'setOpen', true);
     await waitFor(() => state.hung === 1, 10000);
     state.rows.set(id, row(id));
-    await H(page, 'setOpen', false);
+    await closeByParent(page);
     await H(page, 'setOpen', true);
     const ok = await score77(page, 15000);
     check('H24 hung progress check from an older session: new session checks on its own and shows the result', ok && state.hung === 1, `hung=${state.hung}`);
@@ -559,7 +568,7 @@ async function previousTests(browser) {
     await page.getByText(/Uploading your recording/).waitFor({ timeout: 15000 });     // stuck on the hung lookup
     await waitFor(() => state.lookups.length >= 1);
     state.lookup = 'auto';
-    await H(page, 'setOpen', false);
+    await closeByParent(page);
     await H(page, 'setOpen', true);
     const ok = await score77(page);
     check('H25 hung resume lookup (previous-build record): next session resumes, retries the SAME key/path/duration once',
@@ -651,7 +660,7 @@ async function previousTests(browser) {
     const { page, state, ctx } = await setup(browser, { seed, writeBlockVoiceStorage: true, lookup: 'error', enqueueLost: 2 });
     await page.getByTestId('voice-uncertain').waitFor({ timeout: 20000 });
     await page.getByRole('button', { name: /Keep it aside/ }).click();
-    await H(page, 'setOpen', false);
+    await closeByParent(page);
     await H(page, 'setOpen', true);
     await startBtn(page).waitFor({ timeout: 15000 });
     const persisted = await readKey(page, v2Key(A, TASK, null));
@@ -794,7 +803,7 @@ async function round4Tests(browser) {
     state.putHold.resolve();
     await tab1.waitForTimeout(500);
     await ev(tab1, () => { window.__harness.setMounted(false); });
-    await H(tab2, 'setOpen', false);
+    await closeByParent(tab2);
     await H(tab2, 'setOpen', true);
     const ok = await score77(tab2, 25000);
     check('F2d SIMULATED crashed holder (stale heartbeat): another tab finds the stored file and completes the SAME recording once',
@@ -844,8 +853,14 @@ async function round4Tests(browser) {
     const { page, state, ctx } = await setup(browser, { holdRecorders: [1] });
     await recordAndStop(page, 2000);
     await H(page, 'setMounted', false);
+    // wait for the unmount to really happen: two quick prop changes can be merged by React into none
+    await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 10000 });
     await H(page, 'setMounted', true);                               // a new dialog instance, same work
-    await page.getByText(/Uploading your recording|still uploading/).first().waitFor({ timeout: 10000 });
+    await page.getByText(/Uploading your recording|still uploading/).first().waitFor({ timeout: 10000 }).catch(async (e) => {
+      console.log(`  diag F3c: dialog shows: ${(await page.getByRole('dialog').innerText().catch(() => '(no dialog)')).replace(/\s+/g, ' ').slice(0, 300)}`);
+      console.log(`  diag F3c: registry/heartbeat records: ${JSON.stringify(await v3Records(page))}`);
+      throw e;
+    });
     await ev(page, () => window.__releaseRecorder(1));
     const ok = await score77(page, 25000);
     check('F3c late events after unmount: the old recording is saved once and the new instance shows it',
@@ -1049,8 +1064,12 @@ async function round4Tests(browser) {
     await page.getByRole('button', { name: /Remove from this list/ }).click();
     await page.reload({ waitUntil: 'domcontentloaded' });
     await startBtn(page).waitFor({ timeout: 20000 });
-    check('F6d "Remove from this list" is explicit and permanent on this device (gone after reload; no server call)',
-      (await page.getByTestId('voice-aside-list').count()) === 0 && (await v3Records(page)).length === 0 && state.enqueue.length === 2);
+    // Round 6 (N1): with no server-confirmed job, Remove HIDES the entry and keeps its details
+    // (it may still be finishing somewhere); only a "saved" Check lets Remove delete (N1d).
+    const kept = await v3Records(page);
+    check('F6d "Remove from this list" is explicit: gone from the list after reload, no server call - and, with no confirmed job, the record is kept (hidden), not deleted',
+      (await page.getByTestId('voice-aside-list').count()) === 0 && kept.length === 1 && kept[0].dismissed === true && state.enqueue.length === 2,
+      `records=${kept.length} dismissed=${kept[0]?.dismissed}`);
     await ctx.close();
   });
 
@@ -1091,6 +1110,126 @@ async function round4Tests(browser) {
     await tab2.getByTestId('voice-unconfirmed').waitFor({ timeout: 20000 });
     check('F9b closing the tab mid-recording: warned first; the next tab says it has not reached the server (never "saved")',
       (state.dialogs ?? []).includes('beforeunload') && state.enqueue.length === 0);
+    await ctx.close();
+  });
+}
+
+// ======================= round-5 audit N1 / N2 =======================
+async function round6Tests(browser) {
+  // N1: a suspended tab's unfinished upload - the other tab keeps it aside and presses Remove.
+  for (const outcome of ['finishes', 'fails']) {
+    await group(`N1 suspended tab then Remove (${outcome})`, async () => {
+      const { page: tab1, state, ctx } = await setup(browser);
+      state.putHold = deferred();
+      await recordAndStop(tab1, 1500);
+      await waitFor(() => state.puts.length === 1);                       // tab1's upload is in flight
+      const cdp = await ctx.newCDPSession(tab1);
+      await cdp.send('Debugger.enable');
+      await cdp.send('Debugger.pause');                                  // tab1 SUSPENDED (script paused), upload still open
+      await new Promise((r) => setTimeout(r, 16_500));                   // real time: heartbeat goes stale
+      const tab2 = await addPage(ctx, state);
+      await tab2.getByTestId('voice-unconfirmed').waitFor({ timeout: 20000 });
+      await tab2.getByRole('button', { name: /Keep it aside and record a new one/ }).click();
+      await tab2.getByTestId('voice-aside-item').waitFor({ timeout: 10000 });
+      await tab2.getByRole('button', { name: /^Check$/ }).click();
+      await tab2.getByText(/isn't on the server/).waitFor({ timeout: 15000 });
+      await tab2.getByRole('button', { name: /Remove from this list/ }).click();
+      await tab2.waitForTimeout(500);
+      const afterRemove = await v3Records(tab2);
+      const listed = await tab2.getByTestId('voice-aside-item').count();
+      check(`N1a (${outcome}) Remove on a record another suspended tab may still be sending: hidden from the list but its recovery details are NOT deleted`,
+        listed === 0 && afterRemove.length === 1, `records=${afterRemove.length} listed=${listed}`);
+      await tab2.reload({ waitUntil: 'domcontentloaded' });
+      await startBtn(tab2).waitFor({ timeout: 20000 });
+      check(`N1b (${outcome}) after tab2 reloads the record is still stored (not resurrected into the list, not lost)`,
+        (await v3Records(tab2)).length === 1 && (await tab2.getByTestId('voice-aside-item').count()) === 0);
+      if (outcome === 'fails') state.putMode = { status: 503 };        // tab1's late answer is a failure
+      await cdp.send('Debugger.resume');
+      state.putHold.resolve();
+      if (outcome === 'finishes') {
+        const done = await score77(tab1, 30000);
+        check('N1c (finishes) the resumed tab completes the SAME recording once; its own final result then clears the record',
+          done && state.enqueue.filter((e) => e.id).length === 1 && (await v3Records(tab1)).length === 0, `enqueues=${state.enqueue.length}`);
+      } else {
+        await tab1.getByTestId('voice-uncertain').waitFor({ timeout: 30000 });
+        await tab1.close({ runBeforeUnload: false });                    // and then that tab is closed
+        await tab2.reload({ waitUntil: 'domcontentloaded' });
+        await startBtn(tab2).waitFor({ timeout: 20000 });
+        const left = await v3Records(tab2);
+        check('N1c (fails) the late answer is a failure and the tab is closed: the recovery record is still there (nothing removed prematurely), nothing enqueued',
+          left.length === 1 && state.enqueue.length === 0, `records=${left.length}`);
+      }
+      await ctx.close();
+    });
+  }
+  await group('N1 remove after confirmed saved', async () => {
+    const k = crypto.randomUUID(), path = `${A}/n1-saved-explain.webm`;
+    const seed = { [v3Key('n1s')]: { voiceId: null, idempotencyKey: k, storagePath: path, durationSeconds: 12, studentId: A, taskId: TASK, proofId: null,
+      recordingId: 'n1s', stage: 'uploaded', aside: true, heartbeatAt: 0, createdAt: 1 } };
+    const rows = [row('row-n1s', { transcription_idempotency_key: k, storage_path: path })];
+    const { page, ctx } = await setup(browser, { seed, rows });
+    await page.getByTestId('voice-aside-item').waitFor({ timeout: 20000 });
+    await page.getByRole('button', { name: /^Check$/ }).click();
+    await page.getByText(/It is saved on the server/).waitFor({ timeout: 15000 });
+    await page.getByRole('button', { name: /Remove from this list/ }).click();
+    await page.waitForTimeout(500);
+    check('N1d once the server confirms it is saved (full match), Remove really deletes the local record', (await v3Records(page)).length === 0);
+    await ctx.close();
+  });
+
+  // N2: "Check" on a kept-aside record against deliberately mismatched server rows.
+  const k2 = crypto.randomUUID(), path2 = `${A}/n2-explain.webm`;
+  const asideSeed = (over = {}) => ({ [v3Key('n2')]: { voiceId: null, idempotencyKey: k2, storagePath: path2, durationSeconds: 15,
+    studentId: A, taskId: TASK, proofId: P2, recordingId: 'n2', stage: 'uploaded', aside: true, heartbeatAt: 0, createdAt: 1, ...over } });
+  const url2 = `${HARNESS}&proof=${P2}`;
+  for (const [label, rowOver, expect] of [
+    ['same key and path, OTHER proof', { proof_id: P1 }, 'elsewhere'],
+    ['same key and path, OTHER task', { task_id: 'harness-task-other', proof_id: P2 }, 'elsewhere'],
+    ['same path, DIFFERENT key', { proof_id: P2, transcription_idempotency_key: 'someone-elses-key' }, 'conflict'],
+    ['full match', { proof_id: P2 }, 'saved'],
+  ]) {
+    await group(`N2 check: ${label}`, async () => {
+      const rows = [row('row-n2', { transcription_idempotency_key: k2, storage_path: path2, ...rowOver })];
+      const { page, state, ctx } = await setup(browser, { url: url2, seed: asideSeed(), rows });
+      await page.getByTestId('voice-aside-item').waitFor({ timeout: 20000 });
+      await page.getByRole('button', { name: /^Check$/ }).click();
+      await page.getByTestId('voice-aside-item').locator('p').nth(1).waitFor({ timeout: 15000 });   // the result line under the entry
+      const text = await page.getByTestId('voice-aside-item').innerText();
+      const saved = /you'll find it in your build-log/.test(text);          // the "saved" wording (previous and current builds)
+      const canSave = await page.getByRole('button', { name: /Save it to this work/ }).count();
+      const ok = expect === 'saved'
+        ? saved && !/different piece of work/.test(text) && canSave === 0
+        : !saved && canSave === 0 && (expect === 'elsewhere' ? /different piece of work/.test(text) : /doesn't match this recording/.test(text));
+      check(`N2 ${label}: ${expect === 'saved' ? 'shown as saved for this work' : 'NOT shown as saved; no "save here"; says ' + expect}`,
+        ok && state.enqueue.length === 0, text.replace(/\s+/g, ' ').slice(0, 170));
+      await ctx.close();
+    });
+  }
+  await group('N2 check: server check fails', async () => {
+    const { page, ctx } = await setup(browser, { url: url2, seed: asideSeed(), lookup: 'error' });
+    await page.getByTestId('voice-aside-item').waitFor({ timeout: 20000 });
+    await page.getByRole('button', { name: /^Check$/ }).click();
+    await page.getByTestId('voice-aside-item').locator('p').nth(1).waitFor({ timeout: 15000 });   // the result line under the entry
+    const text = await page.getByTestId('voice-aside-item').innerText();
+    check('N2 lookup error: "couldn\'t check" (inconclusive) - never "saved" and never "not on the server"',
+      /couldn't check/i.test(text) && !/saved on the server/.test(text) && !/isn't on the server/.test(text), text.replace(/\s+/g, ' ').slice(0, 150));
+    await ctx.close();
+  });
+  await group('N2 concurrent completion before save here', async () => {
+    const { page, state, ctx } = await setup(browser, { url: url2, seed: asideSeed() });
+    state.uploaded.add(path2);                                           // the file is there, no job yet
+    await page.getByTestId('voice-aside-item').waitFor({ timeout: 20000 });
+    await page.getByRole('button', { name: /^Check$/ }).click();
+    await page.getByRole('button', { name: /Save it to this work/ }).waitFor({ timeout: 15000 });
+    // meanwhile another tab completes it under its ORIGINAL proof (P1)
+    state.rows.set('row-n2c', row('row-n2c', { transcription_idempotency_key: k2, storage_path: path2, proof_id: P1 }));
+    await page.getByRole('button', { name: /Save it to this work/ }).click();
+    await page.waitForTimeout(2500);
+    const rec = await readKey(page, v3Key('n2'));
+    const text = await page.getByRole('dialog').innerText();
+    check('N2 concurrent completion: "Save it to this work" re-checks first - never attached to this proof, nothing enqueued, record kept aside, says "different piece of work"',
+      state.enqueue.length === 0 && rec?.proofId === P2 && rec?.aside === true && /different piece of work/.test(text),
+      `enqueues=${state.enqueue.length} proof=${rec?.proofId} aside=${rec?.aside}`);
     await ctx.close();
   });
 }

@@ -315,3 +315,34 @@ PASS  B4 database: short recording marked failed by the server  ({"status":"fail
 B4 failed in the first run because of a **test** bug: it read the stored job after the app had correctly cleared it. Fixed, and the B section rerun gave 4/4. Final result: **21/21**.
 
 Not checked in the browser: the onSaved count (unit-tested only), and a real Google sign-in (Identity Platform itself was not exercised).
+
+---
+
+# RecordingPlayback failure handling + playback after refresh (2026-09-29)
+
+- `RecordingPlayback.tsx`: `load()` is now try/catch/finally. It checks both `error` and missing data, resets `failed` on each try, ignores a second click while loading, and always clears `loading`. A failed or thrown download shows "Could not load - try again" and never leaves the button spinning.
+- `StudentVoiceExplanationsCard.tsx` (the Build-Log Play button): same try/catch/finally.
+- The saved-recording link already exists: **Build-Log → Entries → "Spoken Explanations"**, newest first. The first failed run was a test-selector bug (the card title also contains the count badge), not a missing link.
+
+Checks: `tsc` clean; eslint clean on both files.
+
+Real browser: `scripts/dev-tools/voice_playback_browser.mjs`, Chromium with a fake microphone, the local staging-mode site, and t07 signed in with a token like the staging auth-bridge issues.
+
+```
+PASS  1 recording saved and queued  (voice 8888ddfb)
+PASS  2a failed download: button shows "Could not load - try again" and is not stuck
+PASS  2b retry after the failure plays the audio  ({"scheme":"blob","ready":1})
+PASS  3a completed recording found in Build-Log after refresh  (status=scored score=85)
+PASS  3b Build-Log Play with a failed download shows an error, button not stuck
+PASS  3c Build-Log plays the completed recording after refresh  ({"scheme":"blob","ready":4})
+PASS  4a second student (t16) is refused t07's audio  (HTTP 404)
+PASS  4b owner (t07) control: same URL downloads  (HTTP 200 application/octet-stream 161432 bytes)
+PASS  4c no token at all is refused  (HTTP 401)
+```
+
+Notes:
+- The failed downloads in 2a and 3b were simulated by blocking the files-service request in the browser.
+- In 4a/4b/4c the cross-student requests were made from the page origin with t16 and t07 tokens; files-service answers 404 to a non-owner (the same answer as a missing file, by design).
+- All test recordings use the same speech file, so 3a identifies the newest entry by position (newest first) plus matching transcript text.
+
+Found, not fixed (out of scope): in the Build-Log list, a recording the server marked "Too little speech" (`status=failed`) still shows a green "Completed" badge, because the badge only distinguishes transcription failures.

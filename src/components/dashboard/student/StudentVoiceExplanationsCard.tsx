@@ -63,10 +63,16 @@ function VoiceExplanationDetail({ v, onClose }: { v: VoiceExplanation; onClose: 
   const loadAudio = async () => {
     setLoadingAudio(true);
     setAudioError(null);
-    const { data, error } = await supabase.storage.from("voice-explanations").createSignedUrl(v.storage_path, 3600);
-    setLoadingAudio(false);
-    if (error || !data) { setAudioError(error?.message ?? "Could not open the recording."); return; }
-    setAudioUrl(data.signedUrl);
+    try {
+      const { data, error } = await supabase.storage.from("voice-explanations").createSignedUrl(v.storage_path, 3600);
+      if (error || !data) { setAudioError(error?.message ?? "Could not open the recording."); return; }
+      setAudioUrl(data.signedUrl);
+    } catch {
+      // Never leave the button spinning on a thrown error.
+      setAudioError("Could not open the recording.");
+    } finally {
+      setLoadingAudio(false);
+    }
   };
 
   return (

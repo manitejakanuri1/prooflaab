@@ -26,12 +26,19 @@ const RecordingPlayback = ({ src, storagePath, transcript, segments }: Recording
   useEffect(() => () => { if (!src && url) URL.revokeObjectURL(url); }, [src, url]);
 
   const load = async () => {
-    if (!storagePath) return;
+    if (!storagePath || loading) return;
     setLoading(true);
-    const { data } = await supabase.storage.from("voice-explanations").download(storagePath);
-    setLoading(false);
-    if (!data) { setFailed(true); return; }
-    setUrl(URL.createObjectURL(data));
+    setFailed(false);
+    try {
+      const { data, error } = await supabase.storage.from("voice-explanations").download(storagePath);
+      if (error || !data) { setFailed(true); return; }
+      setUrl(URL.createObjectURL(data));
+    } catch {
+      // A thrown network or storage error must never leave the button spinning.
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const seek = (s: number) => {

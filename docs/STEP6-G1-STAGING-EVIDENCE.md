@@ -221,3 +221,38 @@ Not live-tested: a real database read failure returning 503. There is no safe wa
 Final rows: R1 `failed` with "exceeded automatic recovery attempts" (2 attempts); R2 `scored`. The staging functions env now has `ENVIRONMENT` and no test switches.
 
 Note: the existing policy **[P1] "A scheduled job failed"** (`resource.type="cloud_scheduler_job" severity>=ERROR`) covers staging jobs too, so these 3 deliberate failed runs likely sent P1 alert emails. It hasn't been changed; that's a production monitoring decision.
+
+---
+
+# transcription-reap second review (2026-09-29, staging image `staging-g1v`)
+
+1. **Terminal AI scoring failure is alertable.**
+   - A `failed` outcome from scoreRecording goes into `scoring.terminal_failures` (ids). It fails the run (500, ERROR) and gets its own `ALERT … failed AI scoring for good` line.
+   - Normal outcomes don't fail the run: `scored`, `already`, `too_short`, `pending`, `lost_race`, `not_found`.
+   - Any outcome not on either list is recorded as `unexpected` and fails the run.
+2. **The recovery-limit alert is accurate.**
+   - Before the claim, the ids at the limit are listed (`at_limit`).
+   - Only after `claim_transcription_recovery` succeeds are they read back and confirmed as `failed` with "exceeded automatic recovery attempts" (`exhausted_confirmed`).
+   - If the claim fails, confirmation isn't attempted. If the read-back fails or doesn't match, `exhaustion_unconfirmed` says why.
+   - The two alert lines are distinct: "… are now failed (confirmed): ids" vs "… at the recovery limit, NOT confirmed failed (reason): ids".
+
+**Caller change:** `index.ts` now supplies `listAtLimit` and `confirmExhausted` (read-only selects) in place of the old count query.
+
+**Unit tests** (`reap_test.ts`): **26 passed** (18 earlier + 8 new):
+- confirmed after a successful claim;
+- claim failed: not confirmed and no read-back;
+- partial confirmation;
+- read-back failed;
+- confirmed vs unconfirmed alert wording;
+- `failed` scoring is terminal and fails the run;
+- the 6 normal outcomes pass;
+- an unknown outcome is a problem;
+- the terminal-failure alert line.
+
+**Live staging** (test switches `FAULT_INJECT_REAP_FAIL=true` and `MAX_REAP_ATTEMPTS=1`, stuck job `dfdef0a8…`):
+- `TRANSCRIPTION-REAP PROBLEM … "at_limit":["dfdef0a8…"],"exhausted_confirmed":["dfdef0a8…"]`, 500;
+- `ALERT: 1 job(s) exceeded automatic recovery attempts and are now failed (confirmed): dfdef0a8…`;
+- the row in the DB is `failed` with "exceeded automatic recovery attempts";
+- test switches removed (0 left), and the next run is `OK`, 200.
+
+A terminal AI scoring failure was **not** forced live: that would need breaking staging's AI key. It's covered by the unit tests only.

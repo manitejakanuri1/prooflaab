@@ -1,7 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
-import { logReport, runReap } from "./reap.ts";
+import { EXHAUSTED_ERROR, logReport, runReap } from "./reap.ts";
 
 /**
  * Step 6B/6C/G1: scheduled recovery, called by Cloud Scheduler with the shared
@@ -41,13 +41,15 @@ serve(async (req) => {
 
   const db = createClient("", "");
   const report = await runReap((k) => Deno.env.get(k), {
-    countAboutToExhaust: async (max) => {
-      const { count, error } = await db.from("voice_explanations")
-        .select("id", { count: "exact", head: true })
-        .in("transcription_status", ["pending", "processing"])
-        .gte("transcription_reap_attempts", max);
-      return { count, error };
-    },
+    listAtLimit: async (max) => await db.from("voice_explanations")
+      .select("id")
+      .in("transcription_status", ["pending", "processing"])
+      .gte("transcription_reap_attempts", max),
+    confirmExhausted: async (ids) => await db.from("voice_explanations")
+      .select("id")
+      .in("id", ids)
+      .eq("transcription_status", "failed")
+      .eq("transcription_error", EXHAUSTED_ERROR),
     claimRecovery: async (args) => await db.rpc("claim_transcription_recovery", args),
     googleToken,
     createTask: async (token, body, cfg) => {

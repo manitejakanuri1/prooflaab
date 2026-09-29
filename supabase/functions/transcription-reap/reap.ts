@@ -20,6 +20,13 @@ export const SCORE_CLAIM_TTL_SECONDS = 120;
 export const MAX_SCORE_PER_RUN = 5;
 /** A job at or above this recovery attempt is reported as close to giving up. */
 export const NEAR_LIMIT_MARGIN = 2;
+/** transcription_error migration 43 writes when it gives up on a job. */
+export const EXHAUSTED_ERROR = 'exceeded automatic recovery attempts';
+
+/** scoreRecording outcomes that are normal, not problems. */
+export const EXPECTED_SCORE_OUTCOMES = new Set(['scored', 'already', 'too_short', 'pending', 'lost_race', 'not_found']);
+/** A terminal AI scoring failure: the row is now 'failed' and is never selected again. */
+export const TERMINAL_SCORE_OUTCOMES = new Set(['failed']);
 
 export interface ReapConfig {
   environment: 'staging' | 'production';
@@ -85,8 +92,10 @@ export function readConfig(env: (k: string) => string | undefined):
 type RecoveryRow = { id: string; storage_path: string; kind: string; attempt: number };
 
 export interface ReapDeps {
-  /** Rows the next claim_transcription_recovery will mark failed ("exceeded automatic recovery attempts"). */
-  countAboutToExhaust(maxAttempts: number): Promise<{ count: number | null; error: unknown }>;
+  /** Ids the next claim_transcription_recovery will mark failed (at the limit, still pending/processing). */
+  listAtLimit(maxAttempts: number): Promise<{ data: { id: string }[] | null; error: unknown }>;
+  /** Of these ids, the ones the database now shows as failed with EXHAUSTED_ERROR. */
+  confirmExhausted(ids: string[]): Promise<{ data: { id: string }[] | null; error: unknown }>;
   claimRecovery(args: Record<string, number>): Promise<{ data: RecoveryRow[] | null; error: unknown }>;
   googleToken(): Promise<string>;
   createTask(token: string, body: unknown, cfg: ReapConfig): Promise<{ ok: boolean; status: number }>;
@@ -99,14 +108,23 @@ export interface ReapReport {
   config_errors: string[];
   transcription: {
     skipped?: string;
-    about_to_exhaust: number | null;   // given up on by the DB this run
+    at_limit: string[];                // seen at the recovery limit before this run's claim
+    exhausted_confirmed: string[];     // confirmed failed by the database after the claim
+    exhaustion_unconfirmed?: string;   // why at_limit jobs could not be confirmed
     candidates: number;
     reenqueued: number;
     near_limit: number;
     failed: { id: string; kind: string; attempt: number; error: string }[];
     error?: string;
   };
-  scoring: { candidates: number; outcomes: Record<string, number>; errors: number; error?: string };
+  scoring: {
+    candidates: number;
+    outcomes: Record<string, number>;
+    errors: number;                 // database errors ('error' or a throw)
+    terminal_failures: string[];    // ids whose AI scoring failed for good ('failed')
+    unexpected: string[];           // any outcome not known here (treated as a problem)
+    error?: string;
+  };
 }
 
 const errText = (e: unknown) => {
@@ -123,8 +141,8 @@ export async function runReap(
   const report: ReapReport = {
     ok: true,
     config_errors: errors,
-    transcription: { about_to_exhaust: null, candidates: 0, reenqueued: 0, near_limit: 0, failed: [] },
-    scoring: { candidates: 0, outcomes: {}, errors: 0 },
+    transcription: { at_limit: [], exhausted_confirmed: [], candidates: 0, reenqueued: 0, near_limit: 0, failed: [] },
+    scoring: { candidates: 0, outcomes: {}, errors: 0, terminal_failures: [], unexpected: [] },
   };
 
   // ---------- A. transcription job recovery ----------
@@ -135,14 +153,15 @@ export async function runReap(
   } else {
     const maxAttempts = config.maxReapAttempts ?? DB_DEFAULT_MAX_REAP_ATTEMPTS;
     try {
-      const { count, error } = await deps.countAboutToExhaust(maxAttempts);
+      const { data, error } = await deps.listAtLimit(maxAttempts);
       if (error) throw error;
-      report.transcription.about_to_exhaust = count ?? 0;
+      report.transcription.at_limit = (data ?? []).map((r) => r.id);
     } catch (e) {
-      report.transcription.error = `exhaustion check failed: ${errText(e)}`;
+      report.transcription.error = `recovery-limit check failed: ${errText(e)}`;
     }
 
     let rows: RecoveryRow[] = [];
+    let claimOk = false;
     try {
       const { data, error } = await deps.claimRecovery({
         _stale_after_seconds: config.staleAfterSeconds,
@@ -150,8 +169,31 @@ export async function runReap(
       });
       if (error) throw error;
       rows = data ?? [];
+      claimOk = true;
     } catch (e) {
       report.transcription.error = `claim_transcription_recovery failed: ${errText(e)}`;
+    }
+
+    // Only the database can say a job was given up on: the claim marks at-limit
+    // jobs failed, so confirm by reading them back - never assume it happened.
+    const atLimit = report.transcription.at_limit;
+    if (atLimit.length) {
+      if (!claimOk) {
+        report.transcription.exhaustion_unconfirmed =
+          'claim_transcription_recovery failed, so these jobs were not marked failed this run';
+      } else {
+        try {
+          const { data, error } = await deps.confirmExhausted(atLimit);
+          if (error) throw error;
+          report.transcription.exhausted_confirmed = (data ?? []).map((r) => r.id);
+          const missing = atLimit.length - report.transcription.exhausted_confirmed.length;
+          if (missing > 0) {
+            report.transcription.exhaustion_unconfirmed = `${missing} at-limit job(s) not shown as failed after the claim`;
+          }
+        } catch (e) {
+          report.transcription.exhaustion_unconfirmed = `could not confirm: ${errText(e)}`;
+        }
+      }
     }
     report.transcription.candidates = rows.length;
     report.transcription.near_limit = rows.filter((r) => r.attempt >= maxAttempts - NEAR_LIMIT_MARGIN).length;
@@ -215,6 +257,8 @@ export async function runReap(
       }
       report.scoring.outcomes[outcome] = (report.scoring.outcomes[outcome] ?? 0) + 1;
       if (outcome === 'error') report.scoring.errors++;
+      else if (TERMINAL_SCORE_OUTCOMES.has(outcome)) report.scoring.terminal_failures.push(rec.id);
+      else if (!EXPECTED_SCORE_OUTCOMES.has(outcome)) report.scoring.unexpected.push(rec.id);
     }
   } catch (e) {
     report.scoring.error = `listing unscored transcripts failed: ${errText(e)}`;
@@ -223,9 +267,11 @@ export async function runReap(
   report.ok = report.config_errors.length === 0
     && !report.transcription.error
     && report.transcription.failed.length === 0
-    && !report.transcription.about_to_exhaust
+    && report.transcription.at_limit.length === 0
     && !report.scoring.error
-    && report.scoring.errors === 0;
+    && report.scoring.errors === 0
+    && report.scoring.terminal_failures.length === 0
+    && report.scoring.unexpected.length === 0;
   return report;
 }
 
@@ -234,7 +280,15 @@ export function logReport(report: ReapReport) {
   const line = `TRANSCRIPTION-REAP ${report.ok ? 'OK' : 'PROBLEM'} ${JSON.stringify(report)}`;
   if (report.ok) console.log(line);
   else console.error(line);
-  if (report.transcription.about_to_exhaust) {
-    console.error(`TRANSCRIPTION-REAP ALERT: ${report.transcription.about_to_exhaust} job(s) exceeded automatic recovery attempts and are now failed`);
+  const t = report.transcription;
+  if (t.exhausted_confirmed.length) {
+    console.error(`TRANSCRIPTION-REAP ALERT: ${t.exhausted_confirmed.length} job(s) exceeded automatic recovery attempts and are now failed (confirmed): ${t.exhausted_confirmed.join(',')}`);
+  }
+  const unconfirmed = t.at_limit.filter((id) => !t.exhausted_confirmed.includes(id));
+  if (unconfirmed.length) {
+    console.error(`TRANSCRIPTION-REAP ALERT: ${unconfirmed.length} job(s) at the recovery limit, NOT confirmed failed (${t.exhaustion_unconfirmed ?? 'unknown'}): ${unconfirmed.join(',')}`);
+  }
+  if (report.scoring.terminal_failures.length) {
+    console.error(`TRANSCRIPTION-REAP ALERT: ${report.scoring.terminal_failures.length} recording(s) failed AI scoring for good (marked failed, not retried): ${report.scoring.terminal_failures.join(',')}`);
   }
 }

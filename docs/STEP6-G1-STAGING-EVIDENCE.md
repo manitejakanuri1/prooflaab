@@ -53,3 +53,48 @@ The first reap runs after deploy scored the 23 server rows that earlier tests ha
 
 The staging worker's fault switch was removed after test 3b, and `FUNCTIONS_URL` was restored after test 3a. Current env names:
 `PGRST_JWT_SECRET, POSTGREST_URL, TRANSCRIBER_URL, PRIVATE_BUCKET, STALE_AFTER_SECONDS, QUEUE_MAX_ATTEMPTS, FUNCTIONS_URL`.
+
+---
+
+# G1 review fixes: `_shared/voiceScore.ts` (2026-09-29)
+
+| # | Review issue | Fix |
+|---|---|---|
+| 1 | The too-short decision wrote without a claim | Claim first. "Too short" is written only through `fail_voice_scoring` under this call's lease. A scored row, or one with a live claim, is never touched |
+| 2 | Database errors were reported as "already" or "lost race" | Every claim/complete/fail/read error is checked and returns outcome `error` (503). Nothing is claimed to have happened |
+| 3 | Bad AI scores silently became 0 | `parseAiScore` accepts only a number (or numeric string) from 0 to 100. Anything else goes to the failure path: row `failed`, score stays null |
+| 4 | No pending result | A live claim elsewhere with no saved score returns `pending` (202, `pending: true`). `already` now means a saved score exists |
+
+**Caller changes: none needed.**
+- voice-score returns the result as it comes.
+- transcription-reap counts the outcomes.
+- The worker logs the reply.
+- The browser's synchronous path reads `communication_score`, which is null for `pending` or `error`.
+
+## Unit tests: `supabase/functions/_shared/voiceScore_test.ts`
+
+`npx deno test --allow-env --no-check=remote supabase/functions/_shared/voiceScore_test.ts` → **27 passed, 0 failed**.
+
+The tests use a fake database that follows the migration-45 rules exactly as Step 6DD applied them in production.
+
+- **1a–1d.** Too-short:
+  - on a scored row: `already`, row unchanged;
+  - with a live claim elsewhere: `pending`, the other lease is unchanged;
+  - on an unclaimed row: `too_short`, no AI call;
+  - 10 concurrent calls: exactly one write.
+- **2 (×5).** A claim, complete, fail (after an AI failure), fail (too short) or read error gives `error` 503, never `already` or `lost_race`.
+- **3 (×12).** Unusable answers all give `failed` 502 with the score still null: missing, "abc", null, "", "NaN", 150, -5, true, not JSON, empty, or the AI call throwing. Valid answers work: 0, 100, "72", and 64.6 rounds to 65.
+- **4.** A live claim elsewhere gives `pending` 202. An already-scored row gives `already` with the saved score.
+- **5.** 20 concurrent requests make **exactly 1 AI call**, 1 save and 1 streak update. A later call gives `already`.
+- **6a.** The AI call outlasts the 120 s lease. B re-claims and saves 80, and A's late 20 is rejected (`lost_race`), so the saved result is protected. **Honest: 2 AI calls happened.**
+- **6b.** Slow A fails after B took over. A's failure is rejected, and B's claim and score are unaffected.
+- **6c.** A caller long after the save gets `already`, with no new AI call.
+
+## Live staging (functions image `staging-g1r`, 40/40 loaded, PG 17.11; staging runs the original, unfixed 45)
+
+| Check | Result |
+|---|---|
+| L1 normal (13b95428…) | Transcribed, then 1 claim, scored 55 |
+| L2 duplicate (ef5c2d62…, 2 tasks) | 1 claim, scored 45. The dup task: "nothing to claim" |
+| L3 too-short via reap (801792b3…) | `claimed` → `too short` → `-> too_short`. Row `failed`, notes "Too little speech to score.", claim released |
+| Unscored server rows left | 0 |

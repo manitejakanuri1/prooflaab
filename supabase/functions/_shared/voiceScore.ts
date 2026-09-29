@@ -8,6 +8,10 @@ import { generateText } from "./llm.ts";
  *
  * `rec` must already be authorised by the caller - this function does not
  * decide who may score what, only how, and only once.
+ *
+ * Every write to the row happens under a scoring claim (lease) - including
+ * the "too little speech" decision - so nothing here can change a recording
+ * that is already scored, or one another caller is scoring right now.
  */
 export const VOICE_SCORE_COLUMNS =
   'id, student_id, transcript, duration_seconds, word_count, task_id, communication_score, communication_notes, transcript_source, transcription_status, status';
@@ -23,55 +27,126 @@ export interface VoiceRec {
   communication_notes: string | null;
 }
 
-export type ScoreOutcome = 'scored' | 'already' | 'too_short' | 'failed' | 'lost_race';
+export type ScoreOutcome =
+  | 'scored'      // this call graded it and the result was saved
+  | 'already'     // it already had a saved score; nothing was done
+  | 'pending'     // another caller holds a live claim and no score is saved yet
+  | 'too_short'   // too little speech; marked failed under this call's claim
+  | 'failed'      // AI error or unusable AI answer; marked failed under this call's claim
+  | 'lost_race'   // this call's claim went stale and a newer claim owns the result
+  | 'not_found'   // the recording no longer exists
+  | 'error';      // a database call failed; nothing is claimed to have happened
+
+export type ScoreResult = { status: number; outcome: ScoreOutcome; body: Record<string, unknown> };
+
+/** Minimum words before a transcript is worth grading (unchanged). */
+export const MIN_WORDS = 12;
+/** Same default TTL claim_voice_scoring uses (migration 45). */
+export const SCORE_CLAIM_TTL_SECONDS = 120;
+
+type Generate = (prompt: string, opts: { temperature: number; maxOutputTokens: number },
+  track: { feature: string; studentId?: string | null }) => Promise<{ text: string }>;
+
+const dbError = (step: string, voice_id: string, err: unknown): ScoreResult => {
+  const message = (err as { message?: string })?.message ?? String(err);
+  console.error(`VOICE-SCORE: ${step} failed for ${voice_id}: ${message}`);
+  return { status: 503, outcome: 'error', body: { success: false, error: `database error during ${step}` } };
+};
+
+/**
+ * Strict check of the AI's answer. Only a real number from 0 to 100 counts
+ * (a numeric string like "72" is accepted, since that is still a number the
+ * model meant). Missing, empty, non-numeric, NaN, Infinity or out-of-range is
+ * NOT turned into 0 - it is reported as unusable so the failure path runs.
+ */
+export function parseAiScore(text: string): { score: number; notes: string | null } | null {
+  let parsed: unknown;
+  try {
+    const match = text.match(/\{[\s\S]*\}/);
+    parsed = JSON.parse(match ? match[0] : text);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const raw = (parsed as Record<string, unknown>).communication_score;
+  let n: number;
+  if (typeof raw === 'number') n = raw;
+  else if (typeof raw === 'string' && raw.trim() !== '') n = Number(raw.trim());
+  else return null;
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
+  const notes = (parsed as Record<string, unknown>).notes;
+  return { score: Math.round(n), notes: typeof notes === 'string' ? notes : null };
+}
 
 export async function scoreRecording(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   rec: VoiceRec,
-): Promise<{ status: number; outcome: ScoreOutcome; body: Record<string, unknown> }> {
+  generate: Generate = generateText,
+): Promise<ScoreResult> {
   const voice_id = rec.id;
-
-  if (!rec.transcript || (rec.word_count ?? 0) < 12) {
-    await supabase.from('voice_explanations')
-      .update({ status: 'failed', communication_notes: 'Too little speech to score.' })
-      .eq('id', voice_id);
-    return { status: 200, outcome: 'too_short', body: { success: false, reason: 'transcript too short' } };
-  }
 
   // Step 6F/6G: an atomic claim, not a read-then-write - two concurrent
   // calls for the same recording (two tabs, a retry racing a reopen, or the
-  // worker racing transcription-reap) can never both pass this. The loser
-  // skips DeepSeek entirely and hands back whatever score already exists
-  // rather than grading twice.
+  // worker racing transcription-reap) can never both pass this. It refuses
+  // a scored row, and a row whose current claim is still live.
   //
-  // The claim itself is not enough on its own: a lease token (minted
-  // fresh by every successful claim) is what actually prevents a claim
-  // that has since gone stale - a slow DeepSeek call outliving its own
-  // TTL - from overwriting a result a NEWER claim already saved. Every
-  // write below is fenced on this exact token, not just "is there a
-  // score now" (migration 45).
-  const { data: claimRows } = await supabase.rpc('claim_voice_scoring', { _id: voice_id });
-  const claim = claimRows?.[0] as { claimed?: boolean; lease_token?: string } | undefined;
+  // The lease token it returns is what every write below is fenced on, so a
+  // claim that has since gone stale - a slow DeepSeek call outliving its own
+  // TTL - can never overwrite what a NEWER claim already saved (migration 45).
+  const { data: claimRows, error: claimError } =
+    await supabase.rpc('claim_voice_scoring', { _id: voice_id });
+  if (claimError) return dbError('claim', voice_id, claimError);
+  const claim = (Array.isArray(claimRows) ? claimRows[0] : claimRows) as
+    { claimed?: boolean; lease_token?: string } | undefined;
+
   if (!claim?.claimed) {
-    // Either already scored, or another live claim currently holds this
-    // recording - re-read rather than trust rec's now-possibly-stale
-    // values, since a concurrent winner may have just finished.
-    console.log(`VOICE-SCORE: not claimed ${voice_id} - already scored or another claim holds it`);
-    const { data: current } = await supabase
-      .from('voice_explanations').select('communication_score, communication_notes')
+    // Not claimed: it is scored already, someone else holds a live claim, or
+    // the row is gone. Re-read to tell which - never guess.
+    const { data: current, error: readError } = await supabase
+      .from('voice_explanations')
+      .select('status, communication_score, communication_notes')
       .eq('id', voice_id).maybeSingle();
+    if (readError) return dbError('read after unclaimed', voice_id, readError);
+    if (!current) return { status: 404, outcome: 'not_found', body: { success: false, error: 'Recording not found' } };
+    if (current.status === 'scored') {
+      console.log(`VOICE-SCORE: already scored ${voice_id}`);
+      return {
+        status: 200, outcome: 'already',
+        body: { success: true, communication_score: current.communication_score, notes: current.communication_notes },
+      };
+    }
+    console.log(`VOICE-SCORE: pending ${voice_id} - another claim is scoring it`);
     return {
-      status: 200, outcome: 'already',
-      body: {
-        success: true,
-        communication_score: current?.communication_score ?? rec.communication_score,
-        notes: current?.communication_notes ?? rec.communication_notes,
-      },
+      status: 202, outcome: 'pending',
+      body: { success: false, pending: true, communication_score: null, notes: null },
     };
   }
   const leaseToken = claim.lease_token;
   console.log(`VOICE-SCORE: claimed ${voice_id}`);
+
+  // Releases this call's claim as a failure. Fenced on this lease, so it
+  // cannot touch a row a newer claim took over (and, from migration 45 as
+  // applied by Step 6DD, never a scored row).
+  const failUnderClaim = async (notes: string, outcome: ScoreOutcome, status: number, body: Record<string, unknown>) => {
+    const { data: released, error: failError } = await supabase.rpc('fail_voice_scoring', {
+      _id: voice_id, _lease_token: leaseToken, _notes: notes,
+    });
+    if (failError) return dbError('fail', voice_id, failError);
+    if (!released) {
+      console.log(`VOICE-SCORE: lost race ${voice_id} - claim went stale before recording the failure`);
+      return { status: 200, outcome: 'lost_race' as ScoreOutcome, body: { success: false, lost_race: true } };
+    }
+    return { status, outcome, body };
+  };
+
+  // Too little speech: decided only now, under this claim, so it can never
+  // mark an already-scored recording failed or overwrite another claim's work.
+  if (!rec.transcript || (rec.word_count ?? 0) < MIN_WORDS) {
+    console.log(`VOICE-SCORE: too short ${voice_id}`);
+    return await failUnderClaim('Too little speech to score.', 'too_short', 200,
+      { success: false, reason: 'transcript too short' });
+  }
 
   // What they were asked to explain, so the grader can tell whether the
   // answer is about this work or a general speech about anything.
@@ -112,47 +187,45 @@ Be fair to nervous speakers: hesitation and rambling are NOT evidence of cheatin
 Return ONLY JSON:
 {"communication_score": <0-100>, "notes": "<two sentences, addressed to the student, plain English>"}`;
 
-  let parsed: { communication_score?: number; notes?: string } = {};
+  let graded: { score: number; notes: string | null } | null;
   try {
-    const { text } = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 500 },
+    const { text } = await generate(prompt, { temperature: 0.3, maxOutputTokens: 500 },
       { feature: 'voice-score', studentId: rec.student_id });
-    const match = text.match(/\{[\s\S]*\}/);
-    parsed = JSON.parse(match ? match[0] : text);
+    graded = parseAiScore(text);
+    if (!graded) console.error(`VOICE-SCORE: unusable AI answer for ${voice_id}: ${String(text).slice(0, 200)}`);
   } catch (e) {
-    console.error('voice-score: could not grade', e);
-    // fail_voice_scoring only releases THIS lease - if this claim has
-    // already gone stale and a newer one has since taken over, this
-    // correctly does nothing rather than clearing the newer claim's lock
-    // out from under it.
-    await supabase.rpc('fail_voice_scoring', {
-      _id: voice_id, _lease_token: leaseToken, _notes: 'Scoring failed. A person can still listen to this.',
-    });
-    return { status: 502, outcome: 'failed', body: { error: 'Scoring failed' } };
+    console.error(`VOICE-SCORE: AI call failed for ${voice_id}`, e);
+    graded = null;
+  }
+  if (!graded) {
+    return await failUnderClaim('Scoring failed. A person can still listen to this.', 'failed', 502,
+      { success: false, error: 'Scoring failed' });
   }
 
-  const score = Math.max(0, Math.min(100, Math.round(Number(parsed.communication_score) || 0)));
-
-  const { data: committed } = await supabase.rpc('complete_voice_scoring', {
-    _id: voice_id, _lease_token: leaseToken, _score: score, _notes: parsed.notes ?? null,
+  const { data: committed, error: completeError } = await supabase.rpc('complete_voice_scoring', {
+    _id: voice_id, _lease_token: leaseToken, _score: graded.score, _notes: graded.notes,
   });
+  if (completeError) return dbError('complete', voice_id, completeError);
   if (!committed) {
-    // This claim went stale before the write - a newer claim already
-    // holds (or has already saved) this recording's result. Report
-    // whatever is actually in the database now, never this now-discarded
-    // grading, so the caller never sees a result that lost the race.
+    // This claim went stale before the write and a newer claim took over;
+    // the newer claim owns the result. Report what is actually saved now.
     console.log(`VOICE-SCORE: lost race ${voice_id} - a newer claim owns the result`);
-    const { data: current } = await supabase
-      .from('voice_explanations').select('communication_score, communication_notes')
+    const { data: current, error: readError } = await supabase
+      .from('voice_explanations').select('status, communication_score, communication_notes')
       .eq('id', voice_id).maybeSingle();
+    if (readError) return dbError('read after lost race', voice_id, readError);
     return {
       status: 200, outcome: 'lost_race',
-      body: { success: true, communication_score: current?.communication_score ?? null, notes: current?.communication_notes ?? null },
+      body: {
+        success: current?.status === 'scored', lost_race: true,
+        communication_score: current?.communication_score ?? null, notes: current?.communication_notes ?? null,
+      },
     };
   }
-  console.log(`VOICE-SCORE: scored ${voice_id} = ${score}`);
+  console.log(`VOICE-SCORE: scored ${voice_id} = ${graded.score}`);
 
   // Speaking about your work is work. The streak counts the day either way.
   await supabase.rpc('touch_streak', { _student_id: rec.student_id });
 
-  return { status: 200, outcome: 'scored', body: { success: true, communication_score: score, notes: parsed.notes ?? null } };
+  return { status: 200, outcome: 'scored', body: { success: true, communication_score: graded.score, notes: graded.notes } };
 }

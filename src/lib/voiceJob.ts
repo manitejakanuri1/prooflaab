@@ -20,6 +20,18 @@ export interface StoredJob {
   studentId?: string | null;
   taskId?: string | null;
   proofId?: string | null;
+  /** Per-recording record (key `pl.voiceJob.v3:<recordingId>`, audit F1/F2):
+   *  - stage: "recording" (audio only in the page's memory), "uploading" (sent,
+   *    no answer yet), "uploaded" (the server has the file; older markers,
+   *    written only after a successful upload, count as uploaded)
+   *  - aside: kept by the student's choice, listed, never resumed by itself
+   *  - tabId/heartbeatAt: the page handling it, and when it last said so */
+  recordingId?: string;
+  stage?: "recording" | "uploading" | "uploaded";
+  aside?: boolean;
+  tabId?: string;
+  heartbeatAt?: number;
+  createdAt?: number;
 }
 
 export interface JobRow {
@@ -64,6 +76,12 @@ export function parseStoredJob(raw: string | null): StoredJob | null {
       ...(typeof j.studentId === "string" ? { studentId: j.studentId } : {}),
       ...("taskId" in j ? { taskId: typeof j.taskId === "string" ? j.taskId : null } : {}),
       ...("proofId" in j ? { proofId: typeof j.proofId === "string" ? j.proofId : null } : {}),
+      ...(typeof j.recordingId === "string" ? { recordingId: j.recordingId } : {}),
+      ...(j.stage === "recording" || j.stage === "uploading" || j.stage === "uploaded" ? { stage: j.stage } : {}),
+      ...(j.aside === true ? { aside: true } : {}),
+      ...(typeof j.tabId === "string" ? { tabId: j.tabId } : {}),
+      ...(typeof j.heartbeatAt === "number" ? { heartbeatAt: j.heartbeatAt } : {}),
+      ...(typeof j.createdAt === "number" ? { createdAt: j.createdAt } : {}),
     };
   } catch {
     return null;
@@ -134,6 +152,13 @@ export function slotKey(ctx: RecordingContext): string {
   return `pl.voiceJob.v2:${JSON.stringify([ctx.studentId, ctx.taskId, ctx.proofId])}`;
 }
 
+/** One record per recording (audit F2): two tabs, or two recordings of the
+ * same work, never share - and so never overwrite - a record. */
+export const MARKER_PREFIX = "pl.voiceJob.v3:";
+export function markerKey(recordingId: string): string {
+  return `${MARKER_PREFIX}${recordingId}`;
+}
+
 /** The key older builds used: `taskId ?? proofId`, so every proof under one
  * task shared it. Read only for backward-compatible recovery; never written. */
 export function legacySlotKey(ctx: RecordingContext): string {
@@ -154,7 +179,28 @@ export function jobMatchesContext(job: StoredJob, ctx: RecordingContext): "match
 }
 
 /** A row as the server holds it (RLS: only the student's own rows are visible). */
-export interface OwnerRow { id: string; student_id: string; task_id: string | null; proof_id: string | null }
+export interface OwnerRow {
+  id: string;
+  student_id: string;
+  task_id: string | null;
+  proof_id: string | null;
+  storage_path?: string | null;
+  transcription_idempotency_key?: string | null;
+}
+
+/**
+ * Is this server row really this recording, for this work (audit F8)? The
+ * row's own student/task/proof must equal the context, and its storage path
+ * (and idempotency key, when the row still has one) must equal the marker's.
+ * A local marker is never enough by itself: it can be stale or edited.
+ */
+export function rowMatchesMarker(row: OwnerRow, job: StoredJob, ctx: RecordingContext): boolean {
+  if (row.student_id !== ctx.studentId) return false;
+  if ((row.task_id ?? null) !== ctx.taskId || (row.proof_id ?? null) !== ctx.proofId) return false;
+  if (row.storage_path != null && row.storage_path !== job.storagePath) return false;
+  if (row.transcription_idempotency_key != null && row.transcription_idempotency_key !== job.idempotencyKey) return false;
+  return true;
+}
 
 /**
  * An older marker, checked against the server's own row for it (found by its
@@ -176,6 +222,11 @@ export function classifyLegacy(
 ): LegacyVerdict {
   if (row === undefined) return { kind: "unresolved", canAttach: false };
   if (row === null) return { kind: "unresolved", canAttach: legacy.voiceId === null };
+  // The row must really be this marker's recording (same path or key) - a row
+  // found by a stale voiceId that points at some other recording decides nothing.
+  const samePath = row.storage_path != null && row.storage_path === legacy.storagePath;
+  const sameKey = row.transcription_idempotency_key != null && row.transcription_idempotency_key === legacy.idempotencyKey;
+  if (!samePath && !sameKey) return { kind: "unresolved", canAttach: false };
   if (row.student_id !== ctx.studentId) return { kind: "elsewhere" };
   if ((row.task_id ?? null) !== ctx.taskId || (row.proof_id ?? null) !== ctx.proofId) return { kind: "elsewhere" };
   return { kind: "ours", job: { ...legacy, voiceId: row.id, ...ctx } };
@@ -185,4 +236,22 @@ export function classifyLegacy(
  * finished for good; anything uncertain must be resumed or explicitly abandoned. */
 export function mayStartNewRecording(stored: StoredJob | null, confirmedTerminal: boolean): boolean {
   return stored === null || confirmedTerminal;
+}
+
+/**
+ * Which stored recording (if any) this context should pick up (audit F2): the
+ * newest one for exactly this context that is not set aside and that no other
+ * open page is handling. `otherPages` counts the ones another page still has.
+ */
+export function pickResumable<T extends { job: StoredJob }>(
+  entries: T[],
+  ctx: RecordingContext,
+  owner: (job: StoredJob) => "this-page" | "other-page" | "nobody",
+): { next: T | null; otherPages: number } {
+  const mine = entries.filter((e) => !e.job.aside && jobMatchesContext(e.job, ctx) === "match");
+  const otherPages = mine.filter((e) => owner(e.job) === "other-page").length;
+  const free = mine
+    .filter((e) => owner(e.job) !== "other-page")
+    .sort((a, b) => (b.job.createdAt ?? 0) - (a.job.createdAt ?? 0));
+  return { next: free[0] ?? null, otherPages };
 }

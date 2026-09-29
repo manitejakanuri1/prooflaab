@@ -607,3 +607,46 @@ What changed (VoiceExplainModal.tsx, lib/voiceJob.ts, lib/voiceLifecycle.ts):
 - Harness, async path: 45/45, run twice (H1-H37). H36 (hidden tab) and H37 (75 s decoded audio) are SIMULATIONS.
 - Harness, sync path (dev server with `VITE_ASYNC_TRANSCRIPTION=false`, `MODE=sync`): 3/3.
 - Real task page (`voice_modal_lifecycle_browser.mjs`): 13/13.
+
+## Lifecycle round 4 (round-3 independent audit, findings F1-F9)
+
+Browser code only. No SQL, migrations, deployment, production configuration or staging row changes.
+Every browser test fakes the file service, enqueue, progress rows, lookups, consent and inserts.
+
+| Finding | What changed in the browser |
+|---|---|
+| F1 durable moves | `safeStore.set/remove` now return whether the change is really in storage (a write is read back). `moveDurably` deletes the old record only when the new one is durably stored; otherwise the old one stays in storage and is hidden on this page only. "Keep aside" is an in-place flag on the recording's own record (nothing moved or deleted). |
+| F2 multiple tabs | One record per recording (`pl.voiceJob.v3:<recording id>`), never one per slot, so tabs cannot overwrite each other. Each record carries the tab handling it and a heartbeat (every 5 s; cleared on `pagehide`). Another open tab's recording is left alone and the student is told; a record whose heartbeat is gone (closed, crashed, navigated) is picked up and checked with the server. |
+| F3 late recorder events | Each recorder has its own microphone stream, chunk buffer, meter and animation frame. A late `dataavailable`/`stop` only touches its own session. |
+| F4 account binding | A recording starts only if the signed-in account is the page's student. Immediately before every request for a recording (upload, lookup, existence check, enqueue, progress check, sync transcription, insert, scoring, consent) the signed-in account is compared with the recording's owner; if it differs, nothing is sent and the record is kept for the owner. |
+| F5 uploads | Records now have stages: `recording` (audio only in this page's memory), `uploading` (written BEFORE the upload is sent), `uploaded`. Outcomes: success or 409 = stored; an HTTP refusal = not stored (said, with the reason; record removed); no answer or a 120 s timeout = unknown (audio kept in memory, record kept, "couldn't confirm"). A later resume re-sends to the same path (409 = already stored) or, without the audio, checks whether the file exists (authenticated download). Audio is never written to browser storage: after a reload, audio that never reached the server is gone, and the student is told plainly. |
+| F6 kept-aside recordings | Listed under Start (this student only), with Check (server row / file existence), "Save it to this work" (only when it was never processed) and "Remove from this list" (explicit, local only). They survive reloads. Nothing is removed automatically. |
+| F7 storage paths | `<student>/<recording id>-explain.<ext>`: a random id fixed at Start and reused by every retry. Never the clock. |
+| F8 authoritative rows | Before a row is shown or attached, its own student/task/proof, storage path and idempotency key (when still set) must equal the record's. A mismatch shows "we can't confirm it belongs to this work"; nothing is shown, attached or deleted. |
+| F9 leaving the page | The recording screen says: keep the page open until "Saved"; switching away stops the recording; closing/leaving before then means it may not be saved. The browser asks before leaving while a recording is unsent. After a close/navigation, the next visit says plainly that it was not saved (it never claims otherwise). |
+
+Behaviour change to note: resuming a record now also retries a lost enqueue answer once (same key) before asking the student.
+
+### Backend proposals (NOT implemented; each needs separate approval)
+1. **Audio length and size.** files-service accepts up to 10 MB for every bucket (`files-service/main.ts` MAX_BYTES, lines 36-37 and 298-302). Proposal: a per-bucket limit for `voice-explanations` (60 s of Opus at 96 kb/s is about 0.75 MB; allow 2 MB), and a real-duration check in transcription-worker before Whisper (reject over 62 s as "too long", no scoring).
+2. **Enqueue should check the file exists.** `transcription-enqueue/index.ts` (lines 90-133) checks path ownership, task and proof, but not that the object exists. A job can therefore be created for a missing file. Proposal: a storage existence check before the insert.
+3. **Cheap existence check.** The browser currently checks existence by downloading the file (at most about 1 MB). Proposal: a `HEAD` route in files-service that returns 200/404 with the same owner check.
+4. **Orphaned files.** A recording uploaded but never enqueued (tab closed after the upload, or removed from the kept-aside list) leaves a file with no row. Proposal: a scheduled cleanup of `voice-explanations` objects older than N days that have no `voice_explanations` row (dry-run report first).
+5. **Idempotency under real concurrency.** The key column is `unique` (migration 41, line 19) and enqueue does insert-then-select. Parallel real calls with one key are not proven here; verify with backend tests or an approved controlled staging run.
+
+### Test results (round 4, actually executed)
+- Unit (Node test runner): 72/72, including `src/lib/voiceRound4.test.ts`. Each F1/F2/F7/F8 block first reproduces the defect with the previous protocol, then shows the correction.
+- `tsc --noEmit -p tsconfig.app.json`: clean. ESLint on the 10 changed files: 0 errors, 1 warning (test harness). Full-repo `eslint .`: 286 errors / 16 warnings, the same baseline as before this round (no new errors).
+- Build: OK. The test harness and the test-only session hook are not in `dist`.
+- Browser harness, queued path: 71/71, run twice back to back. An earlier run made while a full build and lint were running at the same time had 2 timing failures (H14, F6c). Both passed 3/3 when re-run alone and in the two clean full runs.
+- Browser harness, non-queued path (`VITE_ASYNC_TRANSCRIPTION=false`, `MODE=sync`): 6/6.
+- Real task page (`voice_modal_lifecycle_browser.mjs`): 13/13 (its fake rows now carry owner fields, as the real server's do).
+- The same new tests against the previous code (5d42331, with only the new harness and test hook added): queued 2/23 and non-queued 3/6. The defect reproductions include:
+  - F1b: the kept-aside record was lost on reload.
+  - F2a/F7: a path collision, so only 1 of 2 tab saves went through.
+  - F4a and S6: A's audio was sent (and, on the non-queued path, uploaded and inserted) with B's session.
+  - S5: B could not record while A's late recorder events were pending.
+  Some other old-code failures come only from screens that did not exist before.
+- Staging counts were identical before and after every run.
+- Simulations: F2d (crashed holder, via a clock 20 s ahead), H6 (throttled clock), H36 (hidden tab), H37 (75 s of decoded audio). Every network write is faked.
+- Not run: `voice_buildlog_browser.mjs` and `voice_modal_blob_browser.mjs` (they open real pages without blocking `touch_my_activity`, which would update t07's `last_active`); `voice_playback_browser.mjs` and `voice_modal_browser.mjs` (they create recordings).

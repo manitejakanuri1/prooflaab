@@ -91,7 +91,7 @@ async function setup(browser, { blockVoiceStorage = false, consentError = false 
     }
   }, { s: session, blockVoiceStorage });
 
-  const state = { putHold: null, putCount: 0, enqueue: [], pollHold: null, rows: new Map(), autoComplete: true };
+  const state = { putHold: null, putCount: 0, enqueue: [], pollHold: null, rows: new Map(), owner: new Map(), autoComplete: true };
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
 
@@ -111,6 +111,9 @@ async function setup(browser, { blockVoiceStorage = false, consentError = false 
       const body = JSON.parse(req.postData() || '{}');
       const id = crypto.randomUUID();
       state.enqueue.push({ id, body });
+      // the row's own owner fields, as the real server returns them (the modal checks them, audit F8)
+      state.owner.set(id, { student_id: T07, task_id: body.task_id ?? null, proof_id: body.proof_id ?? null,
+        storage_path: body.storage_path, transcription_idempotency_key: body.idempotency_key });
       if (!state.rows.has(id)) state.rows.set(id, row(id, { transcription_status: 'processing', status: 'recorded', communication_score: null }));
       // the fake "server" finishes the job 1.5 s later (unless the test scripts the row itself)
       if (state.autoComplete) setTimeout(() => { if (state.autoComplete) state.rows.set(id, row(id)); }, 1500);
@@ -141,9 +144,9 @@ async function setup(browser, { blockVoiceStorage = false, consentError = false 
         if (state.pollHold) {
           const hold = state.pollHold;
           const respond = await hold.promise;            // the test decides what arrives, and when
-          return json(route, 200, [respond ?? state.rows.get(id)]);
+          return json(route, 200, [{ ...(respond ?? state.rows.get(id)), ...state.owner.get(id) }]);
         }
-        return json(route, 200, [state.rows.get(id)]);
+        return json(route, 200, [{ ...state.rows.get(id), ...state.owner.get(id) }]);
       }
     }
     return route.continue();
@@ -159,13 +162,12 @@ async function openExplain(page, { first = true } = {}) {
 }
 const closeDialog = async (page) => { await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 10000 }); };
 const marker = (page) => ev(page, (id) => {
-  // slot key: pl.voiceJob.v2:["<student>","<task>|null","<proof>|null"] (voiceJob.slotKey)
+  // one record per recording: pl.voiceJob.v3:<recording id>, holding its student/task/proof (voiceJob.markerKey)
   try {
-    for (const k of Object.keys(localStorage)) {
-      if (!k.startsWith('pl.voiceJob.v2:')) continue;
-      const v = localStorage.getItem(k);
-      if (JSON.parse(k.slice('pl.voiceJob.v2:'.length))[0] === id && v) return JSON.parse(v);
-    }
+    const mine = Object.keys(localStorage).filter((k) => k.startsWith('pl.voiceJob.v3:'))
+      .map((k) => JSON.parse(localStorage.getItem(k) || 'null')).filter((j) => j && j.studentId === id);
+    mine.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    if (mine[0]) return mine[0];
   } catch { /* blocked */ }
   return null;
 }, T07);

@@ -622,3 +622,13 @@ export function __resetForTests(): void {
   listeners.clear();
   persist(null);
 }
+
+/**
+ * Test seam (Step 6 recording harness only, scripts/dev-tools/harness): replace
+ * the signed-in session exactly as a sign-out followed by a sign-in would, so a
+ * browser test can switch the real in-page credentials without a network
+ * sign-in. Not called by the app.
+ */
+export function __setSessionForTests(session: GoogleSession | null): void {
+  setSessionInternal(session, session ? 'SIGNED_IN' : 'SIGNED_OUT');
+}

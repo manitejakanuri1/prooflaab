@@ -122,7 +122,8 @@ test("legacy marker: only the server's own row decides; failure or absence never
   const here = recordingContext("s1", "t1", "p2");
   const byKey: StoredJob = { voiceId: null, idempotencyKey: "k", storagePath: "s1/1-explain.webm", durationSeconds: 20 };
   const byId: StoredJob = { ...byKey, voiceId: "v1" };
-  const row = (task_id: string | null, proof_id: string | null, student_id = "s1") => ({ id: "v1", student_id, task_id, proof_id });
+  const row = (task_id: string | null, proof_id: string | null, student_id = "s1") =>
+    ({ id: "v1", student_id, task_id, proof_id, storage_path: "s1/1-explain.webm" });
   // lookup failed / timed out: unresolved, and no "attach here" offered
   assert.deepEqual(classifyLegacy(byKey, here, undefined), { kind: "unresolved", canAttach: false });
   // never reached the server: unresolved; the student may explicitly attach it

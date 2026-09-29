@@ -61,6 +61,9 @@ export interface KeyValueStore {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
+  /** Present on localStorage; needed only to list keys (safeStore.keys). */
+  readonly length?: number;
+  key?(index: number): string | null;
 }
 
 /**
@@ -74,39 +77,86 @@ export interface KeyValueStore {
  * accepts it again the override is dropped and storage is the source of truth.
  * A removal that cannot delete also tries to blank the value, so a reload
  * does not bring an abandoned marker back where writes still work.
+ *
+ * DURABILITY: `set` and `remove` return true only when the change is really in
+ * persistent storage (a write is read back to confirm it). An in-memory
+ * override is readable on this page but is NOT durable - callers that move a
+ * marker from one key to another must not delete the old one unless the new
+ * one was durable (Step 6 round-3 audit F1).
  */
 export function createSafeStore(getStorage: () => KeyValueStore) {
   const override = new Map<string, string | null>();   // null = removed (tombstone)
+  const hidden = new Set<string>();                     // memory-only: never written through
   const attempt = (fn: (s: KeyValueStore) => void): boolean => {
     try { fn(getStorage()); return true; } catch { return false; }
   };
-  const persist = (key: string, value: string | null): boolean =>
-    value === null
-      ? attempt((s) => s.removeItem(key)) || attempt((s) => s.setItem(key, ""))
-      : attempt((s) => s.setItem(key, value));
+  const readPersisted = (key: string): string | null | undefined => {
+    let v: string | null = null;
+    return attempt((s) => { v = s.getItem(key); }) ? v : undefined;
+  };
+  const persist = (key: string, value: string | null): boolean => {
+    if (value === null) {
+      if (attempt((s) => s.removeItem(key))) return true;
+      return attempt((s) => s.setItem(key, "")) && readPersisted(key) === "";
+    }
+    return attempt((s) => s.setItem(key, value)) && readPersisted(key) === value;
+  };
   const flush = (key: string) => {
     if (override.has(key) && persist(key, override.get(key)!)) override.delete(key);
   };
-  return {
+  const store = {
     get(key: string): string | null {
+      if (hidden.has(key)) return null;
       flush(key);
       if (override.has(key)) return override.get(key)!;
-      let v: string | null = null;
-      if (!attempt((s) => { v = s.getItem(key); })) return null;
-      return v || null;                       // "" is a blanked (removed) value
+      return readPersisted(key) || null;       // "" is a blanked (removed) value; undefined = unreadable
     },
-    set(key: string, value: string): void {
-      if (persist(key, value)) override.delete(key);
-      else override.set(key, value);
+    /** true = durably stored; false = held in memory for this page only. */
+    set(key: string, value: string): boolean {
+      hidden.delete(key);
+      if (persist(key, value)) { override.delete(key); return true; }
+      override.set(key, value);
+      return false;
     },
-    remove(key: string): void {
-      if (attempt((s) => s.removeItem(key))) override.delete(key);
-      else { override.set(key, null); attempt((s) => s.setItem(key, "")); }
+    /** true = durably removed (or blanked); false = hidden for this page only. */
+    remove(key: string): boolean {
+      if (persist(key, null)) { override.delete(key); return true; }
+      override.set(key, null);
+      return false;
+    },
+    /** Hide a key for this page only. Never deletes it from storage: used when
+     * a replacement could not be stored durably, so the original must stay. */
+    hide(key: string): void { hidden.add(key); },
+    /** Every key with this prefix that currently has a value. */
+    keys(prefix: string): string[] {
+      const found = new Set<string>();
+      attempt((s) => {
+        const n = s.length ?? 0;
+        for (let i = 0; i < n; i++) {
+          const k = s.key?.(i);
+          if (k && k.startsWith(prefix)) found.add(k);
+        }
+      });
+      for (const k of override.keys()) if (k.startsWith(prefix)) found.add(k);
+      return [...found].filter((k) => store.get(k) !== null).sort();
     },
   };
+  return store;
 }
 
 export const safeStore = createSafeStore(() => window.localStorage);
+
+/**
+ * Moves a value to a new key without ever losing both copies (audit F1): the
+ * old key is removed only when the new value is durably stored. Otherwise the
+ * old key stays in storage and is only hidden on this page. Returns whether
+ * the move is durable.
+ */
+export function moveDurably(store: ReturnType<typeof createSafeStore>, oldKey: string, newKey: string, value: string): boolean {
+  if (store.set(newKey, value)) { store.remove(oldKey); return true; }
+  store.hide(oldKey);
+  return false;
+}
 
 /** A score is shown or exported only when the server says the recording is scored. */
 export function scoreToShow(status: string | null | undefined, score: number | null | undefined): number | null {
@@ -170,4 +220,54 @@ export const LENGTH_TOLERANCE_SECONDS = 2;
 /** `true` only when the audio is known to be too long; unknown length (decode failed) is not. */
 export function audioTooLong(decodedSeconds: number | null, maxSeconds: number): boolean {
   return decodedSeconds !== null && Number.isFinite(decodedSeconds) && decodedSeconds > maxSeconds + LENGTH_TOLERANCE_SECONDS;
+}
+
+/**
+ * A recording's storage path: its own random id, never the clock. Two
+ * recordings started in the same millisecond (two tabs, two proofs) can never
+ * collide, and every retry of one recording names the same object (audit F7).
+ */
+export function recordingPath(studentId: string, recordingId: string, ext: string): string {
+  return `${studentId}/${recordingId}-explain.${ext}`;
+}
+
+/** A page handling a recording refreshes its heartbeat this often... */
+export const HEARTBEAT_MS = 5_000;
+/** ...and a heartbeat older than this means that page is gone (closed, crashed, navigated). */
+export const HEARTBEAT_STALE_MS = 15_000;
+
+/**
+ * Who is handling a recording right now (audit F2): this page, another open
+ * page (fresh heartbeat), or nobody (stale or cleared heartbeat - the page
+ * that made it was closed, crashed or navigated away).
+ */
+export function ownerOf(
+  marker: { tabId?: string; heartbeatAt?: number },
+  myTabId: string,
+  nowMs: number,
+): "this-page" | "other-page" | "nobody" {
+  if (!marker.tabId || !marker.heartbeatAt) return "nobody";
+  if (nowMs - marker.heartbeatAt > HEARTBEAT_STALE_MS) return "nobody";
+  return marker.tabId === myTabId ? "this-page" : "other-page";
+}
+
+/**
+ * What an upload attempt's result proves (audit F5).
+ *  - "stored":   the server has the object (success, or 409: it already exists)
+ *  - "refused":  the server answered and refused it - nothing was stored
+ *  - "unknown":  no answer (network error, timeout) - it may or may not be stored
+ */
+export function uploadOutcome(r: { error: { statusCode?: string } | null } | "timeout"): "stored" | "refused" | "unknown" {
+  if (r === "timeout") return "unknown";
+  if (!r.error) return "stored";
+  if (r.error.statusCode === "409") return "stored";
+  return r.error.statusCode ? "refused" : "unknown";
+}
+
+/** What a download-for-existence check proves: true, false, or unknown (undefined). */
+export function existenceOf(r: { data: unknown; error: { statusCode?: string } | null } | "timeout"): boolean | undefined {
+  if (r === "timeout") return undefined;
+  if (!r.error && r.data) return true;
+  if (r.error?.statusCode === "404") return false;
+  return undefined;
 }

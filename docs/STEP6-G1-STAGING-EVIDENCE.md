@@ -256,3 +256,62 @@ Note: the existing policy **[P1] "A scheduled job failed"** (`resource.type="clo
 - test switches removed (0 left), and the next run is `OK`, 200.
 
 A terminal AI scoring failure was **not** forced live: that would need breaking staging's AI key. It's covered by the unit tests only.
+
+---
+
+# VoiceExplainModal browser corrections (2026-09-29)
+
+Files: `src/components/dashboard/student/VoiceExplainModal.tsx`, `src/lib/voiceJob.ts` (new, pure logic), `src/lib/voiceJob.test.ts` (new), `scripts/dev-tools/voice_modal_browser.mjs` (new).
+
+| # | Issue | Fix |
+|---|---|---|
+| 1 | Lost enqueue response: "Try recording again" deleted the key | New `uncertain` state: **Resume existing recording** (primary) or an explicit **Abandon it and record a new one**. `start()` refuses to start over a stored job and resumes it instead. The key is cleared only on a confirmed final state or an explicit abandon |
+| 2 | Poll failures spun forever | A failed read or an unseen row counts as a failure. After 3 in a row, polling stops and the page shows a clear message plus Resume. The stored job is kept. One check at a time |
+| 3 | Short recordings stopped polling by word count | Final only when the server status is `scored` or `failed`; its feedback is shown |
+| 4 | Audio after refresh | Resume restores `storagePath`; RecordingPlayback gets `src` **or** `storagePath` (authenticated download), never `src=""` |
+| 5 | Duplicate onSaved | `SavedNotifier`: once per recording per stage (transcribed, final), however many poll ticks |
+| 6 | Retry metadata | StoredJob now holds `durationSeconds`. First call and every retry use `enqueueBody(job)`: same key, path and duration. Older stored jobs still parse |
+
+Consent screen: "Your college can hear it. Nobody outside your college can." was **wrong**:
+- the audio file is owner-only (files-service);
+- the college sees a count only (tpo_student_profile);
+- ProofLab admins can read the row (is_admin);
+- verified companies see the score and notes of a discoverable student, never the audio.
+
+It was reworded to match. "Delete from Profile → Privacy" is **correct**: Privacy deletes the row (voice_own_delete) and the file (owner delete).
+
+Checks:
+- `node --test src/lib/voiceJob.test.ts`: **8 passed** (including the onSaved regression test);
+- `npx tsc --noEmit -p tsconfig.app.json`: clean;
+- eslint on the changed files: clean;
+- `npm run build`: OK.
+
+Real browser: Chromium via Playwright, fake microphone playing Windows TTS speech, the site run locally in staging mode on http://localhost:5173 (allowed by staging CORS), signed in as t07 with a token minted like the staging auth-bridge issues.
+
+```
+PASS  A1 stored job has voiceId, key, path and duration  (duration=14)
+PASS  A2 no <audio> with an empty src after refresh
+PASS  A3 audio plays after refresh (authenticated download, blob: URL)  ({"src":"blob:","ready":1,"dur":null})
+PASS  A4 server score shown after refresh
+PASS  A5 stored job cleared once final
+PASS  B1 short recording shows the server's own feedback
+PASS  B2 no "Grading" message once final
+PASS  B3 polling stopped after the final status  (polls in 8s after final: 0)
+PASS  C1 lost response recovered without a new recording  (enqueue calls: 1)
+PASS  C2 "Try recording again" never offered
+PASS  C3 any retry reused key, path and duration  ([12])
+PASS  C4 exactly one server job for that key  (rows=1)
+PASS  D1 uncertain state offers "Resume existing recording"
+PASS  D2 no plain "Try recording again" while uncertain
+PASS  D3 recovery details kept (key, path, duration)
+PASS  D4 retried enqueue carried the original duration  (first=12 retry=12)
+PASS  D5 resume found the same job; still exactly one row  (rows=1)
+PASS  E1 failing progress checks stop with a clear message  (after 23s)
+PASS  E2 recovery details kept while uncertain
+PASS  E3 resume after the outage completes
+PASS  B4 database: short recording marked failed by the server  ({"status":"failed","word_count":4,"communication_notes":"Too little speech to score."})
+```
+
+B4 failed in the first run because of a **test** bug: it read the stored job after the app had correctly cleared it. Fixed, and the B section rerun gave 4/4. Final result: **21/21**.
+
+Not checked in the browser: the onSaved count (unit-tested only), and a real Google sign-in (Identity Platform itself was not exercised).

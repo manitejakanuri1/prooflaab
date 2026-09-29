@@ -2,20 +2,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mic, Square, AlertTriangle, CheckCircle2, FileDown } from "lucide-react";
+import { Loader2, Mic, Square, AlertTriangle, CheckCircle2, FileDown, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeWithTimestamps, type TranscribeProgress, type TranscriptSegment } from "@/lib/transcribeAudio";
 import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
 import RecordingPlayback from "./RecordingPlayback";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
+import {
+  enqueueBody, nextFailures, parseStoredJob, SavedNotifier, viewOf,
+  type JobRow, type JobStatus, type PollTick, type StoredJob,
+} from "@/lib/voiceJob";
 
 const MAX_SECONDS = 60;
 
 /**
- * Minimum words before the recording is worth scoring. Sixty seconds of near
- * silence is not an explanation, and sending it to be graded would produce a
- * confident score for nothing.
+ * Minimum words before the recording is worth scoring (synchronous path).
+ * Sixty seconds of near silence is not an explanation, and sending it to be
+ * graded would produce a confident score for nothing. The async path leaves
+ * this decision to the server, which records its own "too little speech".
  */
 const MIN_WORDS = 12;
 
@@ -29,20 +34,7 @@ const MIN_WORDS = 12;
  */
 const ASYNC_TRANSCRIPTION = import.meta.env.VITE_ASYNC_TRANSCRIPTION === "true";
 
-type JobStatus = "pending" | "processing" | "completed" | "failed";
-
-/** What a resumable in-flight job looks like in localStorage - just enough
- * to recover it after a close/reopen or a page refresh, never the transcript
- * itself (that always comes back from the server, never from the browser's
- * own storage). voiceId is written BEFORE the enqueue call resolves, as
- * null - if the HTTP response never arrives (network drop after the server
- * already created the job), a later mount still has the idempotency key and
- * storage path to find or safely retry it. */
-interface StoredJob {
-  voiceId: string | null;
-  idempotencyKey: string;
-  storagePath: string;
-}
+const POLL_MS = 2500;
 
 interface VoiceExplainModalProps {
   open: boolean;
@@ -55,7 +47,24 @@ interface VoiceExplainModalProps {
   onSaved?: () => void;
 }
 
-type Phase = "idle" | "recording" | "transcribing" | "saving" | "queued" | "done" | "error";
+/**
+ * "uncertain" (async path only): the server may already hold this recording
+ * (an enqueue whose answer was lost, or progress checks that keep failing).
+ * The saved recovery details are kept, and the only choices are to resume it
+ * or to explicitly abandon it - never a silent fresh start over it.
+ */
+type Phase = "idle" | "recording" | "transcribing" | "saving" | "queued" | "done" | "uncertain" | "error";
+
+interface SavedResult {
+  transcript: string;
+  segments: TranscriptSegment[];
+  score: number | null;
+  notes: string | null;
+  /** blob: URL of the recording just made in this tab, if any. */
+  audioUrl?: string;
+  /** the stored file, played through an authenticated download after a refresh. */
+  storagePath?: string;
+}
 
 /**
  * Consent, asked once and remembered.
@@ -63,7 +72,14 @@ type Phase = "idle" | "recording" | "transcribing" | "saving" | "queued" | "done
  * The platform keeps a recording of the student's voice, a transcript of it and
  * a judgement about how clearly they explain things. Storing that without ever
  * asking, and with no way to take it back, is the kind of thing nobody notices
- * until a parent or a college's legal team asks about it.
+ * until a parent or a college's legal team asks about it. The wording below
+ * must match what the app actually allows (checked 2026-09-29): the audio file
+ * is readable only by its owner (files-service owner check); the college sees a
+ * count only (tpo_student_profile.voice_recordings); ProofLab admins can read
+ * the row (voice_own_read allows is_admin()); verified companies see the score
+ * and notes of a discoverable student (recruiter_talent/recruiter_proof_profile),
+ * never the audio; the student deletes the row and the file from Profile ->
+ * Privacy (voice_own_delete + owner delete).
  */
 
 const VoiceExplainModal = ({
@@ -82,20 +98,24 @@ const VoiceExplainModal = ({
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
-  const [savedResult, setSavedResult] = useState<
-    { transcript: string; segments: TranscriptSegment[]; score: number | null; notes: string | null; audioUrl: string } | null
-  >(null);
+  const [savedResult, setSavedResult] = useState<SavedResult | null>(null);
 
-  // Step 6D/6E (async path only, see ASYNC_TRANSCRIPTION above).
+  // Step 6D/6E/G1 (async path only, see ASYNC_TRANSCRIPTION above).
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [uncertainReason, setUncertainReason] = useState<string | null>(null);
+  const [scoringPending, setScoringPending] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollFailuresRef = useRef(0);
+  const checkingRef = useRef(false);        // one progress check at a time
+  const resumingRef = useRef(false);        // one resume at a time
   const savingRef = useRef(false);
-  // Step 6 G1: the voiceId onSaved was last reported for, so a poll that
-  // keeps running while the server grades does not report the same save twice.
-  const savedNotifiedRef = useRef<string | null>(null);
-  const [scoringPending, setScoringPending] = useState(false);
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
+  // onSaved once per recording per stage, however often polling reports it.
+  const notifierRef = useRef<SavedNotifier | null>(null);
+  if (!notifierRef.current) notifierRef.current = new SavedNotifier(() => onSavedRef.current?.());
 
   const jobStorageKey = useCallback(
     () => `pl.voiceJob.${studentId}.${taskId ?? proofId ?? "general"}`,
@@ -103,8 +123,7 @@ const VoiceExplainModal = ({
   );
   const readStoredJob = useCallback((): StoredJob | null => {
     try {
-      const raw = localStorage.getItem(jobStorageKey());
-      return raw ? (JSON.parse(raw) as StoredJob) : null;
+      return parseStoredJob(localStorage.getItem(jobStorageKey()));
     } catch {
       return null;
     }
@@ -123,47 +142,66 @@ const VoiceExplainModal = ({
     if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
   }, []);
 
+  /** Recovery details are kept; the student chooses resume or abandon. */
+  const becomeUncertain = useCallback((reason: string) => {
+    stopPolling();
+    setUncertainReason(reason);
+    setPhase("uncertain");
+  }, [stopPolling]);
+
   /** One check of the job's current row, shared by the poll loop and by a
-   * reopened modal's first look - both need the exact same "what do I show
-   * right now" logic. Reads only this student's own row (RLS scopes every
-   * select to student_id = auth.uid()), never another student's. */
+   * reopened modal's first look. Reads only this student's own row (RLS
+   * scopes every select to student_id = auth.uid()). A failed read or a row
+   * that cannot be seen counts as a failure; after MAX_POLL_FAILURES in a
+   * row the page stops and asks, instead of spinning forever. */
   const checkJob = useCallback(async (voiceId: string) => {
-    // types.ts predates migrations 41-43 (transcription_status and friends),
-    // same reason the sync insert below already casts transcript_segments.
-    const { data: row, error } = await supabase
-      .from("voice_explanations")
-      .select("id, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes")
-      .eq("id", voiceId)
-      .maybeSingle()
-      .then((r) => r as unknown as {
-        data: {
-          id: string;
-          transcription_status: JobStatus | null;
-          transcript: string | null;
-          transcript_segments: TranscriptSegment[] | null;
-          word_count: number | null;
-          transcription_error: string | null;
-          status: string | null;
-          communication_score: number | null;
-          communication_notes: string | null;
-        } | null;
-        error: unknown;
-      });
-    if (error || !row) return;
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    try {
+      // types.ts predates migrations 41-45 (transcription_status and friends).
+      const res = await supabase
+        .from("voice_explanations")
+        .select("id, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes, storage_path")
+        .eq("id", voiceId)
+        .maybeSingle()
+        .then((r) => r as unknown as { data: JobRow | null; error: unknown }, (e) => ({ data: null, error: e }));
 
-    const status = (row.transcription_status ?? "pending") as JobStatus;
-    setJobStatus(status);
+      const failReason: "read_error" | "missing" | null = res.error ? "read_error" : !res.data ? "missing" : null;
+      const tick: PollTick = failReason ? { ok: false, reason: failReason } : { ok: true, row: res.data as JobRow };
+      const { failures, giveUp } = nextFailures(pollFailuresRef.current, tick);
+      pollFailuresRef.current = failures;
+      if (failReason) {
+        if (giveUp) {
+          becomeUncertain(failReason === "missing"
+            ? "We can't see your recording's progress right now. It may still be processing."
+            : "We couldn't check on your recording (connection problem). It may still be processing.");
+        }
+        return;
+      }
 
-    if (status === "completed") {
-      const words = row.word_count ?? 0;
-      // Step 6 G1: scoring is started by the server (transcription-worker,
-      // or transcription-reap if the worker could not), never by this page.
-      // The transcript is shown the moment it exists; polling carries on,
-      // read-only, until the server has resolved the score (scored, failed,
-      // or too few words to score). Closing the page loses nothing.
-      const scoringResolved = row.status === "scored" || row.status === "failed" || words < MIN_WORDS;
-      setScoringPending(!scoringResolved);
-      if (scoringResolved) {
+      const row = res.data as JobRow;
+      const view = viewOf(row);
+      setJobStatus((row.transcription_status ?? "pending") as JobStatus);
+
+      if (view.kind === "waiting") {
+        setPhase("queued");
+        return;
+      }
+      if (view.kind === "transcription_failed") {
+        // Confirmed final by the server: now a new recording is safe.
+        stopPolling();
+        writeStoredJob(null);
+        setJobError(view.error);
+        setPhase("error");
+        return;
+      }
+
+      // Transcribed. Scoring is started by the server (transcription-worker,
+      // or transcription-reap), never by this page, and only the server's
+      // own status says when it is final - a short recording included, which
+      // gets the server's "too little speech" result, not a guess from here.
+      setScoringPending(!view.final);
+      if (view.final) {
         stopPolling();
         writeStoredJob(null);
       }
@@ -172,91 +210,92 @@ const VoiceExplainModal = ({
         segments: (row.transcript_segments as TranscriptSegment[] | null) ?? [],
         score: row.communication_score ?? null,
         notes: row.communication_notes ?? null,
-        audioUrl: prev?.audioUrl ?? "",
+        audioUrl: prev?.audioUrl,
+        storagePath: row.storage_path ?? prev?.storagePath,
       }));
       setPhase("done");
-      if (savedNotifiedRef.current !== voiceId || scoringResolved) {
-        savedNotifiedRef.current = voiceId;
-        onSaved?.();
-      }
-    } else if (status === "failed") {
-      stopPolling();
-      writeStoredJob(null);
-      setJobError(row.transcription_error || "Could not transcribe this recording.");
-      setPhase("error");
+      notifierRef.current?.notify(voiceId, "transcribed");
+      if (view.final) notifierRef.current?.notify(voiceId, "final");
+    } finally {
+      checkingRef.current = false;
     }
-  }, [onSaved, stopPolling, writeStoredJob]);
+  }, [becomeUncertain, stopPolling, writeStoredJob]);
 
   /** The recovery path for a lost enqueue response: the job may already
-   * exist under this key even though this browser never saw its id.
-   * Scoped to the caller's own rows by RLS the same as every other select
-   * here - a key can only ever belong to one student anyway (unique
-   * constraint, and transcription-enqueue itself refuses to hand out
-   * someone else's row for a colliding key), but this never even reaches
-   * the database with anyone else's identity to try. */
-  const findJobByIdempotencyKey = useCallback(async (key: string): Promise<string | null> => {
-    const { data } = await supabase
+   * exist under this key even though this browser never saw its id. Scoped
+   * to the caller's own rows by RLS. `undefined` means the lookup itself
+   * failed (unknown), `null` means it genuinely is not there. */
+  const findJobByIdempotencyKey = useCallback(async (key: string): Promise<string | null | undefined> => {
+    const res = await supabase
       .from("voice_explanations")
       .select("id")
       .eq("transcription_idempotency_key" as "id", key)
       .maybeSingle()
-      .then((r) => r as unknown as { data: { id: string } | null });
-    return data?.id ?? null;
+      .then((r) => r as unknown as { data: { id: string } | null; error: unknown }, (e) => ({ data: null, error: e }));
+    if (res.error) return undefined;
+    return res.data?.id ?? null;
   }, []);
 
   const startPolling = useCallback((voiceId: string) => {
     stopPolling();
+    pollFailuresRef.current = 0;
     void checkJob(voiceId); // don't wait for the first tick to show current state
-    pollTimerRef.current = setInterval(() => void checkJob(voiceId), 2500);
+    pollTimerRef.current = setInterval(() => void checkJob(voiceId), POLL_MS);
   }, [checkJob, stopPolling]);
 
-  /** Resume whatever this student's localStorage says is in flight - called
-   * on reopen/remount, and again right after an enqueue call whose HTTP
-   * response never arrived. A record with voiceId already known just
-   * resumes polling; one without it means the browser saw no response at
-   * all, so it first asks the server whether the job exists anyway (the
-   * enqueue could have succeeded and only the response been lost), and only
-   * retries the enqueue itself - with the SAME idempotency key and storage
-   * path, never a new recording - if the server genuinely never heard it. */
+  /** Resume whatever this student's localStorage says is in flight - on
+   * reopen/remount, after a lost enqueue response, or from the "Resume
+   * existing recording" button. Known voiceId: just poll. Unknown: ask the
+   * server whether the job exists anyway, and only then retry the enqueue -
+   * with the SAME idempotency key, storage path and duration. */
   const resumeStoredJob = useCallback(async () => {
     const stored = readStoredJob();
-    if (!stored) return;
-    idempotencyKeyRef.current = stored.idempotencyKey;
+    if (!stored || resumingRef.current) return;
+    resumingRef.current = true;
+    try {
+      idempotencyKeyRef.current = stored.idempotencyKey;
+      setError(null);
+      setJobError(null);
+      setUncertainReason(null);
+      // Audio after a refresh comes from the stored file, played through an
+      // authenticated download - never an empty URL.
+      setSavedResult((prev) => ({
+        ...(prev ?? { transcript: "", segments: [], score: null, notes: null }),
+        storagePath: stored.storagePath,
+      }));
 
-    if (stored.voiceId) {
+      if (stored.voiceId) {
+        setPhase("queued");
+        startPolling(stored.voiceId);
+        return;
+      }
+
+      setPhase("saving");
+      const found = await findJobByIdempotencyKey(stored.idempotencyKey);
+      if (found) {
+        writeStoredJob({ ...stored, voiceId: found });
+        setPhase("queued");
+        startPolling(found);
+        return;
+      }
+
+      // Not found, or the lookup failed: retrying the enqueue is still safe
+      // (the server reuses the row for the same key), and it is the only way
+      // forward if the first call never landed.
+      const { data: enq, error: enqErr } = await supabase.functions
+        .invoke("transcription-enqueue", { body: enqueueBody(stored, taskId, proofId) })
+        .then((r) => r, (e) => ({ data: null, error: e }));
+      if (enqErr || !enq?.voice_id) {
+        becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
+        return;
+      }
+      writeStoredJob({ ...stored, voiceId: enq.voice_id });
       setPhase("queued");
-      startPolling(stored.voiceId);
-      return;
+      startPolling(enq.voice_id);
+    } finally {
+      resumingRef.current = false;
     }
-
-    setPhase("saving");
-    const found = await findJobByIdempotencyKey(stored.idempotencyKey);
-    if (found) {
-      writeStoredJob({ ...stored, voiceId: found });
-      setPhase("queued");
-      startPolling(found);
-      return;
-    }
-
-    const { data: enq, error: enqErr } = await supabase.functions.invoke("transcription-enqueue", {
-      body: {
-        storage_path: stored.storagePath,
-        task_id: taskId ?? null,
-        proof_id: proofId ?? null,
-        idempotency_key: stored.idempotencyKey,
-      },
-    });
-    if (enqErr || !enq?.voice_id) {
-      // Still recoverable: the marker stays, with no voiceId, so the next
-      // open tries exactly this again rather than losing the submission.
-      setError("Could not confirm your recording was queued. Reopen this to try again.");
-      setPhase("error");
-      return;
-    }
-    writeStoredJob({ ...stored, voiceId: enq.voice_id });
-    setPhase("queued");
-    startPolling(enq.voice_id);
-  }, [findJobByIdempotencyKey, proofId, readStoredJob, startPolling, taskId, writeStoredJob]);
+  }, [becomeUncertain, findJobByIdempotencyKey, proofId, readStoredJob, startPolling, taskId, writeStoredJob]);
 
   // Reopening the modal (or a fresh mount after a page refresh) recovers an
   // existing job instead of offering to start a new recording over it.
@@ -276,14 +315,13 @@ const VoiceExplainModal = ({
   useEffect(() => cleanup, [cleanup]);
 
   /** Step 6D async path: upload, then hand off to the queue and poll for the
-   * server's own transcript rather than trusting the browser's. A
-   * browser-supplied transcript is not server-verified - transcript_source
-   * and the migration 43 insert guard are what actually distinguish the two,
-   * not this modal's choice of which button the student pressed. */
+   * server's own transcript rather than trusting the browser's. */
   const saveAsync = useCallback(async (blob: Blob, seconds: number, ext: string, audioUrl: string) => {
     setPhase("saving");
     setJobStatus(null);
     setJobError(null);
+    setScoringPending(false);
+    let jobRecorded = false;
     try {
       const path = `${studentId}/${Date.now()}-explain.${ext}`;
       const { error: upErr } = await supabase.storage
@@ -291,44 +329,40 @@ const VoiceExplainModal = ({
         .upload(path, blob, { contentType: blob.type, upsert: false });
       if (upErr) throw upErr;
 
-      // Stable for retries of THIS recording (a network blip before the
-      // enqueue call lands), fresh for every genuinely new one - start()
-      // clears this ref, so a re-record always gets a new key.
+      // Stable for retries of THIS recording, fresh for every genuinely new one.
       if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
-      const idempotencyKey = idempotencyKeyRef.current;
+      const job: StoredJob = {
+        voiceId: null, idempotencyKey: idempotencyKeyRef.current, storagePath: path, durationSeconds: seconds,
+      };
+      // Written BEFORE the call: if the answer is lost after the server
+      // created the job, the key, path and duration are here to find it or
+      // retry it identically.
+      writeStoredJob(job);
+      jobRecorded = true;
+      setSavedResult({ transcript: "", segments: [], score: null, notes: null, audioUrl, storagePath: path });
 
-      // Written BEFORE the call, voiceId still unknown: if the response is
-      // lost between the server creating the job and this browser hearing
-      // about it, resumeStoredJob (next mount, or the catch block below)
-      // has the key and path needed to find or safely retry it - never the
-      // audio or a transcript, only enough to recover the submission.
-      writeStoredJob({ voiceId: null, idempotencyKey, storagePath: path });
-      setSavedResult((prev) => ({ ...(prev ?? { transcript: "", segments: [], score: null, notes: null }), audioUrl }));
-
-      const { data: enq, error: enqErr } = await supabase.functions.invoke("transcription-enqueue", {
-        body: {
-          storage_path: path,
-          task_id: taskId ?? null,
-          proof_id: proofId ?? null,
-          duration_seconds: seconds,
-          idempotency_key: idempotencyKey,
-        },
-      });
+      const { data: enq, error: enqErr } = await supabase.functions
+        .invoke("transcription-enqueue", { body: enqueueBody(job, taskId, proofId) })
+        .then((r) => r, (e) => ({ data: null, error: e }));
       if (enqErr || !enq?.voice_id) {
-        // The request may still have landed - the response is what was
-        // lost, not necessarily the job. Same recovery path a reopen uses.
+        // The request may still have landed - the answer is what was lost.
         await resumeStoredJob();
         return;
       }
 
-      writeStoredJob({ voiceId: enq.voice_id, idempotencyKey, storagePath: path });
+      writeStoredJob({ ...job, voiceId: enq.voice_id });
       setPhase("queued");
       startPolling(enq.voice_id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the recording.");
-      setPhase("error");
+      if (jobRecorded) {
+        becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
+      } else {
+        // Nothing reached the server yet: a fresh attempt is safe.
+        setError(err instanceof Error ? err.message : "Could not save the recording.");
+        setPhase("error");
+      }
     }
-  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob]);
+  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob, becomeUncertain]);
 
   const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string) => {
     if (savingRef.current) return; // a double-click or a duplicate onstop must not enqueue/insert twice
@@ -373,7 +407,7 @@ const VoiceExplainModal = ({
         notes = scored?.notes ?? null;
       }
 
-      setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: URL.createObjectURL(blob) });
+      setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: URL.createObjectURL(blob), storagePath: path });
       setPhase("done");
       onSaved?.();
     } catch (err) {
@@ -389,15 +423,20 @@ const VoiceExplainModal = ({
   }, []);
 
   const start = useCallback(async () => {
+    // Never start over a recording the server may still hold: resume it.
+    // Only an explicit "abandon" (below) clears it first.
+    if (ASYNC_TRANSCRIPTION && readStoredJob()) {
+      await resumeStoredJob();
+      return;
+    }
     setError(null);
     setSecondsLeft(MAX_SECONDS);
-    // A genuinely new recording, never a retry of one already in flight -
-    // it gets its own idempotency key, and any job left over from a
-    // previous failed attempt for this task/proof is no longer relevant.
-    idempotencyKeyRef.current = null;
+    idempotencyKeyRef.current = null; // a genuinely new recording gets its own key
     setJobStatus(null);
     setJobError(null);
-    writeStoredJob(null);
+    setUncertainReason(null);
+    setScoringPending(false);
+    setSavedResult(null);
 
     let stream: MediaStream;
     try {
@@ -453,7 +492,20 @@ const VoiceExplainModal = ({
     // dialog still holds everything said up to that moment.
     rec.start(1000);
     setPhase("recording");
-  }, [cleanup, save, writeStoredJob]);
+  }, [cleanup, readStoredJob, resumeStoredJob, save]);
+
+  /** Explicit, student-chosen: forget the uncertain recording and record anew.
+   * The earlier one may still finish on the server and appear in the build-log. */
+  const abandonAndRecordAgain = useCallback(() => {
+    stopPolling();
+    writeStoredJob(null);
+    idempotencyKeyRef.current = null;
+    setJobStatus(null);
+    setJobError(null);
+    setUncertainReason(null);
+    setSavedResult(null);
+    setPhase("idle");
+  }, [stopPolling, writeStoredJob]);
 
   // The clock stops the recording rather than the student. Sixty seconds is the
   // whole point — a longer answer is a written answer read aloud.
@@ -491,7 +543,7 @@ const VoiceExplainModal = ({
   };
 
   const close = (next: boolean) => {
-    if (!next) { cleanup(); setPhase("idle"); }
+    if (!next) { cleanup(); stopPolling(); setPhase("idle"); }
     onOpenChange(next);
   };
 
@@ -516,7 +568,15 @@ const VoiceExplainModal = ({
                   It is scored for how clearly you explain the work — not for your accent or
                   your English.
                 </li>
-                <li>Your college can hear it. Nobody outside your college can.</li>
+                <li>
+                  Only you can play the recording. Your college sees how many recordings you
+                  have made, not the recordings themselves.
+                </li>
+                <li>
+                  The ProofLab team can read the written transcript and score. If you make your
+                  profile public, verified companies can see your score and feedback — never the
+                  audio.
+                </li>
                 <li>
                   You can delete any recording at any time, from Profile → Privacy.
                 </li>
@@ -537,7 +597,7 @@ const VoiceExplainModal = ({
               Say it in your own words, as if to a teammate. Mention what you tried first
               and anything you changed your mind about.
             </p>
-            <Button onClick={start} className="w-full">
+            <Button onClick={() => void start()} className="w-full">
               <Mic className="h-4 w-4 mr-2" /> Start recording
             </Button>
           </div>
@@ -592,8 +652,12 @@ const VoiceExplainModal = ({
             </p>
             {savedResult && (
               <div className="rounded-lg border p-3 max-h-72 overflow-y-auto">
-                <RecordingPlayback src={savedResult.audioUrl} transcript={savedResult.transcript}
-                                   segments={savedResult.segments} />
+                <RecordingPlayback
+                  key={savedResult.audioUrl ?? savedResult.storagePath ?? "none"}
+                  src={savedResult.audioUrl || undefined}
+                  storagePath={savedResult.audioUrl ? undefined : savedResult.storagePath}
+                  transcript={savedResult.transcript}
+                  segments={savedResult.segments} />
                 {savedResult.score != null && (
                   <p className="mt-2 text-sm font-medium">Communication score {savedResult.score}/100</p>
                 )}
@@ -625,6 +689,26 @@ const VoiceExplainModal = ({
           </div>
         )}
 
+        {phase === "uncertain" && (
+          <div className="space-y-3" data-testid="voice-uncertain">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {uncertainReason} Your recording has not been lost - resume to check on it.
+              </AlertDescription>
+            </Alert>
+            <Button className="w-full" onClick={() => void resumeStoredJob()}>
+              <RotateCcw className="h-4 w-4 mr-2" /> Resume existing recording
+            </Button>
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={abandonAndRecordAgain}>
+              Abandon it and record a new one
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              If you abandon it, the earlier recording may still finish and appear in your build-log.
+            </p>
+          </div>
+        )}
+
         {phase === "error" && (
           <div className="space-y-3">
             <Alert variant="destructive">
@@ -634,7 +718,9 @@ const VoiceExplainModal = ({
             <Button
               variant="outline" className="w-full"
               onClick={() => {
-                writeStoredJob(null);
+                // Only reached when nothing is in flight (the job failed for
+                // good, or nothing was sent) - start() still refuses to start
+                // over a stored job and resumes it instead.
                 idempotencyKeyRef.current = null;
                 setJobStatus(null);
                 setJobError(null);

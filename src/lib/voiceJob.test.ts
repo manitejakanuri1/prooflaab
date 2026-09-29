@@ -1,0 +1,79 @@
+// Run: node --test src/lib/voiceJob.test.ts   (Node 22.6+ strips the types)
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  enqueueBody, MAX_POLL_FAILURES, mayStartNewRecording, nextFailures, parseStoredJob,
+  SavedNotifier, viewOf, type JobRow, type StoredJob,
+} from "./voiceJob.ts";
+
+const row = (over: Partial<JobRow> = {}): JobRow => ({
+  id: "v1", transcription_status: "completed", transcript: "hi", transcript_segments: null, word_count: 2,
+  transcription_error: null, status: "recorded", communication_score: null, communication_notes: null, ...over,
+});
+
+// 3. short recordings: never final from the word count
+test("short transcript is NOT final until the server decides", () => {
+  assert.deepEqual(viewOf(row({ word_count: 2, status: "recorded" })), { kind: "transcribed", final: false });
+  assert.deepEqual(viewOf(row({ word_count: 2, status: "failed", communication_notes: "Too little speech to score." })),
+    { kind: "transcribed", final: true });
+});
+test("scored is final; waiting and transcription failure are distinct", () => {
+  assert.deepEqual(viewOf(row({ status: "scored", communication_score: 70 })), { kind: "transcribed", final: true });
+  assert.deepEqual(viewOf(row({ transcription_status: "processing" })), { kind: "waiting", status: "processing" });
+  assert.deepEqual(viewOf(row({ transcription_status: null })), { kind: "waiting", status: "pending" });
+  assert.deepEqual(viewOf(row({ transcription_status: "failed", transcription_error: "HTTP 404" })),
+    { kind: "transcription_failed", error: "HTTP 404" });
+});
+
+// 5. duplicate callbacks
+test("onSaved fires once per stage however many times polling reports it", () => {
+  let calls = 0;
+  const n = new SavedNotifier(() => { calls++; });
+  for (let i = 0; i < 10; i++) n.notify("v1", "transcribed");
+  assert.equal(calls, 1);
+  for (let i = 0; i < 10; i++) n.notify("v1", "final");
+  assert.equal(calls, 2);
+  n.notify("v2", "transcribed");
+  assert.equal(calls, 3);
+});
+test("onSaved: overlapping ticks resolving together still notify once", async () => {
+  let calls = 0;
+  const n = new SavedNotifier(() => { calls++; });
+  await Promise.all(Array.from({ length: 5 }, async () => { await Promise.resolve(); n.notify("v1", "final"); }));
+  assert.equal(calls, 1);
+});
+
+// 2. polling failures
+test("poll failures give up after MAX_POLL_FAILURES consecutive failures; success resets", () => {
+  let f = 0;
+  let r = nextFailures(f, { ok: false, reason: "read_error" }); f = r.failures; assert.equal(r.giveUp, false);
+  r = nextFailures(f, { ok: false, reason: "missing" }); f = r.failures; assert.equal(r.giveUp, false);
+  r = nextFailures(f, { ok: true, row: row() }); f = r.failures; assert.equal(f, 0);
+  for (let i = 1; i <= MAX_POLL_FAILURES; i++) {
+    r = nextFailures(f, { ok: false, reason: "missing" }); f = r.failures;
+    assert.equal(r.giveUp, i === MAX_POLL_FAILURES);
+  }
+});
+
+// 6. enqueue retry metadata
+test("retry body carries the original duration, path and idempotency key", () => {
+  const job: StoredJob = { voiceId: null, idempotencyKey: "k-1", storagePath: "s1/123-explain.webm", durationSeconds: 47 };
+  assert.deepEqual(enqueueBody(job, "t1", null),
+    { storage_path: "s1/123-explain.webm", task_id: "t1", proof_id: null, duration_seconds: 47, idempotency_key: "k-1" });
+});
+test("stored jobs round-trip; an older stored job without duration still parses", () => {
+  const job: StoredJob = { voiceId: "v1", idempotencyKey: "k", storagePath: "p", durationSeconds: 12 };
+  assert.deepEqual(parseStoredJob(JSON.stringify(job)), job);
+  assert.deepEqual(parseStoredJob('{"voiceId":null,"idempotencyKey":"k","storagePath":"p"}'),
+    { voiceId: null, idempotencyKey: "k", storagePath: "p", durationSeconds: null });
+  assert.equal(parseStoredJob("not json"), null);
+  assert.equal(parseStoredJob('{"voiceId":"x"}'), null);
+});
+
+// 1. lost enqueue response
+test("a new recording may not replace an uncertain stored job", () => {
+  const job: StoredJob = { voiceId: null, idempotencyKey: "k", storagePath: "p", durationSeconds: 5 };
+  assert.equal(mayStartNewRecording(job, false), false);
+  assert.equal(mayStartNewRecording(job, true), true);
+  assert.equal(mayStartNewRecording(null, false), true);
+});

@@ -97,6 +97,31 @@ export function scoreToShow(status: string | null | undefined, score: number | n
   return typeof score === "number" && Number.isFinite(score) ? score : null;
 }
 
+/**
+ * The recording clock, from real elapsed time (Date.now) rather than a count
+ * of timer ticks - background tabs throttle timers, so counting ticks lets a
+ * recording run past the limit.
+ */
+export function recordingClock(startedAtMs: number, nowMs: number, maxSeconds: number) {
+  const elapsedMs = Math.max(0, nowMs - startedAtMs);
+  const secondsLeft = Math.max(0, Math.ceil((maxSeconds * 1000 - elapsedMs) / 1000));
+  return { elapsedMs, secondsLeft, expired: elapsedMs >= maxSeconds * 1000 };
+}
+
+/** Recorded length for the server: real elapsed seconds, never above the limit. */
+export function recordedSeconds(startedAtMs: number, stoppedAtMs: number, maxSeconds: number): number {
+  return Math.min(maxSeconds, Math.max(0, Math.round((stoppedAtMs - startedAtMs) / 1000)));
+}
+
+/** The PDF export entry: the score only when it is the confirmed, shown score. */
+export function exportEntry(
+  result: { transcript: string; score: number | null; notes: string | null },
+  prompt: string,
+) {
+  const score = typeof result.score === "number" && Number.isFinite(result.score) ? result.score : null;
+  return { question: prompt, transcript: result.transcript, score, feedback: result.notes };
+}
+
 /** Clear a recovery marker only if it still belongs to this recording. */
 export function markerBelongsTo(storedVoiceId: string | null | undefined, voiceId: string): boolean {
   return storedVoiceId === voiceId;

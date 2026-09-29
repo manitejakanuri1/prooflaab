@@ -14,6 +14,12 @@ export interface StoredJob {
   idempotencyKey: string;
   storagePath: string;
   durationSeconds: number | null;
+  /** Who and what the recording belongs to (written by this build; older
+   * markers lack them). Recovery is only used in the same context, and a
+   * retried enqueue re-sends exactly these. */
+  studentId?: string | null;
+  taskId?: string | null;
+  proofId?: string | null;
 }
 
 export interface JobRow {
@@ -55,6 +61,9 @@ export function parseStoredJob(raw: string | null): StoredJob | null {
       idempotencyKey: j.idempotencyKey,
       storagePath: j.storagePath,
       durationSeconds: typeof j.durationSeconds === "number" ? j.durationSeconds : null,
+      ...(typeof j.studentId === "string" ? { studentId: j.studentId } : {}),
+      ...("taskId" in j ? { taskId: typeof j.taskId === "string" ? j.taskId : null } : {}),
+      ...("proofId" in j ? { proofId: typeof j.proofId === "string" ? j.proofId : null } : {}),
     };
   } catch {
     return null;
@@ -63,10 +72,11 @@ export function parseStoredJob(raw: string | null): StoredJob | null {
 
 /** The enqueue request, identical for the first call and every retry. */
 export function enqueueBody(job: StoredJob, taskId: string | null | undefined, proofId: string | null | undefined) {
+  // The job's own task/proof win: a retry must describe the original recording.
   return {
     storage_path: job.storagePath,
-    task_id: taskId ?? null,
-    proof_id: proofId ?? null,
+    task_id: job.taskId !== undefined ? job.taskId : (taskId ?? null),
+    proof_id: job.proofId !== undefined ? job.proofId : (proofId ?? null),
     duration_seconds: job.durationSeconds,
     idempotency_key: job.idempotencyKey,
   };
@@ -104,6 +114,19 @@ export class SavedNotifier {
     this.onSaved?.();
     return true;
   }
+}
+
+/** A stored job may be resumed only by the same student, task and proof it
+ * was recorded for. Older markers without these fields match on the storage
+ * key alone (which already contains the student and task/proof). */
+export function jobMatchesContext(
+  job: StoredJob,
+  ctx: { studentId: string; taskId?: string | null; proofId?: string | null },
+): boolean {
+  if (job.studentId !== undefined && job.studentId !== ctx.studentId) return false;
+  if (job.taskId !== undefined && job.taskId !== (ctx.taskId ?? null)) return false;
+  if (job.proofId !== undefined && job.proofId !== (ctx.proofId ?? null)) return false;
+  return true;
 }
 
 /** A new recording may replace a stored job only when that job is known to be

@@ -497,3 +497,63 @@ INFO  RPCs the page called (allowed through): ["my_rank","my_todays_lot"]
 ```
 
 The two earlier failed attempts of this script (a test wait bug, then a missing fake job completion) let the pages own `touch_my_activity` RPC reach staging a few times. That updated t07s `last_active` and created no rows. The script now blocks every RPC except the read-only `my_rank` and `my_todays_lot` (the latter is declared `stable`).
+
+---
+
+# VoiceExplainModal lifecycle, second review round (2026-09-29)
+
+On top of 47b0f53 (epoch guard, upload registry, safeStore, scoreToShow, marker ownership):
+
+1. **One `endSession()`** is used for a user close, a parent `open=false` (new effect) and a student/task/proof change (new effect).
+   - A late microphone grant in any of these cases stops the stream and starts no recorder.
+   - A context change resets the result, key and error, then resumes **only the new contexts** job. The reviews harness found this ordering bug, and it is fixed.
+2. AudioContext / MediaRecorder / `rec.start` failure releases the microphone, rAF and context, and shows a recoverable error.
+3. The 60 s limit uses real elapsed time (`recordingClock`): it is checked every 250 ms, by a timer aimed at the deadline, and on `visibilitychange`. The duration sent is `recordedSeconds`, capped at 60.
+4. Recovery details carry `studentId`/`taskId`/`proofId`. A marker is resumed only in a matching context (`jobMatchesContext`), and a retried enqueue re-sends the jobs own task/proof.
+5. A lost enqueue answer resumes with `ownSave` (the save does not wait on itself), so the student is never stuck on "Uploading". Retries always reuse the same idempotency key.
+6. PDF export goes through `exportEntry`: the score is exported only when it is the confirmed, shown score.
+
+Unit: `node --test src/lib/voiceLifecycle.test.ts src/lib/voiceJob.test.ts src/lib/blobUrlOwner.test.ts src/lib/voiceStatus.test.ts src/lib/recordingAudio.test.ts` → **50/50**. tsc clean; eslint on changed files: 0 errors (1 warning in the test-only harness); `npm run build` OK, with the harness not in `dist`.
+
+Browser, deterministic, staging reads only. Uploads, enqueue, polls and consent are faked; every other write is blocked. Staging before and after the runs: voice_explanations 109, app_events 240, llm_usage 0, task_explainers 1, and t07 `last_active` unchanged.
+
+`scripts/dev-tools/voice_modal_harness_browser.mjs`, via the test-only harness `scripts/dev-tools/harness/voice-modal-harness.html` (dev server only, not in the build):
+```
+PASS  H1 parent sets open=false: late microphone grant -> stream stopped, no recorder  ({"calls":1,"recorders":0,"tracks":["ended"]})
+PASS  H2 account change: late microphone grant -> stream stopped, no recorder  ({"calls":1,"recorders":0,"tracks":["ended"]})
+PASS  H3 unmount: late microphone grant -> stream stopped, no recorder  ({"calls":1,"recorders":0,"tracks":["ended"]})
+PASS  H4 AudioContext fails: microphone released, recoverable error shown  ({"calls":1,"recorders":0,"tracks":["ended"]})
+PASS  H4 AudioContext fails: "Try recording again" returns to Start
+PASS  H5 MediaRecorder fails: microphone released, recoverable error shown  ({"calls":1,"recorders":0,"tracks":["ended"]})
+PASS  H5 MediaRecorder fails: "Try recording again" returns to Start
+PASS  H6 real elapsed-time limit: recorder stopped by one late tick after 61 s; length sent capped at 60  (duration_seconds=60)
+PASS  H7 rapid double Start: one permission request, one recorder  ({"calls":1,"recorders":1,"tracks":["live"]})
+PASS  H8 close during upload: local blob URL revoked
+PASS  H9 reopen during upload: waits, no Start button
+PASS  H10 upload success after close: no revoked URL restored; stored-file playback offered; one upload/enqueue  (audio=0 uploads=1 enqueues=1)
+PASS  H11 late poll after account change: ignored, A's recovery marker kept
+PASS  H12 account change: B is asked for consent (A's yes not reused)
+PASS  H13 switching back to A resumes A's own job (context matched)
+PASS  H14 lost enqueue answers: "Resume existing recording" shown (not stuck on Uploading)  (enqueue attempts=2)
+PASS  H15 every retry reused the same idempotency key, path and duration (no second job)
+PASS  H16 resume found the existing job by its key: no new enqueue; storage was blocked throughout  (storage throws=8)
+PASS  H17 scored 77: number shown and exported  (shown=1 pdfHasScore=true)
+PASS  H18 status failed + stray 85: number neither shown nor exported  (shown=0 pdfHasScore=false)
+INFO  writes blocked in the browser: []
+```
+`scripts/dev-tools/voice_modal_lifecycle_browser.mjs` (real task page, regression):
+```
+PASS  L1 late microphone grant after close: stream stopped at once, no recorder started  ({"calls":1,"recorders":0,"states":["ended"]})
+PASS  L2 rapid double Start: one microphone request, one recorder  ({"calls":1,"recorders":1})
+PASS  L2 the single recording completes normally (faked upload/enqueue, scripted poll)  (uploads=1 enqueues=1)
+PASS  L3 closing during upload revokes the local blob URL
+PASS  L3 the save still finished after close: marker with the job id was written
+PASS  L3 reopened: no revoked URL in the player; authenticated stored-file playback offered  (audio=0 playButton=1)
+PASS  L4 reopened during upload: waits for it, no Start button (no second recording)  (start buttons=0)
+PASS  L4 the in-flight save is picked up and finishes; still one upload, one enqueue, one recorder  (uploads=1 enqueues=1 recorders=1)
+PASS  L5 stale poll answer after close did not clear the recovery marker
+PASS  L5 reopened: current answer shown, stale "failed" never displayed
+PASS  L6 localStorage blocked (every access threw): close/reopen still resumed the job from memory  (storage throws=9)
+PASS  L7 inconsistent record (status failed + score 85): feedback shown, no number
+PASS  L8 consent lookup fails: consent is asked again, no Start button
+```

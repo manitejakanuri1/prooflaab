@@ -10,9 +10,11 @@ import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
 import RecordingPlayback from "./RecordingPlayback";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 import { createBlobUrlOwner, withoutLocalAudio } from "@/lib/blobUrlOwner";
-import { createEpoch, markerBelongsTo, safeStore, scoreToShow, uploadRegistry } from "@/lib/voiceLifecycle";
 import {
-  enqueueBody, nextFailures, parseStoredJob, SavedNotifier, viewOf,
+  createEpoch, exportEntry, markerBelongsTo, recordedSeconds, recordingClock, safeStore, scoreToShow, uploadRegistry,
+} from "@/lib/voiceLifecycle";
+import {
+  enqueueBody, jobMatchesContext, nextFailures, parseStoredJob, SavedNotifier, viewOf,
   type JobRow, type JobStatus, type PollTick, type StoredJob,
 } from "@/lib/voiceJob";
 
@@ -137,6 +139,7 @@ const VoiceExplainModal = ({
   const activePollIdRef = useRef<string | null>(null);
   const [slotBusy, setSlotBusy] = useState(false); // a save for this slot is still in flight
   const waitingForSlotRef = useRef(false);          // this dialog is waiting for that save
+  const recordStartedAtRef = useRef(0);             // Date.now() when recording began
   const releaseLocalAudio = useCallback(() => {
     blobOwnerRef.current?.release();
     setSavedResult((prev) => withoutLocalAudio(prev));
@@ -287,16 +290,19 @@ const VoiceExplainModal = ({
    * existing recording" button. Known voiceId: just poll. Unknown: ask the
    * server whether the job exists anyway, and only then retry the enqueue -
    * with the SAME idempotency key, storage path and duration. */
-  const resumeStoredJob = useCallback(async () => {
+  const resumeStoredJob = useCallback(async (opts?: { ownSave?: boolean }) => {
     // A save for this slot is still uploading (possibly from a dialog that has
-    // since closed): show that and wait - its finish triggers this again.
-    if (uploadRegistry.isActive(jobStorageKey())) {
+    // since closed): show that and wait - its finish triggers this again. The
+    // save's own recovery (a lost enqueue answer) does not wait for itself.
+    if (!opts?.ownSave && uploadRegistry.isActive(jobStorageKey())) {
       waitingForSlotRef.current = true;
       setPhase("saving");
       return;
     }
     const stored = readStoredJob();
     if (!stored || resumingRef.current) return;
+    // Only this student's, this task's/proof's recording is ever resumed here.
+    if (!jobMatchesContext(stored, { studentId, taskId, proofId })) return;
     resumingRef.current = true;
     const epoch = epochRef.current!.current;
     const current = () => epochRef.current!.isCurrent(epoch) && mountedRef.current;
@@ -346,7 +352,7 @@ const VoiceExplainModal = ({
     } finally {
       resumingRef.current = false;
     }
-  }, [becomeUncertain, findJobByIdempotencyKey, jobStorageKey, proofId, readStoredJob, startPolling, taskId, writeStoredJob]);
+  }, [becomeUncertain, findJobByIdempotencyKey, jobStorageKey, proofId, readStoredJob, startPolling, studentId, taskId, writeStoredJob]);
 
   // Follow a save for this slot that is in flight anywhere on the page. When
   // it finishes, an open dialog resumes from the marker it left (if any).
@@ -406,6 +412,7 @@ const VoiceExplainModal = ({
       if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
       const job: StoredJob = {
         voiceId: null, idempotencyKey: idempotencyKeyRef.current, storagePath: path, durationSeconds: seconds,
+        studentId, taskId: taskId ?? null, proofId: proofId ?? null,
       };
       // Written BEFORE the call: if the answer is lost after the server
       // created the job, the key, path and duration are here to find it or
@@ -424,7 +431,9 @@ const VoiceExplainModal = ({
       if (enqErr || !enq?.voice_id) {
         // The request may still have landed - the answer is what was lost.
         // If the dialog closed meanwhile, the marker stays for the next open.
-        if (current()) await resumeStoredJob();
+        // ownSave: this save is still registered, so don't wait for itself -
+        // otherwise a lost answer would leave the student on "Uploading".
+        if (current()) await resumeStoredJob({ ownSave: true });
         return;
       }
 
@@ -526,7 +535,8 @@ const VoiceExplainModal = ({
     if (uploadRegistry.isActive(jobStorageKey())) { waitingForSlotRef.current = true; setPhase("saving"); return; }
     // Never start over a recording the server may still hold: resume it.
     // Only an explicit "abandon" (below) clears it first.
-    if (ASYNC_TRANSCRIPTION && readStoredJob()) {
+    const existing = ASYNC_TRANSCRIPTION ? readStoredJob() : null;
+    if (existing && jobMatchesContext(existing, { studentId, taskId, proofId })) {
       await resumeStoredJob();
       return;
     }
@@ -567,31 +577,50 @@ const VoiceExplainModal = ({
     setStarting(false);
     streamRef.current = stream;
 
-    // A moving level meter, so it is obvious the microphone is live. A silent
-    // dead recorder that looks fine is worse than no recorder.
-    const ctx = new AudioContext();
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    ctx.createMediaStreamSource(stream).connect(analyser);
-    const buf = new Uint8Array(analyser.frequencyBinCount);
-    const tick = () => {
-      analyser.getByteTimeDomainData(buf);
-      let peak = 0;
-      for (const v of buf) peak = Math.max(peak, Math.abs(v - 128));
-      setLevel(Math.min(1, peak / 60));
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    tick();
-
+    let ctx: AudioContext | null = null;
+    let rec: MediaRecorder;
     const started = Date.now();
-    chunksRef.current = [];
-    const rec = makeRecorder(stream);
-    recorderRef.current = rec;
+    try {
+      // A moving level meter, so it is obvious the microphone is live. A silent
+      // dead recorder that looks fine is worse than no recorder.
+      ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteTimeDomainData(buf);
+        let peak = 0;
+        for (const v of buf) peak = Math.max(peak, Math.abs(v - 128));
+        setLevel(Math.min(1, peak / 60));
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+
+      chunksRef.current = [];
+      rec = makeRecorder(stream);
+      recorderRef.current = rec;
+    } catch {
+      // The level meter or the recorder could not start on this device:
+      // release everything and let the student try again.
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      stream.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      if (ctx) void ctx.close().catch(() => {});
+      setError("Couldn't start recording on this device. Close other apps using the microphone and try again.");
+      setPhase("error");
+      return;
+    }
+    const audioCtx = ctx;
     rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
     rec.onstop = () => {
       cleanup();
-      void ctx.close();
-      const seconds = Math.min(MAX_SECONDS, Math.round((Date.now() - started) / 1000));
+      void audioCtx.close().catch(() => {});
+      // Real elapsed time, capped - never more than the limit, even if a
+      // throttled background tab stopped the recorder a little late.
+      const seconds = recordedSeconds(started, Date.now(), MAX_SECONDS);
       const { type, ext } = recordingFormat(rec);
       const blob = new Blob(chunksRef.current, { type });
 
@@ -609,9 +638,23 @@ const VoiceExplainModal = ({
     };
     // A chunk every second, so a recording stopped by the clock or a closed
     // dialog still holds everything said up to that moment.
-    rec.start(1000);
+    try {
+      rec.start(1000);
+    } catch {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      stream.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      void audioCtx.close().catch(() => {});
+      setError("Couldn't start recording on this device. Close other apps using the microphone and try again.");
+      setPhase("error");
+      return;
+    }
+    recordStartedAtRef.current = started;
+    setSecondsLeft(MAX_SECONDS);
     setPhase("recording");
-  }, [cleanup, jobStorageKey, readStoredJob, resumeStoredJob, save]);
+  }, [cleanup, jobStorageKey, proofId, readStoredJob, resumeStoredJob, save, studentId, taskId]);
 
   /** Explicit, student-chosen: forget the uncertain recording and record anew.
    * The earlier one may still finish on the server and appear in the build-log. */
@@ -629,13 +672,28 @@ const VoiceExplainModal = ({
   }, [stopPolling, writeStoredJob]);
 
   // The clock stops the recording rather than the student. Sixty seconds is the
-  // whole point — a longer answer is a written answer read aloud.
+  // whole point — a longer answer is a written answer read aloud. It is measured
+  // from real elapsed time (not a count of timer ticks, which background tabs
+  // throttle), re-checked on every tick, on a timer aimed at the deadline, and
+  // whenever the tab becomes visible again.
   useEffect(() => {
     if (phase !== "recording") return;
-    if (secondsLeft <= 0) { stop(); return; }
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [phase, secondsLeft, stop]);
+    const startedAt = recordStartedAtRef.current;
+    const check = () => {
+      const c = recordingClock(startedAt, Date.now(), MAX_SECONDS);
+      setSecondsLeft(c.secondsLeft);
+      if (c.expired) stop();
+    };
+    check();
+    const every = setInterval(check, 250);
+    const deadline = setTimeout(check, Math.max(0, startedAt + MAX_SECONDS * 1000 - Date.now()));
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(every);
+      clearTimeout(deadline);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [phase, stop]);
 
   // Asked once. After the first yes this query is the only cost.
   useEffect(() => {
@@ -667,15 +725,52 @@ const VoiceExplainModal = ({
     setConsented(true);
   };
 
+  /** Ends this dialog session: everything in flight becomes stale (a late
+   * microphone grant stops its stream, late answers are ignored), the local
+   * copy is dropped (reopening plays the stored file), recovery details stay. */
+  const endSession = useCallback(() => {
+    epochRef.current!.next();
+    waitingForSlotRef.current = false;
+    startingRef.current = false;
+    setStarting(false);
+    cleanup();
+    stopPolling();
+    releaseLocalAudio();
+    setPhase("idle");
+  }, [cleanup, stopPolling, releaseLocalAudio]);
+
   const close = (next: boolean) => {
-    // Closing drops the local copy; reopening plays the stored file instead.
-    if (!next) {
-      epochRef.current!.next(); // anything still in flight for this session is now stale
-      waitingForSlotRef.current = false;
-      cleanup(); stopPolling(); releaseLocalAudio(); setPhase("idle");
-    }
+    if (!next) endSession();
     onOpenChange(next);
   };
+
+  // The parent can close the dialog without going through `close` (open=false).
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (wasOpenRef.current && !open) endSession();
+    wasOpenRef.current = open;
+  }, [open, endSession]);
+
+  // The account (or the task/proof) can change while this stays mounted: never
+  // carry anything over - not the session, the result, the key or the consent.
+  const contextKey = `${studentId}|${taskId ?? ""}|${proofId ?? ""}`;
+  const contextRef = useRef(contextKey);
+  useEffect(() => {
+    if (contextRef.current === contextKey) return;
+    contextRef.current = contextKey;
+    endSession();
+    idempotencyKeyRef.current = null;
+    setSavedResult(null);
+    setJobStatus(null);
+    setJobError(null);
+    setUncertainReason(null);
+    setScoringPending(false);
+    setError(null);
+    // Pick up the NEW context's own job, if any. (The resume-on-open effect
+    // above may already have run for it; this reset just cancelled that, so
+    // resume again - resumeStoredJob only ever uses this context's marker.)
+    if (openRef.current && ASYNC_TRANSCRIPTION) void resumeStoredJob();
+  }, [contextKey, endSession, resumeStoredJob]);
 
   return (
     <Dialog open={open} onOpenChange={close}>
@@ -811,12 +906,8 @@ const VoiceExplainModal = ({
                 variant="outline" className="w-full gap-1.5"
                 onClick={() => exportTranscriptPdf({
                   title: "Spoken Explanation",
-                  entries: [{
-                    question: prompt,
-                    transcript: savedResult.transcript,
-                    score: savedResult.score,
-                    feedback: savedResult.notes,
-                  }],
+                  // score is already gated to a server-confirmed one (scoreToShow)
+                  entries: [exportEntry(savedResult, prompt)],
                 }, `explanation-${Date.now()}.pdf`)}
               >
                 <FileDown className="h-4 w-4" /> Download PDF

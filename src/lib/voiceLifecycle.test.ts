@@ -110,3 +110,27 @@ test("a stale poll never clears a newer recording's marker", () => {
   assert.equal(markerBelongsTo("A", "A"), true);
   assert.equal(markerBelongsTo(null, "A"), false);
 });
+
+// ---------- real elapsed-time recording limit ----------
+import { exportEntry, recordedSeconds, recordingClock } from "./voiceLifecycle.ts";
+test("the limit uses elapsed time: one late tick after 61 s still expires (throttled tab)", () => {
+  const t0 = 1_000_000;
+  assert.deepEqual(recordingClock(t0, t0, 60), { elapsedMs: 0, secondsLeft: 60, expired: false });
+  assert.equal(recordingClock(t0, t0 + 59_400, 60).secondsLeft, 1);
+  assert.equal(recordingClock(t0, t0 + 59_999, 60).expired, false);
+  assert.equal(recordingClock(t0, t0 + 60_000, 60).expired, true);
+  assert.deepEqual(recordingClock(t0, t0 + 61_000, 60), { elapsedMs: 61_000, secondsLeft: 0, expired: true });
+});
+test("recorded length is real elapsed seconds, capped at the limit", () => {
+  assert.equal(recordedSeconds(0, 14_400, 60), 14);
+  assert.equal(recordedSeconds(0, 95_000, 60), 60);   // tab asleep: never more than 60
+  assert.equal(recordedSeconds(10, 0, 60), 0);
+});
+
+// ---------- PDF export ----------
+test("PDF export carries the score only when it is the confirmed score", () => {
+  assert.equal(exportEntry({ transcript: "t", score: 77, notes: "n" }, "q").score, 77);
+  assert.equal(exportEntry({ transcript: "t", score: null, notes: "Too little speech to score." }, "q").score, null);
+  assert.equal(exportEntry({ transcript: "t", score: Number.NaN, notes: null }, "q").score, null);
+  assert.deepEqual(exportEntry({ transcript: "t", score: 5, notes: "n" }, "q"), { question: "q", transcript: "t", score: 5, feedback: "n" });
+});

@@ -78,3 +78,23 @@ test("a new recording may not replace an uncertain stored job", () => {
   assert.equal(mayStartNewRecording(job, true), true);
   assert.equal(mayStartNewRecording(null, false), true);
 });
+
+// ---------- recovery context (student / task / proof) ----------
+import { jobMatchesContext } from "./voiceJob.ts";
+test("a stored job carries its student/task/proof and a retry re-sends exactly those", () => {
+  const job: StoredJob = { voiceId: null, idempotencyKey: "k", storagePath: "s1/a.webm", durationSeconds: 30,
+    studentId: "s1", taskId: "t1", proofId: null };
+  assert.deepEqual(parseStoredJob(JSON.stringify(job)), job);
+  // props now say something else: the job's own values win
+  assert.deepEqual(enqueueBody(job, "t-other", "p-other"),
+    { storage_path: "s1/a.webm", task_id: "t1", proof_id: null, duration_seconds: 30, idempotency_key: "k" });
+});
+test("recovery is used only in the same student/task/proof context", () => {
+  const job: StoredJob = { voiceId: "v", idempotencyKey: "k", storagePath: "p", durationSeconds: 5, studentId: "s1", taskId: "t1", proofId: null };
+  assert.equal(jobMatchesContext(job, { studentId: "s1", taskId: "t1" }), true);
+  assert.equal(jobMatchesContext(job, { studentId: "s2", taskId: "t1" }), false);   // account changed
+  assert.equal(jobMatchesContext(job, { studentId: "s1", taskId: "t2" }), false);   // other task
+  assert.equal(jobMatchesContext(job, { studentId: "s1", taskId: "t1", proofId: "p9" }), false);
+  const legacy: StoredJob = { voiceId: "v", idempotencyKey: "k", storagePath: "p", durationSeconds: 5 };
+  assert.equal(jobMatchesContext(legacy, { studentId: "anyone" }), true);           // old marker: key decides
+});

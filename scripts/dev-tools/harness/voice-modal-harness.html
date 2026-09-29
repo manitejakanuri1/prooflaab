@@ -1,0 +1,17 @@
+<!doctype html>
+<!--
+  TEST-ONLY harness (Step 6). Served by the Vite dev server for
+  scripts/dev-tools/voice_modal_harness_browser.mjs; never part of the app build
+  (vite build only uses the root index.html). Mounts the real VoiceExplainModal
+  and exposes window.__harness to change its props from a test.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>VoiceExplainModal test harness</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./voice-modal-harness.tsx"></script>
+  </body>
+</html>

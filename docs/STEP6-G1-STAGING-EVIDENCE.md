@@ -398,3 +398,59 @@ PASS  4c no token at all is refused  (HTTP 401)
 ```
 
 Not shown live: the Transcribing badge, which is unit-tested only because a job transcribes within seconds.
+
+---
+
+# Review of fe7a4a9: blob ownership, provenance, score display (2026-09-29)
+
+1. **VoiceExplainModal local blob URLs.** `src/lib/blobUrlOwner.ts` owns the one local `blob:` URL.
+   - It is revoked on a failed save (before the job is recorded), on replacement (a new recording or abandon), on close and on unmount.
+   - Every release also drops `audioUrl` from `savedResult` (`withoutLocalAudio`), so a revoked URL is never rendered and reopening plays the stored file (authenticated `storagePath`).
+2. **Provenance** (`provenance()` in `src/lib/voiceStatus.ts`):
+   - pending/processing → **Verifying** (never "Self-reported");
+   - transcription failed → **Verification failed**;
+   - completed + server → **Server-verified**;
+   - otherwise → **Self-reported**.
+
+   Shown in the list as well as the detail view.
+3. **Score display** (`displayScore()`): a number only when the status is **Scored**. Inconsistent rows (Not scored/Failed/Scoring/Transcribing plus a stray score) show no number.
+4. **Browser assertions strengthened** (no rows created, changed or deleted; the staging `voice_explanations` count was 109 before and 109 after):
+   - rows are found by exact `data-voice-id`;
+   - the real "Too little speech to score." reason is checked;
+   - the Authorization header of every download is compared (never printed) with the signed-in student token, and its `sub` is t07;
+   - owner-denied and owner-allowed checks are kept.
+5. **Node flag:** Node 22.6–22.17 need `node --experimental-strip-types --test …`; 22.18+ and 23.6+ strip types by default (noted in every test header). The `g1b-test-*` cleanup is proposed in `docs/STEP6-STAGING-TEST-DATA-CLEANUP.md` (not run).
+
+Checks (Node v24.12.0): unit **35/35** (`node --test src/lib/blobUrlOwner.test.ts src/lib/voiceStatus.test.ts src/lib/recordingAudio.test.ts src/lib/voiceJob.test.ts`); tsc clean; eslint clean; `npm run build` OK.
+
+Browser, `scripts/dev-tools/voice_modal_blob_browser.mjs` (new; upload blocked or held in the browser; M3 reuses an existing finished recording):
+```
+PASS  M1 failed save: the recording's local blob URL was created and then revoked  (created=1 revoked=1 uploads blocked=1)
+PASS  M1 no player left pointing at the revoked URL  (audio elements=0)
+PASS  M2 closing the dialog revokes the local blob URL  (created=1)
+PASS  M2 nothing was sent: no recovery marker left (upload never completed)
+PASS  M3 reopened finished recording: no local blob player (nothing to point at)
+PASS  M3 playback falls back to the authenticated storagePath download  (ready=4, 1 download(s) with the student's own Authorization header)
+PASS  M3 the downloaded blob URL is revoked when the dialog closes
+```
+
+`scripts/dev-tools/voice_buildlog_browser.mjs`:
+```
+PASS  1a every badge matches the database rules  (20 rows {"Scored":14,"Not scored":3,"Failed":3})
+PASS  1b no row says "Completed" any more
+PASS  1c a "too little speech" row shows "Not scored"
+PASS  1d a self-reported unscored row shows "Not scored", not pending
+PASS  1e provenance badge in the list matches the database for every row  ({"Server-verified":15,"Self-reported":2,"Verification failed":3})
+PASS  1f a number is shown only on Scored rows, and it is the saved score  (14 numbers shown)
+PASS  1g no contradictory "Not scored/Failed/Scoring + NN/100" in the list
+PASS  1h exact too-short recording: detail shows "Too little speech to score.", Not scored, no number  (voice 582943b7)
+PASS  2a failed download: retry button shown and enabled (not stuck)
+PASS  2b retry plays through a blob: URL (no signed/shareable link)  (ready=4)
+PASS  2c the download went to files-service with the student token  (requests=2)
+PASS  2e every download carried the signed-in student's own Authorization header (value not printed)  (2 request(s), sub=t07)
+PASS  2d blob URL revoked when the dialog closes
+PASS  3a second student (t16) refused  (HTTP 404)
+PASS  3b owner control succeeds  (HTTP 200, 161926 bytes)
+```
+
+**Genuine Google sign-in: UNTESTED.** Every browser run used a session minted like the staging auth-bridge issues it. voice_playback_browser.mjs was not re-run, because it creates a recording.

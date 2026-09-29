@@ -1,4 +1,5 @@
 // Run: node --test src/lib/recordingAudio.test.ts src/lib/voiceStatus.test.ts
+// (Node 22.6-22.17 need the flag: node --experimental-strip-types --test <files>; Node 22.18+ / 23.6+ strip types by default)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createAudioLoader, type AudioState } from "./recordingAudio.ts";

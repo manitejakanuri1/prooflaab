@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Mic, Loader2, CheckCircle, XCircle, ShieldCheck, MessageSquare, MinusCircle, Play } from "lucide-react";
+import { Mic, Loader2, CheckCircle, XCircle, ShieldCheck, ShieldAlert, MessageSquare, MinusCircle, Play } from "lucide-react";
 import { format, isValid } from "date-fns";
 import { useVoiceExplanations, type VoiceExplanation } from "@/hooks/useVoiceExplanations";
 import { useRecordingAudio } from "@/hooks/useRecordingAudio";
-import { recordingStatus, STATUS_LABEL, type RecordingStatusKind } from "@/lib/voiceStatus";
+import {
+  displayScore, provenance, PROVENANCE_LABEL, recordingStatus, STATUS_LABEL,
+  type ProvenanceKind, type RecordingStatusKind,
+} from "@/lib/voiceStatus";
 
 /**
  * Where a completed "Explain 60s" recording actually shows up (Step 6G) -
@@ -47,18 +50,30 @@ function statusBadge(v: VoiceExplanation) {
   );
 }
 
+const PROVENANCE_STYLE: Record<ProvenanceKind, { className: string; icon: JSX.Element }> = {
+  server_verified: { className: "bg-blue-100 text-blue-800 border-blue-200", icon: <ShieldCheck className="h-3 w-3" /> },
+  verifying: { className: "bg-blue-50 text-blue-700 border-blue-200", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+  verification_failed: { className: "bg-red-50 text-red-700 border-red-200", icon: <ShieldAlert className="h-3 w-3" /> },
+  self_reported: { className: "bg-muted text-muted-foreground", icon: <MessageSquare className="h-3 w-3" /> },
+};
+
+/** Rules in lib/voiceStatus.ts (tested there): an in-flight server job is
+ * "Verifying", never "Self-reported"; a failed one is "Verification failed". */
 function provenanceBadge(v: VoiceExplanation) {
-  if (v.transcript_source === "server") {
-    return (
-      <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 gap-1">
-        <ShieldCheck className="h-3 w-3" /> Server-verified
-      </Badge>
-    );
-  }
+  const kind = provenance(v);
+  const style = PROVENANCE_STYLE[kind];
   return (
-    <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
-      <MessageSquare className="h-3 w-3" /> Self-reported
+    <Badge variant="outline" className={`${style.className} gap-1`} data-provenance={kind}>
+      {style.icon} {PROVENANCE_LABEL[kind]}
     </Badge>
+  );
+}
+
+/** A score only when the status is Scored (never "Not scored" + a number). */
+function scoreBadge(v: VoiceExplanation) {
+  const score = displayScore(v);
+  return score == null ? null : (
+    <Badge variant="outline" className="font-medium" data-score={score}>{score}/100</Badge>
   );
 }
 
@@ -78,9 +93,7 @@ function VoiceExplanationDetail({ v, onClose }: { v: VoiceExplanation; onClose: 
           <div className="flex items-center gap-2 flex-wrap">
             {statusBadge(v)}
             {provenanceBadge(v)}
-            {v.communication_score != null && (
-              <Badge variant="outline" className="font-medium">{v.communication_score}/100</Badge>
-            )}
+            {scoreBadge(v)}
           </div>
 
           {v.transcription_status === "failed" ? (
@@ -147,11 +160,10 @@ const StudentVoiceExplanationsCard = () => {
           >
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <span className="text-sm font-medium">{v.tasks?.title ?? "General explanation"}</span>
-              <div className="flex items-center gap-2">
-                {v.communication_score != null && (
-                  <Badge variant="outline" className="font-medium">{v.communication_score}/100</Badge>
-                )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {scoreBadge(v)}
                 {statusBadge(v)}
+                {provenanceBadge(v)}
               </div>
             </div>
             {v.transcription_status === "failed" ? (

@@ -1,6 +1,10 @@
 // Step 6: real-browser STAGING check of the Build-Log recordings card:
-// status badges vs the database, authenticated blob playback (failure, retry,
-// clean-up on close) and cross-student audio isolation. Makes no recordings.
+// status, provenance and score badges vs the database (each row found by its
+// exact voice id), the real "Too little speech" reason, authenticated blob
+// playback (the student's own Authorization header; failure, retry, clean-up on
+// close) and cross-student audio isolation. Uses existing staging rows only:
+// creates, changes and deletes nothing. Genuine Google sign-in is NOT exercised
+// (the session is minted like the staging auth-bridge issues it).
 //
 // Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
 //   STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
@@ -32,7 +36,13 @@ const session = (id, email) => {
             last_sign_in_at: new Date().toISOString(), app_metadata: {}, user_metadata: {}, identities: [] } };
 };
 
-// Independent statement of the expected badge (not imported from the app).
+// Independent statements of the expected badges (not imported from the app).
+function expectedProvenance(r) {
+  const t = r.transcription_status ?? 'completed';
+  if (t === 'pending' || t === 'processing') return 'Verifying';
+  if (t === 'failed') return 'Verification failed';
+  return r.transcript_source === 'server' ? 'Server-verified' : 'Self-reported';
+}
 function expected(r) {
   const t = r.transcription_status ?? 'completed';
   if (t === 'failed') return 'Failed';
@@ -47,14 +57,15 @@ const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ?
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext();
+const t07Session = session(T07, 'vidyuthsetu+t07@gmail.com');
 await ctx.addInitScript((s) => { if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(s)); },
-  session(T07, 'vidyuthsetu+t07@gmail.com'));
+  t07Session);
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
 
 try {
   // Same rows the card shows: t07's latest 20.
-  const db = await (await fetch(`${API}/voice_explanations?student_id=eq.${T07}&select=id,transcription_status,transcript_source,status,storage_path,communication_score&order=created_at.desc&limit=20`,
+  const db = await (await fetch(`${API}/voice_explanations?student_id=eq.${T07}&select=id,transcription_status,transcript_source,status,storage_path,communication_score,communication_notes&order=created_at.desc&limit=20`,
     { headers: { Authorization: `Bearer ${SVC}` } })).json();
 
   await page.goto(`${APP}/student/dashboard`, { waitUntil: 'domcontentloaded' });
@@ -66,6 +77,8 @@ try {
   const shown = await page.locator('[data-voice-id]').evaluateAll((els) => els.map((el) => ({
     id: el.getAttribute('data-voice-id'),
     label: el.querySelector('[data-status]')?.textContent?.trim() ?? null,
+    provenance: el.querySelector('[data-provenance]')?.textContent?.trim() ?? null,
+    score: el.querySelector('[data-score]')?.getAttribute('data-score') ?? null,
   })));
   const mismatches = [];
   const counts = {};
@@ -85,12 +98,56 @@ try {
     legacy ? shown.find((s) => s.id === legacy.id)?.label === 'Not scored' : true,
     legacy ? '' : 'none in the latest 20 (covered by unit tests)');
 
+  // 1e/1f. Provenance and score badges in the LIST, row by row, by exact id.
+  const provMismatch = [];
+  const scoreMismatch = [];
+  for (const r of db) {
+    const s = shown.find((x) => x.id === r.id);
+    if (s?.provenance !== expectedProvenance(r)) provMismatch.push(`${r.id.slice(0, 8)} want=${expectedProvenance(r)} got=${s?.provenance}`);
+    const wantScore = expected(r) === 'Scored' && r.communication_score != null ? String(r.communication_score) : null;
+    if ((s?.score ?? null) !== wantScore) scoreMismatch.push(`${r.id.slice(0, 8)} want=${wantScore} got=${s?.score}`);
+  }
+  const provCounts = {};
+  for (const s of shown) provCounts[s.provenance] = (provCounts[s.provenance] ?? 0) + 1;
+  check('1e provenance badge in the list matches the database for every row', provMismatch.length === 0,
+    provMismatch.length ? provMismatch.join('; ') : JSON.stringify(provCounts));
+  check('1f a number is shown only on Scored rows, and it is the saved score', scoreMismatch.length === 0,
+    scoreMismatch.length ? scoreMismatch.join('; ') : `${shown.filter((s) => s.score).length} numbers shown`);
+  const contradictory = shown.filter((s) => s.score && s.label !== 'Scored');
+  check('1g no contradictory "Not scored/Failed/Scoring + NN/100" in the list', contradictory.length === 0);
+
+  // 1h. The exact too-short recording, opened by voice id: the real reason is shown.
+  const shortRow = db.find((r) => r.status === 'failed' && r.communication_notes === 'Too little speech to score.');
+  if (shortRow) {
+    await page.locator(`[data-voice-id="${shortRow.id}"]`).click();
+    const d = page.getByRole('dialog');
+    await d.waitFor({ timeout: 10000 });
+    const reasonShown = await d.getByText('Too little speech to score.', { exact: true }).isVisible();
+    const badge = (await d.locator('[data-status]').first().textContent())?.trim();
+    const numberShown = await d.locator('[data-score]').count();
+    check('1h exact too-short recording: detail shows "Too little speech to score.", Not scored, no number',
+      reasonShown && badge === 'Not scored' && numberShown === 0, `voice ${shortRow.id.slice(0, 8)}`);
+    await page.keyboard.press('Escape');
+    await d.waitFor({ state: 'detached', timeout: 10000 });
+  } else {
+    check('1h exact too-short recording present in the latest 20', false, 'none found');
+  }
+
   // 2. Detail playback: authenticated blob, failure, retry, clean-up on close.
   const target = db.find((r) => r.status === 'scored' && r.transcript_source === 'server');
+  // opened by its exact voice id
   await page.locator(`[data-voice-id="${target.id}"]`).click();
   const dlg = page.getByRole('dialog');
   let downloads = 0;
-  page.on('request', (r) => { if (r.url().startsWith(FILES)) downloads++; });
+  const authSeen = [];
+  page.on('request', async (r) => {
+    if (!r.url().startsWith(FILES)) return;
+    downloads++;
+    const h = (await r.allHeaders())['authorization'] ?? '';
+    // Compared, never printed: exactly the signed-in student's token.
+    authSeen.push({ bearer: h.startsWith('Bearer '), same: h === `Bearer ${t07Session.access_token}`,
+      sub: (() => { try { return JSON.parse(Buffer.from(h.split('.')[1] ?? '', 'base64url').toString()).sub; } catch { return null; } })() });
+  });
   await page.route(`${FILES}/**`, (r) => r.abort('failed'));
   await dlg.getByRole('button', { name: /Play recording/ }).click();
   await dlg.getByRole('button', { name: /Could not load - try again/ }).waitFor({ timeout: 15000 });
@@ -106,6 +163,9 @@ try {
   }));
   check('2b retry plays through a blob: URL (no signed/shareable link)', a.src.startsWith('blob:') && a.ready >= 1, `ready=${a.ready}`);
   check('2c the download went to files-service with the student token', downloads >= 2, `requests=${downloads}`);
+  const okAuth = authSeen.length > 0 && authSeen.every((a) => a.bearer && a.same && a.sub === T07);
+  check("2e every download carried the signed-in student's own Authorization header (value not printed)", okAuth,
+    `${authSeen.length} request(s), sub=${authSeen[0]?.sub === T07 ? 't07' : authSeen[0]?.sub}`);
   await page.keyboard.press('Escape');
   await dlg.waitFor({ state: 'detached', timeout: 10000 });
   const revoked = await page.evaluate(async (u) => { try { await fetch(u); return false; } catch { return true; } }, a.src);

@@ -9,6 +9,7 @@ import { transcribeWithTimestamps, type TranscribeProgress, type TranscriptSegme
 import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
 import RecordingPlayback from "./RecordingPlayback";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
+import { createBlobUrlOwner, withoutLocalAudio } from "@/lib/blobUrlOwner";
 import {
   enqueueBody, nextFailures, parseStoredJob, SavedNotifier, viewOf,
   type JobRow, type JobStatus, type PollTick, type StoredJob,
@@ -116,6 +117,16 @@ const VoiceExplainModal = ({
   // onSaved once per recording per stage, however often polling reports it.
   const notifierRef = useRef<SavedNotifier | null>(null);
   if (!notifierRef.current) notifierRef.current = new SavedNotifier(() => onSavedRef.current?.());
+  // The one local blob: URL of the recording made in this dialog. Revoked on a
+  // failed save, a replacement, close and unmount - and always dropped from
+  // savedResult at the same time, so playback then uses storagePath instead.
+  const blobOwnerRef = useRef<ReturnType<typeof createBlobUrlOwner> | null>(null);
+  if (!blobOwnerRef.current) blobOwnerRef.current = createBlobUrlOwner();
+  const releaseLocalAudio = useCallback(() => {
+    blobOwnerRef.current?.release();
+    setSavedResult((prev) => withoutLocalAudio(prev));
+  }, []);
+  useEffect(() => () => blobOwnerRef.current?.release(), []);
 
   const jobStorageKey = useCallback(
     () => `pl.voiceJob.${studentId}.${taskId ?? proofId ?? "general"}`,
@@ -357,19 +368,21 @@ const VoiceExplainModal = ({
       if (jobRecorded) {
         becomeUncertain("We couldn't confirm your recording was received. It may already be saved.");
       } else {
-        // Nothing reached the server yet: a fresh attempt is safe.
+        // Nothing reached the server yet: a fresh attempt is safe, and the
+        // local copy of this failed recording is no longer needed.
+        releaseLocalAudio();
         setError(err instanceof Error ? err.message : "Could not save the recording.");
         setPhase("error");
       }
     }
-  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob, becomeUncertain]);
+  }, [studentId, taskId, proofId, writeStoredJob, startPolling, resumeStoredJob, becomeUncertain, releaseLocalAudio]);
 
   const save = useCallback(async (blob: Blob, spoken: string, segments: TranscriptSegment[], seconds: number, ext: string) => {
     if (savingRef.current) return; // a double-click or a duplicate onstop must not enqueue/insert twice
     savingRef.current = true;
     try {
       if (ASYNC_TRANSCRIPTION) {
-        await saveAsync(blob, seconds, ext, URL.createObjectURL(blob));
+        await saveAsync(blob, seconds, ext, blobOwnerRef.current!.adopt(URL.createObjectURL(blob)));
         return;
       }
       setPhase("saving");
@@ -407,16 +420,17 @@ const VoiceExplainModal = ({
         notes = scored?.notes ?? null;
       }
 
-      setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: URL.createObjectURL(blob), storagePath: path });
+      setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: blobOwnerRef.current!.adopt(URL.createObjectURL(blob)), storagePath: path });
       setPhase("done");
       onSaved?.();
     } catch (err) {
+      releaseLocalAudio();
       setError(err instanceof Error ? err.message : "Could not save the recording.");
       setPhase("error");
     } finally {
       savingRef.current = false;
     }
-  }, [studentId, taskId, proofId, onSaved, saveAsync]);
+  }, [studentId, taskId, proofId, onSaved, saveAsync, releaseLocalAudio]);
 
   const stop = useCallback(() => {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
@@ -436,6 +450,7 @@ const VoiceExplainModal = ({
     setJobError(null);
     setUncertainReason(null);
     setScoringPending(false);
+    blobOwnerRef.current?.release(); // the previous recording's local copy
     setSavedResult(null);
 
     let stream: MediaStream;
@@ -503,6 +518,7 @@ const VoiceExplainModal = ({
     setJobStatus(null);
     setJobError(null);
     setUncertainReason(null);
+    blobOwnerRef.current?.release();
     setSavedResult(null);
     setPhase("idle");
   }, [stopPolling, writeStoredJob]);
@@ -543,7 +559,8 @@ const VoiceExplainModal = ({
   };
 
   const close = (next: boolean) => {
-    if (!next) { cleanup(); stopPolling(); setPhase("idle"); }
+    // Closing drops the local copy; reopening plays the stored file instead.
+    if (!next) { cleanup(); stopPolling(); releaseLocalAudio(); setPhase("idle"); }
     onOpenChange(next);
   };
 

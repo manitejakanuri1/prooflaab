@@ -1,38 +1,33 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
-
-// Same TTL claim_voice_scoring uses by default (migration 45): a scoring
-// claim older than this belongs to a caller that is gone.
-const SCORE_CLAIM_TTL_SECONDS = 120;
-const MAX_SCORE_PER_RUN = 5;
+import { logReport, runReap } from "./reap.ts";
 
 /**
- * Step 6B/6C (staging only): recovers a transcription job stuck in one of two
- * ways - a worker claimed it and went silent (crashed, OOM-killed, network
- * partitioned) before calling complete or fail, or the job's own enqueue
- * (transcription-enqueue's first attempt, or an earlier run of this same
- * function) never actually reached Cloud Tasks. Cloud Tasks' own retries
- * cannot be relied on for the first case: the queue's 3 attempts at 5-30s
- * backoff exhaust in under a minute, well before the 180s staleness window
- * that separates "still working" from "actually dead."
+ * Step 6B/6C/G1: scheduled recovery, called by Cloud Scheduler with the shared
+ * webhook secret (same auth pattern as scheduled-job; never student-facing).
  *
- * claim_transcription_recovery (migration 43) does not change
- * transcription_status at all - it only marks "a recovery attempt is in
- * flight" via a separate reap-claim column, bounded by a max-attempts count,
- * so a row is never left depending on THIS function's own Cloud Tasks call
- * having worked: if that call fails, the row is exactly as it was before,
- * and the next scheduled run (once the short reap-claim window has expired)
- * finds it again. See the migration file for why.
+ *  A. Transcription jobs stuck because a worker died mid-job, or because the
+ *     job's enqueue never reached Cloud Tasks: claim_transcription_recovery
+ *     (migration 43) hands them out, bounded to 8 attempts per job; each is
+ *     re-enqueued to Cloud Tasks independently.
+ *  B. Server transcripts saved but never scored (G1).
  *
- * Same auth pattern as scheduled-job: a shared webhook secret, meant to be
- * called by Cloud Scheduler on a fixed interval, not by any student-facing
- * path.
+ * A and B are independent, and every job is handled on its own, so one
+ * failure never blocks the rest. Logic and settings checks: ./reap.ts.
  *
- * FAULT_INJECT_REAP_FAIL=true (staging test use only): skips the actual
- * Cloud Tasks call for every candidate this run, so a "replacement task
- * enqueue failed" scenario can be tested without a real outage. Must not be
- * left set after a test.
+ * Settings (no defaults for the queue/worker/account - production must never
+ * fall back to staging's): ENVIRONMENT (staging|production),
+ * TRANSCRIPTION_QUEUE, TRANSCRIPTION_WORKER_URL, TASKS_INVOKER_SA; optional
+ * GCP_PROJECT, TASKS_LOCATION, STALE_AFTER_SECONDS. Staging-only test
+ * switches, refused in production: FAULT_INJECT_REAP_FAIL=true (skip the
+ * Cloud Tasks call to simulate an enqueue outage), MAX_REAP_ATTEMPTS (lower
+ * the recovery limit to prove it in real time).
+ *
+ * The run answers 500 whenever anything failed (bad settings, a failed
+ * enqueue, jobs that hit the recovery limit, a scoring database error), so
+ * the existing "scheduler job failed" alert fires; the body and the log line
+ * say exactly what.
  */
 serve(async (req) => {
   const expected = Deno.env.get("WEBHOOK_SECRET");
@@ -44,108 +39,44 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
   }
 
-  const PROJECT = Deno.env.get("GCP_PROJECT") ?? "prooflab-508214";
-  const LOCATION = Deno.env.get("TASKS_LOCATION") ?? "asia-south1";
-  const QUEUE = Deno.env.get("TRANSCRIPTION_QUEUE") ?? "prooflab-staging-transcription";
-  const WORKER_URL = Deno.env.get("TRANSCRIPTION_WORKER_URL") ?? "";
-  const INVOKER_SA = Deno.env.get("TASKS_INVOKER_SA") ?? "";
-  const STALE_AFTER_SECONDS = Number(Deno.env.get("STALE_AFTER_SECONDS") ?? "180");
-  // Step 6D test use only: overrides the RPC's own default of 8, so the
-  // bounded-recovery limit can be proven on a real job in real time instead
-  // of waiting through 8 real stale/reap cycles. Unset in normal operation.
-  const MAX_REAP_ATTEMPTS = Deno.env.get("MAX_REAP_ATTEMPTS");
-
-  const FAULT_INJECT_REAP_FAIL = Deno.env.get("FAULT_INJECT_REAP_FAIL") === "true";
-
-  try {
-    const db = createClient("", "");
-    const { data: candidates, error } = await db.rpc("claim_transcription_recovery", {
-      _stale_after_seconds: STALE_AFTER_SECONDS,
-      ...(MAX_REAP_ATTEMPTS ? { _max_reap_attempts: Number(MAX_REAP_ATTEMPTS) } : {}),
-    });
-    if (error) throw error;
-
-    const rows: { id: string; storage_path: string; kind: string; attempt: number }[] = candidates ?? [];
-    const token = await googleToken();
-    const reenqueued: string[] = [];
-    const failed: string[] = [];
-    for (const row of rows) {
-      if (FAULT_INJECT_REAP_FAIL) {
-        console.error(`transcription-reap: FAULT INJECTION - skipping enqueue for ${row.id} (${row.kind})`);
-        failed.push(row.id);
-        continue;
-      }
-      // Named by this row's own reap-attempt count (already incremented by
-      // the claim above), not a timestamp or just "pending/processing" - two
-      // different attempt numbers must get two different names (a row can
-      // legitimately be reaped more than once), while a retried call of the
-      // SAME attempt (Cloud Scheduler retrying its own HTTP request before
-      // this ran again) reuses the name and hits Cloud Tasks' ALREADY_EXISTS
-      // instead of creating a second task. The database's lease token is
-      // what actually prevents duplicate work once a task is delivered; this
-      // name only avoids duplicate creation.
-      const taskName =
-        `projects/${PROJECT}/locations/${LOCATION}/queues/${QUEUE}/tasks/transcribe-${row.id}-reap-${row.attempt}`;
+  const db = createClient("", "");
+  const report = await runReap((k) => Deno.env.get(k), {
+    countAboutToExhaust: async (max) => {
+      const { count, error } = await db.from("voice_explanations")
+        .select("id", { count: "exact", head: true })
+        .in("transcription_status", ["pending", "processing"])
+        .gte("transcription_reap_attempts", max);
+      return { count, error };
+    },
+    claimRecovery: async (args) => await db.rpc("claim_transcription_recovery", args),
+    googleToken,
+    createTask: async (token, body, cfg) => {
       const res = await fetch(
-        `https://cloudtasks.googleapis.com/v2/projects/${PROJECT}/locations/${LOCATION}/queues/${QUEUE}/tasks`,
+        `https://cloudtasks.googleapis.com/v2/projects/${cfg.project}/locations/${cfg.location}/queues/${cfg.queue}/tasks`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task: {
-              name: taskName,
-              httpRequest: {
-                httpMethod: "POST",
-                url: `${WORKER_URL}/transcribe-job`,
-                headers: { "Content-Type": "application/json" },
-                body: btoa(JSON.stringify({ voice_id: row.id })),
-                oidcToken: { serviceAccountEmail: INVOKER_SA, audience: WORKER_URL },
-              },
-            },
-          }),
+          body: JSON.stringify(body),
         },
       );
-      if (res.ok || res.status === 409) reenqueued.push(row.id);
-      else {
-        failed.push(row.id);
-        console.error(`transcription-reap: re-enqueue failed for ${row.id}: ${res.status} ${await res.text()}`);
-      }
-    }
-
-    // Step 6 G1: a server transcript that was saved but never scored - the
-    // worker died, or its scoring call failed, between complete_transcription_job
-    // and complete_voice_scoring. Scored here directly. A row whose scoring
-    // claim is still fresh (the worker is grading it right now) is skipped;
-    // even if one slipped through, claim_voice_scoring lets only one caller
-    // reach DeepSeek. A scoring failure marks the row 'failed', so it is not
-    // retried here forever. Capped per run to bound DeepSeek spend.
-    const scoreCutoff = new Date(Date.now() - SCORE_CLAIM_TTL_SECONDS * 1000).toISOString();
-    const { data: unscored, error: unscoredError } = await db.from("voice_explanations")
+      await res.body?.cancel();
+      return { ok: res.ok, status: res.status };
+    },
+    listUnscored: async (cutoffIso, limit) => await db.from("voice_explanations")
       .select(VOICE_SCORE_COLUMNS)
       .eq("transcript_source", "server")
       .eq("transcription_status", "completed")
       .eq("status", "recorded")
-      .or(`scoring_claimed_at.is.null,scoring_claimed_at.lt.${scoreCutoff}`)
+      .or(`scoring_claimed_at.is.null,scoring_claimed_at.lt.${cutoffIso}`)
       .order("created_at", { ascending: true })
-      .limit(MAX_SCORE_PER_RUN);
-    if (unscoredError) throw unscoredError;
-    const scoreOutcomes: Record<string, number> = {};
-    for (const rec of unscored ?? []) {
-      const { outcome } = await scoreRecording(db, rec);
-      scoreOutcomes[outcome] = (scoreOutcomes[outcome] ?? 0) + 1;
-      console.log(`transcription-reap: scoring recovery ${rec.id} -> ${outcome}`);
-    }
-
-    return new Response(JSON.stringify({
-      ok: true, candidates: rows.length, reenqueued: reenqueued.length, failed: failed.length,
-      unscored: (unscored ?? []).length, scoring: scoreOutcomes,
-    }), { status: 200, headers: { "Content-Type": "application/json" } });
-  } catch (error) {
-    console.error("transcription-reap error:", error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { "Content-Type": "application/json" },
-    });
-  }
+      .limit(limit),
+    score: (rec) => scoreRecording(db, rec as never),
+  });
+  logReport(report);
+  return new Response(JSON.stringify(report), {
+    status: report.ok ? 200 : 500,
+    headers: { "Content-Type": "application/json" },
+  });
 });
 
 async function googleToken(): Promise<string> {
@@ -153,6 +84,8 @@ async function googleToken(): Promise<string> {
     "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
     { headers: { "Metadata-Flavor": "Google" } },
   );
+  if (!res.ok) throw new Error(`metadata token HTTP ${res.status}`);
   const body = await res.json();
+  if (!body?.access_token) throw new Error("metadata token missing access_token");
   return body.access_token;
 }

@@ -176,3 +176,48 @@ Not live-tested: a real database read failure returning 503. There is no safe wa
 | W2 duplicate (2 tasks) | 1 transcription, 1 scoring claim. Dup: "nothing to claim" |
 | W3 missing audio | Attempts 1–2 `terminal=False … released`, attempt 3 `terminal=True … released`. Row `failed`, error "HTTP Error 404", not scored |
 | Worker log lines containing "notes" or "communication_score" since deploy | **0** |
+
+---
+
+# transcription-reap review fixes (2026-09-29, staging image `staging-g1u`, `ENVIRONMENT=staging`)
+
+- The logic moved to `transcription-reap/reap.ts`. `index.ts` is a thin HTTP wrapper.
+- **A (transcription jobs) and B (scoring) are independent.** Each job is enqueued in its own try. A Google token failure fails that run's jobs (all reported) but never blocks B.
+- **No Google token is requested when there are no jobs.**
+- **Settings are required and checked:**
+  - `ENVIRONMENT` (staging|production), `TRANSCRIPTION_QUEUE`, `TRANSCRIPTION_WORKER_URL` and `TASKS_INVOKER_SA` must be set, with **no staging defaults**.
+  - Production may not name a staging resource; staging may not name a production one.
+  - `FAULT_INJECT_REAP_FAIL` and `MAX_REAP_ATTEMPTS` are refused in production.
+  - With bad settings, part A is skipped **without claiming** (so the bounded recovery attempts aren't burned), and part B still runs.
+- **Partial failures are visible:**
+  - One summary line per run: `TRANSCRIPTION-REAP OK|PROBLEM {…}`, with ids, counts and error kinds only.
+  - Severity is ERROR plus HTTP 500 whenever anything failed (settings, a failed enqueue, jobs about to hit the DB's 8-attempt limit, a scoring DB error).
+  - A separate `TRANSCRIPTION-REAP ALERT` line when the DB gives up on jobs.
+  - `near_limit` counts jobs within 2 attempts of the limit.
+
+**Unit tests** (`transcription-reap/reap_test.ts`): **18 passed**.
+- Settings: staging/production valid; each missing setting; production pointing at staging; test switches in production; a mislabelled environment; bad settings skip the claim but still score.
+- Independence:
+  - no token when idle;
+  - a token failure still lets scoring run;
+  - one network failure out of 4 jobs leaves 3 enqueued;
+  - HTTP 500 is reported and 409 counts as enqueued;
+  - a claim DB error still lets scoring run;
+  - one scoring error or throw out of 4 is counted while the others are scored;
+  - a scoring list error leaves transcription recovery unaffected.
+- Limit: `about_to_exhaust` fails the run; near-limit count; the staging override is used; a simulated 9-run outage is visible as a failure on every run and alerts at exhaustion.
+- Fault switch: no token, no task, reported.
+
+**Live staging:**
+
+| Run | Setup | Result |
+|---|---|---|
+| Normal | — | `TRANSCRIPTION-REAP OK`, 200 |
+| Outage run 1 (`FAULT_INJECT_REAP_FAIL=true`, `MAX_REAP_ATTEMPTS=2`) | stuck job R1 + unscored transcript R2 | ERROR `PROBLEM`, 500: R1 `failed[attempt 1]`. **The same run scored R2 (82)** |
+| Outage run 2 | — | `PROBLEM`, 500: R1 `failed[attempt 2]`, `near_limit 1` |
+| Outage run 3 | — | `PROBLEM`, 500: `about_to_exhaust 1`, plus `TRANSCRIPTION-REAP ALERT: 1 job(s) exceeded automatic recovery attempts` |
+| Test switches removed | — | `OK`, 200 |
+
+Final rows: R1 `failed` with "exceeded automatic recovery attempts" (2 attempts); R2 `scored`. The staging functions env now has `ENVIRONMENT` and no test switches.
+
+Note: the existing policy **[P1] "A scheduled job failed"** (`resource.type="cloud_scheduler_job" severity>=ERROR`) covers staging jobs too, so these 3 deliberate failed runs likely sent P1 alert emails. It hasn't been changed; that's a production monitoring decision.

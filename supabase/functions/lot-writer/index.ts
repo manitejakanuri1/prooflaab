@@ -4,6 +4,7 @@ import { cors } from "../_shared/cors.ts";
 import { explainTask } from "../_shared/explain.ts";
 import { pageExcerpt } from "../_shared/excerpt.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
+import { applyScratchLanguage, scratchLanguageFor } from "../_shared/scratch.ts";
 
 /**
  * Writes the Lot behind a piece of real content — once, for everybody.
@@ -99,6 +100,9 @@ const SCENARIO_FIELDS = {
   difficulty: '"Easy" | "Medium" | "Hard"',
   estimate_minutes: "integer between 10 and 45",
   lot_category: '"technical" | "business" | "pitch"',
+  // Migration 48: the written Lot's optional try-your-code box. Asked in this same
+  // call (no extra AI request); stored only for a written technical Lot, validated.
+  scratch_language: 'null, or one of "python","javascript","java","c","cpp","go","ruby","php" - ONLY if the student must actually run code in that language to do this work (e.g. code_sample is runnable code they should execute or fix). null for business, pitch, HR, aptitude, reasoning, research or any work where running code does not help',
 };
 
 serve(async (req) => {
@@ -253,6 +257,14 @@ serve(async (req) => {
       return json({ error: 'The model returned an empty scenario' }, 502);
     }
 
+    const lotCategory = CATEGORIES.has(String(parsed.lot_category))
+      ? String(parsed.lot_category)
+      : (gradingMode === 'rubric' ? 'pitch' : 'technical');
+    const rubricConfigId = genResult.mode === 'rubric'
+      ? await applyScratchLanguage(supabase, genResult.configId,
+          scratchLanguageFor(genResult.mode, lotCategory, parsed.scratch_language))
+      : null;
+
     const row = {
       source_content_id: sourceContentId,
       title,
@@ -264,14 +276,12 @@ serve(async (req) => {
         : `Real source: ${realSource.title}${realSource.origin === 'college' ? ' (from your college)' : ''}`,
       difficulty: DIFFICULTIES.has(String(parsed.difficulty)) ? String(parsed.difficulty) : 'Medium',
       estimate_minutes: clampInt(parsed.estimate_minutes, 10, 45, 20),
-      lot_category: CATEGORIES.has(String(parsed.lot_category))
-        ? String(parsed.lot_category)
-        : (gradingMode === 'rubric' ? 'pitch' : 'technical'),
+      lot_category: lotCategory,
       origin: 'ai',
       generating_since: null,
       updated_at: new Date().toISOString(),
       sandbox_config_id: genResult.mode === 'sandbox' ? genResult.configId : null,
-      rubric_config_id: genResult.mode === 'rubric' ? genResult.configId : null,
+      rubric_config_id: rubricConfigId,
     };
 
     clearInterval(heartbeat);

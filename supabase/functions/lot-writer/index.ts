@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 import { explainTask } from "../_shared/explain.ts";
 import { pageExcerpt } from "../_shared/excerpt.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
@@ -21,12 +21,6 @@ import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-confi
  * is rewritten in place the moment it lands — so nobody stares at a spinner
  * and nobody is left with the plain one.
  */
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsStatic, 'Content-Type': 'application/json' },
-  });
 
 const CATEGORIES = new Set(['technical', 'business', 'pitch']);
 const DIFFICULTIES = new Set(['Easy', 'Medium', 'Hard']);
@@ -110,6 +104,12 @@ const SCENARIO_FIELDS = {
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // Request-specific CORS on every reply, not only the preflight.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

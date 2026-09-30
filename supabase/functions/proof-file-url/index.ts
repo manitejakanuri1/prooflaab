@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 import { mayActOnStudentWork } from "../_shared/authz.ts";
 
 /**
@@ -19,18 +19,18 @@ import { mayActOnStudentWork } from "../_shared/authz.ts";
  * policy on the table.
  */
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsStatic, 'Content-Type': 'application/json' },
-  });
-
 /** Long enough to open or download a video, short enough that a leaked link dies. */
 const SIGNED_URL_SECONDS = 60 * 30;
 
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // Request-specific CORS on every reply, not only the preflight.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

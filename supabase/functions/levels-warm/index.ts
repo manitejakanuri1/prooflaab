@@ -1,7 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { ensureTopicSteps, type LevelRow } from "../_shared/levels.ts";
-import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 /**
  * Write level content ahead of time, so no student is the one who waits.
@@ -15,12 +15,6 @@ import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
  *
  * Admin only. It spends real money with the model provider on every call.
  */
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsStatic, 'Content-Type': 'application/json' },
-  });
 
 /**
  * Levels written per call.
@@ -38,6 +32,12 @@ const MAX_BATCH = 8;
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // Request-specific CORS on every reply, not only the preflight.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

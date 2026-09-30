@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 /**
  * Step 6 (staging only): the async replacement for the browser calling
@@ -12,12 +12,6 @@ import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
  * Not wired into any UI yet. VoiceExplainModal.tsx is untouched; this exists
  * to prove the pipeline end to end before anything real calls it.
  */
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsStatic, "Content-Type": "application/json" },
-  });
 
 const PROJECT = Deno.env.get("GCP_PROJECT") ?? "prooflab-508214";
 const LOCATION = Deno.env.get("TASKS_LOCATION") ?? "asia-south1";
@@ -76,6 +70,12 @@ async function enqueueTask(voiceId: string): Promise<{ already: boolean }> {
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Request-specific CORS on every reply, not only the preflight.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
   try {
     const authHeader = req.headers.get("Authorization");

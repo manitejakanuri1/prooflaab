@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
 
 /**
@@ -23,15 +23,15 @@ import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
  * live in _shared/voiceScore.ts.
  */
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsStatic, 'Content-Type': 'application/json' },
-  });
-
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // Request-specific CORS on every reply, not only the preflight.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

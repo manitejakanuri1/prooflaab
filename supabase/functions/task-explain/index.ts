@@ -1,7 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { explainTask } from "../_shared/explain.ts";
-import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 
 /**
  * "Explained simply": the task retold so a below-average student understands
@@ -14,12 +14,12 @@ import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
  * a Lot's tasks carry its title and scenario, so they share the same row.
  */
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsStatic, "Content-Type": "application/json" } });
-
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Request-specific CORS on every reply, not only the preflight.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const url = Deno.env.get("SUPABASE_URL")!;

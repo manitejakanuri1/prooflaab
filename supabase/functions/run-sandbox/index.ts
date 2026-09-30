@@ -1,7 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
-import { cors, corsHeaders as corsStatic } from "../_shared/cors.ts";
+import { cors } from "../_shared/cors.ts";
 import { gradeTests, type SandboxTest } from "../_shared/sandbox.ts";
 
 /**
@@ -15,12 +15,12 @@ import { gradeTests, type SandboxTest } from "../_shared/sandbox.ts";
  * that check returns score: 100.
  */
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsStatic, "Content-Type": "application/json" } });
-
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Request-specific CORS on every reply, not only the preflight.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const url = Deno.env.get("SUPABASE_URL")!;

@@ -41,6 +41,7 @@ try {
   const sub = calls.find((c) => c.fn === 'submit-sandbox-task');
   check('Submit answered', sub?.status === 200, `status ${sub?.status}`);
   check('Submit graded and shown', /Score \d+%/.test(txt || ''), txt?.trim());
+  if (process.env.EXPECT_PASS) check('passing answer shows "Passed", not "Needs"', /· Passed/.test(txt || '') && !/Needs/.test(txt || ''));
 } catch (e) {
   check(`(unexpected error) ${e.message.slice(0, 200)}`, false);
   await page.screenshot({ path: `sandbox-fail-${Date.now()}.png` }).catch(() => {});

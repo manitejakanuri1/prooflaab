@@ -2,6 +2,7 @@ import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
+import { submissionPassed } from "../_shared/submission.ts";
 import { gradeTests, redact, type SandboxTest } from "../_shared/sandbox.ts";
 
 /**
@@ -95,7 +96,7 @@ serve(async (req) => {
     return json({
       score: graded.score,
       pass_threshold: cfg.pass_threshold,
-      passed: rec.passed,
+      passed: submissionPassed(rec),
       already_completed: rec.already_completed,
       xp_awarded: rec.xp_awarded,
       results: safe,

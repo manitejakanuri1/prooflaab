@@ -18,9 +18,10 @@ LOGINS = {"student": ("vidyuthsetu+smoke01@gmail.com", "prooflab-smoke-student-p
 G = shutil.which("gcloud") or shutil.which("gcloud.cmd")
 rows = []
 
-def http(method, url, body=None, token=None):
+def http(method, url, body=None, token=None, prefer=None):
     h = {"Content-Type": "application/json"}
     if token: h["Authorization"] = f"Bearer {token}"
+    if prefer: h["Prefer"] = prefer
     r = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=h, method=method)
     try:
         with urllib.request.urlopen(r, timeout=60) as x:
@@ -71,13 +72,13 @@ for rpc in ("claim_transcription_job", "claim_transcription_recovery", "complete
     rec("RPC", f"{rpc} (server only)", "student", "denied", str(st), denied(st))
 st, o = http("PATCH", f"{API}/voice_explanations?student_id=eq.366602c7-90a0-4f3b-8956-82ed35c0dd15", {"communication_score": 100}, s)
 rec("PostgREST", "update own voice score", "student", "denied", str(st), denied(st))
-st, o = http("PATCH", f"{API}/task_rubric_config?id=eq.ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee", {"scratch_language": "java"}, s)
+st, o = http("PATCH", f"{API}/task_rubric_config?id=eq.ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee", {"scratch_language": "java"}, s, "return=representation")
 rec("PostgREST", "change a task's scratch_language", "student", "0 rows", f"{st} {len(o) if isinstance(o, list) else ''}", denied(st) or (isinstance(o, list) and not o))
 for f in ("create-student-users", "create-college-user"):
     st, o = http("POST", f"{FN}/{f}", {"students": [], "college_id": "00000000-0000-0000-0000-000000000000"}, s)
     rec("Function", f"{f} (college/admin only)", "student", "denied", str(st), st in (401, 403))
 st, o = http("POST", f"{WORKER}/transcribe-job", {"voice_id": "00000000-0000-0000-0000-000000000000"}, s)
-rec("Worker", "private worker with a student ticket", "student", "403", str(st), st == 403)
+rec("Worker", "private worker with a student ticket", "student", "401/403", str(st), st in (401, 403))
 
 # --- college
 c = T["college"]
@@ -87,7 +88,7 @@ if c:
     rec("PostgREST", "student_profiles: only own college", "college", "1 college", f"{len(o) if isinstance(o, list) else st} rows, colleges {len(cols)}", isinstance(o, list) and len(cols) <= 1)
     st, o = http("POST", f"{API}/rpc/admin_trace_search", {}, c)
     rec("RPC", "admin_trace_search (admin only)", "college", "denied", str(st), denied(st) or st == 400)
-    st, o = http("PATCH", f"{API}/task_rubric_config?id=eq.ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee", {"scratch_language": "java"}, c)
+    st, o = http("PATCH", f"{API}/task_rubric_config?id=eq.ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee", {"scratch_language": "java"}, c, "return=representation")
     rec("PostgREST", "change a task's scratch_language", "college", "0 rows", f"{st} {len(o) if isinstance(o, list) else ''}", denied(st) or (isinstance(o, list) and not o))
     st, o = http("GET", f"{API}/voice_explanations?select=id&student_id=eq.366602c7-90a0-4f3b-8956-82ed35c0dd15", None, c)
     rec("PostgREST", "read a student's voice rows (own college)", "college", "allowed", f"{st} {len(o) if isinstance(o, list) else ''}", st == 200)
@@ -102,9 +103,44 @@ if a:
     st, o = http("POST", f"{API}/rpc/claim_transcription_job", {}, a)
     rec("RPC", "claim_transcription_job (server only)", "admin", "denied", str(st), denied(st))
 
-# --- company
-if not T["company"]:
+# --- company (verified TEST company, vidyuthsetu+company01)
+co = T["company"]
+if not co:
     rec("Company", "company test login", "company", "exists", "NOT CREATED (owner command 5)", False)
+else:
+    st, o = http("GET", f"{API}/user_roles?select=role", None, co)
+    rec("PostgREST", "own role is company (startup)", "company", "startup", str(o), isinstance(o, list) and [r["role"] for r in o] == ["startup"])
+    st, o = http("POST", f"{API}/rpc/is_verified_recruiter", {}, co)
+    rec("RPC", "is a verified company", "company", "true", str(o), o is True)
+    for t in ("student_profiles", "student_contact", "voice_explanations", "task_submissions", "tasks", "resume_claims",
+              "resume_scorecards", "colleges", "student_imports", "recruiter_links", "task_rubric_config", "notifications"):
+        st, o = http("GET", f"{API}/{t}?select=*&limit=50", None, co)
+        rec("PostgREST", f"{t}: rows visible", "company", "0 / denied", f"{st} {len(o) if isinstance(o, list) else ''}",
+            denied(st) or (isinstance(o, list) and not o))
+    for t in ("app_events", "removed_students"):
+        st, o = http("GET", f"{API}/{t}?select=*&limit=1", None, co)
+        rec("PostgREST", f"{t} (admin/server only)", "company", "denied", str(st), denied(st) or (isinstance(o, list) and not o))
+    for rpc in ("admin_trace_search", "admin_bug_finder_runs"):
+        st, o = http("POST", f"{API}/rpc/{rpc}", {}, co)
+        rec("RPC", f"{rpc} (admin only)", "company", "denied", str(st), denied(st) or st == 400)
+    for rpc in ("tpo_placement_report", "tpo_college_report"):
+        st, o = http("POST", f"{API}/rpc/{rpc}", {}, co)
+        rec("RPC", f"{rpc} (college only)", "company", "refused", f"{st} {str(o)[:40]}",
+            denied(st) or st == 400 or (isinstance(o, dict) and "error" in o))
+    for rpc in ("claim_transcription_job", "record_task_submission", "complete_voice_scoring"):
+        st, o = http("POST", f"{API}/rpc/{rpc}", {}, co)
+        rec("RPC", f"{rpc} (server only)", "company", "denied", str(st), denied(st))
+    st, o = http("POST", f"{API}/rpc/recruiter_proof_profile", {"_student_id": "366602c7-90a0-4f3b-8956-82ed35c0dd15"}, co)
+    rec("RPC", "proof profile of a non-public student", "company", "no data", str(o)[:40], not (isinstance(o, dict) and o.get("full_name")))
+    st, o = http("POST", f"{API}/rpc/recruiter_talent", {}, co)
+    rec("RPC", "talent search runs (public students only)", "company", "allowed", f"{st} {len(o) if isinstance(o, list) else ''}", st == 200 and isinstance(o, list))
+    st, o = http("PATCH", f"{API}/task_rubric_config?id=eq.ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee", {"scratch_language": "java"}, co, "return=representation")
+    rec("PostgREST", "change a task's scratch_language", "company", "0 rows", f"{st} {len(o) if isinstance(o, list) else ''}", denied(st) or (isinstance(o, list) and not o))
+    for f in ("create-student-users", "create-college-user"):
+        st, o = http("POST", f"{FN}/{f}", {"students": [], "college_id": "00000000-0000-0000-0000-000000000000"}, co)
+        rec("Function", f"{f} (college/admin only)", "company", "denied", str(st), st in (401, 403))
+    st, o = http("POST", f"{WORKER}/transcribe-job", {"voice_id": "00000000-0000-0000-0000-000000000000"}, co)
+    rec("Worker", "private worker with a company ticket", "company", "401/403", str(st), st in (401, 403))
 
 bad = [r for r in rows if not r[5]]
 json.dump(rows, open("authz_matrix_results.json", "w"))

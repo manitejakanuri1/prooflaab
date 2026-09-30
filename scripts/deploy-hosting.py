@@ -112,6 +112,21 @@ version = call("POST", f"sites/{SITE}/versions", {
         "rewrites": [{"glob": "**", "path": "/index.html"}],
         "headers": [
             {
+                # Security headers on every response. Deliberately no full script CSP:
+                # the lesson editor loads Monaco from its CDN. frame-ancestors blocks
+                # other sites from framing ProofLab (clickjacking); the in-page
+                # sandboxed practice iframe is same-page srcdoc, unaffected.
+                # Microphone stays allowed for ProofLab itself (voice explanations).
+                "glob": "**",
+                "headers": {
+                    "X-Content-Type-Options": "nosniff",
+                    "Referrer-Policy": "strict-origin-when-cross-origin",
+                    "Permissions-Policy": "microphone=(self), camera=(), geolocation=(), payment=(), usb=()",
+                    "X-Frame-Options": "SAMEORIGIN",
+                    "Content-Security-Policy": "frame-ancestors 'self'",
+                },
+            },
+            {
                 # Fingerprinted assets never change under the same name, so they
                 # can be cached hard. index.html must not be, or a deploy is
                 # invisible until browsers expire it.

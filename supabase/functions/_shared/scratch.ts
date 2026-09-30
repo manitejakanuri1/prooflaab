@@ -9,6 +9,16 @@ export const SCRATCH_LANGUAGES = new Set(["python", "javascript", "java", "c", "
 
 type Db = { from: (table: string) => any };
 
+/**
+ * Does this config carry the shared generic checklist? True for the fallback
+ * itself and for a scratchpad copy of it (origin 'auto_fallback', made only by
+ * applyScratchLanguage - no other code writes that origin on a non-fallback row).
+ * Grading treats both the same, so adding a scratchpad never changes grading.
+ */
+export function usesSharedChecklist(cfg: { is_generic_fallback?: boolean | null; origin?: string | null }): boolean {
+  return cfg.is_generic_fallback === true || cfg.origin === "auto_fallback";
+}
+
 /** The language to store, or null. Only a written (rubric) technical Lot, only an allowlisted value. */
 export function scratchLanguageFor(
   mode: "sandbox" | "rubric",

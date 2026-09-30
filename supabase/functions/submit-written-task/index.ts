@@ -5,6 +5,7 @@ import { cors } from "../_shared/cors.ts";
 import {
   gradeOnce, zeroUnquotedCredit, totalOf, wordCount, DISAGREEMENT_THRESHOLD, type Criterion,
 } from "../_shared/rubric-grading.ts";
+import { usesSharedChecklist } from "../_shared/scratch.ts";
 
 /**
  * Final submit for a rubric-graded (written) task: business/pitch Lots,
@@ -78,7 +79,7 @@ serve(async (req) => {
     if (done) return json({ error: "You already completed this task", already_completed: true }, 409);
 
     const { data: cfg } = await db.from("task_rubric_config")
-      .select("id, prompt_text, criteria, min_words, max_words, pass_threshold, reference_answer, is_generic_fallback")
+      .select("id, prompt_text, criteria, min_words, max_words, pass_threshold, reference_answer, is_generic_fallback, origin")
       .eq("id", task.rubric_config_id).single();
     if (!cfg) return json({ error: "This task has no checklist yet" }, 404);
 
@@ -106,7 +107,8 @@ ${task.description ?? ""}`;
     // to the same question? Checked before paying for two LLM calls.
     // The shared checklist is used by many different tasks, so comparing
     // against "other answers to the same checklist" would compare unrelated work.
-    if (!cfg.is_generic_fallback) {
+    // A scratchpad copy of it (migration 48) keeps exactly the same behaviour.
+    if (!usesSharedChecklist(cfg)) {
       const { data: similar } = await db.rpc("similar_written_submission", {
         _rubric_config_id: cfg.id, _student_id: profile.id, _answer: answer, _threshold: 0.8,
       });

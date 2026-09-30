@@ -1,6 +1,6 @@
 // Run: deno test supabase/functions/_shared/scratch_test.ts
 import { assertEquals } from "jsr:@std/assert@1";
-import { applyScratchLanguage, scratchLanguageFor } from "./scratch.ts";
+import { applyScratchLanguage, scratchLanguageFor, usesSharedChecklist } from "./scratch.ts";
 
 Deno.test("only a written technical Lot with an allowlisted value gets a language", () => {
   assertEquals(scratchLanguageFor("rubric", "technical", "python"), "python");
@@ -73,4 +73,11 @@ Deno.test("no language: nothing written, same config", async () => {
   assertEquals(await applyScratchLanguage(db, "fallback", null), "fallback");
   assertEquals(await applyScratchLanguage(db, null, "python"), null);
   assertEquals(log, []);
+});
+
+Deno.test("scratchpad copy of the fallback is graded like the fallback (similarity check skipped)", () => {
+  assertEquals(usesSharedChecklist({ is_generic_fallback: true, origin: "auto_fallback" }), true);   // the fallback
+  assertEquals(usesSharedChecklist({ is_generic_fallback: false, origin: "auto_fallback" }), true);  // its scratchpad copy
+  assertEquals(usesSharedChecklist({ is_generic_fallback: false, origin: "auto" }), false);          // a Lot's own checklist
+  assertEquals(usesSharedChecklist({ is_generic_fallback: false, origin: "manual" }), false);
 });

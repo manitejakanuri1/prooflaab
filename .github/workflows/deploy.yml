@@ -70,11 +70,14 @@ jobs:
           # A publish can report success while the edge still serves the previous
           # version, so check the bundle name actually moved rather than trusting
           # the API's word for it.
-          built=$(ls dist/assets/index-*.js | head -1 | xargs basename)
+          # The entry is the <script type="module" src=...> in index.html. Other
+          # chunks can also be named index-*.js, so never pick one by filename.
+          entry() { grep -oE '<script type="module"[^>]*src="/assets/[^"]+\.js"' | grep -oE 'assets/[^"]+\.js' | head -1; }
+          built=$(entry < dist/index.html)
           echo "expecting: $built"
           for i in $(seq 1 20); do
-            live=$(curl -s https://prooflab.co.in/ | grep -oE 'assets/index-[^"]+\.js' | head -1 || true)
-            if [ "$(basename "$live")" = "$built" ]; then
+            live=$(curl -s -H 'Cache-Control: no-cache' https://prooflab.co.in/ | entry || true)
+            if [ -n "$built" ] && [ "$live" = "$built" ]; then
               echo "live and serving $live"
               exit 0
             fi

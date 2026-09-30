@@ -3535,6 +3535,7 @@ export type Database = {
           pass_threshold: number
           prompt_text: string
           reference_answer: string
+          scratch_language: string | null
           updated_at: string
         }
         Insert: {
@@ -3549,6 +3550,7 @@ export type Database = {
           pass_threshold?: number
           prompt_text: string
           reference_answer: string
+          scratch_language?: string | null
           updated_at?: string
         }
         Update: {
@@ -3563,6 +3565,7 @@ export type Database = {
           pass_threshold?: number
           prompt_text?: string
           reference_answer?: string
+          scratch_language?: string | null
           updated_at?: string
         }
         Relationships: []

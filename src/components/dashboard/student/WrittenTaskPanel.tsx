@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SimpleQuestion } from "./SimpleQuestion";
 import { GivenMaterial } from "./GivenMaterial";
+import CodeRunBox from "./CodeRunBox";
+import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
 import { Loader2, Send, Clock } from "lucide-react";
 
 interface RubricView {
@@ -14,6 +16,7 @@ interface RubricView {
   min_words: number;
   max_words: number;
   pass_threshold: number;
+  scratch_language?: string | null;
 }
 
 interface CriterionScore {
@@ -50,6 +53,10 @@ interface WrittenTaskPanelProps {
  * Writing/Research/Analysis assigned tasks, hr-behavioral/verbal-ability
  * level proofs). No "run" step — a written answer has no partial check
  * worth showing before submit, unlike code against sample tests.
+ *
+ * A written programming task may carry scratch_language (migration 48): then a
+ * scratchpad sits between the question and the answer. It only calls run-code;
+ * its code is never saved, submitted or graded.
  */
 export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPanelProps) {
   const draftKey = `written-draft:${taskId}`;
@@ -87,7 +94,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
   const submit = async () => {
     setBusy(true); setError(null);
     const { data, error: e } = await supabase.functions.invoke("submit-written-task", {
-      body: { task_id: taskId, answer },
+      body: writtenSubmitBody(taskId, answer),
     });
     setBusy(false);
     if (e) return setError(await errorMessage(e));
@@ -109,6 +116,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
   }
 
   const done = result?.status === "passed";
+  const scratch = scratchLanguage(view.scratch_language);
 
   return (
     <div className="space-y-4">
@@ -136,6 +144,15 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
         </div>
       </div>
 
+      {scratch && (
+        <div className="space-y-1">
+          <p className="text-sm font-semibold">{scratchLabel(scratch)} Scratchpad</p>
+          <p className="text-xs text-muted-foreground">For trying ideas only — not marked or saved.</p>
+          <CodeRunBox language={scratch} code="" />
+        </div>
+      )}
+
+      {scratch && <p className="text-sm font-semibold">Written answer</p>}
       <Textarea
         value={answer}
         onChange={(e) => saveDraft(e.target.value)}

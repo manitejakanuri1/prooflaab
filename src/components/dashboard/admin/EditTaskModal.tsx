@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
+import { SCRATCH_LANGUAGES, scratchLabel, scratchLanguage } from "@/lib/scratchpad";
 
 interface EditTaskModalProps {
   task: any;
@@ -28,6 +29,23 @@ export function EditTaskModal({ task, open, onClose, onSuccess }: EditTaskModalP
     xp_reward: 0,
     status: "Pending"
   });
+  // Written tasks only: the optional scratchpad language lives on the task's rubric config
+  // (migration 48). "none" = no scratchpad. The shared generic fallback config is never changed.
+  const [scratch, setScratch] = useState<{ loaded: string; value: string; fallback: boolean } | null>(null);
+
+  useEffect(() => {
+    setScratch(null);
+    if (!task?.rubric_config_id) return;
+    let cancelled = false;
+    supabase.from("task_rubric_config").select("scratch_language, is_generic_fallback")
+      .eq("id", task.rubric_config_id).maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const v = scratchLanguage(data.scratch_language) ?? "none";
+        setScratch({ loaded: v, value: v, fallback: !!data.is_generic_fallback });
+      });
+    return () => { cancelled = true; };
+  }, [task?.rubric_config_id]);
 
   useEffect(() => {
     if (task) {
@@ -50,6 +68,13 @@ export function EditTaskModal({ task, open, onClose, onSuccess }: EditTaskModalP
         .eq('id', task.id);
       
       if (error) throw error;
+      if (scratch && !scratch.fallback && scratch.value !== scratch.loaded) {
+        const { error: scratchError } = await supabase
+          .from("task_rubric_config")
+          .update({ scratch_language: scratch.value === "none" ? null : scratch.value })
+          .eq("id", task.rubric_config_id);
+        if (scratchError) throw scratchError;
+      }
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Task updated successfully" });
@@ -155,6 +180,32 @@ export function EditTaskModal({ task, open, onClose, onSuccess }: EditTaskModalP
               />
             </div>
           </div>
+
+          {scratch && (
+            <div>
+              <Label htmlFor="scratch_language">Scratch language</Label>
+              <Select
+                value={scratch.value}
+                disabled={scratch.fallback}
+                onValueChange={(value) => setScratch({ ...scratch, value })}
+              >
+                <SelectTrigger id="scratch_language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {SCRATCH_LANGUAGES.map((l) => (
+                    <SelectItem key={l} value={l}>{scratchLabel(l)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {scratch.fallback
+                  ? "This task uses the shared default checklist, so it cannot have a scratchpad."
+                  : "Written task only. Shows a try-your-code box; nothing in it is saved or marked. Applies to every copy of this task."}
+              </p>
+            </div>
+          )}
 
           {/* Assigned Students Section (Read-Only) */}
           {task.task_assignments && task.task_assignments.length > 0 && (

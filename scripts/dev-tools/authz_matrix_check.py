@@ -11,6 +11,7 @@ BRIDGE = "https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-api-ysn2mpe6sa-el.a.run.app"
 FN = "https://prooflab-functions-135298577404.asia-south1.run.app/functions/v1"
 WORKER = "https://prooflab-transcription-worker-ysn2mpe6sa-el.a.run.app"
+FILES = "https://prooflab-files-135298577404.asia-south1.run.app"
 LOGINS = {"student": ("vidyuthsetu+smoke01@gmail.com", "prooflab-smoke-student-password"),
           "college": ("vidyuthsetu+college@gmail.com", "prooflab-college-password"),
           "admin": ("vidyuthsetu@gmail.com", "prooflab-admin-password"),
@@ -141,6 +142,19 @@ else:
         rec("Function", f"{f} (college/admin only)", "company", "denied", str(st), st in (401, 403))
     st, o = http("POST", f"{WORKER}/transcribe-job", {"voice_id": "00000000-0000-0000-0000-000000000000"}, co)
     rec("Worker", "private worker with a company ticket", "company", "401/403", str(st), st in (401, 403))
+    # a student's private recording: the company must be refused, the owner allowed (control)
+    SVC_T = subprocess.run([sys.executable, "scripts/dev-tools/pl.py", "svc", "GET",
+                            "voice_explanations?select=storage_path&student_id=eq.366602c7-90a0-4f3b-8956-82ed35c0dd15&limit=1"],
+                           capture_output=True, text=True).stdout
+    path = json.loads(SVC_T[SVC_T.find("["):])[0]["storage_path"] if "[" in SVC_T else None
+    if path:
+        for who, want in (("company", False), ("student", True)):
+            r = urllib.request.Request(f"{FILES}/file/voice-explanations/{path}", headers={"Authorization": f"Bearer {T[who]}"})
+            try:
+                with urllib.request.urlopen(r, timeout=60) as x: st = x.status
+            except urllib.error.HTTPError as e: st = e.code
+            rec("Files", f"student's private recording ({'owner control' if want else 'other account'})", who,
+                "allowed" if want else "denied", str(st), (st == 200) if want else denied(st))
 
 bad = [r for r in rows if not r[5]]
 json.dump(rows, open("authz_matrix_results.json", "w"))

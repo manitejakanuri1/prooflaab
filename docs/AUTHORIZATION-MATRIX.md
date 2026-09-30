@@ -82,6 +82,7 @@ Test company `ProofLab TEST Company Smoke` (`vidyuthsetu+company01`), verified r
 | Change a task config | 0 rows changed |
 | `create-student-users`, `create-college-user` | 403 |
 | Private worker | 401 |
+| A student's private recording (files service) | company 404; the owning student 200 (control) |
 | Browser (`company_dashboard_browser.mjs`, live) | Home, Talent, Work, Jobs open with content, no 4xx/5xx or CORS errors; `/admin`, `/college`, `/student` dashboards redirect back to `/company/dashboard` |
 
 Not proven: the Talent list with real candidates, because no student has chosen to be discoverable

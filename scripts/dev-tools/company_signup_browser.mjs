@@ -8,7 +8,7 @@ try {
   await page.getByRole('tab', { name: 'Sign Up' }).click();
   await page.getByRole('combobox').first().click();
   await page.getByRole('option', { name: 'Company' }).click();
-  await page.getByPlaceholder('Company Name').fill('ProofLab TEST Company (smoke)');
+  await page.getByPlaceholder('Company Name').fill('ProofLab TEST Company Smoke');
   const tab = page.getByRole('tabpanel');
   await tab.locator('input[type="email"]').fill(process.env.EMAIL);
   await tab.locator('input[type="password"]').first().fill(process.env.PASSWORD);

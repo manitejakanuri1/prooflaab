@@ -95,7 +95,7 @@ Rollback: `gcloud services api-keys update "$K" --project=$P --clear-restriction
 
 The password secret already exists (`prooflab-company-test-password`, created by the assistant, never printed).
 ```bash
-# 1. sign up through the live form (Sign Up tab -> Company -> "ProofLab TEST Company")
+# 1. sign up through the live form (Sign Up tab -> Company -> "ProofLab TEST Company Smoke")
 PW="$(gcloud secrets versions access latest --secret=prooflab-company-test-password)"
 EMAIL=vidyuthsetu+company01@gmail.com PASSWORD="$PW" node scripts/dev-tools/company_signup_browser.mjs https://prooflab.co.in
 # 2. click the verification link sent to vidyuthsetu+company01@gmail.com (your Gmail)

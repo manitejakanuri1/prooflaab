@@ -2,15 +2,14 @@
 
 **Decision: PRODUCTION RELEASE CLOSURE: FAIL**
 
-Production works and was proven end to end today. The closure still fails because six P1 items could
-not be closed or proven by Claude. Each needs one owner action, written out in
+Production works and was proven end to end today. The closure still fails because five P1 items could
+not be closed or proven by Claude (G01 closed 1 Oct: PASS, see `docs/closure/G01-VERIFICATION.md`). Each needs one owner action, written out in
 `docs/closure/OWNER-COMMANDS.md`. The rule for this pass: no PASS because "most things work".
 
 ## 1. Blockers (P1, must be closed or accepted by the owner)
 
 | ID | Blocker | Why it is P1 | Owner command |
 |---|---|---|---|
-| G01 | Production database invariant audit never ran | Data correctness of production never checked end to end | 1 |
 | G02 | Database restore never proven | Backups exist, but nobody has shown one can be restored | 2 |
 | G28 | Students can read their college's reports (`tpo_placement_report` lists classmates and hiring companies) | Privacy. 0 hires recorded today, so nothing exposed yet | 6 (Migration 49, rehearsed on staging) |
 | G05 | Default compute account has project Editor and runs 6 production services | One leaked service could change the whole project | 8 (per-service, Editor last) |
@@ -95,7 +94,7 @@ Everything else in `docs/FINAL-RELEASE-GAPS.md` is FIXED or VERIFIED.
 
 ## 7. How this becomes PASS
 
-1. Run owner commands 1, 2, 5, 6, 7 and 8 in `docs/closure/OWNER-COMMANDS.md`.
+1. Run owner commands 2, 5, 6, 7 and 8 (command 1 done: G01 PASS) in `docs/closure/OWNER-COMMANDS.md`.
 2. Paste the outputs back (`docs/closure/prod-audit-output.txt`, `restore-drill-output.txt`).
 3. Claude checks the outputs, re-runs `authz_matrix_check.py` (expect 25/25 with company) and `healthcheck.py`,
    and updates this certificate to PASS if nothing new is found.

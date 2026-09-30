@@ -7,7 +7,7 @@ Status: OPEN · FIXED · VERIFIED (no change needed) · ACCEPTED (non-blocking, 
 
 | ID | Area | Finding | Sev | Evidence | Fix | Test | Status |
 |---|---|---|---|---|---|---|---|
-| G01 | Cloud SQL | Production DB invariant audit never ran (blocked 30 Sep) | P1 | 30 Sep auto-mode block | Temporary read-only audit job (owner-approved), then delete it | Audit output, zero unexplained anomalies | OPEN — blocked for Claude (auto-mode: production reads). Owner command 1 |
+| G01 | Cloud SQL | Production DB invariant audit never ran (blocked 30 Sep) | P1 | 30 Sep auto-mode block | Temporary read-only audit job (owner-approved), then delete it | Audit output, zero unexplained anomalies | VERIFIED — PASS 1 Oct: owner ran command 1; every invariant checked, 0 unexplained anomalies; corrected Migration 45 confirmed byte-identical (docs/closure/G01-VERIFICATION.md) |
 | G02 | Cloud SQL | Backups exist but a restore was never proven | P1 | backup list only | Restore drill: PITR clone to temporary instance, verify, delete | Restored copy reads schema + data | OPEN — owner command 2 (clone + check + delete) |
 | G03 | Cloud SQL | db-g1-small, ZONAL; capacity never measured | P1 | instance settings | Measure CPU/memory/connections/storage; classify | Monitoring metrics | VERIFIED — 7-day CPU max 17.8 %, memory median 43.6 %, max 7 connections, 0 deadlocks, disk 0.3 GB. Safe for pilot. ZONAL = ACCEPTED NON-BLOCKING RISK (no HA claim; DR runbook section 6) |
 | G04 | Capacity | Heavy-load behaviour never measured | P1 | no load test exists | Stepped load test on staging (10/25/50/100) | p50/p95/p99, errors | FIXED — staging load test: browse 50 users p95 1.2 s 0 errors; 100 users p95 3.3 s 1 error; 200 users p95 5.2 s 0.3 % (stop); run-code 40 at once p95 0.7 s; voice 10 drained in 45 s |
@@ -39,3 +39,5 @@ Status: OPEN · FIXED · VERIFIED (no change needed) · ACCEPTED (non-blocking, 
 | G30 | API | PostgREST error bodies name tables/functions | P3 | attack surface run | none (no data or secrets) | — | ACCEPTED NON-BLOCKING RISK |
 | G31 | Health check | First open of a track by a new account fails lesson/quiz checks once | P3 | healthcheck first run 22/24, rerun 24/24 | none | rerun | ACCEPTED NON-BLOCKING RISK |
 | G32 | Capacity | Above ~100 browsing users at once (staging, half size) p95 passes 3 s | P3 | load test | Raise max instances / DB tier when the pilot grows | load test | ACCEPTED NON-BLOCKING RISK |
+| G33 | Cloud SQL | 13 marking configs unused by any task/Lot (4 fixtures 11 Sep, 9 from removed test students' tasks) | P3 | G01 audit O2 | Optional delete with owner approval | re-run O2 | ACCEPTED NON-BLOCKING RISK — no student data |
+| G34 | Cloud SQL | Supabase-style table grants to anon/authenticated (voice, rubric, submissions) broader than needed; RLS policies are the real control | P3 | G01 audit F3/F4/F7 | Revoke unused grants (backend proposal) | grants re-read | ACCEPTED NON-BLOCKING RISK |

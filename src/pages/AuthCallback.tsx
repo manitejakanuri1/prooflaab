@@ -143,8 +143,8 @@ export default function AuthCallback() {
           return;
         }
 
-        // If wizard not completed, redirect to onboarding wizard
-        if (!hasCompletedWizard) {
+        // If wizard not completed, redirect to onboarding wizard (admins have none)
+        if (!hasCompletedWizard && currentRole !== 'admin') {
           navigate('/onboarding-wizard', { replace: true });
           return;
         }

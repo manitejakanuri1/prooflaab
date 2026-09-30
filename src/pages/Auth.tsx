@@ -6,6 +6,7 @@ import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthFo
 import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/Logo";
+import { onboardingRoute } from "@/lib/onboardingRoute";
 
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 
@@ -61,19 +62,8 @@ export default function Auth() {
                   } else if (roleData.has_completed_wizard) {
                     redirectToDashboard(roleData.role);
                   } else {
-                    // Redirect to role-specific onboarding
-                    const role = roleData.role;
-                    if (role === 'college_admin') {
-                      navigate('/onboarding/college', { replace: true });
-                    } else if (role === 'startup') {
-                      navigate('/onboarding/startup', { replace: true });
-                    } else if (role === 'recruiter') {
-                      // A recruiter's one-time setup lives on their own
-                      // dashboard, not in the student wizard.
-                      navigate('/company/dashboard', { replace: true });
-                    } else {
-                      navigate('/onboarding-wizard', { replace: true });
-                    }
+                    // Role-specific onboarding (admins have none: dashboard).
+                    navigate(onboardingRoute(roleData.role), { replace: true });
                   }
                 }
               }
@@ -135,32 +125,14 @@ export default function Auth() {
       }
 
       if (roleData && !roleData.has_completed_wizard) {
-        // Redirect to role-specific onboarding
-        if (role === 'college_admin') {
-          navigate('/onboarding/college', { replace: true });
-        } else if (role === 'startup') {
-          navigate('/onboarding/startup', { replace: true });
-        } else if (role === 'recruiter') {
-          navigate('/company/dashboard', { replace: true });
-        } else {
-          navigate('/onboarding-wizard', { replace: true });
-        }
+        // Role-specific onboarding (admins have none: dashboard).
+        navigate(onboardingRoute(role), { replace: true });
       } else {
         redirectToDashboard(role);
       }
     } catch (error) {
       // If no record or error, go to role-specific onboarding
-      if (role === 'student') {
-        navigate('/student/start', { replace: true });
-      } else if (role === 'college_admin') {
-        navigate('/onboarding/college', { replace: true });
-      } else if (role === 'startup') {
-        navigate('/onboarding/startup', { replace: true });
-      } else if (role === 'recruiter') {
-        navigate('/company/dashboard', { replace: true });
-      } else {
-        navigate('/onboarding-wizard', { replace: true });
-      }
+      navigate(role === 'student' ? '/student/start' : onboardingRoute(role), { replace: true });
     }
   };
 

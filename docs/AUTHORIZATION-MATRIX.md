@@ -44,7 +44,7 @@ separately probed by the scripts.
 
 ## Live results (1 Oct 2026)
 
-`authz_matrix_check.py` (first run, 1 Oct): 20 of 25 passed. **Re-run after G10 (1 Oct): 52 of 53** — the only failure is G28 (student reads the placement report); the two rubric false alarms and the worker 401 are now counted correctly by the script. The 5 that did not pass:
+`authz_matrix_check.py` (first run, 1 Oct): 20 of 25 passed. **Re-run after G10 (1 Oct): 54 of 55** — the only failure is G28 (student reads the placement report); the two rubric false alarms and the worker 401 are now counted correctly by the script. The 5 that did not pass:
 
 | Check | Result | Verdict |
 |---|---|---|
@@ -52,7 +52,7 @@ separately probed by the scripts.
 | Student changes a task's `scratch_language` | 204, 0 rows changed | False alarm: PATCH with no return body. Re-read showed the row still `python`. Denied by row-level security. |
 | College changes a task's `scratch_language` | 204, 0 rows changed | Same as above; denied. |
 | Student ticket on the private worker | 401 (test expected 403) | Denied either way (Cloud Run refuses a non-Google token with 401). |
-| Company test login | created 1 Oct (`vidyuthsetu+company01`, verified) | Closed G10: 32/32 company checks pass (below). |
+| Company test login | created 1 Oct (`vidyuthsetu+company01`, verified) | Closed G10: 33/33 company checks pass (below). |
 
 `attack_surface_check.py`: 66 of 66 passed (anonymous and forged tokens refused on PostgREST tables and
 RPCs, all 16 login-only functions, scheduled endpoints, auth bridge, files, accounts, transcriber, code runner;

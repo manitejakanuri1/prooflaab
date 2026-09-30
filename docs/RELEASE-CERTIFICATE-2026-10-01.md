@@ -20,7 +20,7 @@ not be closed or proven by Claude (closed 1 Oct: G01, G02, G10 PASS — see `doc
 |---|---|
 | `scripts/healthcheck.py` | 24/24 |
 | `attack_surface_check.py` (anonymous + forged tokens, every public endpoint) | 66/66 |
-| `authz_matrix_check.py` (student, college, admin, company) | 52/53: only failure is G28 |
+| `authz_matrix_check.py` (student, college, admin, company) | 54/55: only failure is G28 |
 | `company_dashboard_browser.mjs` (live) | 12/12: Home, Talent, Work, Jobs; admin/college/student pages closed |
 | Bug finder | 10/10 |
 | Functions `/ready` | 40/40 |

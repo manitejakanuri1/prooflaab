@@ -34,7 +34,8 @@ try {
   check('Roadmap shows the Python path', /Python/i.test(txt));
   check('Roadmap: no failed backend call / CORS error', bad.length === 0, bad.slice(0, 4).join('; '));
 
-  // ---- Voice
+  // ---- Voice (skip with NO_VOICE=1: roadmap-only smoke, no new recording)
+  if (process.env.NO_VOICE) throw Object.assign(new Error('skip'), { skip: true });
   bad.length = 0;
   await page.goto(`${APP}/student/tasks/assigned`, { waitUntil: 'domcontentloaded' });
   const btn = page.getByRole('button', { name: /Explain 60s/ }).first();
@@ -54,8 +55,8 @@ try {
   console.log('  screen after processing:', (await page.getByRole('dialog').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200));
   check('voice: no failed backend call / CORS error', bad.length === 0, bad.slice(0, 4).join('; '));
 } catch (e) {
-  check(`(unexpected error) ${e.message.slice(0, 200)}`, false);
-  await page.screenshot({ path: `preview-voice-fail-${Date.now()}.png` }).catch(() => {});
+  if (!e.skip) check(`(unexpected error) ${e.message.slice(0, 200)}`, false);
+  if (!e.skip) await page.screenshot({ path: `preview-voice-fail-${Date.now()}.png` }).catch(() => {});
 } finally {
   await browser.close();
 }

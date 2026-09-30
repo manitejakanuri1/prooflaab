@@ -1,7 +1,7 @@
 name: Deploy to production
 
 # Publishes the site to Firebase Hosting, in the same Google project as the
-# database, the API, the file service and the 41 functions. It replaces a
+# database, the API, the file service and the 40 functions. It replaces a
 # workflow that promoted a build on Vercel - which is why, for a while after the
 # move, every push kept refreshing the old site while the new one sat still.
 #
@@ -13,16 +13,18 @@ name: Deploy to production
 #
 # The account it acts as may publish to Hosting and do nothing else.
 
+# Every push (any branch) and pull request runs the release gate. Only a push to
+# main that passes the gate publishes; a failing test means no deploy.
 on:
   push:
-    branches: [main]
+  pull_request:
   # Lets you re-run a deploy from the Actions tab without pushing anything.
   workflow_dispatch:
 
-# A newer push makes an in-flight deploy pointless, so cancel it rather than
-# racing two publishes at the same site.
+# A newer push to the same branch makes an in-flight run pointless, so cancel it
+# rather than racing two publishes at the same site.
 concurrency:
-  group: deploy-production
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -30,7 +32,42 @@ permissions:
   id-token: write        # required to request the OIDC token
 
 jobs:
+  # Release gate. Must pass before anything is published.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'     # the unit tests are .ts files run by node --test
+          cache: npm
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install
+        run: npm ci
+
+      - name: Frontend unit tests
+        run: node --experimental-strip-types --test src/lib/*.test.ts
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Server function tests (Deno)
+        run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/
+
+      - name: Production build
+        run: npm run build
+
   deploy:
+    needs: test
+    # Publishing only ever happens from main (or a manual run of main), never from
+    # another branch or a pull request.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

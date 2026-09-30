@@ -28,9 +28,9 @@ Dashboards:
   - Cloud SQL `prooflab-db` (database `prooflab`)
   - PostgREST `prooflab-api`
   - Identity Platform + `prooflab-auth-bridge`
-  - `prooflab-functions` (36 Deno functions, AI = DeepSeek)
+  - `prooflab-functions` (40 Deno functions, AI = DeepSeek)
   - `prooflab-files`
-  - `prooflab-transcriber`
+  - `prooflab-transcriber` + private `prooflab-transcription-worker` (Cloud Tasks queue `prooflab-transcription`)
   - `prooflab-accounts`
   - `prooflab-code-runner`
   - crawler job
@@ -39,7 +39,7 @@ Dashboards:
 
 ## Hard rules
 
-- **A push to `main` deploys the live website** (`.github/workflows/deploy.yml`, about 4 minutes, no tests). Work on a branch; merge to `main` only when tested and the owner has said yes. It deploys the website only, never functions or the database.
+- **A push to `main` deploys the live website** (`.github/workflows/deploy.yml`, about 5 minutes; a `test` job — unit tests, typecheck, Deno tests, build — must pass first). Work on a branch; merge to `main` only when tested and the owner has said yes. It deploys the website only, never functions or the database.
 - **Never push to `origin`** (someone else's fork, `Yashwanth-pilli/prooflabai-mvp`). Push only to **`prooflaab`** (`manitejakanuri1/prooflaab`), branch `main`. Never offer to push to origin.
 - **Ask before deleting anything**: data, logins, tables, columns, functions, files, branches. Show the exact list and back up first.
 - **Nothing counts as working until a database row proves it.** `strict: false` in `tsconfig.app.json`, so the typechecker will not catch a wrong column. Prove it against the live database with a real signed-in session.
@@ -70,7 +70,7 @@ Dashboards:
   - `python scripts/healthcheck.py` (24 checks, about 25 s, expect all PASS).
   - The page check: `scripts/dev-tools/walk.mjs … crawl`.
 - One commit per finished thing. The message says what was tested and what came back. Report honestly: if something is half-done, say which half.
-- Test logins (kept): `vidyuthsetu+t01 … +t11@gmail.com` (Demo College, section `TEST-A`), password in Secret Manager `prooflab-testusers-password`. Also `vidyuthsetu+e2e` (used by the health check). Do not remove them without asking.
+- Test logins: the old t01-t18 / e2e logins were removed on 30 Sep 2026. Use the smoke student `vidyuthsetu+smoke01@gmail.com` (secret `prooflab-smoke-student-password`); see the Step 6 section below.
 - After finished work, update the owner's Obsidian vault if it exists on this machine: note `Projects Brain/ProofLab.md` and a line in `log.md`.
 
 ## Style
@@ -165,13 +165,18 @@ The owner is not a developer.
 - Cost if/when scheduled: ~Rs 1.5 per deep run (real DeepSeek calls) - at 3x/day that would be ~Rs 135/month, on top of the light check's near-zero cost.
 
 ## Live state after the Step 6 release (verified live 30 Sep 2026 - supersedes older notes above)
-- **Frontend:** `prooflab.co.in` = GitHub `main` (`.env.production` has `VITE_ASYNC_TRANSCRIPTION=true`; deploy.yml verifies the real entry script from `index.html`). Entry bundle `assets/index-DxO87fXt.js`. A push to `main` rebuilds and republishes; it reproduces live.
+- **Frontend:** `prooflab.co.in` = GitHub `main` (`.env.production` has `VITE_ASYNC_TRANSCRIPTION=true`; deploy.yml verifies the real entry script from `index.html`). Entry bundle `assets/index-CWe_5Kb3.js` (Hosting version `79a3164cfe001a3b`, 1 Oct 2026). A push to `main` rebuilds and republishes; it reproduces live.
 - **Three different targets - do not call them all "staging":**
   1. Production site `prooflab.co.in` -> production services (`prooflab-*`, `prooflab-db`).
-  2. Firebase preview channel `step6-async-canary` (expires 7 Oct 2026) -> the SAME production services (its origin is in production `ALLOWED_ORIGINS` for auth-bridge, files, functions).
+  2. (Retired 1 Oct 2026) Firebase preview channel `step6-async-canary` was deleted and its origin removed from production `ALLOWED_ORIGINS`.
   3. True staging -> `prooflab-staging-*` services, `prooflab-staging-db`, queue `prooflab-staging-transcription`, staging worker; reached from a local `vite --mode staging` build.
 - **Voice (production):** browser -> files (private bucket) -> functions `transcription-enqueue` -> Cloud Tasks `prooflab-transcription` -> private `prooflab-transcription-worker` (SA `prooflab-transc-wk`, invoker only `prooflab-tasks-invoker`) -> `prooflab-transcriber` (Whisper) -> DB transcript -> `voice-score` (DeepSeek) -> Build-Log. The transcriber is IN USE (called by the worker).
 - **Recovery:** Cloud Scheduler `prooflab-transcription-reap` (every minute, `x-webhook-secret`, same secret as the other production jobs) -> functions `transcription-reap`. Stale/never-enqueued jobs re-queued (max 8 recoveries), unscored server transcripts scored; failures answer 500 -> "[P1] A scheduled job failed".
-- **Functions:** 40 (`/ready` 40/40), revision 00051-l22 at release. Written tasks: optional `task_rubric_config.scratch_language` (migration 48), set automatically by `lot-writer` for written technical Lots or by admin (Edit Task). `submit-sandbox-task` returns `passed` from `record_task_submission.status`.
-- **Bug finder:** both normal (`0 6,10,14,18,22 * * *`) and deep (`0 4 * * *`, DEEP=1) runs use `vidyuthsetu+smoke01@gmail.com` (secret `prooflab-smoke-student-password`). The t01-t18 / e2e / lessontest test logins were removed on 30 Sep 2026; source-code fallbacks (`bug-finder/run.mjs` t15/t16, `scripts/healthcheck.py` e2e) are stale - pass the env vars / update before using them.
+- **Functions:** 40 (`/ready` 40/40), revision 00052-g84 (1 Oct 2026). Written tasks: optional `task_rubric_config.scratch_language` (migration 48), set automatically by `lot-writer` for written technical Lots or by admin (Edit Task). `submit-sandbox-task` returns `passed` from `record_task_submission.status`.
+- **Bug finder:** both normal (`0 6,10,14,18,22 * * *`) and deep (`0 4 * * *`, DEEP=1) runs use `vidyuthsetu+smoke01@gmail.com` (secret `prooflab-smoke-student-password`). The t01-t18 / e2e / lessontest test logins were removed on 30 Sep 2026; source-code defaults in `bug-finder/run.mjs`, `scripts/healthcheck.py` and `scripts/dev-tools/pl.py` now point at smoke01 (1 Oct 2026).
 - **Dedicated smoke student:** `vidyuthsetu+smoke01@gmail.com`, Demo College, section `TEST-SMOKE` (own section, never squadded with real students).
+
+## Release closure (1 Oct 2026)
+- Current documents: `docs/PRODUCTION-ARCHITECTURE.md`, `docs/AUTHORIZATION-MATRIX.md`, `docs/DISASTER-RECOVERY-RUNBOOK.md`, `docs/FINAL-RELEASE-GAPS.md`, `docs/RELEASE-CERTIFICATE-2026-10-01.md`.
+- Steps only the owner can run (blocked for Claude): `docs/closure/OWNER-COMMANDS.md`.
+- Check scripts: `scripts/dev-tools/attack_surface_check.py` (anonymous, 66 checks), `authz_matrix_check.py` (per role), `staging_load_test.py`, `staging_reaper_fixture.py` (staging only).

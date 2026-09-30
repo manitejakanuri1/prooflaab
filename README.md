@@ -1,7 +1,7 @@
 # ProofLabAI
 
 > Working on a second machine, or with a different account?
-> Read **[START_HERE.md](START_HERE.md)** first — it carries the branch rules,
+> Read **[CLAUDE.md](CLAUDE.md)** and **[docs/PRODUCTION-ARCHITECTURE.md](docs/PRODUCTION-ARCHITECTURE.md)** first (START_HERE.md is historical) — they carry the branch rules,
 > the shared-database rule, and what is and is not built.
 
 
@@ -61,10 +61,14 @@ and `supabase login` if you intend to deploy edge functions from there.
 
 ## Stack
 
+> **Historical.** Supabase and Vercel were retired; everything now runs on Google Cloud.
+> Current picture: [docs/PRODUCTION-ARCHITECTURE.md](docs/PRODUCTION-ARCHITECTURE.md). The lines below and the
+> database/deploy notes that follow describe the old setup.
+
 - React 18 + TypeScript + Vite, Tailwind and shadcn/ui
 - TanStack Query for server state, React Router v6
 - Supabase — Postgres with row-level security, Auth, Storage
-- 36 Deno edge functions in `supabase/functions`, on DeepSeek for anything generative
+- 40 Deno edge functions in `supabase/functions`, on DeepSeek for anything generative
 - Vercel hosting, deployed from `main`
 
 ## Working on the database

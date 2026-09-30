@@ -1,7 +1,11 @@
 # Start here
 
+> **Historical (7 Sep 2026).** Supabase and Vercel described below were retired when the platform
+> moved to Google Cloud. Current documents: `CLAUDE.md`, [docs/PRODUCTION-ARCHITECTURE.md](docs/PRODUCTION-ARCHITECTURE.md),
+> [docs/DISASTER-RECOVERY-RUNBOOK.md](docs/DISASTER-RECOVERY-RUNBOOK.md), [docs/RELEASE-CERTIFICATE-2026-10-01.md](docs/RELEASE-CERTIFICATE-2026-10-01.md).
+
 Read this first — on a new laptop, in a new session, or with a different
-account. It is the only document in this repository that is kept current.
+account.
 
 Last updated: 7 September 2026
 

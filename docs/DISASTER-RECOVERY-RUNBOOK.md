@@ -14,7 +14,7 @@ Project `prooflab-508214`, region `asia-south1`. Run from Git Bash with `gcloud`
 | Voice queue | none (tasks wait while paused) | seconds | yes, on staging |
 | Reaper scheduler | none | seconds | yes, on staging |
 | Private worker | none | seconds | yes, on staging |
-| Database | up to a few minutes (point-in-time recovery, 7 days) or last daily backup | estimated 20-40 min for a clone (small database, 0.3 GB) | **NO — restore drill is owner command 2** |
+| Database | up to a few minutes (point-in-time recovery, 7 days) or last daily backup | **9 min 28 s for a clone (measured 1 Oct)** | **yes — restore drill 1 Oct (G02), clone checked and deleted** |
 
 ## Who does what, in order
 
@@ -89,7 +89,7 @@ gcloud run services update prooflab-transcription-worker --region asia-south1 --
 
 (`all` is still private: only `prooflab-tasks-invoker` may call it.)
 
-## 6. Database restore (NOT yet proven)
+## 6. Database restore (clone proven 1 Oct 2026: 9 min 28 s)
 
 Backups: automated daily (window from 20:00 UTC, 7 kept) plus on-demand backups before each migration;
 point-in-time recovery with 7 days of logs. Deletion protection is on.

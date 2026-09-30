@@ -1,0 +1,87 @@
+S0 | prooflab | prooflab_app | on | PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit
+S0db | cloudsqlsuperuser | 40 MB
+S0conn | 10 | 50 | 1
+S0ext | pg_trgm 1.6, pgcrypto 1.3, plpgsql 1.0
+S0rls | 89 | 1 | 0
+S0norls | skill_aliases
+A1col | text | YES
+A2chk | CHECK (((scratch_language IS NULL) OR (scratch_language = ANY (ARRAY['python'::text, 'javascript'::text, 'java'::text, 'c'::text, 'cpp'::text, 'go'::text, 'ruby'::text, 'php'::text]))))
+A3view | 3d7d233c03865938b6238c7925ed0be9 | t | {prooflab_app=X/prooflab_app,authenticated=X/prooflab_app}
+A4dist | NULL | 34
+A4dist | python | 1
+A5fallback | 374ba74e-d9d9-405f-8aed-74933688533f |  | auto_fallback
+A6python | ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee | python | f | auto
+A7invalid | 0
+A8origin | auto | f | 29
+A8origin | auto_fallback | t | 1
+A8origin | manual | f | 5
+B1sub | failed | t | f | 2
+B1sub | passed | f | t | 5
+B1sub | passed | t | f | 1
+B2smoke | 2d270995-2785-4b5b-b3f2-bcf5fca7c794 | failed | 0 | 0 | t | f | 2026-09-30 15:26:46.077774+00
+B2smoke | b426a25e-1efe-4181-9e56-7621176f910f | passed | 100 | 10 | f | t | 2026-09-30 15:27:40.261364+00
+B2smoke | 88ea68cc-d928-4f5c-aa8d-57806830d9dc | passed | 100 | 10 | f | t | 2026-09-30 17:38:13.05055+00
+B2smoke | 5b870cc9-838c-4441-b8fb-7675a46e2c97 | passed | 100 | 10 | f | t | 2026-09-30 17:57:30.719158+00
+B2smoke | 06c81ce2-eca5-43d8-b94b-4b5caf6bf6a3 | passed | 100 | 10 | f | t | 2026-09-30 19:36:30.776496+00
+B2smoke | 2d270995-2785-4b5b-b3f2-bcf5fca7c794 | failed | 0 | 0 | t | f | 2026-09-30 21:32:03.518536+00
+B2smoke | d2834ee4-3472-4c3c-8b11-13c84e7f023f | passed | 100 | 10 | f | t | 2026-09-30 21:32:18.794937+00
+C1rts | 0147498aa57a8ae0a941aac961d11c29 | t | search_path=public, pg_temp | {prooflab_app=X/prooflab_app,service_role=X/prooflab_app}
+C2rts_returns_passed_key | t | t
+D1 | completed | scored | server | 2
+D3attempts | 0 | 0
+D5score_no_transcript | 0
+D6score_no_prov | 0
+D7dup_claims | 0
+D8smoke | 646235f7-67fa-4109-a156-c2965109241b | completed | scored | server | 70 | 1 | t
+F | check_rate_limit | p_bucket text, p_subject text, p_limit integer, p_window_seconds integer | t | search_path=public, pg_temp | 546f83d81be45032bfdf222042ad9725 | f | f | t
+F | claim_transcription_job | _id uuid, _stale_after_seconds integer | t | search_path=public, pg_temp | fe9a1ffd5a704d30e89710e58e0385d3 | f | f | t
+F | claim_transcription_recovery | _stale_after_seconds integer, _pending_grace_seconds integer, _reap_claim_ttl_seconds integer, _max_reap_attempts integer | t | search_path=public, pg_temp | 6e170865a24122abc052716e83043aba | f | f | t
+F | claim_voice_scoring | _id uuid, _claim_ttl_seconds integer | t | search_path=public, pg_temp | 934a30f132c9ed83471d7a46fbf5403e | f | f | t
+F | complete_transcription_job | _id uuid, _lease_token uuid, _transcript text, _segments jsonb, _word_count integer | t | search_path=public, pg_temp | c59a3a4bb0bbf14d8c71cc3b39163c62 | f | f | t
+F | complete_voice_scoring | _id uuid, _lease_token uuid, _score integer, _notes text | t | search_path=public, pg_temp | a1abecfba3f33e779368c458de817bb8 | f | f | t
+F | fail_transcription_job | _id uuid, _lease_token uuid, _error text, _terminal boolean | t | search_path=public, pg_temp | 617e7bef95da1d358c34061df7c92157 | f | f | t
+F | fail_voice_scoring | _id uuid, _lease_token uuid, _notes text | t | search_path=public, pg_temp | f17ce0e18b794c2cd95ba809c940806d | f | f | t
+F | guard_voice_explanations_insert |  | t | search_path=public, pg_temp | fcb9ed6d5fb799b69d9b940d46a4fdbf | f | f | f
+F | record_task_submission | _student_id uuid, _task_id uuid, _sandbox_config_id uuid, _language text, _code text, _passed_count integer, _total_count integer, _score integer, _details jsonb, _runner text, _duration_ms integer, _rubric_config_id uuid, _rubric_scores jsonb, _flags text[] | t | search_path=public, pg_temp | 0147498aa57a8ae0a941aac961d11c29 | f | f | t
+F | recruiter_proof_profile | _student_id uuid | t | search_path=public, pg_temp | 16791de6515bc91600284dfced235caf | f | t | f
+F | recruiter_talent | _role text, _skills text[], _branch text, _min_skill integer, _min_comms integer, _active_within integer, _limit integer, _offset integer | t | search_path=public, pg_temp | 0c2f14c2d8747b8534706e8d528da9e5 | f | t | f
+F | rubric_task_view | _task_id uuid | t | search_path=public, pg_temp | 3d7d233c03865938b6238c7925ed0be9 | f | t | f
+F | similar_written_submission | _rubric_config_id uuid, _student_id uuid, _answer text, _threshold real | t | search_path=public, pg_temp | ef010de275b72347952ee526e3b18ba0 | f | f | t
+F2secdef_no_path | 0 | 
+F3voice_priv | anon | t | t | f | t
+F3voice_priv | authenticated | t | t | f | t
+F3voice_priv | service_role | t | t | t | t
+F4rubric_priv | anon | t | t
+F4rubric_priv | authenticated | t | t
+F5rls | user_roles | t | f
+F5rls | student_profiles | t | f
+F5rls | task_rubric_config | t | f
+F5rls | task_submissions | t | f
+F5rls | tasks | t | f
+F5rls | voice_explanations | t | f
+F6trg | guard_voice_explanations_insert | O
+F6trg | protect_voice_explanations | O
+F6trg | voice_explanations_activity | O
+F6trg | voice_explanations_record_activity | O
+F7submissions_client_write | anon | t | t
+F7submissions_client_write | authenticated | t | t
+F8submission_policies | task_submissions_read | SELECT | {authenticated}
+O1 | tasks->rubric missing | 0
+O1 | tasks->sandbox missing | 0
+O1 | tasks->student missing | 0
+O1 | lot_templates->rubric missing | 0
+O1 | submissions->task missing | 0
+O1 | submissions->student missing | 0
+O1 | voice->student missing | 0
+O1 | voice->task missing | 0
+O1 | student_profiles->user_roles missing | 0
+O2 | rubric configs used by nothing | 13
+O3 | fk constraints not validated | 0
+O4 | cohorts | CSE-A | 1
+O4 | cohorts | CSE-B | 1
+O4 | cohorts | CSE-C | 1
+O4 | cohorts | TEST-SMOKE | 1
+END
+__EXIT=0
+Container called exit(0).
+

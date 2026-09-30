@@ -16,9 +16,10 @@ import {
 } from "@/lib/voiceLifecycle";
 import {
   asideStatus, classifyLegacy, enqueueBody, jobMatchesContext, legacySlotKey, MARKER_PREFIX, markerKey, mayForgetRecord,
-  nextFailures, parseStoredJob,
+  nextFailures, parseStoredJob, pickUnique,
   pickResumable, recordingContext, rowMatchesMarker, SavedNotifier, slotKey, viewOf,
-  type JobRow, type JobStatus, type LegacyVerdict, type OwnerRow, type PollTick, type RecordingContext, type StoredJob,
+  type JobRow, type JobStatus, type LegacyVerdict, type OwnerRow, type PollTick, type RecordingContext, type RowLookup,
+  type StoredJob,
 } from "@/lib/voiceJob";
 
 const MAX_SECONDS = 60;
@@ -184,7 +185,7 @@ type FileResult = { data: unknown; error: { message: string; statusCode?: string
 /** "saved" = a server job for THIS recording and THIS record's own work (full row match);
  * "saved-elsewhere" = a job for this recording under other (or unrecorded) work;
  * "conflict" = a row was found but it is not this recording (audit N2). */
-type AsideCheck = "checking" | "saved" | "saved-elsewhere" | "conflict" | "can-save" | "absent" | "unknown";
+type AsideCheck = "checking" | "saved" | "saved-elsewhere" | "conflict" | "ambiguous" | "can-save" | "absent" | "unknown";
 interface AsideEntry { key: string; job: StoredJob }
 
 /** Real decoded length of a recording, or null when this browser cannot tell. */
@@ -268,6 +269,11 @@ const VoiceExplainModal = ({
   const [legacyCanAttach, setLegacyCanAttach] = useState(false);
   const elsewhereRef = useRef(new Set<string>());        // older markers proven to belong to other work
   const [asideList, setAsideList] = useState<AsideEntry[]>([]);
+  // Entries the student hid with "Remove" before the server confirmed them (round-6 audit):
+  // never unreachable - listed under "Hidden recordings", where they can be checked,
+  // saved, shown again or (once confirmed) deleted.
+  const [hiddenList, setHiddenList] = useState<AsideEntry[]>([]);
+  const [showHidden, setShowHidden] = useState(false);
   const [asideChecks, setAsideChecks] = useState<Record<string, AsideCheck>>({});
   const asideChecksRef = useRef(asideChecks);
   asideChecksRef.current = asideChecks;
@@ -348,7 +354,9 @@ const VoiceExplainModal = ({
   ), [readJob]);
 
   const refreshAside = useCallback(() => {
-    setAsideList(listMarkers().filter((e) => e.job.aside && !e.job.dismissed && e.job.studentId === studentId));
+    const mine = listMarkers().filter((e) => e.job.aside && e.job.studentId === studentId);
+    setAsideList(mine.filter((e) => !e.job.dismissed));
+    setHiddenList(mine.filter((e) => e.job.dismissed));
   }, [listMarkers, studentId]);
 
   /**
@@ -475,7 +483,7 @@ const VoiceExplainModal = ({
    * genuinely not there. */
   const findOwnRow = useCallback(async (
     owner: string | null | undefined,
-    column: "id" | "transcription_idempotency_key" | "storage_path", value: string,
+    column: "id" | "transcription_idempotency_key", value: string,   // by path: findRowsByPath (ambiguity-aware)
   ): Promise<OwnerRow | null | undefined> => {
     if (!owner || (await signedInAs()) !== owner) return undefined;
     const res = await settleWithin(
@@ -489,6 +497,22 @@ const VoiceExplainModal = ({
     );
     if (res.error) return undefined;
     return res.data?.[0] ?? null;
+  }, []);
+
+  /** The student's rows that use this storage path (round-6 audit): exactly one identifies a
+   * recording; two or more are "ambiguous" (a reused path), never a match. */
+  const findRowsByPath = useCallback(async (owner: string | null | undefined, path: string): Promise<RowLookup> => {
+    if (!owner || (await signedInAs()) !== owner) return undefined;
+    const res = await settleWithin(
+      supabase
+        .from("voice_explanations")
+        .select("id, student_id, task_id, proof_id, storage_path, transcription_idempotency_key")
+        .eq("storage_path" as "id", path)
+        .limit(2)
+        .then((r) => r as unknown as { data: OwnerRow[] | null; error: unknown }, (e) => ({ data: null, error: e })),
+      CHECK_TIMEOUT_MS, { data: null, error: "timeout" },
+    );
+    return res.error ? undefined : pickUnique(res.data ?? []);
   }, []);
 
   /** Is the recording's file on the server? true / false / undefined (could not tell). */
@@ -671,10 +695,10 @@ const VoiceExplainModal = ({
       verdict = { kind: "ours", job: { ...legacy, ...here } };
     } else {
       setPhase("checking");
-      let row = legacy.voiceId
+      let row: RowLookup = legacy.voiceId
         ? await findOwnRow(here.studentId, "id", legacy.voiceId)
         : await findOwnRow(here.studentId, "transcription_idempotency_key", legacy.idempotencyKey);
-      if (row === null && !legacy.voiceId) row = await findOwnRow(here.studentId, "storage_path", legacy.storagePath);
+      if (row === null && !legacy.voiceId) row = await findRowsByPath(here.studentId, legacy.storagePath);
       verdict = classifyLegacy(legacy, here, row);
     }
     if (!epochRef.current!.isCurrent(epoch) || !mountedRef.current) return;   // stale: marker untouched
@@ -688,7 +712,7 @@ const VoiceExplainModal = ({
       return;
     }
     moveRecord(lkey, verdict.job);
-  }, [findOwnRow, moveRecord, readJob, showUnresolved]);
+  }, [findOwnRow, findRowsByPath, moveRecord, readJob, showUnresolved]);
 
   /** Is there a recording for exactly this context that this page should pick up? */
   const hasPendingRecovery = useCallback((): boolean => {
@@ -1112,13 +1136,13 @@ const VoiceExplainModal = ({
 
   /** The server's row for a kept-aside recording: by its job id, else its key, else its path.
    * undefined = the check failed or was inconclusive; null = genuinely no row. */
-  const findAsideRow = useCallback(async (j: StoredJob): Promise<OwnerRow | null | undefined> => {
-    let row = j.voiceId
+  const findAsideRow = useCallback(async (j: StoredJob): Promise<RowLookup> => {
+    let row: RowLookup = j.voiceId
       ? await findOwnRow(j.studentId, "id", j.voiceId)
       : await findOwnRow(j.studentId, "transcription_idempotency_key", j.idempotencyKey);
-    if (row === null) row = await findOwnRow(j.studentId, "storage_path", j.storagePath);
+    if (row === null) row = await findRowsByPath(j.studentId, j.storagePath);
     return row;
-  }, [findOwnRow]);
+  }, [findOwnRow, findRowsByPath]);
 
   /** "Check" on a kept-aside recording (audit N2): "saved" only when the server's row is this
    * recording for this record's own student, task and proof - never from path or key alone. */
@@ -1158,13 +1182,25 @@ const VoiceExplainModal = ({
    * suspended mid-upload, and its own progress brings the entry back. */
   const removeAside = useCallback((e: AsideEntry) => {
     const recId = e.job.recordingId ?? "";
-    pendingAudio.delete(recId);                                      // this page's copy, if any, is let go
-    unsentRecordings.delete(recId);
-    releaseMarker(e.key);
-    if (mayForgetRecord(asideChecksRef.current[e.key] as ReturnType<typeof asideStatus> | undefined)) writeJob(e.key, null);
-    else touchMarker(e.key, { dismissed: true });
+    if (mayForgetRecord(asideChecksRef.current[e.key] as ReturnType<typeof asideStatus> | undefined)) {
+      // The server holds this recording's job: the local record and any local audio can go.
+      pendingAudio.delete(recId);
+      unsentRecordings.delete(recId);
+      releaseMarker(e.key);
+      writeJob(e.key, null);
+    } else {
+      // Not confirmed: only hide it. Unsent audio on this page is KEPT (round-6 audit) - it may
+      // be the only copy - so "Hidden recordings" can still check and save it.
+      touchMarker(e.key, { dismissed: true });
+    }
     refreshAside();
   }, [refreshAside, writeJob]);
+
+  /** Put a hidden entry back in the kept-aside list. */
+  const unhideAside = useCallback((e: AsideEntry) => {
+    touchMarker(e.key, { dismissed: false });
+    refreshAside();
+  }, [refreshAside]);
 
   // The clock stops the recording rather than the student. Sixty seconds is the
   // whole point — a longer answer is a written answer read aloud. It is measured
@@ -1296,6 +1332,67 @@ const VoiceExplainModal = ({
 
   const unresolved = unresolvedRef.current;
 
+  /** One kept-aside (or hidden) entry with its Check result and actions. */
+  const renderAsideItem = (e: AsideEntry, hidden: boolean) => {
+    const state = asideChecks[e.key];
+    const confirmed = mayForgetRecord(state as ReturnType<typeof asideStatus> | undefined);
+    return (
+      <div key={e.key} className="space-y-1 border-t pt-2" data-testid={hidden ? "voice-hidden-item" : "voice-aside-item"}>
+        <p className="text-xs">
+          Recorded {e.job.createdAt ? new Date(e.job.createdAt).toLocaleString() : "earlier"}
+          {e.job.durationSeconds ? ` · ${e.job.durationSeconds}s` : ""}
+        </p>
+        {state === "saved" && <p className="text-xs text-green-700">It is saved on the server for this work — you'll find it in your build-log.</p>}
+        {state === "saved-elsewhere" && (
+          <p className="text-xs">
+            It is saved on the server for a different piece of work (the one it was recorded for), not
+            this one. You'll find it there in your build-log.
+          </p>
+        )}
+        {state === "conflict" && (
+          <p className="text-xs">A server record was found, but it doesn't match this recording. It was not treated as saved.</p>
+        )}
+        {state === "ambiguous" && (
+          <p className="text-xs">
+            More than one server record uses this recording's file, so we can't tell which one is this recording.
+            It was not treated as saved.
+          </p>
+        )}
+        {state === "can-save" && <p className="text-xs">It was never processed. You can save it to this work.</p>}
+        {state === "absent" && (
+          <p className="text-xs">
+            It isn't on the server. If another tab or window is still sending it, keep that open;
+            otherwise it can't be recovered.
+          </p>
+        )}
+        {state === "unknown" && <p className="text-xs">We couldn't check right now. Try again later.</p>}
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" disabled={state === "checking"} onClick={() => void checkAside(e)}>
+            {state === "checking" ? "Checking…" : "Check"}
+          </Button>
+          {state === "can-save" && (
+            <Button size="sm" variant="outline" onClick={() => void saveAsideHere(e)}>Save it to this work</Button>
+          )}
+          {hidden ? (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => unhideAside(e)}>Show in the list again</Button>
+              {confirmed && (
+                <Button size="sm" variant="ghost" onClick={() => removeAside(e)}>Delete from this device</Button>
+              )}
+            </>
+          ) : (
+            <Button
+              size="sm" variant="ghost" onClick={() => removeAside(e)}
+              disabled={ownerOf(e.job, TAB_ID, Date.now()) === "other-page"}
+            >
+              Remove from this list
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="sm:max-w-lg">
@@ -1367,49 +1464,25 @@ const VoiceExplainModal = ({
                 <p className="text-xs text-muted-foreground">
                   These are remembered in this browser only. Check each one: it may already be saved.
                 </p>
-                {asideList.map((e) => {
-                  const state = asideChecks[e.key];
-                  return (
-                    <div key={e.key} className="space-y-1 border-t pt-2" data-testid="voice-aside-item">
-                      <p className="text-xs">
-                        Recorded {e.job.createdAt ? new Date(e.job.createdAt).toLocaleString() : "earlier"}
-                        {e.job.durationSeconds ? ` · ${e.job.durationSeconds}s` : ""}
-                      </p>
-                      {state === "saved" && <p className="text-xs text-green-700">It is saved on the server for this work — you'll find it in your build-log.</p>}
-                      {state === "saved-elsewhere" && (
-                        <p className="text-xs">
-                          It is saved on the server for a different piece of work (the one it was recorded for), not
-                          this one. You'll find it there in your build-log.
-                        </p>
-                      )}
-                      {state === "conflict" && (
-                        <p className="text-xs">A server record was found, but it doesn't match this recording. It was not treated as saved.</p>
-                      )}
-                      {state === "can-save" && <p className="text-xs">It was never processed. You can save it to this work.</p>}
-                      {state === "absent" && (
-                        <p className="text-xs">
-                          It isn't on the server. If another tab or window is still sending it, keep that open;
-                          otherwise it can't be recovered.
-                        </p>
-                      )}
-                      {state === "unknown" && <p className="text-xs">We couldn't check right now. Try again later.</p>}
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" disabled={state === "checking"} onClick={() => void checkAside(e)}>
-                          {state === "checking" ? "Checking…" : "Check"}
-                        </Button>
-                        {state === "can-save" && (
-                          <Button size="sm" variant="outline" onClick={() => void saveAsideHere(e)}>Save it to this work</Button>
-                        )}
-                        <Button
-                          size="sm" variant="ghost" onClick={() => removeAside(e)}
-                          disabled={ownerOf(e.job, TAB_ID, Date.now()) === "other-page"}
-                        >
-                          Remove from this list
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+                {asideList.map((e) => renderAsideItem(e, false))}
+              </div>
+            )}
+            {hiddenList.length > 0 && (
+              <div className="rounded-lg border border-dashed p-3 space-y-2" data-testid="voice-hidden-list">
+                <button
+                  type="button" className="text-xs underline text-muted-foreground" data-testid="voice-hidden-toggle"
+                  onClick={() => setShowHidden((v) => !v)}
+                >
+                  {showHidden ? "Hide" : "Show"} hidden recordings ({hiddenList.length})
+                </button>
+                {showHidden && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      You removed these from the list before the server confirmed them, so their details are kept.
+                    </p>
+                    {hiddenList.map((e) => renderAsideItem(e, true))}
+                  </>
+                )}
               </div>
             )}
           </div>

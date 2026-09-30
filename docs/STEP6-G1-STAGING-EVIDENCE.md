@@ -757,3 +757,28 @@ Count: 2 code-level accepted, 9 partial, 6 unverified. The same counts as the ro
   1. First full queued runs, 97/98 twice: F6d. That test still expected an unchecked "Remove" to delete the record, which is exactly what N1 forbids. Its expectation was updated: the entry is hidden and its record kept.
   2. A later queued run, 97/98: F3c, intermittent (1 in 8 when repeated). Diagnosis: the harness's two quick prop changes (unmount, then mount) were sometimes merged by React, so no unmount happened. A test-only fix waits until the dialog has really gone; every close-then-reopen now uses it. F3c then passed 15 of 15.
   Neither failure was a product-code defect.
+
+## Lifecycle round 7 (round-6 review items; read-only system audit)
+
+**The Round 6 audit file was not available on this machine.** This round implements the four items
+exactly as listed in the task. The read-only system audit, the diagnostic map, the confirmed mismatches
+and the real staging test plan are in `docs/STEP6-ROUND7-SYSTEM-AUDIT.md`.
+
+| Item | Change |
+|---|---|
+| R6-1 hidden records unreachable after the owning tab fails or closes | Entries hidden with "Remove" (no confirmed server job) are listed under "Show hidden recordings (N)". Each can be checked, saved to this work, shown in the list again, or deleted once "Check" confirms a server job. No record is left without a screen. |
+| R6-2 same-tab unsent audio lost on Remove | "Remove" without a confirmed job only hides the entry and **keeps** this page's unsent audio (and the leave-page warning), so it can still be checked and saved from "Hidden". Only a confirmed job lets the local record and audio go. |
+| R6-3 NULL key / path rules; ambiguous reused paths | Path lookups ask for up to 2 rows (`findRowsByPath` + `pickUnique`): 0 means none, 1 means that row, 2 or more means **"ambiguous"**. An ambiguous path never identifies a recording (never "saved", no "save here", older records unresolved). The rules are written in `asideStatus`: a key that is set must equal the record's key; a path that is set must equal it; a NULL row key can be matched only by a path that exactly one row uses. |
+| Proposal path-validation error | `docs/STEP6-BACKEND-PROPOSALS.md`: the round-6 pattern accepted `<id>/..`, `.`, `.hidden` and `a..b.webm`. It is corrected and checked against 16 cases, and the required tests are extended. Still not applied. |
+
+### Before and after (same new tests)
+- On the unfixed code (25a26e5): browser **3/8**. R6-1, R6-2a, R6-2b, R6-3a and R6-3b failed; the three N1 keep-working checks passed.
+- After the fix: **8/8**. New unit file `voiceRound7.test.ts`: 6/6.
+
+### Round 7 test results (actually executed, final code)
+- Unit, 8 files: **85/85**, 0 skipped.
+- `tsc` clean. ESLint on the changed files: 0 problems (full repo 286 / 16, unchanged).
+- Build OK. The hook is INERT in a production build and ACTIVE on the dev server (control).
+- Queued harness: **103/103** twice. Non-queued: **8/8** twice. Task page: **13/13** twice.
+- Staging counts identical before and after (the one inspection run was read-only).
+- No failures or skipped tests in the final runs.

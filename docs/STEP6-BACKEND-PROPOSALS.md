@@ -29,14 +29,16 @@ In `guard_voice_explanations_insert()`, after the `service_role` early return an
 
 ```sql
   -- The file must be inside the student's own folder: "<student_id>/<one file name>".
+  -- The name starts with a letter or digit; dots only separate extensions.
   if new.storage_path is null
-     or new.storage_path !~ ('^' || new.student_id::text || '/[A-Za-z0-9._-]+$')
+     or new.storage_path !~ ('^' || new.student_id::text || '/[A-Za-z0-9][A-Za-z0-9_-]*(\.[A-Za-z0-9]+)*$')
   then
     raise exception 'storage_path must be inside your own folder';
   end if;
 ```
 
-- **Strict shape:** exactly one folder level. The file name may contain only `A-Z a-z 0-9 . _ -`, so `..`, `//`, `/` inside the name, spaces, percent-encoding and anything else are refused.
+- **Correction (round 7):** the round-6 version used `'/[A-Za-z0-9._-]+$'`. That pattern **accepted** `<id>/..`, `<id>/.`, `<id>/.hidden` and `<id>/a..b.webm`, so the earlier claim that it refused `..` was wrong. The corrected pattern above was checked against 16 cases (Python's regex engine, which behaves the same way for this pattern). It accepts the three real path shapes: `<uuid>-explain.webm`, `<ms>-explain.webm` and `.m4a`. It refuses `..`, `.`, `.hidden`, `a..b.webm`, `../x.webm`, `//x.webm`, `sub/x.webm`, `<id>`, `<id>/`, another student's folder, a trailing `/`, a space, and `%2e`. The Postgres self-check below is what proves it inside the database.
+- **Strict shape:** exactly one folder level. The file name is one or more `A-Z a-z 0-9 _ -` characters starting with a letter or digit, optionally followed by `.ext` parts.
 - **Compatibility:** every current browser path is `<student>/<uuid>-explain.webm|m4a` (round 4+) or `<student>/<ms>-explain.<ext>` (older), and both match. The service role is unchanged, so the worker, transcription-enqueue and the test fixtures keep working.
 - Apply the same rule to UPDATE if an UPDATE policy is ever added. Today none exists (`migration/47-...-update-revoke.sql`).
 - Existing rows are not changed.
@@ -46,7 +48,7 @@ In `guard_voice_explanations_insert()`, after the `service_role` early return an
 Each case is a separate attempt; nothing is committed on refusal.
 1. Student A inserts with `storage_path = '<A>/<uuid>-explain.webm'`: accepted (the current app keeps working).
 2. Student A inserts with `storage_path = '<B>/<uuid>-explain.webm'`: refused with "storage_path must be inside your own folder".
-3. Student A inserts with `'<A>/../<B>/x.webm'`, `'<A>//x.webm'`, `'<A>/sub/x.webm'`, `'<A>'`, an empty string or NULL: each refused.
+3. Student A inserts with `'<A>/..'`, `'<A>/.'`, `'<A>/.hidden'`, `'<A>/a..b.webm'`, `'<A>/../<B>/x.webm'`, `'<A>//x.webm'`, `'<A>/sub/x.webm'`, `'<A>'`, `'<A>/'`, an empty string or NULL: each refused.
 4. The service role inserts a row for A with any path: accepted (the worker and fixtures are unaffected).
 5. The browser synchronous save (real signed-in session, `VITE_ASYNC_TRANSCRIPTION` unset) still saves end to end.
 6. The self-check block proves cases 2 and 3 raise, inside a savepoint that is rolled back.

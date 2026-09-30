@@ -194,6 +194,22 @@ export interface OwnerRow {
 }
 
 /**
+ * A lookup's answer (round-6 audit): a row, genuinely no row (null), the lookup
+ * failed (undefined), or "ambiguous" - more than one of the student's rows
+ * matched (a file path can be reused by several rows, e.g. a re-used test file
+ * or older rows whose idempotency key is null). An ambiguous answer never
+ * identifies a recording.
+ */
+export type RowLookup = OwnerRow | null | undefined | "ambiguous";
+
+/** 0 rows -> null, exactly 1 -> that row, 2+ -> "ambiguous", failed lookup -> undefined. */
+export function pickUnique(rows: OwnerRow[] | null | undefined): RowLookup {
+  if (rows === undefined || rows === null) return undefined;
+  if (rows.length === 0) return null;
+  return rows.length === 1 ? rows[0] : "ambiguous";
+}
+
+/**
  * Is this server row really this recording, for this work (audit F8)? The
  * row's own student/task/proof must equal the context, and its storage path
  * (and idempotency key, when the row still has one) must equal the marker's.
@@ -223,9 +239,9 @@ export type LegacyVerdict =
   | { kind: "unresolved"; canAttach: boolean };
 
 export function classifyLegacy(
-  legacy: StoredJob, ctx: RecordingContext, row: OwnerRow | null | undefined,
+  legacy: StoredJob, ctx: RecordingContext, row: RowLookup,
 ): LegacyVerdict {
-  if (row === undefined) return { kind: "unresolved", canAttach: false };
+  if (row === undefined || row === "ambiguous") return { kind: "unresolved", canAttach: false };
   if (row === null) return { kind: "unresolved", canAttach: legacy.voiceId === null };
   // The row must really be this marker's recording (same path or key) - a row
   // found by a stale voiceId that points at some other recording decides nothing.
@@ -271,13 +287,22 @@ export function pickResumable<T extends { job: StoredJob }>(
  *                       saved for the work it was recorded for, not confirmed as this one
  *  - "conflict":        a row was found but is not this recording (another student, or a
  *                       different key for the same path, or neither path nor key match)
+ *  - "ambiguous":       several of the student's rows share this file path, so none of them
+ *                       identifies it (never "saved", never attached)
+ *
+ * Null key / null path rules (round-6 audit, "legacy matching"):
+ *  - a row key that is set must equal the record's key; a row path that is set must equal it
+ *  - a NULL key on the row (rows written by the synchronous browser path) can only be matched
+ *    by the path, and a path lookup only counts when exactly ONE row uses that path
+ *  - a row with neither a matching key nor a matching path never identifies the recording
  * Never "saved" from path or key alone: that could credit another proof's job.
  */
 export function asideStatus(
-  row: OwnerRow | null | undefined, job: StoredJob,
-): "unknown" | "none" | "saved" | "saved-elsewhere" | "conflict" {
+  row: RowLookup, job: StoredJob,
+): "unknown" | "none" | "ambiguous" | "saved" | "saved-elsewhere" | "conflict" {
   if (row === undefined) return "unknown";
   if (row === null) return "none";
+  if (row === "ambiguous") return "ambiguous";
   if (!job.studentId || row.student_id !== job.studentId) return "conflict";
   const pathOk = row.storage_path == null || row.storage_path === job.storagePath;
   const keyOk = row.transcription_idempotency_key == null || row.transcription_idempotency_key === job.idempotencyKey;

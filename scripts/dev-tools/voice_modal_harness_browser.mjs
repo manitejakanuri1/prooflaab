@@ -255,9 +255,10 @@ async function addPage(ctx, state, opts = {}) {
         state.lookups.push(byKey ? `key:${byKey}` : `path:${byPath}`);
         if (state.lookup === 'hang') return;                   // never answers (route left pending)
         if (state.lookup === 'error') return json(route, 503, { message: 'test outage' });
-        const hit = [...state.rows.keys()].map((id) => rowOf(state, id))
-          .find((r) => r.student_id === sub && (byKey ? r.transcription_idempotency_key === byKey : r.storage_path === byPath));
-        return json(route, 200, hit ? [hit] : []);
+        const hits = [...state.rows.keys()].map((id) => rowOf(state, id))
+          .filter((r) => r.student_id === sub && (byKey ? r.transcription_idempotency_key === byKey : r.storage_path === byPath));
+        const limit = Number(url.searchParams.get('limit') ?? '1000');
+        return json(route, 200, hits.slice(0, limit));
       }
       const id = url.searchParams.get('id')?.replace('eq.', '');
       if (id && state.hangOnce.has(id)) { state.hangOnce.delete(id); state.hung++; return; }   // this one request never answers
@@ -1158,6 +1159,17 @@ async function round6Tests(browser) {
         const left = await v3Records(tab2);
         check('N1c (fails) the late answer is a failure and the tab is closed: the recovery record is still there (nothing removed prematurely), nothing enqueued',
           left.length === 1 && state.enqueue.length === 0, `records=${left.length}`);
+        // Round 7 (R6-1): that kept record must not be unreachable - it is listed under "Hidden"
+        const toggle = await tab2.getByTestId('voice-hidden-toggle').waitFor({ timeout: 8000 }).then(() => true, () => false);
+        let reachable = false;
+        if (toggle) {
+          await tab2.getByTestId('voice-hidden-toggle').click();
+          await tab2.getByTestId('voice-hidden-item').waitFor({ timeout: 8000 });
+          await tab2.getByTestId('voice-hidden-item').getByRole('button', { name: /^Check$/ }).click();
+          reachable = await tab2.getByText(/isn't on the server/).waitFor({ timeout: 15000 }).then(() => true, () => false);
+        }
+        check('R6-1 (fails) the hidden record stays REACHABLE after the owning tab failed and closed: listed under "Hidden recordings", and Check works',
+          toggle && reachable, `toggle=${toggle} checked=${reachable}`);
       }
       await ctx.close();
     });
@@ -1174,6 +1186,78 @@ async function round6Tests(browser) {
     await page.getByRole('button', { name: /Remove from this list/ }).click();
     await page.waitForTimeout(500);
     check('N1d once the server confirms it is saved (full match), Remove really deletes the local record', (await v3Records(page)).length === 0);
+    await ctx.close();
+  });
+
+  // R6-2: this page still holds the unsent audio - Remove (not confirmed saved) must not throw it away.
+  await group('R6-2 same-tab unsent audio survives Remove', async () => {
+    const { page, state, ctx } = await setup(browser);
+    state.putMode = 'abort';                                          // no answer: the audio stays on this page
+    await recordAndStop(page, 1500);
+    await page.getByTestId('voice-uncertain').waitFor({ timeout: 20000 });
+    await page.getByRole('button', { name: /Keep it aside/ }).click();
+    await page.getByRole('button', { name: /Remove from this list/ }).click();
+    await page.waitForTimeout(400);
+    // behavioural evidence the page still holds unsent audio: leaving still asks first
+    state.dialogs = [];
+    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+    const warned = (state.dialogs ?? []).includes('beforeunload');
+    check('R6-2a Remove on an unconfirmed same-tab recording keeps its unsent audio: the page still warns before leaving',
+      warned, `dialogs=${JSON.stringify(state.dialogs)}`);
+    await ctx.close();
+  });
+  await group('R6-2 same-tab audio recoverable after Remove', async () => {
+    const { page, state, ctx } = await setup(browser);
+    state.putMode = 'abort';
+    await recordAndStop(page, 1500);
+    await page.getByTestId('voice-uncertain').waitFor({ timeout: 20000 });
+    await page.getByRole('button', { name: /Keep it aside/ }).click();
+    await page.getByRole('button', { name: /Remove from this list/ }).click();
+    const toggle = await page.getByTestId('voice-hidden-toggle').waitFor({ timeout: 8000 }).then(() => true, () => false);
+    let ok = false;
+    if (toggle) {
+      await page.getByTestId('voice-hidden-toggle').click();
+      await page.getByTestId('voice-hidden-item').getByRole('button', { name: /^Check$/ }).click();
+      await page.getByRole('button', { name: /Save it to this work/ }).waitFor({ timeout: 15000 });
+      await page.getByRole('button', { name: /Save it to this work/ }).click();
+      ok = await score77(page, 25000);
+    }
+    check('R6-2b the removed-but-unconfirmed recording is still recoverable from this page: Hidden -> Check -> "Save it to this work" re-sends the SAME audio and completes once',
+      toggle && ok && state.puts.length === 2 && state.puts[0].path === state.puts[1].path && state.enqueue.filter((e) => e.id).length === 1,
+      `toggle=${toggle} puts=${state.puts.length} enqueues=${state.enqueue.length}`);
+    await ctx.close();
+  });
+
+  // R6-3: a file path used by more than one server row (reused test file / old rows without a key)
+  // never identifies a recording - it is "ambiguous", never "saved", never attached.
+  const kA = crypto.randomUUID(), pathA = `${A}/shared-explain.webm`;
+  const ambiguousRows = [
+    row('row-shared-1', { transcription_idempotency_key: null, storage_path: pathA, proof_id: P2 }),   // looks like a full match
+    row('row-shared-2', { transcription_idempotency_key: null, storage_path: pathA, proof_id: P1 }),
+  ];
+  await group('R6-3 kept-aside check on an ambiguous reused path', async () => {
+    const seed = { [v3Key('amb')]: { voiceId: null, idempotencyKey: kA, storagePath: pathA, durationSeconds: 11,
+      studentId: A, taskId: TASK, proofId: P2, recordingId: 'amb', stage: 'uploaded', aside: true, heartbeatAt: 0, createdAt: 1 } };
+    const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P2}`, seed, rows: ambiguousRows });
+    await page.getByTestId('voice-aside-item').waitFor({ timeout: 20000 });
+    await page.getByRole('button', { name: /^Check$/ }).click();
+    await page.getByTestId('voice-aside-item').locator('p').nth(1).waitFor({ timeout: 15000 });
+    const text = await page.getByTestId('voice-aside-item').innerText();
+    check('R6-3a two server rows share this file path (no key): not "saved", not "different work", no "save here" - reported as ambiguous',
+      /more than one server record/i.test(text) && !/you'll find it/.test(text) && (await page.getByRole('button', { name: /Save it to this work/ }).count()) === 0 && state.enqueue.length === 0,
+      text.replace(/\s+/g, ' ').slice(0, 160));
+    await ctx.close();
+  });
+  await group('R6-3 older record on an ambiguous reused path', async () => {
+    const seed = { [legacyKey(A, TASK, P2)]: { voiceId: null, idempotencyKey: kA, storagePath: pathA, durationSeconds: 11 } };
+    const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P2}`, seed, rows: ambiguousRows });
+    await page.getByTestId('voice-legacy').waitFor({ timeout: 20000 }).catch(() => {});
+    const legacyShown = await page.getByTestId('voice-legacy').count();
+    const attach = await page.getByRole('button', { name: /save it here/ }).count();
+    const scored = await page.getByText(/Communication score/).count();
+    check('R6-3b an older record whose path is shared by two rows: unresolved (student asked), no "save it here", nothing shown as its result, record untouched',
+      legacyShown === 1 && attach === 0 && scored === 0 && state.enqueue.length === 0 && !!(await readKey(page, legacyKey(A, TASK, P2))),
+      `legacy=${legacyShown} attach=${attach} scored=${scored}`);
     await ctx.close();
   });
 

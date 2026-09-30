@@ -49,10 +49,10 @@ try {
   if (STAGING) {
     await ctx.addInitScript((s) => { if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(s)); }, stagingSession());
   } else {
-    await page.goto(`${APP}/auth`, { waitUntil: 'domcontentloaded' });
-    await page.getByLabel(/email/i).first().fill(process.env.STUDENT_EMAIL);
-    await page.getByLabel(/password/i).first().fill(process.env.STUDENT_PASSWORD);
-    await page.getByRole('button', { name: /^sign in$|^log in$/i }).first().click();
+    await page.goto(`${APP}/auth`, { waitUntil: 'networkidle' });
+    await page.fill('input[type="email"]', process.env.STUDENT_EMAIL);
+    await page.fill('input[type="password"]', process.env.STUDENT_PASSWORD);
+    await page.click('button[type="submit"]');
     await page.waitForURL(/\/student\//, { timeout: 60000 });
   }
 

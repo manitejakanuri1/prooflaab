@@ -1,6 +1,6 @@
 """ProofLab quick health check - run after every deploy:  python scripts/healthcheck.py
 
-Signs in as the test student (vidyuthsetu+e2e), the college and the admin, calls
+Signs in as the test student (vidyuthsetu+smoke01), the college and the admin, calls
 the same server actions the screens call, and proves the important ones with a
 database row. Skips the expensive AI steps (resume test, Auto-fix). Needs gcloud
 logged in to prooflab-508214 (passwords come from Secret Manager).
@@ -17,7 +17,8 @@ SERVICES = {
     "accounts": "https://prooflab-accounts-135298577404.asia-south1.run.app",
 }
 LOGINS = {  # who -> (email, secret holding the password)
-    "student": ("vidyuthsetu+e2e@gmail.com", "prooflab-e2e-password"),
+    # the dedicated test student (the old e2e/t01-t18 logins were removed on 30 Sep 2026)
+    "student": ("vidyuthsetu+smoke01@gmail.com", "prooflab-smoke-student-password"),
     "college": ("vidyuthsetu+college@gmail.com", "prooflab-college-password"),
     "admin": ("vidyuthsetu@gmail.com", "prooflab-admin-password"),
 }

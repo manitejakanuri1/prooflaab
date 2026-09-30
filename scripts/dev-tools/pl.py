@@ -9,7 +9,8 @@ BRIDGE = "https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-api-ysn2mpe6sa-el.a.run.app"
 EMAIL = {"admin": "vidyuthsetu@gmail.com", "college": "vidyuthsetu+college@gmail.com",
          "recruiter": "vidyuthsetu+recruiter@gmail.com", "startup": "vidyuthsetu+startup@gmail.com",
-         "student": "vidyuthsetu+lessontest@gmail.com"}
+         "student": "vidyuthsetu+smoke01@gmail.com"}  # dedicated test student (older test logins removed 30 Sep 2026)
+SECRET = {"student": "prooflab-smoke-student-password"}
 
 def secret(name):
     return subprocess.run(f"gcloud secrets versions access latest --secret={name}", shell=True,
@@ -34,7 +35,7 @@ def token(who):
         h = b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
         p = b64(json.dumps({"role": "service_role", "exp": int(time.time()) + 600}).encode())
         return f"{h}.{p}." + b64(hmac.new(k, f"{h}.{p}".encode(), hashlib.sha256).digest())
-    pw = secret(f"prooflab-{who}-password")
+    pw = secret(SECRET.get(who, f"prooflab-{who}-password"))
     st, j = http(f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={KEY}",
                  {"email": EMAIL[who], "password": pw, "returnSecureToken": True})
     assert st == 200, j

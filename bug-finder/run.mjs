@@ -34,14 +34,16 @@ function serviceToken() {
   const sig = createHmac("sha256", JWT_SECRET).update(`${header}.${payload}`).digest("base64url");
   return `${header}.${payload}.${sig}`;
 }
-const STUDENT_EMAIL = process.env.BUGFINDER_STUDENT_EMAIL || "vidyuthsetu+t15@gmail.com";
+// Test logins come from the job env (Secret Manager for passwords). Defaults = the one live
+// dedicated test student (the t01-t18/e2e logins were removed on 30 Sep 2026).
+const STUDENT_EMAIL = process.env.BUGFINDER_STUDENT_EMAIL || "vidyuthsetu+smoke01@gmail.com";
 const STUDENT_PW = process.env.BUGFINDER_STUDENT_PASSWORD;
 const COLLEGE_EMAIL = process.env.BUGFINDER_COLLEGE_EMAIL || "vidyuthsetu+college@gmail.com";
 const COLLEGE_PW = process.env.BUGFINDER_COLLEGE_PASSWORD;
 const ADMIN_EMAIL = process.env.BUGFINDER_ADMIN_EMAIL || "vidyuthsetu@gmail.com";
 const ADMIN_PW = process.env.BUGFINDER_ADMIN_PASSWORD;
 const DEEP = process.env.DEEP === "1";
-const DEEP_EMAIL = process.env.BUGFINDER_DEEP_STUDENT_EMAIL || "vidyuthsetu+t16@gmail.com";
+const DEEP_EMAIL = process.env.BUGFINDER_DEEP_STUDENT_EMAIL || "vidyuthsetu+smoke01@gmail.com";
 const DEEP_PW = process.env.BUGFINDER_DEEP_STUDENT_PASSWORD || STUDENT_PW;
 const RUN_ID = crypto.randomUUID();
 const results = [];

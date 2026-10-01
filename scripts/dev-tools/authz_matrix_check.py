@@ -65,9 +65,10 @@ for t in ("task_submissions", "voice_explanations", "tasks"):
 st, o = http("GET", f"{API}/student_contact?select=student_id", None, s)
 rec("PostgREST", "student_contact: other students", "student", "0", str(len([r for r in o if r['student_id'] != '366602c7-90a0-4f3b-8956-82ed35c0dd15']) if isinstance(o, list) else st),
     isinstance(o, list) and all(r["student_id"] == "366602c7-90a0-4f3b-8956-82ed35c0dd15" for r in o) or denied(st))
-for rpc in ("admin_trace_search", "admin_bug_finder_runs", "tpo_placement_report"):
+for rpc in ("admin_trace_search", "admin_bug_finder_runs", "tpo_placement_report", "tpo_college_report"):
     st, o = http("POST", f"{API}/rpc/{rpc}", {}, s)
-    rec("RPC", f"{rpc} (admin/college only)", "student", "denied", str(st), denied(st) or (st == 200 and not o) or (st == 400))
+    refused = denied(st) or st == 400 or (st == 200 and (not o or (isinstance(o, dict) and "error" in o)))
+    rec("RPC", f"{rpc} (admin/college only)", "student", "denied", f"{st} {str(o)[:40]}", refused)
 for rpc in ("claim_transcription_job", "claim_transcription_recovery", "complete_voice_scoring", "record_task_submission"):
     st, o = http("POST", f"{API}/rpc/{rpc}", {}, s)
     rec("RPC", f"{rpc} (server only)", "student", "denied", str(st), denied(st))
@@ -91,6 +92,9 @@ if c:
     rec("RPC", "admin_trace_search (admin only)", "college", "denied", str(st), denied(st) or st == 400)
     st, o = http("PATCH", f"{API}/task_rubric_config?id=eq.ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee", {"scratch_language": "java"}, c, "return=representation")
     rec("PostgREST", "change a task's scratch_language", "college", "0 rows", f"{st} {len(o) if isinstance(o, list) else ''}", denied(st) or (isinstance(o, list) and not o))
+    for rpc, key in (("tpo_placement_report", "hires"), ("tpo_college_report", "seasons")):
+        st, o = http("POST", f"{API}/rpc/{rpc}", {}, c)
+        rec("RPC", f"{rpc} (own college)", "college", "allowed", f"{st} {sorted(o)[:3] if isinstance(o, dict) else o}", st == 200 and isinstance(o, dict) and key in o)
     st, o = http("GET", f"{API}/voice_explanations?select=id&student_id=eq.366602c7-90a0-4f3b-8956-82ed35c0dd15", None, c)
     rec("PostgREST", "read a student's voice rows (own college)", "college", "allowed", f"{st} {len(o) if isinstance(o, list) else ''}", st == 200)
 

@@ -179,4 +179,5 @@ The owner is not a developer.
 ## Release closure (1 Oct 2026)
 - Current documents: `docs/PRODUCTION-ARCHITECTURE.md`, `docs/AUTHORIZATION-MATRIX.md`, `docs/DISASTER-RECOVERY-RUNBOOK.md`, `docs/FINAL-RELEASE-GAPS.md`, `docs/RELEASE-CERTIFICATE-2026-10-01.md`.
 - Steps only the owner can run (blocked for Claude): `docs/closure/OWNER-COMMANDS.md`.
+- Migration 49 (college reports answer approved college accounts only, G28) applied to staging and production on 1 Oct 2026; rollback `migration/49-rollback-college-reports.sql`. Closure status: G01, G02, G10, G28 PASS; G06 and G05 left (owner commands 7, 8).
 - Check scripts: `scripts/dev-tools/attack_surface_check.py` (anonymous, 66 checks), `authz_matrix_check.py` (per role), `staging_load_test.py`, `staging_reaper_fixture.py` (staging only).

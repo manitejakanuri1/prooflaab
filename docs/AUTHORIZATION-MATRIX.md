@@ -31,7 +31,7 @@ Re-run:
 | Change a voice score | no | no | no | no | no | yes (`complete_voice_scoring`) |
 | Change a task's settings (`task_rubric_config`) | no | no (0 rows) | no (0 rows) | no | yes | — |
 | `admin_trace_search`, `admin_bug_finder_runs` | no | no | no | no | yes | — |
-| `tpo_college_report`, `tpo_placement_report` | no | **yes — WRONG (G28)** | yes | no | via college | — |
+| `tpo_college_report`, `tpo_placement_report` | no | no (fixed 1 Oct, Migration 49) | yes | no | via college | — |
 | `claim_transcription_job`, `claim_transcription_recovery`, `record_task_submission` | no | no | no | no | no | yes |
 | Create student / college logins | no | no | yes (own college) | no | yes | — |
 | Private worker | no | no | no | no | no | Cloud Tasks only |
@@ -44,7 +44,7 @@ separately probed by the scripts.
 
 ## Live results (1 Oct 2026)
 
-`authz_matrix_check.py` (first run, 1 Oct): 20 of 25 passed. **Re-run after G10 (1 Oct): 54 of 55** — the only failure is G28 (student reads the placement report); the two rubric false alarms and the worker 401 are now counted correctly by the script. The 5 that did not pass:
+`authz_matrix_check.py` (first run, 1 Oct): 20 of 25 passed. **Re-run after G10 (1 Oct): 54 of 55. After Migration 49 (1 Oct): 58 of 58** — the only failure is G28 (student reads the placement report); the two rubric false alarms and the worker 401 are now counted correctly by the script. The 5 that did not pass:
 
 | Check | Result | Verdict |
 |---|---|---|

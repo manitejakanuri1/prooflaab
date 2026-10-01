@@ -2,15 +2,14 @@
 
 **Decision: PRODUCTION RELEASE CLOSURE: FAIL**
 
-Production works and was proven end to end today. The closure still fails because three P1 items could
-not be closed or proven by Claude (closed 1 Oct: G01, G02, G10 PASS — see `docs/closure/G01-VERIFICATION.md`, `G02-VERIFICATION.md`, `docs/AUTHORIZATION-MATRIX.md`). Each needs one owner action, written out in
+Production works and was proven end to end today. The closure still fails because two P1 items could
+not be closed or proven by Claude (closed 1 Oct: G01, G02, G10, G28 PASS — see `docs/closure/G01-VERIFICATION.md`, `G02-VERIFICATION.md`, `docs/AUTHORIZATION-MATRIX.md`). Each needs one owner action, written out in
 `docs/closure/OWNER-COMMANDS.md`. The rule for this pass: no PASS because "most things work".
 
 ## 1. Blockers (P1, must be closed or accepted by the owner)
 
 | ID | Blocker | Why it is P1 | Owner command |
 |---|---|---|---|
-| G28 | Students can read their college's reports (`tpo_placement_report` lists classmates and hiring companies) | Privacy. 0 hires recorded today, so nothing exposed yet | 6 (Migration 49, rehearsed on staging) |
 | G05 | Default compute account has project Editor and runs 6 production services | One leaked service could change the whole project | 8 (per-service, Editor last) |
 | G06 | Staging account can administer production logins | Staging mistake could touch real accounts | 7 |
 
@@ -20,7 +19,7 @@ not be closed or proven by Claude (closed 1 Oct: G01, G02, G10 PASS — see `doc
 |---|---|
 | `scripts/healthcheck.py` | 24/24 |
 | `attack_surface_check.py` (anonymous + forged tokens, every public endpoint) | 66/66 |
-| `authz_matrix_check.py` (student, college, admin, company) | 54/55: only failure is G28 |
+| `authz_matrix_check.py` (student, college, admin, company) | 58/58 (after Migration 49) |
 | `company_dashboard_browser.mjs` (live) | 12/12: Home, Talent, Work, Jobs; admin/college/student pages closed |
 | Bug finder | 10/10 |
 | Functions `/ready` | 40/40 |
@@ -88,11 +87,11 @@ Everything else in `docs/FINAL-RELEASE-GAPS.md` is FIXED or VERIFIED.
 | Transcriber | `prooflab-transcriber-00002-8lk` |
 | Code runner | `prooflab-code-runner-00001-rpr` |
 | Worker | `prooflab-transcription-worker-00001-sl6` |
-| Database | `prooflab-db`, Postgres 17, migrations up to 48 applied (49 prepared, not applied) |
+| Database | `prooflab-db`, Postgres 17, migrations up to 49 applied (49 on 1 Oct, after a backup) |
 
 ## 7. How this becomes PASS
 
-1. Run owner commands 6, 7 and 8 (commands 1, 2, 5 done: G01, G02, G10 PASS) in `docs/closure/OWNER-COMMANDS.md`.
+1. Run owner commands 7 and 8 (commands 1, 2, 5, 6 done: G01, G02, G10, G28 PASS) in `docs/closure/OWNER-COMMANDS.md`.
 2. Paste the outputs back (`docs/closure/prod-audit-output.txt`, `restore-drill-output.txt`).
 3. Claude checks the outputs, re-runs `authz_matrix_check.py` (expect 25/25 with company) and `healthcheck.py`,
    and updates this certificate to PASS if nothing new is found.

@@ -2,8 +2,8 @@
 
 **Decision: PRODUCTION RELEASE CLOSURE: FAIL**
 
-Production works and was proven end to end today. The closure still fails because two P1 items could
-not be closed or proven by Claude (closed 1 Oct: G01, G02, G10, G28 PASS — see `docs/closure/G01-VERIFICATION.md`, `G02-VERIFICATION.md`, `docs/AUTHORIZATION-MATRIX.md`). Each needs one owner action, written out in
+Production works and was proven end to end today. The closure still fails because one P1 item could
+not be closed or proven by Claude (closed 1 Oct: G01, G02, G10, G28, G06 PASS — see `docs/closure/G01-VERIFICATION.md`, `G02-VERIFICATION.md`, `docs/AUTHORIZATION-MATRIX.md`). Each needs one owner action, written out in
 `docs/closure/OWNER-COMMANDS.md`. The rule for this pass: no PASS because "most things work".
 
 ## 1. Blockers (P1, must be closed or accepted by the owner)
@@ -11,7 +11,6 @@ not be closed or proven by Claude (closed 1 Oct: G01, G02, G10, G28 PASS — see
 | ID | Blocker | Why it is P1 | Owner command |
 |---|---|---|---|
 | G05 | Default compute account has project Editor and runs 6 production services | One leaked service could change the whole project | 8 (per-service, Editor last) |
-| G06 | Staging account can administer production logins | Staging mistake could touch real accounts | 7 |
 
 ## 2. What was proven today (live)
 
@@ -91,7 +90,7 @@ Everything else in `docs/FINAL-RELEASE-GAPS.md` is FIXED or VERIFIED.
 
 ## 7. How this becomes PASS
 
-1. Run owner commands 7 and 8 (commands 1, 2, 5, 6 done: G01, G02, G10, G28 PASS) in `docs/closure/OWNER-COMMANDS.md`.
+1. Run owner command 8 (commands 1, 2, 5, 6, 7 done: G01, G02, G10, G28, G06 PASS) in `docs/closure/OWNER-COMMANDS.md`.
 2. Paste the outputs back (`docs/closure/prod-audit-output.txt`, `restore-drill-output.txt`).
 3. Claude checks the outputs, re-runs `authz_matrix_check.py` (expect 25/25 with company) and `healthcheck.py`,
    and updates this certificate to PASS if nothing new is found.

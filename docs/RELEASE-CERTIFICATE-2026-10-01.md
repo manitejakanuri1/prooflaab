@@ -1,18 +1,38 @@
 # Release certificate — ProofLabAI production, 1 Oct 2026
 
-**Decision: PRODUCTION RELEASE CLOSURE: FAIL**
+**Decision: A. PRODUCTION RELEASE CLOSURE: PASS — No unknown P0/P1 launch blockers remain.**
 
-Production works and was proven end to end today. The closure still fails because one P1 item could
-not be closed or proven by Claude (closed 1 Oct: G01, G02, G10, G28, G06 PASS — see `docs/closure/G01-VERIFICATION.md`, `G02-VERIFICATION.md`, `docs/AUTHORIZATION-MATRIX.md`). Each needs one owner action, written out in
-`docs/closure/OWNER-COMMANDS.md`. The rule for this pass: no PASS because "most things work".
+All six P1 blockers found by the closure pass were closed and proven on 1 Oct 2026. Each step was
+verified before the next one started. Every remaining item is an ACCEPTED NON-BLOCKING RISK (section 5).
 
-## 1. Blockers (P1, must be closed or accepted by the owner)
+## 1. The six P1 blockers — all closed
 
-| ID | Blocker | Why it is P1 | Owner command |
+| ID | Blocker | How it was closed | Evidence |
 |---|---|---|---|
-| G05 | Default compute account has project Editor and runs 6 production services | One leaked service could change the whole project | 8 (per-service, Editor last) |
+| G01 | Production DB invariants never audited | Owner ran the read-only audit; every line checked; 0 unexplained anomalies; corrected Migration 45 byte-identical | `docs/closure/G01-VERIFICATION.md` |
+| G02 | Restore never proven | Point-in-time clone restored in 9 min 28 s; audit identical to production; clone deleted | `docs/closure/G02-VERIFICATION.md` |
+| G10 | Company role untested | Verified TEST company; 33 access checks + live Home/Talent/Work/Jobs; admin/college/student pages closed | `docs/AUTHORIZATION-MATRIX.md` |
+| G28 | Students could read college reports | Migration 49 (staging, then production after a backup); student refused, college still served | `docs/AUTHORIZATION-MATRIX.md`, `migration/49-*` |
+| G06 | Staging robot could administer production logins | Role removed; production sign-in for all roles re-tested | `docs/FINAL-RELEASE-GAPS.md` |
+| G05 | Compute account had Editor and ran 6 production services | Own least-privilege robot per service/job (api tested on a 0 % tag first); Editor removed from every account; full live re-test incl. a new voice recording | `docs/closure/G05-VERIFICATION.md` |
 
-## 2. What was proven today (live)
+### Final re-check after all six (1 Oct 2026, ~03:40 UTC)
+
+| Check | Result |
+|---|---|
+| Data invariants (19 read-only checks: voice, submissions, links, scratch values) | 0 failures |
+| Student (live browser): Roadmap, new voice recording scored 72 server-verified, Build-Log, scratchpad Run | PASS |
+| College / admin dashboards (live browser) | PASS / PASS |
+| Company dashboard (live browser) | 12/12 |
+| `authz_matrix_check.py` (4 roles) | 58/58 |
+| `attack_surface_check.py` | 66/66 |
+| `healthcheck.py` | 24/24 |
+| Functions `/ready` | 40/40 |
+| Bug finder (new robot) | 10/10 |
+| Scheduler / reaper | all 13 jobs last result OK; `TRANSCRIPTION-REAP OK`, 0 stuck |
+| Real data changed? | No: 4 students; the real students' only submission and recording are from 30 Sep |
+
+## 2. What was proven earlier on 1 Oct (live)
 
 | Check | Result |
 |---|---|
@@ -70,6 +90,11 @@ and verified. Recorded as G29.
 | G30 | API errors name tables/functions | No data or secrets |
 | G31 | Health check fails once on a brand-new track open | Passes on rerun |
 | G32 | Above ~100 browsing users at once, p95 over 3 s | Raise limits when the pilot grows |
+| G33 | 13 unused marking configs | No student data; optional clean-up |
+| G34 | Broad table grants to anon/authenticated | RLS policies are the real control; revoke later |
+| G35 | Old compute account keeps secret/bucket grants (no runtime uses it; Editor removed) | Only Cloud Build uses it; owners only; clean up later |
+| G36 | Crawler not yet run under its new robot | Grants verified; next run Sunday, alert exists |
+| G37 | Functions `/ready` credential self-check shows a harmless 404 | Wrong diagnostic path since 30 Sep; real calls work |
 
 Everything else in `docs/FINAL-RELEASE-GAPS.md` is FIXED or VERIFIED.
 
@@ -78,19 +103,18 @@ Everything else in `docs/FINAL-RELEASE-GAPS.md` is FIXED or VERIFIED.
 | Part | Version |
 |---|---|
 | Website | Hosting `79a3164cfe001a3b`, bundle `index-CWe_5Kb3.js` |
-| Functions | `prooflab-functions-00052-g84` (40 loaded) |
-| API | `prooflab-api-00003-n6c` |
-| Auth bridge | `prooflab-auth-bridge-00011-njh` |
-| Files | `prooflab-files-00013-jsz` |
-| Accounts | `prooflab-accounts-00002-bc9` |
-| Transcriber | `prooflab-transcriber-00002-8lk` |
+| Functions | `prooflab-functions-00053-c7m` (40 loaded), runs as `prooflab-rt-functions` |
+| API | `prooflab-api-00004-rom`, `prooflab-rt-api` |
+| Auth bridge | `prooflab-auth-bridge-00012-vdh`, `prooflab-rt-authbridge` |
+| Files | `prooflab-files-00014-r2w`, `prooflab-rt-files` |
+| Accounts | `prooflab-accounts-00003-rgf`, `prooflab-rt-accounts` |
+| Transcriber | `prooflab-transcriber-00003-v7l`, `prooflab-rt-transcriber` |
 | Code runner | `prooflab-code-runner-00001-rpr` |
 | Worker | `prooflab-transcription-worker-00001-sl6` |
 | Database | `prooflab-db`, Postgres 17, migrations up to 49 applied (49 on 1 Oct, after a backup) |
 
-## 7. How this becomes PASS
+## 7. Optional follow-ups (not blockers)
 
-1. Run owner command 8 (commands 1, 2, 5, 6, 7 done: G01, G02, G10, G28, G06 PASS) in `docs/closure/OWNER-COMMANDS.md`.
-2. Paste the outputs back (`docs/closure/prod-audit-output.txt`, `restore-drill-output.txt`).
-3. Claude checks the outputs, re-runs `authz_matrix_check.py` (expect 25/25 with company) and `healthcheck.py`,
-   and updates this certificate to PASS if nothing new is found.
+- Owner commands 3 (GitHub security settings), 4 (restrict the browser API key), 9 (Firebase admin role).
+- G35: remove the old compute account's leftover grants after confirming Cloud Build does not need them.
+- Watch the crawler's first run under its new robot (Sunday 08:10 IST).

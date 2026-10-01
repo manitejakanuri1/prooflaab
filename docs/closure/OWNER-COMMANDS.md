@@ -117,8 +117,14 @@ gcloud sql import sql prooflab-db gs://prooflab-508214_cloudbuild/sql/49-college
 python scripts/dev-tools/authz_matrix_check.py     # expect: student tpo_* rows now refused
 python scripts/healthcheck.py                      # expect 24/24 (college insights still work)
 ```
-Rollback: re-run the previous definitions from supabase/migrations/20260823000100_stage24_insights_branch_trend_season.sql and
-20260910000100_stage38b_shortlist_stage_timestamp.sql (only the `cid` line differs).
+Rollback (if ever needed; re-opens G28): `migration/49-rollback-college-reports.sql` swaps the one line back on the
+LIVE bodies with the same fail-closed checks. Rehearsed on staging 1 Oct (apply then rollback in one rolled-back
+transaction): after 49 neither function uses `viewer_college_id`; after the rollback both bodies are byte-identical
+to before, with the same grants and owner. (The older repo files are NOT a valid rollback: the live bodies differ.)
+```bash
+gcloud storage cp migration/49-rollback-college-reports.sql gs://prooflab-508214_cloudbuild/sql/49-rollback-college-reports.sql
+gcloud sql import sql prooflab-db gs://prooflab-508214_cloudbuild/sql/49-rollback-college-reports.sql --database=prooflab --user=postgres --project=$P --quiet
+```
 
 ## 7. Staging robot must not administer production logins (G06)
 

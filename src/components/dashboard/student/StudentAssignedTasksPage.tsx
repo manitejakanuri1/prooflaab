@@ -36,7 +36,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import UploadProofModal from "@/components/dashboard/UploadProofModal";
 import VoiceExplainModal from "./VoiceExplainModal";
 import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import TaskDetailsDialog from "./TaskDetailsDialog";
@@ -51,14 +50,12 @@ import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 const StudentAssignedTasksPage = () => {
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
   const navigate = useNavigate();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [codingTaskId, setCodingTaskId] = useState<string | null>(null);
   const [writingTaskId, setWritingTaskId] = useState<string | null>(null);
   const [explainTask, setExplainTask] = useState<{ id: string; title: string } | null>(null);
   const { profile } = useStudentProfile();
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string; review?: boolean } | null>(null);
-  const [preparingQuiz, setPreparingQuiz] = useState<{ proofId: string; taskId: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Due Date (ASC)");
@@ -77,74 +74,10 @@ const StudentAssignedTasksPage = () => {
   // Fetch conceptual tests for all student proofs
   const { data: conceptualTests = {}, refetch: refetchConceptualTests } = useConceptualTests();
 
-  // Real-time subscription for proof_uploads and conceptual_tests changes
-  // Replaces the live subscription below, which cannot work against
-  // PostgREST. Paused while the tab is hidden, and refreshes at once when
-  // the tab is looked at again.
+  // Conceptual tests belong to the retired proof flow (0 rows in production);
+  // their buttons below go with the Wave 8 retirement. Refreshed when the tab
+  // is looked at again; the old realtime channel could never work on PostgREST.
   useLiveRefresh(() => { void refetchConceptualTests(); });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('student_assigned_verification_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'proof_uploads'
-        },
-        () => {
-          refetchConceptualTests();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conceptual_tests'
-        },
-        () => {
-          refetchConceptualTests();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetchConceptualTests]);
-
-  // After proof submission, wait for question-generator to finish and open the
-  // quiz automatically instead of making the student find the button
-  useEffect(() => {
-    if (!preparingQuiz) return;
-    let cancelled = false;
-    const startedAt = Date.now();
-    const poll = async () => {
-      while (!cancelled && Date.now() - startedAt < 120000) {
-        const { data } = await supabase
-          .from('conceptual_tests')
-          .select('id, status')
-          .eq('proof_id', preparingQuiz.proofId)
-          .maybeSingle();
-        if (cancelled) return;
-        if (data?.status === 'pending') {
-          toast.success("Your quiz is ready!");
-          setSelectedConceptualTest({ proofId: preparingQuiz.proofId, taskId: preparingQuiz.taskId });
-          setPreparingQuiz(null);
-          return;
-        }
-        await new Promise(r => setTimeout(r, 4000));
-      }
-      if (!cancelled) {
-        setPreparingQuiz(null);
-        toast.info("Quiz is taking longer than usual — the Answer Questions button will appear on the task once it's ready.");
-      }
-    };
-    poll();
-    return () => { cancelled = true; };
-  }, [preparingQuiz]);
 
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {
@@ -552,22 +485,6 @@ const StudentAssignedTasksPage = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Upload Proof Modal */}
-      {selectedTaskId && (
-        <UploadProofModal
-          isOpen={!!selectedTaskId}
-          onClose={() => setSelectedTaskId(null)}
-          taskId={selectedTaskId}
-          taskTitle={filteredAndSortedTasks.find(t => t.id === selectedTaskId)?.title || ''}
-          onSuccess={(proofId, quizPending) => {
-            refetchTasks();
-            if (proofId && quizPending && selectedTaskId) {
-              setPreparingQuiz({ proofId, taskId: selectedTaskId });
-            }
-          }}
-        />
-      )}
 
       {/* stage69/70: coding and written tasks skip the proof/quiz flow
           entirely — they are graded automatically the moment they submit. */}

@@ -34,7 +34,6 @@ const OnboardingCollege = lazy(() => import("./pages/OnboardingCollege"));
 const OnboardingStartup = lazy(() => import("./pages/OnboardingStartup"));
 const OnboardingStudent = lazy(() => import("./pages/OnboardingStudent"));
 const OnboardingWizard = lazy(() => import("./pages/OnboardingWizard"));
-const ProofViewer = lazy(() => import("./pages/ProofViewer"));
 
 // Lazy load route guards
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));

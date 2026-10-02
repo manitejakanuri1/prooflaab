@@ -49,7 +49,7 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
   };
 
   // ponytail: wizard CSV upload cut — it silently discarded the file. The
-  // working uploader lives in CollegeDashboardOverview (create-student-users).
+  // working uploader lives in TpoImportStudents (create-student-users).
 
   const handleSubmit = async () => {
     setLoading(true);

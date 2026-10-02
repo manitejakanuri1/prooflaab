@@ -81,28 +81,6 @@ const StudentUploadsPage = () => {
   // the tab is looked at again.
   useLiveRefresh(() => { void fetchConceptualTests(); void refetch(); });
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('conceptual_tests_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conceptual_tests'
-        },
-        () => {
-          fetchConceptualTests();
-          refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const fetchConceptualTests = async () => {
     try {

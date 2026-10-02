@@ -7,13 +7,19 @@
 // is confirmed working on DeepSeek the Gemini keys can simply be deleted — the
 // chain skips any provider whose key is unset.
 //
-// NOTE: this helper is text-only. Gemini is still required for the two
-// multimodal callers (resume-parser sends a PDF, resume-voice-verify sends
-// audio); DeepSeek has no equivalent input, so those cannot use this helper.
+// Every call has a deadline (timeoutMs, default 90 s): a provider that hangs
+// must fail the request it belongs to, not hold it open until Cloud Run's 300 s
+// limit and pin a functions instance. A timed-out call is not retried on the
+// same provider (the work may still be running there); it moves to the next one.
+//
+// Usage rows, the cache and the rate limiter reach the database through
+// backend.ts serviceRest (F3: they used to read Supabase-only env vars and
+// silently did nothing on Google from 12 Sep 2026).
 
 import { checkRateLimit, RateLimitError } from './rate-limit.ts';
 import { logSecurityEvent } from './audit.ts';
 import { als } from './log.ts';
+import { serviceRest, telemetryProblem } from './backend.ts';
 
 interface GenOptions {
   temperature?: number;
@@ -30,6 +36,24 @@ interface GenOptions {
    * all generated questions, must leave this off or everybody sits the same test.
    */
   cache?: boolean;
+  /** Per-provider-attempt deadline in ms. Default 90 s. */
+  timeoutMs?: number;
+}
+
+const DEFAULT_TIMEOUT_MS = 90_000;
+
+/** Thrown when every configured provider timed out or failed. */
+export class LlmUnavailableError extends Error {
+  readonly timedOut: boolean;
+  constructor(message: string, timedOut: boolean) {
+    super(message);
+    this.name = 'LlmUnavailableError';
+    this.timedOut = timedOut;
+  }
+}
+
+function isTimeout(err: unknown): boolean {
+  return err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError');
 }
 
 export interface TokenUsage {
@@ -84,18 +108,9 @@ export async function logUsage(
   result: Pick<GenResult, 'provider' | 'model' | 'usage' | 'truncated'>,
 ): Promise<void> {
   try {
-    const url = Deno.env.get('SUPABASE_URL');
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!url || !serviceKey) return;
-
-    await fetch(`${url}/rest/v1/llm_usage`, {
+    const res = await serviceRest('llm_usage', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        Prefer: 'return=minimal',
-      },
+      headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({
         user_id: ctx.userId ?? null,
         student_id: ctx.studentId ?? null,
@@ -108,15 +123,19 @@ export async function logUsage(
         truncated: result.truncated,
         request_id: als.getStore()?.request_id ?? null,
       }),
+      signal: AbortSignal.timeout(5000),
     });
+    if (!res) telemetryProblem('llm-usage', 'no database configured; AI spend is not being recorded');
+    else if (!res.ok) telemetryProblem('llm-usage', `llm_usage insert answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
   } catch (err) {
-    console.error('Token usage logging failed (ignored):', err);
+    telemetryProblem('llm-usage', `llm_usage insert failed: ${err instanceof Error ? err.message : err}`);
   }
 }
 
 async function callDeepSeek(prompt: string, apiKey: string, opts: GenOptions) {
   const res = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
+    signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: 'deepseek-chat',
@@ -148,6 +167,7 @@ async function callGemini(prompt: string, apiKey: string, opts: GenOptions) {
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
     {
       method: 'POST',
+      signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
@@ -169,6 +189,7 @@ async function callGemini(prompt: string, apiKey: string, opts: GenOptions) {
 async function callKimi(prompt: string, apiKey: string, opts: GenOptions) {
   const res = await fetch('https://api.moonshot.ai/v1/chat/completions', {
     method: 'POST',
+    signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: 'kimi-k2-0711-preview',
@@ -256,20 +277,11 @@ async function enforceLlmRateLimit(track?: UsageContext): Promise<void> {
   }
 }
 
-/** Supabase REST helper for the cache table. Kept local so llm.ts pulls in no client. */
+/** The cache table, through the same service_role path as everything else. */
 async function cacheRest(path: string, init: RequestInit): Promise<Response | null> {
-  const url = Deno.env.get('SUPABASE_URL');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !serviceKey) return null;
-  return await fetch(`${url}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      ...(init.headers ?? {}),
-    },
-  });
+  const res = await serviceRest(path, { ...init, signal: AbortSignal.timeout(5000) });
+  if (!res) telemetryProblem('llm-cache', 'no database configured; AI answers are never reused');
+  return res;
 }
 
 /** Identity of a prompt for caching. The options change the answer, so they are in the key. */
@@ -357,30 +369,56 @@ export async function generateText(prompt: string, opts: GenOptions = {}, track?
 
   if (!opts.skipRateLimit) await enforceLlmRateLimit(track);
 
+  let timedOut = false;
+  // One provider attempt. A timeout returns null and is never retried on the same
+  // provider: the first request may still be running there, and paying twice for
+  // one answer is exactly what a deadline exists to prevent.
+  type Attempt =
+    | { ok: true; status: number; text: string; truncated: boolean; usage?: TokenUsage }
+    | { ok: false; status: number };
+  const attempt = async (provider: string, run: () => Promise<Attempt>): Promise<Attempt | null> => {
+    try {
+      return await run();
+    } catch (err) {
+      if (isTimeout(err)) {
+        timedOut = true;
+        console.error(`LLM TIMEOUT: ${provider} gave no answer within ${opts.timeoutMs ?? DEFAULT_TIMEOUT_MS} ms (feature ${track?.feature ?? 'unattributed'})`);
+      } else {
+        console.error(`LLM ERROR: ${provider}: ${err instanceof Error ? err.message : err}`);
+      }
+      return null;
+    }
+  };
+
   const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
   if (deepseekKey) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const result = await callDeepSeek(prompt, deepseekKey, opts);
+    for (let i = 0; i < 2; i++) {
+      const result = await attempt('deepseek', () => callDeepSeek(prompt, deepseekKey, opts));
+      if (!result) break;
       if (result.ok) return finish({ text: result.text, truncated: result.truncated, provider: 'deepseek', model: 'deepseek-chat', usage: result.usage ?? EMPTY_USAGE }, track, hash);
       if (![429, 503].includes(result.status)) break;
-      await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
+      await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
     }
   }
 
   for (const key of geminiKeys()) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const result = await callGemini(prompt, key, opts);
+    for (let i = 0; i < 2; i++) {
+      const result = await attempt('gemini', () => callGemini(prompt, key, opts));
+      if (!result) break;
       if (result.ok) return finish({ text: result.text, truncated: result.truncated, provider: 'gemini', model: 'gemini-flash-latest', usage: result.usage ?? EMPTY_USAGE }, track, hash);
       if (![429, 503].includes(result.status)) break;
-      await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
+      await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
     }
   }
 
   const kimiKey = Deno.env.get('KIMI_API_KEY');
   if (kimiKey) {
-    const result = await callKimi(prompt, kimiKey, opts);
-    if (result.ok) return finish({ text: result.text, truncated: result.truncated, provider: 'kimi', model: 'kimi-k2-0711-preview', usage: result.usage ?? EMPTY_USAGE }, track, hash);
+    const result = await attempt('kimi', () => callKimi(prompt, kimiKey, opts));
+    if (result?.ok) return finish({ text: result.text, truncated: result.truncated, provider: 'kimi', model: 'kimi-k2-0711-preview', usage: result.usage ?? EMPTY_USAGE }, track, hash);
   }
 
-  throw new Error('All LLM providers exhausted or rate-limited');
+  throw new LlmUnavailableError(
+    timedOut ? 'The AI service did not answer in time' : 'All LLM providers exhausted or rate-limited',
+    timedOut,
+  );
 }

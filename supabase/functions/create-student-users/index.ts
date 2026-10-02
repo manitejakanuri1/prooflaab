@@ -201,6 +201,25 @@ serve(async (req) => {
             continue
           }
 
+          // F4: only a confirmed address may be linked. Otherwise anyone could
+          // sign up with a student's email before the college's CSV arrives and
+          // be linked as that student. Checked on the server, never trusted from
+          // the browser. The real owner verifies their email, then the import is
+          // run again and links them.
+          const { data: confirmed, error: confirmError } = await supabaseAdmin
+            .rpc('account_email_confirmed', { _id: existingAuthUser.id })
+          if (confirmError || confirmed !== true) {
+            results.push({
+              email,
+              status: 'unverified',
+              message: confirmError
+                ? 'Could not check this login, so it was not linked. Try the import again.'
+                : 'A login exists for this email but the address was never confirmed, so it was not linked. ' +
+                  'Ask the student to open the verification email (or sign in with Google), then import again.'
+            })
+            continue
+          }
+
           // The link. Their name, XP, roadmap, build-log and history are left
           // exactly as they are; only the college's own fields are filled, and
           // only where the student has not already answered.

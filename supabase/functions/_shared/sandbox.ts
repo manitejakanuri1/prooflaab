@@ -1,4 +1,7 @@
-// Shared code runner. Extracted from resume-code-execute (stage69) so
+// Shared code runner. ProofLab's own runner is the only one used unless
+// PUBLIC_RUNNER_FALLBACK=allow (F10, 3 Oct 2026: never in production).
+//
+// Extracted from resume-code-execute (stage69) so
 // run-sandbox and submit-sandbox-task use the exact same fallback chain
 // instead of a second copy that could drift.
 //
@@ -274,6 +277,15 @@ export async function runCode(language: string, code: string, stdin: string): Pr
     lastReason = own.reason;
   } catch (e) {
     lastReason = `own runner: ${String(e)}`;
+  }
+
+  // F10: graded runs carry the student's code AND hidden test inputs, so they
+  // must never leave ProofLab. The public runners below are off unless a
+  // non-production environment explicitly opts in. When our runner is busy or
+  // down the caller gets ok:false and answers "runner busy, try again".
+  if (Deno.env.get('PUBLIC_RUNNER_FALLBACK') !== 'allow') {
+    console.error(`RUNNER UNAVAILABLE (no public fallback) for ${language}: ${lastReason}`);
+    return { ok: false, reason: `runner busy: ${lastReason}` };
   }
 
   for (let attempt = 0; attempt < 2; attempt++) {

@@ -1,5 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
+import { secretMatches } from "../_shared/secret.ts";
 
 /**
  * The timed jobs, triggered by Google Cloud Scheduler.
@@ -33,7 +34,7 @@ serve(async (req) => {
     console.error('WEBHOOK_SECRET not configured');
     return reply({ error: 'Server configuration error' }, 500);
   }
-  if (req.headers.get('x-webhook-secret') !== expected) {
+  if (!secretMatches(req.headers.get('x-webhook-secret'), expected)) {
     return reply({ error: 'Unauthorized' }, 401);
   }
 

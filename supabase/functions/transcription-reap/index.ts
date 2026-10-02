@@ -1,5 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
+import { secretMatches } from "../_shared/secret.ts";
 import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
 import { EXHAUSTED_ERROR, logReport, runReap } from "./reap.ts";
 
@@ -35,7 +36,7 @@ serve(async (req) => {
     console.error("WEBHOOK_SECRET not configured");
     return new Response(JSON.stringify({ error: "not configured" }), { status: 500 });
   }
-  if (req.headers.get("x-webhook-secret") !== expected) {
+  if (!secretMatches(req.headers.get("x-webhook-secret"), expected)) {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
   }
 

@@ -119,7 +119,7 @@ serve(async (req) => {
       : mode === 'skip' ? [] : question.test_cases;
 
     const results = [];
-    for (const tc of testCases) {
+    for (const [index, tc] of testCases.entries()) {
       const run = await runCode(question.language, code, tc.stdin);
 
       // The runner never started. Stop here rather than recording a failure the
@@ -138,6 +138,8 @@ serve(async (req) => {
 
       const verdict = verdictFor(run.status, run.stdout, tc.expected_output);
       results.push({
+        // Test 1 is the sample the student was shown; every other test is hidden.
+        visible: index === 0,
         stdin: tc.stdin,
         expected: tc.expected_output,
         actual: run.stdout.trim(),
@@ -162,8 +164,10 @@ serve(async (req) => {
     // submit mode: persist this question's result, and if all coding questions
     // are now submitted, compute the final coding score onto the scorecard.
     const passCount = results.filter(r => r.passed).length;
-    const total = mode === 'skip' ? question.test_cases.length : results.length;
-    const updatedResults = {
+    // Always the full set: a compile error that stops after test 1 still fails all
+    // of them (it used to shrink the denominator to 1).
+    const total: number = question.test_cases.length;
+    const updatedResults: Record<string, any> = {
       ...existingResults,
       [question_id]: { pass_count: passCount, total, results, ...(mode === 'skip' ? { skipped: true } : {}) },
     };
@@ -203,7 +207,8 @@ serve(async (req) => {
         success: true,
         pass_count: passCount,
         total,
-        results,
+        // N21: hidden tests never leave the server - only whether each passed.
+        results: results.map((r) => (r.visible ? r : { visible: false, verdict: r.verdict, passed: r.passed })),
         all_submitted: allSubmitted,
         coding_score: codingScore,
       }),

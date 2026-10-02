@@ -600,6 +600,62 @@ const functionsShim = {
 export { serviceToken };
 
 /**
+ * One raw service_role call to the database, for the helpers that run on every
+ * request and must not build a whole client: AI usage log, AI cache, rate
+ * limiter, security events (llm.ts, rate-limit.ts, audit.ts).
+ *
+ * Those helpers used to read SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY directly.
+ * Neither exists on Google, so from the 12 Sep 2026 move every one of them
+ * silently did nothing: no AI usage rows after 11 Sep, an empty rate_limits
+ * table, and no server security events at all (F3). They now go where every
+ * other call goes.
+ *
+ * `path` is relative to the REST root, e.g. "llm_usage" or "rpc/check_rate_limit".
+ * Returns null when no database is configured; callers report that through
+ * telemetryProblem() instead of carrying on silently.
+ */
+export async function serviceRest(path: string, init: RequestInit = {}): Promise<Response | null> {
+  if (USING_GOOGLE) {
+    if (!POSTGREST_URL || !JWT_SECRET) return null;
+    return await fetch(`${POSTGREST_URL}/${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${await serviceToken()}`,
+        ...(init.headers ?? {}),
+      },
+    });
+  }
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !key) return null;
+  return await fetch(`${url}/rest/v1/${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${key}`, ...(init.headers ?? {}) },
+  });
+}
+
+/** Which database the telemetry helpers reach, for /ready. 'none' means they cannot work. */
+export function telemetryTarget(): 'postgrest' | 'supabase' | 'none' {
+  if (USING_GOOGLE) return POSTGREST_URL && JWT_SECRET ? 'postgrest' : 'none';
+  return Deno.env.get('SUPABASE_URL') && Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ? 'supabase' : 'none';
+}
+
+const lastProblem = new Map<string, number>();
+
+/**
+ * Says, loudly but at most once every 5 minutes per kind, that a telemetry write
+ * failed. The exact prefix "TELEMETRY PROBLEM:" is what the alert policy matches;
+ * F3 went unnoticed for three weeks because these failures returned quietly.
+ */
+export function telemetryProblem(kind: string, detail: string): void {
+  const now = Date.now();
+  if (now - (lastProblem.get(kind) ?? 0) < 300_000) return;
+  lastProblem.set(kind, now);
+  console.error(`TELEMETRY PROBLEM: ${kind}: ${detail}`);
+}
+
+/**
  * Does this email already have an account?
  *
  * The one question create-student-users asked listUsers() in order to answer.

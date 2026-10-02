@@ -60,7 +60,7 @@ flowchart LR
 | Kind | Production | Staging |
 |---|---|---|
 | Cloud Run services | api, functions, auth-bridge, files, accounts, code-runner, transcriber, transcription-worker (all min 0) | the same 8 with `prooflab-staging-*` names + leftover `staging-tasks-test-worker` |
-| Cloud Run jobs | prooflab-crawler, prooflab-bug-finder | prooflab-staging-inspect4 (leftover) |
+| Cloud Run jobs | prooflab-crawler, prooflab-bug-finder | prooflab-staging-inspect4 (staging SQL runner: psql against prooflab-staging-db) |
 | Cloud SQL | prooflab-db (PG17, db-g1-small, zonal, PITR on) | prooflab-staging-db (db-f1-micro) |
 | Cloud Tasks | prooflab-transcription (2 concurrent, 3 attempts) | prooflab-staging-transcription; prooflab-staging-ai-background (no producer) |
 | Scheduler | 12 jobs, all Asia/Kolkata | 1 (reaper) |
@@ -74,23 +74,23 @@ flowchart LR
 |---|---|
 | **Login** | Identity Platform → bridge verifies the Google token → `resolve_account` → HS256 ticket (1 h) → API / functions / files |
 | **Daily Lot** | 05:40 IST `assign_todays_lots` → `create_lot_for` → oldest unused `source_content` page → seed template. The first student's browser calls `lot-writer` → DeepSeek writes the Lot + grading config **once per page**; every student reuses it |
-| **Coding task** | Run = visible tests; Submit = all tests (hidden redacted) on the own code runner, with public fallbacks → `task_submissions` |
+| **Coding task** | Run = visible tests; Submit = all tests (hidden redacted) on the own code runner → `task_submissions`. Public runners (Wandbox/Godbolt/Glot) are off unless `PUBLIC_RUNNER_FALLBACK=allow`; when the own runner is busy the student gets "runner busy, try again" *(work/stabilization)* |
 | **Written task** | `submit-written-task` → DeepSeek rubric (quote-checked, 2nd grader near the pass line) → `task_submissions` |
 | **Voice** | Record ≤ 60 s → private bucket → `transcription-enqueue` → Cloud Tasks → worker → Whisper base (English) → `voice-score` (DeepSeek) → Build-Log. Optional, not limited per task |
-| **Resume** | browser pdf.js → `resume-parser` (DeepSeek) → claims → 5 MCQ + short answers → coding round (2 problems × 3 AI tests) → scorecard + roadmap tasks |
+| **Resume** | browser pdf.js → `resume-parser` (DeepSeek) → claims → 5 MCQ + short answers → coding round (2 problems × 3 AI tests) → scorecard + roadmap tasks. Answer keys and hidden tests are server-only (migration 50: students may SELECT only safe columns of their own `resume_assessments` row, never write it); Submit replies never include hidden tests *(migration 50 on staging; production pending approval)* |
 | **Crawler** | Sunday 08:10 IST job reads seed URLs of 6 sources → Jina Reader / GitHub / YouTube → dedupe → `source_content` (28 pages, nothing new since 13 Sep) |
 | **Squads** | nightly formation; Sunday scoring and seasons |
-| **Account sync** | every 10 min: students whose Identity login is gone are hard-deleted (snapshot kept) |
+| **Account sync** | every 10 min: a student is removed only after their Identity login has stayed missing for 30 min across separate passes (ledger `account_sync_missing`), and one pass may remove at most max(5, 2% of students); an abnormal pass removes nothing and logs `ACCOUNT SYNC ABORTED` (`accounts/sync_plan.py`). Removal itself is still a hard delete with a snapshot. `?dry_run=1` reports without acting. *(work/stabilization; staging only until approved)* |
 
 ### 1.6 Known problems right now (top)
 
 | ID | Problem |
 |---|---|
-| F3 | AI usage, rate limits, AI cache and server security log are silently off (env-var mismatch since 12 Sep) |
-| N20 | Resume answer keys and hidden tests are on a student-readable/writable row (to verify) |
+| F3 | AI usage, rate limits, AI cache and server security log are silently off in production (env-var mismatch since 12 Sep). **Fixed on work/stabilization**: they use `backend.ts serviceRest`; failures log `TELEMETRY PROBLEM:`; `/ready` reports `telemetry` and is not-ready when it is `none`. All AI calls now have a 90 s deadline (`LLM TIMEOUT:` log) |
+| N20 | Resume answer keys and hidden tests were readable AND writable by the student (**proven on staging 3 Oct**). Fixed by migration 50 on staging; production pending approval |
 | L1 / N24 | Companies never see submissions or Sponsored-Lot results (they read the old `proof_uploads`) |
 | F1 / F2 | One shared signing secret; every function runs with full DB rights |
-| F4 | CSV import links unverified accounts |
+| F4 | CSV import linked unverified accounts. Fixed on work/stabilization: links only when `account_email_confirmed()` (migration 51) is true |
 | F8 / F9 / F10 | Code runner isolation; hidden tests can go to public runners |
 | N30 | Some Lot texts ask for files or unseen articles |
 | N1 | Test logins deleted, so the bug finder and healthcheck are blind |
@@ -122,4 +122,6 @@ Order of work: `docs/FINAL-IMPLEMENTATION-DEPENDENCY-PLAN-2026-10-03.md`.
 
 | Date | Change | By | Evidence |
 |---|---|---|---|
+| 2026-10-03 | Wave 1 (branch work/stabilization): F3 telemetry via backend.ts + `/ready` telemetry field; AI 90 s timeouts; N20 migration 50 (staging applied); N21 hidden tests redacted in resume Submit, full denominator; TypeScript removed from resume language map; F10 public runners off by default; F6 safe sync (grace, ceiling, dry run, alert line) + migration 51 ledger; F4 verified-only linking (migration 51 RPC); N25 password-link only for logins created < 1 h ago and never for admins; F7 constant-time webhook checks. Staging probes: N20, F8, F9 confirmed before the fix | Claude | `migration/50*`, `migration/51*`, `accounts/test_sync_plan.py`, deno tests 94/94 |
+| 2026-10-03 | Correction: `prooflab-staging-inspect4` is the staging SQL runner (psql via `prooflab-staging-db-uri`), not a leftover | Claude | job spec read 3 Oct |
 | 2026-10-03 | File created from the pin-to-pin discovery (read-only; no system changes) | Claude | `docs/FINAL-FULL-PROJECT-PIN-TO-PIN-DOSSIER-2026-10-03.md` |

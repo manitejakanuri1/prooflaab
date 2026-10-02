@@ -1,7 +1,9 @@
 // Security event logging for edge functions.
 //
-// Writes through the service role, the same way logUsage and the rate limiter
-// do, so a function does not need its own client just to record an event.
+// Writes through backend.ts serviceRest, the same way logUsage and the rate
+// limiter do, so a function does not need its own client just to record an event.
+
+import { serviceRest, telemetryProblem } from './backend.ts';
 
 export type Severity = 'info' | 'warning' | 'critical';
 
@@ -26,17 +28,8 @@ export function clientIp(req: Request): string {
 export function logSecurityEvent(req: Request | null, event: SecurityEvent): void {
   void (async () => {
     try {
-      const url = Deno.env.get('SUPABASE_URL');
-      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      if (!url || !serviceKey) return;
-
-      await fetch(`${url}/rest/v1/rpc/log_security_event`, {
+      const res = await serviceRest('rpc/log_security_event', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-        },
         body: JSON.stringify({
           p_event_type: event.eventType,
           p_severity: event.severity ?? 'info',
@@ -47,9 +40,13 @@ export function logSecurityEvent(req: Request | null, event: SecurityEvent): voi
           p_user_agent: req?.headers.get('user-agent') ?? null,
           p_detail: event.detail ?? {},
         }),
+        signal: AbortSignal.timeout(5000),
       });
+      if (!res) telemetryProblem('security-events', 'no database configured');
+      else if (!res.ok) telemetryProblem('security-events', `log_security_event answered ${res.status}`);
+      else await res.body?.cancel();
     } catch (err) {
-      console.error('Security event logging failed (ignored):', err);
+      telemetryProblem('security-events', `write failed: ${err instanceof Error ? err.message : err}`);
     }
   })();
 }

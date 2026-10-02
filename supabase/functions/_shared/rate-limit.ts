@@ -4,10 +4,11 @@
 // edge functions run as many short-lived isolates, so an in-process counter
 // resets constantly and caps nothing. The database is the only shared state.
 //
-// Called through the service role key, the same way logUsage is, so a function
-// does not need to wire up a client just to be rate limited.
+// Called through backend.ts serviceRest (service_role on whichever database is in
+// use), so a function does not need to wire up a client just to be rate limited.
 
 import { logSecurityEvent } from './audit.ts';
+import { serviceRest, telemetryProblem } from './backend.ts';
 
 export interface RateLimitDecision {
   allowed: boolean;
@@ -44,7 +45,7 @@ const ALLOW_ON_FAILURE: RateLimitDecision = {
  *
  * Fails open. If the database is unreachable the request proceeds: a limiter
  * that turns a database blip into a total outage costs more than the abuse it
- * prevents. The AI spend cap in student_credits is the backstop.
+ * prevents. A failure is reported through telemetryProblem(), which alerts.
  */
 export async function checkRateLimit(
   bucket: string,
@@ -53,32 +54,27 @@ export async function checkRateLimit(
   windowSeconds: number,
 ): Promise<RateLimitDecision> {
   try {
-    const url = Deno.env.get('SUPABASE_URL');
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!url || !serviceKey) return ALLOW_ON_FAILURE;
-
-    const res = await fetch(`${url}/rest/v1/rpc/check_rate_limit`, {
+    const res = await serviceRest('rpc/check_rate_limit', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-      },
       body: JSON.stringify({
         p_bucket: bucket,
         p_subject: subject,
         p_limit: limit,
         p_window_seconds: windowSeconds,
       }),
+      signal: AbortSignal.timeout(5000),
     });
-
+    if (!res) {
+      telemetryProblem('rate-limit', 'no database configured; every request is allowed');
+      return ALLOW_ON_FAILURE;
+    }
     if (!res.ok) {
-      console.error('Rate limit check failed (allowing):', res.status, await res.text());
+      telemetryProblem('rate-limit', `check_rate_limit answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
       return ALLOW_ON_FAILURE;
     }
     return (await res.json()) as RateLimitDecision;
   } catch (err) {
-    console.error('Rate limit check errored (allowing):', err);
+    telemetryProblem('rate-limit', `check_rate_limit errored: ${err instanceof Error ? err.message : err}`);
     return ALLOW_ON_FAILURE;
   }
 }

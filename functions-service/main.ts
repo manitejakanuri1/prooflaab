@@ -18,6 +18,10 @@
 
 import { takeHandler, type Handler } from '../supabase/functions/_shared/serve.ts';
 import { installStructuredConsole, withRequestContext } from '../supabase/functions/_shared/log.ts';
+import { telemetryTarget } from '../supabase/functions/_shared/backend.ts';
+
+/** Computed once: the env does not change while the process runs. */
+const telemetry = telemetryTarget();
 
 const PORT = Number(Deno.env.get('PORT') ?? 8080);
 const ROOT = new URL('../supabase/functions/', import.meta.url);
@@ -71,13 +75,16 @@ async function loadAll(): Promise<void> {
 function ready(): Response {
   return new Response(
     JSON.stringify({
-      ok: failed.size === 0,
+      ok: failed.size === 0 && telemetry !== 'none',
       loaded: handlers.size,
       expected: SLUGS.length,
       failed: Object.fromEntries(failed),
       metadata: metadataStatus,
+      // Where AI usage, rate limits and security events are written (F3). 'none'
+      // means they would silently do nothing, so the service reports not-ready.
+      telemetry,
     }),
-    { status: failed.size === 0 ? 200 : 503, headers: { 'Content-Type': 'application/json' } },
+    { status: failed.size === 0 && telemetry !== 'none' ? 200 : 503, headers: { 'Content-Type': 'application/json' } },
   );
 }
 

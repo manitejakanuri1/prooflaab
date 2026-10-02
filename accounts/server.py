@@ -5,9 +5,11 @@ POST /password-link {"email": ...}   functions service (x-webhook-secret): a
                                      set-password link for a new student,
                                      WITHOUT Google sending its own email, so
                                      the welcome email can carry it (one email).
-POST /sync                           Cloud Scheduler (x-webhook-secret): any
-                                     student whose Google login was deleted in
-                                     the console is removed from ProofLab too.
+POST /sync[?dry_run=1]               Cloud Scheduler (x-webhook-secret): a
+                                     student whose Google login stays deleted for
+                                     SYNC_GRACE_SECONDS is removed from ProofLab too,
+                                     never more than the ceiling in one pass
+                                     (sync_plan.py); an abnormal pass removes nothing.
 
 A separate service because deleting a login needs Identity Platform's admin API,
 which needs this service account's token from the metadata server - the
@@ -22,7 +24,10 @@ import os
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import sync_plan
 
 PORT = int(os.environ.get("PORT", "8080"))
 SECRET = os.environ.get("PGRST_JWT_SECRET", "").encode()
@@ -31,6 +36,13 @@ POSTGREST = os.environ["POSTGREST_URL"].rstrip("/")
 PROJECT = os.environ.get("GCP_PROJECT", "prooflab-508214")
 ORIGINS = set(filter(None, os.environ.get("ALLOWED_ORIGINS", "").split(",")))
 IDENTITY = f"https://identitytoolkit.googleapis.com/v1/projects/{PROJECT}"
+# Account-sync safety (sync_plan.py): a login must stay missing this long before
+# its student is removed, and one pass may remove at most max(MAX_ABS, MAX_FRACTION x students).
+GRACE = int(os.environ.get("SYNC_GRACE_SECONDS", sync_plan.DEFAULT_GRACE_SECONDS))
+MAX_ABS = int(os.environ.get("SYNC_MAX_REMOVALS", sync_plan.DEFAULT_MAX_ABS))
+MAX_FRACTION = float(os.environ.get("SYNC_MAX_FRACTION", sync_plan.DEFAULT_MAX_FRACTION))
+# A set-password link is only returned for a login created this recently (an import in progress).
+LINK_MAX_AGE_SECONDS = 3600
 
 
 def b64url(data: bytes) -> str:
@@ -80,8 +92,11 @@ def call(url: str, body=None, headers=None, method="POST"):
             return e.code, raw.decode(errors="replace")
 
 
-def db(path: str, body=None, method="POST"):
-    return call(f"{POSTGREST}/{path}", body, {"Authorization": f"Bearer {service_token()}"}, method)
+def db(path: str, body=None, method="POST", prefer: str | None = None):
+    headers = {"Authorization": f"Bearer {service_token()}"}
+    if prefer:
+        headers["Prefer"] = prefer
+    return call(f"{POSTGREST}/{path}", body, headers, method)
 
 
 def google_token() -> str:
@@ -105,6 +120,24 @@ def delete_logins(rows: list) -> list:
         if st != 200 and "USER_NOT_FOUND" not in json.dumps(out):
             failed.append({"email": r.get("email"), "error": str(out)[:200]})
     return failed
+
+
+def link_refusal(email: str) -> str | None:
+    """Why a set-password link must not be returned for this email, or None if it may."""
+    st, out = identity("accounts:lookup", {"email": [email]})
+    users = (out or {}).get("users") or [] if st == 200 else []
+    if not users:
+        return "no such login"
+    created_ms = int(users[0].get("createdAt") or 0)
+    if time.time() * 1000 - created_ms > LINK_MAX_AGE_SECONDS * 1000:
+        return "login is not newly created"
+    st, uid = db("rpc/account_id_for_email", {"_email": email.lower()})
+    if st != 200 or not uid:
+        return "login has no account record"
+    st, roles = db(f"user_roles?select=role&user_id=eq.{uid}", method="GET")
+    if st != 200 or any(r.get("role") == "admin" for r in roles or []):
+        return "not available for this account"
+    return None
 
 
 def all_login_ids() -> set:
@@ -189,6 +222,15 @@ class Handler(BaseHTTPRequestHandler):
         email = str(self.body().get("email") or "").strip()
         if "@" not in email:
             return self.reply(400, {"error": "email required"})
+        # A returned link signs into the account, so it is only handed out for the
+        # one case it exists for: a login created moments ago by an import or a
+        # college creation. Anything older, or an admin, gets nothing here; the
+        # caller then falls back to Google mailing the owner directly. Without
+        # this, anyone holding the webhook secret could take over any account.
+        refusal = link_refusal(email)
+        if refusal:
+            print(f"password-link refused: {refusal}", flush=True)
+            return self.reply(403, {"error": refusal})
         # returnOobLink: Google hands the link back instead of mailing it.
         st, out = identity("accounts:sendOobCode", {
             "requestType": "PASSWORD_RESET", "email": email, "returnOobLink": True,
@@ -201,20 +243,43 @@ class Handler(BaseHTTPRequestHandler):
     def sync(self):
         if not WEBHOOK or not hmac.compare_digest(self.headers.get("x-webhook-secret", ""), WEBHOOK):
             return self.reply(401, {"error": "unauthorized"})
+        dry_run = "dry_run=1" in (self.path.split("?", 1)[1] if "?" in self.path else "")
         logins = all_login_ids()          # raises -> 500, nothing removed
         if not logins:
             return self.reply(409, {"error": "Identity Platform returned no logins at all; refusing to act."})
         st, students = db("rpc/student_logins", {})
         if st != 200:
             return self.reply(500, {"error": "could not list students"})
-        gone = [s["student_id"] for s in students if s["provider_uid"] not in logins]
-        if not gone:
-            return self.reply(200, {"removed": 0})
-        st, rows = db("rpc/remove_students", {"_ids": gone, "_by": None, "_reason": "console_sync"})
+        st, missing_rows = db("account_sync_missing?select=student_id,first_missing_at", method="GET")
         if st != 200:
-            return self.reply(500, {"error": str(rows)[:300]})
-        print(f"console sync: removed {len(rows)} students whose login was deleted", flush=True)
-        return self.reply(200, {"removed": len(rows)})
+            return self.reply(500, {"error": "could not read the missing-login ledger"})
+        decision = sync_plan.plan(students, logins, missing_rows, datetime.now(timezone.utc),
+                                  grace_seconds=GRACE, max_abs=MAX_ABS, max_fraction=MAX_FRACTION)
+        summary = {"students": len(students), "missing_now": len(decision["missing"]),
+                   "newly_missing": len(decision["mark"]), "came_back": len(decision["clear"]),
+                   "due_for_removal": len(decision["remove"]), "ceiling": decision["ceiling"]}
+        if decision["abort"]:
+            # A distinct log line the alert policy matches. Nothing is removed or marked.
+            print(f"ACCOUNT SYNC ABORTED: {decision['abort']} {json.dumps(summary)}", flush=True)
+            return self.reply(409, {"error": decision["abort"], **summary})
+        if dry_run:
+            return self.reply(200, {"dry_run": True, **summary, "would_remove": decision["remove"]})
+        if decision["mark"]:
+            # ignore-duplicates keeps the FIRST time a login was seen missing.
+            db("account_sync_missing?on_conflict=student_id",
+               [{"student_id": s["student_id"], "provider_uid": s["provider_uid"]} for s in decision["mark"]],
+               prefer="resolution=ignore-duplicates,return=minimal")
+        if decision["clear"]:
+            db(f"account_sync_missing?student_id=in.({','.join(decision['clear'])})", method="DELETE")
+        removed = 0
+        if decision["remove"]:
+            st, rows = db("rpc/remove_students", {"_ids": decision["remove"], "_by": None, "_reason": "console_sync"})
+            if st != 200:
+                return self.reply(500, {"error": str(rows)[:300], **summary})
+            removed = len(rows)
+            print(f"console sync: removed {removed} students whose login stayed deleted for "
+                  f"{GRACE // 60}+ min {json.dumps(summary)}", flush=True)
+        return self.reply(200, {"removed": removed, **summary})
 
     def log_message(self, fmt, *args):
         print(f"{self.address_string()} {fmt % args}", flush=True)

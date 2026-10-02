@@ -53,6 +53,8 @@ for w in ("student", "college", "admin"):
     if T[w]:
         st, o = http("GET", f"{API}/user_roles?select=user_id,role", None, T[w]); me[w] = o
 denied = lambda st: st in (401, 403, 404)
+# the test student's own id, read with its own ticket (it changes if the account is recreated)
+SMOKE_ID = http("GET", f"{API}/student_profiles?select=id", None, T["student"])[1][0]["id"]
 
 # --- student
 s = T["student"]
@@ -60,11 +62,11 @@ st, o = http("GET", f"{API}/student_profiles?select=id", None, s)
 rec("PostgREST", "student_profiles visible rows", "student", "only self", f"{len(o) if isinstance(o, list) else st}", isinstance(o, list) and len(o) == 1)
 for t in ("task_submissions", "voice_explanations", "tasks"):
     st, o = http("GET", f"{API}/{t}?select=student_id", None, s)
-    others = [r for r in o if r["student_id"] != "366602c7-90a0-4f3b-8956-82ed35c0dd15"] if isinstance(o, list) else ["err"]
+    others = [r for r in o if r["student_id"] != SMOKE_ID] if isinstance(o, list) else ["err"]
     rec("PostgREST", f"{t}: other students' rows", "student", "0", f"{len(others)} of {len(o) if isinstance(o, list) else st}", not others)
 st, o = http("GET", f"{API}/student_contact?select=student_id", None, s)
-rec("PostgREST", "student_contact: other students", "student", "0", str(len([r for r in o if r['student_id'] != '366602c7-90a0-4f3b-8956-82ed35c0dd15']) if isinstance(o, list) else st),
-    isinstance(o, list) and all(r["student_id"] == "366602c7-90a0-4f3b-8956-82ed35c0dd15" for r in o) or denied(st))
+rec("PostgREST", "student_contact: other students", "student", "0", str(len([r for r in o if r['student_id'] != SMOKE_ID]) if isinstance(o, list) else st),
+    isinstance(o, list) and all(r["student_id"] == SMOKE_ID for r in o) or denied(st))
 for rpc in ("admin_trace_search", "admin_bug_finder_runs", "tpo_placement_report", "tpo_college_report"):
     st, o = http("POST", f"{API}/rpc/{rpc}", {}, s)
     refused = denied(st) or st == 400 or (st == 200 and (not o or (isinstance(o, dict) and "error" in o)))
@@ -72,7 +74,7 @@ for rpc in ("admin_trace_search", "admin_bug_finder_runs", "tpo_placement_report
 for rpc in ("claim_transcription_job", "claim_transcription_recovery", "complete_voice_scoring", "record_task_submission"):
     st, o = http("POST", f"{API}/rpc/{rpc}", {}, s)
     rec("RPC", f"{rpc} (server only)", "student", "denied", str(st), denied(st))
-st, o = http("PATCH", f"{API}/voice_explanations?student_id=eq.366602c7-90a0-4f3b-8956-82ed35c0dd15", {"communication_score": 100}, s)
+st, o = http("PATCH", f"{API}/voice_explanations?student_id=eq.{SMOKE_ID}", {"communication_score": 100}, s)
 rec("PostgREST", "update own voice score", "student", "denied", str(st), denied(st))
 st, o = http("PATCH", f"{API}/task_rubric_config?id=eq.ad5f2c83-558b-4bdc-a0d6-53c6e552e8ee", {"scratch_language": "java"}, s, "return=representation")
 rec("PostgREST", "change a task's scratch_language", "student", "0 rows", f"{st} {len(o) if isinstance(o, list) else ''}", denied(st) or (isinstance(o, list) and not o))
@@ -95,7 +97,7 @@ if c:
     for rpc, key in (("tpo_placement_report", "hires"), ("tpo_college_report", "seasons")):
         st, o = http("POST", f"{API}/rpc/{rpc}", {}, c)
         rec("RPC", f"{rpc} (own college)", "college", "allowed", f"{st} {sorted(o)[:3] if isinstance(o, dict) else o}", st == 200 and isinstance(o, dict) and key in o)
-    st, o = http("GET", f"{API}/voice_explanations?select=id&student_id=eq.366602c7-90a0-4f3b-8956-82ed35c0dd15", None, c)
+    st, o = http("GET", f"{API}/voice_explanations?select=id&student_id=eq.{SMOKE_ID}", None, c)
     rec("PostgREST", "read a student's voice rows (own college)", "college", "allowed", f"{st} {len(o) if isinstance(o, list) else ''}", st == 200)
 
 # --- admin
@@ -135,7 +137,7 @@ else:
     for rpc in ("claim_transcription_job", "record_task_submission", "complete_voice_scoring"):
         st, o = http("POST", f"{API}/rpc/{rpc}", {}, co)
         rec("RPC", f"{rpc} (server only)", "company", "denied", str(st), denied(st))
-    st, o = http("POST", f"{API}/rpc/recruiter_proof_profile", {"_student_id": "366602c7-90a0-4f3b-8956-82ed35c0dd15"}, co)
+    st, o = http("POST", f"{API}/rpc/recruiter_proof_profile", {"_student_id": SMOKE_ID}, co)
     rec("RPC", "proof profile of a non-public student", "company", "no data", str(o)[:40], not (isinstance(o, dict) and o.get("full_name")))
     st, o = http("POST", f"{API}/rpc/recruiter_talent", {}, co)
     rec("RPC", "talent search runs (public students only)", "company", "allowed", f"{st} {len(o) if isinstance(o, list) else ''}", st == 200 and isinstance(o, list))
@@ -148,7 +150,7 @@ else:
     rec("Worker", "private worker with a company ticket", "company", "401/403", str(st), st in (401, 403))
     # a student's private recording: the company must be refused, the owner allowed (control)
     SVC_T = subprocess.run([sys.executable, "scripts/dev-tools/pl.py", "svc", "GET",
-                            "voice_explanations?select=storage_path&student_id=eq.366602c7-90a0-4f3b-8956-82ed35c0dd15&limit=1"],
+                            f"voice_explanations?select=storage_path&student_id=eq.{SMOKE_ID}&limit=1"],
                            capture_output=True, text=True).stdout
     path = json.loads(SVC_T[SVC_T.find("["):])[0]["storage_path"] if "[" in SVC_T else None
     if path:

@@ -60,6 +60,9 @@ jobs:
       - name: Server function tests (Deno)
         run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/
 
+      - name: Accounts sync safety tests (Python)
+        run: cd accounts && python3 test_sync_plan.py
+
       - name: Production build
         run: npm run build
 

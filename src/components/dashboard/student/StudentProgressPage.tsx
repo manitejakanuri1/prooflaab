@@ -22,8 +22,11 @@ interface EarnedBadge { name: string; emoji: string }
  * scoring tables instead). That made the completion rate and monthly XP
  * chart silently zero for every real student, quietly, forever. Rebuilt on
  * the same tables the season report and weekly scoring already prove
- * correct: student_weekly_scores for points, proof_uploads for submitted vs
- * verified work, trust_scores and student_badges for the rest.
+ * correct: student_weekly_scores for points, task_submissions (the Lots a
+ * student submits) for passed vs submitted work, trust_scores and
+ * student_badges for the rest. (Until 2 Oct 2026 the submission cards read
+ * proof_uploads, which stopped filling when upload proof was switched off on
+ * 19 Sep, so they showed 0 for everyone.)
  *
  * It also used to pad six months of made-up trust-score history and always
  * showed the same three achievement badges regardless of whether they were
@@ -37,7 +40,7 @@ const StudentProgressPage = () => {
   const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[] | null>(null);
   const [trustHistory, setTrustHistory] = useState<TrustPoint[] | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[] | null>(null);
-  const [submissions, setSubmissions] = useState<{ total: number; verified: number } | null>(null);
+  const [submissions, setSubmissions] = useState<{ total: number; passed: number; review: number } | null>(null);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -49,7 +52,7 @@ const StudentProgressPage = () => {
           .eq("student_id", profile.id).order("created_at", { ascending: true }),
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
           .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
-        supabase.from("proof_uploads").select("status").eq("student_id", profile.id),
+        supabase.from("task_submissions").select("status").eq("student_id", profile.id),
       ]);
 
       setWeeklyPoints((weekly ?? []).map((w) => ({ week: w.week as number, points: w.points as number })));
@@ -60,7 +63,8 @@ const StudentProgressPage = () => {
       setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
       setSubmissions({
         total: (proofs ?? []).length,
-        verified: (proofs ?? []).filter((p) => p.status === "Verified").length,
+        passed: (proofs ?? []).filter((p) => p.status === "passed").length,
+        review: (proofs ?? []).filter((p) => p.status === "needs_review").length,
       });
     })();
   }, [profile?.id]);
@@ -77,7 +81,7 @@ const StudentProgressPage = () => {
     );
   }
 
-  const verifiedRate = submissions.total > 0 ? Math.round((submissions.verified / submissions.total) * 100) : 0;
+  const passRate = submissions.total > 0 ? Math.round((submissions.passed / submissions.total) * 100) : 0;
   const thisWeek = weeklyPoints.length > 0 ? weeklyPoints[weeklyPoints.length - 1].points : 0;
   const lastWeek = weeklyPoints.length > 1 ? weeklyPoints[weeklyPoints.length - 2].points : null;
   const weekChange = lastWeek != null
@@ -86,8 +90,9 @@ const StudentProgressPage = () => {
     : null;
 
   const submissionData = [
-    { name: "Verified", value: submissions.verified, color: "#22c55e" },
-    { name: "Awaiting review", value: submissions.total - submissions.verified, color: "#f59e0b" },
+    { name: "Passed", value: submissions.passed, color: "#22c55e" },
+    { name: "Needs review", value: submissions.review, color: "#f59e0b" },
+    { name: "Not passed", value: submissions.total - submissions.passed - submissions.review, color: "#ef4444" },
   ];
 
   const progressCards = [
@@ -95,7 +100,7 @@ const StudentProgressPage = () => {
       color: "text-green-600", bgColor: "bg-green-50", change: weekChange },
     { title: "Trust Score", value: profile?.trust_score?.toString() || "0", icon: TrendingUp,
       color: "text-purple-600", bgColor: "bg-purple-50", change: null },
-    { title: "Verified Rate", value: `${verifiedRate}%`, icon: Target,
+    { title: "Pass Rate", value: `${passRate}%`, icon: Target,
       color: "text-blue-600", bgColor: "bg-blue-50", change: null },
     { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck,
       color: "text-orange-600", bgColor: "bg-orange-50", change: null },
@@ -221,10 +226,10 @@ const StudentProgressPage = () => {
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Verified Rate</span>
-                <span className="text-sm font-bold">{verifiedRate}%</span>
+                <span className="text-sm font-medium">Pass Rate</span>
+                <span className="text-sm font-bold">{passRate}%</span>
               </div>
-              <Progress value={verifiedRate} className="h-2" />
+              <Progress value={passRate} className="h-2" />
             </div>
 
             <div>

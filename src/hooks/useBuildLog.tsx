@@ -17,6 +17,8 @@ export interface BuildLogVoice {
   communication_score: number | null;
   communication_notes: string | null;
   transcript: string | null;
+  /** evaluator metadata: content_match (0-100), flags, and what the transcriber heard. */
+  evaluation: { content_match?: number | null; flags?: string[]; transcription?: { gate?: string; language?: string } } | null;
   created_at: string;
 }
 
@@ -56,7 +58,7 @@ export const useBuildLog = () => {
           .select("id, task_id, status, sandbox_score, passed_count, total_count, language, code, rubric_scores, sandbox_config_id, created_at, tasks(title, lot_date, source_jd, lot_category)")
           .eq("student_id", profile.id).order("created_at", { ascending: false }).limit(200),
         supabase.from("voice_explanations")
-          .select("id, task_id, submission_id, current_authoritative, attempt_no, status, transcription_status, communication_score, communication_notes, transcript, created_at")
+          .select("id, task_id, submission_id, current_authoritative, attempt_no, status, transcription_status, communication_score, communication_notes, transcript, evaluation, created_at")
           .eq("student_id", profile.id).is("withdrawn_at" as never, null).order("created_at", { ascending: false }).limit(200),
       ]);
       if (subs.error) throw subs.error;

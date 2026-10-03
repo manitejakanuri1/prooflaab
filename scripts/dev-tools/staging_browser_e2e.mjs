@@ -109,7 +109,7 @@ const back = async (page) => { await page.goBack({ waitUntil: "networkidle" }); 
 const JOURNEYS = {
   established: [
     ["Floor is the landing screen; menu has 4 items", seq(go("/student/dashboard"), see("Daily Card|Today"), menuIs(["Floor", "Build-log", "Squad", "Profile"], ["Daily Card", "Voice", "Progress", "Portfolio", "Resume"]))],
-    ["Build-log: recent work with marks, no Cosigns", seq(click("Build-log"), urlHas("tab=log"), see("Recent work"), see("Tests passed|Being checked|Nothing here yet"), noText("Cosigns"), noText("Trust"))],
+    ["Build-log: recent work with marks, no Cosigns", seq(click("Build-log"), urlHas("tab=log"), see("Recent work"), see("Task result"), see("Voice explanation"), see("Tests passed 6 of 6"), see("View detailed feedback"), noText("Cosigns"), noText("Trust"))],
     ["Build-log inner view survives refresh and Back", seq(click("Skills evidence"), urlHas("view=skills"), reload, urlHas("view=skills"), click("History"), urlHas("view=history"), back, urlHas("view=skills"))],
     ["Squad shows teammate names", seq(click("Squad"), see("Squad"), click("Members"), see("Fake Student 2"), see("Fake Student 3"))],
     ["Profile groups resume, portfolio, privacy", seq(click("Profile"), see("Resume"), see("Portfolio"), see("Privacy"))],

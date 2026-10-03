@@ -71,6 +71,22 @@ def token(who: str, ttl: int = 600, alg: str | None = None) -> str:
     return f"{h}.{p}." + b64(key.sign(f"{h}.{p}".encode(), padding.PKCS1v15(), hashes.SHA256()))
 
 
+SCHEDULER_SA = "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com"
+_sched = {"token": "", "at": 0.0}
+
+
+def scheduler_headers(audience: str = FUNCTIONS) -> dict:
+    """Headers that start a staging job the way Cloud Scheduler does (G11): the scheduler
+    account's Google identity token, not a shared secret. The operator may mint it for the
+    STAGING scheduler account only."""
+    if not _sched["token"] or time.time() - _sched["at"] > 1800:
+        out = subprocess.run(f"gcloud auth print-identity-token --impersonate-service-account={SCHEDULER_SA} "
+                             f"--audiences={audience} --include-email", shell=True, capture_output=True, text=True)
+        assert out.returncode == 0 and out.stdout.strip(), "could not mint the staging scheduler identity"
+        _sched.update(token=out.stdout.strip(), at=time.time())
+    return {"Authorization": f"Bearer {_sched['token']}", "Content-Type": "application/json"}
+
+
 def http(url, data=None, headers=None, method=None):
     req = urllib.request.Request(url, data=json.dumps(data).encode() if data is not None else None,
                                  headers={"Content-Type": "application/json", **(headers or {})}, method=method)

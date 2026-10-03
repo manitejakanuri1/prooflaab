@@ -1,3 +1,4 @@
+import { identityTokenFor } from './googleIdentity.ts';
 // Shared code runner. ProofLab's own runner is the only one used; public runners
 // exist only for a non-production developer opt-in (publicRunnersAllowed, F10).
 //
@@ -247,11 +248,22 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
 export async function runOnOwnRunner(language: string, code: string, stdin: string): Promise<RunResult> {
   const url = Deno.env.get('CODE_RUNNER_URL');
   const secret = Deno.env.get('CODE_RUNNER_SECRET');
-  if (!url || !secret) return { ok: false, reason: 'own runner not configured' };
+  // G12: with CODE_RUNNER_AUTH=iam this service proves who it is with its own Google
+  // identity token (Cloud Run IAM lets only this service account reach the runner) and no
+  // shared secret exists. Otherwise: the legacy secret header.
+  const byIdentity = Deno.env.get('CODE_RUNNER_AUTH') === 'iam';
+  if (!url || (!secret && !byIdentity)) return { ok: false, reason: 'own runner not configured' };
+  const base = url.replace(/\/$/, '');
+  let auth: Record<string, string>;
+  try {
+    auth = byIdentity ? { Authorization: `Bearer ${await identityTokenFor(base)}` } : { 'x-runner-secret': secret! };
+  } catch (e) {
+    return { ok: false, reason: `own runner identity: ${(e as Error).message}` };
+  }
 
-  const res = await fetch(`${url.replace(/\/$/, '')}/run`, {
+  const res = await fetch(`${base}/run`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-runner-secret': secret },
+    headers: { 'Content-Type': 'application/json', ...auth },
     body: JSON.stringify({ language, code, stdin }),
     signal: withTimeout(70000),
   });

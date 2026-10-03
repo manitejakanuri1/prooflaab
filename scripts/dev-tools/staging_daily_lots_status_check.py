@@ -24,13 +24,11 @@ def sql(text):
     assert "exit=0" in r.stdout, r.stdout[-400:]
 
 
-SECRET = subprocess.run("gcloud secrets versions access latest --secret=prooflab-staging-webhook-secret",
-                        shell=True, capture_output=True, text=True).stdout.strip()
 
 
 def run_job():
     req = urllib.request.Request(f"{st.FUNCTIONS}/scheduled-job?job=daily-lots", data=b"{}", method="POST",
-                                 headers={"x-webhook-secret": SECRET, "Content-Type": "application/json"})
+                                 headers=st.scheduler_headers())
     try:
         with urllib.request.urlopen(req, timeout=300) as r:
             return r.status, json.loads(r.read())

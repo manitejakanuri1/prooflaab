@@ -85,13 +85,10 @@
   "concurrency": 1,
   "cpu": "2",
   "env": {
-   "RUNNER_SECRET": {
-    "secret": "prooflab-staging-code-runner-secret",
-    "version": "latest"
-   }
+   "RUNNER_ALLOWED_CALLERS": "prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com"
   },
   "execution_environment": "gen2",
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner:stab-w3a",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner:stab-1606b50-2233",
   "ingress": "all",
   "max_instances": "2",
   "memory": "2Gi",
@@ -138,10 +135,7 @@
    "ALLOWED_ORIGINS": "http://localhost:5173",
    "APP_JWT_PUBLIC_JWKS": "{\"keys\": [{\"kty\": \"RSA\", \"n\": \"s1xyA4jIItujyce-XMulsMvLn2P7l5iEOqoPd3Tchab36qUdhcYSij-7X-OryISXI5s_ruWldt6emJfwZc2jqbs3c4HYRFVieZY-94sUVebTRkzK1K0awjXKmAgBwm-lhjPbhQxU6_Mm7ug4s23-7XE083I3DIfSkCTrRR88aacvOErcoKFAfJCJVuJ5nFDGQXwvr1LiW2MfQFfQ0vT_uv3MQMboGp3n9v9YCdJI2GMk7NyiMhTyWkXqAaH8j61-z6FnWl7XSh6s6wjr1qlbKQbFgZu5dYguLS3hJczD8H_kwL4e4JTsFjXQTWDKV3vQCUKJlmsFYM29PyEDaSqAIw\", \"e\": \"AQAB\", \"alg\": \"RS256\", \"use\": \"sig\", \"kid\": \"6a7e46dd0d6f1cc4\"}]}",
    "BACKEND": "google",
-   "CODE_RUNNER_SECRET": {
-    "secret": "prooflab-staging-code-runner-secret",
-    "version": "latest"
-   },
+   "CODE_RUNNER_AUTH": "iam",
    "CODE_RUNNER_URL": "https://prooflab-staging-code-runner-ysn2mpe6sa-el.a.run.app",
    "DEEPSEEK_API_KEY": {
     "secret": "deepseek-api-key",
@@ -161,6 +155,9 @@
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "PRIVATE_MOUNT": "/mnt/staging-private",
    "PUBLIC_MOUNT": "/mnt/staging-public",
+   "SCHEDULER_AUDIENCE": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app",
+   "SCHEDULER_AUTH": "oidc",
+   "SCHEDULER_CALLERS": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
    "SECRET_ROTATED_AT": "v3-1790357083",
    "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
    "STALE_AFTER_SECONDS": "180",
@@ -174,7 +171,7 @@
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-862efe8-2151",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-1606b50-2231",
   "ingress": "all",
   "max_instances": "2",
   "memory": "1Gi",

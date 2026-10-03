@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { secretMatches } from "../_shared/secret.ts";
+import { schedulerCaller } from "../_shared/googleIdentity.ts";
 import { scoreRecording, VOICE_SCORE_COLUMNS } from "../_shared/voiceScore.ts";
 import { EXHAUSTED_ERROR, logReport, runReap } from "./reap.ts";
 
@@ -31,12 +31,8 @@ import { EXHAUSTED_ERROR, logReport, runReap } from "./reap.ts";
  * say exactly what.
  */
 serve(async (req) => {
-  const expected = Deno.env.get("WEBHOOK_SECRET");
-  if (!expected) {
-    console.error("WEBHOOK_SECRET not configured");
-    return new Response(JSON.stringify({ error: "not configured" }), { status: 500 });
-  }
-  if (!secretMatches(req.headers.get("x-webhook-secret"), expected)) {
+  // Cloud Scheduler's Google identity, or the webhook secret until SCHEDULER_AUTH=oidc (G11).
+  if (!(await schedulerCaller(req))) {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
   }
 

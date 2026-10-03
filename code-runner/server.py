@@ -15,6 +15,7 @@ Isolation (hardened 3 Oct 2026 after staging probes proved F8/F9):
   * where the platform allows it, each run gets its own empty network namespace:
     no internet, no metadata server (F9). /ready reports whether it is active.
 """
+import base64
 import ctypes
 import threading
 import time
@@ -31,6 +32,27 @@ import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 SECRET = os.environ.get("RUNNER_SECRET", "")
+# G12: service identity instead of a shared secret. With RUNNER_ALLOWED_CALLERS set, the caller
+# must be one of these Google service accounts. Cloud Run IAM has ALREADY verified the identity
+# token's signature and audience before the request reaches this container (the service must be
+# deployed without public access); this is the second lock, naming exactly who may run code.
+ALLOWED_CALLERS = set(filter(None, os.environ.get("RUNNER_ALLOWED_CALLERS", "").split(",")))
+
+
+def caller_email(auth_header: str) -> str:
+    """The e-mail claim of a bearer identity token (signature already checked by Cloud Run)."""
+    try:
+        part = auth_header.split(" ", 1)[1].split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4)))
+        return claims.get("email", "") if claims.get("email_verified") is True else ""
+    except Exception:
+        return ""
+
+
+def authorised(headers) -> bool:
+    if ALLOWED_CALLERS:
+        return caller_email(headers.get("Authorization", "")) in ALLOWED_CALLERS
+    return bool(SECRET) and hmac.compare_digest(headers.get("x-runner-secret", ""), SECRET)
 PORT = int(os.environ.get("PORT", "8080"))
 RUNNER = pwd.getpwnam("runner")
 
@@ -241,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path != "/run":
             return self.reply(404, {"error": "not found"})
-        if not SECRET or not hmac.compare_digest(self.headers.get("x-runner-secret", ""), SECRET):
+        if not authorised(self.headers):
             return self.reply(401, {"error": "unauthorized"})
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_CODE * 2:

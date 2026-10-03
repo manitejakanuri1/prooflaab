@@ -81,12 +81,10 @@ for name, who, verb, path, body, prefer in CASES:
     print(("PASS " if ok else "FAIL ") + f"{name:47s} {med:7.0f}ms {max(times):7.0f}ms  {size:>7d} B{extra}", flush=True)
 
 if "--jobs" in sys.argv:
-    secret = subprocess.run("gcloud secrets versions access latest --secret=prooflab-staging-webhook-secret",
-                            shell=True, capture_output=True, text=True).stdout.strip()
     print("\nnightly jobs at 15,000 students (limit 240 s each - the function's request timeout is 300 s)")
     for job in ("nightly-squads", "daily-lots", "weekly-seasons", "prune-events"):
         req = urllib.request.Request(f"{st.FUNCTIONS}/scheduled-job?job={job}", data=b"{}", method="POST",
-                                     headers={"x-webhook-secret": secret, "Content-Type": "application/json"})
+                                     headers=st.scheduler_headers())
         t0 = time.perf_counter()
         try:
             with urllib.request.urlopen(req, timeout=320) as r:

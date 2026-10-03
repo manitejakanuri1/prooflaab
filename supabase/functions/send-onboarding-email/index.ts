@@ -1,4 +1,5 @@
 import { serve } from "../_shared/serve.ts";
+import { secretMatches } from "../_shared/secret.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from '../_shared/rate-limit.ts';
@@ -163,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
   // internal call arrives from the same loopback address, and an import of
   // sixty students would otherwise send ten welcome emails and drop fifty.
   const expectedSecret = Deno.env.get("WEBHOOK_SECRET");
-  const internal = !!expectedSecret && req.headers.get("x-webhook-secret") === expectedSecret;
+  const internal = secretMatches(req.headers.get("x-webhook-secret"), expectedSecret);
 
   // Tight cap: an unthrottled send endpoint is a way to mail arbitrary people
   // from your domain, which costs the sending reputation, not just the credits.

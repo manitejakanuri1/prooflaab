@@ -41,6 +41,7 @@ gate "F1: only the bridge can sign"       python scripts/dev-tools/staging_f1_ch
 gate "cross-account sweep (all functions)" python scripts/dev-tools/staging_function_authz_check.py
 gate "voice evidence binding/immutability" python scripts/dev-tools/staging_voice_binding_check.py
 gate "student import all-or-nothing"      python scripts/dev-tools/staging_import_txn_check.py
+gate "service identity (Scheduler, runner)" python scripts/dev-tools/staging_identity_check.py
 gate "suspended account, old ticket refused" python scripts/dev-tools/staging_suspended_check.py
 gate "evaluator type integrity"           python scripts/dev-tools/staging_evaluator_type_check.py
 gate "infrastructure matches infra/"      python scripts/infra_snapshot.py --check

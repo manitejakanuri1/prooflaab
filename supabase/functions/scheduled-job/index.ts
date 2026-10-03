@@ -1,6 +1,6 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { secretMatches } from "../_shared/secret.ts";
+import { schedulerCaller } from "../_shared/googleIdentity.ts";
 import { pagesNeedingLots, reopenForRewrite, writeLotTemplate } from "../_shared/lot-pipeline.ts";
 
 /**
@@ -31,12 +31,9 @@ const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 serve(async (req) => {
-  const expected = Deno.env.get('WEBHOOK_SECRET');
-  if (!expected) {
-    console.error('WEBHOOK_SECRET not configured');
-    return reply({ error: 'Server configuration error' }, 500);
-  }
-  if (!secretMatches(req.headers.get('x-webhook-secret'), expected)) {
+  // Who may start a job (G11): Cloud Scheduler's own Google identity, or - until
+  // SCHEDULER_AUTH=oidc turns it off - the shared webhook secret.
+  if (!(await schedulerCaller(req))) {
     return reply({ error: 'Unauthorized' }, 401);
   }
 

@@ -10,7 +10,7 @@ case "$1" in
              gcloud builds submit --project=$P --config=functions-service/cloudbuild.yaml --substitutions=_IMAGE=$IMG . >/dev/null ;;
   files)     IMG=$REPO/prooflab-files:$TAG
              gcloud builds submit --project=$P --tag=$IMG files-service >/dev/null ;;
-  accounts|transcription-worker|transcriber)
+  accounts|transcription-worker|transcriber|code-runner)
              IMG=$REPO/prooflab-$1:$TAG
              gcloud builds submit --project=$P --tag=$IMG $1 >/dev/null ;;
   auth-bridge) IMG=$REPO/prooflab-auth-bridge:$TAG

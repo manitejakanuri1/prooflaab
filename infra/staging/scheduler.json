@@ -2,15 +2,14 @@
  "prooflab-staging-transcription-reap": {
   "header_names": [
    "Content-Type",
-   "User-Agent",
-   "x-webhook-secret"
+   "User-Agent"
   ],
   "method": "POST",
   "oauth_service_account": null,
-  "oidc_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
   "schedule": "* * * * *",
   "state": "ENABLED",
   "time_zone": "Asia/Kolkata",
-  "uri": "https://prooflab-staging-functions-135298577404.asia-south1.run.app/transcription-reap"
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/transcription-reap"
  }
 }

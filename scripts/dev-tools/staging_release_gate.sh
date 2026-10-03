@@ -36,6 +36,8 @@ gate "token module tests (python)"        bash -c 'cd accounts && python test_ap
 gate "transcription worker tests"         bash -c 'cd transcription-worker && python -m unittest test_server'
 gate "English-only gate rule"             bash -c 'cd transcriber && python test_language_gate.py'
 
+gate "CI green: runner suite + artifact hand-off" python scripts/dev-tools/ci_green_check.py
+
 echo "== staging security"
 gate "F1: only the bridge can sign"       python scripts/dev-tools/staging_f1_check.py
 gate "cross-account sweep (all functions)" python scripts/dev-tools/staging_function_authz_check.py
@@ -57,6 +59,8 @@ if [ "$MODE" != "quick" ]; then
   gate "crawler: source to student-ready Lot"  python scripts/dev-tools/staging_crawler_e2e.py
   gate "bug-finder job (plumbing run)"        python scripts/dev-tools/staging_bugfinder_check.py
   gate "real audio through the voice pipeline" python scripts/dev-tools/staging_voice_e2e.py
+  gate "code runner under load (10, 20 students)" bash -c 'out=$(python scripts/dev-tools/staging_load_test.py runcode 10 20); echo "$out"; [ "$(echo "$out" | grep -c "errors=0 ")" = "2" ] && echo "2/2 checks passed"'
+  gate "voice burst (10 recordings at once)"  bash -c 'out=$(python scripts/dev-tools/staging_load_test.py voice e2e-out/loadvoice.wav 10); echo "$out"; echo "$out" | grep -q "scored=10 failed=0" && echo "1/1 checks passed"'
   gate "browser journeys (all roles)"       node scripts/dev-tools/staging_browser_e2e.mjs
 fi
 

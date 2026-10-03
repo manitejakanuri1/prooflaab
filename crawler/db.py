@@ -52,14 +52,29 @@ def _service_token(secret: str) -> str:
     return f"{header}.{payload}.{_b64(signature)}"
 
 
+def _bridge_token(signer: str) -> str:
+    """A service_role token from the auth-bridge, proved with this job's Google identity."""
+    identity = httpx.get(
+        "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity",
+        params={"audience": signer}, headers={"Metadata-Flavor": "Google"}, timeout=10)
+    identity.raise_for_status()
+    reply = httpx.post(f"{signer}/service-token",
+                       headers={"Authorization": f"Bearer {identity.text.strip()}"}, timeout=10)
+    reply.raise_for_status()
+    return reply.json()["access_token"]
+
+
 class Database:
     """The two tables this crawler touches, on whichever backend is configured."""
 
     def __init__(self) -> None:
         if BACKEND == "google":
             self.base = os.environ["POSTGREST_URL"].rstrip("/")
-            secret = os.environ["PGRST_JWT_SECRET"]
-            token = _service_token(secret)
+            # F1: with SIGNER_URL set, the auth-bridge issues the token after checking
+            # this job's own Google identity (the crawler holds no signing key).
+            # Without it: the legacy self-signed token.
+            signer = os.environ.get("SIGNER_URL", "").rstrip("/")
+            token = _bridge_token(signer) if signer else _service_token(os.environ["PGRST_JWT_SECRET"])
             self.headers = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",

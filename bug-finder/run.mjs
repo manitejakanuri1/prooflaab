@@ -25,9 +25,24 @@ const SITE = process.env.SITE_URL || "https://prooflab.co.in";
 const API = process.env.POSTGREST_URL;
 const JWT_SECRET = process.env.PGRST_JWT_SECRET;
 
-/** PostgREST here verifies a signed HS256 token, not a static API key - same scheme pl.py's
- * token('svc') uses. Minted fresh each run so nothing long-lived is embedded anywhere. */
-function serviceToken() {
+/** A short-lived service_role token for the health-check writes.
+ * F1: with SIGNER_URL set, the auth-bridge issues it after checking this job's own Google
+ * identity (the job holds no signing key). Without it: the legacy self-signed HS256 token. */
+const SIGNER_URL = (process.env.SIGNER_URL || "").replace(/\/$/, "");
+let bridged = null;
+async function serviceToken() {
+  if (SIGNER_URL) {
+    if (bridged && bridged.expires > Date.now() + 30_000) return bridged.token;
+    const id = await fetch(
+      `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(SIGNER_URL)}`,
+      { headers: { "Metadata-Flavor": "Google" } });
+    if (!id.ok) throw new Error(`could not get this job's identity token: ${id.status}`);
+    const res = await fetch(`${SIGNER_URL}/service-token`, { method: "POST", headers: { Authorization: `Bearer ${(await id.text()).trim()}` } });
+    if (!res.ok) throw new Error(`the signer refused a service token: ${res.status}`);
+    const body = await res.json();
+    bridged = { token: body.access_token, expires: Date.now() + body.expires_in * 1000 };
+    return bridged.token;
+  }
   const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString("base64url");
   const header = b64({ alg: "HS256", typ: "JWT" });
   const payload = b64({ role: "service_role", exp: Math.floor(Date.now() / 1000) + 600 });
@@ -69,7 +84,7 @@ async function step(name, fn) {
 
 /** REST helper against PostgREST, minting a fresh service-role token each call. */
 async function db(path, init = {}) {
-  const res = await fetch(`${API}/${path}`, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceToken()}`, ...init.headers } });
+  const res = await fetch(`${API}/${path}`, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${await serviceToken()}`, ...init.headers } });
   return res;
 }
 
@@ -93,12 +108,12 @@ async function resetDeepAccount() {
 }
 
 async function saveResults() {
-  if (!API || !JWT_SECRET) return; // still logs; the database row is a nice-to-have, not required
+  if (!API || !(JWT_SECRET || SIGNER_URL)) return; // still logs; the database row is a nice-to-have, not required
   const rows = results.map((r) => ({
     run_id: RUN_ID, step: r.name, ok: r.ok, duration_ms: r.ms, reason: r.reason ?? null,
   }));
   try {
-    const token = serviceToken();
+    const token = await serviceToken();
     const res = await fetch(`${API}/bug_finder_runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, Prefer: "return=minimal" },

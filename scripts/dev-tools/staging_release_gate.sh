@@ -47,6 +47,9 @@ gate "infrastructure matches infra/"      python scripts/infra_snapshot.py --che
 
 echo "== staging scale (15,000 synthetic students)"
 gate "screen queries + nightly jobs"      python scripts/dev-tools/staging_scale_check.py --jobs
+if [ "$MODE" != "quick" ]; then
+  gate "daily Lots: success / partial / failure" python scripts/dev-tools/staging_daily_lots_status_check.py
+fi
 
 if [ "$MODE" != "quick" ]; then
   echo "== staging end to end"

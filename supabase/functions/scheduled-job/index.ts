@@ -70,7 +70,9 @@ serve(async (req) => {
 
   const started = Date.now();
   const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-  const { data, error } = await db.rpc(fn);
+  // daily-lots goes through the students in batches (migration 76): one request for
+  // everyone is cut off by the API's 30-second limit once there are enough students.
+  const { data, error } = job === 'daily-lots' ? await dailyLotsInBatches(db, started) : await db.rpc(fn);
   const ms = Date.now() - started;
 
   if (error) {
@@ -87,8 +89,60 @@ serve(async (req) => {
   // a distinct log line, watched by its own alert, rather than folding into the job's own success/fail.
   await sanityCheck(db, job, data).catch((e) => console.error(`scheduled-job ${job}: sanity check itself failed:`, e));
 
-  return reply({ ok: true, job, ms, result: data ?? null });
+  // A job that ran but failed at its purpose is a failure (migration 75): answer 500 so Cloud
+  // Scheduler retries it and the scheduled-job alert fires. Only daily-lots reports a status today.
+  const state = jobState(data);
+  if (state === 'failure') {
+    console.error(`JOB FAILED: ${job} reported status=failure: ${JSON.stringify(data ?? null).slice(0, 300)}`);
+    return reply({ ok: false, job, ms, status: state, result: data ?? null }, 500);
+  }
+  return reply({ ok: true, job, ms, status: state, result: data ?? null });
 });
+
+const BATCH = 1000;
+const TIME_BUDGET_MS = 240_000;   // the function itself is allowed 300 s
+
+/** Same thresholds as migration 75: 5% or 50 students failing is a failure. */
+export function dailyLotsStatus(failed: number, students: number): 'success' | 'partial_failure' | 'failure' {
+  if (failed === 0) return 'success';
+  if (failed >= 50 || failed / Math.max(students, 1) >= 0.05) return 'failure';
+  return 'partial_failure';
+}
+
+// deno-lint-ignore no-explicit-any
+async function dailyLotsInBatches(db: any, started: number): Promise<{ data: any; error: { message: string } | null }> {
+  const total = { lots_created: 0, already_had_one: 0, failed: 0, students: 0, batches: 0,
+    first_error: null as string | null, first_failed_student: null as string | null };
+  let after: string | null = null;
+  for (;;) {
+    // deno-lint-ignore no-explicit-any
+    const { data, error }: { data: any; error: { message: string } | null } =
+      await db.rpc('assign_todays_lots_batch', { _after: after, _limit: BATCH });
+    if (error) {
+      // What earlier batches created stays created; the run as a whole did not finish.
+      return { data: null, error: { message: `batch ${total.batches + 1} failed after ${total.lots_created} Lots: ${error.message}` } };
+    }
+    total.batches++;
+    total.lots_created += data.lots_created; total.already_had_one += data.already_had_one;
+    total.failed += data.failed; total.students += data.students;
+    total.first_error ??= data.first_error; total.first_failed_student ??= data.first_failed_student;
+    if (data.done) break;
+    after = data.last_id;
+    if (Date.now() - started > TIME_BUDGET_MS) {
+      return { data: null, error: { message: `ran out of time after ${total.students} students (${total.lots_created} Lots created); the retry continues` } };
+    }
+  }
+  const status = dailyLotsStatus(total.failed, total.students);
+  return { data: { ok: status !== 'failure', status, ...total, ran_at: new Date().toISOString() }, error: null };
+}
+
+/** success | partial_failure | failure. A job that reports no status of its own is a success here. */
+export function jobState(data: unknown): 'success' | 'partial_failure' | 'failure' {
+  const d = (data ?? {}) as { status?: unknown; ok?: unknown };
+  if (d.status === 'failure' || d.ok === false) return 'failure';
+  if (d.status === 'partial_failure') return 'partial_failure';
+  return 'success';
+}
 
 /**
  * A job can return ok (no thrown error) while doing nothing useful - that is exactly how this broke
@@ -112,7 +166,7 @@ async function sanityCheck(db: any, job: string, data: any) {
     // so it has to be said out loud here or nobody would know. No student data in the line:
     // a count, one id and the database's error text.
     const failed = Number(data?.failed ?? 0);
-    if (failed > 0) {
+    if (failed > 0 && data?.status !== 'failure') {
       console.error(`JOB SANITY: daily-lots could not create a Lot for ${failed} student(s). First: ${data?.first_failed_student} - ${String(data?.first_error ?? '').slice(0, 200)}`);
     }
   }

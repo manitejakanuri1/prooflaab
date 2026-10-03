@@ -130,8 +130,39 @@ jobs:
         if: failure()
         run: docker logs runner | tail -50
 
+  # Proves the build-once hand-off on EVERY branch, without publishing anything: a separate
+  # job (a fresh machine) downloads the artifact the gate built, checks every file against
+  # the recorded checksums, and checks the site is complete. The deploy job below does the
+  # same download and check before it publishes - so that path is no longer first exercised
+  # on a production deploy.
+  artifact-handoff:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+
+      - name: Same files as the gate built
+        run: |
+          (cd dist && sha256sum --quiet -c ../dist.sha256)
+          echo "files verified $(wc -l < dist.sha256)"
+          sha256sum dist.sha256
+
+      - name: The site is complete (smoke check, nothing is deployed)
+        run: |
+          test -s dist/index.html
+          entry=$(grep -oE '<script type="module"[^>]*src="/assets/[^"]+\.js"' dist/index.html | grep -oE 'assets/[^"]+\.js' | head -1)
+          test -n "$entry" && test -s "dist/$entry" && echo "entry script present: $entry"
+          # Every asset the page links to exists in the artifact.
+          for f in $(grep -oE '(src|href)="/assets/[^"]+"' dist/index.html | grep -oE 'assets/[^"]+'); do test -s "dist/$f" || { echo "missing $f"; exit 1; }; done
+          # The build talks to production addresses, never staging ones.
+          if grep -rl "prooflab-staging-" dist/assets >/dev/null; then echo "staging address found in the production build"; exit 1; fi
+          echo "HAND-OFF OK - not deployed"
+
   deploy:
-    needs: [test, code-runner]
+    needs: [test, code-runner, artifact-handoff]
     # Publishing only ever happens from main (or a manual run of main), never from
     # another branch or a pull request.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')

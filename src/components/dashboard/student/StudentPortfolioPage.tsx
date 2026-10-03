@@ -185,16 +185,6 @@ const StudentPortfolioPage = () => {
                 <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="text-sm text-muted-foreground">Trust Score</div>
-                      <Trophy className="h-5 w-5 text-purple-500" />
-                    </div>
-                    <div className="text-3xl font-bold text-foreground">{profile?.trust_score || 0}</div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
                       <div className="text-sm text-muted-foreground">Completed Tasks</div>
                       <CheckCircle className="h-5 w-5 text-green-500" />
                     </div>

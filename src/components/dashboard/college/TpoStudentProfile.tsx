@@ -18,7 +18,6 @@ interface Profile {
   batch: string | null;
   email: string | null;
   phone: string | null;
-  trust_score: number | null;
   total_xp: number | null;
   joined_at: string | null;
   last_active: string | null;
@@ -159,7 +158,6 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
               {[
                 { k: "Last active", v: data.days_quiet >= 999 ? "never" : `${data.days_quiet}d ago`,
                   hot: data.days_quiet >= 7 },
-                { k: "Trust score", v: data.trust_score ?? "—" },
                 { k: "Total XP", v: data.total_xp ?? 0 },
                 { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}` },
               ].map((c) => (
@@ -293,7 +291,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                         {w.ai_score != null && (
                           <span className="font-mono text-xs tabular-nums">{w.ai_score}</span>
                         )}
-                        <Badge variant={w.status === "Verified" ? "default" : "outline"}>
+                        <Badge variant={w.status === "passed" ? "default" : "outline"}>
                           {w.status}
                         </Badge>
                       </div>

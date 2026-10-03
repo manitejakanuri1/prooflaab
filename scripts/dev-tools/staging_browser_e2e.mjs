@@ -99,7 +99,8 @@ const JOURNEYS = {
   ],
   tpo: [
     ["college home", seq(go("/college/dashboard"), see("Students"))],
-    ["Students", seq(click("Students"), see("Students"))],
+    ["Students: real Lots done, no Trust", seq(click("Students"), see("Fake Student 1"), noText("Trust"))],
+    ["Student profile: recent work, no Trust", seq(click("Fake Student 1"), see("Count failed logins per user"), see("Lots done"), noText("Trust score"), async (p) => { await p.keyboard.press("Escape"); return "no Trust score; real recent work"; })],
     ["Squads", seq(click("Squads"), see("Squad"))],
     ["Insights", seq(click("Insights"), see("Insights"))],
   ],

@@ -34,7 +34,6 @@ interface Row {
   squad_name: string | null;
   is_reserve: boolean;
   days_quiet: number;
-  trust_score: number | null;
   total_xp: number | null;
   onboarding_status: string;
   lots_done: number;

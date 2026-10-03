@@ -6,10 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { TrendingUp, Target, Award, FileCheck } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 interface WeekPoint { week: number; points: number }
-interface TrustPoint { date: string; score: number }
 interface EarnedBadge { name: string; emoji: string }
 
 /**
@@ -23,7 +22,7 @@ interface EarnedBadge { name: string; emoji: string }
  * chart silently zero for every real student, quietly, forever. Rebuilt on
  * the same tables the season report and weekly scoring already prove
  * correct: student_weekly_scores for points, task_submissions (the Lots a
- * student submits) for passed vs submitted work, trust_scores and
+ * student submits) for passed vs submitted work and
  * student_badges for the rest. (Until 2 Oct 2026 the submission cards read
  * proof_uploads, which stopped filling when upload proof was switched off on
  * 19 Sep, so they showed 0 for everyone.)
@@ -38,28 +37,21 @@ const StudentProgressPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
 
   const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[] | null>(null);
-  const [trustHistory, setTrustHistory] = useState<TrustPoint[] | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[] | null>(null);
   const [submissions, setSubmissions] = useState<{ total: number; passed: number; review: number } | null>(null);
 
   useEffect(() => {
     if (!profile?.id) return;
     (async () => {
-      const [{ data: weekly }, { data: trust }, { data: earned }, { data: proofs }] = await Promise.all([
+      const [{ data: weekly }, { data: earned }, { data: proofs }] = await Promise.all([
         supabase.from("student_weekly_scores").select("week, points")
           .eq("student_id", profile.id).order("week", { ascending: true }).limit(8),
-        supabase.from("trust_scores").select("score, created_at")
-          .eq("student_id", profile.id).order("created_at", { ascending: true }),
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
           .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
         supabase.from("task_submissions").select("status").eq("student_id", profile.id),
       ]);
 
       setWeeklyPoints((weekly ?? []).map((w) => ({ week: w.week as number, points: w.points as number })));
-      setTrustHistory((trust ?? []).map((r) => ({
-        date: new Date(r.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        score: r.score as number,
-      })));
       setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
       setSubmissions({
         total: (proofs ?? []).length,
@@ -98,8 +90,6 @@ const StudentProgressPage = () => {
   const progressCards = [
     { title: "This Week's Points", value: thisWeek.toString(), icon: Award,
       color: "text-green-600", bgColor: "bg-green-50", change: weekChange },
-    { title: "Trust Score", value: profile?.trust_score?.toString() || "0", icon: TrendingUp,
-      color: "text-purple-600", bgColor: "bg-purple-50", change: null },
     { title: "Pass Rate", value: `${passRate}%`, icon: Target,
       color: "text-blue-600", bgColor: "bg-blue-50", change: null },
     { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck,
@@ -154,33 +144,6 @@ const StudentProgressPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg font-semibold">Trust Score History</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            {trustHistory && trustHistory.length >= 2 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={trustHistory}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={3}
-                        dot={{ fill: '#8b5cf6', strokeWidth: 2 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-center px-6">
-                <p className="text-sm text-muted-foreground">
-                  {trustHistory && trustHistory.length === 1
-                    ? `One score so far: ${trustHistory[0].score}/100. A trend needs at least two.`
-                    : "No trust score recorded yet — this fills in as work gets scored."}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -230,14 +193,6 @@ const StudentProgressPage = () => {
                 <span className="text-sm font-bold">{passRate}%</span>
               </div>
               <Progress value={passRate} className="h-2" />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Trust Score</span>
-                <span className="text-sm font-bold">{profile?.trust_score || 0}/100</span>
-              </div>
-              <Progress value={profile?.trust_score || 0} className="h-2" />
             </div>
 
             <div className="pt-4">

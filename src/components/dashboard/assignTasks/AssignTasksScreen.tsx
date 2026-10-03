@@ -56,7 +56,6 @@ interface Student {
   college_name?: string;
   key_interests: string[] | null;
   preferred_skills: string[] | null;
-  trust_score: number;
   total_xp?: number;
 }
 
@@ -137,8 +136,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [branchFilter, setBranchFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [trustScoreMin, setTrustScoreMin] = useState("");
-  const [trustScoreMax, setTrustScoreMax] = useState("");
   const [skillsFilter, setSkillsFilter] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -162,7 +159,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
   useEffect(() => {
     filterStudents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [students, branchFilter, yearFilter, trustScoreMin, trustScoreMax, skillsFilter, audienceType, selectedColleges]);
+  }, [students, branchFilter, yearFilter, skillsFilter, audienceType, selectedColleges]);
 
   const fetchColleges = async () => {
     try {
@@ -192,7 +189,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
           // cannot read every other student's address off the directory.
           .select(`
             id, full_name, branch, batch, year_of_study,
-            key_interests, preferred_skills, trust_score, college_id, total_xp,
+            key_interests, preferred_skills, college_id, total_xp,
             colleges!student_profiles_college_id_fkey (name),
             student_contact (email)
           `)
@@ -238,7 +235,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
         // own students; that is what the policy on that table allows.
         .select(`
           id, full_name, branch, batch, year_of_study,
-          key_interests, preferred_skills, trust_score, college_id,
+          key_interests, preferred_skills, college_id,
           student_contact (email)
         `)
         .eq('college_id', collegeData.id)
@@ -338,8 +335,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
     const filtered = applyStudentFilters(scoped, {
       branch: branchFilter,
       year: yearFilter,
-      trustScoreMin,
-      trustScoreMax,
       skills: skillsFilter,
     });
 
@@ -607,7 +602,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
           year_of_study: t.studentYear,
           key_interests: null,
           preferred_skills: null,
-          trust_score: 0,
           ...(isAdmin ? { college_id: null, total_xp: 0 } : {}),
         })),
         category,
@@ -802,8 +796,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       setSelectedColleges([]);
       setBranchFilter("");
       setYearFilter("");
-      setTrustScoreMin("");
-      setTrustScoreMax("");
       setSkillsFilter([]);
     } catch (error) {
       console.error('Error assigning tasks:', error);
@@ -1765,24 +1757,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label>Trust Score Range</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Min"
-                            value={trustScoreMin}
-                            onChange={(e) => setTrustScoreMin(e.target.value)}
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Max"
-                            value={trustScoreMax}
-                            onChange={(e) => setTrustScoreMax(e.target.value)}
-                          />
-                        </div>
-                      </div>
                     </div>
                   )}
                 </>
@@ -1818,9 +1792,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                             </p>
                             <p className="text-xs text-muted-foreground">{student.college_name}</p>
                             <div className="flex gap-2 mt-1">
-                              <Badge variant="secondary" className="text-xs">
-                                Trust: {student.trust_score}
-                              </Badge>
                               <Badge variant="secondary" className="text-xs">
                                 XP: {student.total_xp}
                               </Badge>
@@ -2556,27 +2527,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Trust Score Range</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Min"
-                      type="number"
-                      value={trustScoreMin}
-                      onChange={(e) => setTrustScoreMin(e.target.value)}
-                      className="w-24"
-                    />
-                    <span>to</span>
-                    <Input
-                      placeholder="Max"
-                      type="number"
-                      value={trustScoreMax}
-                      onChange={(e) => setTrustScoreMax(e.target.value)}
-                      className="w-24"
-                    />
-                  </div>
-                </div>
-
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -2584,8 +2534,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                     onClick={() => {
                       setBranchFilter("all-branches");
                       setYearFilter("all-years");
-                      setTrustScoreMin("");
-                      setTrustScoreMax("");
                       setSkillsFilter([]);
                     }}
                   >
@@ -2620,9 +2568,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                       <p className="text-sm font-medium text-foreground truncate">
                         {student.full_name}
                       </p>
-                      <Badge variant="secondary" className="ml-2">
-                        {student.trust_score}
-                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {student.email}

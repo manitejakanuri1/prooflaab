@@ -52,7 +52,6 @@ interface UserData {
   verification_status?: string;
   full_name?: string;
   name?: string;
-  trust_score?: number;
   total_xp?: number;
   source?: string;
   college_id?: string;
@@ -350,7 +349,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
     
     let headers: string[];
     if (activeTab === 'students') {
-      headers = ['Name', 'Email', 'Source', 'College', 'Trust Score', 'XP', 'Proofs Submitted', 'Last Active', 'Status', 'Created'];
+      headers = ['Name', 'Email', 'Source', 'College', 'XP', 'Proofs Submitted', 'Last Active', 'Status', 'Created'];
     } else if (activeTab === 'startups') {
       headers = ['Name', 'Email', 'Domain/Category', 'Verification Status', 'Created'];
     } else {
@@ -370,7 +369,6 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
             ...baseFields,
             user.source || 'Website',
             user.college_name || 'N/A',
-            user.trust_score || 0, 
             user.total_xp || 0,
             user.proofs_submitted || 0,
             user.last_active ? new Date(user.last_active).toLocaleDateString() : 'Never',
@@ -561,7 +559,6 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                         {tab === 'students' && (
                          <>
                            <TableHead className="hidden md:table-cell">Source</TableHead>
-                           <TableHead className="hidden lg:table-cell">Trust Score</TableHead>
                            <TableHead className="hidden lg:table-cell">XP</TableHead>
                            <TableHead className="hidden xl:table-cell">Proofs</TableHead>
                            <TableHead className="hidden md:table-cell">Last Active</TableHead>
@@ -611,9 +608,6 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                     </span>
                                   )}
                                 </div>
-                              </TableCell>
-                              <TableCell className="text-center hidden lg:table-cell">
-                                <Badge variant="outline">{user.trust_score || 0}</Badge>
                               </TableCell>
                               <TableCell className="text-center hidden lg:table-cell">
                                 <Badge variant="secondary">{user.total_xp || 0}</Badge>
@@ -818,7 +812,6 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                   <div>
                     <h4 className="font-semibold">Performance Metrics</h4>
                     <div className="space-y-2 mt-2">
-                      <p><strong>Trust Score:</strong> {viewUserSheet.trust_score || 0}</p>
                       <p><strong>Total XP:</strong> {viewUserSheet.total_xp || 0}</p>
                       <p><strong>Proofs Submitted:</strong> {viewUserSheet.proofs_submitted || 0}</p>
                     </div>

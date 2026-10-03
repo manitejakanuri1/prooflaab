@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUrlTab } from "@/hooks/useUrlTab";
 import { useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentDailyCard from "./StudentDailyCard";
@@ -74,14 +75,18 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
   // on Proof — so the roadmap was reachable only by knowing to click a tab
   // called something else. That looked exactly like the roadmap being broken.
   const { pathname } = useLocation();
-  const [logTab, setLogTab] = useState("entries");
-  const [profileTab, setProfileTab] = useState(
-    pathname === "/student/roadmap" ? "roadmap" : "proof",
-  );
+  // The inner tab lives in the URL (?view=), so a refresh or a pasted link opens the same view.
+  const [view, setView] = useUrlTab("view", "");
+  const LOG = ["entries", "progress", "skills", "history"];
+  const PROFILE = ["proof", "roadmap", "resume", "interview", "certifications", "achievements", "role", "portfolio", "privacy", "settings"];
+  const logTab = LOG.includes(view) ? view : "entries";
+  const profileTab = PROFILE.includes(view) ? view : pathname === "/student/roadmap" ? "roadmap" : "proof";
+  const setLogTab = setView;
+  const setProfileTab = setView;
 
   return (
     <div className={destination === "profile" && profileTab === "portfolio" ? "w-full" : "max-w-7xl mx-auto"}>
-      {/* The Daily Card is the landing screen: today's Lot and two actions.
+      {/* Floor: the Daily Card is the landing screen: today's Lot and two actions.
           The full task list sits underneath it for anything still open. */}
       {destination === "lab" && (
         <div className="space-y-8">
@@ -96,11 +101,10 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
               voice). Cosigns and LeetCode/HackerRank streaks were retired
               3 Oct 2026; their server pieces go with Wave 8. */}
           <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="entries">Entries</TabsTrigger>
-            <TabsTrigger value="skills">Skills</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="entries">Recent work</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
-            <TabsTrigger value="achievements">Badges &amp; Quests</TabsTrigger>
+            <TabsTrigger value="skills">Skills evidence</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
           <TabsContent value="entries" className="mt-4">
             <BuildLogEntries />
@@ -116,9 +120,6 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
               <StudentProgressPage />
             </div>
           </TabsContent>
-          <TabsContent value="achievements" className="mt-4">
-            <StudentAchievements />
-          </TabsContent>
         </Tabs>
       )}
 
@@ -127,11 +128,12 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
       {destination === "profile" && (
         <Tabs value={profileTab} onValueChange={setProfileTab}>
           <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="proof">Proof</TabsTrigger>
+            <TabsTrigger value="proof">Readiness</TabsTrigger>
             <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
             <TabsTrigger value="resume">Resume</TabsTrigger>
             <TabsTrigger value="interview">Mock interview</TabsTrigger>
             <TabsTrigger value="certifications">Certifications</TabsTrigger>
+            <TabsTrigger value="achievements">Badges</TabsTrigger>
             <TabsTrigger value="role">Role preference</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
@@ -151,6 +153,9 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
           </TabsContent>
           <TabsContent value="certifications" className="mt-4">
             <StudentCertifications />
+          </TabsContent>
+          <TabsContent value="achievements" className="mt-4">
+            <StudentAchievements />
           </TabsContent>
           <TabsContent value="role" className="mt-4">
             <StudentRolePreference />

@@ -8,9 +8,10 @@ import StudentDashboardContent from "@/components/dashboard/student/StudentDashb
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentIntake } from "@/hooks/useStudentIntake";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUrlTab } from "@/hooks/useUrlTab";
 
 /**
- * Four destinations: Daily Card, Build-Log, Squad, Profile.
+ * Four destinations: Floor, Build-log, Squad, Profile.
  *
  * The old task routes still resolve so existing links keep working — they land
  * on the Daily Card, which is where the work is. The default is the Daily Card
@@ -20,24 +21,17 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const getTabFromPath = (pathname: string): string => {
   if (pathname.startsWith("/student/tasks")) return "lab";
   if (pathname === "/student/roadmap") return "profile";
-  if (pathname.endsWith("/log")) return "log";
-  if (pathname.endsWith("/squad")) return "squad";
-  if (pathname.endsWith("/profile")) return "profile";
   return "lab";
 };
 
 const StudentDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
+  const [activeTab, setActiveTab] = useUrlTab("tab", getTabFromPath(location.pathname));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { profile, loading, refreshProfile } = useStudentProfile();
   const { loading: intakeLoading, intakeComplete, degraded: intakeDegraded } = useStudentIntake();
-
-  useEffect(() => {
-    setActiveTab(getTabFromPath(location.pathname));
-  }, [location.pathname]);
 
   // Opening the dashboard counts as being here, which is what a college means
   // by "active today". The function records it once per day, so refreshing the

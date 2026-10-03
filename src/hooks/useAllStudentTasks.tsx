@@ -13,8 +13,6 @@ interface StudentTask {
   created_by_type?: string;
   xp_reward: number | null;
   created_by_startup_id: string | null;
-  application_status?: string;
-  application_id?: string;
   can_start?: boolean;
   // stage69/70: which grading mode this task uses, if any.
   sandbox_config_id?: string | null;
@@ -94,28 +92,6 @@ export const useAllStudentTasks = () => {
         .order('created_at', { ascending: false });
 
       if (directTasksError) throw directTasksError;
-
-      // Get task applications
-      const { data: applications, error: appsError } = await supabase
-        .from('task_applications')
-        .select(`
-          id,
-          status,
-          created_at,
-          tasks (
-            id,
-            title,
-            description,
-            due_date,
-            xp_reward,
-            created_by_type,
-            created_by_startup_id
-          )
-        `)
-        .eq('student_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (appsError) throw appsError;
 
       const allTasks: StudentTask[] = [];
       const addedTaskIds = new Set<string>();
@@ -205,44 +181,6 @@ export const useAllStudentTasks = () => {
           is_sandbox_task: task.is_sandbox_task,
         });
         addedTaskIds.add(task.id);
-      });
-
-      // Add applications (both pending and accepted)
-      (applications || []).forEach(app => {
-        if (app.tasks && !addedTaskIds.has(app.tasks.id)) {
-          // Determine status based on application state
-          let taskStatus: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
-          if (app.status === 'Pending Review') {
-            taskStatus = 'Applied'; // Waiting for approval
-          } else if (app.status === 'Accepted') {
-            taskStatus = 'Applied'; // Accepted but not started yet
-          }
-
-          // Determine source for application tasks
-          let taskSource = 'Admin';
-          if (app.tasks.created_by_startup_id) {
-            taskSource = 'Company';
-          } else if (app.tasks.created_by_type === 'college' || app.tasks.created_by_type === 'college_admin') {
-            taskSource = 'College';
-          } else if (app.tasks.created_by_type === 'admin') {
-            taskSource = 'Admin';
-          }
-
-          allTasks.push({
-            id: app.tasks.id,
-            title: app.tasks.title,
-            description: app.tasks.description,
-            deadline: app.tasks.due_date,
-            status: taskStatus,
-            source: taskSource,
-            created_by_type: app.tasks.created_by_type || taskSource.toLowerCase(),
-            xp_reward: app.tasks.xp_reward,
-            created_by_startup_id: app.tasks.created_by_startup_id,
-            application_status: app.status,
-            application_id: app.id,
-            can_start: app.status === 'Accepted', // Can only start if accepted
-          });
-        }
       });
 
       return allTasks;

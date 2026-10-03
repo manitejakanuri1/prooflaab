@@ -89,40 +89,64 @@ const noText = (text) => async (page) => {
   return `no "${text}"`;
 };
 
+// The sidebar of a role must show exactly these four destinations, and none of the retired ones.
+const menuIs = (labels, gone = []) => async (page) => {
+  for (const l of labels) await page.locator('[data-sidebar="menu-button"], aside button, nav button').filter({ hasText: new RegExp(`^\s*${l}`) }).first().waitFor({ timeout: 15000 });
+  for (const g of gone) {
+    const n = await page.locator('[data-sidebar="menu-button"]').filter({ hasText: new RegExp(`^\s*${g}\s*$`) }).count();
+    if (n) throw new Error(`retired menu item still shown: "${g}"`);
+  }
+  return `menu = ${labels.join(" / ")}`;
+};
+const urlHas = (part) => async (page) => {
+  try { await page.waitForURL((u) => u.toString().includes(part), { timeout: 15000 }); }
+  catch { throw new Error(`expected the address to contain "${part}", it is ${page.url().replace(BASE, "")}`); }
+  return page.url().replace(BASE, "");
+};
+const reload = async (page) => { await page.reload({ waitUntil: "networkidle" }); };
+const back = async (page) => { await page.goBack({ waitUntil: "networkidle" }); };
+
 const JOURNEYS = {
   established: [
-    ["dashboard loads", seq(go("/student/dashboard"), see("Daily Card"))],
-    ["Build-Log shows real work, no Cosigns", seq(click("Build-Log"), see("Entries"), see("Tests passed|Being checked|Nothing here yet"), noText("Cosigns"))],
+    ["Floor is the landing screen; menu has 4 items", seq(go("/student/dashboard"), see("Daily Card|Today"), menuIs(["Floor", "Build-log", "Squad", "Profile"], ["Daily Card", "Voice", "Progress", "Portfolio", "Resume"]))],
+    ["Build-log: recent work with marks, no Cosigns", seq(click("Build-log"), urlHas("tab=log"), see("Recent work"), see("Tests passed|Being checked|Nothing here yet"), noText("Cosigns"), noText("Trust"))],
+    ["Build-log inner view survives refresh and Back", seq(click("Skills evidence"), urlHas("view=skills"), reload, urlHas("view=skills"), click("History"), urlHas("view=history"), back, urlHas("view=skills"))],
     ["Squad shows teammate names", seq(click("Squad"), see("Squad"), click("Members"), see("Fake Student 2"), see("Fake Student 3"))],
-    ["Profile", seq(click("Profile"), see("Resume"))],
+    ["Profile groups resume, portfolio, privacy", seq(click("Profile"), see("Resume"), see("Portfolio"), see("Privacy"))],
+    ["Deep link opens Profile > Portfolio", seq(go("/student/dashboard?tab=profile&view=portfolio"), see("Proven work"))],
+    ["Old student links land on a real page", seq(go("/student/dashboard?tab=uploads"), see("Recent work"), go("/student/roadmap"), see("Roadmap"))],
     ["Public portfolio shows passed Lots, no Trust, no proof files", seq(go("/portfolio/fake-student-1"), see("Proven work"), see("Count failed logins per user"), see("Explained"), noText("Trust"), noText("Projects & Achievements"))],
   ],
   student: [
     ["fresh student lands on intake", seq(go("/student/dashboard"), async (p) => { await p.waitForURL(/student\/(start|resume-onboarding|interest-onboarding|dashboard)/, { timeout: 20000 }); return p.url(); })],
   ],
   tpo: [
-    ["college home", seq(go("/college/dashboard"), see("Students"))],
-    ["Students: real Lots done, no Trust", seq(click("Students"), see("Fake Student 1"), noText("Trust"))],
+    ["college home; menu has 4 items", seq(go("/college/dashboard"), see("Students"), menuIs(["Home", "Students", "Squads", "Insights"]))],
+    ["Students: real Lots done, no Trust", seq(click("Students"), urlHas("tab=students"), see("Fake Student 1"), noText("Trust"))],
     ["Student profile: recent work, no Trust", seq(click("Fake Student 1"), see("Count failed logins per user"), see("Lots done"), noText("Trust score"), async (p) => { await p.keyboard.press("Escape"); return "no Trust score; real recent work"; })],
-    ["Squads", seq(click("Squads"), see("Squad"))],
-    ["Insights", seq(click("Insights"), see("Insights"))],
+    ["Squads", seq(click("Squads"), urlHas("tab=squads"), see("Squad"))],
+    ["Insights survives refresh", seq(click("Insights"), urlHas("tab=insights"), reload, urlHas("tab=insights"), see("Insights"))],
+    ["Back returns to Squads", seq(back, urlHas("tab=squads"))],
   ],
   company: [
-    ["company home", seq(go("/company/dashboard"), see("Talent"))],
-    ["Talent", click("Talent")],
-    ["Shortlist", click("Shortlist")],
-    ["Lots show submission and explanation state", seq(click("Lots"), see("Count failed logins per user"), see("explained"))],
-    ["Submissions shows real work", seq(click("Submissions"), see("PROBE sponsored lot"), see("Tests passed|Spoken explanation|No spoken explanation"))],
-    ["Review shows the explanation of that submission", seq(click("Review"), see("Spoken explanation"), see("Accept"))],
+    ["company home; menu is Home / Talent / Lots / Hiring only", seq(go("/company/dashboard"), see("Talent"), menuIs(["Home", "Talent", "Lots", "Hiring"], ["Shortlist", "Submissions", "Review", "Jobs"]))],
+    ["Talent", seq(click("Talent"), urlHas("tab=talent"))],
+    ["Lots > My Lots shows submission and explanation state", seq(click("Lots"), urlHas("tab=lots"), see("My Lots"), see("Count failed logins per user"), see("Passed"))],
+    ["Lots > Submissions shows real work", seq(click("Submissions"), urlHas("view=submissions"), see("PROBE sponsored lot"), see("Tests passed|Spoken explanation|No spoken explanation"))],
+    ["Lots > Reviews survives refresh", seq(click("Reviews"), urlHas("view=reviews"), reload, urlHas("view=reviews"), see("Spoken explanation|Accept|Nothing"))],
+    ["Lots > Create a Lot", seq(click("Create a Lot"), urlHas("view=create"), see("Set a task|shortlisted"))],
+    ["Hiring holds the shortlist and job posts", seq(click("Hiring"), urlHas("tab=hiring"), see("Shortlist"), see("Job posts"))],
+    ["Old company links redirect", seq(go("/company/dashboard?tab=submissions"), urlHas("tab=lots"), see("My Lots"), go("/company/dashboard?tab=shortlist"), urlHas("tab=hiring"), go("/company/dashboard?tab=review"), urlHas("view=reviews"))],
   ],
   admin: [
-    ["admin dashboard", seq(go("/admin/dashboard"), see("Overview"))],
-    ["no Proof Review / Trust & XP in the menu", seq(click("Work Queue"), noText("Proof Review"), noText("Trust & XP"))],
-    ["Submissions (current work)", seq(click("Submissions"), see("Submissions"), see("Count failed logins per user"))],
-    ["Flagged submissions", seq(click("Flagged submissions"), see("Flag|flag|No submissions|review"))],
-    ["Task Oversight", seq(click("Task Oversight"), see("Task"))],
-    ["Token Usage (AI spend)", seq(click("Platform"), click("Token Usage"), see("Token|Usage|usage"))],
-    ["Security Events", seq(click("Security Events"), see("Security|Event|event"))],
+    ["admin home; menu is Home / People / Work / Operations", seq(go("/admin/dashboard"), see("Overview"), menuIs(["Home", "People", "Work", "Operations"], ["Work Queue", "Platform", "Proof Review", "Trust & XP"]))],
+    ["People", seq(click("People"), see("Students"), see("Companies"), see("Colleges"))],
+    ["Work > Submissions (current work)", seq(click("Work"), noText("Proof Review"), click("Submissions"), urlHas("tab=submissions"), see("Count failed logins per user"))],
+    ["Work > Flags & reviews", seq(click("Flags & reviews"), see("Flag|flag|No submissions|review"))],
+    ["Operations > AI usage", seq(click("Operations"), click("AI usage"), see("Token|Usage|usage"))],
+    ["Operations > Jobs & health survives refresh", seq(click("Jobs & health"), urlHas("tab=ops-jobs"), see("Lots dated today"), reload, see("Voice queue"))],
+    ["Operations > Security & audit; Back works", seq(click("Security & audit"), see("Security|Event|event"), back, urlHas("tab=ops-jobs"))],
+    ["Old admin people link still opens", seq(go("/admin/dashboard/user-management/students"), see("Students"))],
   ],
 };
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUrlTab } from "@/hooks/useUrlTab";
 import CollegeDashboardHeader from "@/components/dashboard/college/CollegeDashboardHeader";
 import CollegeDashboardSidebar from "@/components/dashboard/college/CollegeDashboardSidebar";
 import CollegeDashboardContent from "@/components/dashboard/college/CollegeDashboardContent";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 
 const CollegeDashboard = () => {
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useUrlTab("tab", "home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { profile, loading } = useCollegeProfile();

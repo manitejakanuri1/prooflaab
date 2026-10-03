@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -7,10 +6,11 @@ import { StartupDashboardHeader } from "@/components/dashboard/startup/StartupDa
 import { StartupDashboardContent } from "@/components/dashboard/startup/StartupDashboardContent";
 import { VerificationBanner } from "@/components/dashboard/startup/VerificationBanner";
 import { useStartupVerification } from "@/hooks/useStartupVerification";
+import { useUrlTab } from "@/hooks/useUrlTab";
 
 const StartupDashboard = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useUrlTab("tab", "home");
   const { data: verificationData } = useStartupVerification();
 
   if (loading) {

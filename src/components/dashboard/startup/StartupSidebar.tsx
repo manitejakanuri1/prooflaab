@@ -1,4 +1,4 @@
-import { Home, Users, ClipboardList, LogOut, Briefcase, Star, Inbox, CheckSquare } from "lucide-react";
+import { Home, Users, ClipboardList, LogOut, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -24,19 +24,17 @@ interface StartupSidebarProps {
   isVerified: boolean;
 }
 
+// Four destinations. Submissions and Reviews live inside Lots; the shortlist and job
+// posts live inside Hiring (see StartupDashboardContent).
 const sidebarItems = [
   { id: "home", title: "Home", icon: Home },
   { id: "talent", title: "Talent", icon: Users },
-  { id: "shortlist", title: "Shortlist", icon: Star },
   { id: "lots", title: "Lots", icon: ClipboardList },
-  { id: "submissions", title: "Submissions", icon: Inbox },
-  { id: "review", title: "Review", icon: CheckSquare },
-  { id: "jobs", title: "Jobs", icon: Briefcase },
+  { id: "hiring", title: "Hiring", icon: Briefcase },
 ];
 
-// Recruiter = Company: Home, Talent, Shortlist, Lots, Submissions, Review (+ Jobs).
-// Talent and Shortlist are not here: the recruiter screens explain verification themselves.
-const restrictedTabs = ["lots", "submissions", "review", "jobs"];
+// Talent is not here: the recruiter screen explains verification itself.
+const restrictedTabs = ["lots", "hiring"];
 
 export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSidebarProps) {
   const { signOut } = useAuth();

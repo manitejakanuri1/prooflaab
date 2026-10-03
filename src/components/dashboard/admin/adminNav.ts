@@ -3,38 +3,39 @@ import {
 } from "lucide-react";
 
 /**
- * The admin's four destinations and the pages inside each, shared by the
+ * The admin's four destinations (Home, People, Work, Operations) and the pages inside each, shared by the
  * sidebar (the four) and the dashboard (the tab row inside). One list, so the
  * two cannot drift apart. Notifications is the header bell, not an entry here.
  */
 export const ADMIN_GROUPS = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard, children: [
-    { id: "dashboard", label: "Dashboard" },
-    { id: "analytics", label: "Reports & Analytics" },
+  { id: "home", label: "Home", icon: LayoutDashboard, children: [
+    { id: "dashboard", label: "Overview" },
+    { id: "analytics", label: "Reports" },
+    { id: "announcements", label: "Announcements" },
   ] },
   { id: "people", label: "People", icon: Users, children: [
     { id: "students", label: "Students" },
-    { id: "startups", label: "Companies" },
     { id: "colleges", label: "Colleges" },
-    { id: "college-oversight", label: "College Oversight" },
-    { id: "student-oversight", label: "Student Oversight" },
+    { id: "startups", label: "Companies" },
+    { id: "college-oversight", label: "College users" },
+    { id: "student-oversight", label: "Student oversight" },
+    { id: "settings", label: "Admins & roles" },
   ] },
-  { id: "work-queue", label: "Work Queue", icon: ClipboardList, children: [
+  { id: "work", label: "Work", icon: ClipboardList, children: [
+    { id: "task-oversight", label: "Lots & tasks" },
     { id: "submissions", label: "Submissions" },
-    { id: "reviewed-submissions", label: "Flagged submissions" },
-    { id: "task-oversight", label: "Task Oversight" },
-    { id: "assign-tasks", label: "Assign Tasks" },
-  ] },
-  { id: "platform", label: "Platform", icon: Settings, children: [
-    { id: "jobs", label: "Jobs" },
+    { id: "reviewed-submissions", label: "Flags & reviews" },
+    { id: "assign-tasks", label: "Assign tasks" },
+    { id: "content-library", label: "Content library" },
+    { id: "jobs", label: "Job sources" },
     { id: "resources", label: "Resources" },
-    { id: "announcements", label: "Announcements" },
-    { id: "content-library", label: "Content Library" },
-    { id: "token-usage", label: "Token Usage" },
-    { id: "security-events", label: "Security Events" },
-    { id: "student-trace", label: "Student Trace" },
-    { id: "bug-finder", label: "Bug Finder" },
-    { id: "settings", label: "Settings & Roles" },
+  ] },
+  { id: "operations", label: "Operations", icon: Settings, children: [
+    { id: "token-usage", label: "AI usage" },
+    { id: "ops-jobs", label: "Jobs & health" },
+    { id: "security-events", label: "Security & audit" },
+    { id: "student-trace", label: "Errors & traces" },
+    { id: "bug-finder", label: "Bug finder" },
   ] },
 ];
 

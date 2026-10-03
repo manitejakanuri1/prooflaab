@@ -39,8 +39,8 @@ interface MenuItem {
 // Openings, Startup Tasks, Opportunities and Applications all read tables that
 // do not exist. They come back as menu entries when their features are built.
 const menuItems: MenuItem[] = [
-  { id: "lab", label: "Daily Card", icon: FlaskConical },
-  { id: "log", label: "Build-Log", icon: NotebookPen },
+  { id: "lab", label: "Floor", icon: FlaskConical },
+  { id: "log", label: "Build-log", icon: NotebookPen },
   { id: "squad", label: "Squad", icon: Users },
   { id: "profile", label: "Profile", icon: IdCard },
 ];

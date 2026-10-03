@@ -51,7 +51,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   // inside are the tab row on the dashboard (ADMIN_GROUPS in adminNav.ts).
   const openGroup = (tabId: string) => {
     if (location.pathname.startsWith('/admin/dashboard')) onTabChange(tabId);
-    else navigate('/admin/dashboard', { state: { tab: tabId } });
+    else navigate(`/admin/dashboard?tab=${tabId}`);
     if (isMobile) setOpen(false);
   };
 

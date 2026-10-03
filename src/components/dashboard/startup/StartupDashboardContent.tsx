@@ -1,11 +1,13 @@
 import { useEffect } from "react";
-import { StartupDashboardOverview } from "./StartupDashboardOverview";
 import { StartupSubmissionsPage } from "./StartupSubmissionsPage";
 import { StartupSettingsPage } from "./StartupSettingsPage";
 import { StartupJobsPage } from "./StartupJobsPage";
 import RecruiterDashboardContent from "../recruiter/RecruiterDashboardContent";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { useUrlTab } from "@/hooks/useUrlTab";
 
 interface StartupDashboardContentProps {
   activeTab: string;
@@ -26,61 +28,102 @@ const RestrictedAccessMessage = () => (
 );
 
 /**
- * The Company dashboard. Recruiter = Company (owner's decision, locked 3 Oct
- * 2026): one role, one organisation, six destinations - Home, Talent, Shortlist,
- * Lots, Submissions, Review - with Jobs and Settings as account chrome.
+ * The Company dashboard: four destinations - Home, Talent, Lots, Hiring.
  *
- * Every Lot, posted or sponsored, is graded like any other student work and its
- * result is read from task_submissions (migration 54), so Lots, Submissions and
- * Review all show the same evidence the student's Build-log shows.
+ *   Lots    My Lots · Create a Lot · Submissions · Reviews
+ *   Hiring  Shortlist (the candidate pipeline) · Job posts
  *
- * Old tab ids (startup and recruiter bookmarks) still resolve.
+ * Every Lot is graded like any other student work; results are read from
+ * task_submissions and the explanation bound to that submission. Settings is
+ * account chrome (header), not a destination.
+ *
+ * REDIRECTS holds no logic: an old tab id (a bookmark, a link from an older
+ * build) is rewritten to its new destination and inner view, nothing more.
  */
-const WHERE: Record<string, [string, string]> = {
-  dashboard: ["home", ""], work: ["lots", ""],
-  search: ["talent", ""],
-  "post-task": ["lots", ""], "view-tasks": ["lots", ""], "view-applications": ["review", ""],
+export const COMPANY_REDIRECTS: Record<string, [string, string]> = {
+  shortlist: ["hiring", "shortlist"],
+  jobs: ["hiring", "jobs"],
+  submissions: ["lots", "submissions"],
+  review: ["lots", "reviews"],
+  dashboard: ["home", ""], search: ["talent", ""], work: ["lots", ""],
+  "post-task": ["lots", "create"], "view-tasks": ["lots", ""], "view-applications": ["lots", "reviews"],
 };
 
-const NEEDS_VERIFICATION = new Set(["lots", "submissions", "review", "jobs"]);
+const NEEDS_VERIFICATION = new Set(["lots", "hiring"]);
+const LOT_VIEWS = [["active", "My Lots"], ["create", "Create a Lot"], ["submissions", "Submissions"], ["reviews", "Reviews"]];
+const HIRING_VIEWS = [["shortlist", "Shortlist"], ["jobs", "Job posts"]];
 
 export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: StartupDashboardContentProps) {
-  const [dest, sub] = WHERE[activeTab] ?? [activeTab, ""];
+  const [view, setView] = useUrlTab("view", "");
+  const [, setParams] = useSearchParams();
+  const redirect = COMPANY_REDIRECTS[activeTab];
+
+  // Destination and inner view change in ONE navigation (two separate updates would
+  // overwrite each other). `replace` keeps a redirect out of the Back history.
+  const open = (tab: string, replace = false) => {
+    const [dest, inner] = COMPANY_REDIRECTS[tab] ?? [tab, ""];
+    setParams({ ...(dest !== "home" ? { tab: dest } : {}), ...(inner ? { view: inner } : {}) }, { replace });
+  };
 
   useEffect(() => {
-    if (sub || WHERE[activeTab]) onTabChange(dest);
-  }, [dest, sub, activeTab, onTabChange]);
+    if (redirect) open(activeTab, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // The recruiter screens link to their sections by their own names.
-  const fromRecruiter = (tab: string) => onTabChange(tab === "lots" ? "lots" : tab);
+  const go = (tab: string) => open(tab);
 
-  if (NEEDS_VERIFICATION.has(dest) && !isVerified) return <RestrictedAccessMessage />;
+  if (redirect) return null;
+  if (NEEDS_VERIFICATION.has(activeTab) && !isVerified) return <RestrictedAccessMessage />;
 
-  switch (dest) {
+  const inner = (views: string[][], current: string) => (
+    <Tabs value={current} onValueChange={setView} className="mb-4">
+      <TabsList className="flex-wrap h-auto">
+        {views.map(([id, label]) => <TabsTrigger key={id} value={id}>{label}</TabsTrigger>)}
+      </TabsList>
+    </Tabs>
+  );
+
+  switch (activeTab) {
     case "talent":
-      return <RecruiterDashboardContent activeTab="talent" onTabChange={fromRecruiter} />;
-    case "shortlist":
-      return <RecruiterDashboardContent activeTab="shortlist" onTabChange={fromRecruiter} />;
-    case "lots":
-      // One Work system (§26): companies set Lots for shortlisted students through
-      // company-lot. The old "Post a task / Applications" marketplace never worked
-      // on this backend (tasks RLS refuses a company insert; students have no screen
-      // to apply), so it is no longer offered; its code goes with Wave 8.
-      return <RecruiterDashboardContent activeTab="lots" onTabChange={fromRecruiter} />;
-    case "submissions":
-      return <StartupSubmissionsPage />;
-    case "review":
-      return <StartupSubmissionsPage initialFilter="unreviewed" />;
-    case "jobs":
-      return <StartupJobsPage />;
-    case "settings":
-      return <StartupSettingsPage />;
-    default:
+      return <RecruiterDashboardContent activeTab="talent" onTabChange={go} />;
+
+    case "lots": {
+      const v = LOT_VIEWS.some(([id]) => id === view) ? view : "active";
       return (
-        <div className="space-y-6">
-          <StartupDashboardOverview onEditProfile={() => onTabChange("settings")} />
-          <RecruiterDashboardContent activeTab="home" onTabChange={fromRecruiter} />
+        <div>
+          {inner(LOT_VIEWS, v)}
+          {v === "active" && <RecruiterDashboardContent activeTab="lots" onTabChange={go} />}
+          {v === "create" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground max-w-prose">
+                A Lot is set for a candidate you have shortlisted. Choose one below and press
+                "Set a task": a coding Lot gets real tests, a written Lot gets its own checklist.
+              </p>
+              <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} />
+            </div>
+          )}
+          {v === "submissions" && <StartupSubmissionsPage />}
+          {v === "reviews" && <StartupSubmissionsPage initialFilter="unreviewed" />}
         </div>
       );
+    }
+
+    case "hiring": {
+      const v = HIRING_VIEWS.some(([id]) => id === view) ? view : "shortlist";
+      return (
+        <div>
+          {inner(HIRING_VIEWS, v)}
+          {v === "shortlist" && <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} />}
+          {v === "jobs" && <StartupJobsPage />}
+        </div>
+      );
+    }
+
+    case "settings":
+      return <StartupSettingsPage />;
+
+    default:
+      return <RecruiterDashboardContent activeTab="home" onTabChange={go} />;
   }
 }

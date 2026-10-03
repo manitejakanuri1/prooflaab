@@ -23,42 +23,29 @@ import StudentTrace from "@/components/dashboard/admin/StudentTrace";
 import BugFinder from "@/components/dashboard/admin/BugFinder";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groupOf } from "@/components/dashboard/admin/adminNav";
+import AdminOpsHealth from "@/components/dashboard/admin/AdminOpsHealth";
+import { useUrlTab } from "@/hooks/useUrlTab";
 
 const AdminDashboard = () => {
   const { userType, packId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Update activeTab based on URL
-  useEffect(() => {
-    const path = location.pathname;
+  // The page is in the URL (?tab=), so refresh, Back/Forward and pasted links work.
+  // /admin/dashboard/user-management/<type> is an older address for the People lists.
+  const [tabParam, setTabParam] = useUrlTab("tab", "dashboard");
+  const onUserManagement = location.pathname.includes('/user-management/');
+  const activeTab = onUserManagement
+    ? (['students', 'startups', 'colleges'].includes(userType ?? '') ? userType! : 'students')
+    : (tabParam === 'dashboard' ? (location.state as { tab?: string } | null)?.tab ?? tabParam : tabParam);
 
-    if (path.includes('/user-management/')) {
-      if (userType === 'students') setActiveTab('students');
-      else if (userType === 'startups') setActiveTab('startups');
-      else if (userType === 'colleges') setActiveTab('colleges');
-      else setActiveTab('students');
-    } else if (path === '/admin/dashboard') {
-      // A page reached by leaving /user-management/ carries its tab in state;
-      // without it every such click snapped back to Dashboard.
-      setActiveTab((location.state as { tab?: string } | null)?.tab ?? 'dashboard');
-    }
-  }, [location.pathname, location.state, userType]);
-
-  // Handle tab changes and update URL accordingly
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    if (tab === 'students' || tab === 'startups' || tab === 'colleges') {
-      navigate(`/admin/dashboard/user-management/${tab}`);
-    } else if (location.pathname !== '/admin/dashboard') {
-      navigate('/admin/dashboard', { state: { tab } });
-    }
-    // For other tabs, just update the state without navigation
-    // as they don't have dedicated URL routes
+    if (onUserManagement) navigate(tab === 'dashboard' ? '/admin/dashboard' : `/admin/dashboard?tab=${tab}`);
+    else setTabParam(tab);
   };
+  const setActiveTab = handleTabChange;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -103,6 +90,8 @@ const AdminDashboard = () => {
         return <StudentTrace />;
       case "bug-finder":
         return <BugFinder />;
+      case "ops-jobs":
+        return <AdminOpsHealth />;
       case "college-oversight":
         return <CollegeOversight />;
       case "student-oversight":

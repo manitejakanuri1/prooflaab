@@ -1,0 +1,16 @@
+{
+ "prooflab-staging-inspect4": {
+  "cpu": "1000m",
+  "env": {
+   "STAGING_DB_URI": {
+    "secret": "prooflab-staging-db-uri",
+    "version": "latest"
+   }
+  },
+  "image": "postgres:17",
+  "max_retries": 0,
+  "memory": "512Mi",
+  "service_account": "prooflab-staging-api@prooflab-508214.iam.gserviceaccount.com",
+  "timeout_seconds": "60"
+ }
+}

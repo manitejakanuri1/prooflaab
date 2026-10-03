@@ -1,0 +1,164 @@
+{
+ "prooflab-accounts-sync": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "*/10 * * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-accounts-135298577404.asia-south1.run.app/sync"
+ },
+ "prooflab-bugfinder-deep-run": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": "prooflab-rt-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "oidc_service_account": null,
+  "schedule": "0 4 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://run.googleapis.com/v2/projects/prooflab-508214/locations/asia-south1/jobs/prooflab-bug-finder:run"
+ },
+ "prooflab-bugfinder-run": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": "prooflab-rt-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "oidc_service_account": null,
+  "schedule": "0 6,10,14,18,22 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://run.googleapis.com/v2/projects/prooflab-508214/locations/asia-south1/jobs/prooflab-bug-finder:run"
+ },
+ "prooflab-crawler-weekly": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": "prooflab-rt-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "oidc_service_account": null,
+  "schedule": "10 8 * * 0",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://run.googleapis.com/v2/projects/prooflab-508214/locations/asia-south1/jobs/prooflab-crawler:run"
+ },
+ "prooflab-daily-lots": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "40 5 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=daily-lots"
+ },
+ "prooflab-extend-fixtures": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "37 5 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=extend-fixtures"
+ },
+ "prooflab-nightly-squads": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "35 5 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=nightly-squads"
+ },
+ "prooflab-prune-events": {
+  "header_names": [
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "10 3 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=prune-events"
+ },
+ "prooflab-transcription-reap": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "* * * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/transcription-reap"
+ },
+ "prooflab-weekly-plan": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "0 8 * * 1",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=weekly-plan"
+ },
+ "prooflab-weekly-progress": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "45 23 * * 0",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=weekly-progress"
+ },
+ "prooflab-weekly-seasons": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "30 23 * * 0",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=weekly-seasons"
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "prooflab-staging-ai-background": {
+  "rate": {
+   "maxBurstSize": 10,
+   "maxConcurrentDispatches": 2,
+   "maxDispatchesPerSecond": 1.0
+  },
+  "retry": {
+   "maxAttempts": 3,
+   "maxBackoff": "30s",
+   "maxDoublings": 16,
+   "minBackoff": "5s"
+  },
+  "state": "RUNNING"
+ },
+ "prooflab-staging-transcription": {
+  "rate": {
+   "maxBurstSize": 10,
+   "maxConcurrentDispatches": 2,
+   "maxDispatchesPerSecond": 1.0
+  },
+  "retry": {
+   "maxAttempts": 3,
+   "maxBackoff": "30s",
+   "maxDoublings": 16,
+   "minBackoff": "5s"
+  },
+  "state": "RUNNING"
+ }
+}

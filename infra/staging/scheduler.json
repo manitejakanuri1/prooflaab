@@ -1,0 +1,16 @@
+{
+ "prooflab-staging-transcription-reap": {
+  "header_names": [
+   "Content-Type",
+   "User-Agent",
+   "x-webhook-secret"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": null,
+  "schedule": "* * * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-135298577404.asia-south1.run.app/transcription-reap"
+ }
+}

@@ -15,7 +15,7 @@ This script tests the complete cognitive integrity verification flow from GitHub
 
 ```bash
 export SUPABASE_URL="https://zlfjxcwltqtajnczfjjp.supabase.co"
-export SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsZmp4Y3dsdHF0YWpuY3pmampwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyODUzNDUsImV4cCI6MjA2Njg2MTM0NX0.KnW8HvUSMpPFj2pAEbuLZvSsf808KYcqXbQ-p3S1sOY"
+export SUPABASE_ANON_KEY="<removed: old Supabase project, deleted>"
 
 # Get your auth token after logging in
 export AUTH_TOKEN="your-jwt-token-here"

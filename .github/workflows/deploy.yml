@@ -39,6 +39,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: No secrets in tracked files
+        run: python3 scripts/secret_scan.py
+
+      - name: Migrations are consistent (numbering, self-check, mirror copy, rollback)
+        run: python3 scripts/migrations.py check
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'     # the unit tests are .ts files run by node --test
@@ -84,6 +90,20 @@ jobs:
       - name: Production build
         run: npm run build
 
+      # Build once: this exact folder is what the deploy job publishes. The deploy
+      # job never builds, so what was tested is what ships.
+      - name: Record the build
+        run: (cd dist && find . -type f -print0 | sort -z | xargs -0 sha256sum) > dist.sha256 && sha256sum dist.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+          path: |
+            dist
+            dist.sha256
+          retention-days: 14
+          if-no-files-found: error
+
   # The code runner image, built and attacked locally: all 8 languages, timeouts,
   # output caps, leftover processes (F8), memory, internet and metadata (F9).
   # SYS_ADMIN lets the container create per-run network namespaces, exactly as
@@ -116,11 +136,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -134,13 +149,13 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build
-        run: |
-          npm ci
-          # .env.production is committed, so the addresses this build talks to
-          # are visible in the diff that ships it rather than hidden in a
-          # dashboard where a change leaves no trace.
-          npm run build
+      # The build made and tested by the gate above - not a second build.
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+
+      - name: Verify it is the tested build
+        run: (cd dist && sha256sum --quiet -c ../dist.sha256) && sha256sum dist.sha256
 
       - name: Publish
         run: python scripts/deploy-hosting.py

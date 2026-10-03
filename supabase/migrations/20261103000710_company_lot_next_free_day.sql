@@ -68,5 +68,19 @@ begin
   return jsonb_build_object('ok', true, 'task_ids', to_jsonb(made), 'skipped', skipped, 'company', firm);
 end $fn$;
 
+do $$
+declare sig regprocedure;
+begin
+  select p.oid::regprocedure into sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'company_create_lot';
+  if sig is null then raise exception '57b self-check: company_create_lot is missing'; end if;
+  if pg_get_functiondef(sig) !~ 'generate_series\(current_date, current_date \+ 14' then
+    raise exception '57b self-check: company_create_lot does not look for the next free day';
+  end if;
+  if has_function_privilege('authenticated', sig, 'execute') or has_function_privilege('anon', sig, 'execute') then
+    raise exception '57b self-check: company_create_lot is callable from a browser';
+  end if;
+end $$;
+
 commit;
 notify pgrst, 'reload schema';

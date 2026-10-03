@@ -313,109 +313,35 @@ serve(async (req) => {
           continue
         }
 
-        // Assign student role
-        const { error: roleError } = await supabaseAdmin
-          .from('user_roles')
-          .insert({
-            user_id: authData.user.id,
-            role: 'student',
-            has_completed_wizard: true
+        // Role + profile + contact in ONE database transaction (F19, migration 62).
+        // These were three separate writes, and a failed role write was only logged,
+        // so a failure in the middle left a login with a role and no profile, or a
+        // profile with no role. Now either all three exist or none does; the login
+        // that was just created is reused by the next import (the "existing account
+        // with no profile" branch above), so running the import again finishes the job.
+        const { error: recordError } = await supabaseAdmin.rpc('import_student_record', {
+          _user_id: authData.user.id,
+          _college_id: college_id,
+          _email: email.toLowerCase(),
+          _full_name: name,
+          _branch: branch || '',
+          _year_of_study: year_of_study || '',
+          _preferred_skills: preferredSkillsArray,
+          _key_interests: keyInterestsArray,
+          _career_goals: career_goals || '',
+          _roll_number: roll_number || null,
+          _batch: batch || null,
+          _phone: phone || null,
+          _existing_profile_id: profileNeedsAuth && existingProfile ? existingProfile.id : null,
+        })
+        if (recordError) {
+          console.error('IMPORT RECORD FAILED (nothing was written for this student):', recordError)
+          results.push({
+            email,
+            status: 'error',
+            message: `Could not save this student: ${recordError.message}. Nothing was saved for them; import the file again to retry.`
           })
-
-        if (roleError) {
-          console.error('Role error:', roleError)
-        }
-
-        // The `students` insert that used to sit here has been removed. It
-        // wrote a second copy of name/email/college that nothing ever read
-        // back, and a failure on it aborted the whole record even though the
-        // student_profiles write below is the one that matters.
-
-        // Create or update student profile
-        if (profileNeedsAuth && existingProfile) {
-          // Update existing profile with new auth user
-          const { error: updateError } = await supabaseAdmin
-            .from('student_profiles')
-            .update({
-              user_id: authData.user.id,
-              full_name: name,
-              branch: branch || '',
-              year_of_study: year_of_study || '',
-              preferred_skills: preferredSkillsArray,
-              key_interests: keyInterestsArray,
-              career_goals: career_goals || '',
-              status: 'active',
-              college_id: college_id,
-              source: 'College',
-              roll_number: roll_number || null,
-              batch: batch || null,
-              // Imported, not yet arrived: the student still has to sign in and
-              // finish. Home counts these as needing attention until they do.
-              onboarding_status: 'invited',
-              invited_at: new Date().toISOString()
-            })
-            .eq('id', existingProfile.id)
-
-          if (updateError) {
-            console.error('Profile update error:', updateError)
-            results.push({
-              email,
-              status: 'error',
-              message: `Profile update failed: ${updateError.message}`
-            })
-            continue
-          }
-        } else if (!existingProfile) {
-          // Create new student profile
-          const { data: newProfile, error: profileError } = await supabaseAdmin
-            .from('student_profiles')
-            .insert({
-              user_id: authData.user.id,
-              full_name: name,
-              branch: branch || '',
-              year_of_study: year_of_study || '',
-              preferred_skills: preferredSkillsArray,
-              key_interests: keyInterestsArray,
-              career_goals: career_goals || '',
-              total_xp: 0,
-              trust_score: 0,
-              status: 'active',
-              college_id: college_id,
-              source: 'College',
-              roll_number: roll_number || null,
-              batch: batch || null,
-              onboarding_status: 'invited',
-              invited_at: new Date().toISOString()
-            })
-            .select('id')
-            .single()
-
-          if (profileError) {
-            console.error('Profile error:', profileError)
-            results.push({
-              email,
-              status: 'error',
-              message: `Profile creation failed: ${profileError.message}`
-            })
-            continue
-          }
-
-          // A trigger already copies the address across from the auth account;
-          // this makes sure it matches the one the college supplied.
-          const { error: contactError } = await supabaseAdmin
-            .from('student_contact')
-            .upsert(
-              {
-                student_id: newProfile.id,
-                email: email.toLowerCase(),
-                ...(phone ? { phone } : {}),
-              },
-              { onConflict: 'student_id' }
-            )
-
-          if (contactError) {
-            console.error('Contact error:', contactError)
-          }
+          continue
         }
 
         // The invitation. §6: after a successful import the platform invites the

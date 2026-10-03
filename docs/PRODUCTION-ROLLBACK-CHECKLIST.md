@@ -30,7 +30,7 @@ Note: the old website expects some things the new database no longer allows (del
 
 ## Stage 3 — Services
 
-For each service, point it back at the image noted in Stage 1.4 (also in `infra/production/services.json` at commit `2e5d6e8`):
+For each service, point it back at its previous revision (the images production runs today are recorded in `infra/production/services.json`):
 
 ```
 gcloud run services update-traffic <service> --region=asia-south1 --to-revisions=<previous revision>=100
@@ -44,6 +44,11 @@ Every migration has a rollback file or note in `migration/`. Apply in **reverse*
 
 | Migration | Rollback | What you lose |
 |---|---|---|
+| 76, 75 | first put the previous functions image back, then `76-rollback…`, `75-rollback…` | batching and the job's status |
+| 77, 74 | **together**: `77-rollback…` then `74-rollback…` | the declared grading type (`tasks.grading_type` column is dropped) |
+| 73 | **first** remove `PGRST_DB_PRE_REQUEST` from the API (otherwise every request fails), then `73-rollback…` | suspended accounts are refused only after their ticket expires |
+| 70 | `70-rollback…` | criterion names in the Build-log |
+| 69 | first put the previous transcriber and worker images back, then `69-rollback…` | the language record on new recordings |
 | 68 | `68-rollback-daily-lots.sql` (or the body saved in Stage 1.3) | per-student safety in the nightly job |
 | 67 | `67-rollback-…` | the ledger |
 | 65 | body saved in Stage 1.3 (`65-rollback…staging` is for staging) | — |
@@ -63,7 +68,12 @@ After any database rollback: `notify pgrst, 'reload schema';`.
 
 **Important:** staging and production had different bodies for the company and TPO functions. The staging rollback files restore **staging** bodies. For production use the file saved in Stage 1.3.
 
-## Stage 6 — Token signing
+## Stage 6.2 / 6.3 — Scheduler and runner identity
+
+- Scheduler: set `SCHEDULER_AUTH` back to empty on functions (the webhook secret works again) and put the `x-webhook-secret` header back on the jobs. Until `SCHEDULER_AUTH=oidc` is set, both ways work, so nothing needs rolling back.
+- Runner: put `RUNNER_SECRET` back on the runner and `CODE_RUNNER_SECRET` on functions, remove `CODE_RUNNER_AUTH` and `RUNNER_ALLOWED_CALLERS`, allow public access again.
+
+## Stage 6 — Token signing (6.1)
 
 Works at any point of the cutover:
 
@@ -74,9 +84,9 @@ Works at any point of the cutover:
 
 Until step 7 of the cutover (removing the old key) nothing needs rolling back: both kinds of token work.
 
-## Stage 7 — Cleanup (migration 66)
+## Stage 7 — Cleanup (migrations 66, 71, 72)
 
-See `migration/66-rollback-NOTES.md`. Two ways:
+See `migration/66-rollback-NOTES.md`, `71-rollback-NOTES.md`, `72-rollback-NOTES.md` (reverse order: 72, 71, 66). Two ways:
 
 1. Restore the backup taken just before 66 (loses anything written after it).
 2. Re-create the objects from the old migrations and reload the rows from `legacy_archive`.

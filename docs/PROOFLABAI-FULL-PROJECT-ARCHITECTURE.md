@@ -10,6 +10,17 @@
 
 ---
 
+## Final dashboard structure (work/stabilization; staging) — one evidence model: `task_submissions` + `voice_explanations` + resume assessments
+
+| Role | Main menu (exactly four) | Inside |
+|---|---|---|
+| STUDENT | Floor · Build-log · Squad · Profile | Floor = today's Lot → Run/write → Submit → spoken explanation (English). Build-log = Recent work, Progress, Skills evidence, History. Profile = Readiness, Roadmap, Resume, Mock interview, Certifications, Badges, Role preference, Portfolio, Privacy, Settings. |
+| TPO | Home · Students · Squads · Insights | Students = table, filters, student detail (submissions, voice, readiness), import. |
+| COMPANY | Home · Talent · Lots · Hiring | Lots = My Lots, Create a Lot, Submissions, Reviews. Hiring = Shortlist, Job posts. |
+| ADMIN | Home · People · Work · Operations | People = Students, Colleges, Companies, College users, Student oversight, Admins & roles. Work = Lots & tasks, Submissions, Flags & reviews, Assign tasks, Content library, Job sources, Resources. Operations = AI usage, Jobs & health, Security & audit, Errors & traces, Bug finder. |
+
+The destination and the inner tab are in the address (`?tab=…&view=…`). Retired and never to return (guarded by `scripts/legacy_guard.py`): proof upload, Trust score, cosigns, conceptual verification, proof review, the "post a task / applications" marketplace.
+
 ## Part 1 — NOW (what is actually running)
 
 ### 1.1 The product in one paragraph
@@ -134,6 +145,7 @@ Order of work: `docs/FINAL-IMPLEMENTATION-DEPENDENCY-PLAN-2026-10-03.md`.
 | 2026-10-03 | Wave 10 rehearsal (STAGING ONLY - production still has every proof-era object): migration 66 drops 11 proof-era tables, 8 functions and `student_profiles.trust_score` after archiving every row to `legacy_archive`; files-service no longer serves the `proofs` bucket; `transcription-enqueue` ignores `proof_id` | Claude | full staging regression green after the drop |
 | 2026-10-03 | Wave 9 (branch work/stabilization): migration ledger `schema_migrations` (67, staging) + `scripts/migrations.py`; CI gate adds secret scan and migration consistency, and the deploy job publishes the gate's own build (build once); `infra/` holds a read-only snapshot of both environments with a drift check | Claude | ledger skip/refuse proven on staging; snapshot check 0 differences |
 | 2026-10-03 | Waves 11-12 (branch work/stabilization, staging only): one release gate script (18 gates); 15,000-student synthetic dataset and scale/load scripts; migration 68 - `assign_todays_lots()` handles each student alone and reports `failed`, with a `JOB SANITY` log line; staging voice queue retries 8 times. Known limit: Cloud Run CPU quota (20 vCPU) is shared by staging and production. Hand-over: `PROOFLABAI-RELEASE-CANDIDATE-PREPROD-REPORT.md`, `PRODUCTION-ROLLOUT-CHECKLIST.md`, `PRODUCTION-ROLLBACK-CHECKLIST.md` | Claude | release gate PASS on staging |
+| 2026-10-03 | Final phase (branch work/stabilization, STAGING ONLY): four destinations per role with tabs in the address (`docs/FINAL-NAVIGATION-MAP.md`); voice is English-only by language detection, never by accent (migration 69); compact marks (70); legacy guard in CI, last proof column and `task_applications` dropped on staging (71, 72); suspended accounts refused at once (73, API pre-request check); declared grading type (74 + 77); nightly Lot job reports its state and runs in batches (75, 76); Scheduler and code runner use Google service identity; staging crawler and bug-finder jobs; 15 staging alerts; CI hand-off job; release manifest. Functions 32. Production unchanged. | Claude | final staging release gate (see the pre-production report) |
 | 2026-10-03 | Wave 5b (branch work/stabilization): Build-log Entries rebuilt on task_submissions + voice_explanations only (polls only while a voice is processing); Cosigns tab, LeetCode/HackerRank streaks and the conceptual-quiz buttons removed; 9 legacy frontend files deleted after a zero-reference check | Claude | browser: Build-log shows the company coding Lot 6/6 |
 | 2026-10-03 | Wave E (branch work/stabilization): college-submitted material is college-only (`source_content.visibility`, enforced in `next_lot_source`; migration 58); Lot templates admin-only. Staging behaviour test: A's private page reaches A's student, never B's | Claude | staging probes |
 | 2026-10-03 | Wave D (branch work/stabilization): every task must have an evaluator (CHECK, migration 56); company Lots only via `company-lot` (brief → contract Lot through the shared engine; coding = validated tests, written = specific rubric; refused otherwise; eligibility checked before AI spend; next free day; `sponsor_lot` not browser-callable); Lots area = one system (dead Post Task / Applications removed from nav); resume evaluators frozen once graded (57). Staging: company coding Lot 6 validated tests, cheat failed hidden tests, correct 6/6, company saw it | Claude | staging probes |

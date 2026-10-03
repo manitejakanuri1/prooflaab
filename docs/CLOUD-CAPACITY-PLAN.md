@@ -68,6 +68,7 @@ How to ask (owner): Console → IAM & Admin → Quotas → filter "Cloud Run Adm
 | Voice queue retries: 8 attempts, up to 2 minutes apart (staging already) | 3 attempts in 40 s gave up while instances could not start |
 | Alerts "Cloud Run could not start an instance" and "Voice queue is not draining" in production (`scripts/setup_alerts.py production --apply`) | so quota exhaustion is seen in minutes |
 | Do not run load tests between 05:30 and 06:00 IST | nightly jobs |
+| **Deploy services one at a time, with a few minutes between them** | a new revision starts beside the old one; deploying seven services back to back on staging used the whole quota and the last revision could not start (4 Oct, retried successfully two minutes later; production showed no errors) |
 
 ## Long-term: separate projects
 

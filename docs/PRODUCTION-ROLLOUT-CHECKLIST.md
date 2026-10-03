@@ -79,6 +79,8 @@ Deploy the exact images in `RELEASE-MANIFEST.md` by digest (do not rebuild), in 
 
 With no new settings the new code behaves as before on tokens, Scheduler and the runner (every identity feature is off until configured).
 
+**One service at a time, a few minutes apart.** Each deploy starts new instances beside the old ones; until the CPU quota is raised, deploying several services at once can exhaust it and the new revision will not start (seen on staging). If a revision reports "Quota exceeded for total allowable CPU", wait two minutes and deploy the same image again — the old revision keeps serving meanwhile.
+
 ## Stage 4 — Website
 
 1. Merge `work/stabilization` into `main`. The gate runs, the `artifact-handoff` job verifies the build, then `deploy` publishes that same build.

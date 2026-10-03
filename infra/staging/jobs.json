@@ -6,7 +6,7 @@
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
   },
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-bug-finder:stab-6d65998-2243",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-bug-finder:stab-93675c0",
   "max_retries": 0,
   "memory": "1Gi",
   "service_account": "prooflab-staging-bugfinder@prooflab-508214.iam.gserviceaccount.com",
@@ -19,7 +19,7 @@
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
   },
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-crawler:stab-6d65998-2242",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-crawler:stab-93675c0",
   "max_retries": 0,
   "memory": "1Gi",
   "service_account": "prooflab-staging-crawler@prooflab-508214.iam.gserviceaccount.com",

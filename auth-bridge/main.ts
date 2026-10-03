@@ -14,6 +14,8 @@
 //
 // Worst case if it breaks: nobody can log in. Not: the wrong person gets in.
 import { verifyGoogleToken } from './verify.ts';
+import { googleOidcKeyFor } from './jwks.ts';
+import { makeSigner, verifyServiceCaller, type Signer } from './signer.ts';
 
 const PORT = Number(Deno.env.get('PORT') ?? 8080);
 const TTL_SECONDS = Number(Deno.env.get('TOKEN_TTL') ?? 3600);
@@ -49,7 +51,7 @@ function json(body: unknown, status: number, origin: string | null): Response {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': allowOrigin(origin),
       'Access-Control-Allow-Headers': 'authorization, content-type',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Vary': 'Origin',
       // A token must never be cached by a browser or a CDN.
       'Cache-Control': 'no-store',
@@ -60,27 +62,23 @@ function json(body: unknown, status: number, origin: string | null): Response {
 // The signing key PostgREST was configured with. Read once at startup so a
 // missing secret fails loudly on deploy rather than quietly on first login.
 const SECRET = Deno.env.get('PGRST_JWT_SECRET') ?? '';
-if (!SECRET) console.error('PGRST_JWT_SECRET is not set - every exchange will fail');
+// F1: with APP_SIGNING_KEY this bridge is the only signer (RS256, private key
+// readable by this service alone). Without it: HS256 exactly as before.
+const SIGNING_PEM = Deno.env.get('APP_SIGNING_KEY') ?? '';
+if (!SECRET && !SIGNING_PEM) console.error('No signing key is set - every exchange will fail');
 
-let signingKey: CryptoKey | null = null;
-async function key(): Promise<CryptoKey> {
-  signingKey ??= await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  return signingKey;
-}
+let signerPromise: Promise<Signer> | null = null;
+const signer = () => (signerPromise ??= makeSigner(SIGNING_PEM, SECRET));
 
-const b64url = (b: Uint8Array) =>
-  btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-const b64urlStr = (s: string) =>
-  b64url(new TextEncoder().encode(s));
+// Which service accounts may ask for a service token, and the audience their
+// Google identity token must have been minted for (this bridge's own URL).
+const SERVICE_CALLERS = (Deno.env.get('SERVICE_TOKEN_CALLERS') ?? '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+const SERVICE_AUDIENCE = Deno.env.get('SERVICE_TOKEN_AUDIENCE') ?? '';
+const SERVICE_TTL_SECONDS = 600;
 
 /**
- * An HS256 token carrying the same subject, shaped the way the RLS policies
+ * A signed token carrying the same subject, shaped the way the RLS policies
  * expect: `sub` is read by auth.uid(), `role` is the Postgres role PostgREST
  * switches to.
  *
@@ -93,12 +91,12 @@ async function mint(
   role = 'authenticated',
   ttl = TTL_SECONDS,
   emailConfirmed?: boolean,
+  extra: Record<string, unknown> = {},
 ): Promise<{ token: string; exp: number }> {
   const now = Math.floor(Date.now() / 1000);
   const exp = now + ttl;
 
-  const header = b64urlStr(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = b64urlStr(JSON.stringify({
+  const token = await (await signer()).sign({
     ...(sub ? { sub } : {}),
     role,
     ...(email ? { email } : {}),
@@ -107,14 +105,11 @@ async function mint(
     // administrator credential change that, so the database's record - which a
     // college sets when it enrols a student - is carried here as well.
     ...(emailConfirmed === undefined ? {} : { email_confirmed: emailConfirmed }),
+    ...extra,
     iat: now,
     exp,
-  }));
-
-  const sig = await crypto.subtle.sign(
-    'HMAC', await key(), new TextEncoder().encode(`${header}.${payload}`),
-  );
-  return { token: `${header}.${payload}.${b64url(new Uint8Array(sig))}`, exp };
+  });
+  return { token, exp };
 }
 
 /** Looks like a uuid? Then no lookup is needed at all. */
@@ -195,6 +190,27 @@ async function handler(req: Request): Promise<Response> {
     });
   }
   if (url.pathname === '/healthz') return json({ ok: true }, 200, origin);
+  if (url.pathname === '/ready') return json({ ok: true, alg: (await signer()).alg }, 200, origin);
+
+  // Public keys. Safe to publish: they verify tokens, they cannot make one.
+  if (url.pathname === '/.well-known/jwks.json' && req.method === 'GET') {
+    return json((await signer()).jwks(), 200, origin);
+  }
+
+  // A backend service asks for a short-lived service_role token. It proves who
+  // it is with its own Google identity token; only listed service accounts get
+  // one, and only when this bridge signs asymmetrically (otherwise the caller
+  // already holds the shared secret and this endpoint would add nothing).
+  if (url.pathname === '/service-token' && req.method === 'POST') {
+    const auth = req.headers.get('Authorization');
+    if (!SIGNING_PEM || !auth?.startsWith('Bearer ')) return json({ error: 'invalid token' }, 401, origin);
+    const caller = await verifyServiceCaller(auth.slice(7).trim(),
+      { keyFor: googleOidcKeyFor, audience: SERVICE_AUDIENCE, allowed: SERVICE_CALLERS });
+    if (!caller) return json({ error: 'invalid token' }, 401, origin);
+    const { token, exp } = await mint('', undefined, 'service_role', SERVICE_TTL_SECONDS, undefined, { svc: caller });
+    console.log(`service token issued to ${caller}`);
+    return json({ access_token: token, token_type: 'bearer', expires_in: exp - Math.floor(Date.now() / 1000) }, 200, origin);
+  }
 
   if (url.pathname === '/token' && req.method === 'POST') {
     const auth = req.headers.get('Authorization');

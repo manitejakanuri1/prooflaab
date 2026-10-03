@@ -26,8 +26,10 @@
 // runtime that server answers 404 for every service-account path, so there was
 // no token to be had. Mounting removes the question entirely.
 import { verifyGoogleToken } from './verify.ts';
+import { verifyAppToken } from './appToken.ts';
 
-const JWT_SECRET = Deno.env.get('PGRST_JWT_SECRET') ?? '';
+// Verifies file grants only (user tokens go through appToken.ts). Its own secret when given.
+const JWT_SECRET = Deno.env.get('FILE_GRANT_SECRET') ?? Deno.env.get('PGRST_JWT_SECRET') ?? '';
 
 const PORT = Number(Deno.env.get('PORT') ?? 8080);
 const PRIVATE_BUCKET = Deno.env.get('PRIVATE_BUCKET') ?? 'prooflab-private-508214';
@@ -205,7 +207,8 @@ async function verifyHs256(token: string): Promise<Record<string, unknown> | nul
  * reading one file, not for acting as someone.
  */
 export async function callerOf(token: string): Promise<string | null> {
-  const bridged = await verifyHs256(token);
+  // The bridge's token: RS256, or legacy HS256 while that secret is still configured.
+  const bridged = await verifyAppToken(token);
   if (bridged !== null) {
     if (bridged.role !== 'authenticated' || 'obj' in bridged) return null;
     return typeof bridged.sub === 'string' && bridged.sub !== '' ? bridged.sub : null;

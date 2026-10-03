@@ -156,3 +156,80 @@ Deno.test('a browser preflight is answered, and carries the headers', async () =
   );
   assert(res.body === null, 'a 204 must carry no body - that is what threw');
 });
+
+// ── F1: the asymmetric signer and service callers ───────────────────────────
+import { makeSigner, verifyServiceCaller } from './signer.ts';
+
+async function rsa() {
+  const pair = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true, ['sign', 'verify']);
+  const der = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey));
+  const pem = `-----BEGIN PRIVATE KEY-----\n${btoa(String.fromCharCode(...der)).match(/.{1,64}/g)!.join('\n')}\n-----END PRIVATE KEY-----\n`;
+  return { pair, pem };
+}
+const fromB64 = (s: string) => {
+  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4));
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+};
+
+Deno.test('RS256 signer: the published public key verifies the token; a second key does not', async () => {
+  const { pem } = await rsa();
+  const signer = await makeSigner(pem, 'unused');
+  assert(signer.alg === 'RS256', 'not RS256');
+  const token = await signer.sign({ sub: SUB, role: 'authenticated', exp: future });
+  const [h, p, sig] = token.split('.');
+  const header = JSON.parse(new TextDecoder().decode(fromB64(h)));
+  const jwk = signer.jwks().keys[0];
+  assert(header.alg === 'RS256' && header.kid === jwk.kid, 'kid does not match the published key');
+  assert(!('d' in jwk) && !('p' in jwk), 'the published key leaks private numbers');
+  const pub = await crypto.subtle.importKey('jwk', { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+  const signed = new TextEncoder().encode(`${h}.${p}`);
+  assert(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', pub, fromB64(sig), signed), 'own public key rejects own token');
+  const other = (await rsa()).pair.publicKey;
+  assert(!(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', other, fromB64(sig), signed)), 'a different key accepted the token');
+});
+
+Deno.test('without a signing key the bridge still signs HS256 and publishes no keys', async () => {
+  const signer = await makeSigner('', 'any-32-character-string-will-do-here');
+  assert(signer.alg === 'HS256' && signer.jwks().keys.length === 0, 'legacy mode changed');
+});
+
+Deno.test('service callers: only a listed service account, for this audience, signed by Google', async () => {
+  const { pair } = await rsa();
+  const signer = async (payload: object, key = pair.privateKey, header: object = { alg: 'RS256', kid: 'k1' }) => {
+    const body = `${b64(JSON.stringify(header))}.${b64(JSON.stringify(payload))}`;
+    const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(body)));
+    return `${body}.${btoa(String.fromCharCode(...sig)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
+  };
+  const opts = {
+    keyFor: (kid: string) => Promise.resolve(kid === 'k1' ? pair.publicKey : null),
+    audience: 'https://bridge.example', allowed: ['functions@p.iam.gserviceaccount.com'],
+  };
+  const good = { iss: 'https://accounts.google.com', aud: 'https://bridge.example', exp: future,
+    email: 'functions@p.iam.gserviceaccount.com', email_verified: true };
+  assert(await verifyServiceCaller(await signer(good), opts) === good.email, 'a listed caller was refused');
+  const refusals: [string, string][] = [
+    ['unlisted account', await signer({ ...good, email: 'stranger@p.iam.gserviceaccount.com' })],
+    ['wrong audience', await signer({ ...good, aud: 'https://other.example' })],
+    ['expired', await signer({ ...good, exp: past })],
+    ['not issued by Google', await signer({ ...good, iss: 'https://evil.example' })],
+    ['email not verified', await signer({ ...good, email_verified: false })],
+    ['signed by another key', await signer(good, (await rsa()).pair.privateKey)],
+    ['unknown kid', await signer(good, pair.privateKey, { alg: 'RS256', kid: 'nope' })],
+    ['alg none', fakeToken({ alg: 'none', kid: 'k1' }, good, '')],
+    ['garbage', 'not.a.token'],
+  ];
+  for (const [name, token] of refusals) {
+    assert(await verifyServiceCaller(token, opts) === null, `accepted: ${name}`);
+  }
+  assert(await verifyServiceCaller(await signer(good), { ...opts, allowed: [] }) === null, 'an empty allow-list accepted a caller');
+});
+
+Deno.test('/service-token is closed when the bridge has no asymmetric key', async () => {
+  const res = await handler(new Request('https://bridge/service-token', { method: 'POST', headers: { Authorization: 'Bearer x.y.z' } }));
+  assert(res.status === 401, `status ${res.status}`);
+});

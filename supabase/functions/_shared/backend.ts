@@ -20,6 +20,7 @@
 // module is only ever imported by server-side function code and never by
 // anything a browser can reach.
 
+import { bridgeServiceToken, verifyAppToken } from './appToken.ts';
 import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 
 const BACKEND = Deno.env.get('BACKEND') ?? '';
@@ -27,6 +28,10 @@ export const USING_GOOGLE = BACKEND === 'google';
 
 const POSTGREST_URL = Deno.env.get('POSTGREST_URL') ?? '';
 const JWT_SECRET = Deno.env.get('PGRST_JWT_SECRET') ?? '';
+/** Signs file grants (read one object for a few minutes). Its own secret once the database no longer trusts HS256. */
+const GRANT_SECRET = Deno.env.get('FILE_GRANT_SECRET') ?? JWT_SECRET;
+/** Can this process get a service token at all - from the signer (F1) or the legacy secret? */
+const CAN_REACH_DB = Boolean(JWT_SECRET || Deno.env.get('SIGNER_URL'));
 
 /** Where Cloud Run mounts the buckets. Empty when running on Supabase. */
 const PRIVATE_MOUNT = Deno.env.get('PRIVATE_MOUNT') ?? '/mnt/private';
@@ -60,6 +65,11 @@ const b64urlText = (text: string) => b64url(new TextEncoder().encode(text));
  * PostgREST.
  */
 async function serviceToken(): Promise<string> {
+  // F1: when a signer is configured, ask it (this service proves who it is with
+  // its Google identity). The self-signed HS256 path below is the legacy one.
+  const bridged = await bridgeServiceToken();
+  if (bridged) return bridged;
+
   const now = Date.now();
   if (cached && cached.expires > now + 30_000) return cached.token;
   if (!JWT_SECRET) throw new Error('PGRST_JWT_SECRET is not set; cannot reach the database');
@@ -128,8 +138,8 @@ function storageFor(bucket: string) {
       if (!FILES_URL) {
         return { data: null, error: new Error('FILES_URL is not set') };
       }
-      if (!JWT_SECRET) {
-        return { data: null, error: new Error('PGRST_JWT_SECRET is not set') };
+      if (!GRANT_SECRET) {
+        return { data: null, error: new Error('FILE_GRANT_SECRET is not set') };
       }
 
       const expires = Math.floor(Date.now() / 1000) + Math.max(60, Math.min(expiresIn, 3600));
@@ -137,7 +147,7 @@ function storageFor(bucket: string) {
       const payload = b64urlText(JSON.stringify({ obj: `${bucket}/${path}`, exp: expires }));
 
       const key = await crypto.subtle.importKey(
-        'raw', new TextEncoder().encode(JWT_SECRET),
+        'raw', new TextEncoder().encode(GRANT_SECRET),
         { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
       );
       const signature = await crypto.subtle.sign(
@@ -206,53 +216,17 @@ function storageFor(bucket: string) {
 async function verifyCallerToken(
   token: string,
 ): Promise<{ sub: string; role?: string; email?: string } | null> {
-  if (!JWT_SECRET) return null;
-
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-
-  const fromB64 = (s: string) => {
-    const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
-    const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
-  };
-
-  let header: Record<string, unknown>;
-  let payload: Record<string, unknown>;
-  try {
-    header = JSON.parse(new TextDecoder().decode(fromB64(parts[0])));
-    payload = JSON.parse(new TextDecoder().decode(fromB64(parts[1])));
-  } catch {
-    return null;
-  }
-
-  if (header.alg !== 'HS256') return null;
-
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(JWT_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify'],
-  );
-  const ok = await crypto.subtle.verify(
-    'HMAC', key, fromB64(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
-  );
-  if (!ok) return null;
-
-  const now = Math.floor(Date.now() / 1000);
-  if (typeof payload.exp !== 'number' || payload.exp <= now) return null;
-
-  const sub = typeof payload.sub === 'string' ? payload.sub : '';
+  // Signature, algorithm and expiry are checked in appToken.ts (RS256 against the
+  // bridge's public key; HS256 only while the legacy secret is still configured).
+  const payload = await verifyAppToken(token);
+  if (!payload) return null;
+  const role = typeof payload.role === 'string' ? payload.role : undefined;
+  // A person always has a subject. A service token names its service instead.
+  const sub = typeof payload.sub === 'string' && payload.sub !== ''
+    ? payload.sub
+    : role === 'service_role' && typeof payload.svc === 'string' ? `service:${payload.svc}` : '';
   if (!sub) return null;
-
-  return {
-    sub,
-    role: typeof payload.role === 'string' ? payload.role : undefined,
-    email: typeof payload.email === 'string' ? payload.email : undefined,
-  };
+  return { sub, role, email: typeof payload.email === 'string' ? payload.email : undefined };
 }
 
 
@@ -616,7 +590,7 @@ export { serviceToken };
  */
 export async function serviceRest(path: string, init: RequestInit = {}): Promise<Response | null> {
   if (USING_GOOGLE) {
-    if (!POSTGREST_URL || !JWT_SECRET) return null;
+    if (!POSTGREST_URL || !CAN_REACH_DB) return null;
     return await fetch(`${POSTGREST_URL}/${path}`, {
       ...init,
       headers: {
@@ -637,7 +611,7 @@ export async function serviceRest(path: string, init: RequestInit = {}): Promise
 
 /** Which database the telemetry helpers reach, for /ready. 'none' means they cannot work. */
 export function telemetryTarget(): 'postgrest' | 'supabase' | 'none' {
-  if (USING_GOOGLE) return POSTGREST_URL && JWT_SECRET ? 'postgrest' : 'none';
+  if (USING_GOOGLE) return POSTGREST_URL && CAN_REACH_DB ? 'postgrest' : 'none';
   return Deno.env.get('SUPABASE_URL') && Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ? 'supabase' : 'none';
 }
 

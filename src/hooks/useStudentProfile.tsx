@@ -7,7 +7,6 @@ interface StudentProfile {
   email: string;
   profile_photo_url: string | null;
   total_xp: number;
-  trust_score: number;
   slug: string | null;
   branch: string | null;
   year_of_study: string | null;

@@ -24,7 +24,6 @@ const CollegeDashboard = lazy(() => import("./pages/CollegeDashboard"));
 const StartupDashboard = lazy(() => import("./pages/StartupDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
-const RecruiterView = lazy(() => import("./pages/RecruiterView"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -99,7 +98,6 @@ const App = () => (
                 } />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/portfolio/:slug" element={<Portfolio />} />
-                <Route path="/recruiter/:linkId" element={<RecruiterView />} />
                 
                 {/* Student Routes */}
                 <Route

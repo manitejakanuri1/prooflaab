@@ -21,7 +21,6 @@ interface PortfolioWithProfile extends Portfolio {
     full_name: string;
     profile_photo_url: string | null;
     total_xp: number;
-    trust_score: number;
   };
 }
 
@@ -46,8 +45,7 @@ export const usePortfolio = (slug?: string) => {
               student_profiles!inner(
                 full_name,
                 profile_photo_url,
-                total_xp,
-                trust_score
+                total_xp
               )
             `)
             .eq('slug', slug)
@@ -87,8 +85,7 @@ export const usePortfolio = (slug?: string) => {
               student_profiles!inner(
                 full_name,
                 profile_photo_url,
-                total_xp,
-                trust_score
+                total_xp
               )
             `)
             .eq('student_id', profileData.id)
@@ -111,8 +108,7 @@ export const usePortfolio = (slug?: string) => {
                 student_profiles!inner(
                   full_name,
                   profile_photo_url,
-                  total_xp,
-                  trust_score
+                  total_xp
                 )
               `)
               .single();

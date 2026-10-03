@@ -57,18 +57,21 @@ const StudentRoadmapPage = () => {
 
       const { data: tasks } = await supabase
         .from("tasks")
-        .select("id, roadmap_stage_index, started_at, proof_uploads(status)")
+        .select("id, roadmap_stage_index, started_at, status, task_submissions(status, created_at)")
         .eq("roadmap_scorecard_id", scorecard.id);
 
       const statusMap: Record<number, StageTask["status"]> = {};
       const idMap: Record<number, string> = {};
       (tasks || []).forEach((t: any) => {
         idMap[t.roadmap_stage_index] = t.id;
-        const proofs = Array.isArray(t.proof_uploads) ? t.proof_uploads : [];
+        // Graded attempts on this stage's task (task_submissions; proof uploads are retired).
+        const attempts = Array.isArray(t.task_submissions) ? t.task_submissions : [];
         let status: StageTask["status"] = "Pending";
-        if (proofs.length > 0) {
-          status = proofs[proofs.length - 1].status === "Verified" ? "Completed" : "Under Review";
-        } else if (t.started_at) {
+        if (t.status === "completed" || attempts.some((a: any) => a.status === "passed")) {
+          status = "Completed";
+        } else if (attempts.some((a: any) => a.status === "needs_review")) {
+          status = "Under Review";
+        } else if (t.started_at || attempts.length > 0) {
           status = "In Progress";
         }
         statusMap[t.roadmap_stage_index] = status;

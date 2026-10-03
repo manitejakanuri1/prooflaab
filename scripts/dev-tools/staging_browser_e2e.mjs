@@ -95,6 +95,7 @@ const JOURNEYS = {
     ["Build-Log shows real work, no Cosigns", seq(click("Build-Log"), see("Entries"), see("Tests passed|Being checked|Nothing here yet"), noText("Cosigns"))],
     ["Squad shows teammate names", seq(click("Squad"), see("Squad"), click("Members"), see("Fake Student 2"), see("Fake Student 3"))],
     ["Profile", seq(click("Profile"), see("Resume"))],
+    ["Public portfolio shows passed Lots, no Trust, no proof files", seq(go("/portfolio/fake-student-1"), see("Proven work"), see("Count failed logins per user"), see("Explained"), noText("Trust"), noText("Projects & Achievements"))],
   ],
   student: [
     ["fresh student lands on intake", seq(go("/student/dashboard"), async (p) => { await p.waitForURL(/student\/(start|resume-onboarding|interest-onboarding|dashboard)/, { timeout: 20000 }); return p.url(); })],

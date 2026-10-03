@@ -28,18 +28,14 @@ const ROOT = new URL('../supabase/functions/', import.meta.url);
 
 /** Every function that exists, in no particular order. */
 const SLUGS = [
-  'ai-authorship', 'app-guide-chat', 'assign_tasks', 'company-lot', 'create-college-user',
-  'create-student-users', 'github-check', 'interests-analyze',
-  'leetcode-streak-sync', 'level-open', 'level-quiz-submit', 'levels-place',
-  'levels-warm', 'lot-writer', 'mock-interview-generate', 'mock-interview-score',
-  'proof-file-url', 'question-generator', 
-  'response-evaluator', 'resume-assessment-submit', 
-  'resume-code-execute', 'resume-coding-generate', 'resume-improve',
-  'resume-parser', 'resume-question-generator',
-  'resume-retest-generate', 'run-code', 'run-sandbox', 'security-log',
-  'scheduled-job', 'send-onboarding-email', 'submit-conceptual-answers', 'submit-sandbox-task',
-  'submit-written-task', 'task-explain', 'trust-compute',
-  'verify-proof', 'voice-score', 'client-log', 'transcription-enqueue', 'transcription-reap',
+  'app-guide-chat', 'assign_tasks', 'company-lot', 'create-college-user',
+  'create-student-users', 'interests-analyze', 'level-open', 'level-quiz-submit',
+  'levels-place', 'levels-warm', 'lot-writer', 'mock-interview-generate',
+  'mock-interview-score', 'resume-assessment-submit', 'resume-code-execute',
+  'resume-coding-generate', 'resume-improve', 'resume-parser', 'resume-question-generator',
+  'resume-retest-generate', 'run-code', 'run-sandbox', 'security-log', 'scheduled-job',
+  'send-onboarding-email', 'submit-sandbox-task', 'submit-written-task', 'task-explain',
+  'voice-score', 'client-log', 'transcription-enqueue', 'transcription-reap',
 ];
 
 const handlers = new Map<string, Handler>();

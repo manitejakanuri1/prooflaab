@@ -73,10 +73,7 @@ jobs:
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
 
       - name: Type-check every active server function (Deno)
-        # The 9 legacy slugs are excluded only until Wave 8 deletes them.
-        run: |
-          deno check --no-lock functions-service/main.ts $(ls supabase/functions/*/index.ts \
-            | grep -v -E '/(ai-authorship|github-check|leetcode-streak-sync|proof-file-url|question-generator|response-evaluator|submit-conceptual-answers|trust-compute|verify-proof)/')
+        run: deno check --no-lock functions-service/main.ts supabase/functions/*/index.ts
 
       - name: Accounts sync safety tests (Python)
         run: |

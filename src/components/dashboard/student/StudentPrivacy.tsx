@@ -23,14 +23,6 @@ interface Recording {
   created_at: string;
 }
 
-interface Proof {
-  id: string;
-  is_public: boolean;
-  status: string;
-  submitted_at: string;
-  tasks: { title: string } | null;
-}
-
 const VISIBILITY = [
   { value: "public",  label: "Anyone with the link", icon: Globe,
     says: "Recruiters can find and open your profile." },
@@ -52,20 +44,14 @@ const StudentPrivacy = () => {
   const { profile, refreshProfile } = useStudentProfile();
   const { toast } = useToast();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [proofs, setProofs] = useState<Proof[] | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
-    const [pf, pr] = await Promise.all([
-      supabase.from("student_portfolios").select("is_public, slug")
-        .eq("student_id", profile.id).maybeSingle(),
-      supabase.from("proof_uploads").select("id, is_public, status, submitted_at, tasks(title)")
-        .eq("student_id", profile.id).order("submitted_at", { ascending: false }).limit(25),
-    ]);
+    const pf = await supabase.from("student_portfolios").select("is_public, slug")
+      .eq("student_id", profile.id).maybeSingle();
     setPortfolio((pf.data ?? { is_public: false, slug: null }) as unknown as Portfolio);
-    setProofs((pr.data ?? []) as unknown as Proof[]);
 
     const { data: voice } = await supabase
       .from("voice_explanations")
@@ -140,21 +126,9 @@ const StudentPrivacy = () => {
     });
   };
 
-  const setProofPublic = async (proof: Proof, on: boolean) => {
-    const { error } = await supabase.rpc("set_proof_publicity" as never, {
-      p_proof_id: proof.id, p_is_public: on,
-    } as never);
-    if (error) {
-      toast({ title: "Not changed", description: error.message, variant: "destructive" });
-      return;
-    }
-    setProofs((list) => (list ?? []).map((p) => (p.id === proof.id ? { ...p, is_public: on } : p)));
-  };
-
-  if (!profile || !proofs) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (!profile) return <Skeleton className="h-64 w-full rounded-xl" />;
 
   const current = (profile as unknown as { profile_visibility?: string }).profile_visibility ?? "public";
-  const publicProofs = proofs.filter((p) => p.is_public).length;
 
   return (
     <div className="space-y-4">
@@ -195,7 +169,7 @@ const StudentPrivacy = () => {
                 Portfolio page
               </Label>
               <p className="text-xs text-muted-foreground mt-1 max-w-prose">
-                A single page holding your proof, your skills and your scorecard, at a link you can
+                A single page holding the Lots you passed, your skills and your scorecard, at a link you can
                 paste into an application. Off by default.
               </p>
               {portfolio?.is_public && portfolio.slug && (
@@ -265,43 +239,6 @@ const StudentPrivacy = () => {
             Recordings are kept for the season and removed afterwards. The score a recording
             produced stays on your record either way.
           </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-5">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Individual pieces of work
-            </span>
-            <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-              {publicProofs} of {proofs.length} public
-            </span>
-          </div>
-
-          {proofs.length === 0 ? (
-            <p className="text-sm text-muted-foreground mt-2">
-              Nothing submitted yet. Each piece of work gets its own switch here.
-            </p>
-          ) : (
-            <div className="mt-3">
-              {proofs.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 py-2.5 border-b last:border-b-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm truncate">{p.tasks?.title ?? "Submitted work"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(p.submitted_at), "d MMM yyyy")}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-normal">{p.status}</Badge>
-                  <Switch
-                    checked={p.is_public}
-                    onCheckedChange={(on) => void setProofPublic(p, on)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

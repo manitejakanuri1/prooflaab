@@ -15,7 +15,6 @@ interface StudentTask {
   created_by_startup_id: string | null;
   application_status?: string;
   application_id?: string;
-  proof_submitted?: boolean;
   can_start?: boolean;
   // stage69/70: which grading mode this task uses, if any.
   sandbox_config_id?: string | null;
@@ -61,8 +60,7 @@ export const useAllStudentTasks = () => {
             created_by_admin_id,
             sandbox_config_id,
             rubric_config_id,
-            is_sandbox_task,
-            proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
+            is_sandbox_task
           )
         `)
         .eq('student_id', profile.id)
@@ -90,8 +88,7 @@ export const useAllStudentTasks = () => {
           is_sandbox_task,
           lot_date,
           roadmap_scorecard_id,
-          level_id,
-          proof_uploads!proof_uploads_task_id_fkey (id, status, submitted_at)
+          level_id
         `)
         .eq('student_id', profile.id)
         .order('created_at', { ascending: false });
@@ -125,27 +122,16 @@ export const useAllStudentTasks = () => {
 
       // Add directly assigned tasks (legacy/manual assignments via tasks.student_id)
       (directTasks || []).forEach(task => {
-        const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
 
-        // stage69/70: a sandbox or rubric task never creates a proof_uploads
-        // row — record_task_submission sets tasks.status = 'completed'
-        // directly on a pass. Checked before the proof-upload path, which
-        // would otherwise leave these stuck on 'Applied' forever.
+        // stage69/70: record_task_submission sets tasks.status = 'completed' on a pass.
         if (task.sandbox_config_id || task.rubric_config_id) {
           if (task.status === 'completed') status = 'Completed';
           else if (task.started_at) status = 'In Progress';
-        } else if (proofUploads.length > 0) {
-          const latestProof = proofUploads[proofUploads.length - 1];
-          // Any submitted proof stays out of 'In Progress' — 'Rejected'/'needs_review'
-          // (set by trust-compute) must not re-show the Submit Proof button.
-          // ponytail: no resubmission path after rejection; upgrade = explicit
-          // 'Resubmission Requested' status set by admin.
-          status = latestProof.status === 'Verified' ? 'Completed' : 'Under Review';
         } else if (task.started_at) {
-          status = 'In Progress'; // Task started but no proof yet
+          status = 'In Progress'; // started, not passed yet
         }
-        // If no started_at and no proof, keep status as 'Applied'
+        // Not started: stays 'Applied'
 
         // Where the task really came from. Everything used to fall back to
         // "Admin", so the student's own roadmap and today's Lot looked like
@@ -168,7 +154,6 @@ export const useAllStudentTasks = () => {
           created_by_type: task.created_by_type || taskSource.toLowerCase(),
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
-          proof_submitted: proofUploads.length > 0,
           can_start: !task.started_at && status === 'Applied',
           sandbox_config_id: task.sandbox_config_id,
           rubric_config_id: task.rubric_config_id,
@@ -181,23 +166,18 @@ export const useAllStudentTasks = () => {
       (assignments || []).forEach(assignment => {
         const task = assignment.tasks;
         if (!task || addedTaskIds.has(task.id)) return; // Skip if already added
-
-        const proofUploads = Array.isArray(task.proof_uploads) ? task.proof_uploads : [];
         let status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review' = 'Applied';
 
         // stage69/70: a college/admin task graded automatically completes
         // via task_assignments.status (record_task_submission's non-owner
-        // branch), not tasks.status and never proof_uploads.
+        // branch), not tasks.status.
         if (task.sandbox_config_id || task.rubric_config_id) {
           if (assignment.status === 'completed') status = 'Completed';
           else if (task.started_at) status = 'In Progress';
-        } else if (proofUploads.length > 0) {
-          const latestProof = proofUploads[proofUploads.length - 1];
-          status = latestProof.status === 'Verified' ? 'Completed' : 'Under Review';
         } else if (task.started_at) {
-          status = 'In Progress'; // Task started but no proof yet
+          status = 'In Progress'; // started, not passed yet
         }
-        // If no started_at and no proof, keep status as 'Applied'
+        // Not started: stays 'Applied'
 
         // Determine source based on available data
         let taskSource = 'Admin';
@@ -219,7 +199,6 @@ export const useAllStudentTasks = () => {
           created_by_type: task.created_by_type || taskSource.toLowerCase(),
           xp_reward: task.xp_reward,
           created_by_startup_id: task.created_by_startup_id,
-          proof_submitted: proofUploads.length > 0,
           can_start: !task.started_at && status === 'Applied',
           sandbox_config_id: task.sandbox_config_id,
           rubric_config_id: task.rubric_config_id,
@@ -261,7 +240,6 @@ export const useAllStudentTasks = () => {
             created_by_startup_id: app.tasks.created_by_startup_id,
             application_status: app.status,
             application_id: app.id,
-            proof_submitted: false,
             can_start: app.status === 'Accepted', // Can only start if accepted
           });
         }

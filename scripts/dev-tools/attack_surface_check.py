@@ -52,7 +52,7 @@ check("api forged service_role token", s, b, (401, 403))
 # Functions: login-only functions refuse anonymous and forged callers
 for f in ["submit-written-task", "submit-sandbox-task", "run-code", "run-sandbox", "voice-score", "transcription-enqueue",
           "levels-place", "level-open", "task-explain", "lot-writer", "create-student-users", "create-college-user",
-          "resume-improve", "mock-interview-generate", "proof-file-url", "app-guide-chat"]:
+          "resume-improve", "mock-interview-generate", "app-guide-chat"]:
     s, b = req("POST", f"{FN}/functions/v1/{f}", {})
     check(f"functions anon {f}", s, b, (400, 401, 403))
     s, b = req("POST", f"{FN}/functions/v1/{f}", {}, {"Authorization": FAKE})

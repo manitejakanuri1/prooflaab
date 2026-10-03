@@ -41,7 +41,6 @@ export const ensureStudentProfile = async (user: User): Promise<void> => {
           full_name:
             user.user_metadata?.full_name || user.email?.split("@")[0] || "Student",
           total_xp: 0,
-          trust_score: 0,
         },
       ],
       { onConflict: "user_id" },

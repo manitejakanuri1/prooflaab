@@ -21,7 +21,8 @@ CLAIMS = "c6fad6d6-a7cb-4385-b704-2c3735aed40d"
 ASSESSMENT = "30163808-ad9f-42b2-a0c1-073aac06f641"
 VOICE = "df5a9722-a6b4-4a72-9a93-7d4c9a29dcd6"
 NOBODY_UUID = "00000000-0000-4000-8000-000000000000"
-LEGACY_VALIDATES_FIRST = {"proof-file-url", "submit-conceptual-answers"}
+RETIRED = ["ai-authorship", "github-check", "leetcode-streak-sync", "proof-file-url", "question-generator",
+           "response-evaluator", "submit-conceptual-answers", "trust-compute", "verify-proof"]
 
 # (function, body, who, why)
 CASES = [
@@ -42,7 +43,6 @@ CASES = [
     ("resume-coding-generate", {"resume_claims_id": CLAIMS}, INTRUDER, "coding round from another student's resume"),
     ("resume-parser", {"storage_path": f"{VICTIM}/resume.pdf"}, INTRUDER, "parse another student's resume file"),
     ("mock-interview-score", {"interview_id": NOBODY_UUID}, INTRUDER, "score an interview that is not theirs"),
-    ("proof-file-url", {"proof_id": NOBODY_UUID}, INTRUDER, "file link for a proof that is not theirs"),
     ("levels-warm", {"up_to_level": 1}, INTRUDER, "admin-only content warm-up"),
     ("company-lot", {"student_id": VICTIM, "title": "x", "brief": "y" * 60, "mode": "written"}, INTRUDER, "a student creating a company Lot"),
     ("company-lot", {"student_id": "3d99656a-950f-4bb8-ab75-e97317e68542", "title": "x", "brief": "y" * 60, "mode": "written"}, COMPANY, "a company targeting a student it has not shortlisted"),
@@ -53,13 +53,6 @@ CASES = [
     ("create-student-users", {"students": []}, INTRUDER, "a student importing students"),
     ("create-college-user", {"email": "x@test.invalid"}, INTRUDER, "a student creating a college account"),
     ("send-onboarding-email", {"email": "x@test.invalid"}, INTRUDER, "a student sending platform email"),
-    ("trust-compute", {}, INTRUDER, "legacy trust job"),
-    ("response-evaluator", {}, INTRUDER, "legacy evaluator"),
-    ("submit-conceptual-answers", {}, INTRUDER, "legacy conceptual answers"),
-    ("verify-proof", {"proofId": NOBODY_UUID}, INTRUDER, "legacy proof verification"),
-    ("ai-authorship", {"proof_id": NOBODY_UUID, "code_snippets_or_repo_summary": "x"}, INTRUDER, "legacy AI authorship"),
-    ("github-check", {"proof_id": NOBODY_UUID, "repo_url": "https://github.com/a/b"}, INTRUDER, "legacy GitHub check"),
-    ("question-generator", {"proof_id": NOBODY_UUID, "repo_url": "https://github.com/a/b"}, INTRUDER, "legacy question generator"),
 ]
 
 usage_before = st.call("svc", "GET", "llm_usage?select=id&order=created_at.desc&limit=1")[1]
@@ -77,15 +70,20 @@ for fn, body, who, why in CASES:
 for fn in sorted({c[0].split("?")[0] for c in CASES} | {"app-guide-chat", "run-code", "level-open", "client-log", "interests-analyze"}):
     code, out = st.http(f"{st.FUNCTIONS}/{fn}", {}, {}, "POST")
     ok = code in (401, 403)
-    if not ok and fn in LEGACY_VALIDATES_FIRST and code in (400, 404):
-        # These retired proof-era functions check their input (or look the proof up) before
-        # the caller. No data is returned - proof_uploads is empty - and Wave 8 deletes them.
-        print("KNOWN", f"{fn:28s} {code}  no token (legacy: validates before authenticating; removed in Wave 8)")
-        continue
     results.append(ok)
     if not ok:
         print("FAIL", f"{fn:28s} {code}  no token  ->  {json.dumps(out)[:90]}")
 print("no-token sweep done")
+
+# The nine proof-era functions are deleted (Wave 8): nobody can reach them any more.
+for fn in RETIRED:
+    for who in (INTRUDER, "svc"):
+        code, out = st.call(who, "FN", fn, {"proof_id": NOBODY_UUID})
+        ok = code == 404
+        results.append(ok)
+        if not ok:
+            print("FAIL", f"{fn:28s} {code}  retired function still answers  ->  {json.dumps(out)[:90]}")
+print("retired-function sweep done")
 
 usage_after = st.call("svc", "GET", "llm_usage?select=id&order=created_at.desc&limit=1")[1]
 ok = usage_before == usage_after

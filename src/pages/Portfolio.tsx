@@ -1,7 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { usePortfolioProjects } from "@/hooks/usePortfolioProjects";
 import { usePublicScorecard } from "@/hooks/usePublicScorecard";
 import { RoadmapStages } from "@/components/dashboard/student/RoadmapStages";
 import { ShieldCheck } from "lucide-react";
@@ -9,8 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { PublicProjectCard } from "@/components/portfolio/PublicProjectCard";
-import PublicSuggestedStudents from "@/components/feed/PublicSuggestedStudents";
+import ProvenWork, { useProvenWork } from "@/components/portfolio/ProvenWork";
 import { supabase } from "@/integrations/supabase/client";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import {
@@ -32,9 +30,7 @@ const Portfolio = () => {
   const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
   
   const { portfolio, loading, error } = usePortfolio(slug);
-  const { projects, loading: projectsLoading, error: projectsError } = usePortfolioProjects(
-    portfolio?.student_id || ""
-  );
+  const { data: provenWork = [] } = useProvenWork(portfolio?.student_id);
   const { scorecard } = usePublicScorecard(portfolio?.student_id);
 
   // Get current user ID and check if they're a student
@@ -66,10 +62,6 @@ const Portfolio = () => {
     console.log('Portfolio API Response:', { portfolio, loading, error });
   }, [portfolio, loading, error]);
 
-  useEffect(() => {
-    console.log('Projects API Response:', { projects, loading: projectsLoading, error: projectsError });
-  }, [projects, projectsLoading, projectsError]);
-
   // SEO Meta Tags
   useEffect(() => {
     if (!portfolio || !portfolio.student_profiles) return;
@@ -79,7 +71,7 @@ const Portfolio = () => {
     const title = `${studentName} – ProofLabAI Portfolio`;
     const description = (
       portfolio.bio?.slice(0, 155) || 
-      `View ${studentName}'s verified projects and achievements on ProofLabAI.`
+      `View the work ${studentName} has passed on ProofLabAI.`
     );
     const image = portfolio.student_profiles.profile_photo_url || "https://prooflab.ai/og-default.png";
 
@@ -205,28 +197,7 @@ const Portfolio = () => {
     );
   }
 
-  const trustScore = portfolio?.student_profiles?.trust_score || 0;
   const totalXP = portfolio?.student_profiles?.total_xp || 0;
-
-  const getTrustScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 dark:text-green-400';
-    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-orange-600 dark:text-orange-400';
-  };
-
-  const getTrustScoreLabel = (score: number) => {
-    if (score >= 80) return 'Highly Trusted';
-    if (score >= 60) return 'Trusted';
-    return 'Building Trust';
-  };
-
-
-  // Generate emoji code from string (for project cards)
-  const generateEmojiCode = (str: string) => {
-    const emojis = ["1F680", "1F4BB", "1F3A8", "1F4A1", "1F31F", "1F525", "1F389", "1F4DA"];
-    const index = (str.charCodeAt(0) + str.length) % emojis.length;
-    return emojis[index];
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
@@ -284,14 +255,8 @@ const Portfolio = () => {
                   <span className="font-semibold">{totalXP} XP</span>
                 </div>
                 <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
-                  <Trophy className={`h-5 w-5 ${getTrustScoreColor(trustScore)}`} />
-                  <span className={`font-semibold ${getTrustScoreColor(trustScore)}`}>
-                    {getTrustScoreLabel(trustScore)} ({trustScore}/100)
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">{projects.length} Projects</span>
+                  <span className="font-semibold">{provenWork.length} Lots passed</span>
                 </div>
               </div>
 
@@ -341,82 +306,16 @@ const Portfolio = () => {
               </div>
             )}
 
-            {/* Projects Section */}
+            {/* Proven work: Lots passed, with the explanation score */}
             <div>
               <div className="flex items-center gap-3 mb-8">
                 <Trophy className="h-7 w-7 text-primary" />
-                <h2 className="text-3xl font-bold">Projects & Achievements</h2>
+                <h2 className="text-3xl font-bold">Proven work</h2>
               </div>
-
-              {projectsLoading ? (
-                <div className="text-center py-16">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading projects...</p>
-                </div>
-              ) : projectsError ? (
-                <div className="text-center py-16 bg-card rounded-2xl border border-border">
-                  <XCircle className="h-16 w-16 text-destructive/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">Failed to load projects</p>
-                  <Button variant="outline" onClick={handleRetry}>
-                    Try Again
-                  </Button>
-                </div>
-              ) : projects.length > 0 ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-                  {projects.map((project) => {
-                    // Extract reflection summary if available
-                    const reflectionSummary =
-                      project.reflection_answers &&
-                      Array.isArray(project.reflection_answers) &&
-                      project.reflection_answers.length > 0
-                        ? project.reflection_answers
-                            .map((qa: any) => qa.answer)
-                            .join(" ")
-                            .slice(0, 200)
-                        : null;
-
-                    return (
-                      <PublicProjectCard
-                        key={project.id}
-                        emojiCode={generateEmojiCode(project.task?.title || project.id)}
-                        title={project.task?.title || "Untitled Project"}
-                        description={project.task?.description || ""}
-                        skills={project.task?.required_skills || []}
-                        submittedAt={project.submitted_at}
-                        fileUrl={project.file_url}
-                        filePath={project.file_path}
-                        fileName={project.file_name}
-                        proofId={project.id}
-                        aiSummary={project.ai_summary}
-                        reflectionSummary={reflectionSummary}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-16 bg-card rounded-2xl border border-border">
-                  <Trophy className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">
-                    Nothing public yet
-                  </h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    This student hasn't shared any projects publicly yet. Check back later!
-                  </p>
-                </div>
-              )}
+              <ProvenWork studentId={portfolio?.student_id} emptyText="Nothing passed yet. Check back later." />
             </div>
           </div>
 
-          {/* Right Sidebar - Desktop Only */}
-          <aside className="hidden lg:block w-80 flex-shrink-0">
-            <div className="sticky top-24">
-              <PublicSuggestedStudents
-                currentStudentId={portfolio?.student_id || ""}
-                currentBranch={undefined}
-                currentSkills={portfolio?.skills || []}
-              />
-            </div>
-          </aside>
         </div>
       </main>
 

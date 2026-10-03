@@ -5,35 +5,22 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { useProofUploads } from "@/hooks/useProofUploads";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { Award, Eye, EyeOff, ExternalLink, Share, Star, Trophy, CheckCircle, Clock, Globe, Lock, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import ProofFileButton from "@/components/proof/ProofFileButton";
-import { hasOpenableProof } from "@/lib/proofFile";
+import ProvenWork, { useProvenWork } from "@/components/portfolio/ProvenWork";
 import { getInitials } from "@/lib/utils";
 
 const StudentPortfolioPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
-  const currentDate = new Date();
-  const { data: uploads, isLoading: uploadsLoading, refetch } = useProofUploads(currentDate);
+  // What this student has passed (task_submissions) - the retired proof uploads are not read.
+  const { data: provenWork = [] } = useProvenWork(profile?.id);
   const { portfolio, loading: portfolioLoading, updatePortfolioVisibility } = usePortfolio();
   const { toast } = useToast();
-  const [localUploads, setLocalUploads] = useState(uploads || []);
-  const [followModalOpen, setFollowModalOpen] = useState(false);
-  const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
-
-  // Sync localUploads with uploads whenever uploads changes
-  useEffect(() => {
-    if (uploads) {
-      setLocalUploads(uploads);
-    }
-  }, [uploads]);
-
-  if (profileLoading || uploadsLoading || portfolioLoading) {
+  if (profileLoading || portfolioLoading) {
     return (
       <Card>
         <CardHeader>
@@ -49,56 +36,6 @@ const StudentPortfolioPage = () => {
       </Card>
     );
   }
-
-  const verifiedUploads = (localUploads || uploads || []).filter(upload => upload.status === 'Verified');
-
-  const toggleProofVisibility = async (proofId: string, currentIsPublic: boolean) => {
-    const newIsPublic = !currentIsPublic;
-    
-    // Optimistic update
-    setLocalUploads(prev => 
-      prev.map(upload => 
-        upload.id === proofId 
-          ? { ...upload, is_public: newIsPublic }
-          : upload
-      )
-    );
-
-    try {
-      const { error } = await supabase.rpc('set_proof_publicity', {
-        p_proof_id: proofId,
-        p_is_public: newIsPublic
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: newIsPublic ? "Proof is now public" : "Proof is now private",
-        description: newIsPublic 
-          ? "This proof is now visible on your public portfolio" 
-          : "This proof is now hidden from your public portfolio",
-      });
-
-      // Refetch to ensure sync
-      refetch();
-    } catch (error) {
-      // Revert optimistic update
-      setLocalUploads(prev => 
-        prev.map(upload => 
-          upload.id === proofId 
-            ? { ...upload, is_public: currentIsPublic }
-            : upload
-        )
-      );
-      
-      toast({
-        title: "Could not change visibility",
-        description: "Try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
 
   const handleShare = () => {
     if (!portfolio?.slug) {
@@ -188,7 +125,7 @@ const StudentPortfolioPage = () => {
                       <div className="text-sm text-muted-foreground">Completed Tasks</div>
                       <CheckCircle className="h-5 w-5 text-green-500" />
                     </div>
-                    <div className="text-3xl font-bold text-foreground">{verifiedUploads.length}</div>
+                    <div className="text-3xl font-bold text-foreground">{provenWork.length}</div>
                   </CardContent>
                 </Card>
 
@@ -208,104 +145,16 @@ const StudentPortfolioPage = () => {
         </CardContent>
       </Card>
 
-      {/* Verified Tasks */}
+      {/* Proven work: Lots passed, with the explanation score */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Award className="h-5 w-5 text-orange-600" />
-            <span>Verified Achievements</span>
+            <span>Proven work</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {verifiedUploads.length === 0 ? (
-            <div className="text-center py-8">
-              <Award className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No verified tasks yet</h3>
-              <p className="text-muted-foreground">Complete and submit tasks to build your portfolio.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {verifiedUploads.map((upload) => (
-                <div
-                  key={upload.id}
-                  className="p-4 border border-border rounded-lg hover:shadow-md transition-shadow bg-card relative"
-                >
-                  {/* Public/Private Toggle */}
-                  <div className="absolute top-3 right-3 flex items-center gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => toggleProofVisibility(upload.id, upload.is_public)}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                              upload.is_public
-                                ? "bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-500/30"
-                                : "bg-muted text-muted-foreground hover:bg-muted/80"
-                            }`}
-                          >
-                            {upload.is_public ? (
-                              <>
-                                <Globe className="h-3 w-3" />
-                                <span>Public</span>
-                              </>
-                            ) : (
-                              <>
-                                <Lock className="h-3 w-3" />
-                                <span>Private</span>
-                              </>
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{upload.is_public ? "Visible on your public portfolio" : "Hidden from public portfolio"}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-
-                  <div className="flex items-start justify-between mb-2 pr-24">
-                    <h4 className="font-medium text-foreground flex-1">
-                      {upload.tasks?.title || 'Unknown Task'}
-                    </h4>
-                    <Badge className="bg-accent/20 text-accent-foreground ml-2 shrink-0">
-                      ✅ Verified
-                    </Badge>
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground mb-3">
-                    Completed on {format(new Date(upload.submitted_at), "MMM dd, yyyy")}
-                  </div>
-                  
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center space-x-1">
-                      <Award className="h-4 w-4 text-orange-500" />
-                      <span className="text-sm font-medium">
-                        {upload.tasks?.xp_reward || upload.tasks?.xp || 0} XP
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {upload.is_public && portfolio?.slug && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => window.open(`/portfolio/${portfolio.slug}`, '_blank')}
-                          className="text-xs"
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          View Public Profile
-                        </Button>
-                      )}
-                      
-                      {hasOpenableProof(upload) && (
-                        <ProofFileButton proof={upload} label="View" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <ProvenWork studentId={profile?.id} emptyText="Pass a Lot and it appears here, with your explanation score." />
         </CardContent>
       </Card>
 

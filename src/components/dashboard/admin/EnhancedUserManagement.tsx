@@ -102,14 +102,14 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
     queryKey: [`admin-users-${activeTab}`, searchTerm, statusFilter, sourceFilter, collegeFilter],
     queryFn: async () => {
       if (activeTab === 'students') {
-        // For students, we need to join with colleges and count proofs
+        // For students, we need to join with colleges and count submissions
         let query = supabase
           .from('student_profiles')
           .select(`
             *,
             student_contact (email),
             colleges!student_profiles_college_id_fkey(name),
-            proof_uploads(count)
+            task_submissions(count)
           `);
 
         if (searchTerm) {
@@ -135,11 +135,11 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
           throw error;
         }
 
-        // Transform data to include college name and proofs count
+        // Transform data to include college name and submission count
         return (data as any[])?.map(student => ({
           ...student,
           college_name: student.colleges?.name || null,
-          proofs_submitted: student.proof_uploads?.length || 0
+          proofs_submitted: student.task_submissions?.[0]?.count ?? 0
         })) as UserData[];
       } else if (activeTab === 'startups') {
         // For startups, fetch from startups table and optionally join with startup_profiles
@@ -349,7 +349,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
     
     let headers: string[];
     if (activeTab === 'students') {
-      headers = ['Name', 'Email', 'Source', 'College', 'XP', 'Proofs Submitted', 'Last Active', 'Status', 'Created'];
+      headers = ['Name', 'Email', 'Source', 'College', 'XP', 'Submissions', 'Last Active', 'Status', 'Created'];
     } else if (activeTab === 'startups') {
       headers = ['Name', 'Email', 'Domain/Category', 'Verification Status', 'Created'];
     } else {
@@ -560,7 +560,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                          <>
                            <TableHead className="hidden md:table-cell">Source</TableHead>
                            <TableHead className="hidden lg:table-cell">XP</TableHead>
-                           <TableHead className="hidden xl:table-cell">Proofs</TableHead>
+                           <TableHead className="hidden xl:table-cell">Submissions</TableHead>
                            <TableHead className="hidden md:table-cell">Last Active</TableHead>
                          </>
                        )}
@@ -813,7 +813,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                     <h4 className="font-semibold">Performance Metrics</h4>
                     <div className="space-y-2 mt-2">
                       <p><strong>Total XP:</strong> {viewUserSheet.total_xp || 0}</p>
-                      <p><strong>Proofs Submitted:</strong> {viewUserSheet.proofs_submitted || 0}</p>
+                      <p><strong>Submissions:</strong> {viewUserSheet.proofs_submitted || 0}</p>
                     </div>
                   </div>
                 </>

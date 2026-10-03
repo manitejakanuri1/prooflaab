@@ -49,3 +49,5 @@ screenshots/
 scripts/dev-tools/sections.json
 scripts/dev-tools/matches.json
 scripts/dev-tools/__pycache__/
+__pycache__/
+*.pyc

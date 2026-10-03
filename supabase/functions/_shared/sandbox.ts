@@ -329,6 +329,8 @@ export interface SandboxTest {
   expected_output: string;
   visible: boolean;
   weight?: number;
+  /** normal | boundary | edge, when the generator labelled it (audit only). */
+  kind?: string;
 }
 
 export interface GradedTest {

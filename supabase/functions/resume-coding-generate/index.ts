@@ -1,9 +1,8 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
-import { firstJsonArray } from '../_shared/json-array.ts';
+import { tryGenerateSandbox } from "../_shared/auto-config.ts";
 
 // Skills claimed on a resume, mapped to a language the ProofLab code runner can
 // execute. First match wins. TypeScript is deliberately absent: the runner has no
@@ -128,112 +127,104 @@ serve(async (req) => {
     const language = pickLanguage(skills);
     const targetRole = resumeClaim.target_role || 'a software role';
 
-    const prompt = `Write 2 short, self-contained coding problems in ${language} for a student targeting "${targetRole}" who claims these skills: ${skills.join(', ') || 'general programming'}.
+    // The shared coding engine writes each problem (auto-config.ts): the model
+    // drafts the problem, a reference solution, normal/boundary/edge tests and a
+    // deliberately buggy solution; ProofLab's runner then proves the reference
+    // passes every test AND that obviously wrong programs fail (test-quality.ts).
+    // Tests are stored in task_sandbox_config (admin-only, frozen once used), never
+    // in anything a student can read. Before 3 Oct 2026 this round used 3
+    // AI-written tests that were never executed against any solution.
+    const problemSpec = (n: number) => ({
+      kind: 'scenario' as const,
+      promptBody: `Write coding problem ${n} of 2 for a student targeting "${targetRole}" who claims these skills: ${skills.join(', ') || 'general programming'}.
 
 Rules:
-- Each problem must be solvable in under 15 lines of ${language}.
-- Each problem is a single function the student completes — give a starter code stub with the function signature and a "# your code here" / "// your code here" placeholder, nothing else implemented.
-- Each problem needs exactly 3 test cases: stdin input (what gets read via standard input, matching how the starter code reads input) and the exact expected stdout output.
-- The starter code MUST read input from stdin and print the result to stdout (not just return it), so test cases can be checked by comparing printed output.
-- Difficulty: easy, solvable in a few minutes.
-- Test cases must be deterministic (no randomness, no current time/date).
-- IMPORTANT execution environment constraints:
-  - If ${language} is java: do NOT use "public class" — the class must be declared WITHOUT the public modifier (e.g. "class Solution { public static void main(String[] args) { ... } }"), otherwise it fails to compile in the sandbox.
-  - If ${language} is javascript: read stdin with exactly this pattern: const input = require('fs').readFileSync(0, 'utf-8').trim(); — do not use readline or process.stdin events.
-
-Return ONLY a JSON array with this exact structure:
-[
-  {
-    "id": "c1",
-    "language": "${language}",
-    "prompt": "problem statement",
-    "starter_code": "starter code as a single string with \\n for newlines",
-    "test_cases": [
-      { "stdin": "input1", "expected_output": "output1" },
-      { "stdin": "input2", "expected_output": "output2" },
-      { "stdin": "input3", "expected_output": "output3" }
-    ]
-  },
-  { "id": "c2", ... same structure }
-]
-
-Return ONLY the JSON array, no additional text, no markdown fences.`;
+- The language MUST be ${language}. The program reads standard input and prints to standard output.
+- Easy: solvable in under 15 lines, in a few minutes. Problem ${n === 1 ? '1 is about basic data handling (strings or lists)' : '2 uses a loop with a condition or a simple calculation'}, and relates to the claimed skills where possible.
+- "statement" says, in simple English: what the program must do, the exact Input format, the exact Output format, and one example with a one-line explanation of why that output is correct.
+- "starter_code" reads the input exactly as described and leaves the logic as a "your code here" comment.
+${language === 'java' ? '- Java: declare the class WITHOUT "public" (e.g. "class Solution { public static void main(String[] args) { ... } }").\n' : ''}${language === 'javascript' ? "- JavaScript: read stdin with: const input = require('fs').readFileSync(0, 'utf-8').trim();\n" : ''}`,
+      fields: {
+        title: 'string, max 60 chars',
+        statement: 'string: task, Input, Output, Example and why',
+      },
+    });
 
     // Coding problems depend only on the skills and the target role, so two
-    // students with the same profile were paying for the same two problems
-    // twice. Keyed on a normalised, sorted skill list, so "Node.js, React" and
-    // "react, nodejs" are recognised as the same profile.
+    // students with the same profile share them. 'coding_round_v2': rounds cached
+    // before the engine (inline, unvalidated tests) are never reused.
     const { data: keyRow } = await supabase.rpc('template_key', {
-      _kind: 'coding_round', _role: targetRole, _skills: skills, _extra: language,
+      _kind: 'coding_round_v2', _role: targetRole, _skills: skills, _extra: language,
     });
     const cacheKey = keyRow as unknown as string | null;
 
     let codingQuestions: any[] | null = null;
-
     if (cacheKey) {
       const { data: cached } = await supabase
-        .from('ai_templates')
-        .select('payload')
-        .eq('template_key', cacheKey)
-        .maybeSingle();
-
-      if (cached?.payload) {
+        .from('ai_templates').select('payload').eq('template_key', cacheKey).maybeSingle();
+      if (Array.isArray(cached?.payload) && cached.payload.every((q: any) => q?.sandbox_config_id)) {
         console.log('coding round served from template cache:', cacheKey);
         codingQuestions = cached.payload as any[];
         await supabase.rpc('touch_template', { _key: cacheKey });
       }
     }
 
-    let generatedText: string;
-    if (codingQuestions) {
-      generatedText = '';
-    } else {
-    try {
-      const result = await generateText(prompt, { temperature: 0.5, maxOutputTokens: 3000 }, { feature: 'resume-coding-generate', userId: callerId, studentId: profile.id });
-      generatedText = result.text;
-    } catch (e) {
-      console.error('LLM call failed:', e);
-      // Over-budget callers get a 429 with Retry-After, not a generic failure,
-      // so the client can tell 'wait' apart from 'broken'.
-      const limited = rateLimitResponse(e, corsHeaders);
-      if (limited) return limited;
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate coding problems' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    try {
-      codingQuestions = firstJsonArray(generatedText);
-      if (!codingQuestions?.length || !codingQuestions.every((q) => q && Array.isArray(q.test_cases))) {
-        throw new Error('No usable JSON array of coding problems found');
-      }
-    } catch (parseError) {
-      console.error('Failed to parse the generated coding problems:', parseError, generatedText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse generated coding problems' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Cached only after it parsed. Storing a broken payload would serve the
-    // same broken payload to everyone who follows.
-    if (cacheKey && codingQuestions) {
-      await supabase.from('ai_templates').upsert({
-        template_key: cacheKey,
-        kind: 'coding_round',
-        role: targetRole,
-        paths: skills,
-        payload: codingQuestions,
-      }, { onConflict: 'template_key' });
-    }
-    }
-
     if (!codingQuestions) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate coding problems' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      let outcomes;
+      try {
+        outcomes = await Promise.all([1, 2].map((n) =>
+          tryGenerateSandbox(problemSpec(n), 'resume-coding-generate', { userId: callerId, studentId: profile.id })));
+      } catch (e) {
+        console.error('Coding round generation failed:', e);
+        const limited = rateLimitResponse(e, corsHeaders);
+        if (limited) return limited;
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate coding problems' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const built: any[] = [];
+      for (const [i, outcome] of outcomes.entries()) {
+        const attempt = outcome.attempt;
+        // A problem in another language, or one whose tests never validated, is not served.
+        if (!outcome.ok || !attempt || attempt.language !== language) continue;
+        const { data: cfg, error: cfgError } = await supabase.from('task_sandbox_config').insert({
+          language: attempt.language,
+          starter_code: attempt.starter_code,
+          constraints_text: attempt.constraints_text,
+          test_cases: attempt.test_cases,
+          reference_solution: attempt.reference_solution,
+          pass_threshold: 100,
+          origin: 'resume',
+        }).select('id').single();
+        if (cfgError || !cfg) {
+          console.error('Could not store a coding problem:', cfgError?.message);
+          continue;
+        }
+        const fields = outcome.scenarioFields as Record<string, unknown>;
+        built.push({
+          id: `c${i + 1}`,
+          language: attempt.language,
+          prompt: String(fields.statement ?? fields.title ?? '').trim(),
+          starter_code: attempt.starter_code,
+          sandbox_config_id: cfg.id,
+          sample_test: attempt.test_cases.find((t) => t.visible) ?? null,
+        });
+      }
+      if (built.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Could not prepare coding problems right now. Please try again in a minute.' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      codingQuestions = built;
+      // Cached only when both problems validated; a half round is served once, not shared.
+      if (cacheKey && built.length === 2) {
+        await supabase.from('ai_templates').upsert({
+          template_key: cacheKey, kind: 'coding_round_v2', role: targetRole, paths: skills, payload: built,
+        }, { onConflict: 'template_key' });
+      }
     }
 
     const { error: updateError } = await supabase
@@ -249,14 +240,16 @@ Return ONLY the JSON array, no additional text, no markdown fences.`;
       );
     }
 
-    // Only the first test case is shown to the student as a sample; the rest
-    // stay server-side and are only used for grading in resume-code-execute.
+    // Only the visible example is shown; every test stays server-side and is used
+    // only by resume-code-execute.
     const publicQuestions = codingQuestions.map((q: any) => ({
       id: q.id,
       language: q.language,
       prompt: q.prompt,
       starter_code: q.starter_code,
-      sample_test: q.test_cases?.[0] || null,
+      sample_test: q.sample_test
+        ? { stdin: q.sample_test.stdin, expected_output: q.sample_test.expected_output }
+        : null,
     }));
 
     return new Response(

@@ -1,5 +1,6 @@
 import { generateText } from "./llm.ts";
 import { gradeTests, type SandboxTest } from "./sandbox.ts";
+import { checkTestQuality } from "./test-quality.ts";
 import { gradeOnce, zeroUnquotedCredit, totalOf, type Criterion } from "./rubric-grading.ts";
 
 /**
@@ -64,7 +65,12 @@ const SANDBOX_SCHEMA = `"language": one of "python","javascript","java","cpp","c
 "starter_code": short starter stub, string (may be ""),
 "constraints_text": string or null,
 "reference_solution": a COMPLETE, CORRECT solution in that language, reading from stdin and writing to stdout exactly as the test cases expect,
-"test_cases": array of 3 to 8 objects {"id": string, "stdin": string, "expected_output": string, "visible": boolean, "weight": integer 1-5}. At least one must have "visible": true. expected_output must be EXACTLY what reference_solution prints (trailing newline agnostic).`;
+"test_cases": array of objects {"id": string, "stdin": string, "expected_output": string, "visible": boolean, "weight": integer 1-5, "kind": "normal" | "boundary" | "edge"}.
+  How many: 4 to 5 for an easy problem, 6 to 8 for a harder one - no more than needed.
+  Cover: at least one normal case, one boundary case (smallest/largest allowed input, empty list, zero) and one edge case (duplicates, negatives, unusual but valid input).
+  Every test has a DIFFERENT stdin. Exactly 1 or 2 are "visible": true (the examples the student sees); the rest are hidden, and hidden tests are at least as many as visible ones.
+  expected_output must be EXACTLY what reference_solution prints (trailing newline agnostic).
+"buggy_solution": a plausible but WRONG solution in the same language - the kind of mistake a student makes (off-by-one, ignores an edge case, hardcodes the example). Your tests must make it fail at least one test.`;
 
 const RUBRIC_SCHEMA = `"criteria": array of 2 to 8 objects {"id": string, "name": string, "description": string, "max_points": integer}, max_points summing to 100,
 "min_words": integer >= 20,
@@ -103,12 +109,13 @@ function parseJson(text: string): Record<string, unknown> | null {
   }
 }
 
-interface SandboxAttempt {
+export interface SandboxAttempt {
   language: string;
   starter_code: string;
   constraints_text: string | null;
   reference_solution: string;
   test_cases: SandboxTest[];
+  buggy_solution: string | null;
 }
 
 function parseSandboxFields(parsed: Record<string, unknown>): SandboxAttempt | null {
@@ -126,6 +133,7 @@ function parseSandboxFields(parsed: Record<string, unknown>): SandboxAttempt | n
       expected_output: t.expected_output,
       visible: Boolean(t.visible),
       weight: Number.isFinite(Number(t.weight)) ? Math.max(1, Math.min(5, Math.round(Number(t.weight)))) : 1,
+      ...(["normal", "boundary", "edge"].includes(t.kind) ? { kind: t.kind } : {}),
     });
   }
   if (!test_cases.some((t) => t.visible)) test_cases[0].visible = true;
@@ -136,6 +144,7 @@ function parseSandboxFields(parsed: Record<string, unknown>): SandboxAttempt | n
     constraints_text: typeof parsed.constraints_text === "string" ? parsed.constraints_text : null,
     reference_solution,
     test_cases,
+    buggy_solution: typeof parsed.buggy_solution === "string" && parsed.buggy_solution.trim() ? parsed.buggy_solution : null,
   };
 }
 
@@ -166,7 +175,7 @@ function parseRubricFields(parsed: Record<string, unknown>): RubricAttempt | nul
   return { criteria, min_words, max_words: Math.max(max_words, min_words + 50), reference_answer };
 }
 
-interface AttemptOutcome<T> {
+export interface AttemptOutcome<T> {
   ok: boolean;
   attempt: T | null;
   /** Best-effort — whatever scenario/title text the model produced, even on
@@ -177,17 +186,18 @@ interface AttemptOutcome<T> {
   promptText?: string;
 }
 
-async function tryGenerateSandbox(
+export async function tryGenerateSandbox(
   content: ScenarioSpec | FixedContent,
   feature: string,
   usageCtx: { userId?: string | null; studentId?: string | null },
 ): Promise<AttemptOutcome<SandboxAttempt>> {
   let retryNote = "";
   let lastFields: Record<string, unknown> = {};
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Three tries, not two: the quality gate rejects first drafts that only looked fine.
+  for (let attempt = 0; attempt < 3; attempt++) {
     const { text } = await generateText(
       buildPrompt(content, "sandbox", retryNote),
-      { temperature: attempt === 0 ? 0.7 : 0.4, maxOutputTokens: 1600, json: true },
+      { temperature: attempt === 0 ? 0.7 : 0.4, maxOutputTokens: 2600, json: true },
       { feature, ...usageCtx },
     );
     const parsed = parseJson(text);
@@ -198,7 +208,12 @@ async function tryGenerateSandbox(
 
     const graded = await gradeTests(fields.language, fields.reference_solution, fields.test_cases);
     if (graded.ok && graded.passedCount === fields.test_cases.length) {
-      return { ok: true, attempt: fields, scenarioFields: parsed };
+      // Consistent is not enough: obviously wrong programs must fail (test-quality.ts).
+      const quality = await checkTestQuality(fields.language, fields.test_cases, fields.buggy_solution);
+      if (quality.ok) return { ok: true, attempt: fields, scenarioFields: parsed };
+      console.warn(`TEST QUALITY REJECTED (${feature}): ${quality.problems.join(" | ")}`);
+      retryNote = `\n\nYour reference solution passes, but the tests are too weak:\n- ${quality.problems.join("\n- ")}\n\nReturn improved test_cases (and a buggy_solution they catch). Keep the same problem.`;
+      continue;
     }
 
     if (graded.ok) {

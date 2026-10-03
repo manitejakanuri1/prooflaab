@@ -2,7 +2,7 @@ import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
-import { runCode, verdictFor, type TestCase } from "../_shared/sandbox.ts";
+import { gradeTests, redact, type SandboxTest } from "../_shared/sandbox.ts";
 
 // stage69: the runner (Wandbox -> Godbolt -> Glot chain) moved to
 // _shared/sandbox.ts so run-sandbox and submit-sandbox-task use the exact
@@ -114,44 +114,46 @@ serve(async (req) => {
     // submission, so the round can finish. Before this a student whose code
     // could not run (or who simply wanted to move on) had to sit out the timer:
     // "Submit & next" stays disabled until code has run once.
-    const testCases: TestCase[] = mode === 'run'
-      ? [question.test_cases[0]]
-      : mode === 'skip' ? [] : question.test_cases;
+    // The shared coding engine (sandbox.ts) grades this round exactly like a Daily
+    // Lot. New rounds keep their tests in task_sandbox_config (admin-only, frozen
+    // once used - migration 52); a round generated before 3 Oct 2026 still carries
+    // its tests inline, where test 1 was the visible sample.
+    let tests: SandboxTest[];
+    let language: string = question.language;
+    if (question.sandbox_config_id) {
+      const { data: cfg } = await supabase
+        .from('task_sandbox_config').select('language, test_cases').eq('id', question.sandbox_config_id).maybeSingle();
+      if (!cfg) {
+        return new Response(
+          JSON.stringify({ error: 'This coding question is no longer available' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      tests = cfg.test_cases as SandboxTest[];
+      language = cfg.language;
+    } else {
+      tests = (question.test_cases || []).map((t: any, i: number) => ({
+        id: `t${i + 1}`, stdin: String(t.stdin ?? ''), expected_output: String(t.expected_output ?? ''), visible: i === 0,
+      }));
+    }
 
-    const results = [];
-    for (const [index, tc] of testCases.entries()) {
-      const run = await runCode(question.language, code, tc.stdin);
-
+    // Run: only the examples the student can see. Submit: every test. Skip: none.
+    const toRun = mode === 'run' ? tests.filter((t) => t.visible) : mode === 'skip' ? [] : tests;
+    let results: any[] = [];
+    if (toRun.length) {
+      const graded = await gradeTests(language, code, toRun);
       // The runner never started. Stop here rather than recording a failure the
-      // student did not earn — and stop immediately, because if one container
-      // could not start the next five will not either.
-      if (!run.ok) {
+      // student did not earn.
+      if (!graded.ok) {
         return new Response(
           JSON.stringify({
             error: 'The code runner is busy right now. This is not a problem with your code - please try again in a moment.',
             runner_unavailable: true,
-            detail: run.reason,
           }),
           { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      const verdict = verdictFor(run.status, run.stdout, tc.expected_output);
-      results.push({
-        // Test 1 is the sample the student was shown; every other test is hidden.
-        visible: index === 0,
-        stdin: tc.stdin,
-        expected: tc.expected_output,
-        actual: run.stdout.trim(),
-        stderr: run.stderr.trim(),
-        verdict,
-        passed: verdict === 'accepted',
-      });
-
-      // Code that will not build will not build for the next case either.
-      // Reported once, the way a compiler reports it, instead of repeating the
-      // same message per test and spending runs to say nothing new.
-      if (verdict === 'compile_error') break;
+      results = graded.results;
     }
 
     if (mode === 'run') {
@@ -163,10 +165,9 @@ serve(async (req) => {
 
     // submit mode: persist this question's result, and if all coding questions
     // are now submitted, compute the final coding score onto the scorecard.
-    const passCount = results.filter(r => r.passed).length;
-    // Always the full set: a compile error that stops after test 1 still fails all
-    // of them (it used to shrink the denominator to 1).
-    const total: number = question.test_cases.length;
+    const passCount = results.filter((r) => r.passed).length;
+    // Always the full set: a compile error that stops early still fails every test.
+    const total: number = tests.length;
     const updatedResults: Record<string, any> = {
       ...existingResults,
       [question_id]: { pass_count: passCount, total, results, ...(mode === 'skip' ? { skipped: true } : {}) },
@@ -208,7 +209,7 @@ serve(async (req) => {
         pass_count: passCount,
         total,
         // N21: hidden tests never leave the server - only whether each passed.
-        results: results.map((r) => (r.visible ? r : { visible: false, verdict: r.verdict, passed: r.passed })),
+        results: redact(results),
         all_submitted: allSubmitted,
         coding_score: codingScore,
       }),

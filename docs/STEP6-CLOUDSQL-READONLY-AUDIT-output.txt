@@ -1,0 +1,356 @@
+Output format is unaligned.
+Field separator is " | ".
+BEGIN
+=== Q0 SESSION | prooflab | postgres | on | on | 2026-09-30 04:50:56.260611+00 | PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit
+=== Q1 COLUMNS
+COL | storage_path | text | NO | (none)
+COL | communication_score | integer | YES | (none)
+COL | communication_notes | text | YES | (none)
+COL | status | text | NO | 'recorded'::text
+COL | transcription_status | text | NO | 'completed'::text
+COL | transcription_claimed_at | timestamp with time zone | YES | (none)
+COL | transcription_attempts | integer | NO | 0
+COL | transcription_error | text | YES | (none)
+COL | transcription_idempotency_key | text | YES | (none)
+COL | transcription_lease_token | uuid | YES | (none)
+COL | transcription_enqueued_at | timestamp with time zone | YES | (none)
+COL | transcription_reap_claimed_at | timestamp with time zone | YES | (none)
+COL | transcription_reap_attempts | integer | NO | 0
+COL | scoring_claimed_at | timestamp with time zone | YES | (none)
+COL | scoring_lease_token | uuid | YES | (none)
+=== Q2 CONSTRAINTS
+CON | voice_explanations_pkey | p | PRIMARY KEY (id)
+CON | voice_explanations_proof_id_fkey | f | FOREIGN KEY (proof_id) REFERENCES proof_uploads(id) ON DELETE CASCADE
+CON | voice_explanations_status_check | c | CHECK ((status = ANY (ARRAY['recorded'::text, 'scored'::text, 'failed'::text])))
+CON | voice_explanations_student_id_fkey | f | FOREIGN KEY (student_id) REFERENCES student_profiles(id) ON DELETE CASCADE
+CON | voice_explanations_task_id_fkey | f | FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
+CON | voice_explanations_transcript_source_check | c | CHECK ((transcript_source = ANY (ARRAY['browser'::text, 'server'::text, 'manual'::text])))
+CON | voice_explanations_transcription_idempotency_key_key | u | UNIQUE (transcription_idempotency_key)
+CON | voice_explanations_transcription_status_check | c | CHECK ((transcription_status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'failed'::text])))
+IDX | voice_explanations_pkey | CREATE UNIQUE INDEX voice_explanations_pkey ON public.voice_explanations USING btree (id)
+IDX | voice_explanations_proof_idx | CREATE INDEX voice_explanations_proof_idx ON public.voice_explanations USING btree (proof_id)
+IDX | voice_explanations_student_idx | CREATE INDEX voice_explanations_student_idx ON public.voice_explanations USING btree (student_id, created_at DESC)
+IDX | voice_explanations_task_idx | CREATE INDEX voice_explanations_task_idx ON public.voice_explanations USING btree (task_id)
+IDX | voice_explanations_transcription_idempotency_key_key | CREATE UNIQUE INDEX voice_explanations_transcription_idempotency_key_key ON public.voice_explanations USING btree (transcription_idempotency_key)
+IDX | voice_explanations_transcription_status_idx | CREATE INDEX voice_explanations_transcription_status_idx ON public.voice_explanations USING btree (transcription_status) WHERE (transcription_status = ANY (ARRAY['pending'::text, 'processing'::text]))
+=== Q3 FUNCTION SUMMARY (name | args | result | secdef | config | owner | acl | md5(prosrc) | len)
+FN | activity_from_voice |  | trigger | t | search_path=public, pg_temp | postgres | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | 0ff03da6684e501105a93c8680ed24c2 | 120
+FN | claim_transcription_job | _id uuid, _stale_after_seconds integer | TABLE(id uuid, student_id uuid, storage_path text, task_id uuid, attempts integer, lease_token uuid) | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | 0fba0fd21e115126135bdfad7ff65fb4 | 642
+FN | claim_transcription_recovery | _stale_after_seconds integer, _pending_grace_seconds integer, _reap_claim_ttl_seconds integer, _max_reap_attempts integer | TABLE(id uuid, storage_path text, kind text, attempt integer) | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | babb6d5c09198ae2c4446b0b9d5820ce | 1163
+FN | claim_voice_scoring | _id uuid, _claim_ttl_seconds integer | TABLE(claimed boolean, lease_token uuid) | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | 8246246163ba025bed98c67738005a63 | 494
+FN | complete_transcription_job | _id uuid, _lease_token uuid, _transcript text, _segments jsonb, _word_count integer | boolean | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | a451e95260ccb56eba76aaf8f329f707 | 503
+FN | complete_voice_scoring | _id uuid, _lease_token uuid, _score integer, _notes text | boolean | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | ed6fa7097e73b92ec563559135fb770c | 277
+FN | fail_transcription_job | _id uuid, _lease_token uuid, _error text, _terminal boolean | boolean | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | d3e97e6343b3ec374b03979b540b54b5 | 353
+FN | fail_voice_scoring | _id uuid, _lease_token uuid, _notes text | boolean | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | ab4cf7b84cbc46ba2de5ab1dbd20dd48 | 342
+FN | guard_voice_explanations_insert |  | trigger | t | search_path=public, pg_temp | postgres | {postgres=X/postgres,service_role=X/postgres} | 37f3b71be1a3351414d8005d505563b4 | 1237
+FN | on_voice_recorded |  | trigger | t | search_path=public, pg_temp | postgres | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | 0b9389245dd6c9abbdd5eeab95817a1c | 93
+FN | protect_columns |  | trigger | t | search_path=public, pg_temp | postgres | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | a60314af7153481d75a892e21343f9c6 | 1027
+=== Q4 EXECUTE (function | anon | authenticated | service_role | prooflab_app | PUBLIC in ACL)
+EXEC | claim_transcription_job(_id uuid, _stale_after_seconds integer) | f | f | t | (no such role) | f
+EXEC | claim_transcription_recovery(_stale_after_seconds integer, _pending_grace_seconds integer, _reap_claim_ttl_seconds integer, _max_reap_attempts integer) | f | f | t | (no such role) | f
+EXEC | claim_voice_scoring(_id uuid, _claim_ttl_seconds integer) | f | f | t | (no such role) | f
+EXEC | complete_transcription_job(_id uuid, _lease_token uuid, _transcript text, _segments jsonb, _word_count integer) | f | f | t | (no such role) | f
+EXEC | complete_voice_scoring(_id uuid, _lease_token uuid, _score integer, _notes text) | f | f | t | (no such role) | f
+EXEC | fail_transcription_job(_id uuid, _lease_token uuid, _error text, _terminal boolean) | f | f | t | (no such role) | f
+EXEC | fail_voice_scoring(_id uuid, _lease_token uuid, _notes text) | f | f | t | (no such role) | f
+EXEC | guard_voice_explanations_insert() | f | f | t | (no such role) | f
+=== Q5 DEF claim_transcription_job
+CREATE OR REPLACE FUNCTION public.claim_transcription_job(_id uuid, _stale_after_seconds integer DEFAULT 180)
+ RETURNS TABLE(id uuid, student_id uuid, storage_path text, task_id uuid, attempts integer, lease_token uuid)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare _lease uuid := gen_random_uuid();
+begin
+  return query
+  update public.voice_explanations v
+     set transcription_status = 'processing',
+         transcription_claimed_at = now(),
+         transcription_attempts = v.transcription_attempts + 1,
+         transcription_lease_token = _lease
+   where v.id = _id
+     and (
+       v.transcription_status = 'pending'
+       or (v.transcription_status = 'processing'
+           and v.transcription_claimed_at < now() - make_interval(secs => _stale_after_seconds))
+     )
+  returning v.id, v.student_id, v.storage_path, v.task_id, v.transcription_attempts, v.transcription_lease_token;
+end $function$
+=== Q5 DEF complete_transcription_job
+CREATE OR REPLACE FUNCTION public.complete_transcription_job(_id uuid, _lease_token uuid, _transcript text, _segments jsonb DEFAULT NULL::jsonb, _word_count integer DEFAULT NULL::integer)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n integer;
+begin
+  update public.voice_explanations
+     set transcript = _transcript,
+         transcript_segments = coalesce(_segments, transcript_segments),
+         word_count = coalesce(_word_count, word_count),
+         transcript_source = 'server',
+         transcription_status = 'completed',
+         transcription_error = null
+   where id = _id and transcription_status = 'processing' and transcription_lease_token = _lease_token;
+  get diagnostics n = row_count;
+  return n > 0;
+end $function$
+=== Q5 DEF fail_transcription_job
+CREATE OR REPLACE FUNCTION public.fail_transcription_job(_id uuid, _lease_token uuid, _error text, _terminal boolean DEFAULT true)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n integer;
+begin
+  update public.voice_explanations
+     set transcription_status = case when _terminal then 'failed' else 'pending' end,
+         transcription_error = left(_error, 500)
+   where id = _id and transcription_status = 'processing' and transcription_lease_token = _lease_token;
+  get diagnostics n = row_count;
+  return n > 0;
+end $function$
+=== Q5 DEF claim_transcription_recovery
+CREATE OR REPLACE FUNCTION public.claim_transcription_recovery(_stale_after_seconds integer DEFAULT 180, _pending_grace_seconds integer DEFAULT 20, _reap_claim_ttl_seconds integer DEFAULT 60, _max_reap_attempts integer DEFAULT 8)
+ RETURNS TABLE(id uuid, storage_path text, kind text, attempt integer)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  update public.voice_explanations
+     set transcription_status = 'failed',
+         transcription_error = 'exceeded automatic recovery attempts'
+   where transcription_status in ('pending', 'processing')
+     and transcription_reap_attempts >= _max_reap_attempts;
+  return query
+  update public.voice_explanations v
+     set transcription_reap_claimed_at = now(),
+         transcription_reap_attempts = v.transcription_reap_attempts + 1
+   where v.transcription_reap_attempts < _max_reap_attempts
+     and (v.transcription_reap_claimed_at is null
+          or v.transcription_reap_claimed_at < now() - make_interval(secs => _reap_claim_ttl_seconds))
+     and (
+       (v.transcription_status = 'pending'
+        and v.transcription_enqueued_at is null
+        and v.created_at < now() - make_interval(secs => _pending_grace_seconds))
+       or
+       (v.transcription_status = 'processing'
+        and v.transcription_claimed_at < now() - make_interval(secs => _stale_after_seconds))
+     )
+  returning v.id, v.storage_path,
+    (case when v.transcription_status = 'pending' then 'pending' else 'processing' end),
+    v.transcription_reap_attempts;
+end $function$
+=== Q5 DEF guard_voice_explanations_insert
+CREATE OR REPLACE FUNCTION public.guard_voice_explanations_insert()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if auth.role() = 'service_role' then
+    return new;
+  end if;
+  if new.task_id is not null and not exists (
+    select 1 from public.tasks t where t.id = new.task_id and t.student_id = new.student_id
+  ) then
+    raise exception 'task_id does not belong to this student';
+  end if;
+  if new.proof_id is not null and not exists (
+    select 1 from public.proof_uploads p where p.id = new.proof_id and p.student_id = new.student_id
+  ) then
+    raise exception 'proof_id does not belong to this student';
+  end if;
+  new.transcript_source := 'browser';
+  new.status := 'recorded';
+  new.communication_score := null;
+  new.communication_notes := null;
+  new.word_count := case
+    when new.transcript is not null and length(trim(new.transcript)) > 0
+    then array_length(regexp_split_to_array(trim(new.transcript), '\s+'), 1)
+    else 0
+  end;
+  new.transcription_status := 'completed';
+  new.transcription_idempotency_key := null;
+  new.transcription_claimed_at := null;
+  new.transcription_attempts := 0;
+  new.transcription_error := null;
+  new.transcription_lease_token := null;
+  new.transcription_enqueued_at := null;
+  new.transcription_reap_claimed_at := null;
+  new.transcription_reap_attempts := 0;
+  return new;
+end $function$
+=== Q5 DEF claim_voice_scoring
+CREATE OR REPLACE FUNCTION public.claim_voice_scoring(_id uuid, _claim_ttl_seconds integer DEFAULT 120)
+ RETURNS TABLE(claimed boolean, lease_token uuid)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  _lease uuid := gen_random_uuid();
+  n integer;
+begin
+  update public.voice_explanations
+     set scoring_claimed_at = now(),
+         scoring_lease_token = _lease
+   where id = _id
+     and status <> 'scored'
+     and (scoring_claimed_at is null
+          or scoring_claimed_at < now() - make_interval(secs => _claim_ttl_seconds));
+  get diagnostics n = row_count;
+  if n > 0 then
+    return query select true, _lease;
+  else
+    return query select false, null::uuid;
+  end if;
+end $function$
+=== Q5 DEF complete_voice_scoring
+CREATE OR REPLACE FUNCTION public.complete_voice_scoring(_id uuid, _lease_token uuid, _score integer, _notes text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n integer;
+begin
+  update public.voice_explanations
+     set communication_score = _score,
+         communication_notes = _notes,
+         status = 'scored'
+   where id = _id and scoring_lease_token = _lease_token;
+  get diagnostics n = row_count;
+  return n > 0;
+end $function$
+=== Q5 DEF fail_voice_scoring
+CREATE OR REPLACE FUNCTION public.fail_voice_scoring(_id uuid, _lease_token uuid, _notes text DEFAULT NULL::text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n integer;
+begin
+  update public.voice_explanations
+     set status = 'failed',
+         communication_notes = coalesce(_notes, communication_notes),
+         scoring_claimed_at = null,
+         scoring_lease_token = null
+   where id = _id and scoring_lease_token = _lease_token;
+  get diagnostics n = row_count;
+  return n > 0;
+end $function$
+=== Q5 DEF protect_columns
+CREATE OR REPLACE FUNCTION public.protect_columns()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  raw      text := nullif(current_setting('request.jwt.claims', true), '');
+  jwt_role text;
+  clamp    boolean := true;
+  col  text;
+  newj jsonb;
+  oldj jsonb;
+begin
+  -- A system function is doing this on the student's behalf.
+  if coalesce(current_setting('app.system_write', true), '') = 'on' then
+    return new;
+  end if;
+  if raw is null then
+    return new;                      -- direct database access
+  end if;
+  begin
+    jwt_role := raw::jsonb ->> 'role';
+    if jwt_role is distinct from 'authenticated' then
+      clamp := false;                -- service role: an edge function
+    elsif public.is_admin() then
+      clamp := false;
+    end if;
+  exception when others then
+    clamp := true;                   -- unreadable token: fail closed
+  end;
+  if not clamp then
+    return new;
+  end if;
+  newj := to_jsonb(new);
+  oldj := to_jsonb(old);
+  foreach col in array tg_argv loop
+    newj := jsonb_set(newj, array[col], oldj -> col);
+  end loop;
+  return jsonb_populate_record(new, newj);
+end $function$
+=== Q5 DEF activity_from_voice
+CREATE OR REPLACE FUNCTION public.activity_from_voice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.log_activity(new.student_id, 'voice_recorded', 'voice_explanations', new.id);
+  return new;
+end $function$
+=== Q5 DEF on_voice_recorded
+CREATE OR REPLACE FUNCTION public.on_voice_recorded()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.record_activity(new.student_id, 'voice_recorded');
+  return new;
+end $function$
+=== Q5 END
+=== Q6 TRIGGERS (name | enabled | timing/events/level from def | function)
+TRG | guard_voice_explanations_insert | O | CREATE TRIGGER guard_voice_explanations_insert BEFORE INSERT ON public.voice_explanations FOR EACH ROW EXECUTE FUNCTION guard_voice_explanations_insert() | guard_voice_explanations_insert
+TRG | protect_voice_explanations | O | CREATE TRIGGER protect_voice_explanations BEFORE UPDATE ON public.voice_explanations FOR EACH ROW EXECUTE FUNCTION protect_columns('communication_score', 'communication_notes', 'status', 'transcript') | protect_columns
+TRG | voice_explanations_activity | O | CREATE TRIGGER voice_explanations_activity AFTER INSERT ON public.voice_explanations FOR EACH ROW EXECUTE FUNCTION activity_from_voice() | activity_from_voice
+TRG | voice_explanations_record_activity | O | CREATE TRIGGER voice_explanations_record_activity AFTER INSERT ON public.voice_explanations FOR EACH ROW EXECUTE FUNCTION on_voice_recorded() | on_voice_recorded
+=== Q7 RLS (enabled | forced | owner)
+RLS | t | f | postgres
+POL | voice_own_delete | PERMISSIVE | DELETE | {authenticated} | (student_id = ( SELECT auth.uid() AS uid)) | (none)
+POL | voice_own_insert | PERMISSIVE | INSERT | {authenticated} | (none) | (student_id = ( SELECT auth.uid() AS uid))
+POL | voice_own_read | PERMISSIVE | SELECT | {authenticated} | ((student_id = ( SELECT auth.uid() AS uid)) OR ( SELECT is_admin() AS is_admin)) | (none)
+=== Q7 TABLE PRIVILEGES (role | SELECT INSERT UPDATE DELETE TRUNCATE REFERENCES TRIGGER)
+PRIV | anon | t | t | f | t | t | t | t
+PRIV | authenticated | t | t | f | t | t | t | t
+PRIV | service_role | t | t | t | t | t | t | t
+ROLE-EXISTS prooflab_app | f
+=== Q8 DATA HEALTH (counts only)
+TOTAL | 109
+TSTATUS | pending | 0
+TSTATUS | processing | 0
+TSTATUS | completed | 98
+TSTATUS | failed | 11
+STATUS | recorded | 15
+STATUS | scored | 77
+STATUS | failed | 17
+PENDING_NOT_ENQUEUED | 0
+PROCESSING_STALE_180S | 0
+REAP_ATTEMPTS_AT_LIMIT_8 | 0
+SERVER_COMPLETED_STILL_RECORDED | 0
+SERVER_COMPLETED_STILL_RECORDED_WITH_SCORING_CLAIM | 0
+PATH_NULL_OR_EMPTY | 0
+PATH_SUSPICIOUS (.., //, leading /, whitespace, >1 folder level) | 0
+PATH_NOT_OWN_FOLDER | 4
+PATH_NOT_OWN_FOLDER_IDS | 99999999-0006-0000-0000-000000000001 | 7d71bff4-1ec2-4778-b26d-9567a416bfac | fake | 2026-09-25
+PATH_NOT_OWN_FOLDER_IDS | 99999999-0006-0000-0000-000000000002 | 7d71bff4-1ec2-4778-b26d-9567a416bfac | fake | 2026-09-25
+PATH_NOT_OWN_FOLDER_IDS | 99999999-0006-0000-0000-000000000003 | 7d71bff4-1ec2-4778-b26d-9567a416bfac | fake | 2026-09-25
+PATH_NOT_OWN_FOLDER_IDS | 6fbf2d96-53c0-49af-b824-893816374919 | 67c7f711-6ca8-4b4d-a586-278857dcb0ab | 7d71bff4-1ec2-4778-b26d-9567a416bfac | 2026-09-29
+SCORE_OUT_OF_RANGE | 0
+SCORED_WITHOUT_SCORE | 0
+SCORE_WITHOUT_SCORED | 0
+ROLLBACK
+=== END (rolled back; read-only)
+Container called exit(0).
+

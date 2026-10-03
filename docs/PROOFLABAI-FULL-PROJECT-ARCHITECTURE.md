@@ -29,7 +29,7 @@ A proof-of-skill platform for Indian engineering colleges (https://prooflab.co.i
 |---|---|
 | Student (`student`) | Daily Card · Build-Log · Squad · Profile (17 sub-tabs inside) |
 | College / TPO (`college_admin`) | Home · Students · Squads · Insights |
-| Company / Recruiter (`startup`; one account = `startups.user_id` = `recruiters.id`, synced by trigger) | Home · Talent · Shortlist · Lots (Sponsored Lots, Post a task, Your posted tasks) · Submissions · Review (Work to review, Applications) · Jobs *(work/stabilization)* |
+| Company / Recruiter (`startup`; one account = `startups.user_id` = `recruiters.id`, synced by trigger) | Home · Talent · Shortlist · Lots (company Lots for shortlisted students via `company-lot`) · Submissions · Review · Jobs *(work/stabilization)* |
 | Admin (`admin`) | Overview · People · Work Queue · Platform |
 
 ### 1.3 System map
@@ -123,6 +123,7 @@ Order of work: `docs/FINAL-IMPLEMENTATION-DEPENDENCY-PLAN-2026-10-03.md`.
 
 | Date | Change | By | Evidence |
 |---|---|---|---|
+| 2026-10-03 | Wave D (branch work/stabilization): every task must have an evaluator (CHECK, migration 56); company Lots only via `company-lot` (brief → contract Lot through the shared engine; coding = validated tests, written = specific rubric; refused otherwise; eligibility checked before AI spend; next free day; `sponsor_lot` not browser-callable); Lots area = one system (dead Post Task / Applications removed from nav); resume evaluators frozen once graded (57). Staging: company coding Lot 6 validated tests, cheat failed hidden tests, correct 6/6, company saw it | Claude | staging probes |
 | 2026-10-03 | Wave 1b (branch work/stabilization): account sync suspends instead of deleting + protected test accounts (migration 55, staging); F10 hard production guard (public runners only in staging/development with opt-in); missing test set → clean 404 in run-sandbox/submit-sandbox-task; every active function type-checks (CI step); register `docs/STABILIZATION-EXECUTION-REGISTER.md`; staging fixtures `docs/STAGING-TEST-FIXTURES.md`; branch pushed, CI run 37094913221 green | Claude | accounts/test_sync_plan.py matrix; sandbox_test production cases |
 | 2026-10-03 | Wave 5a (branch work/stabilization): migration 54 (staging applied) - company submissions, sponsored-Lot results and company reviews on task_submissions; Submissions screen shows the answer/code, auto-grade, voice and Accept / Needs work / Reject; company nav = Home, Talent, Shortlist, Lots, Submissions, Review (+ Jobs); stats and activity on the same data. Staging E2E: student submitted a posted task and a sponsored Lot, the company saw both with full work and grade, review saved, sponsored Lots showed the result, student/college/unknown users refused | Claude | scripts/dev-tools/st.py probes |
 | 2026-10-03 | Wave 4a (branch work/stabilization): Lot wording contract + validator, shared Lot pipeline, pregenerate-lots job, stricter coding/written classifier, migration 53 (personalised order, honest seed text; staging applied), labelled sections on the task screen, help-chat guide rewritten for the current product (it told students to upload proofs). Staging E2E: pregenerate wrote 3/3 pages; the coding Lot had Input/Output/Constraints/Example/Why and 6 validated normal/boundary/edge tests, 2 visible, all distinct | Claude | functions `stab-bc21439` on staging |

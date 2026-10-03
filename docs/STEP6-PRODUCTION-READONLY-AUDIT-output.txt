@@ -1,0 +1,897 @@
+
+################ PART 1 - production target
+=== gcloud account and project
+$ gcloud config list --format=value(core.account,core.project)
+deploy.openfloor@gmail.com	prooflab-508214
+
+=== project
+$ gcloud projects describe prooflab-508214 --format=table(projectId,projectNumber,name,lifecycleState)
+PROJECT_ID       PROJECT_NUMBER  NAME      LIFECYCLE_STATE
+prooflab-508214  135298577404    prooflab  ACTIVE
+
+=== Cloud SQL instances
+$ gcloud sql instances list --project=prooflab-508214 --format=table(name,databaseVersion,region,tier,state,settings.availabilityType)
+NAME                 DATABASE_VERSION  REGION       TIER  STATUS    AVAILABILITY_TYPE
+prooflab-db          POSTGRES_17       asia-south1        RUNNABLE  ZONAL
+prooflab-staging-db  POSTGRES_17       asia-south1        RUNNABLE  ZONAL
+
+=== prod databases on prooflab-db
+$ gcloud sql databases list --instance=prooflab-db --project=prooflab-508214 --format=table(name)
+NAME
+postgres
+prooflab
+restoretest
+
+=== Cloud Run services (all)
+$ gcloud run services list --project=prooflab-508214 --region=asia-south1 --format=table(metadata.name,status.latestReadyRevisionName,status.url)
+NAME                                   LATEST_READY_REVISION_NAME                       URL
+prooflab-accounts                      prooflab-accounts-00002-bc9                      https://prooflab-accounts-ysn2mpe6sa-el.a.run.app
+prooflab-api                           prooflab-api-00003-n6c                           https://prooflab-api-ysn2mpe6sa-el.a.run.app
+prooflab-auth-bridge                   prooflab-auth-bridge-00009-4rl                   https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app
+prooflab-code-runner                   prooflab-code-runner-00001-rpr                   https://prooflab-code-runner-ysn2mpe6sa-el.a.run.app
+prooflab-files                         prooflab-files-00011-z5p                         https://prooflab-files-ysn2mpe6sa-el.a.run.app
+prooflab-functions                     prooflab-functions-00044-lnj                     https://prooflab-functions-ysn2mpe6sa-el.a.run.app
+prooflab-staging-accounts              prooflab-staging-accounts-00004-m7r              https://prooflab-staging-accounts-ysn2mpe6sa-el.a.run.app
+prooflab-staging-api                   prooflab-staging-api-00002-rgj                   https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app
+prooflab-staging-auth-bridge           prooflab-staging-auth-bridge-00002-72n           https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app
+prooflab-staging-code-runner           prooflab-staging-code-runner-00002-8bg           https://prooflab-staging-code-runner-ysn2mpe6sa-el.a.run.app
+prooflab-staging-files                 prooflab-staging-files-00004-27l                 https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app
+prooflab-staging-functions             prooflab-staging-functions-00029-5km             https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app
+prooflab-staging-tasks-test-worker     prooflab-staging-tasks-test-worker-00001-58j     https://prooflab-staging-tasks-test-worker-ysn2mpe6sa-el.a.run.app
+prooflab-staging-transcriber           prooflab-staging-transcriber-00002-dg8           https://prooflab-staging-transcriber-ysn2mpe6sa-el.a.run.app
+prooflab-staging-transcription-worker  prooflab-staging-transcription-worker-00017-dw6  https://prooflab-staging-transcription-worker-ysn2mpe6sa-el.a.run.app
+prooflab-transcriber                   prooflab-transcriber-00002-8lk                   https://prooflab-transcriber-ysn2mpe6sa-el.a.run.app
+
+=== Cloud Run jobs (all)
+$ gcloud run jobs list --project=prooflab-508214 --region=asia-south1 --format=table(metadata.name)
+NAME
+prooflab-bug-finder
+prooflab-crawler
+prooflab-staging-inspect4
+
+=== Cloud Tasks queues (all)
+$ gcloud tasks queues list --location=asia-south1 --project=prooflab-508214 --format=table(name.basename(),state)
+QUEUE_NAME                      STATE
+prooflab-staging-ai-background  RUNNING
+prooflab-staging-transcription  RUNNING
+
+=== Cloud Scheduler jobs (all)
+$ gcloud scheduler jobs list --location=asia-south1 --project=prooflab-508214 --format=table(name.basename(),schedule,state,httpTarget.uri)
+ID                                   SCHEDULE               STATE    URI
+prooflab-accounts-sync               */10 * * * *           ENABLED  https://prooflab-accounts-135298577404.asia-south1.run.app/sync
+prooflab-nightly-squads              35 5 * * *             ENABLED  https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=nightly-squads
+prooflab-daily-lots                  40 5 * * *             ENABLED  https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=daily-lots
+prooflab-weekly-plan                 0 8 * * 1              ENABLED  https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=weekly-plan
+prooflab-prune-events                10 3 * * *             ENABLED  https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=prune-events
+prooflab-weekly-seasons              30 23 * * 0            ENABLED  https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=weekly-seasons
+prooflab-weekly-progress             45 23 * * 0            ENABLED  https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=weekly-progress
+prooflab-bugfinder-run               0 6,10,14,18,22 * * *  ENABLED  https://run.googleapis.com/v2/projects/prooflab-508214/locations/asia-south1/jobs/prooflab-bug-finder:run
+prooflab-extend-fixtures             37 5 * * *             ENABLED  https://prooflab-functions-135298577404.asia-south1.run.app/scheduled-job?job=extend-fixtures
+prooflab-crawler-weekly              10 8 * * 0             ENABLED  https://run.googleapis.com/v2/projects/prooflab-508214/locations/asia-south1/jobs/prooflab-crawler:run
+prooflab-bugfinder-deep-run          0 4 * * *              ENABLED  https://run.googleapis.com/v2/projects/prooflab-508214/locations/asia-south1/jobs/prooflab-bug-finder:run
+prooflab-staging-transcription-reap  * * * * *              ENABLED  https://prooflab-staging-functions-135298577404.asia-south1.run.app/transcription-reap
+
+=== Firebase Hosting sites (REST, read-only GET)
+$ curl -s -H Authorization: Bearer <REDACTED-ACCESS-TOKEN> https://firebasehosting.googleapis.com/v1beta1/projects/prooflab-508214/sites
+{
+  "error": {
+    "code": 403,
+    "message": "Your application is authenticating by using local Application Default Credentials. The firebasehosting.googleapis.com API requires a quota project, which is not set by default. To learn how to set your quota project, see https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds .",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "SERVICE_DISABLED",
+        "domain": "googleapis.com",
+        "metadata": {
+          "consumer": "projects/32555940559",
+          "service": "firebasehosting.googleapis.com"
+        }
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+        "locale": "en-US",
+        "message": "Your application is authenticating by using local Application Default Credentials. The firebasehosting.googleapis.com API requires a quota project, which is not set by default. To learn how to set your quota project, see https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds ."
+      }
+    ]
+  }
+}
+
+
+################ PART 2 - backups (read-only)
+=== prooflab-db backup / PITR / deletion protection
+$ gcloud sql instances describe prooflab-db --project=prooflab-508214 --format=yaml(name,region,settings.backupConfiguration,settings.deletionProtectionEnabled,settings.dataDiskSizeGb,settings.availabilityType,settings.ipConfiguration.ipv4Enabled,settings.ipConfiguration.requireSsl,settings.ipConfiguration.sslMode,settings.databaseFlags)
+name: prooflab-db
+region: asia-south1
+settings:
+  availabilityType: ZONAL
+  backupConfiguration:
+    backupRetentionSettings:
+      retainedBackups: 7
+      retentionUnit: COUNT
+    backupTier: STANDARD
+    enabled: true
+    kind: sql#backupConfiguration
+    pointInTimeRecoveryEnabled: true
+    replicationLogArchivingEnabled: true
+    startTime: 20:00
+    transactionLogRetentionDays: 7
+    transactionalLogStorageState: CLOUD_STORAGE
+  dataDiskSizeGb: '20'
+  databaseFlags:
+  - name: cloudsql.iam_authentication
+    value: on
+  deletionProtectionEnabled: true
+  ipConfiguration:
+    ipv4Enabled: true
+    requireSsl: false
+    sslMode: ENCRYPTED_ONLY
+
+=== latest prooflab-db backups
+$ gcloud sql backups list --instance=prooflab-db --project=prooflab-508214 --limit=5 --format=table(id,windowStartTime,endTime,status,type,backupKind)
+ID             WINDOW_START_TIME              END_TIME                  STATUS      TYPE       BACKUP_KIND
+1790712000000  2026-09-29T20:00:00.000+00:00  2026-09-29T20:29:45.195Z  SUCCESSFUL  AUTOMATED  SNAPSHOT
+1790625600000  2026-09-28T20:00:00.000+00:00  2026-09-28T22:27:02.833Z  SUCCESSFUL  AUTOMATED  SNAPSHOT
+1790603890854  2026-09-28T13:58:10.854+00:00  2026-09-28T13:59:42.094Z  SUCCESSFUL  ON_DEMAND  SNAPSHOT
+1790595723742  2026-09-28T11:42:03.742+00:00  2026-09-28T11:44:05.412Z  SUCCESSFUL  ON_DEMAND  SNAPSHOT
+1790539200000  2026-09-27T20:00:00.000+00:00  2026-09-27T21:53:07.602Z  SUCCESSFUL  AUTOMATED  SNAPSHOT
+
+
+################ PART 7 - production Cloud Run services (names/values filtered)
+=== prooflab-functions
+service: prooflab-functions | region: asia-south1
+latest ready revision: prooflab-functions-00044-lnj
+image: asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:v37
+image digest (from status): service account: 135298577404-compute@developer.gserviceaccount.com
+ingress: all
+min/max instances: (default 0) / 4
+concurrency: 80 | timeout s: 300
+cpu/memory: {'cpu': '1', 'memory': '1Gi'}
+cloud sql: (none)
+env NAMES (plain): ['ACCOUNTS_URL', 'ALLOWED_ORIGINS', 'BACKEND', 'CODE_RUNNER_URL', 'EMAIL_FROM', 'FILES_URL', 'GOOGLE_API_KEY', 'POSTGREST_URL', 'PRIVATE_MOUNT', 'PUBLIC_MOUNT']
+secret refs (env NAME <- secret NAME): ['CODE_RUNNER_SECRET <- code-runner-secret', 'DEEPSEEK_API_KEY <- deepseek-api-key', 'GITHUB_PAT <- github-pat', 'PGRST_JWT_SECRET <- prooflab-jwt-secret', 'RESEND_API_KEY <- resend-api-key', 'WEBHOOK_SECRET <- webhook-secret']
+volumes: [('private', ['csi']), ('public', ['csi'])]
+traffic: [('prooflab-functions-00044-lnj', 100, True)]
+
+=== prooflab-functions image digest of latest ready revision
+$ gcloud run revisions describe prooflab-functions-00044-lnj --project=prooflab-508214 --region=asia-south1 --format=value(status.imageDigest)
+asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions@sha256:dc19afa271df9be0bce18771e23784bff7d3c4e9ebd0f05e68abf4fe0ff60e64
+
+=== prooflab-functions invoker IAM
+$ gcloud run services get-iam-policy prooflab-functions --project=prooflab-508214 --region=asia-south1 --format=table(bindings.role,bindings.members)
+ROLE                   MEMBERS
+['roles/run.invoker']  [['allUsers']]
+
+=== prooflab-files
+service: prooflab-files | region: asia-south1
+latest ready revision: prooflab-files-00011-z5p
+image: asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-files:v-no-vercel
+image digest (from status): service account: 135298577404-compute@developer.gserviceaccount.com
+ingress: all
+min/max instances: (default 0) / 4
+concurrency: 80 | timeout s: 60
+cpu/memory: {'cpu': '1', 'memory': '512Mi'}
+cloud sql: (none)
+env NAMES (plain): ['ALLOWED_ORIGINS', 'GCP_PROJECT', 'PRIVATE_BUCKET', 'PUBLIC_BUCKET']
+secret refs (env NAME <- secret NAME): ['PGRST_JWT_SECRET <- prooflab-jwt-secret']
+volumes: [('private', ['csi']), ('public', ['csi'])]
+traffic: [('prooflab-files-00011-z5p', 100, True)]
+
+=== prooflab-files image digest of latest ready revision
+$ gcloud run revisions describe prooflab-files-00011-z5p --project=prooflab-508214 --region=asia-south1 --format=value(status.imageDigest)
+asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-files@sha256:7946c27041a13dd5975af8305d337cf2d3a077a8fbe6e4219dc579176fee838d
+
+=== prooflab-files invoker IAM
+$ gcloud run services get-iam-policy prooflab-files --project=prooflab-508214 --region=asia-south1 --format=table(bindings.role,bindings.members)
+ROLE                   MEMBERS
+['roles/run.invoker']  [['allUsers']]
+
+=== prooflab-api
+service: prooflab-api | region: asia-south1
+latest ready revision: prooflab-api-00003-n6c
+image: postgrest/postgrest:v16.3
+image digest (from status): service account: 135298577404-compute@developer.gserviceaccount.com
+ingress: all
+min/max instances: (default 0) / 4
+concurrency: 80 | timeout s: 30
+cpu/memory: {'cpu': '1', 'memory': '512Mi'}
+cloud sql: prooflab-508214:asia-south1:prooflab-db
+env NAMES (plain): ['PGRST_DB_ANON_ROLE', 'PGRST_DB_POOL', 'PGRST_DB_SCHEMAS', 'PGRST_SERVER_PORT']
+secret refs (env NAME <- secret NAME): ['PGRST_DB_URI <- prooflab-db-uri', 'PGRST_JWT_SECRET <- prooflab-jwt-secret']
+volumes: []
+traffic: [('prooflab-api-00003-n6c', 100, True)]
+
+=== prooflab-api image digest of latest ready revision
+$ gcloud run revisions describe prooflab-api-00003-n6c --project=prooflab-508214 --region=asia-south1 --format=value(status.imageDigest)
+mirror.gcr.io/postgrest/postgrest@sha256:63b567a462c4fd81ede0bdff0b38a150f732ad5fe4f4b01cebeb6a1aa8dbe0d6
+
+=== prooflab-api invoker IAM
+$ gcloud run services get-iam-policy prooflab-api --project=prooflab-508214 --region=asia-south1 --format=table(bindings.role,bindings.members)
+ROLE                   MEMBERS
+['roles/run.invoker']  [['allUsers']]
+
+=== prooflab-auth-bridge
+service: prooflab-auth-bridge | region: asia-south1
+latest ready revision: prooflab-auth-bridge-00009-4rl
+image: asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-auth-bridge@sha256:1f082fda454ce4adae66e79c775f3c6bf9c17cb91af958d6eb4eabbe00a3baa5
+image digest (from status): service account: 135298577404-compute@developer.gserviceaccount.com
+ingress: all
+min/max instances: (default 0) / 3
+concurrency: 80 | timeout s: 20
+cpu/memory: {'cpu': '1', 'memory': '256Mi'}
+cloud sql: (none)
+env NAMES (plain): ['ALLOWED_ORIGINS', 'GCP_PROJECT', 'POSTGREST_URL', 'TOKEN_TTL']
+secret refs (env NAME <- secret NAME): ['PGRST_JWT_SECRET <- prooflab-jwt-secret']
+volumes: []
+traffic: [('prooflab-auth-bridge-00009-4rl', 100, True)]
+
+=== prooflab-auth-bridge image digest of latest ready revision
+$ gcloud run revisions describe prooflab-auth-bridge-00009-4rl --project=prooflab-508214 --region=asia-south1 --format=value(status.imageDigest)
+asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-auth-bridge@sha256:1f082fda454ce4adae66e79c775f3c6bf9c17cb91af958d6eb4eabbe00a3baa5
+
+=== prooflab-auth-bridge invoker IAM
+$ gcloud run services get-iam-policy prooflab-auth-bridge --project=prooflab-508214 --region=asia-south1 --format=table(bindings.role,bindings.members)
+ROLE                   MEMBERS
+['roles/run.invoker']  [['allUsers']]
+
+=== prooflab-transcriber
+service: prooflab-transcriber | region: asia-south1
+latest ready revision: prooflab-transcriber-00002-8lk
+image: asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcriber:v1
+image digest (from status): service account: 135298577404-compute@developer.gserviceaccount.com
+ingress: all
+min/max instances: (default 0) / 3
+concurrency: 1 | timeout s: 120
+cpu/memory: {'cpu': '2', 'memory': '2Gi'}
+cloud sql: (none)
+env NAMES (plain): ['ALLOWED_ORIGINS', 'WHISPER_MODEL']
+secret refs (env NAME <- secret NAME): ['PGRST_JWT_SECRET <- prooflab-jwt-secret']
+volumes: []
+traffic: [('prooflab-transcriber-00002-8lk', 100, True)]
+
+=== prooflab-transcriber image digest of latest ready revision
+$ gcloud run revisions describe prooflab-transcriber-00002-8lk --project=prooflab-508214 --region=asia-south1 --format=value(status.imageDigest)
+asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcriber@sha256:29443fe12280a27908896c23629c30368492fad58518277bf6f4df473f09a2d4
+
+=== prooflab-transcriber invoker IAM
+$ gcloud run services get-iam-policy prooflab-transcriber --project=prooflab-508214 --region=asia-south1 --format=table(bindings.role,bindings.members)
+ROLE                   MEMBERS
+['roles/run.invoker']  [['allUsers']]
+
+=== prooflab-accounts
+service: prooflab-accounts | region: asia-south1
+latest ready revision: prooflab-accounts-00002-bc9
+image: asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-accounts:v2
+image digest (from status): service account: 135298577404-compute@developer.gserviceaccount.com
+ingress: all
+min/max instances: (default 0) / 2
+concurrency: 80 | timeout s: 300
+cpu/memory: {'cpu': '1', 'memory': '512Mi'}
+cloud sql: (none)
+env NAMES (plain): ['ALLOWED_ORIGINS', 'GCP_PROJECT', 'POSTGREST_URL']
+secret refs (env NAME <- secret NAME): ['PGRST_JWT_SECRET <- prooflab-jwt-secret', 'WEBHOOK_SECRET <- webhook-secret']
+volumes: []
+traffic: [('prooflab-accounts-00002-bc9', 100, True)]
+
+=== prooflab-accounts image digest of latest ready revision
+$ gcloud run revisions describe prooflab-accounts-00002-bc9 --project=prooflab-508214 --region=asia-south1 --format=value(status.imageDigest)
+asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-accounts@sha256:a982c24433dab291f3fadd983b4d3b2d6891562e6e31233f6cb00e86444196a9
+
+=== prooflab-accounts invoker IAM
+$ gcloud run services get-iam-policy prooflab-accounts --project=prooflab-508214 --region=asia-south1 --format=table(bindings.role,bindings.members)
+ROLE                   MEMBERS
+['roles/run.invoker']  [['allUsers']]
+
+=== prooflab-code-runner
+service: prooflab-code-runner | region: asia-south1
+latest ready revision: prooflab-code-runner-00001-rpr
+image: asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner:v1
+image digest (from status): service account: code-runner@prooflab-508214.iam.gserviceaccount.com
+ingress: all
+min/max instances: (default 0) / 6
+concurrency: 1 | timeout s: 120
+cpu/memory: {'cpu': '2', 'memory': '2Gi'}
+cloud sql: (none)
+env NAMES (plain): []
+secret refs (env NAME <- secret NAME): ['RUNNER_SECRET <- code-runner-secret']
+volumes: []
+traffic: [('prooflab-code-runner-00001-rpr', 100, True)]
+
+=== prooflab-code-runner image digest of latest ready revision
+$ gcloud run revisions describe prooflab-code-runner-00001-rpr --project=prooflab-508214 --region=asia-south1 --format=value(status.imageDigest)
+asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner@sha256:c27de7eea31c57a7c82506840b6558b0adef64c628167c4cb1f47c62c30d1450
+
+=== prooflab-code-runner invoker IAM
+$ gcloud run services get-iam-policy prooflab-code-runner --project=prooflab-508214 --region=asia-south1 --format=table(bindings.role,bindings.members)
+ROLE                   MEMBERS
+['roles/run.invoker']  [['allUsers']]
+
+=== production Cloud Run job prooflab-bug-finder (image, SA)
+$ gcloud run jobs describe prooflab-bug-finder --project=prooflab-508214 --region=asia-south1 --format=value(spec.template.spec.template.spec.containers[0].image,spec.template.spec.template.spec.serviceAccountName)
+asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-bug-finder:v22	135298577404-compute@developer.gserviceaccount.com
+
+
+################ PART 7b - image to Git commit mapping (artifact registry tags and build times)
+=== images: prooflab-functions
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+DIGEST                                                                                           TAGS         CREATE_TIME
+['s', 'h', 'a', '2', '5', '6', ':', 'd', 'a', 'e', 'b', '3', 'e', '0', 'a', '5', '3', '1', '4']  staging-g1v  2026-09-29 07:07
+['s', 'h', 'a', '2', '5', '6', ':', '9', '1', '1', 'd', '9', '5', '5', 'a', 'b', '2', '3', '3']  staging-g1u  2026-09-29 06:45
+['s', 'h', 'a', '2', '5', '6', ':', '4', 'b', '5', '5', '8', '9', '4', '4', '9', '7', '5', '2']  staging-g1t  2026-09-29 05:49
+['s', 'h', 'a', '2', '5', '6', ':', 'e', '4', '4', '5', '5', '4', 'a', 'c', 'f', '7', 'b', 'a']  staging-g1s  2026-09-29 05:47
+
+=== images: prooflab-files
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-files --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+DIGEST                                                                                           TAGS          CREATE_TIME
+['s', 'h', 'a', '2', '5', '6', ':', '7', '9', '4', '6', 'c', '2', '7', '0', '4', '1', 'a', '1']  v-no-vercel   2026-09-15 15:16
+['s', 'h', 'a', '2', '5', '6', ':', 'b', '8', 'e', '2', '9', '3', 'e', '6', '4', '4', '3', 'b']  v-owner-uuid  2026-09-15 09:55
+['s', 'h', 'a', '2', '5', '6', ':', '6', '7', '0', 'f', '4', '7', '9', '5', 'e', 'c', '1', '8']  latest        2026-09-12 16:30
+['s', 'h', 'a', '2', '5', '6', ':', 'e', '8', '6', '3', '6', 'b', '1', 'e', '9', 'd', '5', '1']                2026-09-12 16:27
+
+=== images: prooflab-api
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-api --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+
+=== images: prooflab-auth-bridge
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-auth-bridge --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+DIGEST                                                                                           TAGS         CREATE_TIME
+['s', 'h', 'a', '2', '5', '6', ':', '1', 'f', '0', '8', '2', 'f', 'd', 'a', '4', '5', '4', 'c']  latest       2026-09-22 09:34
+['s', 'h', 'a', '2', '5', '6', ':', '4', 'd', '1', '3', 'f', 'f', 'd', 'd', 'c', 'f', '8', '0']  v-no-vercel  2026-09-15 15:17
+['s', 'h', 'a', '2', '5', '6', ':', '0', '0', 'd', '6', 'd', 'a', '5', '6', '3', '0', '3', 'e']               2026-09-13 11:26
+['s', 'h', 'a', '2', '5', '6', ':', 'f', 'b', 'a', '5', 'c', '5', 'f', '0', '7', 'c', 'a', 'b']               2026-09-13 08:40
+
+=== images: prooflab-transcriber
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcriber --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+DIGEST                                                                                           TAGS  CREATE_TIME
+['s', 'h', 'a', '2', '5', '6', ':', '2', '9', '4', '4', '3', 'f', 'e', '1', '2', '2', '8', '0']  v1    2026-09-17 15:02
+
+=== images: prooflab-accounts
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-accounts --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+DIGEST                                                                                           TAGS  CREATE_TIME
+['s', 'h', 'a', '2', '5', '6', ':', 'a', '9', '8', '2', 'c', '2', '4', '4', '3', '3', 'd', 'a']  v2    2026-09-18 13:59
+['s', 'h', 'a', '2', '5', '6', ':', '2', '0', '4', 'e', '0', 'b', 'b', '3', '7', 'f', '0', '6']  v1    2026-09-18 13:40
+
+=== images: prooflab-code-runner
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+DIGEST                                                                                           TAGS  CREATE_TIME
+['s', 'h', 'a', '2', '5', '6', ':', 'c', '2', '7', 'd', 'e', '7', 'e', 'e', 'a', '3', '1', 'c']  v1    2026-09-16 13:09
+
+=== images: postgrest
+$ gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/postgrest --include-tags --project=prooflab-508214 --sort-by=~CREATE_TIME --limit=4 --format=table(version.slice(0:19),tags,createTime.date('%Y-%m-%d %H:%M'))
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+
+
+################ PART 8 - Cloud Tasks (all queues in project)
+=== queues (all locations asia-south1)
+$ gcloud tasks queues list --location=asia-south1 --project=prooflab-508214 --format=table(name.basename(),state,rateLimits.maxConcurrentDispatches,rateLimits.maxDispatchesPerSecond,retryConfig.maxAttempts)
+QUEUE_NAME                      STATE    MAX_NUM_OF_TASKS  MAX_RATE (/sec)  MAX_ATTEMPTS
+prooflab-staging-ai-background  RUNNING  2                 1.0              3
+prooflab-staging-transcription  RUNNING  2                 1.0              3
+
+
+################ PART 9 - Scheduler: any production transcription recovery?
+=== scheduler jobs with transcription/reap in name or target
+$ gcloud scheduler jobs list --location=asia-south1 --project=prooflab-508214 --format=table(name.basename(),schedule,state,httpTarget.uri,httpTarget.oidcToken.serviceAccountEmail) --filter=name~transcri OR name~reap OR httpTarget.uri~transcri
+ID                                   SCHEDULE   STATE    URI                                                                                     SERVICE_ACCOUNT_EMAIL
+prooflab-staging-transcription-reap  * * * * *  ENABLED  https://prooflab-staging-functions-135298577404.asia-south1.run.app/transcription-reap
+
+=== bug-finder schedulers (differ from CLAUDE.md notes)
+$ gcloud scheduler jobs describe prooflab-bugfinder-deep-run --location=asia-south1 --project=prooflab-508214 --format=yaml(schedule,state,timeZone,httpTarget.uri,httpTarget.body)
+httpTarget:
+  body: eyJvdmVycmlkZXMiOnsiY29udGFpbmVyT3ZlcnJpZGVzIjpbeyJlbnYiOlt7Im5hbWUiOiJERUVQIiwidmFsdWUiOiIxIn1dfV19fQo=
+  uri: https://run.googleapis.com/v2/projects/prooflab-508214/locations/asia-south1/jobs/prooflab-bug-finder:run
+schedule: 0 4 * * *
+state: ENABLED
+timeZone: Asia/Kolkata
+
+
+################ PART 10 - voice file storage
+=== buckets
+$ gcloud storage buckets list --project=prooflab-508214 --format=table(name,location,public_access_prevention,uniform_bucket_level_access)
+NAME                                     LOCATION     PUBLIC_ACCESS_PREVENTION  UNIFORM_BUCKET_LEVEL_ACCESS
+prooflab-508214_cloudbuild               US           inherited                 False
+prooflab-backups-508214                  ASIA-SOUTH1  enforced                  True
+prooflab-private-508214                  ASIA-SOUTH1  enforced                  True
+prooflab-public-508214                   ASIA-SOUTH1  inherited                 True
+prooflab-staging-private-508214          ASIA-SOUTH1  inherited                 True
+prooflab-staging-public-508214           ASIA-SOUTH1  inherited                 True
+prooflab_logo                            ASIA         inherited                 True
+run-sources-prooflab-508214-asia-south1  ASIA-SOUTH1  inherited                 True
+
+=== prod private bucket settings
+$ gcloud storage buckets describe gs://prooflab-private-508214 --format=yaml(name,location,public_access_prevention,uniform_bucket_level_access,versioning_enabled,soft_delete_policy)
+location: ASIA-SOUTH1
+name: prooflab-private-508214
+public_access_prevention: enforced
+soft_delete_policy:
+  effectiveTime: '2026-09-12T08:34:53.738000+00:00'
+  retentionDurationSeconds: '604800'
+uniform_bucket_level_access: true
+versioning_enabled: true
+
+=== prod private bucket IAM
+$ gcloud storage buckets get-iam-policy gs://prooflab-private-508214 --format=json
+{
+  "bindings": [
+    {
+      "members": [
+        "projectEditor:prooflab-508214",
+        "projectOwner:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyBucketOwner"
+    },
+    {
+      "members": [
+        "projectViewer:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyBucketReader"
+    },
+    {
+      "members": [
+        "projectEditor:prooflab-508214",
+        "projectOwner:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyObjectOwner"
+    },
+    {
+      "members": [
+        "projectViewer:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyObjectReader"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/storage.objectAdmin"
+    }
+  ],
+  "etag": "CAM="
+}
+
+=== prod public bucket IAM
+$ gcloud storage buckets get-iam-policy gs://prooflab-public-508214 --format=json
+{
+  "bindings": [
+    {
+      "members": [
+        "projectEditor:prooflab-508214",
+        "projectOwner:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyBucketOwner"
+    },
+    {
+      "members": [
+        "projectViewer:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyBucketReader"
+    },
+    {
+      "members": [
+        "projectEditor:prooflab-508214",
+        "projectOwner:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyObjectOwner"
+    },
+    {
+      "members": [
+        "projectViewer:prooflab-508214"
+      ],
+      "role": "roles/storage.legacyObjectReader"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/storage.objectAdmin"
+    },
+    {
+      "members": [
+        "allUsers"
+      ],
+      "role": "roles/storage.objectViewer"
+    }
+  ],
+  "etag": "CAQ="
+}
+
+
+################ PART 11 - IAM
+=== project IAM policy (roles and members)
+$ gcloud projects get-iam-policy prooflab-508214 --format=json
+{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:service-135298577404@gcp-sa-artifactregistry.iam.gserviceaccount.com"
+      ],
+      "role": "roles/artifactregistry.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/artifactregistry.writer"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com",
+        "serviceAccount:135298577404@cloudbuild.gserviceaccount.com"
+      ],
+      "role": "roles/cloudbuild.builds.builder"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@gcp-sa-cloudbuild.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudbuild.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@gcp-sa-cloudscheduler.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudscheduler.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-api@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudsql.client"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@gcp-sa-cloudtasks.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudtasks.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404@cloudservices.gserviceaccount.com"
+      ],
+      "role": "roles/compute.instanceGroupManagerServiceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@compute-system.iam.gserviceaccount.com"
+      ],
+      "role": "roles/compute.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@containerregistry.iam.gserviceaccount.com"
+      ],
+      "role": "roles/containerregistry.ServiceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/editor"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@gcp-sa-firebase.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebase.managementServiceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:firebase-adminsdk-fbsvc@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebase.sdkAdminServiceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:github-deploy@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebasehosting.admin"
+    },
+    {
+      "members": [
+        "serviceAccount:firebase-adminsdk-fbsvc@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/iam.serviceAccountTokenCreator"
+    },
+    {
+      "members": [
+        "serviceAccount:prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/identitytoolkit.admin"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-api@prooflab-508214.iam.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-auth-bridge@prooflab-508214.iam.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-files@prooflab-508214.iam.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-transcriber@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/logging.logWriter"
+    },
+    {
+      "members": [
+        "user:deploy.openfloor@gmail.com"
+      ],
+      "role": "roles/owner"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@gcp-sa-pubsub.iam.gserviceaccount.com"
+      ],
+      "role": "roles/pubsub.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-135298577404@serverless-robot-prod.iam.gserviceaccount.com"
+      ],
+      "role": "roles/run.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:github-deploy@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/serviceusage.serviceUsageConsumer"
+    },
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/storage.objectViewer"
+    }
+  ],
+  "etag": "BwZcT8mvsZg=",
+  "version": 1
+}
+
+=== service accounts
+$ gcloud iam service-accounts list --project=prooflab-508214 --format=table(email,disabled)
+EMAIL                                                                   DISABLED
+prooflab-staging-auth-bridge@prooflab-508214.iam.gserviceaccount.com    False
+prooflab-staging-tasks-invoker@prooflab-508214.iam.gserviceaccount.com  False
+prooflab-staging-transc-wk@prooflab-508214.iam.gserviceaccount.com      False
+135298577404-compute@developer.gserviceaccount.com                      False
+prooflab-staging-api@prooflab-508214.iam.gserviceaccount.com            False
+firebase-adminsdk-fbsvc@prooflab-508214.iam.gserviceaccount.com         False
+prooflab-staging-tasks-worker@prooflab-508214.iam.gserviceaccount.com   False
+github-deploy@prooflab-508214.iam.gserviceaccount.com                   False
+prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com      False
+prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com       False
+prooflab-staging-code-runner@prooflab-508214.iam.gserviceaccount.com    False
+prooflab-staging-files@prooflab-508214.iam.gserviceaccount.com          False
+prooflab-staging-transcriber@prooflab-508214.iam.gserviceaccount.com    False
+code-runner@prooflab-508214.iam.gserviceaccount.com                     False
+
+=== secret prooflab-jwt-secret: who can access (IAM only; value NOT read)
+$ gcloud secrets get-iam-policy prooflab-jwt-secret --project=prooflab-508214 --format=json
+{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.secretAccessor"
+    }
+  ],
+  "etag": "BwZbNuzHhEg=",
+  "version": 1
+}
+
+=== secret prooflab-db-uri: who can access (IAM only; value NOT read)
+$ gcloud secrets get-iam-policy prooflab-db-uri --project=prooflab-508214 --format=json
+{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.secretAccessor"
+    }
+  ],
+  "etag": "BwZcPB6iMSs=",
+  "version": 1
+}
+
+=== secret deepseek-api-key: who can access (IAM only; value NOT read)
+$ gcloud secrets get-iam-policy deepseek-api-key --project=prooflab-508214 --format=json
+{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:135298577404-compute@developer.gserviceaccount.com",
+        "serviceAccount:prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.secretAccessor"
+    }
+  ],
+  "etag": "BwZcPr6MnN4=",
+  "version": 1
+}
+
+=== secret names only
+$ gcloud secrets list --project=prooflab-508214 --format=table(name)
+NAME
+code-runner-secret
+deepseek-api-key
+github-pat
+prooflab-admin-password
+prooflab-college-password
+prooflab-db-password
+prooflab-db-postgres-password
+prooflab-db-uri
+prooflab-e2e-password
+prooflab-jwt-secret
+prooflab-recruiter-password
+prooflab-staging-admin-password
+prooflab-staging-code-runner-secret
+prooflab-staging-college-password
+prooflab-staging-db-uri
+prooflab-staging-jwt-secret
+prooflab-staging-recruiter-password
+prooflab-staging-student-password
+prooflab-staging-webhook-secret
+prooflab-startup-password
+prooflab-student-password
+prooflab-testusers-password
+resend-api-key
+webhook-secret
+
+
+################ PART 12 - deployed frontend
+index.html bytes: 2960 | last-modified: Tue, 22 Sep 2026 13:54:25 GMT | etag: None
+entry scripts: ['/assets/index-BZhJmnjL.js']
+JS files fetched: 92
+
+backend URLs compiled into the deployed bundle:
+   https://identitytoolkit.googleapis.com/v1
+   https://prooflab-accounts-135298577404.asia-south1.run.app
+   https://prooflab-api-ysn2mpe6sa-el.a.run.app
+   https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app
+   https://prooflab-files-135298577404.asia-south1.run.app
+   https://prooflab-functions-135298577404.asia-south1.run.app
+   https://prooflab-transcriber-135298577404.asia-south1.run.app
+   https://securetoken.googleapis.com/v1/token
+   https://storage.googleapis.com/${Pd}/${e}/${r}
+
+staging URLs present in production bundle: []
+
+Step 6 markers in the deployed bundle:
+  no   transcription-enqueue (async enqueue call)  []
+  YES  voice-score (sync scoring call)  ['/assets/StudentDashboard-GTt4h4c4.js']
+  no   pl.voiceJob.v3: (round-4+ recovery records)  []
+  no   pl.voiceJob. (any recovery marker, round 1+)  []
+  no   'Queued — this can take a moment' (async UI text)  []
+  no   'Uploading your recording' (async UI text)  []
+  YES  'Saving your explanation' (sync UI text)  ['/assets/StudentDashboard-GTt4h4c4.js']
+  no   'Recordings you kept aside' (round-4+ UI)  []
+  no   'Show hidden recordings' (round-7 UI)  []
+  YES  /transcribe (browser transcriber call, sync path)  ['/assets/StudentDashboard-GTt4h4c4.js']
+
+note: if VITE_ASYNC_TRANSCRIPTION was unset at build time, Vite compiles the check to a constant false
+################ PART 12b - live commit
+prooflaab main = ee0143c0be79b2cd50e33626155b5aa0ee426b8d
+[{"conclusion":"success","createdAt":"2026-09-22T13:52:49Z","databaseId":35736431758,"headSha":"ee0143c0be79b2cd50e33626155b5aa0ee426b8d","status":"completed","workflowName":"Deploy to production"},{"conclusion":"success","createdAt":"2026-09-22T11:52:35Z","databaseId":35723905461,"headSha":"21a8a758697073ff487b307607dee0945c241f46","status":"completed","workflowName":"Deploy to production"},{"conclusion":"success","createdAt":"2026-09-22T10:31:44Z","databaseId":35716476025,"headSha":"da09c91ec8a76e0ebc769665c3233fba9e9d43b3","status":"completed","workflowName":"Deploy to production"},{"conclusion":"success","createdAt":"2026-09-22T10:22:11Z","databaseId":35715588777,"headSha":"d7a18445f40d890be6c7cb152dea0bbf8c4f779e","status":"completed","workflowName":"Deploy to production"},{"conclusion":"success","createdAt":"2026-09-22T10:16:38Z","databaseId":35715085331,"headSha":"417308da3bee9bbfb234c1a82793b73d37bcc355","status":"completed","workflowName":"Deploy to production"}]
+ee0143c0be79b2cd50e33626155b5aa0ee426b8d 2026-09-22 19:09:17 +0530 Fix bug finder deep check: Playwright version mismatch broke pdf.js
+commits on step6 branch not on main: 60
+main contains VoiceExplainModal async flag? 0
+.env.production on main mentions async flag: 0
+################ PART 7c - prod functions image + /ready
+Listing items under project prooflab-508214, location asia-south1, repository cloud-run-source-deploy.
+
+TAGS  CREATE_TIME
+v37   2026-09-22 09:28
+{'ok': True, 'loaded': 38, 'expected': 38, 'failed': {}, 'metadata': '169.254.169.254 answered 404'}
+function count: 0
+  transcription-enqueue loaded: (list not exposed)
+  transcription-reap loaded: (list not exposed)
+  voice-score loaded: (list not exposed)
+  client-log loaded: (list not exposed)
+################ PART 7d - functions list
+main (live website commit) SLUGS: 37
+step6 branch SLUGS: 39
+in step6 but not in main: ['transcription-enqueue', 'transcription-reap']
+transcription-enqueue in main: False | voice-score in main: True
+################ PART 7e - SLUGS count by commit (newest first)
+39 5f15368cc7c2602ccd2cfd13190a073c4336d450 2026-09-25 21:38:48 +0530 Step 6B: harden async transcription pipelin | vs main: ['transcription-enqueue', 'transcription-reap'] []
+38 b1b90045f9f8ad81e51864a133845aa7ebd311c5 2026-09-25 21:05:26 +0530 Add Step 6 async voice transcription pipeli | vs main: ['transcription-enqueue'] []
+37 4d792ac55f1b21b3b4edd75d83299a9b4a3b2dcb 2026-09-21 23:49:18 +0530 Student step trail: app_events, client-log  | vs main: [] []
+36 8fc204fda3518b2d6e95fc37aeb8c692a51a347b 2026-09-21 23:35:37 +0530 Structured logs with a request id across th | vs main: [] ['client-log']
+36 5a4625f9d3c96c03db13c8a35e04ddf0f2b79819 2026-09-20 20:21:36 +0530 Run box for lesson code examples that run o | vs main: [] ['client-log']
+35 eb726ff587ad8f5534ce6179b232d8b945d1a781 2026-09-20 14:16:56 +0530 Part E clean-up: remove 7 unused functions, | vs main: [] ['client-log', 'run-code']
+42 ee730fb722e104408e4188de63d7cff6135aa1c6 2026-09-19 20:46:23 +0530 Explained simply before every task; coding  | vs main: ['generate-task-ai', 'moss-check', 'reset-daily-credits', 'resume-cert-radar', 'resume-jd-match', 'resume-voice-verify', 'test-github-connection'] ['client-log', 'run-code']
+41 3027e4f78a93da19cb4ba56ed07ee03ab07626fa 2026-09-15 16:29:09 +0530 Timed jobs run again, on Cloud Scheduler; s | vs main: ['generate-task-ai', 'moss-check', 'reset-daily-credits', 'resume-cert-radar', 'resume-jd-match', 'resume-voice-verify', 'test-github-connection'] ['client-log', 'run-code', 'task-explain']
+40 7352785e8a731db72523f802e4e2b720e9a7f5b3 2026-09-12 22:04:01 +0530 Wire the last pieces: account lookup, invit | vs main: ['generate-task-ai', 'moss-check', 'reset-daily-credits', 'resume-cert-radar', 'resume-jd-match', 'resume-voice-verify', 'test-github-connection'] ['client-log', 'run-code', 'scheduled-job', 'task-explain']
+40 acf22b61e27f862676b1f8f7ff7f268180fe73aa 2026-09-12 18:27:37 +0530 Phase 6, part 1: run all 41 edge functions  | vs main: ['generate-task-ai', 'moss-check', 'reset-daily-credits', 'resume-cert-radar', 'resume-jd-match', 'resume-voice-verify', 'test-github-connection'] ['client-log', 'run-code', 'scheduled-job', 'task-explain']
+################ PART 3/6 - production API as ANON (no token)
+swagger: 2.0 | host: 0.0.0.0:8080 | PostgREST info: 16.3
+voice_explanations visible to anon: YES (anon holds SELECT; RLS decides rows)
+  transcription_status: present text | default: completed
+  transcription_claimed_at: present timestamp with time zone | default: -
+  transcription_attempts: present int32 | default: 0
+  transcription_error: present text | default: -
+  transcription_idempotency_key: present text | default: -
+  transcription_lease_token: present uuid | default: -
+  transcription_enqueued_at: present timestamp with time zone | default: -
+  transcription_reap_claimed_at: present timestamp with time zone | default: -
+  transcription_reap_attempts: present int32 | default: 0
+  scoring_claimed_at: present timestamp with time zone | default: -
+  scoring_lease_token: present uuid | default: -
+  storage_path: present text | default: -
+  status: present text | default: recorded
+  communication_score: present int32 | default: -
+  communication_notes: present text | default: -
+RPCs visible to anon: 22
+  /rpc/claim_transcription_job visible to anon: False
+  /rpc/complete_transcription_job visible to anon: False
+  /rpc/fail_transcription_job visible to anon: False
+  /rpc/claim_transcription_recovery visible to anon: False
+  /rpc/guard_voice_explanations_insert visible to anon: False
+  /rpc/claim_voice_scoring visible to anon: False
+  /rpc/complete_voice_scoring visible to anon: False
+  /rpc/fail_voice_scoring visible to anon: False
+  /rpc/reap_stale_transcription_jobs visible to anon: False
+voice-related RPCs visible to anon: []
+
+################ PART 14 support - logging/monitoring
+=== alert policies
+DISPLAY_NAME                                         ENABLED
+[P1] AI provider failing                             True
+[P1] Database memory over 90%                        True
+[P1] Database CPU over 80%                           True
+[P1] Database connections high (over 40)             True
+[P1] A scheduled job failed                          True
+[P1] Server errors (5xx) on any service              True
+[P1] Database disk over 80% full                     True
+[P1] Down: ProofLab API (PostgREST)                  True
+[P1] Daily tasks were not created                    True
+[P1] Down: ProofLab login bridge answering           True
+[P1] Down: ProofLab files service answering          True
+[P2] The weekly crawler failed                       True
+[P2] Login bridge rejecting many requests            True
+[P2] Container memory over 85%                       True
+[P2] Container CPU over 85%                          True
+[P1] Down: ProofLab site                             True
+[P1] Down: ProofLab code runner ready                True
+[P1] Down: ProofLab functions ready (all 38 loaded)  True
+[P2] Voice or code service is busy (429/503)         True
+[P1] Bug finder found a broken step                  True
+[P2] Slow responses (95th percentile over 3 s)       True
+[P1] Sunday scoring did not run                      True
+[P1] Down: ProofLab accounts service ready           True
+[P1] Voice or code service failing (5xx)             True
+[P1] Down: ProofLab voice service ready              True
+[P1] Database is down                                True
+=== log sinks
+NAME       DESTINATION
+_Required  logging.googleapis.com/projects/prooflab-508214/locations/global/buckets/_Required
+_Default   logging.googleapis.com/projects/prooflab-508214/locations/global/buckets/_Default
+=== scheduler last attempt
+ID                                   STATE    LAST_ATTEMPT_TIME            CODE
+prooflab-accounts-sync               ENABLED  2026-09-30T05:50:00.603469Z
+prooflab-nightly-squads              ENABLED  2026-09-30T00:05:04.138674Z
+prooflab-daily-lots                  ENABLED  2026-09-30T00:10:03.263373Z
+prooflab-weekly-plan                 ENABLED  2026-09-28T02:30:02.826221Z
+prooflab-prune-events                ENABLED  2026-09-29T21:40:05.616397Z
+prooflab-weekly-seasons              ENABLED  2026-09-27T18:00:03.553210Z
+prooflab-weekly-progress             ENABLED  2026-09-27T18:15:01.684644Z
+prooflab-bugfinder-run               ENABLED  2026-09-30T04:30:00.619009Z
+prooflab-extend-fixtures             ENABLED  2026-09-30T00:07:00.836391Z
+prooflab-crawler-weekly              ENABLED  2026-09-27T02:40:02.779662Z
+prooflab-bugfinder-deep-run          ENABLED  2026-09-29T22:30:01.804037Z
+prooflab-staging-transcription-reap  ENABLED  2026-09-30T05:59:01.717086Z

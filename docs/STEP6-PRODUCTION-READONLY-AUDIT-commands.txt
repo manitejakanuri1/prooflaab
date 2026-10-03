@@ -1,0 +1,269 @@
+
+######## PART 1 - production target
+### gcloud account and project
+gcloud config list --format=value\(core.account\,core.project\) 
+
+### project
+gcloud projects describe prooflab-508214 --format=table\(projectId\,projectNumber\,name\,lifecycleState\) 
+
+### Cloud SQL instances
+gcloud sql instances list --project=prooflab-508214 --format=table\(name\,databaseVersion\,region\,tier\,state\,settings.availabilityType\) 
+
+### prod databases on prooflab-db
+gcloud sql databases list --instance=prooflab-db --project=prooflab-508214 --format=table\(name\) 
+
+### Cloud Run services (all)
+gcloud run services list --project=prooflab-508214 --region=asia-south1 --format=table\(metadata.name\,status.latestReadyRevisionName\,status.url\) 
+
+### Cloud Run jobs (all)
+gcloud run jobs list --project=prooflab-508214 --region=asia-south1 --format=table\(metadata.name\) 
+
+### Cloud Tasks queues (all)
+gcloud tasks queues list --location=asia-south1 --project=prooflab-508214 --format=table\(name.basename\(\)\,state\) 
+
+### Cloud Scheduler jobs (all)
+gcloud scheduler jobs list --location=asia-south1 --project=prooflab-508214 --format=table\(name.basename\(\)\,schedule\,state\,httpTarget.uri\) 
+
+### Firebase Hosting sites (REST, read-only GET)
+curl -s -H Authorization:\ Bearer\ <REDACTED-ACCESS-TOKEN> https://firebasehosting.googleapis.com/v1beta1/projects/prooflab-508214/sites 
+
+
+######## PART 2 - backups (read-only)
+### prooflab-db backup / PITR / deletion protection
+gcloud sql instances describe prooflab-db --project=prooflab-508214 --format=yaml\(name\,region\,settings.backupConfiguration\,settings.deletionProtectionEnabled\,settings.dataDiskSizeGb\,settings.availabilityType\,settings.ipConfiguration.ipv4Enabled\,settings.ipConfiguration.requireSsl\,settings.ipConfiguration.sslMode\,settings.databaseFlags\) 
+
+### latest prooflab-db backups
+gcloud sql backups list --instance=prooflab-db --project=prooflab-508214 --limit=5 --format=table\(id\,windowStartTime\,endTime\,status\,type\,backupKind\) 
+
+
+######## PART 7 - production Cloud Run services (names/values filtered)
+### describe prooflab-functions (piped to a names-only filter)
+gcloud run services describe prooflab-functions --project=prooflab-508214 --region=asia-south1 --format=json | python -c '<SAFE_RUN_FILTER: prints names, image, sizing; never env values>'
+
+### prooflab-functions image digest of latest ready revision
+gcloud run revisions describe prooflab-functions-00044-lnj --project=prooflab-508214 --region=asia-south1 --format=value\(status.imageDigest\) 
+
+### prooflab-functions invoker IAM
+gcloud run services get-iam-policy prooflab-functions --project=prooflab-508214 --region=asia-south1 --format=table\(bindings.role\,bindings.members\) 
+
+### describe prooflab-files (piped to a names-only filter)
+gcloud run services describe prooflab-files --project=prooflab-508214 --region=asia-south1 --format=json | python -c '<SAFE_RUN_FILTER: prints names, image, sizing; never env values>'
+
+### prooflab-files image digest of latest ready revision
+gcloud run revisions describe prooflab-files-00011-z5p --project=prooflab-508214 --region=asia-south1 --format=value\(status.imageDigest\) 
+
+### prooflab-files invoker IAM
+gcloud run services get-iam-policy prooflab-files --project=prooflab-508214 --region=asia-south1 --format=table\(bindings.role\,bindings.members\) 
+
+### describe prooflab-api (piped to a names-only filter)
+gcloud run services describe prooflab-api --project=prooflab-508214 --region=asia-south1 --format=json | python -c '<SAFE_RUN_FILTER: prints names, image, sizing; never env values>'
+
+### prooflab-api image digest of latest ready revision
+gcloud run revisions describe prooflab-api-00003-n6c --project=prooflab-508214 --region=asia-south1 --format=value\(status.imageDigest\) 
+
+### prooflab-api invoker IAM
+gcloud run services get-iam-policy prooflab-api --project=prooflab-508214 --region=asia-south1 --format=table\(bindings.role\,bindings.members\) 
+
+### describe prooflab-auth-bridge (piped to a names-only filter)
+gcloud run services describe prooflab-auth-bridge --project=prooflab-508214 --region=asia-south1 --format=json | python -c '<SAFE_RUN_FILTER: prints names, image, sizing; never env values>'
+
+### prooflab-auth-bridge image digest of latest ready revision
+gcloud run revisions describe prooflab-auth-bridge-00009-4rl --project=prooflab-508214 --region=asia-south1 --format=value\(status.imageDigest\) 
+
+### prooflab-auth-bridge invoker IAM
+gcloud run services get-iam-policy prooflab-auth-bridge --project=prooflab-508214 --region=asia-south1 --format=table\(bindings.role\,bindings.members\) 
+
+### describe prooflab-transcriber (piped to a names-only filter)
+gcloud run services describe prooflab-transcriber --project=prooflab-508214 --region=asia-south1 --format=json | python -c '<SAFE_RUN_FILTER: prints names, image, sizing; never env values>'
+
+### prooflab-transcriber image digest of latest ready revision
+gcloud run revisions describe prooflab-transcriber-00002-8lk --project=prooflab-508214 --region=asia-south1 --format=value\(status.imageDigest\) 
+
+### prooflab-transcriber invoker IAM
+gcloud run services get-iam-policy prooflab-transcriber --project=prooflab-508214 --region=asia-south1 --format=table\(bindings.role\,bindings.members\) 
+
+### describe prooflab-accounts (piped to a names-only filter)
+gcloud run services describe prooflab-accounts --project=prooflab-508214 --region=asia-south1 --format=json | python -c '<SAFE_RUN_FILTER: prints names, image, sizing; never env values>'
+
+### prooflab-accounts image digest of latest ready revision
+gcloud run revisions describe prooflab-accounts-00002-bc9 --project=prooflab-508214 --region=asia-south1 --format=value\(status.imageDigest\) 
+
+### prooflab-accounts invoker IAM
+gcloud run services get-iam-policy prooflab-accounts --project=prooflab-508214 --region=asia-south1 --format=table\(bindings.role\,bindings.members\) 
+
+### describe prooflab-code-runner (piped to a names-only filter)
+gcloud run services describe prooflab-code-runner --project=prooflab-508214 --region=asia-south1 --format=json | python -c '<SAFE_RUN_FILTER: prints names, image, sizing; never env values>'
+
+### prooflab-code-runner image digest of latest ready revision
+gcloud run revisions describe prooflab-code-runner-00001-rpr --project=prooflab-508214 --region=asia-south1 --format=value\(status.imageDigest\) 
+
+### prooflab-code-runner invoker IAM
+gcloud run services get-iam-policy prooflab-code-runner --project=prooflab-508214 --region=asia-south1 --format=table\(bindings.role\,bindings.members\) 
+
+### production Cloud Run job prooflab-bug-finder (image, SA)
+gcloud run jobs describe prooflab-bug-finder --project=prooflab-508214 --region=asia-south1 --format=value\(spec.template.spec.template.spec.containers\[0\].image\,spec.template.spec.template.spec.serviceAccountName\) 
+
+
+######## PART 7b - image to Git commit mapping (artifact registry tags and build times)
+### images: prooflab-functions
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+### images: prooflab-files
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-files --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+### images: prooflab-api
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-api --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+### images: prooflab-auth-bridge
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-auth-bridge --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+### images: prooflab-transcriber
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcriber --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+### images: prooflab-accounts
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-accounts --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+### images: prooflab-code-runner
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+### images: postgrest
+gcloud artifacts docker images list asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/postgrest --include-tags --project=prooflab-508214 --sort-by=\~CREATE_TIME --limit=4 --format=table\(version.slice\(0:19\)\,tags\,createTime.date\(\'%Y-%m-%d\ %H:%M\'\)\) 
+
+
+######## PART 8 - Cloud Tasks (all queues in project)
+### queues (all locations asia-south1)
+gcloud tasks queues list --location=asia-south1 --project=prooflab-508214 --format=table\(name.basename\(\)\,state\,rateLimits.maxConcurrentDispatches\,rateLimits.maxDispatchesPerSecond\,retryConfig.maxAttempts\) 
+
+
+######## PART 9 - Scheduler: any production transcription recovery?
+### scheduler jobs with transcription/reap in name or target
+gcloud scheduler jobs list --location=asia-south1 --project=prooflab-508214 --format=table\(name.basename\(\)\,schedule\,state\,httpTarget.uri\,httpTarget.oidcToken.serviceAccountEmail\) --filter=name~transcri\ OR\ name~reap\ OR\ httpTarget.uri~transcri 
+
+### bug-finder schedulers (differ from CLAUDE.md notes)
+gcloud scheduler jobs describe prooflab-bugfinder-deep-run --location=asia-south1 --project=prooflab-508214 --format=yaml\(schedule\,state\,timeZone\,httpTarget.uri\,httpTarget.body\) 
+
+
+######## PART 10 - voice file storage
+### buckets
+gcloud storage buckets list --project=prooflab-508214 --format=table\(name\,location\,public_access_prevention\,uniform_bucket_level_access\) 
+
+### prod private bucket settings
+gcloud storage buckets describe gs://prooflab-private-508214 --format=yaml\(name\,location\,public_access_prevention\,uniform_bucket_level_access\,versioning_enabled\,soft_delete_policy\) 
+
+### prod private bucket IAM
+gcloud storage buckets get-iam-policy gs://prooflab-private-508214 --format=json 
+
+### prod public bucket IAM
+gcloud storage buckets get-iam-policy gs://prooflab-public-508214 --format=json 
+
+
+######## PART 11 - IAM
+### project IAM policy (roles and members)
+gcloud projects get-iam-policy prooflab-508214 --format=json 
+
+### service accounts
+gcloud iam service-accounts list --project=prooflab-508214 --format=table\(email\,disabled\) 
+
+### secret prooflab-jwt-secret: who can access (IAM only; value NOT read)
+gcloud secrets get-iam-policy prooflab-jwt-secret --project=prooflab-508214 --format=json 
+
+### secret prooflab-db-uri: who can access (IAM only; value NOT read)
+gcloud secrets get-iam-policy prooflab-db-uri --project=prooflab-508214 --format=json 
+
+### secret deepseek-api-key: who can access (IAM only; value NOT read)
+gcloud secrets get-iam-policy deepseek-api-key --project=prooflab-508214 --format=json 
+
+### secret names only
+gcloud secrets list --project=prooflab-508214 --format=table\(name\) 
+
+
+######## PART 12 - deployed frontend (public GETs only)
+### python prod_frontend_check.py  (script saved alongside; GETs https://prooflab.co.in/ and its /assets/*.js)
+
+
+######## PART 12b - which commit is live (read-only git/gh)
+git ls-remote prooflaab refs/heads/main
+gh run list --repo manitejakanuri1/prooflaab --branch main --limit 5 --json databaseId,headSha,status,conclusion,createdAt,workflowName
+git log -1 <main sha>
+git merge-base --is-ancestor / git log main..work/step6j-release-gates --oneline | wc -l
+
+
+######## PART 7c - production functions image and loaded functions
+gcloud artifacts docker images list .../prooflab-functions --include-tags --filter=tags:v37
+curl -s https://prooflab-functions-ysn2mpe6sa-el.a.run.app/ready   (public health GET)
+
+### function list (SLUGS) in main ee0143c vs step6 branch (git show, read-only)
+
+### which commit's SLUGS has 38 entries (git log over functions-service/main.ts, all refs)
+
+
+######## PART 3/6 (anonymous, no token) - production PostgREST OpenAPI description
+curl -s https://prooflab-api-ysn2mpe6sa-el.a.run.app/   (GET, no Authorization header = anon role; read-only)
+
+
+######## PART 14 support - logging/monitoring (read-only list)
+gcloud monitoring policies list --project=prooflab-508214 --format="table(displayName,enabled)"
+gcloud logging sinks list --project=prooflab-508214 --format="table(name,destination)"
+gcloud scheduler jobs list --location=asia-south1 --project=prooflab-508214 --format="table(name.basename(),state,lastAttemptTime,status.code)"
+
+######## PART 12 script (prod_frontend_check.py, plain public GETs of https://prooflab.co.in):
+"""PART 12 - READ-ONLY inspection of the DEPLOYED production frontend (https://prooflab.co.in).
+Plain GET requests for public files only (the same files any visitor's browser downloads).
+Prints: which JS bundles exist, which backend URLs are compiled in, and whether the Step 6
+async (queued) recording code is compiled in / switched on. API keys are redacted."""
+import re, sys, urllib.request
+
+BASE = "https://prooflab.co.in"
+def get(url):
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "prooflab-readonly-audit"}), timeout=60) as r:
+        return r.read().decode("utf-8", errors="replace"), dict(r.headers)
+
+html, headers = get(BASE + "/")
+print("index.html bytes:", len(html), "| last-modified:", headers.get("Last-Modified"), "| etag:", headers.get("ETag"))
+entry = re.findall(r'src="(/assets/[^"]+\.js)"', html)
+print("entry scripts:", entry)
+seen, queue, bundles = set(), list(entry), {}
+while queue:
+    p = queue.pop()
+    if p in seen: continue
+    seen.add(p)
+    try:
+        js, _ = get(BASE + p)
+    except Exception as e:
+        print("fetch failed", p, e); continue
+    bundles[p] = js
+    for dep in re.findall(r'["\'`](?:\./|/assets/)([A-Za-z0-9_.-]+\.js)["\'`]', js):
+        queue.append("/assets/" + dep)
+print("JS files fetched:", len(bundles))
+
+alljs = "\n".join(bundles.values())
+urls = sorted(set(re.findall(r'https://[a-z0-9.-]+\.(?:run\.app|googleapis\.com|web\.app|firebaseapp\.com)[^"\'`\s)]*', alljs)))
+print("\nbackend URLs compiled into the deployed bundle:")
+for u in urls:
+    print("  ", re.sub(r"key=[A-Za-z0-9_-]+", "key=<redacted>", u))
+print("\nstaging URLs present in production bundle:", [u for u in urls if "staging" in u])
+
+markers = {
+    "transcription-enqueue (async enqueue call)": "transcription-enqueue",
+    "voice-score (sync scoring call)": "voice-score",
+    "pl.voiceJob.v3: (round-4+ recovery records)": "pl.voiceJob.v3:",
+    "pl.voiceJob. (any recovery marker, round 1+)": "pl.voiceJob.",
+    "'Queued — this can take a moment' (async UI text)": "Queued — this can take a moment",
+    "'Uploading your recording' (async UI text)": "Uploading your recording",
+    "'Saving your explanation' (sync UI text)": "Saving your explanation",
+    "'Recordings you kept aside' (round-4+ UI)": "Recordings you kept aside",
+    "'Show hidden recordings' (round-7 UI)": "hidden recordings",
+    "/transcribe (browser transcriber call, sync path)": "/transcribe",
+}
+print("\nStep 6 markers in the deployed bundle:")
+for label, needle in markers.items():
+    files = [p for p, js in bundles.items() if needle in js]
+    print(f"  {'YES' if files else 'no '}  {label}  {files[:2]}")
+
+# the async flag: Vite replaces import.meta.env.VITE_ASYNC_TRANSCRIPTION with a literal at build time
+for p, js in bundles.items():
+    for m in re.finditer(r'.{60}VITE_ASYNC_TRANSCRIPTION.{60}', js):
+        print("  flag reference (unreplaced):", p, m.group(0))
+print("\nnote: if VITE_ASYNC_TRANSCRIPTION was unset at build time, Vite compiles the check to a constant false")
+
+######## PARTS 3-6 and 13: NOT executed by Claude. Owner script: docs/STEP6-PRODUCTION-READONLY-AUDIT-owner-studio.sql

@@ -20,10 +20,10 @@
    "maxDispatchesPerSecond": 1.0
   },
   "retry": {
-   "maxAttempts": 3,
-   "maxBackoff": "30s",
+   "maxAttempts": 8,
+   "maxBackoff": "120s",
    "maxDoublings": 16,
-   "minBackoff": "5s"
+   "minBackoff": "10s"
   },
   "state": "RUNNING"
  }

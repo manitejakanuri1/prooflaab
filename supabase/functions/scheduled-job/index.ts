@@ -108,6 +108,13 @@ async function sanityCheck(db: any, job: string, data: any) {
     if ((active ?? 0) > 0 && (made ?? 0) === 0) {
       console.error(`JOB SANITY: daily-lots ran but ${today} has 0 tasks in total (new or existing), though ${active} students were active in the last 14 days.`);
     }
+    // Migration 68: a student whose Lot could not be created no longer stops the others,
+    // so it has to be said out loud here or nobody would know. No student data in the line:
+    // a count, one id and the database's error text.
+    const failed = Number(data?.failed ?? 0);
+    if (failed > 0) {
+      console.error(`JOB SANITY: daily-lots could not create a Lot for ${failed} student(s). First: ${data?.first_failed_student} - ${String(data?.first_error ?? '').slice(0, 200)}`);
+    }
   }
   if (job === 'weekly-seasons') {
     const seasons = Number(data?.seasons_scored ?? 0) + Number(data?.seasons_closed ?? 0) + Number(data?.seasons_advanced ?? 0);

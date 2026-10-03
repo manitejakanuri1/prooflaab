@@ -173,7 +173,7 @@
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-0964fe9-1433",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-2e5d6e8-1516",
   "ingress": "all",
   "max_instances": "2",
   "memory": "1Gi",
@@ -227,7 +227,7 @@
    "FUNCTIONS_URL": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app",
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "PRIVATE_BUCKET": "prooflab-staging-private-508214",
-   "QUEUE_MAX_ATTEMPTS": "3",
+   "QUEUE_MAX_ATTEMPTS": "8",
    "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
    "STALE_AFTER_SECONDS": "180",
    "TRANSCRIBER_URL": "https://prooflab-staging-transcriber-ysn2mpe6sa-el.a.run.app"

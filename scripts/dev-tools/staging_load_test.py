@@ -10,6 +10,7 @@ Scenarios (a signed-in staging test student; token minted in memory from the sta
 Stops a scenario early when errors exceed 5% or p95 exceeds 5 s.
 usage: python scripts/dev-tools/staging_load_test.py browse|runcode|voice [levels...]
 """
+import random
 import base64, concurrent.futures as cf, hashlib, hmac, json, shutil, statistics, subprocess, sys, time, urllib.error, urllib.request, uuid
 
 API = "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app"
@@ -17,19 +18,16 @@ FN = "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/functions/v1"
 BUCKET = "prooflab-staging-private-508214"
 T07 = "7d71bff4-1ec2-4778-b26d-9567a416bfac"          # staging test student
 TASK = "2881ded8-6d92-45bb-8f0b-31ec62bd926b"          # its written staging task
-VOICE_STUDENT = "99999999-0001-0000-0000-000000000006" # fake staging student for voice rows
+VOICE_STUDENT = "99999999-0001-0000-0000-000000000001" # staging fixture with a submitted task
+VOICE_TASK = "e4e25563-6072-42a7-8c8a-79efce3bb649"     # a recording must belong to a submission (migration 61)
 G = shutil.which("gcloud") or shutil.which("gcloud.cmd")
-KEY = subprocess.run([G, "secrets", "versions", "access", "latest", "--secret=prooflab-staging-jwt-secret"],
-                     capture_output=True, text=True, check=True).stdout.strip().encode()
-b64 = lambda x: base64.urlsafe_b64encode(x).rstrip(b"=").decode()
+# Tickets are signed with the staging signing key (F1: the bridge signs RS256; the old shared
+# HS256 secret is refused on staging), through the same helper every staging check uses.
+sys.path.insert(0, __import__("os").path.dirname(__file__))
+import st  # noqa: E402
 
-def jwt(claims, ttl=3600):
-    h = b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    p = b64(json.dumps({**claims, "exp": int(time.time()) + ttl}).encode())
-    return f"{h}.{p}." + b64(hmac.new(KEY, f"{h}.{p}".encode(), hashlib.sha256).digest())
-
-STUDENT = jwt({"role": "authenticated", "sub": T07})
-SVC = jwt({"role": "service_role"})
+STUDENT = st.token(f"user:{T07}", ttl=3600)
+SVC = st.token("svc", ttl=3600)
 
 def hit(method, url, body=None, token=STUDENT):
     t0 = time.perf_counter()
@@ -78,15 +76,21 @@ def browse(levels):
             print("stopping: error rate or p95 over the limit"); break
 
 def runcode(levels):
+    # One synthetic student per virtual user: Run is limited to 120 an hour per student
+    # (and that limit works - a single shared student is refused with 429 almost at once).
     body = {"language": "python", "code": "print(sum(range(1000)))"}
     for u in levels:
-        rate, p95 = tier(u, 30, lambda i, n: hit("POST", f"{FN}/run-code", body))
+        toks = [st.token(f"user:10ad0000-0000-4000-8000-{random.randint(1, 15000):012d}", ttl=900) for _ in range(u)]
+        def work(i, n):
+            time.sleep(0.5)                       # a person does not press Run more than about once a second
+            return hit("POST", f"{FN}/run-code", body, toks[i])
+        rate, p95 = tier(u, 30, work)
         if rate > 0.05 or p95 > 5000:
             print("stopping: error rate or p95 over the limit"); break
 
 def voice(levels, wav):
     for n in levels:
-        stud = jwt({"role": "authenticated", "sub": VOICE_STUDENT})
+        stud = st.token(f"user:{VOICE_STUDENT}", ttl=3600)
         tag = uuid.uuid4().hex[:6]
         paths = [f"{VOICE_STUDENT}/loadtest-{tag}-{i}.wav" for i in range(n)]
         for p in paths:
@@ -95,7 +99,7 @@ def voice(levels, wav):
         t0 = time.time()
         with cf.ThreadPoolExecutor(n) as ex:
             res = list(ex.map(lambda p: hit("POST", f"{FN}/transcription-enqueue",
-                                            {"storage_path": p, "idempotency_key": str(uuid.uuid4()), "duration_seconds": 16}, stud), paths))
+                                            {"storage_path": p, "task_id": VOICE_TASK, "idempotency_key": str(uuid.uuid4()), "duration_seconds": 16}, stud), paths))
         enq = [ms for c, ms in res]
         print(f"voice n={n}: enqueue ok={sum(1 for c,_ in res if c==200)}/{n} p50={pct(enq,50):.0f}ms p95={pct(enq,95):.0f}ms", flush=True)
         q = ",".join(f'"{p}"' for p in paths)
@@ -109,9 +113,8 @@ def voice(levels, wav):
             time.sleep(10)
         dur = time.time() - t0
         print(f"voice n={n}: scored={done} failed={failed} all done in {dur:.0f}s -> {n/dur*60:.1f} recordings/min", flush=True)
-        # clean up the load-test rows and audio
-        urllib.request.urlopen(urllib.request.Request(f"{API}/voice_explanations?storage_path=in.({q})", method="DELETE",
-                                                      headers={"Authorization": f"Bearer {SVC}"}))
+        # Recordings are evidence and are not deleted (migration 61): the synthetic rows stay
+        # on the staging fixture; only the uploaded audio is removed.
         subprocess.run([G, "storage", "rm", f"gs://{BUCKET}/voice-explanations/{VOICE_STUDENT}/loadtest-{tag}-*"], capture_output=True)
 
 if __name__ == "__main__":

@@ -13,14 +13,14 @@ TASK_NEW = "b1f20882-34ff-4701-adab-60cc6c1444e5"       # no submission yet
 OTHER = "3d99656a-950f-4bb8-ab75-e97317e68542"          # a student at another college
 
 
+sys.path.insert(0, __import__("os").path.dirname(__file__))
+import st as _st  # noqa: E402
+
+
 def st(who, verb, path, body=None):
-    cmd = [sys.executable, "scripts/dev-tools/st.py", who, verb, path] + ([json.dumps(body)] if body is not None else [])
-    out = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
-    code, _, rest = out.partition(" ")
-    try:
-        return int(code), json.loads(rest) if rest.strip() else None
-    except ValueError:
-        return int(code) if code.isdigit() else 0, rest
+    # Direct call, not the command line: the CLI prints at most 4,000 characters, which
+    # truncates the list once a fixture has many recordings.
+    return _st.call(who, verb, path, body)
 
 
 results = []

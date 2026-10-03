@@ -4,7 +4,10 @@
 # The image tag is stab-<short sha>[-dirty]; the same image is what production would get.
 set -euo pipefail
 P=prooflab-508214; R=asia-south1; REPO=$R-docker.pkg.dev/$P/cloud-run-source-deploy
-TAG=stab-$(git rev-parse --short HEAD)$(git diff --quiet HEAD -- . || echo -$(date +%H%M))
+# The tag names the commit; a time suffix is added only when the SOURCE of this service differs
+# from that commit (documents and other services do not count).
+case "$1" in functions) SRC="functions-service supabase/functions" ;; *) SRC="$1" ;; esac
+TAG=stab-$(git rev-parse --short HEAD)$(git diff --quiet HEAD -- $SRC || echo -$(date +%H%M))
 case "$1" in
   functions) IMG=$REPO/prooflab-functions:$TAG
              gcloud builds submit --project=$P --config=functions-service/cloudbuild.yaml --substitutions=_IMAGE=$IMG . >/dev/null ;;

@@ -1,150 +1,122 @@
 # ProofLab — release candidate, pre-production report
 
-Date: 3 Oct 2026 · Branch: `work/stabilization` (31 commits on top of `main` = `d736e4d`) · Rollback tag: `stabilization-baseline-2026-10-03`
+Date: 3 Oct 2026 · Branch: `work/stabilization` · Rollback tag: `stabilization-baseline-2026-10-03` (= `main` = `d736e4d`)
 
-**Status: STAGING PASS. PRODUCTION IS UNTOUCHED AND ON HOLD.**
-Nothing in this report is live. Not merged to `main`, no production migration, no production deploy, no production setting changed. Going live needs the owner's yes (see `PRODUCTION-ROLLOUT-CHECKLIST.md`).
+**Status: STAGING ONLY. PRODUCTION IS UNTOUCHED AND ON HOLD.** Not merged to `main`, no production migration, deploy, setting, IAM, Scheduler or secret change, no quota request. Going live needs the owner's yes, stage by stage (`PRODUCTION-ROLLOUT-CHECKLIST.md`).
 
-This is **not** a "production ready" certificate. It says what was built, what was proven on staging, and what is still open.
-
----
-
-## 1. In one page
-
-| Area | Before | Now (on staging) | Proof |
-|---|---|---|---|
-| Who can sign login tokens | 7 services shared one key; any of them could forge any user | Only the login bridge can sign. Others only check. | 34/34 |
-| One student reaching another's data through a server function | Never tested | Every function swept as another college's student, a company, and nobody | 75/75 |
-| Spoken explanation | Optional, tied to a task, deletable, scored without looking at the work | Belongs to one submission, retries kept, cannot be edited or deleted, scored against the actual submitted work | 14/14 + 11/11 (real audio) |
-| Student import | Three separate writes; a failure left half a student | All-or-nothing, repeatable | 7/7 |
-| Nightly Lot job | One odd profile stopped Lots for everyone | Each student handled alone; failures counted and logged | 15,000 Lots in 20 s |
-| Company screens | Read retired "proof" tables: showed nothing | Show real submissions and the bound explanation | browser 6/6 |
-| Trust score, proof upload, cosigns, old proof review | Still in screens, 9 server functions, 11 tables | Gone from screens and code; tables dropped on staging after archiving | full regression green |
-| Which migrations a database has | Notes | A ledger in the database; changed files refused | proven |
-| Build | Site built twice | The tested build is the one published | CI green on the branch |
-| Scale | Unproven | 15,000 synthetic students: every screen under 1 s; 200 active users at once with no errors | see §5 |
-
-Local tests: unit 95 · server functions 103 · bridge 15 · files 16 · Python token tests · worker 27 · runner 22 (CI). Staging release gate: **18 of 18 PASS** (`scripts/dev-tools/staging_release_gate.sh`).
+Companion documents: `FINAL-NAVIGATION-MAP.md` · `ZERO-LEGACY-AUDIT.md` · `RELEASE-MANIFEST.md` · `CLOUD-CAPACITY-PLAN.md` · `COST-CONTROL-PLAN.md` · `PRODUCTION-ROLLOUT-CHECKLIST.md` · `PRODUCTION-ROLLBACK-CHECKLIST.md` · `STABILIZATION-EXECUTION-REGISTER.md` (every item with its proof and rollback).
 
 ---
 
-## 2. What changed, by wave
+## 1. One evidence model
 
-| Wave | What | Migrations | Status |
-|---|---|---|---|
-| 1 | AI usage/rate-limit/cache/security logging works again; AI timeouts; resume answer keys hidden; code never sent to public runners in production; account sync suspends instead of deleting; safer linking and reset links | 50, 51, 55 | STAGING_PASS |
-| 2 | 24 dead files removed | — | STAGING_PASS |
-| 3 | Code runner hardened (leftover processes, memory, no internet); one coding engine with a test-quality gate | 52 | STAGING_PASS |
-| 4 | Lot wording contract; Lots written ahead of time | 53 | STAGING_PASS |
-| 5 | Company sees real work; company Lots with a real checker; every task has a checker; college material stays in the college; Build-log, Admin, TPO, Squads on current data; teammate names | 54, 56, 57, 57b, 58, 59, 60 | STAGING_PASS |
-| 6 | Voice: bound to the submission, history, immutable, scored against the submitted work | 61 | STAGING_PASS (Whisper benchmark BLOCKED) |
-| 7 | Only the bridge signs tokens; cross-account sweep; import in one transaction | 62 | STAGING_PASS (F2 conversion IN_PROGRESS) |
-| 8 | Portfolio on current evidence; proof-era screens, 9 functions and DB readers removed | 63, 64, 65 | STAGING_PASS |
-| 9 | Migration ledger; CI secret scan, migration check, build once; infrastructure snapshot | 67 | STAGING_PASS (deploy hand-off unproven until first `main` run) |
-| 10 | Proof-era tables/functions/column dropped after archiving | 66 | STAGING_PASS (rehearsal) |
-| 11 | One release gate that runs every proof | — | STAGING_PASS |
-| 12 | 15,000-student dataset, screen timings, nightly jobs, progressive load, cost | 68 | STAGING_PASS |
+`task_submissions` + `voice_explanations` + resume assessments + current student / college / company / squad data. Proof upload, Trust score, cosigns, conceptual verification, proof review and the old "post a task" marketplace are removed from screens, routes, hooks, server functions and (on staging) the database. A guard in CI stops them returning (45 identifiers, 0 active occurrences).
 
-Full detail per item, with rollback for each: `docs/STABILIZATION-EXECUTION-REGISTER.md`.
+## 2. Navigation — four destinations per role
 
----
+| Role | Before | After |
+|---|---|---|
+| Student | Daily Card · Build-Log · Squad · Profile | **Floor · Build-log · Squad · Profile** |
+| College | Home · Students · Squads · Insights | unchanged (now refresh / deep-link / Back safe) |
+| Company | Home · Talent · Shortlist · Lots · Submissions · Review · Jobs (7) | **Home · Talent · Lots · Hiring** |
+| Admin | Overview · People · Work Queue · Platform | **Home · People · Work · Operations** |
 
-## 3. Security results
+Detail, merges, removals and redirects: `FINAL-NAVIGATION-MAP.md`. Browser proof: 31/31 steps.
 
-| Check | Result |
+## 3. Voice
+
+| | State |
 |---|---|
-| Old-style (shared key) tokens, user and service | Refused by API, functions, files, accounts, transcriber |
-| Forged tokens (other key, "none", key-confusion) | Refused everywhere |
-| Service tokens | Issued only to 3 named staging service accounts presenting their Google identity; a real Google user is refused |
-| Services still holding the shared signing key on staging | 0 (production today: 7) |
-| Cross-account calls to all 32 functions | All refused; no AI spend; victim's rows unchanged |
-| Retired functions | All 9 answer 404 |
-| Voice evidence | Cannot be moved, re-pointed, rewritten, deleted; audio is write-once |
-| College material | Never reaches another college's student |
-| Secrets in the repository | 0 findings (one old public key of the deleted Supabase project was replaced by a placeholder) |
+| Pipeline (upload → queue → transcribe → score → Build-log) | PASS |
+| Bound to one submission, retries kept, immutable | PASS |
+| Queue and burst | PASS |
+| Scored against the task and the exact submitted work | PASS |
+| English-only | IMPLEMENTED and TESTED (real English accepted; real Hindi refused without an AI call) |
+| Indian-English accuracy benchmark | **WAITING_FOR_REAL_AUDIO** — not run; no synthetic substitute was used |
 
-One thing to know: during testing a failed command printed the first characters of the **staging** signing-key file into the work session. That part is the standard file header and the start of the public number — not secret. The staging key was rotated anyway and the old version destroyed.
+How the English rule works: the transcriber detects the language first (it used to force English, which turns other languages into English-looking text). A recording is refused only when the model is at least 80% sure it is another language **and** gives English 10% or less; everything else — including any uncertain case — is accepted. Accent is never measured. What was heard (language, probabilities, model, settings, the rule) is stored with the recording. A refused attempt has no transcript, is never scored, stays in the history, cannot become the authoritative recording, and the student sees "Please record your explanation in English." and records again. The recorder says: "Please speak in English only. Indian English accents are fully supported."
 
----
+Transcription settings: faster-whisper `base`, int8, beam 1, voice-activity filter on. Scoring dimensions that exist and are used: explanation score (0–100), match with the submitted work (0–100), flags. None were invented.
 
-## 4. Findings discovered while doing this work
+## 4. Marks
 
-| # | Finding | Severity | State |
-|---|---|---|---|
-| A | **Cloud Run CPU quota is 20 vCPU for the whole project and region — staging and production share it.** Production's own configured maximums add up to 35 vCPU (plus a worker with no maximum). My staging load test used the quota up; staging could not start new instances for about 8 minutes. Production had no errors (checked). | **P1 before scale** | OPEN — owner must request a quota increase; long term, move staging to its own project |
-| B | Nightly Lot job: one bad profile stopped Lots for every student | P1 | FIXED (68, staging) |
-| C | Student removal backup did not include the student's submissions | P2 | FIXED (65, staging) |
-| D | Company "verified" count and portfolio read tables nobody writes | P2 | FIXED (63, 64) |
-| E | Run-code rate limit (120/hour per student) now really works — the old load script, which reused one student, is correctly blocked | info | script updated |
-| F | Voice queue retries only 3 times in about 40 s; if the transcriber cannot start (as in A) recordings fail for good | P2 | staging queue now 8 tries over about 8 minutes; production queue unchanged (needs approval) |
-| G | `task_assignments` and `task_applications` looked dead (0 rows) but have live readers | info | kept |
-| H | Monthly budget is ₹3,000; projected cost at 15,000 daily-active students is far above it (see §6) | decision | OPEN — owner |
+Build-log entry: **Task result** (score; "Tests passed x of y · language" for code) · **Voice explanation** (score) · **Matches your work** (score) · written **Breakdown** as "criterion name points/max" · **Improve** = the criterion that lost most points · everything longer behind "View detailed feedback". No combined score exists in the backend, so none is shown. Hidden tests, expected output and reference answers never reach the page. **NO SCORING LOGIC CHANGED.**
 
----
+## 5. Security and identity
 
-## 5. Scale results (staging, smallest database tier, half of production's instances)
+| Check | Result (staging) |
+|---|---|
+| Only the login bridge can sign tokens (F1) | 34/34 |
+| Cross-account sweep of all 32 functions + 9 retired names answer 404 | 75/75 |
+| Suspended student with a still-valid ticket | refused everywhere, 23/23; restored ticket works |
+| Grading type declared; coding without tests refused | 10/10 over 105,058 tasks |
+| Scheduler jobs by Google identity; shared webhook secret refused | PASS (23/23 with the runner) |
+| Code runner private, reached by service identity; no runner secret | PASS |
+| Voice evidence cannot be moved, rewritten or deleted | 14/14 |
+| Import all-or-nothing | 7/7 |
+| Secrets in the repository | 0 |
 
-**Dataset:** 15,000 students, 10 colleges, 1,320 squads, 105,000 Lots, 64,572 submissions, 17,754 recordings (database 191 MB). Synthetic, removable (`staging_loadset_remove.sql`).
+F2 (each function on a narrow database right): **IN_PROGRESS**. Classification of the 32 functions:
+
+| Class | Functions |
+|---|---|
+| No database access needed | run-code, app-guide-chat |
+| Already a narrow database function | submit-sandbox-task, submit-written-task, company-lot, security-log, voice-score, transcription-enqueue, transcription-reap, client-log |
+| Privileged job (not a user) | scheduled-job, create-student-users, create-college-user, send-onboarding-email, assign_tasks |
+| Still the broad role behind an ownership check | resume-* (7), level-* and levels-* (4), task-explain, lot-writer, mock-interview-* (2), interests-analyze, run-sandbox |
+
+The last group is protected by the sweep (every one refuses another account) but has not been moved to narrow rights.
+
+## 6. Operations
+
+| | Result |
+|---|---|
+| Crawler, real staging run: source → fetch → store → no duplicate → privacy → Lot → wording → own rubric | 11/11 |
+| Bug-finder job on staging (plumbing: browser, token from the signer, result stored, clean exit) | 4/4 — sign-in journeys stay production-only (staging has no logins) |
+| Alerts | 15 created for staging (`scripts/setup_alerts.py`), production at rollout |
+| CI | secret scan, legacy guard, migration check, all test suites, runner container suite, **artifact hand-off on every branch** |
+| Migrations | 50–77 on staging through the ledger; changed files refused |
+
+Alerts and their triggers: daily Lots failed for most students (`JOB FAILED: daily-lots`) · for some (`JOB SANITY: daily-lots could not create`) · created nothing · AI usage not recorded (`TELEMETRY PROBLEM`) · account sync aborted · account sync needs review · recordings failed for good (`TRANSCRIPTION-REAP ALERT`) · Cloud Run could not start an instance (quota / no instance) · bridge errors · caller verification problems · crawler zero-new for 21 days · a scheduled job failing · AI timeouts more than 5 in 10 minutes · runner errors more than 20 in 5 minutes · voice queue above 50 for 15 minutes.
+
+## 7. Scale (15,000 synthetic students, staging = smaller than production)
 
 | Test | Result |
 |---|---|
-| 23 screen queries (college, student, admin, company) | all 200–830 ms (limit 1,500 ms) |
-| Daily Lots for 15,000 students | 15,000 created in 20 s; second run creates 0 |
-| Squads / weekly seasons / prune jobs | under 1 s each |
-| Students browsing at once (each a different student, about 1 call per second) | 25–200 users: 0 errors, p95 0.3–0.6 s. 400 users: p95 8 s, 0.7% timeouts — **staging's limit is about 150 calls per second** |
-| Run button (40 students at once) | 42 runs per second, p95 1.1 s, 0 errors |
-| 30 recordings at once | all scored in 73 s (about 24 per minute with 2 transcriber instances) |
+| 23 screen queries | all under 1 s |
+| Nightly Lots | 15,000 in batches; success / partial / failure reported correctly |
+| Browsing | 200 different students at once: no errors; staging's limit about 150 calls/s |
+| Run | 42 runs/s, no errors |
+| Recordings | 30 at once scored in 73 s |
 
-Reading the numbers: a real student makes roughly 1 call every 30–40 seconds, not 1 per second, so 150 calls per second is on the order of several thousand students active in the same minute. Production has about twice staging's capacity **if finding A is fixed**. This is an estimate, not a measurement of production.
+Limits found: shared 20-vCPU quota (see capacity plan); the API's 30-second request limit (nightly job now batched); database pool size.
 
-Not tested: 500+ simultaneous submissions with AI grading (cost), real 60-second recordings at volume, production itself (forbidden).
+## 8. Faults found and fixed in this phase
 
----
+| Fault | Found by |
+|---|---|
+| Migration 74 broke creation of new Lot templates (shared trigger function) → migration 77 | the staging crawler run |
+| AI calls by scheduled jobs were not recorded in usage (`'system'` is not an id) | the new telemetry log line |
+| Nightly Lot job answered "ok" when every student failed, and was cut off at 30 s at 15,000 students | the status proof |
+| Unreadable audio was retried for minutes instead of telling the student | the silence case |
+| Each tab click wrote two history entries, so Back appeared dead | the browser Back test |
 
-## 6. Cost estimate at 15,000 students (estimate — check before relying on it)
+## 9. XP — `OWNER_DECISION_REQUIRED`
 
-Measured on staging: average AI cost per call — voice scoring ₹0.027, written-answer grading ₹0.029, writing a Lot ₹0.08 (shared by everyone on that page), company Lot ₹0.11.
+Today: Submit → XP is awarded → the spoken explanation is asked for afterwards.
+Alternative: Submit → explanation complete → evidence complete → XP awarded.
+Nothing was changed. The explanation is required in the flow and bound in the database either way.
 
-| Line | If all 15,000 are active every day | If 40% are |
-|---|---|---|
-| AI (grading + voice scoring) | ₹450–900 a day | ₹180–360 a day |
-| Whisper transcription (extrapolated from a 17-second clip to 60 seconds) | about ₹1,100 a day | about ₹450 a day |
-| Database, API, files, other services | needs a larger database tier and the CPU quota | — |
-| **Month, AI + transcription only** | **about ₹47,000–60,000** | **about ₹19,000–24,000** |
+## 10. Remaining
 
-Today's budget alert is ₹3,000 a month. All AI spent on staging for this whole programme: about ₹3.
+**A. Claude can still do without production:** move the "broad role" functions to narrow rights (F2); remove the dead file-grant path; regenerate database types after cleanup; crawler link discovery inside `path_scope`; company submission card in the compact marks layout; automate microphone recording in a browser.
 
----
+**B. Needs the owner:** quota request; budget; XP decision; 20–30 real consented Indian-English recordings for the benchmark; yes/no on a rehearsal against a copy of production.
 
-## 7. Still open (honest list)
+**C. Needs production approval:** every rollout stage (migrations, deploys, merge to `main`, identity cutover, Scheduler and IAM changes, alerts, queue and instance settings, permanent drops 66/71/72, old proof files in storage).
 
-| Item | State | Why it matters |
-|---|---|---|
-| CPU quota (finding A) | OPEN, owner | Production cannot scale to its own settings |
-| Whisper benchmark | BLOCKED | Needs real Indian-English / Telugu-accented recordings; synthetic speech is not valid evidence |
-| F2: each function on a narrow database right | IN_PROGRESS | Sweep passed; functions still share one broad database role |
-| Scheduler jobs still use a shared webhook secret (9 of 12) | NOT_STARTED | Should use Google identity like the services now do |
-| Code runner still uses a shared secret | NOT_STARTED | Same reason |
-| Alerts for the new log lines (`TELEMETRY PROBLEM`, `LLM TIMEOUT`, `ACCOUNT SYNC …`, `JOB SANITY: daily-lots could not…`) | NOT_STARTED | Failures are logged but nobody is paged |
-| AI cost in rupees on an admin screen | NOT_STARTED | Token counts exist; no rupee view |
-| Crawler: scoped discovery and "0 new" alert | NOT_STARTED | |
-| Backend services are built and deployed by hand | OPEN | Only the website goes through CI |
-| First `main` deploy with the new build-once step | UNPROVEN | Only runs on `main`; watch it |
-| XP is paid at Submit, not after the explanation | owner decision | "Required" is enforced in the flow and the database, not in XP |
-| Microphone recording in a real browser | not automated | Pipeline tested with real audio files |
-| Real Google sign-in end to end | production only | Staging shares production's login pool, so staging has no logins |
-| Deep bug-finder schedule | needs approval | Production scheduler change |
-| Protected production test logins | needs approval | Production data |
-| Unused columns `voice_explanations.proof_id`, `student_portfolios.projects` | left | Harmless; separate change |
-| GitHub crawl workflow holds a copy of the production signing secret | OPEN | Must change at the production token cutover |
-| Staging and production share one project and one login pool | OPEN | Root of finding A and of several test limits |
+**D. Optional after release:** separate Google project for staging; remove the browser-side marker compatibility for `proof_id`; deep bug-finder as its own job.
 
----
+## 11. Final gate and verdict
 
-## 8. What I need from the owner
-
-1. Read `PRODUCTION-ROLLOUT-CHECKLIST.md` and say yes or no to each stage.
-2. Request the Cloud Run CPU quota increase (console; I cannot).
-3. Decide the monthly budget for the target student count.
-4. Provide 20–30 real 60-second recordings (with consent) for the Whisper benchmark, or accept the current model unbenchmarked.
-5. Decide: XP at Submit or after Explain; keep or retire the old company "posted tasks".
+See the end of this file (filled in after the final run).

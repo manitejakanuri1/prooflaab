@@ -231,6 +231,34 @@ async function verifyCallerToken(
 
 
 /**
+ * Is this signed-in person's account suspended? (G1, migration 73)
+ *
+ * A ticket stays valid for an hour, so "the ticket is valid" is not enough: every
+ * function asks this before it treats the caller as a student. The answer is kept
+ * for 30 seconds per account, so a suspension reaches this service within half a
+ * minute (the database API refuses at once). If the check itself cannot be made,
+ * the caller is treated as NOT suspended - a database hiccup must not lock every
+ * student out; the database's own check still stands behind it.
+ */
+const suspendedCache = new Map<string, { value: boolean; until: number }>();
+async function suspended(claims: { sub: string; role?: string }): Promise<boolean> {
+  if (claims.role !== 'authenticated') return false;
+  const hit = suspendedCache.get(claims.sub);
+  if (hit && hit.until > Date.now()) return hit.value;
+  let value = false;
+  try {
+    const res = await serviceRest('rpc/account_is_suspended', { method: 'POST', body: JSON.stringify({ _user: claims.sub }) });
+    if (res?.ok) value = (await res.json()) === true;
+    else if (res) console.error(`SUSPENSION CHECK PROBLEM: account_is_suspended answered ${res.status}`);
+  } catch (err) {
+    console.error('SUSPENSION CHECK PROBLEM:', err instanceof Error ? err.message : err);
+  }
+  if (suspendedCache.size > 5000) suspendedCache.clear();
+  suspendedCache.set(claims.sub, { value, until: Date.now() + 30_000 });
+  return value;
+}
+
+/**
  * Record an account in the database and return the uuid it should be known by.
  *
  * Identity Platform names an account when it creates one, and its names are not
@@ -277,6 +305,7 @@ async function recordAccount(
 const authShim = {
   async getClaims(token: string) {
     const claims = await verifyCallerToken(token);
+    if (claims && await suspended(claims)) return { data: null, error: { message: 'account suspended', status: 403 } };
     return claims
       ? { data: { claims }, error: null }
       : { data: null, error: { message: 'invalid token', status: 401 } };
@@ -284,6 +313,7 @@ const authShim = {
 
   async getUser(token: string) {
     const claims = await verifyCallerToken(token);
+    if (claims && await suspended(claims)) return { data: { user: null }, error: { message: 'account suspended', status: 403 } };
     return claims
       ? { data: { user: { id: claims.sub, email: claims.email ?? '', role: claims.role } }, error: null }
       : { data: { user: null }, error: { message: 'invalid token', status: 401 } };

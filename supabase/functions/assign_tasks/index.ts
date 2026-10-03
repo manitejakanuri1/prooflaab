@@ -228,7 +228,9 @@ serve(async (req) => {
           source: finalSource,
           ai_metadata: taskData.ai_metadata || null,
           sandbox_config_id: taskData.sandbox_config_id ?? null,
-          rubric_config_id: taskData.rubric_config_id ?? null
+          rubric_config_id: taskData.rubric_config_id ?? null,
+          // Declared type; the database refuses a coding task with no tests.
+          ...(taskData.grading_type ? { grading_type: taskData.grading_type } : {})
         })
         .select()
         .single();
@@ -265,9 +267,9 @@ serve(async (req) => {
     // before it's ever shown to a student — there is no upload fallback.
     // 'Coding' category gets a sandbox (code-runner) config; everything else
     // (Design/Research/Writing/Analysis/General) gets a rubric config.
-    // generateGradedConfig() always returns a usable configId (it has its
-    // own internal downgrade + generic-fallback chain), so this never blocks
-    // task creation on a bad model response.
+    // generateGradedConfig() can downgrade a coding request to a checklist when it
+    // cannot build tests that pass its quality gate. That is fine for written
+    // categories; for Coding it is refused below.
     async function attachGradingConfig(title: string, description: string) {
       const gradingMode: AutoConfigMode = category === 'Coding' ? 'sandbox' : 'rubric';
       const result = await generateGradedConfig({
@@ -278,9 +280,15 @@ serve(async (req) => {
         usageCtx: { userId: callerId },
         createdBy: callerId,
       });
+      // A Coding task is graded by real tests or it is not created (migration 74):
+      // it must never quietly become a written task marked against a checklist.
+      if (gradingMode === 'sandbox' && result.mode !== 'sandbox') {
+        throw new Error('Could not build working tests for this coding task. Reword the task or choose another category.');
+      }
       return {
         sandbox_config_id: result.mode === 'sandbox' ? result.configId : null,
         rubric_config_id: result.mode === 'rubric' ? result.configId : null,
+        grading_type: gradingMode === 'sandbox' ? 'coding' : 'written',
       };
     }
 

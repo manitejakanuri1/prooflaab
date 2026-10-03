@@ -32,6 +32,7 @@
   "env": {
    "PGRST_DB_ANON_ROLE": "anon",
    "PGRST_DB_POOL": "2",
+   "PGRST_DB_PRE_REQUEST": "public.refuse_suspended",
    "PGRST_DB_SCHEMAS": "public",
    "PGRST_DB_URI": {
     "secret": "prooflab-staging-db-uri",
@@ -173,7 +174,7 @@
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-48d251f-2057",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-862efe8-2151",
   "ingress": "all",
   "max_instances": "2",
   "memory": "1Gi",

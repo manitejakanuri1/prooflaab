@@ -33,6 +33,7 @@ gate "auth bridge tests"                  env PGRST_JWT_SECRET=ci-only-not-a-rea
 gate "files service tests"                env PGRST_JWT_SECRET=ci-only-not-a-real-secret npx deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
 gate "token module tests (python)"        bash -c 'cd accounts && python test_apptoken.py && python test_sync_plan.py'
 gate "transcription worker tests"         bash -c 'cd transcription-worker && python -m unittest test_server'
+gate "English-only gate rule"             bash -c 'cd transcriber && python test_language_gate.py'
 
 echo "== staging security"
 gate "F1: only the bridge can sign"       python scripts/dev-tools/staging_f1_check.py

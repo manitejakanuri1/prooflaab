@@ -173,7 +173,7 @@
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-2e5d6e8-1516",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-48d251f-2057",
   "ingress": "all",
   "max_instances": "2",
   "memory": "1Gi",
@@ -208,7 +208,7 @@
    "WHISPER_MODEL": "base"
   },
   "execution_environment": "gen2",
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcriber:stab-531b2ab-1327",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcriber:stab-48d251f-2107",
   "ingress": "all",
   "max_instances": "2",
   "memory": "2Gi",
@@ -233,7 +233,7 @@
    "TRANSCRIBER_URL": "https://prooflab-staging-transcriber-ysn2mpe6sa-el.a.run.app"
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcription-worker:stab-531b2ab-1326",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-transcription-worker:stab-48d251f-2109",
   "ingress": "all",
   "max_instances": "2",
   "memory": "512Mi",

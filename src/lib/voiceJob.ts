@@ -59,9 +59,16 @@ export type JobView =
   | { kind: "transcribed"; final: boolean }
   | { kind: "transcription_failed"; error: string };
 
+export const NOT_ENGLISH_MESSAGE = "Please record your explanation in English.";
+
 export function viewOf(row: JobRow): JobView {
   const t = row.transcription_status ?? "pending";
-  if (t === "failed") return { kind: "transcription_failed", error: row.transcription_error || "Could not transcribe this recording." };
+  if (t === "failed") {
+    // English only (migration 69): the server heard another language. Not an accent
+    // judgement - Indian English is accepted. The student simply records again.
+    if (row.transcription_error === "non_english") return { kind: "transcription_failed", error: NOT_ENGLISH_MESSAGE };
+    return { kind: "transcription_failed", error: row.transcription_error || "Could not transcribe this recording." };
+  }
   if (t !== "completed") return { kind: "waiting", status: t };
   return { kind: "transcribed", final: row.status === "scored" || row.status === "failed" };
 }

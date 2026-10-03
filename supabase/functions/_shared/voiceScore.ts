@@ -14,7 +14,7 @@ import { generateText } from "./llm.ts";
  * that is already scored, or one another caller is scoring right now.
  */
 export const VOICE_SCORE_COLUMNS =
-  'id, student_id, transcript, duration_seconds, word_count, task_id, submission_id, communication_score, communication_notes, transcript_source, transcription_status, status';
+  'id, student_id, transcript, duration_seconds, word_count, task_id, submission_id, evaluation, transcription_error, communication_score, communication_notes, transcript_source, transcription_status, status';
 
 export interface VoiceRec {
   id: string;
@@ -24,6 +24,8 @@ export interface VoiceRec {
   word_count: number | null;
   task_id: string | null;
   submission_id?: string | null;
+  evaluation?: Record<string, unknown> | null;
+  transcription_error?: string | null;
   communication_score: number | null;
   communication_notes: string | null;
 }
@@ -124,6 +126,13 @@ export async function scoreRecording(
   generate: Generate = generateText,
 ): Promise<ScoreResult> {
   const voice_id = rec.id;
+
+  // English only: an attempt the language gate closed is never graded, whoever asks.
+  if (rec.transcription_error === 'non_english'
+      || (Array.isArray(rec.evaluation?.flags) && (rec.evaluation!.flags as unknown[]).includes('non_english'))) {
+    console.log(`VOICE-SCORE: refused ${voice_id} - not an English recording`);
+    return { status: 409, outcome: 'too_short', body: { success: false, reason: 'not an English recording' } };
+  }
 
   // Step 6F/6G: an atomic claim, not a read-then-write - two concurrent
   // calls for the same recording (two tabs, a retry racing a reopen, or the
@@ -273,6 +282,8 @@ Return ONLY JSON:
   // and (migration 61) nothing can change it once the row is scored.
   const { error: evalError } = await supabase.from('voice_explanations')
     .update({ evaluation: {
+      // Keeps what the transcriber recorded about the language it heard (migration 69).
+      ...(rec.evaluation && typeof rec.evaluation === 'object' ? rec.evaluation : {}),
       evaluator_version: EVALUATOR_VERSION, content_match: contentMatch,
       flags: offTopic ? ['off_topic'] : [], linked_to_submission: Boolean(work),
     } })

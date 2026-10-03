@@ -65,7 +65,7 @@ def wait(voice_id, limit=300):
     t0 = time.time()
     while time.time() - t0 < limit:
         _, rows = st.call("svc", "GET", "voice_explanations?select=status,transcription_status,transcript,word_count,"
-                          f"communication_score,communication_notes,evaluation,attempt_no,current_authoritative,submission_id&id=eq.{voice_id}")
+                          f"communication_score,communication_notes,evaluation,attempt_no,current_authoritative,submission_id,transcription_error&id=eq.{voice_id}")
         r = rows[0]
         if r["status"] in ("scored", "failed") and r["transcription_status"] in ("completed", "failed"):
             return r, round(time.time() - t0)
@@ -99,6 +99,10 @@ check("on-topic: evaluation saved with version, linked to the submission, high c
       ev.get("evaluator_version") == "voice-eval-2" and ev.get("linked_to_submission") is True and (ev.get("content_match") or 0) >= 60,
       (r_on["communication_score"], ev))
 
+tr = (r_on["evaluation"] or {}).get("transcription") or {}
+check("on-topic: heard as English; language, model and rule stored with the evidence",
+      tr.get("language") == "en" and tr.get("gate") == "english" and tr.get("model") and "reject_probability" in (tr.get("gate_rule") or {}), tr)
+
 # 3. Off-topic explanation on the same submission (a retry).
 off = f"{S}/voicee2e-{run}-off.wav"
 put(speak(OFF_TOPIC, "off.wav"), off)
@@ -121,8 +125,35 @@ put(silence("silence.wav"), sil)
 c, b = enqueue(sil, TASK_DONE, 6)
 r_s, secs = wait(b["voice_id"])
 check(f"silence: not scored, clear message, no AI spend ({secs}s)",
-      r_s["status"] == "failed" and r_s["communication_score"] is None and r_s["evaluation"] is None,
+      r_s["status"] == "failed" and r_s["communication_score"] is None
+      and "evaluator_version" not in (r_s["evaluation"] or {}) and "silence" in (r_s["communication_notes"] or "").lower() + " silence" * ("hear any speech" in (r_s["communication_notes"] or "")),
       (r_s["status"], r_s["transcription_status"], r_s["communication_notes"]))
+
+# 4b. English only. Real Hindi speech (not synthetic): "Hindi Dengue Introduction.ogg",
+#     Wikimedia Commons, CC BY-SA 3.0 - downloaded for this test, not stored in the repository.
+HINDI = "https://upload.wikimedia.org/wikipedia/commons/f/fe/Hindi_Dengue_Introduction.ogg"
+hindi_local = os.path.join(tmp, "hindi.ogg")
+req = urllib.request.Request(HINDI, headers={"User-Agent": "ProofLabStagingTest/1.0 (staging language-gate test)"})
+open(hindi_local, "wb").write(urllib.request.urlopen(req, timeout=60).read())
+ai_before = st.call("svc", "GET", "llm_usage?select=id&feature=eq.voice-score&order=created_at.desc&limit=1")[1]
+hin = f"{S}/voicee2e-{run}-hindi.ogg"
+put(hindi_local, hin)
+c, b = enqueue(hin, TASK_DONE, 60)
+r_h, secs = wait(b["voice_id"])
+ev = r_h["evaluation"] or {}
+tr = ev.get("transcription") or {}
+check(f"Hindi speech: not transcribed, not scored, asked for English ({secs}s)",
+      r_h["status"] == "failed" and r_h["transcription_error"] == "non_english" and r_h["transcript"] in (None, "")
+      and r_h["communication_score"] is None and r_h["communication_notes"] == "Please record your explanation in English.",
+      (r_h["status"], r_h["transcription_error"], r_h["communication_notes"]))
+check("Hindi speech: what was heard is on record (language, probability, model, rule)",
+      tr.get("language") == "hi" and (tr.get("language_probability") or 0) >= 0.8 and tr.get("gate") == "non_english"
+      and "non_english" in (ev.get("flags") or []), tr)
+check("Hindi speech: kept in history but not the authoritative recording", r_h["current_authoritative"] is False, r_h["attempt_no"])
+ai_after = st.call("svc", "GET", "llm_usage?select=id&feature=eq.voice-score&order=created_at.desc&limit=1")[1]
+check("Hindi speech: no AI scoring call was made", ai_before == ai_after)
+c, b2 = st.call("svc", "FN", "voice-score", {"voice_id": b["voice_id"]})
+check("Hindi speech: scoring it by hand is refused", c == 409, (c, b2))
 
 # 5. A scored result cannot be edited afterwards, even by the server.
 c, b = st.call("svc", "PATCH", f"voice_explanations?submission_id=eq.{r_on['submission_id']}&attempt_no=eq.{r_on['attempt_no']}", {"communication_score": 99})

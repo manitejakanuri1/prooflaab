@@ -137,3 +137,8 @@ test("legacy marker: only the server's own row decides; failure or absence never
   assert.deepEqual(classifyLegacy(byKey, here, row("t1", "p2")),
     { kind: "ours", job: { ...byKey, voiceId: "v1", studentId: "s1", taskId: "t1", proofId: "p2" } });
 });
+
+test("a recording the server heard as another language asks for English, in plain words", () => {
+  const v = viewOf({ transcription_status: "failed", transcription_error: "non_english", status: "failed" } as never);
+  assert.deepEqual(v, { kind: "transcription_failed", error: "Please record your explanation in English." });
+});

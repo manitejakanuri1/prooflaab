@@ -240,8 +240,14 @@ def process_job(voice_id: str, task_name: str, retry_count: int) -> tuple[int, d
         text = result.get("text") or ""
         segments = result.get("segments")
         words = len(text.split()) if text else 0
+        lang_meta = result.get("language_meta")
     except Exception as e:
         err = str(e)[:300]
+        # The transcriber saying "I cannot read this recording" (4xx) will say the same on
+        # every retry: close the job now so the student is told, instead of retrying for minutes.
+        # "No instance available" (429) and server errors are worth retrying.
+        if isinstance(e, urllib.error.HTTPError) and e.code in (400, 413, 415, 422):
+            terminal = True
         released, how = release_lease(voice_id, lease_token, err, terminal)
         print(f"WORKER: failed {voice_id} (task={task_name}, attempt={job.get('attempts')}, "
               f"retry_count={retry_count}, terminal={terminal}): {err} | {how}", flush=True)
@@ -249,6 +255,26 @@ def process_job(voice_id: str, task_name: str, retry_count: int) -> tuple[int, d
         # release itself failed, the lease still expires (STALE_AFTER_SECONDS)
         # and transcription-reap recovers the job.
         return 500, {"error": err, "released": released}
+
+    # English-only (migration 69). The transcriber detects the language before it
+    # transcribes. What it heard is stored with the recording either way; a clearly
+    # non-English recording is closed here - no transcript, never scored - and the
+    # student is asked to record again in English. Not a retry case: 200.
+    if isinstance(lang_meta, dict):
+        rejected = bool(result.get("non_english"))
+        status, ok = db_rpc("set_transcription_language",
+                            {"_id": voice_id, "_lease_token": lease_token, "_meta": lang_meta, "_reject": rejected})
+        if rejected:
+            if status == 200 and ok is True:
+                print(f"WORKER: non-English recording {voice_id} (task={task_name}) - detected "
+                      f"{lang_meta.get('language')} p={lang_meta.get('language_probability')}; not transcribed, not scored", flush=True)
+                return 200, {"ok": True, "voice_id": voice_id, "non_english": True}
+            released, how = release_lease(voice_id, lease_token, "could not record the language decision", terminal)
+            print(f"WORKER: language decision NOT saved for {voice_id} (task={task_name}): status={status} | {how}", flush=True)
+            return 500, {"error": "language decision not saved", "released": released}
+        if not (status == 200 and ok is True):
+            # Metadata only; the transcript below is what matters. Say so and carry on.
+            print(f"WORKER: language metadata not saved for {voice_id} (task={task_name}): status={status}", flush=True)
 
     # The lease token must match: if a NEWER attempt already reclaimed this row
     # (this attempt was stale - slow, not dead), the database does nothing.

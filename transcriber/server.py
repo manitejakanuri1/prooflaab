@@ -10,6 +10,7 @@ and the database and file service already accept.
 """
 import base64
 import apptoken
+import language_gate
 import hashlib
 import hmac
 import json
@@ -42,11 +43,38 @@ def caller(auth: str | None) -> str | None:
     return apptoken.user_id(auth) or ("service" if apptoken.is_service(auth) else None)
 
 
+CONFIG = {"compute_type": "int8", "beam_size": 1, "best_of": 1, "vad_filter": True}
+
+
 def transcribe(path: str) -> dict:
+    """English-only (the product rule), without assuming the speech IS English.
+
+    Step 1 detects the language: transcribe(language=None) runs detection before it returns
+    and the segments are a lazy generator that is never read, so nothing is decoded here.
+    Step 2 transcribes as English only when the gate allows it. A clearly non-English
+    recording is returned with no transcript, so it is never scored. Accent plays no part:
+    see language_gate.py."""
+    try:
+        _, probe = MODEL.transcribe(path, language=None, vad_filter=True, beam_size=1, best_of=1)
+        probs = dict(getattr(probe, "all_language_probs", None) or [])
+        lang_meta = language_gate.meta(probe.language, probe.language_probability, probs.get("en"),
+                                       getattr(probe, "duration_after_vad", None), MODEL_NAME, CONFIG)
+        duration = round(probe.duration, 2)
+    except Exception as e:
+        # Nothing to detect a language from (silence, a click, one syllable). That is not
+        # "another language": let the English transcription and the silence check decide.
+        lang_meta = language_gate.meta(None, None, None, 0, MODEL_NAME, CONFIG)
+        lang_meta["detection_error"] = str(e)[:120]
+        duration = 0
+    if lang_meta["gate"] == "non_english":
+        return {"text": "", "segments": [], "duration": duration,
+                "non_english": True, "language_meta": lang_meta}
+
     segments, info = MODEL.transcribe(path, language="en", vad_filter=True, beam_size=1, best_of=1)
     out = [{"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()}
            for s in segments if s.text.strip()]
-    return {"text": " ".join(s["text"] for s in out), "segments": out, "duration": round(info.duration, 2)}
+    return {"text": " ".join(s["text"] for s in out), "segments": out, "duration": round(info.duration, 2),
+            "non_english": False, "language_meta": lang_meta}
 
 
 class Handler(BaseHTTPRequestHandler):

@@ -55,6 +55,66 @@ class Worker(unittest.TestCase):
     def names(self):
         return [n for n, _ in self.rpc_calls]
 
+    # --- English-only gate (migration 69) ---
+    META = {"language": "te", "language_probability": 0.97, "english_probability": 0.01, "gate": "non_english", "model": "base"}
+
+    def test_non_english_is_closed_without_transcript_or_scoring(self):
+        self.s.transcribe = lambda a, c: {"text": "", "segments": [], "non_english": True, "language_meta": self.META}
+        self.rpc({"claim_transcription_job": (200, JOB), "set_transcription_language": (200, True)})
+        code, body, log = self.run_job()
+        self.assertEqual(code, 200)                       # not a retry case
+        self.assertTrue(body["non_english"])
+        self.assertEqual(self.names(), ["claim_transcription_job", "set_transcription_language"])
+        self.assertTrue(dict(self.rpc_calls)["set_transcription_language"]["_reject"])
+        self.assertEqual(self.scoring_calls, [])          # never scored
+        self.assertNotIn("complete_transcription_job", self.names())
+        self.assertIn("non-English", log)
+
+    def test_english_recording_stores_what_was_heard_then_completes(self):
+        meta = {**self.META, "language": "en", "gate": "english"}
+        self.s.transcribe = lambda a, c: {"text": "one two three", "segments": [], "non_english": False, "language_meta": meta}
+        self.rpc({"claim_transcription_job": (200, JOB), "set_transcription_language": (200, True),
+                  "complete_transcription_job": (200, True)})
+        code, body, _ = self.run_job()
+        self.assertEqual(code, 200)
+        self.assertFalse(dict(self.rpc_calls)["set_transcription_language"]["_reject"])
+        self.assertEqual(self.names()[-1], "complete_transcription_job")
+        self.assertEqual(self.scoring_calls, [VID])
+
+    def test_metadata_save_failure_does_not_lose_an_english_recording(self):
+        meta = {**self.META, "language": "en", "gate": "english"}
+        self.s.transcribe = lambda a, c: {"text": "one two three", "segments": [], "non_english": False, "language_meta": meta}
+        self.rpc({"claim_transcription_job": (200, JOB), "set_transcription_language": (500, None),
+                  "complete_transcription_job": (200, True)})
+        code, _, log = self.run_job()
+        self.assertEqual(code, 200)
+        self.assertEqual(self.scoring_calls, [VID])
+        self.assertIn("language metadata not saved", log)
+
+    def test_non_english_decision_not_saved_is_retried(self):
+        self.s.transcribe = lambda a, c: {"text": "", "segments": [], "non_english": True, "language_meta": self.META}
+        self.rpc({"claim_transcription_job": (200, JOB), "set_transcription_language": (500, None),
+                  "fail_transcription_job": (200, True)})
+        code, _, _ = self.run_job()
+        self.assertEqual(code, 500)
+        self.assertEqual(self.scoring_calls, [])
+
+    def test_unreadable_recording_is_closed_at_once_not_retried_for_minutes(self):
+        def unreadable(a, c):
+            raise self.s.urllib.error.HTTPError("u", 422, "Unprocessable", {}, None)
+        self.s.transcribe = unreadable
+        self.rpc({"claim_transcription_job": (200, JOB), "fail_transcription_job": (200, True)})
+        self.run_job(retry=0)
+        self.assertTrue(dict(self.rpc_calls)["fail_transcription_job"]["_terminal"])
+
+    def test_no_instance_available_is_still_retried(self):
+        def busy(a, c):
+            raise self.s.urllib.error.HTTPError("u", 429, "Too Many Requests", {}, None)
+        self.s.transcribe = busy
+        self.rpc({"claim_transcription_job": (200, JOB), "fail_transcription_job": (200, True)})
+        self.run_job(retry=0)
+        self.assertFalse(dict(self.rpc_calls)["fail_transcription_job"]["_terminal"])
+
     # --- successful completion ---
     def test_success_saves_then_requests_scoring(self):
         self.rpc({"claim_transcription_job": (200, JOB), "complete_transcription_job": (200, True)})

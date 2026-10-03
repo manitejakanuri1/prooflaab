@@ -1403,6 +1403,10 @@ const VoiceExplainModal = ({
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground">{prompt}</p>
+        <p className="text-sm">
+          <span className="font-medium">Please speak in English only.</span>{" "}
+          <span className="text-muted-foreground">Indian English accents are fully supported.</span>
+        </p>
 
         {phase === "idle" && consented === false && (
           <div className="space-y-3">

@@ -281,3 +281,20 @@ Deno.test("6d an off-topic explanation cannot keep a high score", async () => {
   assertEquals(db.rows.get(ID)!.communication_score, 30);
   assertEquals((db.updates[0].evaluation as Record<string, unknown>).flags, ['off_topic']);
 });
+
+Deno.test("6e a recording the language gate closed is never graded and costs no AI call", async () => {
+  const db = new FakeDb({ id: ID });
+  const calls = { n: 0 };
+  const r = await scoreRecording(db, longRec({ transcription_error: 'non_english' }), ai('{"communication_score": 90}', calls));
+  assertEquals(r.status, 409);
+  assertEquals(calls.n, 0);
+  assertEquals(db.rows.get(ID)!.status, 'recorded');
+});
+Deno.test("6f scoring keeps the language metadata the transcriber stored", async () => {
+  const db = new FakeDb({ id: ID });
+  await scoreRecording(db, longRec({ evaluation: { transcription: { language: 'en', gate: 'english' } } }),
+    ai('{"communication_score": 70, "content_match": 80, "notes": "ok"}'));
+  const saved = db.updates[0].evaluation as Record<string, unknown>;
+  assertEquals((saved.transcription as Record<string, unknown>).language, 'en');
+  assertEquals(saved.evaluator_version, 'voice-eval-2');
+});

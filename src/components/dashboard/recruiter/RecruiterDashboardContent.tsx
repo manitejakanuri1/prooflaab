@@ -56,6 +56,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const [title, setTitle] = useState("");
   const [brief, setBrief] = useState("");
   const [criteria, setCriteria] = useState("");
+  const [lotMode, setLotMode] = useState<"coding" | "written">("written");
 
   const refresh = useCallback(async () => {
     const [h, f] = await Promise.all([loadHome(), loadFilters()]);
@@ -111,9 +112,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
     if (!sponsorFor) return;
     setBusy(true);
     try {
-      await sponsorLot(sponsorFor.id, title, brief, criteria);
-      toast({ title: `Task sent to ${sponsorFor.name}`,
-              description: "It is on their Daily Card. You will see the submission here." });
+      const made = await sponsorLot(sponsorFor.id, title, brief, criteria, lotMode);
+      toast({ title: `Lot sent to ${sponsorFor.name}`,
+              description: `"${made.title}" is on their Daily Card, checked by ${made.grading === "tests" ? "real tests" : "a marking rubric"}. You will see the submission under Submissions.` });
       setSponsorFor(null); setTitle(""); setBrief(""); setCriteria("");
       await refresh();
     } catch (e) {
@@ -482,15 +483,22 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       placeholder="The brief. What is wrong or wanted, and what to hand back." />
             <Textarea value={criteria} onChange={(e) => setCriteria(e.target.value)} rows={2}
                       placeholder="What you are looking for when you review it (optional)" />
+            <div className="flex gap-2 text-sm">
+              <span className="self-center text-muted-foreground">Checked by:</span>
+              <Button type="button" size="sm" variant={lotMode === "coding" ? "default" : "outline"}
+                      onClick={() => setLotMode("coding")}>Code + tests</Button>
+              <Button type="button" size="sm" variant={lotMode === "written" ? "default" : "outline"}
+                      onClick={() => setLotMode("written")}>Written answer</Button>
+            </div>
             <div className="flex gap-2">
               <Button disabled={busy || !title.trim() || !brief.trim()}
                       onClick={() => void doSponsor()}>
-                {busy ? "Sending…" : "Send it"}
+                {busy ? "Preparing the Lot (up to a minute)…" : "Send it"}
               </Button>
               <Button variant="ghost" onClick={() => setSponsorFor(null)}>Cancel</Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              It appears on their Daily Card. You will see the submission under Lots.
+              We turn your brief into a clear Lot and build its checks first; if that is not possible you are told and nothing is sent.
             </p>
           </div>
         </DialogContent>

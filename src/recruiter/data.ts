@@ -277,14 +277,25 @@ export async function loadLots() {
   return (data ?? []) as unknown as Record<string, unknown>[];
 }
 
+/**
+ * Set a Lot for shortlisted students. The company-lot function turns the brief
+ * into a clear Lot with a validated evaluator (tests for coding, a specific rubric
+ * for written work) - the same engine as Daily Lots - and refuses if it cannot.
+ */
 export async function sponsorLot(
-  studentId: string, title: string, brief: string, criteria?: string, days = 7,
+  studentId: string, title: string, brief: string, criteria: string | undefined,
+  mode: "coding" | "written", days = 7,
 ) {
-  const { error } = await supabase.rpc("sponsor_lot", {
-    _student_id: studentId, _title: title, _brief: brief,
-    _criteria: criteria ?? null, _days: days,
+  const { data, error } = await supabase.functions.invoke("company-lot", {
+    body: { student_ids: [studentId], title, brief, criteria: criteria ?? null, mode, days },
   });
-  if (error) throw error;
+  if (error) {
+    const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    throw new Error(body?.error ?? error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+  if (!data?.task_ids?.length) throw new Error(data?.skipped?.[0]?.reason ?? "The Lot was not assigned.");
+  return data as { task_ids: string[]; grading: string; title: string };
 }
 
 export async function recordOutcome(studentId: string, outcome: string) {

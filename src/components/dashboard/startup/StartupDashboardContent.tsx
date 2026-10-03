@@ -1,13 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { StartupDashboardOverview } from "./StartupDashboardOverview";
-import { StartupPostTaskPage } from "./StartupPostTaskPage";
-import { StartupViewTasksPage } from "./StartupViewTasksPage";
-import StartupViewApplicationsPage from "./StartupViewApplicationsPage";
 import { StartupSubmissionsPage } from "./StartupSubmissionsPage";
 import { StartupSettingsPage } from "./StartupSettingsPage";
 import { StartupJobsPage } from "./StartupJobsPage";
 import RecruiterDashboardContent from "../recruiter/RecruiterDashboardContent";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 
@@ -43,20 +39,15 @@ const RestrictedAccessMessage = () => (
 const WHERE: Record<string, [string, string]> = {
   dashboard: ["home", ""], work: ["lots", ""],
   search: ["talent", ""],
-  "post-task": ["lots", "post-task"], "view-tasks": ["lots", "view-tasks"],
-  "view-applications": ["review", "applications"],
+  "post-task": ["lots", ""], "view-tasks": ["lots", ""], "view-applications": ["review", ""],
 };
 
 const NEEDS_VERIFICATION = new Set(["lots", "submissions", "review", "jobs"]);
 
 export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: StartupDashboardContentProps) {
   const [dest, sub] = WHERE[activeTab] ?? [activeTab, ""];
-  const [lotsTab, setLotsTab] = useState("sponsored");
-  const [reviewTab, setReviewTab] = useState("work");
 
   useEffect(() => {
-    if (dest === "lots" && sub) setLotsTab(sub);
-    if (dest === "review" && sub) setReviewTab(sub);
     if (sub || WHERE[activeTab]) onTabChange(dest);
   }, [dest, sub, activeTab, onTabChange]);
 
@@ -71,41 +62,15 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
     case "shortlist":
       return <RecruiterDashboardContent activeTab="shortlist" onTabChange={fromRecruiter} />;
     case "lots":
-      return (
-        <Tabs value={lotsTab} onValueChange={setLotsTab}>
-          <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="sponsored">Sponsored Lots</TabsTrigger>
-            <TabsTrigger value="post-task">Post a task</TabsTrigger>
-            <TabsTrigger value="view-tasks">Your posted tasks</TabsTrigger>
-          </TabsList>
-          <TabsContent value="sponsored" className="mt-4">
-            <RecruiterDashboardContent activeTab="lots" onTabChange={fromRecruiter} />
-          </TabsContent>
-          <TabsContent value="post-task" className="mt-4">
-            <StartupPostTaskPage onNavigateToApplications={() => { setReviewTab("applications"); onTabChange("review"); }} />
-          </TabsContent>
-          <TabsContent value="view-tasks" className="mt-4">
-            <StartupViewTasksPage onNavigateToPostTask={() => setLotsTab("post-task")} />
-          </TabsContent>
-        </Tabs>
-      );
+      // One Work system (§26): companies set Lots for shortlisted students through
+      // company-lot. The old "Post a task / Applications" marketplace never worked
+      // on this backend (tasks RLS refuses a company insert; students have no screen
+      // to apply), so it is no longer offered; its code goes with Wave 8.
+      return <RecruiterDashboardContent activeTab="lots" onTabChange={fromRecruiter} />;
     case "submissions":
       return <StartupSubmissionsPage />;
     case "review":
-      return (
-        <Tabs value={reviewTab} onValueChange={setReviewTab}>
-          <TabsList>
-            <TabsTrigger value="work">Work to review</TabsTrigger>
-            <TabsTrigger value="applications">Applications</TabsTrigger>
-          </TabsList>
-          <TabsContent value="work" className="mt-4">
-            <StartupSubmissionsPage initialFilter="unreviewed" />
-          </TabsContent>
-          <TabsContent value="applications" className="mt-4">
-            <StartupViewApplicationsPage />
-          </TabsContent>
-        </Tabs>
-      );
+      return <StartupSubmissionsPage initialFilter="unreviewed" />;
     case "jobs":
       return <StartupJobsPage />;
     case "settings":

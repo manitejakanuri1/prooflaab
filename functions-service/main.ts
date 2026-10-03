@@ -28,7 +28,7 @@ const ROOT = new URL('../supabase/functions/', import.meta.url);
 
 /** Every function that exists, in no particular order. */
 const SLUGS = [
-  'ai-authorship', 'app-guide-chat', 'assign_tasks', 'create-college-user',
+  'ai-authorship', 'app-guide-chat', 'assign_tasks', 'company-lot', 'create-college-user',
   'create-student-users', 'github-check', 'interests-analyze',
   'leetcode-streak-sync', 'level-open', 'level-quiz-submit', 'levels-place',
   'levels-warm', 'lot-writer', 'mock-interview-generate', 'mock-interview-score',

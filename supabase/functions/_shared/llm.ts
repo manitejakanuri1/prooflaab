@@ -103,6 +103,9 @@ function geminiUsage(data: Record<string, any>): TokenUsage {
  * Records a call against a student. Never throws: usage accounting must not be
  * able to fail the request that produced it.
  */
+const uuidOrNull = (v: unknown): string | null =>
+  typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : null;
+
 export async function logUsage(
   ctx: UsageContext,
   result: Pick<GenResult, 'provider' | 'model' | 'usage' | 'truncated'>,
@@ -112,8 +115,10 @@ export async function logUsage(
       method: 'POST',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({
-        user_id: ctx.userId ?? null,
-        student_id: ctx.studentId ?? null,
+        // A job has no person behind it ('system'): the columns are ids, so store none
+        // rather than lose the whole usage row (that is how job AI calls went unrecorded).
+        user_id: uuidOrNull(ctx.userId),
+        student_id: uuidOrNull(ctx.studentId),
         feature: ctx.feature,
         provider: result.provider,
         model: result.model,

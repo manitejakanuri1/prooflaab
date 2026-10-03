@@ -67,7 +67,7 @@
    "GCP_PROJECT": "prooflab-508214",
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "SERVICE_TOKEN_AUDIENCE": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
-   "SERVICE_TOKEN_CALLERS": "prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-transc-wk@prooflab-508214.iam.gserviceaccount.com",
+   "SERVICE_TOKEN_CALLERS": "prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-transc-wk@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-crawler@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-bugfinder@prooflab-508214.iam.gserviceaccount.com",
    "TOKEN_TTL": "3600"
   },
   "execution_environment": null,
@@ -171,7 +171,7 @@
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-1606b50-2231",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-6d65998-2302",
   "ingress": "all",
   "max_instances": "2",
   "memory": "1Gi",

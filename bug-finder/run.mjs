@@ -153,7 +153,39 @@ async function signIn(page, email, password) {
   await page.waitForTimeout(1500);
 }
 
+/**
+ * PLUMBING_ONLY=1: proves the job itself works where there are no logins to sign in with
+ * (staging shares production's login pool, so it has none). It starts the browser, gets its
+ * database token the way it will in production (from the signer, with its own identity),
+ * reads and stores a result, and exits. It opens no site and uses no account.
+ */
+async function plumbing() {
+  log({ severity: "INFO", message: `BUG FINDER: plumbing run ${RUN_ID} (no site, no logins)` });
+  await step("plumbing: browser starts", async () => {
+    const browser = await chromium.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] });
+    const page = await browser.newPage();
+    await page.setContent("<h1>ok</h1>");
+    if ((await page.textContent("h1")) !== "ok") throw new Error("the browser did not render");
+    await browser.close();
+  });
+  await step("plumbing: database token from the signer", async () => {
+    if (!SIGNER_URL) throw new Error("SIGNER_URL is not set");
+    const token = await serviceToken();
+    if (!token || token.split(".").length !== 3) throw new Error("no token");
+  });
+  await step("plumbing: database reachable with that token", async () => {
+    const res = await db("bug_finder_runs?select=run_id&limit=1");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  });
+  const failed = results.filter((r) => !r.ok);
+  log({ severity: failed.length ? "ERROR" : "INFO", bug_finder_run: RUN_ID,
+        message: `BUG FINDER PLUMBING ${failed.length ? "FAILED" : "PASSED"}: ${results.length - failed.length}/${results.length} steps ok` });
+  await saveResults();
+  process.exit(failed.length ? 1 : 0);
+}
+
 async function main() {
+  if (process.env.PLUMBING_ONLY === "1") return plumbing();
   log({ severity: "INFO", message: `BUG FINDER: run ${RUN_ID} starting against ${SITE}` });
   // Standard container flags: Chromium's sandbox wants privileges Cloud Run's container
   // doesn't grant, and /dev/shm here is a tiny tmpfs.

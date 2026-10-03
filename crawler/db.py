@@ -141,5 +141,14 @@ class Database:
         if r.status_code >= 400:
             raise RuntimeError(f"update failed, HTTP {r.status_code}: {r.text[:300]}")
 
+    def days_since_newest_page(self) -> int | None:
+        """Whole days since any page was last stored or changed; None when there is none."""
+        rows = self._get("source_content", {"select": "fetched_at", "order": "fetched_at.desc", "limit": "1"})
+        if not rows or not rows[0].get("fetched_at"):
+            return None
+        from datetime import datetime, timezone
+        newest = datetime.fromisoformat(rows[0]["fetched_at"].replace("Z", "+00:00"))
+        return (datetime.now(timezone.utc) - newest).days
+
     def describe(self) -> str:
         return f"{BACKEND} ({self.base})"

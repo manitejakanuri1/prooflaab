@@ -54,6 +54,8 @@ fi
 
 if [ "$MODE" != "quick" ]; then
   echo "== staging end to end"
+  gate "crawler: source to student-ready Lot"  python scripts/dev-tools/staging_crawler_e2e.py
+  gate "bug-finder job (plumbing run)"        python scripts/dev-tools/staging_bugfinder_check.py
   gate "real audio through the voice pipeline" python scripts/dev-tools/staging_voice_e2e.py
   gate "browser journeys (all roles)"       node scripts/dev-tools/staging_browser_e2e.mjs
 fi

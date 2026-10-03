@@ -39,6 +39,8 @@ load_dotenv()
 # Below this, whatever came back is a navigation shell or an error page rather
 # than something worth asking a student about.
 MIN_TEXT_CHARS = 200
+# No new or changed page for this long (three weekly runs) is worth telling a person.
+ZERO_NEW_DAYS = int(os.environ.get("CRAWLER_ZERO_NEW_DAYS", "21"))
 
 db = Database()
 
@@ -156,10 +158,13 @@ def process_url(source: dict, url: str, existing: list[dict]) -> str:
     return f"inserted ({method})"
 
 
-def run() -> None:
+def run() -> int:
+    """Crawls every approved source. Returns the process exit code: non-zero when the run
+    did nothing useful, so the job is recorded as failed and its alert fires."""
     print(f"writing to {db.describe()}")
     sources = db.active_sources()
     print(f"{len(sources)} active source(s) in source_registry")
+    tally = {"urls": 0, "inserted": 0, "updated": 0, "unchanged": 0, "duplicate": 0, "refused": 0, "failed": 0}
 
     for source in sources:
         if source["rights_flag"] == "BLOCKED_SOURCE":
@@ -185,7 +190,25 @@ def run() -> None:
                 # and a half-finished crawl is worse than a reported failure.
                 status = f"error: {str(err)[:120]}"
             print(f"[{source['domain']}] {url} -> {status}")
+            tally["urls"] += 1
+            kind = ("inserted" if status.startswith("inserted") else "updated" if status.startswith("updated")
+                    else "unchanged" if status == "unchanged" else "duplicate" if status.endswith("duplicate")
+                    else "refused" if status in ("blocked_by_robots", "too_short") else "failed")
+            tally[kind] += 1
             time.sleep(delay)
+
+    # One line an operator (and an alert) can read: what this run actually brought in.
+    print("CRAWLER SUMMARY: " + " ".join(f"{k}={v}" for k, v in tally.items()), flush=True)
+    newest_days = db.days_since_newest_page()
+    if tally["inserted"] + tally["updated"] == 0 and (newest_days is None or newest_days >= ZERO_NEW_DAYS):
+        # Nothing new now, and nothing new for weeks: Lots will start repeating. Said out
+        # loud because every single run "succeeds" while the library quietly stops growing.
+        print(f"CRAWLER ZERO NEW: no new or changed page in this run, and none stored for "
+              f"{'ever' if newest_days is None else str(newest_days) + ' days'} ({tally['urls']} urls checked)", flush=True)
+    if tally["urls"] > 0 and tally["failed"] == tally["urls"]:
+        print("CRAWLER FAILED: every url failed to fetch or store", flush=True)
+        return 1
+    return 0
 
 
 def report_tools() -> None:
@@ -205,4 +228,4 @@ def report_tools() -> None:
 
 if __name__ == "__main__":
     report_tools()
-    run()
+    raise SystemExit(run())

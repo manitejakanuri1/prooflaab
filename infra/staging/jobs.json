@@ -1,4 +1,30 @@
 {
+ "prooflab-staging-bug-finder": {
+  "cpu": "1000m",
+  "env": {
+   "PLUMBING_ONLY": "1",
+   "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
+   "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
+  },
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-bug-finder:stab-6d65998-2243",
+  "max_retries": 0,
+  "memory": "1Gi",
+  "service_account": "prooflab-staging-bugfinder@prooflab-508214.iam.gserviceaccount.com",
+  "timeout_seconds": "300"
+ },
+ "prooflab-staging-crawler": {
+  "cpu": "1000m",
+  "env": {
+   "BACKEND": "google",
+   "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
+   "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
+  },
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-crawler:stab-6d65998-2242",
+  "max_retries": 0,
+  "memory": "1Gi",
+  "service_account": "prooflab-staging-crawler@prooflab-508214.iam.gserviceaccount.com",
+  "timeout_seconds": "900"
+ },
  "prooflab-staging-inspect4": {
   "cpu": "1000m",
   "env": {

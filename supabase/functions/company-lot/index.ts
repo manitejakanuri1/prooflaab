@@ -46,6 +46,16 @@ serve(async (req) => {
     if (!title || brief.length < 40) return json({ error: "Give the Lot a title and a brief of at least a few sentences." }, 400);
     if (!mode) return json({ error: "Say whether this is coding work (checked by tests) or written work." }, 400);
 
+    // Nothing is generated (and paid for) unless at least one student can receive it.
+    const { data: shortlisted } = await db.from("recruiter_shortlists")
+      .select("student_id").eq("recruiter_id", companyId).in("student_id", studentIds);
+    const eligible: string[] = [];
+    for (const sid of (shortlisted ?? []).map((r: { student_id: string }) => r.student_id)) {
+      const { data: ok } = await db.rpc("student_is_discoverable", { _student_id: sid });
+      if (ok === true) eligible.push(sid);
+    }
+    if (!eligible.length) return json({ error: "Shortlist the student (with a public profile) before setting them a Lot." }, 400);
+
     // The brief is the grounding material: the model rewrites it into the Lot
     // contract without changing what the company asked for.
     const promptBody = lotPrompt(title, {
@@ -76,7 +86,7 @@ serve(async (req) => {
     if (wording.length) return json({ error: `The Lot wording could not be made clear enough: ${wording[0]}` }, 422);
 
     const { data, error } = await db.rpc("company_create_lot", {
-      _company: companyId, _student_ids: studentIds,
+      _company: companyId, _student_ids: eligible,
       _title: String(f.title ?? title).slice(0, 90), _scenario: String(f.scenario ?? ""),
       _code_sample: typeof f.code_sample === "string" ? f.code_sample : null,
       _criteria: criteria || null, _days: days,

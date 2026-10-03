@@ -83,15 +83,16 @@ begin
     values
       (sid, trim(_title), trim(_scenario), nullif(_code_sample, ''), _company, nullif(trim(coalesce(_criteria, '')), ''),
        n,
-       case when exists (select 1 from public.tasks t where t.student_id = sid and t.lot_date = current_date)
-            then current_date + 1 else current_date end,
+       -- the next day this student has no Lot yet (one Lot per day), up to 14 days ahead
+       (select min(d)::date from generate_series(current_date, current_date + 14, interval '1 day') d
+         where not exists (select 1 from public.tasks t where t.student_id = sid and t.lot_date = d::date)),
        coalesce(_lot_category, 'technical'), coalesce(_difficulty, 'Medium'), coalesce(_estimate_minutes, 45),
        'pending', 'private', now() + make_interval(days => greatest(1, coalesce(_days, 7))), 'recruiter', 'sponsored',
        _sandbox_config_id, _rubric_config_id, true)
     on conflict (student_id, lot_date) where lot_date is not null do nothing
     returning id into tid;
     if tid is null then
-      skipped := skipped || jsonb_build_object('student_id', sid, 'reason', 'already has a Lot for that day');
+      skipped := skipped || jsonb_build_object('student_id', sid, 'reason', 'no free day in the next two weeks');
       continue;
     end if;
     made := made || tid;
@@ -108,7 +109,8 @@ revoke all on function public.company_create_lot(uuid, uuid[], text, text, text,
   from public, anon, authenticated;
 grant execute on function public.company_create_lot(uuid, uuid[], text, text, text, text, integer, uuid, uuid, text, integer, text)
   to service_role;
-revoke execute on function public.sponsor_lot(uuid, text, text, text, integer) from authenticated;
+revoke all on function public.sponsor_lot(uuid, text, text, text, integer) from public, anon, authenticated;
+grant execute on function public.sponsor_lot(uuid, text, text, text, integer) to service_role;
 
 do $$
 declare raised boolean := false;

@@ -74,7 +74,7 @@ export function StartupViewTasksPage({ onNavigateToPostTask }: StartupViewTasksP
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Posted Tasks</h2>
-          <p className="text-muted-foreground">Manage your internship tasks</p>
+          <p className="text-muted-foreground">Tasks your company posted for students</p>
         </div>
         <Button onClick={onNavigateToPostTask}>Post New Task</Button>
       </div>

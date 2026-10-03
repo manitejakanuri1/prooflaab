@@ -14,9 +14,9 @@ export function StartupDashboardHeader({ onNavigate }: { onNavigate?: (tab: stri
           <SidebarTrigger />
           <div>
             <h1 className="text-xl font-semibold">
-              {profile?.startup_name || 'Startup Dashboard'}
+              {profile?.startup_name || 'Company dashboard'}
             </h1>
-            <p className="text-sm text-muted-foreground">Manage your internship tasks and submissions</p>
+            <p className="text-sm text-muted-foreground">Find talent, sponsor Lots and review real student work</p>
           </div>
         </div>
 

@@ -27,6 +27,7 @@ orchestrates: fetch the audio the browser already uploaded, hand it to the
 existing transcriber, write the result back through prooflab-staging-api.
 """
 import base64
+import apptoken
 import hashlib
 import hmac
 import json
@@ -41,6 +42,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 PORT = int(os.environ.get("PORT", "8080"))
 JWT_SECRET = os.environ.get("PGRST_JWT_SECRET", "").encode()
 POSTGREST_URL = os.environ.get("POSTGREST_URL", "").rstrip("/")
+SIGNER_URL = os.environ.get("SIGNER_URL", "").rstrip("/")
 TRANSCRIBER_URL = os.environ.get("TRANSCRIBER_URL", "").rstrip("/")
 # Step 6 G1: the functions service whose voice-score grades the transcript
 # this worker just saved, so scoring no longer waits for the student's browser.
@@ -61,7 +63,7 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "")
 FAULT_INJECT_VOICE_ID = os.environ.get("FAULT_INJECT_VOICE_ID", "")
 
 REQUIRED = {
-    "PGRST_JWT_SECRET": JWT_SECRET, "POSTGREST_URL": POSTGREST_URL, "TRANSCRIBER_URL": TRANSCRIBER_URL,
+    "SIGNER_URL (or legacy PGRST_JWT_SECRET)": SIGNER_URL or JWT_SECRET, "POSTGREST_URL": POSTGREST_URL, "TRANSCRIBER_URL": TRANSCRIBER_URL,
     "FUNCTIONS_URL": FUNCTIONS_URL, "PRIVATE_BUCKET": PRIVATE_BUCKET, "ENVIRONMENT": ENVIRONMENT,
 }
 
@@ -92,18 +94,12 @@ def b64url(data: bytes) -> str:
 
 
 def mint_token(role: str, ttl: int = 300) -> str:
-    """A short-lived, self-issued token this service is trusted to hold - the
-    same HS256 scheme every other internal call in this project already uses.
-    Two different roles are minted on purpose: claim/complete/fail_transcription_job
-    are service_role-only (Step 6B), while the existing transcriber only accepts
-    `authenticated`."""
-    now = int(time.time())
-    header = b64url(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    payload = b64url(json.dumps({
-        "role": role, "sub": "transcription-worker", "iat": now, "exp": now + ttl,
-    }).encode())
-    sig = hmac.new(JWT_SECRET, f"{header}.{payload}".encode(), hashlib.sha256).digest()
-    return f"{header}.{payload}.{b64url(sig)}"
+    """A short-lived service token. With SIGNER_URL set it comes from the auth-bridge,
+    which checks this service's Google identity (F1) - the worker holds no signing key.
+    Without it: the legacy self-signed HS256 token. `role` is kept for the call sites;
+    both the database RPCs and the transcriber accept a service token."""
+    # The configuration read at start-up, not the live environment.
+    return apptoken.service_token({"SIGNER_URL": SIGNER_URL, "PGRST_JWT_SECRET": JWT_SECRET.decode()})
 
 
 MALFORMED = object()  # a 200 whose body is not valid JSON

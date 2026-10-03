@@ -9,6 +9,6 @@ RUN pip install --no-cache-dir faster-whisper==1.0.3 requests==2.32.3 "huggingfa
 RUN python -c "from faster_whisper import WhisperModel; WhisperModel('base', device='cpu', compute_type='int8', download_root='/models')"
 
 WORKDIR /app
-COPY server.py .
+COPY server.py apptoken.py ./
 ENV PYTHONUNBUFFERED=1 HF_HUB_OFFLINE=1
 CMD ["python", "/app/server.py"]

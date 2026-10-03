@@ -9,6 +9,7 @@ Only a signed-in user can call it: the same HS256 token the auth bridge issues
 and the database and file service already accept.
 """
 import base64
+import apptoken
 import hashlib
 import hmac
 import json
@@ -35,22 +36,10 @@ def b64url(part: str) -> bytes:
 
 
 def caller(auth: str | None) -> str | None:
-    """The signed-in user id from a bridge token, or None."""
-    if not SECRET or not auth or not auth.startswith("Bearer "):
-        return None
-    try:
-        head, body, sig = auth[7:].split(".")
-        if json.loads(b64url(head)).get("alg") != "HS256":
-            return None
-        want = hmac.new(SECRET, f"{head}.{body}".encode(), hashlib.sha256).digest()
-        if not hmac.compare_digest(want, b64url(sig)):
-            return None
-        claims = json.loads(b64url(body))
-        if claims.get("role") != "authenticated" or float(claims.get("exp", 0)) <= time.time():
-            return None
-        return str(claims.get("sub") or "") or None
-    except Exception:
-        return None
+    """Who is asking: a signed-in user's id, or "service" for another backend service
+    (the transcription worker). Verified by apptoken (RS256; legacy HS256 only while
+    that secret is still configured). None means refuse."""
+    return apptoken.user_id(auth) or ("service" if apptoken.is_service(auth) else None)
 
 
 def transcribe(path: str) -> dict:

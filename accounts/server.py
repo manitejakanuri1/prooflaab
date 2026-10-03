@@ -28,6 +28,7 @@ import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import apptoken
 import sync_plan
 
 PORT = int(os.environ.get("PORT", "8080"))
@@ -58,27 +59,14 @@ def unb64(part: str) -> bytes:
 
 
 def caller(auth: str | None) -> str | None:
-    """The signed-in user id from a bridge token, or None."""
-    if not SECRET or not auth or not auth.startswith("Bearer "):
-        return None
-    try:
-        head, body, sig = auth[7:].split(".")
-        if json.loads(unb64(head)).get("alg") != "HS256":
-            return None
-        if not hmac.compare_digest(hmac.new(SECRET, f"{head}.{body}".encode(), hashlib.sha256).digest(), unb64(sig)):
-            return None
-        claims = json.loads(unb64(body))
-        if claims.get("role") != "authenticated" or float(claims.get("exp", 0)) <= time.time():
-            return None
-        return str(claims.get("sub") or "") or None
-    except Exception:
-        return None
+    """The signed-in user id from a bridge token, or None (apptoken: RS256, or legacy HS256
+    only while that secret is still configured)."""
+    return apptoken.user_id(auth)
 
 
 def service_token() -> str:
-    head = b64url(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    body = b64url(json.dumps({"role": "service_role", "exp": int(time.time()) + 120}).encode())
-    return f"{head}.{body}." + b64url(hmac.new(SECRET, f"{head}.{body}".encode(), hashlib.sha256).digest())
+    """From the signer when SIGNER_URL is set (this service's own identity), else legacy."""
+    return apptoken.service_token()
 
 
 def call(url: str, body=None, headers=None, method="POST"):

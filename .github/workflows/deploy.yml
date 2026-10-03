@@ -60,6 +60,15 @@ jobs:
       - name: Server function tests (Deno)
         run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/
 
+      - name: Auth bridge tests (signer, service callers, refusals)
+        run: PGRST_JWT_SECRET=ci-only-not-a-real-secret-0123456789 deno test --no-lock --allow-env --allow-net auth-bridge/
+
+      - name: Token module copies are identical
+        run: |
+          cmp supabase/functions/_shared/appToken.ts files-service/appToken.ts
+          cmp accounts/apptoken.py transcription-worker/apptoken.py
+          cmp accounts/apptoken.py transcriber/apptoken.py
+
       - name: Files service tests
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
 
@@ -70,7 +79,10 @@ jobs:
             | grep -v -E '/(ai-authorship|github-check|leetcode-streak-sync|proof-file-url|question-generator|response-evaluator|submit-conceptual-answers|trust-compute|verify-proof)/')
 
       - name: Accounts sync safety tests (Python)
-        run: cd accounts && python3 test_sync_plan.py
+        run: |
+          pip install --quiet cryptography
+          cd accounts && python3 test_sync_plan.py && python3 test_apptoken.py
+          cd ../transcription-worker && python3 -m unittest test_server
 
       - name: Production build
         run: npm run build

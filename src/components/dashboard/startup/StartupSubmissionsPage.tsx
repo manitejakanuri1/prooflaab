@@ -2,74 +2,54 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Download, ExternalLink, User, Search, Filter, CheckCircle, X } from "lucide-react";
-import { useStartupSubmissions, useReviewSubmission } from "@/hooks/useStartupSubmissions";
+import { Calendar, User, Search, Filter, CheckCircle, X, RotateCcw, Mic } from "lucide-react";
 import { format } from "date-fns";
-import ProofFileButton from "@/components/proof/ProofFileButton";
-import { hasOpenableProof } from "@/lib/proofFile";
+import {
+  useStartupSubmissions, useReviewSubmission, type CompanySubmission, type ReviewDecision,
+} from "@/hooks/useStartupSubmissions";
 
-export function StartupSubmissionsPage() {
-  const { data: submissions = [], isLoading } = useStartupSubmissions();
+const DECISION_LABEL: Record<ReviewDecision, string> = {
+  accepted: "Accepted", needs_work: "Needs work", rejected: "Rejected",
+};
+
+const GRADE_LABEL: Record<string, string> = {
+  passed: "Passed", failed: "Not passed", needs_review: "Needs review",
+};
+
+/** The student's work on this company's posted and sponsored tasks (task_submissions). */
+export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilter?: string } = {}) {
+  const { data: submissions = [], isLoading, error } = useStartupSubmissions();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
-  const [reviewAction, setReviewAction] = useState<'verify' | 'reject' | null>(null);
-  const [reviewComment, setReviewComment] = useState("");
-  
-  const reviewSubmission = useReviewSubmission();
+  const [filter, setFilter] = useState(initialFilter);
+  const [open, setOpen] = useState<CompanySubmission | null>(null);
+  const [decision, setDecision] = useState<ReviewDecision | null>(null);
+  const [note, setNote] = useState("");
+  const review = useReviewSubmission();
 
-  // Filter submissions
-  const filteredSubmissions = submissions.filter(submission => {
-    const matchesSearch = !searchQuery.trim() || 
-      submission.tasks?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.student_profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === "All" || submission.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  const q = searchQuery.trim().toLowerCase();
+  const shown = submissions.filter((s) => {
+    const matches = !q || s.task_title?.toLowerCase().includes(q) || s.student_name?.toLowerCase().includes(q);
+    const state = s.review_decision ?? "unreviewed";
+    return matches && (filter === "all" || filter === state);
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Verified": return "default";
-      case "Rejected": return "destructive";
-      case "Under Review": return "secondary";
-      default: return "outline";
-    }
-  };
-
-  const handleReview = async (submissionId: string, status: 'Verified' | 'Rejected') => {
-    await reviewSubmission.mutateAsync({
-      submissionId,
-      status,
-      reviewComment: reviewComment || undefined,
-    });
-    
-    setSelectedSubmission(null);
-    setReviewAction(null);
-    setReviewComment("");
+  const closeDialog = () => { setOpen(null); setDecision(null); setNote(""); };
+  const save = async () => {
+    if (!open || !decision) return;
+    await review.mutateAsync({ submissionId: open.submission_id, decision, note: note || undefined });
+    closeDialog();
   };
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">Student Submissions</h2>
-            <p className="text-muted-foreground">Review and verify student work</p>
-          </div>
-        </div>
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-muted rounded-lg"></div>
-          ))}
-        </div>
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold">Submissions</h2>
+        {[1, 2, 3].map((i) => <div key={i} className="h-32 animate-pulse rounded-lg bg-muted" />)}
       </div>
     );
   }
@@ -78,211 +58,146 @@ export function StartupSubmissionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Student Submissions</h2>
-          <p className="text-muted-foreground">Review and verify student work</p>
+          <h2 className="text-2xl font-bold">Submissions</h2>
+          <p className="text-muted-foreground">Student work on your posted and sponsored tasks, graded automatically</p>
         </div>
-        <Badge variant="outline">
-          {filteredSubmissions.length} submissions
-        </Badge>
+        <Badge variant="outline">{shown.length} submissions</Badge>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg border">
-        <div className="flex items-center gap-2 flex-1">
+      {error && (
+        <p className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">
+          {(error as Error).message}
+        </p>
+      )}
+
+      <div className="flex flex-col gap-4 rounded-lg border bg-muted/50 p-4 sm:flex-row">
+        <div className="flex flex-1 items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by task, student name, or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1"
-          />
+          <Input placeholder="Search by task or student..." value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)} className="flex-1" />
         </div>
-        
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[170px]"><SelectValue placeholder="Review" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="All">All Status</SelectItem>
-              <SelectItem value="Under Review">Under Review</SelectItem>
-              <SelectItem value="Verified">Verified</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="unreviewed">Not reviewed yet</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="needs_work">Needs work</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {filteredSubmissions.length === 0 ? (
-        <div className="text-center py-12">
-          <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">
+      {shown.length === 0 ? (
+        <div className="py-12 text-center">
+          <User className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="mb-2 text-lg font-medium">
             {submissions.length === 0 ? "No submissions yet" : "No submissions match your filters"}
           </h3>
           <p className="text-muted-foreground">
-            {submissions.length === 0 
-              ? "Submissions will appear here when students complete your tasks."
-              : "Try adjusting your search or filter criteria."
-            }
+            {submissions.length === 0
+              ? "Work appears here as soon as a student submits one of your tasks."
+              : "Try a different search or filter."}
           </p>
         </div>
       ) : (
         <div className="grid gap-4">
-          {filteredSubmissions.map((submission) => (
-            <Card key={submission.id}>
+          {shown.map((s) => (
+            <Card key={s.submission_id}>
               <CardHeader>
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <CardTitle className="text-lg">
-                      {submission.tasks?.title || 'Unknown Task'}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={submission.student_profiles?.profile_photo_url || ''} />
-                        <AvatarFallback className="text-xs">
-                          {submission.student_profiles?.full_name?.split(' ').map(n => n[0]).join('') || 'S'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm text-muted-foreground">
-                        {submission.student_profiles?.full_name || 'Unknown Student'}
-                      </span>
-                    </div>
+                    <CardTitle className="text-lg">{s.task_title}</CardTitle>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {s.student_name}{s.college_name ? ` · ${s.college_name}` : ""} · {s.source === "sponsored" ? "Sponsored Lot" : "Posted task"}
+                    </p>
                   </div>
-                  <Badge variant={getStatusColor(submission.status)}>
-                    {submission.status}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant={s.status === "passed" ? "default" : "secondary"}>
+                      {GRADE_LABEL[s.status] ?? s.status}{s.score != null ? ` · ${s.score}/100` : ""}
+                    </Badge>
+                    {s.review_decision && (
+                      <Badge variant={s.review_decision === "rejected" ? "destructive" : "outline"}>
+                        {DECISION_LABEL[s.review_decision]}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {submission.submission_notes && (
-                    <p className="text-sm">{submission.submission_notes}</p>
+              <CardContent className="space-y-3">
+                {s.kind === "code" && s.total_count != null && (
+                  <p className="text-sm">Tests passed: <span className="font-medium">{s.passed_count ?? 0} / {s.total_count}</span>{s.language ? ` · ${s.language}` : ""}</p>
+                )}
+                {s.work && (
+                  <pre className={`max-h-56 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-xs ${s.kind === "code" ? "font-mono" : "font-sans"}`}>
+                    {s.work}
+                  </pre>
+                )}
+                <div className="flex items-start gap-2 text-sm">
+                  <Mic className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                  {s.voice_status === "scored" ? (
+                    <div>
+                      <span className="font-medium">Spoken explanation: {s.voice_score}/100.</span>{" "}
+                      {s.voice_notes && <span className="text-muted-foreground">{s.voice_notes}</span>}
+                      {s.voice_transcript && (
+                        <details className="mt-1">
+                          <summary className="cursor-pointer text-xs text-muted-foreground">Transcript</summary>
+                          <p className="mt-1 whitespace-pre-wrap text-xs">{s.voice_transcript}</p>
+                        </details>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {s.voice_status === "pending" ? "Spoken explanation is being processed." :
+                       s.voice_status === "failed" ? "Spoken explanation could not be scored." :
+                       "No spoken explanation yet."}
+                    </span>
                   )}
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Submitted {format(new Date(submission.submitted_at), 'MMM dd, yyyy')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        {submission.student_profiles?.full_name || 'Unknown student'}
-                      </div>
-                      {submission.tasks?.xp_reward && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">{submission.tasks.xp_reward} XP</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      {hasOpenableProof(submission) && (
-                        <ProofFileButton proof={submission} label="View Proof" />
-                      )}
-                      
-                      {submission.status === "Under Review" && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-destructive"
-                            onClick={() => {
-                              setSelectedSubmission(submission);
-                              setReviewAction('reject');
-                            }}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Reject
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedSubmission(submission);
-                              setReviewAction('verify');
-                            }}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Verify
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    Submitted {format(new Date(s.submitted_at), "MMM dd, yyyy")}
+                    {s.attempts > 1 ? ` · attempt ${s.attempts}` : ""}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="text-destructive"
+                            onClick={() => { setOpen(s); setDecision("rejected"); }}>
+                      <X className="mr-1 h-4 w-4" />Reject
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setOpen(s); setDecision("needs_work"); }}>
+                      <RotateCcw className="mr-1 h-4 w-4" />Needs work
+                    </Button>
+                    <Button size="sm" onClick={() => { setOpen(s); setDecision("accepted"); }}>
+                      <CheckCircle className="mr-1 h-4 w-4" />Accept
+                    </Button>
                   </div>
                 </div>
+                {s.review_note && <p className="text-sm text-muted-foreground">Your note: {s.review_note}</p>}
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Review Dialog */}
-      <Dialog open={!!selectedSubmission && !!reviewAction} onOpenChange={() => {
-        setSelectedSubmission(null);
-        setReviewAction(null);
-        setReviewComment("");
-      }}>
+      <Dialog open={!!open && !!decision} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {reviewAction === 'verify' ? 'Verify Submission' : 'Reject Submission'}
-            </DialogTitle>
+            <DialogTitle>{decision ? DECISION_LABEL[decision] : ""}: {open?.task_title}</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Student: <span className="font-medium text-foreground">
-                  {selectedSubmission?.student_profiles?.full_name}
-                </span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Task: <span className="font-medium text-foreground">
-                  {selectedSubmission?.tasks?.title}
-                </span>
-              </p>
-            </div>
-
-            {reviewAction === 'verify' && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800">
-                  This will mark the submission as verified and award XP to the student.
-                </p>
-              </div>
-            )}
-
-            <div>
-              <Label htmlFor="reviewComment">
-                {reviewAction === 'verify' ? 'Review Comment (Optional)' : 'Rejection Reason'}
-              </Label>
-              <Textarea
-                id="reviewComment"
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-                placeholder={reviewAction === 'verify' 
-                  ? "Add feedback about the submission..." 
-                  : "Explain why this submission is being rejected..."
-                }
-                className="mt-1"
-              />
-            </div>
+          <p className="text-sm text-muted-foreground">Student: <span className="font-medium text-foreground">{open?.student_name}</span></p>
+          <div>
+            <Label htmlFor="reviewNote">Note (optional)</Label>
+            <Textarea id="reviewNote" value={note} onChange={(e) => setNote(e.target.value)}
+                      placeholder="What was good, or what to improve" className="mt-1" />
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setSelectedSubmission(null);
-              setReviewAction(null);
-              setReviewComment("");
-            }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => handleReview(selectedSubmission.id, reviewAction === 'verify' ? 'Verified' : 'Rejected')}
-              disabled={reviewSubmission.isPending}
-              className={reviewAction === 'verify' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-            >
-              {reviewSubmission.isPending ? 'Processing...' : 
-               reviewAction === 'verify' ? 'Verify Submission' : 'Reject Submission'}
+            <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+            <Button onClick={() => void save()} disabled={review.isPending}>
+              {review.isPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

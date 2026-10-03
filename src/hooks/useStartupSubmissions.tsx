@@ -3,117 +3,71 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-interface StartupSubmission {
-  id: string;
+/**
+ * Student work on this company's own posted and sponsored tasks.
+ *
+ * Read from task_submissions through company_submissions() (migration 54), the
+ * same evidence the student's Build-log and their college see: the graded answer
+ * or code, its score, and the student's spoken explanation. This used to read
+ * proof_uploads, which students no longer write, so it was always empty (L1).
+ */
+export interface CompanySubmission {
+  submission_id: string;
   task_id: string;
+  task_title: string;
+  source: "posted" | "sponsored";
   student_id: string;
-  file_url: string | null;
-  // Uploaded proofs live in a private bucket; file_path is where, file_url is a
-  // link the student pasted. They are never both set.
-  file_path: string | null;
-  file_name: string | null;
-  submission_notes: string | null;
-  status: string;
+  student_name: string;
+  college_name: string | null;
+  status: string;               // passed | failed | needs_review
+  score: number | null;
+  passed_count: number | null;
+  total_count: number | null;
+  kind: "code" | "written";
+  language: string | null;
+  work: string | null;
   submitted_at: string;
+  attempts: number;
+  voice_status: string | null;  // pending | scored | failed | null (not recorded)
+  voice_score: number | null;
+  voice_notes: string | null;
+  voice_transcript: string | null;
+  review_decision: "accepted" | "needs_work" | "rejected" | null;
+  review_note: string | null;
   reviewed_at: string | null;
-  reviewed_by: string | null;
-  review_comment: string | null;
-  tasks: {
-    title: string;
-    description: string | null;
-    xp_reward: number;
-  } | null;
-  student_profiles: {
-    full_name: string;
-    email: string;
-    profile_photo_url: string | null;
-  } | null;
 }
+
+export type ReviewDecision = "accepted" | "needs_work" | "rejected";
 
 export function useStartupSubmissions() {
   const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['startup-submissions', user?.id],
-    queryFn: async () => {
+    queryKey: ["startup-submissions", user?.id],
+    queryFn: async (): Promise<CompanySubmission[]> => {
       if (!user) return [];
-
-      // First, get all task IDs created by this startup
-      const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('id')
-        .eq('created_by_startup_id', user.id);
-
-      if (tasksError) throw tasksError;
-      if (!tasks || tasks.length === 0) return [];
-
-      const taskIds = tasks.map(t => t.id);
-
-      // Now fetch proof uploads for these tasks
-      const { data, error } = await supabase
-        .from('proof_uploads')
-        .select(`
-          *,
-          tasks:task_id (
-            title,
-            description,
-            xp_reward
-          ),
-          student_profiles:student_id (
-            full_name,
-            profile_photo_url
-          )
-        `)
-        .in('task_id', taskIds)
-        .order('submitted_at', { ascending: false });
-
+      const { data, error } = await supabase.rpc("company_submissions" as never);
       if (error) throw error;
-      return data || [];
+      return (data as unknown as CompanySubmission[]) ?? [];
     },
     enabled: !!user,
   });
 }
 
 export function useReviewSubmission() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async ({ 
-      submissionId, 
-      status, 
-      reviewComment 
-    }: { 
-      submissionId: string; 
-      status: 'Verified' | 'Rejected'; 
-      reviewComment?: string;
-    }) => {
-      if (!user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase
-        .from('proof_uploads')
-        .update({
-          status,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id,
-          review_comment: reviewComment || null,
-        })
-        .eq('id', submissionId)
-        .select()
-        .single();
-
+    mutationFn: async ({ submissionId, decision, note }: { submissionId: string; decision: ReviewDecision; note?: string }) => {
+      const { error } = await supabase.rpc("company_review_submission" as never, {
+        _submission_id: submissionId, _decision: decision, _note: note ?? null,
+      } as never);
       if (error) throw error;
-      return data;
+      return decision;
     },
-    onSuccess: (data) => {
-      toast.success(`Submission ${data.status.toLowerCase()} successfully!`);
-      queryClient.invalidateQueries({ queryKey: ['startup-submissions'] });
-      queryClient.invalidateQueries({ queryKey: ['startup-stats'] });
+    onSuccess: (decision) => {
+      toast.success(decision === "accepted" ? "Marked as accepted" : decision === "needs_work" ? "Marked as needs work" : "Marked as rejected");
+      queryClient.invalidateQueries({ queryKey: ["startup-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["startup-stats"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to review submission');
-    },
+    onError: (error: Error) => toast.error(error.message || "Could not save the review"),
   });
 }
-
-export type { StartupSubmission };

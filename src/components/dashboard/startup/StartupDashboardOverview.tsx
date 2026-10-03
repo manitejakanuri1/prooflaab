@@ -149,7 +149,7 @@ export function StartupDashboardOverview({ onEditProfile }: { onEditProfile?: ()
                 <div className="text-2xl font-bold">
                   {statsLoading ? '...' : stats?.verifiedProofs || 0}
                 </div>
-                <div className="text-sm text-muted-foreground">Proofs Verified</div>
+                <div className="text-sm text-muted-foreground">Work Accepted</div>
               </div>
             </div>
           </CardContent>

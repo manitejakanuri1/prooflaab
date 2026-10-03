@@ -30,76 +30,79 @@ const RestrictedAccessMessage = () => (
 );
 
 /**
- * The Company dashboard: what used to be the Startup and the Recruiter
- * dashboards, as four destinations. Every page is the existing one, placed in a
- * tab - nothing was rewritten, so nothing either dashboard did is lost.
+ * The Company dashboard. Recruiter = Company (owner's decision, locked 3 Oct
+ * 2026): one role, one organisation, six destinations - Home, Talent, Shortlist,
+ * Lots, Submissions, Review - with Jobs and Settings as account chrome.
  *
- * Old tab ids (from the startup sidebar, or the recruiter's own) still resolve
- * to the destination and tab that now holds them.
+ * Every Lot, posted or sponsored, is graded like any other student work and its
+ * result is read from task_submissions (migration 54), so Lots, Submissions and
+ * Review all show the same evidence the student's Build-log shows.
+ *
+ * Old tab ids (startup and recruiter bookmarks) still resolve.
  */
 const WHERE: Record<string, [string, string]> = {
-  dashboard: ["home", ""],
-  search: ["talent", "search"], shortlist: ["talent", "shortlist"],
-  lots: ["work", "lots"], "post-task": ["work", "post-task"], "view-tasks": ["work", "view-tasks"],
-  "view-applications": ["work", "view-applications"], submissions: ["work", "submissions"],
+  dashboard: ["home", ""], work: ["lots", ""],
+  search: ["talent", ""],
+  "post-task": ["lots", "post-task"], "view-tasks": ["lots", "view-tasks"],
+  "view-applications": ["review", "applications"],
 };
+
+const NEEDS_VERIFICATION = new Set(["lots", "submissions", "review", "jobs"]);
 
 export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: StartupDashboardContentProps) {
   const [dest, sub] = WHERE[activeTab] ?? [activeTab, ""];
-  const [talentTab, setTalentTab] = useState("search");
-  const [workTab, setWorkTab] = useState("post-task");
+  const [lotsTab, setLotsTab] = useState("sponsored");
+  const [reviewTab, setReviewTab] = useState("work");
 
   useEffect(() => {
-    if (dest === "talent" && sub) setTalentTab(sub);
-    if (dest === "work" && sub) setWorkTab(sub);
-    if (sub) onTabChange(dest);
-  }, [dest, sub, onTabChange]);
+    if (dest === "lots" && sub) setLotsTab(sub);
+    if (dest === "review" && sub) setReviewTab(sub);
+    if (sub || WHERE[activeTab]) onTabChange(dest);
+  }, [dest, sub, activeTab, onTabChange]);
 
-  // The recruiter screens link to "talent" and "shortlist" by their old names.
-  const fromRecruiter = (tab: string) => onTabChange(tab === "talent" ? "search" : tab);
+  // The recruiter screens link to their sections by their own names.
+  const fromRecruiter = (tab: string) => onTabChange(tab === "lots" ? "lots" : tab);
 
-  if ((dest === "work" || dest === "jobs") && !isVerified) return <RestrictedAccessMessage />;
+  if (NEEDS_VERIFICATION.has(dest) && !isVerified) return <RestrictedAccessMessage />;
 
   switch (dest) {
     case "talent":
+      return <RecruiterDashboardContent activeTab="talent" onTabChange={fromRecruiter} />;
+    case "shortlist":
+      return <RecruiterDashboardContent activeTab="shortlist" onTabChange={fromRecruiter} />;
+    case "lots":
       return (
-        <Tabs value={talentTab} onValueChange={setTalentTab}>
-          <TabsList>
-            <TabsTrigger value="search">Search</TabsTrigger>
-            <TabsTrigger value="shortlist">Shortlist</TabsTrigger>
+        <Tabs value={lotsTab} onValueChange={setLotsTab}>
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="sponsored">Sponsored Lots</TabsTrigger>
+            <TabsTrigger value="post-task">Post a task</TabsTrigger>
+            <TabsTrigger value="view-tasks">Your posted tasks</TabsTrigger>
           </TabsList>
-          <TabsContent value="search" className="mt-4">
-            <RecruiterDashboardContent activeTab="talent" onTabChange={fromRecruiter} />
+          <TabsContent value="sponsored" className="mt-4">
+            <RecruiterDashboardContent activeTab="lots" onTabChange={fromRecruiter} />
           </TabsContent>
-          <TabsContent value="shortlist" className="mt-4">
-            <RecruiterDashboardContent activeTab="shortlist" onTabChange={fromRecruiter} />
+          <TabsContent value="post-task" className="mt-4">
+            <StartupPostTaskPage onNavigateToApplications={() => { setReviewTab("applications"); onTabChange("review"); }} />
+          </TabsContent>
+          <TabsContent value="view-tasks" className="mt-4">
+            <StartupViewTasksPage onNavigateToPostTask={() => setLotsTab("post-task")} />
           </TabsContent>
         </Tabs>
       );
-    case "work":
+    case "submissions":
+      return <StartupSubmissionsPage />;
+    case "review":
       return (
-        <Tabs value={workTab} onValueChange={setWorkTab}>
-          <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="post-task">Post Task</TabsTrigger>
-            <TabsTrigger value="view-tasks">My Tasks</TabsTrigger>
-            <TabsTrigger value="view-applications">Applications</TabsTrigger>
-            <TabsTrigger value="submissions">Submissions</TabsTrigger>
-            <TabsTrigger value="lots">Sponsored Lots</TabsTrigger>
+        <Tabs value={reviewTab} onValueChange={setReviewTab}>
+          <TabsList>
+            <TabsTrigger value="work">Work to review</TabsTrigger>
+            <TabsTrigger value="applications">Applications</TabsTrigger>
           </TabsList>
-          <TabsContent value="post-task" className="mt-4">
-            <StartupPostTaskPage onNavigateToApplications={() => setWorkTab("view-applications")} />
+          <TabsContent value="work" className="mt-4">
+            <StartupSubmissionsPage initialFilter="unreviewed" />
           </TabsContent>
-          <TabsContent value="view-tasks" className="mt-4">
-            <StartupViewTasksPage onNavigateToPostTask={() => setWorkTab("post-task")} />
-          </TabsContent>
-          <TabsContent value="view-applications" className="mt-4">
+          <TabsContent value="applications" className="mt-4">
             <StartupViewApplicationsPage />
-          </TabsContent>
-          <TabsContent value="submissions" className="mt-4">
-            <StartupSubmissionsPage />
-          </TabsContent>
-          <TabsContent value="lots" className="mt-4">
-            <RecruiterDashboardContent activeTab="lots" onTabChange={fromRecruiter} />
           </TabsContent>
         </Tabs>
       );

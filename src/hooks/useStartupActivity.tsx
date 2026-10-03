@@ -72,31 +72,23 @@ export function useStartupActivity() {
         });
       });
 
-      // Get recent submissions for these tasks
-      const { data: recentSubmissions } = await supabase
-        .from('proof_uploads')
-        .select(`
-          id,
-          submitted_at,
-          status,
-          task_id,
-          student_profiles:student_id (full_name)
-        `)
-        .in('task_id', taskIds)
-        .order('submitted_at', { ascending: false })
-        .limit(5);
-
-      recentSubmissions?.forEach(submission => {
-        const task = tasks?.find(t => t.id === submission.task_id);
+      // Recent submissions on this company's tasks (task_submissions, migration 54).
+      const { data: subs } = await supabase.rpc("company_submissions" as never);
+      const recent = ((subs as unknown as {
+        submission_id: string; task_title: string; student_name: string;
+        submitted_at: string; review_decision: string | null;
+      }[]) ?? []).slice(0, 5);
+      recent.forEach((s) => {
+        const accepted = s.review_decision === "accepted";
         activities.push({
-          id: `sub-${submission.id}`,
-          type: submission.status === 'Verified' ? 'proof_verified' : 'submission_received',
-          title: submission.status === 'Verified' ? 'Proof Verified' : 'New Submission',
-          description: submission.status === 'Verified' 
-            ? `Verified proof submission from ${submission.student_profiles?.full_name || 'student'}`
-            : `New submission received for "${task?.title || 'a task'}"`,
-          timestamp: submission.submitted_at,
-          status: submission.status === 'Verified' ? 'success' : 'info',
+          id: `sub-${s.submission_id}`,
+          type: accepted ? 'proof_verified' : 'submission_received',
+          title: accepted ? 'Work Accepted' : 'New Submission',
+          description: accepted
+            ? `You accepted ${s.student_name || 'a student'}'s work on "${s.task_title}"`
+            : `${s.student_name || 'A student'} submitted "${s.task_title}"`,
+          timestamp: s.submitted_at,
+          status: accepted ? 'success' : 'info',
         });
       });
 

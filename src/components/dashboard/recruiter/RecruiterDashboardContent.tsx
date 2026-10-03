@@ -392,8 +392,13 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                         {String(l.due_date ?? "").slice(0, 10)}
                       </td>
                       <td className="py-2.5 pr-3">
-                        {l.proof_id ? (
-                          <span className="text-emerald-600">{String(l.proof_status)}</span>
+                        {/* recruiter_lots() reads task_submissions since migration 54 (it read proof_uploads, so nothing ever showed). */}
+                        {l.submission_id ? (
+                          <span className={l.submission_status === "passed" ? "text-emerald-600" : "text-amber-600"}>
+                            {l.submission_status === "passed" ? "Passed" : l.submission_status === "needs_review" ? "Needs review" : "Not passed"}
+                            {l.score != null ? ` · ${String(l.score)}/100` : ""}
+                            {l.voice_status === "scored" ? " · explained" : ""}
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">not yet</span>
                         )}

@@ -29,7 +29,7 @@ A proof-of-skill platform for Indian engineering colleges (https://prooflab.co.i
 |---|---|
 | Student (`student`) | Daily Card · Build-Log · Squad · Profile (17 sub-tabs inside) |
 | College / TPO (`college_admin`) | Home · Students · Squads · Insights |
-| Company / Recruiter (`startup`; org tables `startups` + `recruiters`) | Home · Talent (Search, Shortlist) · Work (Post Task, My Tasks, Applications, Submissions, Sponsored Lots) · Jobs |
+| Company / Recruiter (`startup`; one account = `startups.user_id` = `recruiters.id`, synced by trigger) | Home · Talent · Shortlist · Lots (Sponsored Lots, Post a task, Your posted tasks) · Submissions · Review (Work to review, Applications) · Jobs *(work/stabilization)* |
 | Admin (`admin`) | Overview · People · Work Queue · Platform |
 
 ### 1.3 System map
@@ -89,7 +89,7 @@ flowchart LR
 |---|---|
 | F3 | AI usage, rate limits, AI cache and server security log are silently off in production (env-var mismatch since 12 Sep). **Fixed on work/stabilization**: they use `backend.ts serviceRest`; failures log `TELEMETRY PROBLEM:`; `/ready` reports `telemetry` and is not-ready when it is `none`. All AI calls now have a 90 s deadline (`LLM TIMEOUT:` log) |
 | N20 | Resume answer keys and hidden tests were readable AND writable by the student (**proven on staging 3 Oct**). Fixed by migration 50 on staging; production pending approval |
-| L1 / N24 | Companies never see submissions or Sponsored-Lot results (they read the old `proof_uploads`) |
+| L1 / N24 | Companies never saw submissions or Sponsored-Lot results (they read the old `proof_uploads`). **Fixed on staging** (migration 54): `company_submissions()`, rebuilt `recruiter_lots()` and `company_review_submission()` read `task_submissions` + voice; company screens rebuilt. Remaining: sponsored Lots are still graded by the generic written checklist (no coding config yet) |
 | F1 / F2 | One shared signing secret; every function runs with full DB rights |
 | F4 | CSV import linked unverified accounts. Fixed on work/stabilization: links only when `account_email_confirmed()` (migration 51) is true |
 | F8 / F9 / F10 | Code runner isolation; hidden tests could go to public runners. **Fixed on work/stabilization, proven on staging**: after every run all `runner`-uid processes are killed and runner files in /tmp,/var/tmp,/dev/shm removed; output to capped files (no pipe hang); RLIMIT_AS 768 MB (python/ruby/php/c/cpp), node --max-old-space-size=256, GOMEMLIMIT 512MiB, Java -Xmx256m; each run in its own empty network namespace (no internet, no metadata; `/ready` shows `net_isolation`); one run per instance (lock). Suite `code-runner/test_runner.py` 22/22 on staging and in CI. Production rollout pending approval |
@@ -123,6 +123,7 @@ Order of work: `docs/FINAL-IMPLEMENTATION-DEPENDENCY-PLAN-2026-10-03.md`.
 
 | Date | Change | By | Evidence |
 |---|---|---|---|
+| 2026-10-03 | Wave 5a (branch work/stabilization): migration 54 (staging applied) - company submissions, sponsored-Lot results and company reviews on task_submissions; Submissions screen shows the answer/code, auto-grade, voice and Accept / Needs work / Reject; company nav = Home, Talent, Shortlist, Lots, Submissions, Review (+ Jobs); stats and activity on the same data. Staging E2E: student submitted a posted task and a sponsored Lot, the company saw both with full work and grade, review saved, sponsored Lots showed the result, student/college/unknown users refused | Claude | scripts/dev-tools/st.py probes |
 | 2026-10-03 | Wave 4a (branch work/stabilization): Lot wording contract + validator, shared Lot pipeline, pregenerate-lots job, stricter coding/written classifier, migration 53 (personalised order, honest seed text; staging applied), labelled sections on the task screen, help-chat guide rewritten for the current product (it told students to upload proofs). Staging E2E: pregenerate wrote 3/3 pages; the coding Lot had Input/Output/Constraints/Example/Why and 6 validated normal/boundary/edge tests, 2 visible, all distinct | Claude | functions `stab-bc21439` on staging |
 | 2026-10-03 | Wave 3b (branch work/stabilization): shared coding engine + test-quality gate; resume round moved onto it; migration 52 (resume origin, frozen evaluators) on staging. Staging E2E: round generated in 33 s, 5 labelled tests per problem, 2 visible, tests unreadable by the student, `print(4)` scored 1/5, constant `0.00` 2/5, a correct solution passed the visible tests, no hidden data in replies | Claude | functions `stab-a0047ad` on staging |
 | 2026-10-03 | Wave 3a (branch work/stabilization): code runner hardened (F8, F9, pipe hang) + first runner test suite in CI (`code-runner` job, deploy now needs it). Staging runner image `prooflab-code-runner:stab-w3a` (revision 00003-twx): 22/22 checks incl. net isolation; functions to runner path re-checked | Claude | `code-runner/test_runner.py` |

@@ -31,34 +31,20 @@ export function useStartupStats() {
         .eq('created_by_startup_id', user.id);
 
       const taskIds = tasks?.map(t => t.id) || [];
-      
-      if (taskIds.length === 0) {
-        return {
-          totalTasks: 0,
-          totalSubmissions: 0,
-          verifiedProofs: 0,
-          pendingApplications: 0,
-        };
-      }
 
       // Get total tasks count
       const totalTasks = taskIds.length;
 
-      // Get total submissions (proof uploads) for startup's tasks
-      const { count: totalSubmissions } = await supabase
-        .from('proof_uploads')
-        .select('*', { count: 'exact', head: true })
-        .in('task_id', taskIds);
-
-      // Get verified proofs for startup's tasks
-      const { count: verifiedProofs } = await supabase
-        .from('proof_uploads')
-        .select('*', { count: 'exact', head: true })
-        .in('task_id', taskIds)
-        .eq('status', 'Verified');
+      // Submissions and accepted work: task_submissions via company_submissions()
+      // (migration 54). Kept under the old field names so the overview is unchanged.
+      const { data: subs } = await supabase.rpc("company_submissions" as never);
+      const list = (subs as unknown as { source: string; review_decision: string | null }[]) ?? [];
+      const totalSubmissions = list.length;
+      const verifiedProofs = list.filter((x) => x.review_decision === "accepted").length;
 
       // Get pending applications for startup's tasks
-      const { count: pendingApplications } = await supabase
+      // Sponsored Lots count above even when no task was posted; applications only exist for posted tasks.
+      const { count: pendingApplications } = taskIds.length === 0 ? { count: 0 } : await supabase
         .from('task_applications')
         .select('*', { count: 'exact', head: true })
         .in('task_id', taskIds)

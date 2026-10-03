@@ -88,15 +88,10 @@ const StudentSquadPage = () => {
 
     const [squadRes, memberRes, matchRes, standingRes, achieveRes] = await Promise.all([
       supabase.from("squads").select("*").eq("id", membership.squad_id).maybeSingle(),
-      supabase
-        .from("squad_members")
-        .select("student_id, role, contribution, student_profiles(full_name, total_xp)")
-        .eq("squad_id", membership.squad_id)
-        // Joined order, not contribution order. The architecture is explicit
-        // that a squad is cooperative and that students are not to be ranked
-        // against their own squadmates — the number still shows, as a
-        // contribution indicator, but the list is not a leaderboard.
-        .order("joined_at", { ascending: true }),
+      // my_squad_members(): names of this student's own squad, in joined order
+      // (not contribution order - a squad is cooperative, not a leaderboard).
+      // A direct read cannot show names: student_profiles is owner-only.
+      supabase.rpc("my_squad_members" as never),
       supabase
         .from("squad_matches")
         .select("*")
@@ -120,7 +115,8 @@ const StudentSquadPage = () => {
       : allSquads;
 
     setSquad(mySquad);
-    setMembers((memberRes.data ?? []) as unknown as Member[]);
+    setMembers(((memberRes.data ?? []) as unknown as (Member & { full_name: string; total_xp: number })[])
+      .map((m) => ({ ...m, student_profiles: { full_name: m.full_name, total_xp: m.total_xp } })));
     setMatches((matchRes.data ?? []) as Match[]);
     setStandings(league);
     // Names still come from every squad read, because a championship fixture

@@ -359,3 +359,5 @@ begin
 end $$;
 
 commit;
+
+notify pgrst, 'reload schema';

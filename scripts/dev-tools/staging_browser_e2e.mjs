@@ -91,7 +91,7 @@ const JOURNEYS = {
   established: [
     ["dashboard loads", seq(go("/student/dashboard"), see("Daily Card"))],
     ["Build-Log shows real work, no Cosigns", seq(click("Build-Log"), see("Entries"), see("Tests passed|Being checked|Nothing here yet"), noText("Cosigns"))],
-    ["Squad", seq(click("Squad"), see("Squad"))],
+    ["Squad shows teammate names", seq(click("Squad"), see("Squad"), click("Members"), see("Fake Student 2"), see("Fake Student 3"))],
     ["Profile", seq(click("Profile"), see("Resume"))],
   ],
   student: [

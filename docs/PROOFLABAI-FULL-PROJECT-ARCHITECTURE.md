@@ -91,7 +91,7 @@ flowchart LR
 | L1 / N24 | Companies never see submissions or Sponsored-Lot results (they read the old `proof_uploads`) |
 | F1 / F2 | One shared signing secret; every function runs with full DB rights |
 | F4 | CSV import linked unverified accounts. Fixed on work/stabilization: links only when `account_email_confirmed()` (migration 51) is true |
-| F8 / F9 / F10 | Code runner isolation; hidden tests can go to public runners |
+| F8 / F9 / F10 | Code runner isolation; hidden tests could go to public runners. **Fixed on work/stabilization, proven on staging**: after every run all `runner`-uid processes are killed and runner files in /tmp,/var/tmp,/dev/shm removed; output to capped files (no pipe hang); RLIMIT_AS 768 MB (python/ruby/php/c/cpp), node --max-old-space-size=256, GOMEMLIMIT 512MiB, Java -Xmx256m; each run in its own empty network namespace (no internet, no metadata; `/ready` shows `net_isolation`); one run per instance (lock). Suite `code-runner/test_runner.py` 22/22 on staging and in CI. Production rollout pending approval |
 | N30 | Some Lot texts ask for files or unseen articles |
 | N1 | Test logins deleted, so the bug finder and healthcheck are blind |
 
@@ -122,6 +122,7 @@ Order of work: `docs/FINAL-IMPLEMENTATION-DEPENDENCY-PLAN-2026-10-03.md`.
 
 | Date | Change | By | Evidence |
 |---|---|---|---|
+| 2026-10-03 | Wave 3a (branch work/stabilization): code runner hardened (F8, F9, pipe hang) + first runner test suite in CI (`code-runner` job, deploy now needs it). Staging runner image `prooflab-code-runner:stab-w3a` (revision 00003-twx): 22/22 checks incl. net isolation; functions to runner path re-checked | Claude | `code-runner/test_runner.py` |
 | 2026-10-03 | Wave 2 (branch work/stabilization): deleted 24 provably dead frontend files (22 orphans with zero importers, ProofViewer: lazily imported but never routed, UploadProofModal: its open-state was never set), the quiz-polling loop only that modal could start, and the realtime channels on proof_uploads/conceptual_tests (cannot work on PostgREST). KEPT for Wave 5/8 because they still render when legacy data exists: StudentUploadsPage appeal/reflection/conceptual modals, conceptual buttons in Your tasks. Correction to the 3 Oct map: 24 dead files proven, not 30 (the other 6 are data-reachable). Routes unchanged (27) | Claude | typecheck clean, unit 92/92, build ok, repo-wide name search: only comments |
 | 2026-10-03 | Wave 1 (branch work/stabilization): F3 telemetry via backend.ts + `/ready` telemetry field; AI 90 s timeouts; N20 migration 50 (staging applied); N21 hidden tests redacted in resume Submit, full denominator; TypeScript removed from resume language map; F10 public runners off by default; F6 safe sync (grace, ceiling, dry run, alert line) + migration 51 ledger; F4 verified-only linking (migration 51 RPC); N25 password-link only for logins created < 1 h ago and never for admins; F7 constant-time webhook checks. Staging probes: N20, F8, F9 confirmed before the fix | Claude | `migration/50*`, `migration/51*`, `accounts/test_sync_plan.py`, deno tests 94/94 |
 | 2026-10-03 | Correction: `prooflab-staging-inspect4` is the staging SQL runner (psql via `prooflab-staging-db-uri`), not a leftover | Claude | job spec read 3 Oct |

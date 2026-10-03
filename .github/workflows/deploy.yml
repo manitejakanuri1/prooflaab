@@ -66,8 +66,30 @@ jobs:
       - name: Production build
         run: npm run build
 
+  # The code runner image, built and attacked locally: all 8 languages, timeouts,
+  # output caps, leftover processes (F8), memory, internet and metadata (F9).
+  # SYS_ADMIN lets the container create per-run network namespaces, exactly as
+  # Cloud Run does; REQUIRE_NET_ISOLATION makes that mandatory.
+  code-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build runner image
+        run: docker build -t prooflab-runner code-runner
+      - name: Start runner
+        run: |
+          docker run -d --name runner -p 8080:8080 -e RUNNER_SECRET=ci-secret \
+            --cap-add SYS_ADMIN --security-opt seccomp=unconfined --memory 2g prooflab-runner
+          for i in $(seq 1 30); do curl -sf http://localhost:8080/ready && break; sleep 1; done
+      - name: Runner tests
+        run: RUNNER_URL=http://localhost:8080 RUNNER_SECRET=ci-secret REQUIRE_NET_ISOLATION=1 python3 code-runner/test_runner.py
+      - name: Runner logs on failure
+        if: failure()
+        run: docker logs runner | tail -50
+
   deploy:
-    needs: test
+    needs: [test, code-runner]
     # Publishing only ever happens from main (or a manual run of main), never from
     # another branch or a pull request.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')

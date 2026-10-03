@@ -42,9 +42,10 @@ const AdminDashboardOverview = ({
         supabase.from('startups').select('id', { count: 'exact', head: true }),
         supabase.from('startups').select('id', { count: 'exact', head: true })
           .eq('verification_status', 'approved'),
-        supabase.from('proof_uploads').select('id', { count: 'exact', head: true }),
-        supabase.from('proof_uploads').select('id', { count: 'exact', head: true })
-          .eq('status', 'Under Review'),
+        // Student work = task_submissions (proof_uploads is retired, 0 rows).
+        supabase.from('task_submissions').select('id', { count: 'exact', head: true }),
+        supabase.from('task_submissions').select('id', { count: 'exact', head: true })
+          .eq('status', 'needs_review'),
         supabase.from('tasks').select('id', { count: 'exact', head: true }),
         supabase.from('tasks').select('id', { count: 'exact', head: true })
           .in('status', ['Pending', 'In Progress']),
@@ -72,7 +73,7 @@ const AdminDashboardOverview = ({
       const daysBack = parseInt(dateFilter);
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysBack);
-      const [signupsRes, proofsRes, collegeSignupsRes, tasksRes] = await Promise.all([supabase.from('student_profiles').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('proof_uploads').select('submitted_at').gte('submitted_at', startDate.toISOString()), supabase.from('colleges').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('tasks').select('created_at, completed_at').gte('created_at', startDate.toISOString())]);
+      const [signupsRes, proofsRes, collegeSignupsRes, tasksRes] = await Promise.all([supabase.from('student_profiles').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('task_submissions').select('submitted_at:created_at').gte('created_at', startDate.toISOString()), supabase.from('colleges').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('tasks').select('created_at, completed_at').gte('created_at', startDate.toISOString())]);
 
       // Group by day/week based on filter
       const groupSize = daysBack <= 7 ? 1 : 7;

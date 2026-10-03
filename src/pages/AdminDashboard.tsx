@@ -4,14 +4,12 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import AdminDashboardOverview from "@/components/dashboard/admin/AdminDashboardOverview";
-import ProofSubmissionsContent from "@/components/dashboard/admin/ProofSubmissionsContent";
 import EnhancedUserManagement from "@/components/dashboard/admin/EnhancedUserManagement";
 import TaskOversight from "@/components/dashboard/admin/TaskOversight";
 import ContentManagement from "@/components/dashboard/admin/ContentManagement";
 import AdminAnalytics from "@/components/dashboard/admin/AdminAnalytics";
 import TokenUsage from "@/components/dashboard/admin/TokenUsage";
 import SecurityEvents from "@/components/dashboard/admin/SecurityEvents";
-import TrustXPModeration from "@/components/dashboard/admin/TrustXPModeration";
 import CollegeOversight from "@/components/dashboard/admin/CollegeOversight";
 import StudentOversight from "@/components/dashboard/admin/StudentOversight";
 import SystemSettings from "@/components/dashboard/admin/SystemSettings";
@@ -19,6 +17,7 @@ import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
 import RecruiterOversight from "@/components/dashboard/admin/RecruiterOversight";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
+import AdminSubmissions from "@/components/dashboard/admin/AdminSubmissions";
 import ContentLibrary from "@/components/dashboard/admin/ContentLibrary";
 import StudentTrace from "@/components/dashboard/admin/StudentTrace";
 import BugFinder from "@/components/dashboard/admin/BugFinder";
@@ -65,8 +64,8 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case "dashboard":
         return <AdminDashboardOverview onNavigate={setActiveTab} />;
-      case "proof-submissions":
-        return <ProofSubmissionsContent />;
+      case "submissions":
+        return <AdminSubmissions />;
       case "reviewed-submissions":
         return <ReviewedSubmissions />;
       case "students":
@@ -104,8 +103,6 @@ const AdminDashboard = () => {
         return <StudentTrace />;
       case "bug-finder":
         return <BugFinder />;
-      case "xp-moderation":
-        return <TrustXPModeration />;
       case "college-oversight":
         return <CollegeOversight />;
       case "student-oversight":

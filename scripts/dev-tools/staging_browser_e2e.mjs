@@ -90,7 +90,7 @@ const noText = (text) => async (page) => {
 const JOURNEYS = {
   established: [
     ["dashboard loads", seq(go("/student/dashboard"), see("Daily Card"))],
-    ["Build-Log", seq(click("Build-Log"), see("Entries"))],
+    ["Build-Log shows real work, no Cosigns", seq(click("Build-Log"), see("Entries"), see("Tests passed|Being checked|Nothing here yet"), noText("Cosigns"))],
     ["Squad", seq(click("Squad"), see("Squad"))],
     ["Profile", seq(click("Profile"), see("Resume"))],
   ],
@@ -113,6 +113,12 @@ const JOURNEYS = {
   ],
   admin: [
     ["admin dashboard", seq(go("/admin/dashboard"), see("Overview"))],
+    ["no Proof Review / Trust & XP in the menu", seq(click("Work Queue"), noText("Proof Review"), noText("Trust & XP"))],
+    ["Submissions (current work)", seq(click("Submissions"), see("Submissions"), see("Count failed logins per user"))],
+    ["Flagged submissions", seq(click("Flagged submissions"), see("Flag|flag|No submissions|review"))],
+    ["Task Oversight", seq(click("Task Oversight"), see("Task"))],
+    ["Token Usage (AI spend)", seq(click("Platform"), click("Token Usage"), see("Token|Usage|usage"))],
+    ["Security Events", seq(click("Security Events"), see("Security|Event|event"))],
   ],
 };
 

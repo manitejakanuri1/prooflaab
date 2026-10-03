@@ -179,12 +179,12 @@ const TaskOversight = () => {
               : student;
           }
           
-          // Fetch proof uploads
+          // The student's graded attempts (task_submissions)
           const { data: proofs } = await supabase
-            .from('proof_uploads')
-            .select('id, status, submitted_at')
+            .from('task_submissions')
+            .select('id, status, submitted_at:created_at')
             .eq('task_id', task.id)
-            .order('submitted_at', { ascending: false });
+            .order('created_at', { ascending: false });
           enrichedTask.proof_uploads = proofs || [];
           
           return enrichedTask;
@@ -333,10 +333,11 @@ const TaskOversight = () => {
     const proofs = task.proof_uploads || [];
     if (proofs.length === 0) return "Not Started";
     
-    const latestProof = proofs[0];
-    if (latestProof.status === 'Verified') return "Completed";
-    if (latestProof.status === 'Rejected') return "Rejected";
-    if (latestProof.submitted_at) return "Submitted";
+    const latest = proofs[0];
+    if (latest.status === 'passed') return "Completed";
+    if (latest.status === 'failed') return "Not passed yet";
+    if (latest.status === 'needs_review') return "Being checked";
+    if (latest.submitted_at) return "Submitted";
     
     return task.status === 'In Progress' ? "In Progress" : "Not Started";
   };

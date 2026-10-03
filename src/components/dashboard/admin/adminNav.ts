@@ -20,11 +20,10 @@ export const ADMIN_GROUPS = [
     { id: "student-oversight", label: "Student Oversight" },
   ] },
   { id: "work-queue", label: "Work Queue", icon: ClipboardList, children: [
-    { id: "proof-submissions", label: "Proof Review" },
-    { id: "reviewed-submissions", label: "Flagged" },
+    { id: "submissions", label: "Submissions" },
+    { id: "reviewed-submissions", label: "Flagged submissions" },
     { id: "task-oversight", label: "Task Oversight" },
     { id: "assign-tasks", label: "Assign Tasks" },
-    { id: "xp-moderation", label: "Trust & XP" },
   ] },
   { id: "platform", label: "Platform", icon: Settings, children: [
     { id: "jobs", label: "Jobs" },

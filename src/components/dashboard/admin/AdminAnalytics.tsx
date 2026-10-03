@@ -40,11 +40,11 @@ const AdminAnalytics = () => {
         startDate.setFullYear(now.getFullYear() - 1);
       }
 
-      // Total Proofs Uploaded
+      // Work submitted (task_submissions; proof_uploads is retired)
       const { data: proofs } = await supabase
-        .from('proof_uploads')
+        .from('task_submissions')
         .select('id')
-        .gte('submitted_at', startDate.toISOString());
+        .gte('created_at', startDate.toISOString());
 
       // Active Students
       const { data: students } = await supabase
@@ -77,9 +77,9 @@ const AdminAnalytics = () => {
       startDate.setDate(startDate.getDate() - daysCount);
 
       const { data } = await supabase
-        .from('proof_uploads')
-        .select('submitted_at')
-        .gte('submitted_at', startDate.toISOString());
+        .from('task_submissions')
+        .select('submitted_at:created_at')
+        .gte('created_at', startDate.toISOString());
 
       const days = Array.from({ length: daysCount }, (_, i) => {
         const date = new Date();

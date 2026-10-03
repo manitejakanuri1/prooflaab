@@ -30,7 +30,7 @@ A proof-of-skill platform for Indian engineering colleges (https://prooflab.co.i
 | Student (`student`) | Daily Card · Build-Log · Squad · Profile (17 sub-tabs inside) |
 | College / TPO (`college_admin`) | Home · Students · Squads · Insights |
 | Company / Recruiter (`startup`; one account = `startups.user_id` = `recruiters.id`, synced by trigger) | Home · Talent · Shortlist · Lots (company Lots for shortlisted students via `company-lot`) · Submissions · Review · Jobs *(work/stabilization)* |
-| Admin (`admin`) | Overview · People · Work Queue · Platform |
+| Admin (`admin`) | Overview · People · Work Queue (Submissions, Flagged submissions, Task Oversight, Assign Tasks) · Platform *(work/stabilization: Proof Review and Trust & XP removed)* |
 
 ### 1.3 System map
 
@@ -123,6 +123,7 @@ Order of work: `docs/FINAL-IMPLEMENTATION-DEPENDENCY-PLAN-2026-10-03.md`.
 
 | Date | Change | By | Evidence |
 |---|---|---|---|
+| 2026-10-03 | Wave 5c (branch work/stabilization): admin Proof Review, Trust & XP and /review-proofs removed; new Admin > Work Queue > Submissions (task_submissions); overview, analytics and task oversight count task_submissions; 5 legacy admin files deleted | Claude | browser admin 7/7 |
 | 2026-10-03 | Wave 5b (branch work/stabilization): Build-log Entries rebuilt on task_submissions + voice_explanations only (polls only while a voice is processing); Cosigns tab, LeetCode/HackerRank streaks and the conceptual-quiz buttons removed; 9 legacy frontend files deleted after a zero-reference check | Claude | browser: Build-log shows the company coding Lot 6/6 |
 | 2026-10-03 | Wave E (branch work/stabilization): college-submitted material is college-only (`source_content.visibility`, enforced in `next_lot_source`; migration 58); Lot templates admin-only. Staging behaviour test: A's private page reaches A's student, never B's | Claude | staging probes |
 | 2026-10-03 | Wave D (branch work/stabilization): every task must have an evaluator (CHECK, migration 56); company Lots only via `company-lot` (brief → contract Lot through the shared engine; coding = validated tests, written = specific rubric; refused otherwise; eligibility checked before AI spend; next free day; `sponsor_lot` not browser-callable); Lots area = one system (dead Post Task / Applications removed from nav); resume evaluators frozen once graded (57). Staging: company coding Lot 6 validated tests, cheat failed hidden tests, correct 6/6, company saw it | Claude | staging probes |

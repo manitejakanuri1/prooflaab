@@ -27,7 +27,6 @@ const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const RecruiterView = lazy(() => import("./pages/RecruiterView"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const ReviewProofs = lazy(() => import("./pages/ReviewProofs"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const OnboardingCollege = lazy(() => import("./pages/OnboardingCollege"));
@@ -214,18 +213,6 @@ const App = () => (
                   } 
                 />
                 
-                {/* Review Proofs - Accessible by admins and college admins */}
-                <Route 
-                  path="/review-proofs"
-                  element={
-                    // Admin-only: this page is a full Admin Dashboard duplicate and
-                    // includes TrustXPModeration, which WRITES trust scores. Allowing
-                    // college_admin here was a privilege escalation.
-                    <RoleBasedProtectedRoute allowedRoles={['admin']}>
-                      <ReviewProofs />
-                    </RoleBasedProtectedRoute>
-                  }
-                />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

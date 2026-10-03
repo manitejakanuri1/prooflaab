@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { useConceptualTests } from "@/hooks/useConceptualTests";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { 
@@ -37,7 +36,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import VoiceExplainModal from "./VoiceExplainModal";
-import ConceptualQuestionsModal from "./ConceptualQuestionsModal";
 import TaskDetailsDialog from "./TaskDetailsDialog";
 import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
@@ -45,7 +43,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Code2, PenLine } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 const StudentAssignedTasksPage = () => {
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
@@ -55,7 +52,6 @@ const StudentAssignedTasksPage = () => {
   const [explainTask, setExplainTask] = useState<{ id: string; title: string } | null>(null);
   const { profile } = useStudentProfile();
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
-  const [selectedConceptualTest, setSelectedConceptualTest] = useState<{ proofId: string; taskId: string; review?: boolean } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Due Date (ASC)");
@@ -71,13 +67,6 @@ const StudentAssignedTasksPage = () => {
     });
   }, [allTasks]);
 
-  // Fetch conceptual tests for all student proofs
-  const { data: conceptualTests = {}, refetch: refetchConceptualTests } = useConceptualTests();
-
-  // Conceptual tests belong to the retired proof flow (0 rows in production);
-  // their buttons below go with the Wave 8 retirement. Refreshed when the tab
-  // is looked at again; the old realtime channel could never work on PostgREST.
-  useLiveRefresh(() => { void refetchConceptualTests(); });
 
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {
@@ -200,14 +189,6 @@ const StudentAssignedTasksPage = () => {
     }
   };
 
-  const handleConceptualSuccess = () => {
-    refetchConceptualTests();
-    toast.success("Answers submitted! Verification will continue automatically.");
-  };
-
-  const getConceptualTestStatus = (taskId: string) => {
-    return conceptualTests[taskId];
-  };
 
   const handleStartTask = async (taskId: string) => {
     try {
@@ -415,51 +396,6 @@ const StudentAssignedTasksPage = () => {
                               Under Review
                             </Button>
 
-                            {(() => {
-                              const conceptualTest = getConceptualTestStatus(task.id);
-                              if (conceptualTest && conceptualTest.status === 'pending') {
-                                return (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          onClick={() => setSelectedConceptualTest({ 
-                                            proofId: conceptualTest.proof_id, 
-                                            taskId: task.id 
-                                          })}
-                                          className="bg-orange-600 hover:bg-orange-700 text-white"
-                                        >
-                                          <Brain className="h-4 w-4 mr-1" />
-                                          Answer Questions
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Complete verification questions to proceed</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                );
-                              }
-                              if (conceptualTest && conceptualTest.status === 'graded') {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setSelectedConceptualTest({
-                                      proofId: conceptualTest.proof_id,
-                                      taskId: task.id,
-                                      review: true
-                                    })}
-                                    className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400"
-                                  >
-                                    <Brain className="h-4 w-4 mr-1" />
-                                    Review Quiz
-                                  </Button>
-                                );
-                              }
-                              return null;
-                            })()}
                           </>
                         )}
                         
@@ -522,16 +458,6 @@ const StudentAssignedTasksPage = () => {
         />
       )}
 
-      {/* Conceptual Questions Modal */}
-      {selectedConceptualTest && (
-        <ConceptualQuestionsModal
-          open={!!selectedConceptualTest}
-          onOpenChange={(open) => !open && setSelectedConceptualTest(null)}
-          proofId={selectedConceptualTest.proofId}
-          onSubmitSuccess={handleConceptualSuccess}
-          review={selectedConceptualTest.review}
-        />
-      )}
 
       {/* Task Details Dialog */}
       {selectedTaskForDetails && (

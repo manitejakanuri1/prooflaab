@@ -129,7 +129,7 @@ function storageFor(bucket: string) {
       expiresIn: number,
     ): Promise<{ data: { signedUrl: string } | null; error: Error | null }> {
       // The caller has already decided this person may see this file - that is
-      // what proof-file-url does before it gets here. So a grant is issued for
+      // what the calling function does before it gets here. So a grant is issued for
       // this one object, and the file service honours it.
       //
       // Not a Cloud Storage signed URL: signing one needs a private key, and a

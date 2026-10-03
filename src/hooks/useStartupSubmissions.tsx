@@ -9,7 +9,7 @@ import { toast } from "sonner";
  * Read from task_submissions through company_submissions() (migration 54), the
  * same evidence the student's Build-log and their college see: the graded answer
  * or code, its score, and the student's spoken explanation. This used to read
- * proof_uploads, which students no longer write, so it was always empty (L1).
+ * the retired upload table, which students no longer write, so it was always empty (L1).
  */
 export interface CompanySubmission {
   submission_id: string;

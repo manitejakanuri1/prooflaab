@@ -40,7 +40,7 @@ const AdminAnalytics = () => {
         startDate.setFullYear(now.getFullYear() - 1);
       }
 
-      // Work submitted (task_submissions; proof_uploads is retired)
+      // Work submitted (task_submissions)
       const { data: proofs } = await supabase
         .from('task_submissions')
         .select('id')

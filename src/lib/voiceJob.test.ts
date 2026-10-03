@@ -60,7 +60,7 @@ test("poll failures give up after MAX_POLL_FAILURES consecutive failures; succes
 test("retry body carries the original duration, path and idempotency key", () => {
   const job: StoredJob = { voiceId: null, idempotencyKey: "k-1", storagePath: "s1/123-explain.webm", durationSeconds: 47 };
   assert.deepEqual(enqueueBody(job, "t1", null),
-    { storage_path: "s1/123-explain.webm", task_id: "t1", proof_id: null, duration_seconds: 47, idempotency_key: "k-1" });
+    { storage_path: "s1/123-explain.webm", task_id: "t1", duration_seconds: 47, idempotency_key: "k-1" });
 });
 test("stored jobs round-trip; an older stored job without duration still parses", () => {
   const job: StoredJob = { voiceId: "v1", idempotencyKey: "k", storagePath: "p", durationSeconds: 12 };
@@ -87,7 +87,7 @@ test("a stored job carries its student/task/proof and a retry re-sends exactly t
   assert.deepEqual(parseStoredJob(JSON.stringify(job)), job);
   // props now say something else: the job's own values win
   assert.deepEqual(enqueueBody(job, "t-other", "p-other"),
-    { storage_path: "s1/a.webm", task_id: "t1", proof_id: null, duration_seconds: 30, idempotency_key: "k" });
+    { storage_path: "s1/a.webm", task_id: "t1", duration_seconds: 30, idempotency_key: "k" });
 });
 test("recovery is used only in the same student/task/proof context", () => {
   const ctx = (studentId: string, taskId: string | null = null, proofId: string | null = null) => ({ studentId, taskId, proofId });

@@ -42,6 +42,9 @@ jobs:
       - name: No secrets in tracked files
         run: python3 scripts/secret_scan.py
 
+      - name: Retired architecture has not come back
+        run: python3 scripts/legacy_guard.py
+
       - name: Migrations are consistent (numbering, self-check, mirror copy, rollback)
         run: python3 scripts/migrations.py check
 

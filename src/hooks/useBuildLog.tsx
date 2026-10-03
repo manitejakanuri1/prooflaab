@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
  *
  * Sources (Wave 5, 3 Oct 2026): task_submissions (every graded attempt) and
  * voice_explanations (the spoken explanation of that work). The retired proof
- * system (proof_uploads, conceptual tests, appeals, reflections) is not read.
+ * system (the retired upload table, conceptual tests, appeals, reflections) is not read.
  * RLS scopes both tables to the student's own rows.
  */
 export interface BuildLogVoice {

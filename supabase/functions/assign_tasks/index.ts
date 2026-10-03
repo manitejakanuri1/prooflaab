@@ -262,7 +262,7 @@ serve(async (req) => {
     }
 
     // Every task created here gets a live, auto-graded config attached
-    // before it's ever shown to a student — no proof_uploads fallback.
+    // before it's ever shown to a student — there is no upload fallback.
     // 'Coding' category gets a sandbox (code-runner) config; everything else
     // (Design/Research/Writing/Analysis/General) gets a rubric config.
     // generateGradedConfig() always returns a usable configId (it has its

@@ -102,11 +102,13 @@ export function parseStoredJob(raw: string | null): StoredJob | null {
 
 /** The enqueue request, identical for the first call and every retry. */
 export function enqueueBody(job: StoredJob, taskId: string | null | undefined, proofId: string | null | undefined) {
-  // The job's own task/proof win: a retry must describe the original recording.
+  // The job's own task wins: a retry must describe the original recording.
+  // (No proof link is sent: a recording belongs to the task's submission. `proofId` survives
+  // only inside the browser's recovery markers, always null, so markers written by an
+  // older build - and recordings in flight during a release - still match.)
   return {
     storage_path: job.storagePath,
     task_id: job.taskId !== undefined ? job.taskId : (taskId ?? null),
-    proof_id: job.proofId !== undefined ? job.proofId : (proofId ?? null),
     duration_seconds: job.durationSeconds,
     idempotency_key: job.idempotencyKey,
   };
@@ -195,7 +197,8 @@ export interface OwnerRow {
   id: string;
   student_id: string;
   task_id: string | null;
-  proof_id: string | null;
+  /** Not read from the server any more (the column is retired); absent = null. */
+  proof_id?: string | null;
   storage_path?: string | null;
   transcription_idempotency_key?: string | null;
 }

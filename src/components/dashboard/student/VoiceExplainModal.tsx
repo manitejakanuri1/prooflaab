@@ -115,7 +115,6 @@ interface VoiceExplainModalProps {
   onOpenChange: (open: boolean) => void;
   studentId: string;
   taskId?: string | null;
-  proofId?: string | null;
   /** What they are being asked to explain — shown while the clock runs. */
   prompt: string;
   onSaved?: () => void;
@@ -222,7 +221,7 @@ const ctxOf = (job: StoredJob): RecordingContext =>
  */
 
 const VoiceExplainModal = ({
-  open, onOpenChange, studentId, taskId, proofId, prompt, onSaved,
+  open, onOpenChange, studentId, taskId, prompt, onSaved,
 }: VoiceExplainModalProps) => {
   const { toast } = useToast();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -244,7 +243,7 @@ const VoiceExplainModal = ({
   const [savedResult, setSavedResult] = useState<SavedResult | null>(null);
 
   // The context this dialog is showing right now, and its upload slot.
-  const ctx = useMemo(() => recordingContext(studentId, taskId, proofId), [studentId, taskId, proofId]);
+  const ctx = useMemo(() => recordingContext(studentId, taskId), [studentId, taskId]);
   const slot = slotKey(ctx);
   const slotRef = useRef(slot);
   slotRef.current = slot;
@@ -407,7 +406,7 @@ const VoiceExplainModal = ({
       const res = await settleWithin(
         supabase
           .from("voice_explanations")
-          .select("id, student_id, task_id, proof_id, transcription_idempotency_key, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes, storage_path")
+          .select("id, student_id, task_id, transcription_idempotency_key, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes, storage_path")
           .eq("id", voiceId)
           .maybeSingle()
           .then((r) => r as unknown as { data: (JobRow & OwnerRow) | null; error: unknown }, (e) => ({ data: null, error: e })),
@@ -489,7 +488,7 @@ const VoiceExplainModal = ({
     const res = await settleWithin(
       supabase
         .from("voice_explanations")
-        .select("id, student_id, task_id, proof_id, storage_path, transcription_idempotency_key")
+        .select("id, student_id, task_id, storage_path, transcription_idempotency_key")
         .eq(column as "id", value)
         .limit(1)
         .then((r) => r as unknown as { data: OwnerRow[] | null; error: unknown }, (e) => ({ data: null, error: e })),
@@ -506,7 +505,7 @@ const VoiceExplainModal = ({
     const res = await settleWithin(
       supabase
         .from("voice_explanations")
-        .select("id, student_id, task_id, proof_id, storage_path, transcription_idempotency_key")
+        .select("id, student_id, task_id, storage_path, transcription_idempotency_key")
         .eq("storage_path" as "id", path)
         .limit(2)
         .then((r) => r as unknown as { data: OwnerRow[] | null; error: unknown }, (e) => ({ data: null, error: e })),
@@ -881,7 +880,6 @@ const VoiceExplainModal = ({
         .insert({
           student_id: rec.ctx.studentId,
           task_id: rec.ctx.taskId,
-          proof_id: rec.ctx.proofId,
           storage_path: rec.path,
           duration_seconds: seconds,
           transcript: spoken.trim() || null,

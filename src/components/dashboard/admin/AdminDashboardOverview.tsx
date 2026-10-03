@@ -42,7 +42,7 @@ const AdminDashboardOverview = ({
         supabase.from('startups').select('id', { count: 'exact', head: true }),
         supabase.from('startups').select('id', { count: 'exact', head: true })
           .eq('verification_status', 'approved'),
-        // Student work = task_submissions (proof_uploads is retired, 0 rows).
+        // Student work = task_submissions (the only record of submitted work).
         supabase.from('task_submissions').select('id', { count: 'exact', head: true }),
         supabase.from('task_submissions').select('id', { count: 'exact', head: true })
           .eq('status', 'needs_review'),

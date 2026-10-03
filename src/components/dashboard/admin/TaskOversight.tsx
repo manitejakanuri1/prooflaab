@@ -185,7 +185,7 @@ const TaskOversight = () => {
             .select('id, status, submitted_at:created_at')
             .eq('task_id', task.id)
             .order('created_at', { ascending: false });
-          enrichedTask.proof_uploads = proofs || [];
+          enrichedTask.submissions = proofs || [];
           
           return enrichedTask;
         })
@@ -330,7 +330,7 @@ const TaskOversight = () => {
   const getStudentProgress = (task: any) => {
     if (!task.student_profiles) return "Not Started";
     
-    const proofs = task.proof_uploads || [];
+    const proofs = task.submissions || [];
     if (proofs.length === 0) return "Not Started";
     
     const latest = proofs[0];

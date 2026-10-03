@@ -16,7 +16,7 @@ gate() {            # gate "name" command...
   local name="$1"; shift
   local log="$OUT/$(echo "$name" | tr ' /' '__').log"
   if "$@" > "$log" 2>&1; then
-    printf 'PASS  %-46s %s\n' "$name" "$(grep -E '[0-9]+/[0-9]+ (checks|steps) passed|within limits|problems$|findings$|differences$|passed \|' "$log" | tail -1 | sed 's/\x1b\[[0-9;]*m//g' | cut -c1-70)"
+    printf 'PASS  %-46s %s\n' "$name" "$(grep -E '[0-9]+/[0-9]+ (checks|steps) passed|within limits|problems$|findings$|differences$|active occurrences$|passed \|' "$log" | tail -1 | sed 's/\x1b\[[0-9;]*m//g' | cut -c1-70)"
   else
     printf 'FAIL  %-46s see %s\n' "$name" "$log"; FAILED=$((FAILED + 1))
   fi
@@ -24,6 +24,7 @@ gate() {            # gate "name" command...
 
 echo "== source checks"
 gate "no secrets in tracked files"        python scripts/secret_scan.py
+gate "legacy guard (retired architecture)" python scripts/legacy_guard.py
 gate "migrations consistent"              python scripts/migrations.py check
 gate "typecheck"                          npm run --silent typecheck
 gate "unit tests"                         bash -c 'node --experimental-strip-types --test src/lib/*.test.ts'

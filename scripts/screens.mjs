@@ -49,7 +49,6 @@ const PRIVATE_PAGES = {
   admin: [
     { name: 'admin-dashboard', path: '/admin/dashboard' },
     { name: 'admin-notifications', path: '/admin/notifications' },
-    { name: 'review-proofs', path: '/review-proofs' },
   ],
   college: [
     { name: 'college-dashboard', path: '/college/dashboard' },

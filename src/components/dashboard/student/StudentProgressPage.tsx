@@ -17,14 +17,14 @@ interface EarnedBadge { name: string; emoji: string }
  * This used to read tasks.status = 'Completed' for "tasks done" and "XP
  * earned" — a status value that has never once appeared on a real Daily Lot
  * row (the pipeline uses 'pending' / 'In Progress' and never flips a task to
- * any finished state; completion lives in proof_uploads and the weekly
+ * any finished state; completion lives in the retired upload table and the weekly
  * scoring tables instead). That made the completion rate and monthly XP
  * chart silently zero for every real student, quietly, forever. Rebuilt on
  * the same tables the season report and weekly scoring already prove
  * correct: student_weekly_scores for points, task_submissions (the Lots a
  * student submits) for passed vs submitted work and
  * student_badges for the rest. (Until 2 Oct 2026 the submission cards read
- * proof_uploads, which stopped filling when upload proof was switched off on
+ * the retired upload table, which stopped filling when upload proof was switched off on
  * 19 Sep, so they showed 0 for everyone.)
  *
  * It also used to pad six months of made-up trust-score history and always

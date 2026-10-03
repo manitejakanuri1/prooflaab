@@ -157,7 +157,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   // A function inviting the students it just created - create-student-users,
   // create-college-user - proves itself with the webhook secret, as
-  // trust-compute and response-evaluator already accept. It is not a signed-in
+  // the scheduled jobs do. It is not a signed-in
   // user, so the "your own address only" rule below cannot apply to it, and it
   // is not a stranger, so the per-caller rate limit must not either: every
   // internal call arrives from the same loopback address, and an import of

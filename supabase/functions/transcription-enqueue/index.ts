@@ -127,7 +127,6 @@ serve(async (req) => {
     const { data: inserted } = await supabase.from("voice_explanations").insert({
       student_id: profile.id,
       task_id: task_id ?? null,
-      proof_id: null,   // the proof link is retired; a recording belongs to a submission
       storage_path,
       duration_seconds: duration_seconds ?? null,
       transcript: null,

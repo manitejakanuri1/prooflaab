@@ -133,7 +133,7 @@ function ownerOf(object: string): string {
  * "your own folder" rule would refuse them - correctly, because this service
  * has no idea who supervises whom.
  *
- * The proof-file-url function does know: it already checks, against 145 policies,
+ * A server function that has checked the caller does know: it already checks, against 145 policies,
  * whether the caller may act on that piece of work. So it issues a grant - a
  * short-lived token naming exactly one object - and this service honours it.
  *

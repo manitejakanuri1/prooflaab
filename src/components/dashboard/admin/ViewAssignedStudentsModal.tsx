@@ -18,7 +18,7 @@ export function ViewAssignedStudentsModal({ task, open, onClose }: ViewAssignedS
   const getProgressStatus = (task: any) => {
     if (!task.student_profiles) return "Not Started";
     
-    const proofs = task.proof_uploads || [];
+    const proofs = task.submissions || [];
     if (proofs.length === 0) return "Not Started";
     
     const latestProof = proofs[0];

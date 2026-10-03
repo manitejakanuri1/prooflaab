@@ -8,6 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Mic, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon } from "lucide-react";
 import StudentRoadmapPage from "./StudentRoadmapPage";
 import VoiceExplainModal from "./VoiceExplainModal";
+import { explainIfSubmitted } from "@/lib/explainGate";
 import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import { SimpleQuestionShort } from "./SimpleQuestion";
@@ -273,7 +274,7 @@ const StudentDailyCard = () => {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setExplaining(true)}
+                onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
                 className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
               >
                 <Mic className="mr-2 h-4 w-4" /> Record 60s explain
@@ -375,7 +376,7 @@ const StudentDailyCard = () => {
       {lot && lot.sandbox_config_id && (
         <Dialog open={coding} onOpenChange={setCoding}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-            <SandboxTaskPanel taskId={lot.id} onCompleted={() => { setCoding(false); void load(); }} />
+            <SandboxTaskPanel taskId={lot.id} onCompleted={() => { setCoding(false); setExplaining(true); void load(); }} />
           </DialogContent>
         </Dialog>
       )}
@@ -383,7 +384,7 @@ const StudentDailyCard = () => {
       {lot && !lot.sandbox_config_id && (
         <Dialog open={writing} onOpenChange={setWriting}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <WrittenTaskPanel taskId={lot.id} onCompleted={() => { setWriting(false); void load(); }} />
+            <WrittenTaskPanel taskId={lot.id} onCompleted={() => { setWriting(false); setExplaining(true); void load(); }} />
           </DialogContent>
         </Dialog>
       )}

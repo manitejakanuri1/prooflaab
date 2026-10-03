@@ -182,7 +182,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
             <p className="mt-1 text-sm text-muted-foreground">You already completed this task.</p>
           )}
           {result.passed && onCompleted && (
-            <Button className="mt-3 w-full" onClick={onCompleted}>Done</Button>
+            <Button className="mt-3 w-full" onClick={onCompleted}>Next: explain it in 60 seconds</Button>
           )}
         </div>
       )}

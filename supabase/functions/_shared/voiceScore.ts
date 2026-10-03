@@ -14,7 +14,7 @@ import { generateText } from "./llm.ts";
  * that is already scored, or one another caller is scoring right now.
  */
 export const VOICE_SCORE_COLUMNS =
-  'id, student_id, transcript, duration_seconds, word_count, task_id, communication_score, communication_notes, transcript_source, transcription_status, status';
+  'id, student_id, transcript, duration_seconds, word_count, task_id, submission_id, communication_score, communication_notes, transcript_source, transcription_status, status';
 
 export interface VoiceRec {
   id: string;
@@ -23,6 +23,7 @@ export interface VoiceRec {
   duration_seconds: number | null;
   word_count: number | null;
   task_id: string | null;
+  submission_id?: string | null;
   communication_score: number | null;
   communication_notes: string | null;
 }
@@ -41,6 +42,44 @@ export type ScoreResult = { status: number; outcome: ScoreOutcome; body: Record<
 
 /** Minimum words before a transcript is worth grading (unchanged). */
 export const MIN_WORDS = 12;
+/** Recorded on every graded row, so a score can be traced to the rules that made it. */
+export const EVALUATOR_VERSION = 'voice-eval-2';
+/** Below this content match the recording is about something else: the score is capped. */
+export const CONTENT_MATCH_FLOOR = 30;
+export const OFF_TOPIC_CAP = 30;
+
+/**
+ * Cheap checks before any AI spend: is there usable speech at all?
+ * Not a length rule - a short, specific answer passes; silence, a single word
+ * or one phrase repeated does not.
+ */
+export function transcriptQuality(transcript: string | null, wordCount: number | null): { flags: string[]; note: string | null } {
+  const words = (transcript ?? '').toLowerCase().match(/[a-z0-9']+/g) ?? [];
+  const n = Math.max(words.length, 0);
+  if (n === 0) return { flags: ['silence'], note: 'We could not hear any speech. Check your microphone and record again.' };
+  if (n < MIN_WORDS || (wordCount ?? n) < MIN_WORDS) return { flags: ['too_few_words'], note: 'Too little speech to score.' };
+  if (new Set(words).size / n < 0.3) {
+    return { flags: ['repetitive'], note: 'The recording repeats the same few words. Explain what you did, in your own words.' };
+  }
+  return { flags: [], note: null };
+}
+
+/** The AI's 0-100 judgement of whether the talk is about THIS submitted work; null if absent or unusable. */
+export function parseContentMatch(text: string): number | null {
+  try {
+    const match = text.match(/\{[\s\S]*\}/);
+    const raw = (JSON.parse(match ? match[0] : text) as Record<string, unknown>)?.content_match;
+    const n = typeof raw === 'number' ? raw : typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : NaN;
+    return Number.isFinite(n) && n >= 0 && n <= 100 ? Math.round(n) : null;
+  } catch {
+    return null;
+  }
+}
+
+const clip = (s: string | null | undefined, max: number) => {
+  const t = (s ?? '').trim();
+  return t.length > max ? `${t.slice(0, max)}\n[cut]` : t;
+};
 /** Same default TTL claim_voice_scoring uses (migration 45). */
 export const SCORE_CLAIM_TTL_SECONDS = 120;
 
@@ -142,24 +181,41 @@ export async function scoreRecording(
 
   // Too little speech: decided only now, under this claim, so it can never
   // mark an already-scored recording failed or overwrite another claim's work.
-  if (!rec.transcript || (rec.word_count ?? 0) < MIN_WORDS) {
-    console.log(`VOICE-SCORE: too short ${voice_id}`);
-    return await failUnderClaim('Too little speech to score.', 'too_short', 200,
-      { success: false, reason: 'transcript too short' });
+  const quality = transcriptQuality(rec.transcript, rec.word_count);
+  if (quality.flags.length) {
+    console.log(`VOICE-SCORE: too short ${voice_id} (${quality.flags.join(',')})`);
+    return await failUnderClaim(quality.note!, 'too_short', 200,
+      { success: false, reason: 'transcript too short', flags: quality.flags });
   }
 
   // What they were asked to explain, so the grader can tell whether the
   // answer is about this work or a general speech about anything.
   let taskTitle = 'their submitted work';
+  let taskBrief = '';
   if (rec.task_id) {
     const { data: task } = await supabase
-      .from('tasks').select('title').eq('id', rec.task_id).maybeSingle();
+      .from('tasks').select('title, description').eq('id', rec.task_id).maybeSingle();
     if (task?.title) taskTitle = task.title;
+    taskBrief = clip(task?.description, 1500);
+  }
+  // The exact work this recording is bound to (migration 61), so the grader
+  // judges an explanation of THIS submission, not of the topic in general.
+  let work = '';
+  let result = '';
+  if (rec.submission_id) {
+    const { data: sub } = await supabase.from('task_submissions')
+      .select('code, language, status, passed_count, total_count, sandbox_score')
+      .eq('id', rec.submission_id).maybeSingle();
+    if (sub) {
+      work = clip(sub.code, 3000);
+      result = `${sub.status}${sub.total_count ? `, ${sub.passed_count ?? 0} of ${sub.total_count} tests` : ''}${sub.language ? `, ${sub.language}` : ''}`;
+    }
   }
 
   const prompt = `A student recorded a spoken explanation of their own work. You are judging HOW they explained it, not whether the code was correct.
 
 What they were asked to explain: "${taskTitle}"
+${taskBrief ? `\nThe task:\n\"\"\"\n${taskBrief}\n\"\"\"\n` : ''}${work ? `\nWhat they actually submitted (${result}):\n\"\"\"\n${work}\n\"\"\"\n` : ''}
 Length: ${rec.duration_seconds ?? '?'} seconds, ${rec.word_count} words.
 
 Transcript (speech-to-text, so expect missing punctuation and the odd wrong word — do not penalise that):
@@ -184,14 +240,22 @@ Signs they did not:
 
 Be fair to nervous speakers: hesitation and rambling are NOT evidence of cheating. Fluency is not the thing being measured — ownership is.
 
+Also judge content_match 0-100: is the talk about THIS task and THIS submitted work?
+- 80-100: refers to things that are really in the submission (names, steps, choices, the bug they hit).
+- 40-79: about the right task, but could describe anyone's solution.
+- 0-39: about something else, reads the question back, or says nothing about the work.
+Judge only against the task and the submission shown above. Do not test them on other theory.
+
 Return ONLY JSON:
-{"communication_score": <0-100>, "notes": "<two sentences, addressed to the student, plain English>"}`;
+{"communication_score": <0-100>, "content_match": <0-100>, "notes": "<two sentences, addressed to the student, plain English>"}`;
 
   let graded: { score: number; notes: string | null } | null;
+  let contentMatch: number | null = null;
   try {
     const { text } = await generate(prompt, { temperature: 0.3, maxOutputTokens: 500 },
       { feature: 'voice-score', studentId: rec.student_id });
     graded = parseAiScore(text);
+    contentMatch = parseContentMatch(text);
     if (!graded) console.error(`VOICE-SCORE: unusable AI answer for ${voice_id}: ${String(text).slice(0, 200)}`);
   } catch (e) {
     console.error(`VOICE-SCORE: AI call failed for ${voice_id}`, e);
@@ -201,6 +265,19 @@ Return ONLY JSON:
     return await failUnderClaim('Scoring failed. A person can still listen to this.', 'failed', 502,
       { success: false, error: 'Scoring failed' });
   }
+
+  // An explanation of something else cannot carry a high score for this work.
+  const offTopic = contentMatch !== null && contentMatch < CONTENT_MATCH_FLOOR;
+  if (offTopic && graded.score > OFF_TOPIC_CAP) graded = { ...graded, score: OFF_TOPIC_CAP };
+  // Saved while this call still holds the claim, so a stale claim cannot write it
+  // and (migration 61) nothing can change it once the row is scored.
+  const { error: evalError } = await supabase.from('voice_explanations')
+    .update({ evaluation: {
+      evaluator_version: EVALUATOR_VERSION, content_match: contentMatch,
+      flags: offTopic ? ['off_topic'] : [], linked_to_submission: Boolean(work),
+    } })
+    .eq('id', voice_id).eq('scoring_lease_token', leaseToken).select('id').maybeSingle();
+  if (evalError) return dbError('save evaluation', voice_id, evalError);
 
   const { data: committed, error: completeError } = await supabase.rpc('complete_voice_scoring', {
     _id: voice_id, _lease_token: leaseToken, _score: graded.score, _notes: graded.notes,

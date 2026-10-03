@@ -71,6 +71,7 @@ const StudentPrivacy = () => {
       .from("voice_explanations")
       .select("id, storage_path, duration_seconds, communication_score, created_at, transcript, transcript_segments")
       .eq("student_id", profile.id)
+      .is("withdrawn_at" as never, null)
       .order("created_at", { ascending: false });
     setRecordings((voice ?? []) as unknown as Recording[]);
   }, [profile?.id]);
@@ -124,7 +125,9 @@ const StudentPrivacy = () => {
    * for the owner, which it did not before.
    */
   const deleteRecording = async (rec: Recording) => {
-    const { error } = await supabase.from("voice_explanations").delete().eq("id", rec.id);
+    // A recording is evidence, so the row is never deleted: it is withdrawn
+    // (transcript erased, marked withdrawn, no longer shown to anyone).
+    const { error } = await supabase.rpc("withdraw_voice_explanation" as never, { _id: rec.id } as never);
     if (error) {
       toast({ title: "Not deleted", description: error.message, variant: "destructive" });
       return;

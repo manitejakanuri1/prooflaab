@@ -108,9 +108,9 @@ const JOURNEYS = {
     ["company home", seq(go("/company/dashboard"), see("Talent"))],
     ["Talent", click("Talent")],
     ["Shortlist", click("Shortlist")],
-    ["Lots", seq(click("Lots"), see("Sponsored Lots"))],
+    ["Lots show submission and explanation state", seq(click("Lots"), see("Count failed logins per user"), see("explained"))],
     ["Submissions shows real work", seq(click("Submissions"), see("PROBE sponsored lot"), see("Tests passed|Spoken explanation|No spoken explanation"))],
-    ["Review", seq(click("Review"), see("Work to review"))],
+    ["Review shows the explanation of that submission", seq(click("Review"), see("Spoken explanation"), see("Accept"))],
   ],
   admin: [
     ["admin dashboard", seq(go("/admin/dashboard"), see("Overview"))],

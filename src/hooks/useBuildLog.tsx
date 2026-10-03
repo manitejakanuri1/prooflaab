@@ -56,18 +56,23 @@ export const useBuildLog = () => {
           .select("id, task_id, status, sandbox_score, passed_count, total_count, language, code, rubric_scores, sandbox_config_id, created_at, tasks(title, lot_date, source_jd, lot_category)")
           .eq("student_id", profile.id).order("created_at", { ascending: false }).limit(200),
         supabase.from("voice_explanations")
-          .select("id, task_id, status, transcription_status, communication_score, communication_notes, transcript, created_at")
-          .eq("student_id", profile.id).order("created_at", { ascending: false }).limit(200),
+          .select("id, task_id, submission_id, current_authoritative, attempt_no, status, transcription_status, communication_score, communication_notes, transcript, created_at")
+          .eq("student_id", profile.id).is("withdrawn_at" as never, null).order("created_at", { ascending: false }).limit(200),
       ]);
       if (subs.error) throw subs.error;
       if (voices.error) throw voices.error;
 
-      // Best voice per task: a scored one wins, otherwise the newest.
-      const voiceByTask = new Map<string, BuildLogVoice>();
-      for (const v of (voices.data ?? []) as unknown as (BuildLogVoice & { task_id: string | null })[]) {
-        if (!v.task_id) continue;
-        const have = voiceByTask.get(v.task_id);
-        if (!have || (v.status === "scored" && have.status !== "scored")) voiceByTask.set(v.task_id, v);
+      // The explanation of a submission = its authoritative recording, else its
+      // newest one (rows are newest first). Older rows without a binding fall back
+      // to the task.
+      type V = BuildLogVoice & { task_id: string | null; submission_id: string | null; current_authoritative: boolean };
+      const voiceBySubmission = new Map<string, V>();
+      const voiceByTask = new Map<string, V>();
+      for (const v of (voices.data ?? []) as unknown as V[]) {
+        if (v.submission_id) {
+          const have = voiceBySubmission.get(v.submission_id);
+          if (!have || (v.current_authoritative && !have.current_authoritative)) voiceBySubmission.set(v.submission_id, v);
+        } else if (v.task_id && !voiceByTask.has(v.task_id)) voiceByTask.set(v.task_id, v);
       }
 
       const byTask = new Map<string, BuildLogEntry>();
@@ -90,7 +95,7 @@ export const useBuildLog = () => {
           feedback: Array.isArray(s.rubric_scores) ? s.rubric_scores : null,
           submitted_at: s.created_at,
           attempts: 1,
-          voice: voiceByTask.get(s.task_id) ?? null,
+          voice: voiceBySubmission.get(s.id) ?? voiceByTask.get(s.task_id) ?? null,
         });
       }
       return [...byTask.values()];

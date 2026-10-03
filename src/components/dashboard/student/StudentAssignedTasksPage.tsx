@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import VoiceExplainModal from "./VoiceExplainModal";
+import { explainIfSubmitted } from "@/lib/explainGate";
 import TaskDetailsDialog from "./TaskDetailsDialog";
 import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
@@ -50,6 +51,11 @@ const StudentAssignedTasksPage = () => {
   const [codingTaskId, setCodingTaskId] = useState<string | null>(null);
   const [writingTaskId, setWritingTaskId] = useState<string | null>(null);
   const [explainTask, setExplainTask] = useState<{ id: string; title: string } | null>(null);
+  // After a pass, the spoken explanation is the next step, not an optional extra.
+  const explainAfter = (taskId: string) => {
+    const t = allTasks.find((x) => x.id === taskId);
+    setExplainTask({ id: taskId, title: t?.title ?? "this task" });
+  };
   const { profile } = useStudentProfile();
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -367,7 +373,7 @@ const StudentAssignedTasksPage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setExplainTask({ id: task.id, title: task.title })}
+                              onClick={() => void explainIfSubmitted(task.id, () => setExplainTask({ id: task.id, title: task.title }))}
                             >
                               <Mic className="h-4 w-4 mr-1" />
                               Explain 60s
@@ -429,7 +435,7 @@ const StudentAssignedTasksPage = () => {
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <SandboxTaskPanel
               taskId={codingTaskId}
-              onCompleted={() => { setCodingTaskId(null); refetchTasks(); }}
+              onCompleted={() => { explainAfter(codingTaskId); setCodingTaskId(null); refetchTasks(); }}
             />
           </DialogContent>
         </Dialog>
@@ -440,7 +446,7 @@ const StudentAssignedTasksPage = () => {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <WrittenTaskPanel
               taskId={writingTaskId}
-              onCompleted={() => { setWritingTaskId(null); refetchTasks(); }}
+              onCompleted={() => { explainAfter(writingTaskId); setWritingTaskId(null); refetchTasks(); }}
             />
           </DialogContent>
         </Dialog>

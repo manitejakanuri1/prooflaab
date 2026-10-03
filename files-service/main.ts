@@ -306,7 +306,8 @@ async function upload(req: Request, target: Target, origin: string | null): Prom
 
   // upsert:false is the app's default, and it matters: the proof upload screen
   // relies on a second write to the same path failing rather than overwriting.
-  const upsert = req.headers.get('x-upsert') === 'true';
+  // A voice recording is evidence: its audio is never overwritten (Wave 6).
+  const upsert = req.headers.get('x-upsert') === 'true' && !target.object.startsWith('voice-explanations/');
   if (!upsert) {
     try {
       await Deno.stat(path);

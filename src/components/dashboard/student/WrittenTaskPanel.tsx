@@ -206,7 +206,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
             </ul>
           )}
           {result.status === "passed" && onCompleted && (
-            <Button className="mt-3 w-full" onClick={onCompleted}>Done</Button>
+            <Button className="mt-3 w-full" onClick={onCompleted}>Next: explain it in 60 seconds</Button>
           )}
         </div>
       )}

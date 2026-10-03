@@ -113,6 +113,16 @@ serve(async (req) => {
       const { data: task } = await supabase.from("tasks")
         .select("id").eq("id", task_id).eq("student_id", profile.id).maybeSingle();
       if (!task) return json({ error: "task_id does not belong to you" }, 403);
+      // (Wave 6) An explanation is evidence about a submission. The database
+      // binds it (migration 61) and refuses when there is none; answering here
+      // first gives the student a clear message instead of a failed insert.
+      const { data: sub } = await supabase.from("task_submissions")
+        .select("id").eq("task_id", task_id).eq("student_id", profile.id).limit(1).maybeSingle();
+      if (!sub) {
+        return json({ error: "Submit your work first, then record your explanation.", code: "submission_required" }, 409);
+      }
+    } else if (!proof_id) {
+      return json({ error: "task_id is required", code: "task_required" }, 400);
     }
     if (proof_id) {
       const { data: proof } = await supabase.from("proof_uploads")

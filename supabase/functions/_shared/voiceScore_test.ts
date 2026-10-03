@@ -7,7 +7,7 @@
 // fenced on the lease AND refuse a scored row. Each RPC body runs with no
 // await inside, so it is atomic the way the row-locked UPDATE is.
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { parseAiScore, scoreRecording, type VoiceRec } from "./voiceScore.ts";
+import { parseAiScore, parseContentMatch, scoreRecording, transcriptQuality, type VoiceRec } from "./voiceScore.ts";
 
 type Row = {
   id: string; status: string; communication_score: number | null; communication_notes: string | null;
@@ -19,6 +19,8 @@ class FakeDb {
   rows = new Map<string, Row>();
   fail: Record<string, boolean> = {}; // rpc/table name -> return an error
   streaks = 0;
+  updates: Record<string, unknown>[] = [];
+  submission: Record<string, unknown> | null = null;
   constructor(row: Partial<Row> & { id: string }) {
     this.rows.set(row.id, {
       status: 'recorded', communication_score: null, communication_notes: null,
@@ -60,11 +62,13 @@ class FakeDb {
     let id = '';
     const q = {
       select: () => q,
+      update: (v: Record<string, unknown>) => { this.updates.push(v); return q; },
       eq: (_c: string, v: string) => { id = v; return q; },
       maybeSingle: async () => {
         await Promise.resolve();
         if (this.fail[`read:${table}`]) return { data: null, error: { message: 'read boom' } };
         if (table === 'tasks') return { data: null, error: null };
+        if (table === 'task_submissions') return { data: this.submission, error: null };
         const r = this.rows.get(id);
         return { data: r ? { ...r } : null, error: null };
       },
@@ -240,4 +244,40 @@ Deno.test("6c after the save, a third late caller cannot overwrite or re-grade",
   assertEquals(c.outcome, 'already');
   assertEquals(calls.n, 1);
   assertEquals(db.rows.get(ID)!.communication_score, 80);
+});
+
+// ---------- Wave 6: quality checks and content-linked scoring ----------
+Deno.test("6a quality: silence, one word, repetition are caught; a short specific answer is not", () => {
+  assertEquals(transcriptQuality(null, 0).flags, ['silence']);
+  assertEquals(transcriptQuality('   ', 0).flags, ['silence']);
+  assertEquals(transcriptQuality('hello', 1).flags, ['too_few_words']);
+  assertEquals(transcriptQuality(Array(30).fill('testing testing').join(' '), 60).flags, ['repetitive']);
+  assertEquals(transcriptQuality('I used a dictionary keyed by user and added one for every failed line then sorted it', 17).flags, []);
+});
+Deno.test("6b content_match is parsed strictly", () => {
+  assertEquals(parseContentMatch('{"communication_score": 70, "content_match": 85, "notes": "x"}'), 85);
+  assertEquals(parseContentMatch('{"communication_score": 70, "content_match": "40"}'), 40);
+  assertEquals(parseContentMatch('{"communication_score": 70}'), null);
+  assertEquals(parseContentMatch('{"content_match": 400}'), null);
+  assertEquals(parseContentMatch('not json'), null);
+});
+Deno.test("6c the prompt carries the submitted work, and the evaluation is saved with a version", async () => {
+  const db = new FakeDb({ id: ID });
+  db.submission = { code: 'counts = {}  # UNIQUE_MARKER', language: 'python', status: 'passed', passed_count: 6, total_count: 6 };
+  let seen = '';
+  const gen = async (prompt: string) => { seen = prompt; return { text: '{"communication_score": 80, "content_match": 90, "notes": "ok"}' }; };
+  const r = await scoreRecording(db, longRec({ submission_id: 'sub1' }), gen);
+  assertEquals(r.outcome, 'scored');
+  assert(seen.includes('UNIQUE_MARKER') && seen.includes('6 of 6 tests'));
+  assertEquals(db.rows.get(ID)!.communication_score, 80);
+  assertEquals((db.updates[0].evaluation as Record<string, unknown>).evaluator_version, 'voice-eval-2');
+  assertEquals((db.updates[0].evaluation as Record<string, unknown>).content_match, 90);
+});
+Deno.test("6d an off-topic explanation cannot keep a high score", async () => {
+  const db = new FakeDb({ id: ID });
+  const r = await scoreRecording(db, longRec({ submission_id: 'sub1' }),
+    ai('{"communication_score": 88, "content_match": 10, "notes": "fluent but about something else"}'));
+  assertEquals(r.outcome, 'scored');
+  assertEquals(db.rows.get(ID)!.communication_score, 30);
+  assertEquals((db.updates[0].evaluation as Record<string, unknown>).flags, ['off_topic']);
 });

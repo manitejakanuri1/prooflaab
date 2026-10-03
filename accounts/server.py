@@ -7,9 +7,10 @@ POST /password-link {"email": ...}   functions service (x-webhook-secret): a
                                      the welcome email can carry it (one email).
 POST /sync[?dry_run=1]               Cloud Scheduler (x-webhook-secret): a
                                      student whose Google login stays deleted for
-                                     SYNC_GRACE_SECONDS is removed from ProofLab too,
-                                     never more than the ceiling in one pass
-                                     (sync_plan.py); an abnormal pass removes nothing.
+                                     SYNC_GRACE_SECONDS is SUSPENDED (reversible),
+                                     never deleted; at most SYNC_MAX_SUSPEND per pass,
+                                     an abnormal listing changes nothing, and a
+                                     returning login restores them (sync_plan.py).
 
 A separate service because deleting a login needs Identity Platform's admin API,
 which needs this service account's token from the metadata server - the
@@ -36,11 +37,14 @@ POSTGREST = os.environ["POSTGREST_URL"].rstrip("/")
 PROJECT = os.environ.get("GCP_PROJECT", "prooflab-508214")
 ORIGINS = set(filter(None, os.environ.get("ALLOWED_ORIGINS", "").split(",")))
 IDENTITY = f"https://identitytoolkit.googleapis.com/v1/projects/{PROJECT}"
-# Account-sync safety (sync_plan.py): a login must stay missing this long before
-# its student is removed, and one pass may remove at most max(MAX_ABS, MAX_FRACTION x students).
-GRACE = int(os.environ.get("SYNC_GRACE_SECONDS", sync_plan.DEFAULT_GRACE_SECONDS))
-MAX_ABS = int(os.environ.get("SYNC_MAX_REMOVALS", sync_plan.DEFAULT_MAX_ABS))
-MAX_FRACTION = float(os.environ.get("SYNC_MAX_FRACTION", sync_plan.DEFAULT_MAX_FRACTION))
+# Account-sync safety (sync_plan.py). Configuration, not magic numbers: the job only
+# ever SUSPENDS (reversibly) and never deletes; see sync_plan.Limits for meanings.
+LIMITS = sync_plan.Limits(
+    grace_seconds=int(os.environ.get("SYNC_GRACE_SECONDS", 30 * 60)),
+    abnormal_abs=int(os.environ.get("SYNC_ABNORMAL_ABS", 25)),
+    abnormal_fraction=float(os.environ.get("SYNC_ABNORMAL_FRACTION", 0.05)),
+    max_suspend=int(os.environ.get("SYNC_MAX_SUSPEND", 3)),
+)
 # A set-password link is only returned for a login created this recently (an import in progress).
 LINK_MAX_AGE_SECONDS = 3600
 
@@ -244,42 +248,47 @@ class Handler(BaseHTTPRequestHandler):
         if not WEBHOOK or not hmac.compare_digest(self.headers.get("x-webhook-secret", ""), WEBHOOK):
             return self.reply(401, {"error": "unauthorized"})
         dry_run = "dry_run=1" in (self.path.split("?", 1)[1] if "?" in self.path else "")
-        logins = all_login_ids()          # raises -> 500, nothing removed
-        if not logins:
-            return self.reply(409, {"error": "Identity Platform returned no logins at all; refusing to act."})
+        logins = all_login_ids()          # any listing/paging/timeout error raises -> 500, nothing changed
         st, students = db("rpc/student_logins", {})
         if st != 200:
             return self.reply(500, {"error": "could not list students"})
-        st, missing_rows = db("account_sync_missing?select=student_id,first_missing_at", method="GET")
+        st, ledger = db("account_sync_missing?select=student_id,first_missing_at,suspended_at", method="GET")
         if st != 200:
             return self.reply(500, {"error": "could not read the missing-login ledger"})
-        decision = sync_plan.plan(students, logins, missing_rows, datetime.now(timezone.utc),
-                                  grace_seconds=GRACE, max_abs=MAX_ABS, max_fraction=MAX_FRACTION)
-        summary = {"students": len(students), "missing_now": len(decision["missing"]),
+        st, prot = db("protected_test_accounts?select=user_id", method="GET")
+        if st != 200:
+            return self.reply(500, {"error": "could not read protected accounts"})
+        decision = sync_plan.plan(students, logins, ledger, datetime.now(timezone.utc), LIMITS,
+                                  protected={r["user_id"] for r in prot})
+        summary = {"students": len(students), "logins": len(logins), "missing_now": len(decision["missing"]),
                    "newly_missing": len(decision["mark"]), "came_back": len(decision["clear"]),
-                   "due_for_removal": len(decision["remove"]), "ceiling": decision["ceiling"]}
+                   "to_suspend": len(decision["suspend"]), "to_restore": len(decision["restore"])}
         if decision["abort"]:
-            # A distinct log line the alert policy matches. Nothing is removed or marked.
+            # Distinct log lines the alert policies match. Nothing is changed.
             print(f"ACCOUNT SYNC ABORTED: {decision['abort']} {json.dumps(summary)}", flush=True)
             return self.reply(409, {"error": decision["abort"], **summary})
+        if decision["review"]:
+            print(f"ACCOUNT SYNC NEEDS REVIEW: {decision['review']} {json.dumps(summary)}", flush=True)
         if dry_run:
-            return self.reply(200, {"dry_run": True, **summary, "would_remove": decision["remove"]})
+            return self.reply(200, {"dry_run": True, **summary, "review": decision["review"],
+                                    "would_suspend": decision["suspend"], "would_restore": decision["restore"]})
         if decision["mark"]:
             # ignore-duplicates keeps the FIRST time a login was seen missing.
             db("account_sync_missing?on_conflict=student_id",
                [{"student_id": s["student_id"], "provider_uid": s["provider_uid"]} for s in decision["mark"]],
                prefer="resolution=ignore-duplicates,return=minimal")
+        restored = suspended = 0
         if decision["clear"]:
-            db(f"account_sync_missing?student_id=in.({','.join(decision['clear'])})", method="DELETE")
-        removed = 0
-        if decision["remove"]:
-            st, rows = db("rpc/remove_students", {"_ids": decision["remove"], "_by": None, "_reason": "console_sync"})
+            st, restored = db("rpc/sync_restore_students", {"_ids": decision["clear"]})
             if st != 200:
-                return self.reply(500, {"error": str(rows)[:300], **summary})
-            removed = len(rows)
-            print(f"console sync: removed {removed} students whose login stayed deleted for "
-                  f"{GRACE // 60}+ min {json.dumps(summary)}", flush=True)
-        return self.reply(200, {"removed": removed, **summary})
+                return self.reply(500, {"error": f"restore failed: {str(restored)[:200]}", **summary})
+        if decision["suspend"]:
+            st, suspended = db("rpc/sync_suspend_students", {"_ids": decision["suspend"]})
+            if st != 200:
+                return self.reply(500, {"error": f"suspend failed: {str(suspended)[:200]}", **summary})
+            print(f"ACCOUNT SYNC SUSPENDED: {suspended} student(s) whose login stayed missing "
+                  f"{LIMITS.grace_seconds // 60}+ min {json.dumps(summary)}", flush=True)
+        return self.reply(200, {"suspended": suspended, "restored": restored, "review": decision["review"], **summary})
 
     def log_message(self, fmt, *args):
         print(f"{self.address_string()} {fmt % args}", flush=True)

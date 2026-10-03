@@ -1,5 +1,5 @@
-// Shared code runner. ProofLab's own runner is the only one used unless
-// PUBLIC_RUNNER_FALLBACK=allow (F10, 3 Oct 2026: never in production).
+// Shared code runner. ProofLab's own runner is the only one used; public runners
+// exist only for a non-production developer opt-in (publicRunnersAllowed, F10).
 //
 // Extracted from resume-code-execute (stage69) so
 // run-sandbox and submit-sandbox-task use the exact same fallback chain
@@ -268,6 +268,17 @@ export async function runOnOwnRunner(language: string, code: string, stdin: stri
  * Runs one test case, trying hard to get an honest answer before giving up.
  * Our own runner first, then Wandbox twice, then Godbolt where it fits, then Glot.
  */
+/**
+ * Public runners are only ever a non-production developer convenience: allowed
+ * when ENVIRONMENT is explicitly 'staging' or 'development' AND
+ * PUBLIC_RUNNER_FALLBACK=allow. Production - or an unset ENVIRONMENT - never,
+ * whatever else is set (F10).
+ */
+export function publicRunnersAllowed(): boolean {
+  const env = Deno.env.get('ENVIRONMENT') ?? '';
+  return (env === 'staging' || env === 'development') && Deno.env.get('PUBLIC_RUNNER_FALLBACK') === 'allow';
+}
+
 export async function runCode(language: string, code: string, stdin: string): Promise<RunResult> {
   let lastReason = 'runner unavailable';
 
@@ -283,7 +294,7 @@ export async function runCode(language: string, code: string, stdin: string): Pr
   // must never leave ProofLab. The public runners below are off unless a
   // non-production environment explicitly opts in. When our runner is busy or
   // down the caller gets ok:false and answers "runner busy, try again".
-  if (Deno.env.get('PUBLIC_RUNNER_FALLBACK') !== 'allow') {
+  if (!publicRunnersAllowed()) {
     console.error(`RUNNER UNAVAILABLE (no public fallback) for ${language}: ${lastReason}`);
     return { ok: false, reason: `runner busy: ${lastReason}` };
   }

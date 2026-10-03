@@ -78,7 +78,8 @@ serve(async (req) => {
     }
 
     const { data: cfg } = await db.from("task_sandbox_config")
-      .select("language, test_cases").eq("id", task.sandbox_config_id).single();
+      .select("language, test_cases").eq("id", task.sandbox_config_id).maybeSingle();
+    if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
 
     // Visible tests only — hidden inputs never leave the server through this
     // endpoint. All results returned unredacted since every one shown IS visible.

@@ -60,6 +60,12 @@ jobs:
       - name: Server function tests (Deno)
         run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/
 
+      - name: Type-check every active server function (Deno)
+        # The 9 legacy slugs are excluded only until Wave 8 deletes them.
+        run: |
+          deno check --no-lock functions-service/main.ts $(ls supabase/functions/*/index.ts \
+            | grep -v -E '/(ai-authorship|github-check|leetcode-streak-sync|proof-file-url|question-generator|response-evaluator|submit-conceptual-answers|trust-compute|verify-proof)/')
+
       - name: Accounts sync safety tests (Python)
         run: cd accounts && python3 test_sync_plan.py
 

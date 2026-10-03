@@ -53,6 +53,7 @@ serve(async (req) => {
     if (userError || !user) {
       throw new Error('Invalid authentication');
     }
+    const callerId = user.id;
 
     // Check user role
     const { data: roleData, error: roleError } = await supabase
@@ -274,8 +275,8 @@ serve(async (req) => {
         mode: gradingMode,
         content: { kind: 'fixed', title, description },
         feature: 'assign_tasks',
-        usageCtx: { userId: user.id },
-        createdBy: user.id,
+        usageCtx: { userId: callerId },
+        createdBy: callerId,
       });
       return {
         sandbox_config_id: result.mode === 'sandbox' ? result.configId : null,

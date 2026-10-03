@@ -68,7 +68,8 @@ serve(async (req) => {
 
     // 6. Grade against ALL tests
     const { data: cfg } = await db.from("task_sandbox_config")
-      .select("id, language, test_cases, pass_threshold").eq("id", task.sandbox_config_id).single();
+      .select("id, language, test_cases, pass_threshold").eq("id", task.sandbox_config_id).maybeSingle();
+    if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
 
     const started = Date.now();
     const graded = await gradeTests(cfg.language, code, cfg.test_cases as SandboxTest[]);

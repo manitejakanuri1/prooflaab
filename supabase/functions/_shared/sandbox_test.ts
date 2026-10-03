@@ -39,9 +39,19 @@ Deno.test('F10: graded code never reaches a public runner by default', async () 
   assert(!calls.some((u) => /wandbox|godbolt|glot/.test(u)), 'hidden test input was sent to a public runner');
 });
 
-Deno.test('F10: public runners only when explicitly allowed (non-production)', async () => {
+Deno.test('F10: production never reaches a public runner, even with the override set', async () => {
+  for (const env of ['production', undefined, 'prod', '']) {
+    const calls = await withFetchSpy(
+      { CODE_RUNNER_URL: 'https://own-runner.invalid', CODE_RUNNER_SECRET: 's', PUBLIC_RUNNER_FALLBACK: 'allow', ENVIRONMENT: env },
+      async () => { await runCode('python', 'print(input())', 'HIDDEN'); },
+    );
+    assert(!calls.some((u) => /wandbox|godbolt|glot/.test(u)), `ENVIRONMENT=${env} reached a public runner`);
+  }
+});
+
+Deno.test('F10: public runners only when explicitly allowed in staging/development', async () => {
   const calls = await withFetchSpy(
-    { CODE_RUNNER_URL: 'https://own-runner.invalid', CODE_RUNNER_SECRET: 's', PUBLIC_RUNNER_FALLBACK: 'allow' },
+    { CODE_RUNNER_URL: 'https://own-runner.invalid', CODE_RUNNER_SECRET: 's', PUBLIC_RUNNER_FALLBACK: 'allow', ENVIRONMENT: 'staging' },
     async () => { await runCode('python', 'print(1)', ''); },
   );
   assert(calls.some((u) => u.includes('wandbox')), 'opt-in fallback did not reach wandbox');

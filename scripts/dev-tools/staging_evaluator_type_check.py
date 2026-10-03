@@ -13,7 +13,7 @@ results = []
 
 
 def check(name, ok, detail=""):
-    results.append(ok)
+    results.append(bool(ok))
     print(("PASS" if ok else "FAIL"), name, "-", str(detail)[:150], flush=True)
 
 

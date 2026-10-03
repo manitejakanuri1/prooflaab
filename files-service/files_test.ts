@@ -9,7 +9,7 @@ const SOMEONE_ELSE = '1ff6d149-acc1-441c-9899-d79c9894a9d0';
 
 Deno.test('the owner is the folder the file sits in', () => {
   assertEquals(ownerOf(`resumes/${ME}/cv.pdf`), ME);
-  assertEquals(ownerOf(`proofs/${ME}/task-1/proof.png`), ME);
+  assertEquals(ownerOf(`resumes/${ME}/task-1/cv.pdf`), ME);
   // No folder at all means no owner, which can never equal a caller's id.
   assertEquals(ownerOf('resumes/cv.pdf'), 'cv.pdf');
   assertEquals(ownerOf('resumes'), '');
@@ -61,7 +61,7 @@ Deno.test('a private file with a forged token is refused', async () => {
 
 Deno.test('an upload with no token is refused before any byte is read', async () => {
   const res = await handler(
-    new Request(`https://x/file/proofs/${ME}/proof.png`, {
+    new Request(`https://x/file/resumes/${ME}/cv.pdf`, {
       method: 'PUT',
       body: new Uint8Array([1, 2, 3]),
     }),
@@ -123,4 +123,12 @@ Deno.test("a valid token still cannot reach someone else's folder", async () => 
     new Request(`https://x/file/resumes/${ME}/cv.pdf`, { method: 'GET', headers: { Authorization: `Bearer ${token}` } }),
   );
   assertEquals(res.status, 404);
+});
+
+Deno.test('the retired proofs bucket is no longer served', async () => {
+  const res = await handler(new Request(`https://x/file/proofs/${ME}/proof.png`, {
+    headers: { Authorization: `Bearer ${await hs256({ sub: ME, role: 'authenticated', exp: inAnHour() })}` },
+  }));
+  assertEquals(res.status, 400);
+  assertEquals((await res.json()).error, 'unknown bucket');
 });

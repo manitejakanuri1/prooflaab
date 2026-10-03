@@ -39,11 +39,11 @@ const PUBLIC_BUCKET = Deno.env.get('PUBLIC_BUCKET') ?? 'prooflab-public-508214';
 const MAX_BYTES = 10 * 1024 * 1024;
 
 /**
- * The four Supabase buckets, and where each one now lives. profile-photos was
+ * The buckets, and where each one lives. ("proofs" is retired: nothing uploads or
+ * reads proof files any more, so the service no longer answers for that name.) profile-photos was
  * the only public bucket, so it is the only one in the public bucket here.
  */
 const BUCKETS: Record<string, { bucket: string; public: boolean }> = {
-  'proofs': { bucket: PRIVATE_BUCKET, public: false },
   'resumes': { bucket: PRIVATE_BUCKET, public: false },
   'voice-explanations': { bucket: PRIVATE_BUCKET, public: false },
   'profile-photos': { bucket: PUBLIC_BUCKET, public: true },

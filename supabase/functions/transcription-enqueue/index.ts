@@ -87,7 +87,7 @@ serve(async (req) => {
     if (claimsError || !claims) return json({ error: "Invalid token" }, 401);
     const callerId = claims.claims.sub;
 
-    const { storage_path, task_id, proof_id, duration_seconds, idempotency_key } = await req.json();
+    const { storage_path, task_id, duration_seconds, idempotency_key } = await req.json();
     if (!storage_path || !idempotency_key) {
       return json({ error: "storage_path and idempotency_key are required" }, 400);
     }
@@ -106,9 +106,8 @@ serve(async (req) => {
       return json({ error: "storage_path does not belong to you" }, 403);
     }
 
-    // (Step 6B) task_id/proof_id, if given, must also belong to this student -
-    // otherwise a completed transcript could be attached to someone else's
-    // task or proof.
+    // (Step 6B) task_id must belong to this student - otherwise a completed
+    // transcript could be attached to someone else's task.
     if (task_id) {
       const { data: task } = await supabase.from("tasks")
         .select("id").eq("id", task_id).eq("student_id", profile.id).maybeSingle();
@@ -121,19 +120,14 @@ serve(async (req) => {
       if (!sub) {
         return json({ error: "Submit your work first, then record your explanation.", code: "submission_required" }, 409);
       }
-    } else if (!proof_id) {
+    } else {
       return json({ error: "task_id is required", code: "task_required" }, 400);
-    }
-    if (proof_id) {
-      const { data: proof } = await supabase.from("proof_uploads")
-        .select("id").eq("id", proof_id).eq("student_id", profile.id).maybeSingle();
-      if (!proof) return json({ error: "proof_id does not belong to you" }, 403);
     }
 
     const { data: inserted } = await supabase.from("voice_explanations").insert({
       student_id: profile.id,
       task_id: task_id ?? null,
-      proof_id: proof_id ?? null,
+      proof_id: null,   // the proof link is retired; a recording belongs to a submission
       storage_path,
       duration_seconds: duration_seconds ?? null,
       transcript: null,

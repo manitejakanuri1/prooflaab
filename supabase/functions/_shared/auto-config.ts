@@ -34,6 +34,20 @@ export interface ScenarioSpec {
   promptBody: string;
   /** Extra JSON fields the caller wants back alongside the grading config, e.g. {title: '...', scenario: '...'}. */
   fields: Record<string, string>;
+  /**
+   * Optional wording check on the model's reply, run before anything is
+   * executed or stored. Each returned problem is fed back on the next attempt;
+   * a reply with problems is never accepted (lot-wording.ts).
+   */
+  validate?: (parsed: Record<string, unknown>, mode: AutoConfigMode) => string[];
+}
+
+function wordingProblems(content: ScenarioSpec | FixedContent, parsed: Record<string, unknown>, mode: AutoConfigMode): string[] {
+  return content.kind === "scenario" && content.validate ? content.validate(parsed, mode) : [];
+}
+
+function wordingRetry(problems: string[]): string {
+  return `\n\nYour previous reply broke the wording rules:\n- ${problems.join("\n- ")}\n\nRewrite it so every rule is met.`;
 }
 
 export interface FixedContent {
@@ -203,6 +217,12 @@ export async function tryGenerateSandbox(
     const parsed = parseJson(text);
     if (!parsed) continue;
     lastFields = parsed;
+    const wording = wordingProblems(content, parsed, "sandbox");
+    if (wording.length) {
+      console.warn(`LOT WORDING REJECTED (${feature}): ${wording.join(" | ")}`);
+      retryNote = wordingRetry(wording);
+      continue;
+    }
     const fields = parseSandboxFields(parsed);
     if (!fields) continue;
 
@@ -245,6 +265,12 @@ async function tryGenerateRubric(
     const parsed = parseJson(text);
     if (!parsed) continue;
     lastFields = parsed;
+    const wording = wordingProblems(content, parsed, "rubric");
+    if (wording.length) {
+      console.warn(`LOT WORDING REJECTED (${feature}): ${wording.join(" | ")}`);
+      retryNote = wordingRetry(wording);
+      continue;
+    }
     let fields = parseRubricFields(parsed);
     if (!fields) continue;
     if (fixedCriteria) fields = { ...fields, criteria: fixedCriteria };

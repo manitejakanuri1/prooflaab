@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import CodeSnapshot from "./CodeSnapshot";
+import { splitLotSections } from "@/lib/lotSections";
 
 /** Text with `backtick` spans shown as inline code. No markdown library needed. */
 export const InlineText = ({ text }: { text: string }) => (
@@ -49,6 +50,26 @@ const TODO = /\b(your job|your task|you need to|you must|you will|you'll|open |w
  * split cleanly still shows whole in the first card.
  */
 export const BriefCards = ({ text, tone = "default" }: { text: string; tone?: "default" | "paper" }) => {
+  // A Lot written to the wording contract (3 Oct 2026) carries its own labels:
+  // show them as they are, in order, instead of guessing groups from sentences.
+  const sections = splitLotSections(text);
+  if (sections) {
+    const box = tone === "paper" ? "border-[#d8d1c1] bg-[#faf7ef]" : "bg-card";
+    const tag = tone === "paper" ? "text-[#6b6559]" : "text-muted-foreground";
+    const literal = new Set(["Input", "Output", "Example"]);
+    return (
+      <div className="space-y-2">
+        {sections.map((sec, i) => (
+          <div key={`${sec.label}-${i}`} className={`rounded-lg border p-3 ${box}`}>
+            <p className={`font-mono text-[10px] uppercase tracking-widest ${tag}`}>{sec.label === "Context" ? "The situation" : sec.label}</p>
+            <p className={`mt-1 text-sm leading-relaxed whitespace-pre-wrap ${literal.has(sec.label) ? "font-mono" : ""}`}>
+              <InlineText text={sec.text} />
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
   const groups: { title: string; items: string[] }[] = [
     { title: "The situation", items: [] },
     { title: "What to do", items: [] },

@@ -1,6 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { secretMatches } from "../_shared/secret.ts";
+import { pagesNeedingLots, reopenForRewrite, writeLotTemplate } from "../_shared/lot-pipeline.ts";
 
 /**
  * The timed jobs, triggered by Google Cloud Scheduler.
@@ -23,6 +24,7 @@ const JOBS: Record<string, string> = {
   'weekly-progress':  'notify_weekly_progress',  // Sunday 23:45 IST
   'weekly-plan':      'plan_all_weeks',          // Monday 08:00 IST
   'prune-events':     'prune_app_events',        // daily  03:10 IST (keeps the step trail 90 days)
+  // 'pregenerate-lots' (no RPC; handled above): writes Lots before 05:40 IST.
 };
 
 const reply = (body: unknown, status = 200) =>
@@ -39,6 +41,30 @@ serve(async (req) => {
   }
 
   const job = new URL(req.url).searchParams.get('job') ?? '';
+
+  // Writes Lots before students arrive (Wave 4): pages with no Lot, a seed Lot,
+  // or a Lot whose stored wording breaks the contract. Bounded per run (each page
+  // costs up to ~7 AI calls, once, for every future student) and run in parallel
+  // so a batch fits well inside the 300 s request limit.
+  if (job === 'pregenerate-lots') {
+    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    const limit = Math.min(3, Math.max(1, Number(new URL(req.url).searchParams.get('limit') ?? 3) || 3));
+    const pages = await pagesNeedingLots(db, limit);
+    const started = Date.now();
+    const results = await Promise.all(pages.map(async (id) => {
+      try {
+        await reopenForRewrite(db, id);
+        return { id, ...(await writeLotTemplate(db, id, null)) };
+      } catch (e) {
+        return { id, written: false, reason: (e as Error).message };
+      }
+    }));
+    const written = results.filter((r) => r.written).length;
+    console.log(`scheduled-job pregenerate-lots: ${written}/${pages.length} written in ${Date.now() - started}ms`, JSON.stringify(results).slice(0, 800));
+    if (pages.length && !written) console.error(`JOB SANITY: pregenerate-lots wrote 0 of ${pages.length} pages`);
+    return reply({ ok: true, job, pages: pages.length, written, results });
+  }
+
   const fn = JOBS[job];
   if (!fn) return reply({ error: 'unknown job' }, 400);
 

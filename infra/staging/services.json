@@ -171,7 +171,7 @@
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-93675c0",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-b89219d",
   "ingress": "all",
   "max_instances": "2",
   "memory": "1Gi",

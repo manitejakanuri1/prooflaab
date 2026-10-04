@@ -65,7 +65,7 @@ def plan(stage, users):
             out.append({"n": n, "task": t["id"], "kind": "code", "code": code, "expect": "failed" if wrong else "passed"})
         else:
             c = rub[t["rubric_config_id"]]
-            off = ("I like cricket and my favourite food is biryani. " * 40) if wrong else c["reference_answer"]
+            off = ("I like cricket and my favourite food is biryani. " * 18) if wrong else c["reference_answer"]
             out.append({"n": n, "task": t["id"], "kind": "written", "answer": off, "expect": "not_passed" if wrong else "graded"})
     return out
 

@@ -12,7 +12,7 @@ Do it at a quiet hour (late evening IST; never 05:30–06:00 when nightly jobs r
 
 | # | Step | Who |
 |---|---|---|
-| 0.1 | Request the Cloud Run CPU quota (see `CLOUD-CAPACITY-PLAN.md`: 100 vCPU while staging shares the project) | Owner |
+| 0.1 | Release target is 2,000 students on the current 20-vCPU quota; no quota request in this release. Read `CONCURRENCY-2000-REPORT.md` for the measured limit before choosing the rollout day | Owner |
 | 0.2 | Decide the monthly budget (`COST-CONTROL-PLAN.md`) | Owner |
 | 0.3 | Decide XP timing (report §12) — no change is needed to roll out | Owner |
 | 0.4 | Recommended: rehearse Stage 2 on a temporary copy of production (restore the latest backup into a throw-away Cloud SQL instance, run the whole sequence, delete it). This is the only way to test the migrations against production's own data and function bodies. Needs a yes because it reads a production backup. | Owner yes, Claude runs |

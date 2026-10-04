@@ -158,3 +158,12 @@ Order of work: `docs/FINAL-IMPLEMENTATION-DEPENDENCY-PLAN-2026-10-03.md`.
 | 2026-10-03 | Wave 1 (branch work/stabilization): F3 telemetry via backend.ts + `/ready` telemetry field; AI 90 s timeouts; N20 migration 50 (staging applied); N21 hidden tests redacted in resume Submit, full denominator; TypeScript removed from resume language map; F10 public runners off by default; F6 safe sync (grace, ceiling, dry run, alert line) + migration 51 ledger; F4 verified-only linking (migration 51 RPC); N25 password-link only for logins created < 1 h ago and never for admins; F7 constant-time webhook checks. Staging probes: N20, F8, F9 confirmed before the fix | Claude | `migration/50*`, `migration/51*`, `accounts/test_sync_plan.py`, deno tests 94/94 |
 | 2026-10-03 | Correction: `prooflab-staging-inspect4` is the staging SQL runner (psql via `prooflab-staging-db-uri`), not a leftover | Claude | job spec read 3 Oct |
 | 2026-10-03 | File created from the pin-to-pin discovery (read-only; no system changes) | Claude | `docs/FINAL-FULL-PROJECT-PIN-TO-PIN-DOSSIER-2026-10-03.md` |
+
+
+## Evaluation and 2,000-student readiness (4 Oct 2026)
+
+- How every score is made, stored and shown: `docs/EVALUATION-ENGINE-AUDIT.md`. Authoritative results: `task_submissions` (via `record_task_submission`) and the scored, current, not-withdrawn `voice_explanations` row.
+- Evaluators never store a score when the AI failed: voice (failed, no score), written (503), mock interview (502, interview stays open), resume test (503, nothing saved).
+- Student text is fenced from the graders' instructions (written, resume test, voice from `voice-eval-3`).
+- Daily Lots run in batches of 250 students per call.
+- Concurrency on staging, shared 20-vCPU quota: `docs/CONCURRENCY-2000-REPORT.md` (clean at 100; voice processing is the first limit).

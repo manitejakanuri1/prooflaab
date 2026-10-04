@@ -1,5 +1,8 @@
 # Cost control plan
 
+> **Release target (4 Oct 2026): 2,000 students** on the current 20-vCPU quota. The 15,000-student figures in this document come from a historical scalability experiment on staging (real runs, kept as evidence). They are not this release's target, and no quota request is part of this release. Current evidence: `CONCURRENCY-2000-REPORT.md`.
+
+
 3 Oct 2026. **Estimates built from staging measurements — not a bill.** The owner decides the budget; nothing about the budget or the product's behaviour was changed.
 
 ## What was measured (staging `llm_usage`, DeepSeek list price, ₹84 per US$)

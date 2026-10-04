@@ -1,5 +1,8 @@
 # Cloud capacity plan
 
+> **Release target (4 Oct 2026): 2,000 students** on the current 20-vCPU quota. The 15,000-student figures in this document come from a historical scalability experiment on staging (real runs, kept as evidence). They are not this release's target, and no quota request is part of this release. Current evidence: `CONCURRENCY-2000-REPORT.md`.
+
+
 3 Oct 2026. Source: `infra/production/services.json`, `infra/staging/services.json` (read from the live project) and the staging load tests. **Nothing here has been changed in production and no quota request has been made** — that is the owner's action.
 
 ## The limit today

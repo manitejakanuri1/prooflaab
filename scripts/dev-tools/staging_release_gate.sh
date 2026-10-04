@@ -48,7 +48,7 @@ gate "suspended account, old ticket refused" python scripts/dev-tools/staging_su
 gate "evaluator type integrity"           python scripts/dev-tools/staging_evaluator_type_check.py
 gate "infrastructure matches infra/"      python scripts/infra_snapshot.py --check
 
-echo "== staging scale (15,000 synthetic students)"
+echo "== staging scale (historical 15,000-student dataset; release target is 2,000)"
 gate "screen queries + nightly jobs"      python scripts/dev-tools/staging_scale_check.py --jobs
 if [ "$MODE" != "quick" ]; then
   gate "daily Lots: success / partial / failure" python scripts/dev-tools/staging_daily_lots_status_check.py

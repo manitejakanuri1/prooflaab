@@ -828,3 +828,155 @@ The manifest now lists `notify_all_admins` as **server_only** (27 signatures). T
 
 ### 13. Production
 **UNVERIFIED** for every item above: no production database access was used.
+
+## 18. D3 and D4 (staging, 5 Oct 2026)
+
+- Starting commit `b178627`. Code commit `c5a07f5`. Migrations **84** and **85**. Staging only.
+- Inventory files:
+  - `e2e-out/d4-inventory.json`: 289 functions; made by `scripts/dev-tools/d4_function_inventory.py`.
+  - `e2e-out/d4-classification.json`: 177 exposed functions with their class.
+
+### D3: admin_users
+**Original state (MEASURED):**
+- The view is `select … from user_roles r join auth.users u … where r.role = 'admin' and is_admin()`.
+- Owner `postgres`. No `security_invoker`, no `security_barrier`.
+- Grants: anon / authenticated / service_role = `arwdDxtm`.
+- `INSTEAD OF INSERT/UPDATE` triggers call `admin_users_write()` (security definer, fixed search_path). That function:
+  - refuses unless `is_admin()`;
+  - on insert, only promotes an existing account to admin;
+  - on update to a non-active status, deletes the role, but refuses for yourself or the last admin.
+- DELETE is not supported: the view is a join, so it is not auto-updatable.
+- Underlying `user_roles` has RLS on, with policies `own_select`, `admin_insert/update/delete` and `self_claim`. `auth.users` is not exposed.
+- Callers:
+  - browser: Admin → System Settings (select / insert / update);
+  - no server or SQL caller.
+- Migration 13 granted `authenticated` on purpose. Migration 02 recreated the view with broad defaults.
+
+**Attack test (MEASURED, API):**
+
+| Caller | GET | POST (make Student B admin) | PATCH status = inactive | DELETE |
+|---|---|---|---|---|
+| anonymous | 0 rows | 400 `P0001 only an administrator…` | 0 rows | 500 `55000 cannot delete from view` |
+| student | 0 rows | 400 `P0001` | 0 rows | 500 `55000` |
+| college (TPO) | 0 rows | 400 `P0001` | 0 rows | 500 `55000` |
+| admin | 1 row | allowed (rolled-back SQL; B became admin, 0 after rollback) | — | — |
+
+Admin rows stayed 1 → 1, and B's role stayed `student`.
+
+**Decision:** SAFE in behaviour, but the grants were too wide.
+
+**Fix (migration 84):**
+- anon: nothing.
+- authenticated: SELECT / INSERT / UPDATE only (the admin screen uses exactly these).
+- `security_barrier = true`, so `is_admin()` is evaluated before any caller filter.
+- After the fix: anonymous GET / POST / PATCH → 401. Student and TPO unchanged (empty / refused). Admin read 200.
+- **D3 CLOSED** (MEASURED).
+
+### D4: inventory and classes
+Reviewed: the **177 functions that anon or authenticated could execute** (non-trigger), plus 30 trigger functions.
+- Trigger functions cannot be called directly: Postgres refuses unless the call comes from a trigger.
+- 98 of the 177 are security definer. **All 98 have a fixed `search_path`** (MEASURED; now a gate rule).
+
+| Class | Count | What |
+|---|---|---|
+| B SQL_INTERNAL | 11 | 10 security-invoker season / squad helpers + `squad_championship_achievements`; execute revoked in 84 |
+| C POLICY_HELPER | 7 | used by RLS policies; must stay executable |
+| D ADMIN_ONLY | 13 | body checks `is_admin()` (gate rule + behaviour) |
+| E USER_SELF_SERVICE | 27 | answer only about `auth.uid()` |
+| F COLLEGE/TPO_SCOPED | 32 | keyed on `my_college_id()` (approved colleges only) or `college_owns_student` |
+| G RECRUITER_SCOPED | 9 | keyed on `my_recruiter_id()` + `is_verified_recruiter()` |
+| H COMPANY_SCOPED | 3 | keyed on `my_company_ok()` + task ownership |
+| I PUBLIC_READ_ONLY_INTENTIONAL | 69 | 67 pgcrypto / pg_trgm functions (security invoker, no table access; most cannot be called through the API at all because their arguments have no names) + `check_answer`, `template_key` (pure) |
+| J LEGACY_UNUSED | 6 | `placement_questions`, `submit_placement`: revoked (unsafe). `my_shortlists`, `respond_to_shortlist`: kept (documented API, own data only; 85 fixes the anonymous hole). `get_leaderboard` (used by the scale gate, college-scoped) and `topic_priorities` (fixed in 82): kept |
+| K UNSAFE | 0 left | 2 found and fixed (85) |
+| L UNKNOWN | **0** | |
+
+The former 79 `pending_review` became 69 public pure functions and 10 SQL-internal ones. The manifest now records `d4_class` for every exposed signature.
+
+### D4 and table findings, with fixes
+| # | Finding | Severity | Proof (MEASURED) | Status |
+|---|---|---|---|---|
+| 1 | Any signed-in student could insert their own `recruiters` row with `verified = true`. `is_verified_recruiter()` then became true, opening `recruiter_talent`, `recruiter_proof_profile` (student e-mail / phone) and shortlisting | **HIGH** | rolled-back SQL as Load Student 14607: `is_verified_recruiter() = true` | **fixed (84)**: `keep_approval_closed()` trigger |
+| 2 | …own `startups` row as `approved`, giving `my_company_ok() = true` | **HIGH** | same: `true` | **fixed (84)** |
+| 3 | …own `colleges` row as `approved`, giving `my_college_id()` set (a college dashboard) | **HIGH** | same: a college id | **fixed (84)** |
+| 4 | An unverified recruiter could `PATCH verified = true` on itself | **HIGH** | staging test recruiter "Step 6K Test Co": `true` | **fixed (84)** |
+| 5 | A pending college could set itself `approved` | **HIGH** | LOADTEST College 07 set pending in the transaction → `approved` | **fixed (84)** |
+| 6 | `respond_to_shortlist`: `row.student_id <> me` is NULL for an anonymous caller, so the check passed | **HIGH** | an anonymous API call declined a synthetic shortlist (`f91a745e…`, test student `99999999-0001…`). Restored to `student_response = null`, `responded_at = null` (INFERRED original: the row had been created by tests as `sponsored`) | **fixed (85)**; anonymous → 401 |
+| 7 | `save_mock_interview_answer`: same pattern (append answers to any open interview) | **HIGH** | CODE (staging has 0 mock interviews) | **fixed (85)**; the gate fails if any security-definer function compares to `auth.uid()` with `<>` |
+| 8 | `placement_questions(_student_id)` trusted a caller-supplied id (another student's tracks; quiz content to anonymous) | MEDIUM | CODE + anonymous sweep | **fixed (84)**: revoked (unused) |
+| 9 | `squad_championship_achievements` had no caller check | LOW | CODE | **fixed (84)**: revoked (SQL-internal) |
+| 10 | `submit_placement` let a student write their own topic ratings from client results | MEDIUM | CODE | **fixed (84)**: revoked (unused) |
+| 11 | anon / authenticated hold `TRUNCATE`, `REFERENCES`, `TRIGGER` on existing tables. TRUNCATE ignores RLS | MEDIUM | rolled-back SQL as a student: `truncate public.rate_limits` succeeded. Not reachable through the API (PostgREST never truncates; no function runs caller SQL) | **open, for approval**: `revoke truncate, references, trigger on all tables in schema public from anon, authenticated` |
+| 12 | A student can insert their own `student_credits` row (99,999 credits, premium) | LOW | rolled-back SQL. The table has 0 rows and no code reads it | open, for approval (clamp or drop the policy) |
+| 13 | `review_task_submission` says "not awaiting review" before checking who is asking | LOW | API: reveals only a submission's review state to someone who already has its id | open, for approval |
+
+### Cross-tenant tests (MEASURED, `staging_d4_behaviour_check.py`, permanent gate step)
+- **Synthetic actors:**
+  - Load Student 14607 (A, college 7), 14608 (B, college 8) and 14617 (college 7);
+  - LOADTEST College 07 and 08 TPOs;
+  - staging admin;
+  - verified test company (Probe Co) and unverified test recruiter (Step 6K Test Co).
+- **Anonymous sweep:** all **196** API-exposed functions, called with real, valid-shaped ids. Every one is refused or returns nothing, except the intentional public ones (pure helpers, the track catalogue, global default squad themes / scoring).
+- **Admin-only:** the 13 admin functions are refused to a student, a college and a company; they work for the admin.
+- **51 targeted calls**, all as designed:
+  - A → B: profile, learning, topic priorities, portfolio, task views, voice withdraw, submission review, shortlist answer — refused or empty;
+  - TPO 7 → college-8 student or squad: profile, learning, reminders, squad assign / update, cohorts, leaderboard, awards — refused;
+  - TPO 8 → own student: allowed;
+  - college 7's review list holds only college-7 students;
+  - unverified recruiter → talent, proof profile, shortlist, outcome: refused;
+  - student / TPO / unverified recruiter → company submissions: refused.
+- **Self-approval through the API** (rows removed after): recruiter, company and college stay unverified / pending; self-verify refused.
+- **Student B state unchanged:**
+  - task, submission, voice and notifications;
+  - role, profile, squad membership and squads;
+  - shortlist, reminders.
+
+### Security-definer review (MEASURED)
+- 98 security-definer functions are exposed. All have `search_path = public, pg_temp`.
+- No security-definer function compares to `auth.uid()` with `<>` (gate rule).
+- Every exposed security-definer function is in a reviewed class (C–H, J). Unknown or new ones fail the gate.
+- **Caller-supplied ids:**
+  - `topic_priorities`, `tpo_student_*`, `portfolio_work`, `assign_to_squad`, `tpo_send_reminder`, `admin_notify_student` check ownership against `auth.uid()` / `my_college_id()` / `is_admin()` (behaviour-tested).
+  - `placement_questions` did not, and is now revoked.
+
+### Table-grant review (MEASURED)
+- 83 tables, **RLS enabled on all 83** (none forced; the owner is `postgres`).
+- 7 tables have no anon / authenticated grants.
+- 19 have RLS with no policy, so they are backend-only.
+- 34 have write policies; all were reviewed. The holes were in `recruiters`, `startups` and `colleges` (fixed).
+- Protected by triggers (MEASURED: writes clamped):
+  - `tasks`, `student_profiles`, `task_assignments` and `voice_explanations` (`protect_columns` / `protect_student_profile_columns` / `guard_voice_explanations_insert`);
+  - a student's update of own task status / XP, total XP, college → unchanged.
+- Readable by any signed-in user by design: `levels`, `level_tracks`, `badges`, `quests`, `track_phases`.
+- New tables are closed by default (D2).
+
+### Remaining
+- Findings 11–13 (MEDIUM / LOW, not reachable as HIGH) wait for approval.
+- **Production: UNVERIFIED.** Nothing here was run against production.
+- **Capacity: NOT VERIFIED** (unchanged; the gate's two load steps were deliberately skipped with `noload`).
+
+### Regression after D3 / D4 (MEASURED)
+**Gate run:**
+- `bash scripts/dev-tools/staging_release_gate.sh noload` → `FINAL STAGING RELEASE GATE: PASS (commit c5a07f5, 2026-10-04T19:42Z)`, exit 0, **29 of 29** steps.
+- The two load steps were skipped on purpose: capacity is not part of this task.
+- The 29 include:
+  - database permissions 19/19, database behaviour 10/10;
+  - screen queries + nightly jobs 27/27, daily Lots 5/5, crawler 11/11, bug-finder 4/4;
+  - real voice 17/17, browser journeys 31/31.
+
+**Separately:**
+- D1 regression 10/10.
+- A plain code run returned `5`.
+- weekly-seasons scored 1 and advanced 10 synthetic seasons; nightly-squads and extend-fixtures ok.
+- No "permission denied" in staging logs.
+
+**Staging errors in the gate window** (no hidden test reruns; no "no available instance"):
+
+| Count | Where | Cause |
+|---|---|---|
+| 4 × 500 | API `admin_users` | the gate's own DELETE probes (`55000 cannot delete from view`, a refusal) |
+| 3 × 500 | API `dearmor` / `pgp_armor_headers` / `pgp_key_id` | the anonymous sweep sending dummy text to pgcrypto (input errors, no data) |
+| 1 × 500 | functions `scheduled-job` | the daily-Lots step's deliberate "2,000 students fail" case |
+| 37 × 500 | voice worker | **application retries**: the worker kept retrying (attempts 5–7, then released) recordings whose audio file does not exist (HTTP 404 from storage). These are fixture rows made by the voice-binding check, not user recordings. The queue is empty afterwards |
+
+**Production:** 0 errors in the window.

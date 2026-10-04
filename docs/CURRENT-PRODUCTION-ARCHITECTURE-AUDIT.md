@@ -711,3 +711,120 @@ The D2 migration (§15) should therefore also:
 | 1 × 500 | functions `scheduled-job?job=daily-lots` | the daily-Lots check's deliberate "2,000 students fail" case |
 
 **Production:** 0 errors during the run.
+
+## 17. Last two D1b functions (migration 82) and D2 safe defaults (migration 83), staging, 4 Oct 2026
+
+Starting commit `21f626c`. Code commits `4f0a9c8` (82) and `89971b0` (83 + gate). Staging only.
+
+### 1. topic_priorities: BEFORE (MEASURED)
+- `topic_priorities(uuid,integer)`, security definer, owner `postgres`.
+- PUBLIC, anon, authenticated and service_role could all execute it.
+- The body read `topic_ratings` for whatever `_student_id` it was given, with **no check of the caller** (CODE).
+- No browser, server or SQL caller exists; only `src/integrations/supabase/types.ts` lists it.
+- Probe with synthetic students: Student B (Load Student 14607, college 7) with one seeded rating (python 1225). B's rating was returned to:
+  - an **anonymous** caller;
+  - a same-college student (14617);
+  - an **other-college** student (14608);
+  - the other college's TPO.
+
+### 2. topic_priorities: FIX (migration 82, CODE)
+- It now answers only when the caller is one of:
+  - `auth.role() = 'service_role'` (backend);
+  - `is_admin()`;
+  - the student themself (`student_profiles.id = _student_id and user_id = auth.uid()`);
+  - the **approved college that owns the student** (`college_owns_student(student's college_id)`).
+- These are existing helpers; there is no new authorization model.
+- Otherwise: `42501 not allowed`.
+- EXECUTE removed from PUBLIC and anon; kept for authenticated and service_role.
+
+### 3. topic_priorities: ATTACK TEST (MEASURED, API)
+
+| Caller | Expected | Got |
+|---|---|---|
+| A anonymous | denied | **401** permission denied |
+| B Student B → own | allowed | 200 (own rating) |
+| C same-college student → B | denied | **403** not allowed |
+| D other-college student → B | denied | **403** |
+| E1 B's college TPO → B | allowed | 200 |
+| E2 other college's TPO → B | denied | **403** |
+| E3 admin → B | allowed | 200 |
+| F backend (service key) | allowed | 200 |
+
+The migration's own self-check also proved, in its transaction, that a student cannot read another student's priorities and can read their own.
+
+### 4. notify_all_admins: BEFORE (MEASURED)
+- `notify_all_admins(text,text,text,text)`, security definer.
+- PUBLIC, anon, authenticated and service_role could all execute it.
+- The body inserted a notification for every admin with **no caller check**.
+- No caller anywhere in the code or the database.
+- Inside a **rolled-back transaction**: an anonymous call created 1 admin notification and a student call created 1 more. After the rollback: 0. Nobody was notified.
+
+### 5. notify_all_admins: FIX (migration 82)
+- **Backend only:** EXECUTE revoked from PUBLIC, anon, authenticated; granted to service_role.
+- The body also refuses unless `auth.role() = 'service_role'` or `is_admin()`.
+
+### 6. notify_all_admins: ATTACK TEST (MEASURED)
+- Through the API:
+  - anonymous **401**;
+  - student **403**;
+  - TPO **403**;
+  - admin directly through the API **403** (backend-only by design).
+- **0 notification rows created** by those calls.
+- The backend path works:
+  - in a rolled-back transaction: 1 row for the 1 staging admin, 0 after rollback;
+  - in the gate: one call with the service key, then the row is removed.
+
+### 7. D2: BEFORE (MEASURED, `pg_default_acl`)
+- Only `postgres` owns application objects (86 tables, 5 sequences, 289 functions) and runs migrations.
+- Defaults for objects it creates in `public`:
+  - tables: `anon=arwdDxtm`, `authenticated=arwdDxtm`, `service_role=arwdDxtm`;
+  - sequences: `rwU` each;
+  - functions: `X` each, plus Postgres's built-in PUBLIC execute.
+
+### 8. D2: NEW DEFAULTS (migration 83)
+```
+alter default privileges for role postgres in schema public revoke all on tables    from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public revoke execute on functions from anon, authenticated;
+alter default privileges for role postgres revoke execute on functions from public;   -- built-in default, global only
+```
+- service_role keeps its defaults.
+- **Existing objects are unchanged.**
+- The migration explains how future migrations must grant explicitly:
+  - RLS + policy + `grant select` for tables users read;
+  - `grant usage` on sequences users insert through;
+  - `grant execute` only on functions users call.
+
+### 9. D2: TEMPORARY-OBJECT PROOF (MEASURED)
+- Migration 83 itself created `__d2_probe_table` (with a bigserial sequence) and `__d2_probe_fn()`.
+  - It checked that anon / authenticated have no table, sequence or function rights, PUBLIC has no execute, and service_role keeps access.
+  - It then dropped both and committed.
+- The permanent gate repeats this every run, in a transaction that is **rolled back**: `__gate_d2_probe`. Result:
+  - open = [] for anon / authenticated / PUBLIC;
+  - service_role table / function = t / t.
+- 0 probe objects remain (checked).
+
+### 10. Permanent gate (`staging_rpc_authz_check.py`, now 17 checks; gate step "database permissions (D1, D1b, 82, D2 defaults)")
+New behaviour tests:
+- `topic_priorities`: anonymous 401, same-college 403, other-college 403, other college's TPO 403; self 200, owning TPO 200, admin 200, backend 200.
+- `notify_all_admins`: anonymous, student, TPO, admin via the API all refused with 0 rows; the backend path works.
+- D2: the rolled-back probe objects are closed.
+- No existing table is writable by anon / authenticated without RLS.
+- No probe objects are left.
+
+The manifest now lists `notify_all_admins` as **server_only** (27 signatures). The `flagged` list is empty.
+
+### 11. Rollback (both labelled UNSAFE EMERGENCY ROLLBACK)
+- `migration/82-rollback-…`: restores the old open functions.
+- `migration/83-rollback-…`: restores the open defaults.
+
+### 12. Remaining
+- **D3 (LOW)** `admin_users` view: no `security_invoker`. Measured not auto-writable; writes go through `INSTEAD OF` triggers that call `admin_users_write()` (checks `is_admin()`).
+- **D4:**
+  - 79 `pending_review` functions, mostly not security definer, so RLS applies.
+  - The 79 user-callable functions rely on their own checks.
+  - The legacy user functions with no current screen (placement, shortlists, …) could be retired.
+- **Existing tables** still carry the old broad table grants to anon / authenticated. RLS is on for every table (gate-checked), so this is defence in depth rather than an open hole. Tightening them is a separate, larger change.
+
+### 13. Production
+**UNVERIFIED** for every item above: no production database access was used.

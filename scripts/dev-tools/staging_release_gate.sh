@@ -5,6 +5,7 @@
 #
 #   bash scripts/dev-tools/staging_release_gate.sh            # everything (about 15 minutes, a few paise of AI)
 #   bash scripts/dev-tools/staging_release_gate.sh quick      # no browser, no real-audio run
+#   bash scripts/dev-tools/staging_release_gate.sh noload     # everything except the two load steps
 #
 # Prints PASS/FAIL per gate and exits non-zero if any gate fails.
 set -uo pipefail
@@ -46,7 +47,8 @@ gate "student import all-or-nothing"      python scripts/dev-tools/staging_impor
 gate "service identity (Scheduler, runner)" python scripts/dev-tools/staging_identity_check.py
 gate "suspended account, old ticket refused" python scripts/dev-tools/staging_suspended_check.py
 gate "evaluator type integrity"           python scripts/dev-tools/staging_evaluator_type_check.py
-gate "database permissions (D1, D1b, 82, D2 defaults)" python scripts/dev-tools/staging_rpc_authz_check.py
+gate "database permissions (D1-D4, D2 defaults)" python scripts/dev-tools/staging_rpc_authz_check.py
+gate "database behaviour (D3, D4, cross-tenant)" python scripts/dev-tools/staging_d4_behaviour_check.py
 gate "infrastructure matches infra/"      python scripts/infra_snapshot.py --check
 
 echo "== staging scale (historical 15,000-student dataset; release target is 2,000)"
@@ -60,8 +62,10 @@ if [ "$MODE" != "quick" ]; then
   gate "crawler: source to student-ready Lot"  python scripts/dev-tools/staging_crawler_e2e.py
   gate "bug-finder job (plumbing run)"        python scripts/dev-tools/staging_bugfinder_check.py
   gate "real audio through the voice pipeline" python scripts/dev-tools/staging_voice_e2e.py
+  if [ "$MODE" != "noload" ]; then
   gate "code runner under load (10, 20 students)" bash -c 'out=$(python scripts/dev-tools/staging_load_test.py runcode 10 20); echo "$out"; [ "$(echo "$out" | grep -c "errors=0 ")" = "2" ] && echo "2/2 checks passed"'
   gate "voice burst (10 recordings at once)"  bash -c 'out=$(python scripts/dev-tools/staging_load_test.py voice e2e-out/loadvoice.wav 10); echo "$out"; echo "$out" | grep -q "scored=10 failed=0" && echo "1/1 checks passed"'
+  fi
   gate "browser journeys (all roles)"       node scripts/dev-tools/staging_browser_e2e.mjs
 fi
 

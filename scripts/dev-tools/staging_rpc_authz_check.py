@@ -35,7 +35,8 @@ open(sql, "w", encoding="utf-8", newline="\n").write("\n".join([
     "select 'FN', p.oid::regprocedure, has_function_privilege('anon',p.oid,'execute'), "
     "has_function_privilege('authenticated',p.oid,'execute'), has_function_privilege('service_role',p.oid,'execute'), "
     "coalesce((select bool_or(a.grantee=0) from aclexplode(p.proacl) a), true), p.prorettype::regtype, "
-    r"(p.prosrc ~* 'is_admin\(\)|has_role\(') "
+    r"(p.prosrc ~* 'is_admin\(\)|has_role\('), p.prosecdef, "
+    r"coalesce(array_to_string(p.proconfig, ',') ~ 'search_path=', false) "
     "from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind='f';"]) + "\n")
 r = subprocess.run(["bash", "scripts/dev-tools/staging_sql.sh", "e2e-out/rpc-authz.sql"], capture_output=True, text=True, cwd=ROOT)
 ex = r.stdout.strip().split("(")[-1].rstrip(")")
@@ -45,9 +46,9 @@ log = subprocess.run(f'gcloud logging read "resource.type=cloud_run_job AND labe
 acl = {}
 for line in log.splitlines():
     if line.startswith("FN|"):
-        _, sig, anon, auth, svc, pub, rt, guard = line.split("|")
+        _, sig, anon, auth, svc, pub, rt, guard, secdef, path = line.split("|")
         acl[sig] = {"anon": anon == "t", "authenticated": auth == "t", "service_role": svc == "t", "PUBLIC": pub == "t",
-                    "trigger": rt == "trigger", "admin_guard": guard == "t"}
+                    "trigger": rt == "trigger", "admin_guard": guard == "t", "secdef": secdef == "t", "fixed_path": path == "t"}
 check("read function privileges on staging", len(acl) > 200, f"{len(acl)} functions")
 
 bad = []
@@ -60,18 +61,23 @@ for sig in M["server_only"]:
 check(f"server-only functions refuse PUBLIC/anon/authenticated ({len(M['server_only'])} signatures)", not bad,
       "; ".join(f"FUNCTION {s} ACTUAL {a} EXPECTED {e}" for s, a, e in bad))
 bad = []
-for sig in M["sql_internal"]:
+for sig in M["sql_internal"] + M["legacy_revoked"]:
     a = acl.get(sig)
     if a is None or a["PUBLIC"] or a["anon"] or a["authenticated"] or not a["service_role"]:
         bad.append((sig, a and {k: a[k] for k in ("PUBLIC", "anon", "authenticated", "service_role")}, "PUBLIC/anon/authenticated false, service_role true"))
-check(f"SQL-internal functions are not directly callable ({len(M['sql_internal'])} signatures)", not bad,
+check(f"SQL-internal and retired functions are not directly callable ({len(M['sql_internal']) + len(M['legacy_revoked'])} signatures)", not bad,
       "; ".join(f"FUNCTION {s} ACTUAL {a} EXPECTED {e}" for s, a, e in bad))
 bad = [s for s in M["admin_only"] if s in acl and (acl[s]["anon"] or acl[s]["authenticated"]) and not acl[s]["admin_guard"]]
 check(f"every directly callable admin function checks is_admin()/has_role() ({len(M['admin_only'])} signatures)", not bad,
       "; ".join(f"FUNCTION {s} ACTUAL callable without is_admin()/has_role() in its body EXPECTED an admin guard" for s in bad))
 bad = [s for s in M["policy_helper"] if s in acl and not acl[s]["authenticated"]]
 check("policy helpers still executable by signed-in users (RLS needs them)", not bad, "; ".join(f"FUNCTION {s} lost authenticated EXECUTE" for s in bad))
-known = set(M["server_only"]) | set(M["sql_internal"]) | set(M["user_callable"]) | set(M["admin_only"]) | set(M["policy_helper"]) | set(M["pending_review"])
+bad = [s for s in M["extension_pure"] + M["public_pure"] if s in acl and acl[s]["secdef"]]
+check("public pure helpers (pgcrypto / pg_trgm / check_answer / template_key) run with the caller's rights", not bad, bad)
+bad = [s for s, a in acl.items() if a["secdef"] and not a["fixed_path"]]
+check("every security-definer function has a fixed search_path", not bad, bad)
+known = set().union(*(set(M[k]) for k in ("server_only", "sql_internal", "legacy_revoked", "user_callable", "admin_only",
+                                           "policy_helper", "extension_pure", "public_pure", "pending_review")))
 new = sorted(s for s, a in acl.items() if not a["trigger"] and (a["anon"] or a["authenticated"]) and s not in known)
 check("no function outside the manifest is executable by anon/authenticated", not new,
       "; ".join(f"FUNCTION {s} ACTUAL {acl[s]} EXPECTED listed in scripts/rpc_manifest.json with a caller class" for s in new))

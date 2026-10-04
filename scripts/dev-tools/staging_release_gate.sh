@@ -46,7 +46,7 @@ gate "student import all-or-nothing"      python scripts/dev-tools/staging_impor
 gate "service identity (Scheduler, runner)" python scripts/dev-tools/staging_identity_check.py
 gate "suspended account, old ticket refused" python scripts/dev-tools/staging_suspended_check.py
 gate "evaluator type integrity"           python scripts/dev-tools/staging_evaluator_type_check.py
-gate "server-only + SQL-internal DB functions refused (D1, D1b)" python scripts/dev-tools/staging_rpc_authz_check.py
+gate "database permissions (D1, D1b, 82, D2 defaults)" python scripts/dev-tools/staging_rpc_authz_check.py
 gate "infrastructure matches infra/"      python scripts/infra_snapshot.py --check
 
 echo "== staging scale (historical 15,000-student dataset; release target is 2,000)"

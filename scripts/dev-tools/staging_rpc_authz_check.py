@@ -35,7 +35,7 @@ open(sql, "w", encoding="utf-8", newline="\n").write("\n".join([
     "select 'FN', p.oid::regprocedure, has_function_privilege('anon',p.oid,'execute'), "
     "has_function_privilege('authenticated',p.oid,'execute'), has_function_privilege('service_role',p.oid,'execute'), "
     "coalesce((select bool_or(a.grantee=0) from aclexplode(p.proacl) a), true), p.prorettype::regtype, "
-    "(p.prosrc ~* 'is_admin\(\)|has_role\(') "
+    r"(p.prosrc ~* 'is_admin\(\)|has_role\(') "
     "from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind='f';"]) + "\n")
 r = subprocess.run(["bash", "scripts/dev-tools/staging_sql.sh", "e2e-out/rpc-authz.sql"], capture_output=True, text=True, cwd=ROOT)
 ex = r.stdout.strip().split("(")[-1].rstrip(")")
@@ -75,6 +75,39 @@ known = set(M["server_only"]) | set(M["sql_internal"]) | set(M["user_callable"])
 new = sorted(s for s, a in acl.items() if not a["trigger"] and (a["anon"] or a["authenticated"]) and s not in known)
 check("no function outside the manifest is executable by anon/authenticated", not new,
       "; ".join(f"FUNCTION {s} ACTUAL {acl[s]} EXPECTED listed in scripts/rpc_manifest.json with a caller class" for s in new))
+
+# ---- 1b. D2: new objects are closed by default (migration 83) ---------------------------------
+open(os.path.join(ROOT, "e2e-out", "d2-defaults.sql"), "w", encoding="utf-8", newline="\n").write("\n".join([
+    r"\pset pager off", r"\pset format unaligned", r"\pset fieldsep |", r"\pset tuples_only on",
+    "begin;",
+    "create table public.__gate_d2_probe (id bigserial primary key);",
+    "create function public.__gate_d2_probe_fn() returns int language sql as 'select 1';",
+    "select 'D2', has_table_privilege('anon','public.__gate_d2_probe','select,insert,update,delete,truncate'), "
+    "has_table_privilege('authenticated','public.__gate_d2_probe','select,insert,update,delete,truncate'), "
+    "has_sequence_privilege('anon','public.__gate_d2_probe_id_seq','usage,select,update'), "
+    "has_sequence_privilege('authenticated','public.__gate_d2_probe_id_seq','usage,select,update'), "
+    "has_function_privilege('anon','public.__gate_d2_probe_fn()','execute'), "
+    "has_function_privilege('authenticated','public.__gate_d2_probe_fn()','execute'), "
+    "(select proacl is null or exists (select 1 from aclexplode(proacl) a where a.grantee=0) from pg_proc where oid='public.__gate_d2_probe_fn()'::regprocedure), "
+    "has_table_privilege('service_role','public.__gate_d2_probe','select,insert'), has_function_privilege('service_role','public.__gate_d2_probe_fn()','execute');",
+    "rollback;",
+    # existing tables: none may be writable by anon/authenticated without row-level security
+    "select 'OPEN', c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' "
+    "and not c.relrowsecurity and (has_table_privilege('anon',c.oid,'insert,update,delete,truncate') or has_table_privilege('authenticated',c.oid,'insert,update,delete,truncate'));",
+    r"select 'LEFT', count(*) from pg_class where relname like '\_\_gate\_d2%' or relname like '\_\_d2\_probe%';"]) + "\n")
+r2 = subprocess.run(["bash", "scripts/dev-tools/staging_sql.sh", "e2e-out/d2-defaults.sql"], capture_output=True, text=True, cwd=ROOT)
+ex2 = r2.stdout.strip().split("(")[-1].rstrip(")")
+log2 = subprocess.run(f'gcloud logging read "resource.type=cloud_run_job AND labels.\\"run.googleapis.com/execution_name\\"={ex2}" '
+                      f'--project=prooflab-508214 --freshness=30m --format="value(textPayload)" --order=asc', shell=True, capture_output=True, text=True).stdout
+d2 = next((l.split("|")[1:] for l in log2.splitlines() if l.startswith("D2|")), None)
+names = ["table:anon", "table:authenticated", "sequence:anon", "sequence:authenticated", "function:anon", "function:authenticated", "function:PUBLIC"]
+opened = [n for n, v in zip(names, d2 or []) if v == "t"]
+check("D2: a newly created table/sequence/function is closed to PUBLIC/anon/authenticated (rolled-back probe)",
+      d2 is not None and not opened and d2[7] == "t" and d2[8] == "t", f"open: {opened}; service_role table/function: {d2[7:] if d2 else None}")
+open_tables = [l.split("|")[1] for l in log2.splitlines() if l.startswith("OPEN|")]
+check("no existing table is writable by anon/authenticated without row-level security", not open_tables, open_tables)
+left = next((l.split("|")[1] for l in log2.splitlines() if l.startswith("LEFT|")), "?")
+check("no probe objects left behind", left == "0", left)
 
 # ---- 2. through the API --------------------------------------------------------------------
 S = "10ad0000-0000-4000-8000-000000014602"

@@ -424,3 +424,184 @@ No service grants `allAuthenticatedUsers`.
 | D2 | Default privileges give `anon` / `authenticated` all table rights, sequence use and function execute on every **new** object in `public` | **HIGH** (systemic): one forgotten `enable row level security` or `revoke` reopens it | fix: `alter default privileges … revoke … from anon, authenticated` and grant explicitly per object |
 | D3 | View `admin_users` has no `security_invoker` and `anon` can SELECT it | LOW (MEASURED: returns `[]` to anon and a student; it filters internally) | add `security_invoker` |
 | D4 | 171 security-definer functions executable by `anon` on staging; most check the caller inside (e.g. `admin_users_write` checks `is_admin()`) | needs a per-function review | the `attack_surface_check.py` / `authz_matrix_check.py` coverage should include direct RPC calls |
+
+## 14. D1: server-only database functions (staging, 4 Oct 2026)
+
+Starting commit `68162b3`. Fix commit `2b9c9a5`. Staging only. Production database and IAM untouched.
+
+### Before (MEASURED, staging)
+- 26 function signatures that only servers call were executable by **PUBLIC, `anon` and `authenticated`** through the API. They had no ACL of their own, so Postgres's default (PUBLIC may execute) applied.
+- One of them, `record_task_submission`, writes a grade, completes the task and pays XP, and has **no caller check inside** (CODE). A student could have written themselves a passed 100.
+- An anonymous call to `account_id_for_email` returned a real account id.
+- The release gate passed 31/31 meanwhile: no step called these functions directly.
+
+### Root cause
+- The migrations that create these functions revoke them (stage 31, 55, 69/70, 70b, 88, `service_role_function_grants`, `remove_students`, …), but the staging database's privileges did not match.
+- The functions carry no ACL at all, so the revokes either never ran there or the functions were recreated later without them. How staging was originally built is not recorded: **INFERRED**.
+- Production refused the two functions probed earlier (401 permission denied). The rest are **UNVERIFIED on production**.
+
+### How the 26 were chosen (`scripts/dev-tools/rpc_caller_audit.py`, CODE + MEASURED)
+- A function is **server-only** when:
+  - no browser code calls it (`supabase.rpc(...)` under `src/`);
+  - a server calls it with the service key (functions, auth-bridge, accounts, scheduled-job);
+  - it is security definer;
+  - the last migration statement about it revokes `anon` / `authenticated`.
+- Every caller was checked to use the service key:
+  - auth-bridge mints a `service_role` token;
+  - accounts uses `service_token()`;
+  - functions use `serviceRest` / the service client.
+
+| Function (exact signature) | Called by |
+|---|---|
+| `account_id_for_email(text)` | accounts, functions backend.ts |
+| `bump_llm_cache_hit(text)` | functions llm.ts |
+| `check_rate_limit(text,text,integer,integer)` | functions rate-limit.ts, backend.ts |
+| `drop_empty_account(uuid)` | create-student-users |
+| `ensure_and_claim_lot_template(uuid)`, `release_lot_template(uuid,uuid)`, `touch_lot_template(uuid,uuid)`, `save_lot_template(…9 args)`, `save_lot_template(…11 args)` | functions lot-pipeline.ts |
+| `extend_all_fixtures()`, `form_all_colleges()`, `notify_weekly_progress()`, `plan_all_weeks()`, `prune_app_events()`, `run_all_seasons()` | scheduled-job (Cloud Scheduler) |
+| `form_squads(uuid,uuid)` | create-student-users |
+| `log_security_event(text,text,text,uuid,text,text,text,jsonb)` | functions audit.ts, security-log |
+| `record_account(text,text,text,boolean)` | functions backend.ts |
+| `record_task_submission(uuid,uuid,uuid,text,text,integer,integer,integer,jsonb,text,integer,uuid,jsonb,text[])` | submit-sandbox-task, submit-written-task |
+| `record_topic_attempt(uuid,text,text,uuid,integer)` | level-quiz-submit |
+| `remove_students(uuid[],uuid,text)`, `student_logins()` | accounts |
+| `resolve_account(text,text,boolean)` | auth-bridge |
+| `similar_written_submission(uuid,uuid,text,real)` | submit-written-task |
+| `touch_streak(uuid)` | voiceScore.ts, mock-interview-score |
+| `touch_template(text)` | resume-coding-generate |
+
+### Migration 80
+- `migration/80-server-only-functions-revoked.sql`, mirrored as `supabase/migrations/20261103003000_server_only_functions_revoked.sql`.
+- What it does:
+  - `revoke all … from public, anon, authenticated`;
+  - `grant execute … to service_role`;
+  - by `regprocedure` (exact signatures).
+- Self-check fails if any of the 26 still has PUBLIC / `anon` / `authenticated` execute, or if `service_role` lost execute.
+- Applied through the ledger: "LEDGER: 80-server-only-functions-revoked applied and recorded", exit 0.
+- Rollback: `migration/80-rollback-server-only-functions-revoked.sql` (re-grants PUBLIC; warned as unsafe).
+
+### Intentionally NOT changed
+- **67 user-callable functions:**
+  - The browser calls them (e.g. `my_todays_lot`, `rubric_task_view`, `sandbox_task_view`, `my_squad_members`).
+  - They stay executable and check the caller inside.
+- **7 admin functions:**
+  - The browser's admin screens call them.
+  - Each checks `is_admin()` inside.
+- **139 "pending review" functions**, still executable by `anon` / `authenticated`. Two groups:
+  - **33 security-definer functions** that the migrations also meant to revoke, but that only other SQL calls. These are the season / squad engine (`run_squad_week`, `settle_round`, `score_student_week`, `close_season`, …), Lot claiming (`create_lot_for`, `claim_lot_template`, `seed_lot_template`), `has_role`, `suggest_tracks`, `write_audit`, `log_activity`, `record_activity`, `refresh_unlock`, `plan_student_week`.
+    - Some may be used inside row-level-security policies, where the caller's own rights are needed.
+    - **Not touched; HIGH; next review (D1b).**
+  - **Other functions** that are not security definer or have no evidence either way (e.g. `pg_trgm` helpers).
+- All are listed by exact signature in `scripts/rpc_manifest.json`.
+
+### Attack tests after the fix (MEASURED, `staging_rpc_authz_check.py`, 7/7)
+
+| Test | Result |
+|---|---|
+| Privileges of all 26 (SQL, by signature) | PUBLIC false, `anon` false, `authenticated` false, `service_role` true |
+| Any function outside the manifest executable by `anon` / `authenticated` | none |
+| 26 functions × (anonymous, student) through the API = 52 calls | all refused (401 / 403 `42501` permission denied, or `PGRST202` "no such function for this role") |
+| Student calls `record_task_submission` for their own task with score 100 / passed | **403 `permission denied for function record_task_submission`** |
+| Anonymous, same call | **401 permission denied** |
+| After both attempts | no submission row, task still `pending`, XP unchanged (624 → 624) |
+
+The gate check's first rule, run against the privileges dumped **before** the fix, flags all 26 signatures.
+
+### Backend regression (MEASURED, `staging_d1_regression.py`)
+- **Coding Submit through functions:** passed 100; stored once for the right student and task; task completed; no hidden test data in the reply.
+- **Written Submit through functions** (uses `similar_written_submission` and `record_task_submission`): graded 100 with 4 criterion rows; stored for the right student.
+- **Topic attempt** (`record_topic_attempt`, service key, as `level-quiz-submit` calls it): rating row written.
+- **Service-key calls still work:** account lookup (returns the admin id), rate limit (`allowed: true`), `student_logins` (list).
+- **Scheduled jobs** `extend-fixtures`, `weekly-progress`, `weekly-plan`: all `ok`. The gate runs `nightly-squads`, `daily-lots`, `weekly-seasons`, `prune-events`.
+- No "permission denied" in any staging server log during these flows.
+- Voice (`touch_streak`), Lot / template (`*_lot_template`) and sign-in-related paths: covered by the gate's real-audio, crawler and identity steps.
+- `resolve_account` (real Google sign-in) **cannot be exercised on staging**: there is no staging login pool. Its service-key path is the one auth-bridge uses (CODE).
+
+### New permanent release-gate step
+- `gate "server-only DB functions refused (D1)"` → `scripts/dev-tools/staging_rpc_authz_check.py` + `scripts/rpc_manifest.json`.
+- It fails, printing FUNCTION / ACTUAL / EXPECTED, when:
+  - a server-only function becomes executable by PUBLIC / `anon` / `authenticated`, or loses `service_role`;
+  - **any function not in the manifest** becomes executable by `anon` / `authenticated`, even if the total count is unchanged;
+  - any server-only function answers a direct API call from an anonymous caller or a student;
+  - a student can forge `record_task_submission`, or a forged attempt changes anything.
+
+### Test data removed (exactly)
+- Tasks `AUDIT probe` (`10ad3000-…000999`), `S4 submit probe`, `AUDIT D1 coding submit`, `AUDIT D1 written submit`, with their 3 submissions (cascade).
+- 1 `topic_ratings` row (Load Student 14605, topic python).
+- The forged-grade probe task deletes itself.
+- **Kept as evidence:** coding-audit, voice-case, written-audit and LOAD2K records.
+
+
+### Final D1 permission matrix (MEASURED on staging after the gate, `has_function_privilege` + ACL)
+
+| Function | PUBLIC | anon | authenticated | service_role | Expected | Result |
+|---|---|---|---|---|---|---|
+| `account_id_for_email(text)` | no | no | no | yes | server-only | OK |
+| `bump_llm_cache_hit(text)` | no | no | no | yes | server-only | OK |
+| `check_rate_limit(text,text,integer,integer)` | no | no | no | yes | server-only | OK |
+| `drop_empty_account(uuid)` | no | no | no | yes | server-only | OK |
+| `ensure_and_claim_lot_template(uuid)` | no | no | no | yes | server-only | OK |
+| `extend_all_fixtures()` | no | no | no | yes | server-only | OK |
+| `form_all_colleges()` | no | no | no | yes | server-only | OK |
+| `form_squads(uuid,uuid)` | no | no | no | yes | server-only | OK |
+| `log_security_event(text,text,text,uuid,text,text,text,jsonb)` | no | no | no | yes | server-only | OK |
+| `notify_weekly_progress()` | no | no | no | yes | server-only | OK |
+| `plan_all_weeks()` | no | no | no | yes | server-only | OK |
+| `prune_app_events()` | no | no | no | yes | server-only | OK |
+| `record_account(text,text,text,boolean)` | no | no | no | yes | server-only | OK |
+| `record_task_submission(uuid,uuid,uuid,text,text,integer,integer,integer,jsonb,text,integer,uuid,jsonb,text[])` | no | no | no | yes | server-only | OK |
+| `record_topic_attempt(uuid,text,text,uuid,integer)` | no | no | no | yes | server-only | OK |
+| `release_lot_template(uuid,uuid)` | no | no | no | yes | server-only | OK |
+| `remove_students(uuid[],uuid,text)` | no | no | no | yes | server-only | OK |
+| `resolve_account(text,text,boolean)` | no | no | no | yes | server-only | OK |
+| `run_all_seasons()` | no | no | no | yes | server-only | OK |
+| `save_lot_template(uuid,uuid,text,text,text,text,text,integer,text)` | no | no | no | yes | server-only | OK |
+| `save_lot_template(uuid,uuid,text,text,text,text,text,integer,text,uuid,uuid)` | no | no | no | yes | server-only | OK |
+| `similar_written_submission(uuid,uuid,text,real)` | no | no | no | yes | server-only | OK |
+| `student_logins()` | no | no | no | yes | server-only | OK |
+| `touch_lot_template(uuid,uuid)` | no | no | no | yes | server-only | OK |
+| `touch_streak(uuid)` | no | no | no | yes | server-only | OK |
+| `touch_template(text)` | no | no | no | yes | server-only | OK |
+
+### Release gate after the fix (MEASURED)
+
+- `FINAL STAGING RELEASE GATE: PASS (commit 2b9c9a5, 2026-10-04T14:25Z)`, exit 0.
+- **30 of 30 steps**, including the new D1 step (7/7). No retries.
+- Correction: earlier reports said "31/31", but that was the browser step's own count. The gate had 29 steps before D1.
+- Staging 5xx during the run, all explained:
+  - `scheduled-job?job=daily-lots` 500: the daily-Lots check's deliberate "2,000 students fail" case.
+  - transcription-worker 500 / transcriber 503: the voice burst's known 1-job-per-transcriber retry path.
+  - **staging API 503 + 500 at 14:25:40, "no available instance"**: staging (11) + production (9) held the whole 20-vCPU quota, so the API could not start a second instance. Shared quota, not D1; the browser step still passed.
+- Production: 0 errors during the run.
+
+### Remaining risks
+- **D1b (HIGH):** the 33 SQL-internal functions above, still open on staging.
+- **D2 (HIGH):** default privileges (below).
+- **D3 (LOW):** `admin_users` view without `security_invoker`.
+- **D4:** user-callable / admin functions rely on their own internal checks. The 75-check function sweep covers the edge functions, not every RPC.
+- **Production:** every grant here is UNVERIFIED until a read-only production check is approved.
+
+## 15. D2 proposal: default privileges (NOT applied)
+
+**Now (MEASURED staging, `pg_default_acl` for objects created by `postgres` in `public`):**
+- tables: `anon=arwdDxtm`, `authenticated=arwdDxtm`, `service_role=arwdDxtm`;
+- sequences: `rwU` each;
+- functions: `X` each, and Postgres's built-in default also lets PUBLIC execute every new function.
+
+So every new table is fully writable by anonymous callers unless RLS is enabled, and every new function is executable by anyone unless revoked. D1 and the `skill_aliases` hole are both this.
+
+**Proposed migration (staging first):**
+```
+alter default privileges for role postgres in schema public revoke all on tables    from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public revoke execute on functions from public, anon, authenticated;
+-- service_role keeps its defaults (the backend).
+```
+
+| | |
+|---|---|
+| Effect | Only objects created **after** this change. Existing grants are unchanged. A new table or function the browser needs must then be granted explicitly in its migration. A forgotten grant fails closed ("permission denied", easy to see) instead of open |
+| Gate | Extend `staging_rpc_authz_check.py` with tables: any table without RLS, or with `anon` / `authenticated` INSERT / UPDATE / DELETE / TRUNCATE and no RLS, fails |
+| Rollback | the same three statements with `grant` |
+| Production | its `pg_default_acl` is UNVERIFIED (needs the approved read-only check) |
+| Risk | a future migration that forgets its grant breaks that feature on staging, which the gate's browser journeys and function sweep should catch before release |

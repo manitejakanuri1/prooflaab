@@ -96,17 +96,26 @@ Each RPC checks the caller's role inside the database (security definer + role c
 - Production `functions` and `transcriber` bill CPU only during requests. All other services use the default.
 - Every instance that is running, including idle ones, counts toward the regional quota.
 
-## 4. The 20-vCPU quota: measured
+## 4. The 20-vCPU quota (corrected 4 Oct, evening)
 
-| | |
-|---|---|
-| Quota | `CpuAllocPerProjectRegion`, asia-south1 = **20,000 milli-vCPU** (MEASURED, Cloud Quotas API) |
-| Shared by | production and staging |
-| Production held at rest | **9 vCPU** (MEASURED all day). One warm instance each of api, functions, auth-bridge, accounts, files (1 each), code-runner (2) and transcriber (2) |
-| Why production never goes to zero | **8 uptime checks every 60 s** hit each service, so one instance always stays warm (INFERRED from 60 s period + measured constant 1 instance) |
-| Staging held | 8–13 vCPU after any test (MEASURED); falls as idle instances shut down (16 of 20 total was seen once) |
-| Effect | When the total is at 20, **no service in either environment can start another instance**. Seen 5 times on 4 Oct, staging only: runner, transcriber and accounts could not start. Production showed no errors, because its warm instances were enough for its traffic |
-| Production maximum it could ask for | api 4 + functions 4 + auth 3 + accounts 2 + files 4 + runner 12 + transcriber 6 + worker (unbounded) = **35+ vCPU**, already more than the quota |
+| | Value | Tag |
+|---|---|---|
+| Quota | `CpuAllocPerProjectRegion`, asia-south1 = **20,000 milli-vCPU** | MEASURED (Cloud Quotas API) |
+| Shared by | production and staging | MEASURED |
+| **Current measurement** (idle, 4 Oct ~12:00 UTC, no test running) | staging **3**, production **11**, total **14 of 20**, so **about 6 vCPU free** | MEASURED (Cloud Monitoring, instance count × vCPU) |
+| Historical range, production idle / warm | **9–11 vCPU** all day 4 Oct | MEASURED |
+| Historical range, staging after tests | 8–13 vCPU while test instances were still warm; 3 at rest | MEASURED |
+| Peak quota exhaustion | total reached **20 of 20 five times on 4 Oct**, every time **during or just after staging tests** (instances from the test still warm) | MEASURED; staging logs "no available instance", "exceeded its quota limit for run.googleapis.com/cpu_allocation" |
+| Production impact during those peaks | 0 × 5xx / 429 / start failures | MEASURED (production logs) |
+
+The quota is **not** full at rest. It filled up only while staging test instances were still running.
+
+Why instances stay warm:
+- **Production.** 8 uptime checks run every 60 s, one per service. Cloud Run keeps an instance after a request for a while, so every checked service always has about 1 warm instance: api, functions, auth-bridge, accounts and files hold 1 vCPU each; code-runner and transcriber hold 2 each. That is 9 vCPU (INFERRED from the 60 s period and the constant one-instance count; MEASURED instance counts).
+  - The production transcriber sometimes holds 2 instances (4 vCPU), which gives 11.
+  - The uptime checks therefore **hold about 9 of the 20 vCPU at all times**.
+  - This is the price of fast, cold-start-free production. It cuts the shared headroom to about 9–11 vCPU for everything else.
+- **Staging** (MEASURED 3 vCPU at rest). Its every-minute `transcription-reap` keeps functions warm, and functions calls keep api and auth-bridge warm.
 
 ## 5. Background jobs (production)
 
@@ -136,11 +145,11 @@ Staging has one job (transcription-reap). The other staging jobs are started by 
 | Migrations / inspection | Cloud Run job running `psql` (staging) / `gcloud sql import` (production) | 1 while running |
 | Cloud SQL agent | — | 2 (MEASURED staging) |
 
-What this means:
+What this means (CODE + MEASURED):
 - **Adding functions, runner, transcriber or worker instances never adds database connections.** Only API instances do.
 - Production worst case: 4 API instances × 4 = **16** of about 50. Staging: 2 × 2 = **4** of 25.
 - **Raising API max instances would not exhaust connections** until about 10 instances (10 × 4 = 40, the existing alert threshold).
-- **The real database-side limit today is the pool, not the server.** At 1,000 nonstop browsers on staging, requests queued for one of 4 connections (server p95 10.4 s) while database CPU stayed under 40% (MEASURED, `CONCURRENCY-2000-REPORT.md` §8).
+- At 1,000 nonstop browsers on staging, requests queued for one of 4 pooled connections (server p95 10.4 s) while database CPU stayed under 40% (MEASURED, `CONCURRENCY-2000-REPORT.md` §8). This is one data point, on staging.
 - No transaction pooler (PgBouncer) and none needed at these numbers.
 
 Staging database health (MEASURED today):
@@ -157,6 +166,27 @@ Staging database health (MEASURED today):
 | Roles | PostgREST logs in as `postgres` (not superuser, no RLS bypass) and switches to `anon` / `authenticated` / `service_role`. Only `service_role` bypasses RLS |
 | Locks | none seen. Lock waits were not measurable without `pg_stat_statements` / `pg_locks` sampling during load |
 
+### Database conclusion, kept separate (corrected)
+
+**DATABASE ARCHITECTURE: likely reasonable / needs further measurement.**
+
+| Question | What is known | Tag | Still open |
+|---|---|---|---|
+| Database server capacity | Staging: CPU ≤ 40% at the heaviest read burst. Production: db-g1-small, CPU about 13%, memory 43% at today's light load | MEASURED (Monitoring) | Production under real load never measured |
+| API connection-pool capacity | 4 connections per API instance (prod), 2 (staging). Staging queued at about 1,000 nonstop browsers | MEASURED (staging) | Production pool limit not measured |
+| Query performance | Individual screen queries within limits (gate: 27/27 at 15,000 synthetic students) | MEASURED (staging) | No per-query statistics on staging (`pg_stat_statements` absent); production Query Insights not reviewed yet |
+| Memory pressure | **Staging 100%** (db-f1-micro, 614 MB) → unstable timings (daily Lots 48 s vs 243 s, same data). Production 43% | MEASURED | — |
+| Locking | 0 deadlocks (staging lifetime counter). Lock waits never sampled under load | MEASURED / UNVERIFIED | Lock waits under load |
+| Connection pressure | Staging max 25 (MEASURED); at most 4 from PostgREST + 2 Cloud SQL agent + 1 job. Production max **50 is INFERRED** (tier default; no override flag: MEASURED) | MEASURED / INFERRED | Production value not read |
+| Statement timeout | `statement_timeout = 0` on staging | MEASURED (staging) | Production UNVERIFIED |
+
+What can be checked on production without changing it:
+- Cloud SQL **settings and flags** (`gcloud sql instances describe`, already read: no `max_connections` override).
+- **Monitoring metrics** (connections, CPU, memory, already read).
+- **Query Insights** in the console (read-only).
+
+Reading `max_connections` / `statement_timeout` directly needs a SQL session on production. That is read-only, but still a session on the production database, so **OWNER DECISION REQUIRED**.
+
 ## 7. Monitoring that exists (configuration, not yet proven to fire, see Phase 15)
 
 - **Production:** 27 policies. 8 uptime checks; 5xx; slow p95 > 3 s; CPU / memory; database down / CPU / disk / memory / connections > 40; scheduled job failed; daily tasks not created; Sunday scoring; AI provider failing; voice / code busy; voice queue backlog; crawler; bug-finder.
@@ -171,15 +201,15 @@ Staging database health (MEASURED today):
 
 | Area | Verdict | Why (evidence) |
 |---|---|---|
-| Cloud Run horizontal scaling | 🟡 | Design is stateless and scales, but the shared 20-vCPU quota is already full at rest |
+| Cloud Run horizontal scaling | 🟡 | Stateless design scales (CODE). About 6 vCPU of the shared quota was free at the last idle measurement; it filled up during tests |
 | Stateless app design | ✅ | No service keeps user state in memory; leases and claims live in Postgres |
 | Load distribution | ✅ | Cloud Run front end |
-| Database connection strategy | ✅ / 🟡 | Single pooled path; tuning only: pool 4 per API instance is the read ceiling, `statement_timeout = 0` |
+| Database connection strategy | 🟡 | Single pooled path (CODE). Pool size was the first measured read limit on staging; `statement_timeout = 0`. Needs further measurement |
 | Async background processing | ✅ | Cloud Tasks + leases + reaper; nothing lost in any test |
 | Voice queue architecture | 🟡 | The queue sends 2 at a time while the transcriber takes 1 per instance. Under quota pressure only 1 instance runs → 429 → backoff collapse (measured 4.4 recordings/min) |
 | Code runner isolation | ✅ | No network, scrubbed environment, time and memory limits, private IAM (staging) |
 | Retry / idempotency | ✅ | Unique pass per task, idempotency keys, scoring leases, immutable scores |
-| Service-to-service IAM | 🟡 | Done on staging. Production still uses a shared secret for Scheduler and runner until rollout stage 6 |
+| Service-to-service IAM | ❌ prod / 🟡 staging | **Production code-runner and transcriber, and the staging transcriber, are publicly invokable (`allUsers`)**; only an app-level secret or ticket protects them (§11) |
 | Rate limiting | ✅ / 🟡 | Per-user limits work. Each limit check is an extra database write through the API (INFERRED cost at scale) |
 | Timeouts | ✅ | API 30 s, AI 90 s per provider, runner 70 s client / 120 s server, Cloud Run timeouts set |
 | Circuit breakers | ⚪ | Not implemented; provider fallback + timeouts cover it at this scale |
@@ -195,8 +225,61 @@ Staging database health (MEASURED today):
 | Migration rollback | 🟡 | Rollback files exist for each; never run on production data |
 | Disaster recovery | ❌ | No RPO / RTO; restore never rehearsed; single-zone database |
 
+## 10. Is the architecture horizontally scalable? (component by component)
+
+Key: ✅ scales out now · 🟡 scales but limited by configuration / quota · ❌ design limit · ⚪ external · 🔵 future concern only.
+
+| Component | Current design | How it scales | Current limit | Kind of limit | Smallest fix if needed |
+|---|---|---|---|---|---|
+| Frontend / CDN | static files on Firebase | CDN | none seen | — | — ✅ |
+| Auth bridge | stateless, signs tickets | more instances | max 3 (prod) / 2 (staging); sign-in under load never tested | configuration; UNVERIFIED | load-test ticket exchange 🟡 |
+| API (PostgREST) | stateless; DB pool per instance | more instances (each adds pool connections) | staging 2 instances × pool 2 → 429 at about 1,000 nonstop browsers | configuration (max instances, pool) + quota | raise pool / instances within DB connection room 🟡 |
+| Functions | stateless; AI calls hold a request slot | more instances, 80 requests each | max 4 / 2; not reached in tests | configuration + quota | — 🟡 |
+| Code runner | one job per instance | more instances | 200 simultaneous Runs < 8 s on 2 instances; Submit runs tests one after another | configuration (max 6 / 2) + quota | — 🟡 |
+| Files | stateless → Cloud Storage | more instances | 100 uploads at once fine | — | — ✅ |
+| Cloud Tasks | managed queue | managed | **2 dispatches at a time** (setting) | configuration | experiment C (pending) 🟡 |
+| Transcription worker | stateless, leases in DB | more instances | production max **unset (100)** | configuration (unbounded) | set a maximum 🟡 |
+| Transcriber (Whisper) | CPU-heavy, one recording per instance | more instances, 2 vCPU each | about 18 recordings/min on 1 instance; 2nd instance blocked by quota | **quota + configuration** | experiments B/C, or more quota 🟡 |
+| Voice scoring | functions + DeepSeek | with functions | 1 connection reset in 250 → unscored, not retried | external + design gap (no automatic retry of transient AI failure) | fallback keys on staging; retry transient failure ⚪ / 🟡 |
+| AI providers | DeepSeek → Gemini → Kimi | provider side | rate limits not reached in tests | external | — ⚪ |
+| Scheduler / jobs | batched, resumable | batches of 250, continue on retry | staging DB speed | staging-only | — ✅ |
+| PostgreSQL | one zonal Cloud SQL instance | **vertical only** (bigger tier) | prod 1.7 GB, CPU about 13% today; staging 614 MB at 100% memory | size at current scale (not design) | bigger tier when measured 🔵 (sharding not needed: 264 MB) |
+| DB connection pool | inside PostgREST | grows with API instances | 4 per instance | configuration | raise pool within `max_connections` 🟡 |
+| Storage | Cloud Storage | managed | none | — | — ✅ |
+
+**Verdict: PARTIALLY.**
+- **The architecture can scale.** Every request-serving part is stateless, uses queues with leases, and talks to one pooled database path. No measured limit is a design flaw.
+- Two small design gaps: transient AI failures are not retried automatically, and the database only scales up, not out. The second is a future concern at 264 MB.
+- **The current deployment cannot scale further** because of configuration (max instances, pool sizes, queue concurrency) and the **shared 20-vCPU quota**.
+- Reaching 2,000 concurrent students *appears* achievable by tuning and quota, **not proven**. Voice throughput is the first thing to prove: about 18 recordings/min per transcriber instance is MEASURED; the number of instances 2,000 students need is arithmetic, INFERRED.
+
+## 11. Exposure of the private services (MEASURED: live IAM + probes, 4 Oct)
+
+| Service | Ingress | Invoker (IAM) | No credential at all | Valid student ProofLab ticket | Publicly invokable | Internal only | Safe |
+|---|---|---|---|---|---|---|---|
+| prooflab-code-runner (prod) | all | **allUsers** | 401 `unauthorized` (app checks `x-runner-secret`) | refused: only the shared secret is checked (CODE; not probed on prod) | **YES** | NO | **Partly.** One shared secret; anyone can reach it and try |
+| prooflab-transcriber (prod) | all | **allUsers** | 401 | **accepted** (CODE: any valid user ticket; legacy browser path `src/lib/transcribeAudio.ts`) | **YES** | NO | **Partly.** Writes nothing, but any student can occupy it with their own audio (quota / cost abuse) |
+| prooflab-transcription-worker (prod) | all | prooflab-tasks-invoker only | 403 (Google front end) | not probed on prod | NO | YES | YES |
+| prooflab-staging-code-runner | all | staging functions SA only | 403 | 401 | NO | YES | YES |
+| prooflab-staging-transcriber | all | **allUsers** | 401 | **accepted** (413 only because the probe body was empty) | **YES** | NO | Partly (same as prod) |
+| prooflab-staging-transcription-worker | all | staging tasks-invoker only | 403 | 401 | NO | YES | YES |
+
+`ingress=all` with an IAM-only invoker is still private: Google's front end refuses anyone without the invoker role. The `allUsers` services are the exception. Rollout stage 6.3 already plans the runner change; the transcriber needs the same decision. **No IAM was changed.**
+
+## 12. The table without row-level security (MEASURED on staging)
+
+- **Table:** `public.skill_aliases (alias text primary key, skill text)`, about 50 rows mapping resume wording to skills (migration 30). No student, company or private data.
+- **Grants on staging:** `anon`, `authenticated`, `service_role` and `postgres` have **SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER**. Migration 31 granted only SELECT; the rest must come from default privileges (INFERRED).
+- **Proven on staging:**
+  - An **anonymous** request (no login) and a student request each **inserted** a row through the API (HTTP 201).
+  - Both marker rows were deleted straight after; 0 left.
+- **Production:** anonymous **read** works (HTTP 200). Writes were **not** attempted. Exposure is **UNVERIFIED, likely** (same default privileges).
+- **Risk:** anyone on the internet could change or empty the alias list. That would quietly change resume skill matching (integrity, not privacy).
+- **Verdict: NEEDS CHANGE.** Revoke INSERT / UPDATE / DELETE / TRUNCATE from `anon` and `authenticated` (keep SELECT), or enable RLS with a read-only policy. Not applied.
+
 ## 9. Open questions this audit could not settle without changes
 
-1. **Production `max_connections`.** Assumed 50 from the tier default; reading it needs a query on production (read-only). Not done.
+1. **Production `max_connections` / `statement_timeout`.** 50 INFERRED from the tier default; reading them needs a read-only SQL session on production (OWNER DECISION REQUIRED).
 2. **Staging slow queries.** Needs `pg_stat_statements` on staging (a staging database flag change). Proposed, not applied.
-3. **Real application limits.** Every staging service above about 11 vCPU is blocked by the shared quota, so most component limits measured so far are quota limits, not application limits. See the separately proposed staging setting changes.
+3. **Real application limits.** With about 6 vCPU free at rest, staging tests reach the shared quota quickly, so several limits measured so far are quota limits, not application limits.
+4. **Production write exposure of `skill_aliases`.** UNVERIFIED (no write test on production).

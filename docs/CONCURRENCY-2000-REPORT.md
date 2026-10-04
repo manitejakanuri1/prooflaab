@@ -175,7 +175,10 @@ Representative traces ("what happened to Student X"): `e2e-out/load2k/traces-s2.
 ## 8. Bottlenecks, in the order they bite
 
 1. **Voice transcription vs the shared quota (first failure, at 250).**
-   - Measured: production holds ~9 vCPU at rest and staging ~11. The 20-vCPU quota is **full before any load**, because idle instances count.
+   - Measured (corrected 4 Oct evening):
+     - Production holds 9–11 vCPU idle; staging holds 3 at true rest.
+     - Staging rises to 8–13 while instances from a previous test are still warm. During these runs, staging + production reached 20 of 20.
+     - At a clean idle moment the total was 14 of 20 (about 6 free).
    - So the staging transcriber can never start its second instance: one instance, one recording at a time, about 18 recordings/minute.
    - The queue sends 2 at a time. The second one gets 429, the worker returns 500, and Cloud Tasks backs off up to 120 s. Under a burst this collapsed throughput to about 4.4 recordings/minute.
 2. **API instance cap × database pool.**
@@ -188,7 +191,7 @@ Representative traces ("what happened to Student X"): `e2e-out/load2k/traces-s2.
 5. **Authentication:** tickets were minted with the staging signing key. **Real sign-in through Identity Platform at scale was NOT tested**: staging shares the login pool with production and has no logins (see `CLOUD-CAPACITY-PLAN.md`).
 
 Behaviour under the current 20 vCPU:
-- Staging and production together already hold all 20 at rest.
+- At clean idle, staging (3) + production (9–11) leave about 6 vCPU free. Staging's instances from a previous test, still warm, used that up during these runs.
 - Any staging load test can start new instances only when idle instances have shut down.
 - During this test production still never failed. Its services already had warm instances and production traffic was light.
 - A production traffic spike during a staging load test would find no free quota. That is a real risk, and the reason the long-term fix is a separate staging project.
@@ -208,7 +211,7 @@ Production has a larger setup than staging (API 4 instances / pool 4, transcribe
 ## 10. Smallest next fixes (none applied; each needs the owner's yes)
 
 1. **Voice queue matches what can actually run.** Set staging and production transcription queue `maxConcurrentDispatches` to the transcriber instances that can really start, or let one transcriber instance take 2 jobs. This removes the 429 → backoff collapse. No extra vCPU.
-2. **Staging in its own Google Cloud project**, or at least `max-instances` 0 / scale-to-zero on idle staging services outside test windows. This frees the ~11 vCPU staging holds at rest. Without it, a 2,000-student test cannot run on staging without risking production.
+2. **Staging in its own Google Cloud project**, or at least `max-instances` 0 / scale-to-zero on idle staging services outside test windows. This frees the vCPU staging instances hold while warm after a test (up to about 11 measured; 3 at true rest). Without it, a 2,000-student test cannot run on staging without risking production.
 3. Then re-run this ramp: `staging_journey_2k.py <stage> <users>` + `staging_journey_2k_report.py <stage> --wait-voice 1800` for 250 → 2,000.
 
 ## 11. Simple student experience: "If 2,000 students use ProofLabAI at the same time, what happens?"

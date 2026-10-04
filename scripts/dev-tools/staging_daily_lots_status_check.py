@@ -26,7 +26,7 @@ def sql(text):
 
 
 
-def run_job():
+def run_once():
     req = urllib.request.Request(f"{st.FUNCTIONS}/scheduled-job?job=daily-lots", data=b"{}", method="POST",
                                  headers=st.scheduler_headers())
     try:
@@ -34,6 +34,24 @@ def run_job():
             return r.status, json.loads(r.read())
     except urllib.error.HTTPError as e:
         return e.code, json.loads(e.read())
+
+
+def run_job():
+    """As Cloud Scheduler does it: a run that stopped at its own time limit ("ran out of time
+    ... the retry continues") is retried, and the retry carries on where it stopped. The
+    staging database (db-f1-micro, memory at 100%) is sometimes slow enough to need one.
+    Lots created by the stopped run are added to the final answer."""
+    made = 0
+    for _ in range(4):
+        c, b = run_once()
+        m = __import__("re").search(r"\((\d+) Lots created\); the retry continues", str(b.get("error") or ""))
+        if c == 500 and m:
+            made += int(m.group(1)); print("  (run stopped at its time limit; retrying as Scheduler would)", flush=True)
+            continue
+        if made and isinstance(b.get("result"), dict):
+            b["result"]["lots_created"] = b["result"].get("lots_created", 0) + made
+        return c, b
+    return c, b
 
 
 BROKEN = "array[array['x','y']]"      # a two-dimensional skills array makes create_lot_for() raise

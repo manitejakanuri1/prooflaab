@@ -85,19 +85,25 @@ Return ONLY JSON:
   "per_question": [{"n": 0, "score": <0-100>, "note": "<one sentence>"}, ...]
 }`;
 
-    let parsed: { overall_score?: number; overall_feedback?: string; per_question?: { n: number; score: number; note: string }[] } = {};
+    let parsed: { overall_score?: unknown; overall_feedback?: string; per_question?: { n: number; score: number; note: string }[] } = {};
+    let overallScore = NaN;
     try {
       const { text } = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 900 },
         { feature: 'mock-interview-score', studentId: profile.id });
       const match = text.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(match ? match[0] : text);
+      const raw = parsed.overall_score;
+      overallScore = typeof raw === 'number' || (typeof raw === 'string' && raw.trim() !== '') ? Number(raw) : NaN;
     } catch (e) {
       console.error('mock-interview-score: could not grade', e);
-      await supabase.from('mock_interviews').update({ status: 'failed' }).eq('id', interview_id);
+    }
+    // A missing or unusable score is a failed grading, never a 0. The interview stays
+    // 'answering' so "try again" really can try again.
+    if (!Number.isFinite(overallScore) || overallScore < 0 || overallScore > 100) {
+      console.error('mock-interview-score: no usable overall_score for', interview_id);
       return json({ error: 'Scoring failed. Please try again.' }, 502);
     }
-
-    const overallScore = Math.max(0, Math.min(100, Math.round(Number(parsed.overall_score) || 0)));
+    overallScore = Math.round(overallScore);
     const perQuestion = Array.isArray(parsed.per_question) ? parsed.per_question : [];
 
     const mergedAnswers = answers.map((a) => {

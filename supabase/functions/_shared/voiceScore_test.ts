@@ -270,7 +270,7 @@ Deno.test("6c the prompt carries the submitted work, and the evaluation is saved
   assertEquals(r.outcome, 'scored');
   assert(seen.includes('UNIQUE_MARKER') && seen.includes('6 of 6 tests'));
   assertEquals(db.rows.get(ID)!.communication_score, 80);
-  assertEquals((db.updates[0].evaluation as Record<string, unknown>).evaluator_version, 'voice-eval-2');
+  assertEquals((db.updates[0].evaluation as Record<string, unknown>).evaluator_version, 'voice-eval-3');
   assertEquals((db.updates[0].evaluation as Record<string, unknown>).content_match, 90);
 });
 Deno.test("6d an off-topic explanation cannot keep a high score", async () => {
@@ -296,5 +296,5 @@ Deno.test("6f scoring keeps the language metadata the transcriber stored", async
     ai('{"communication_score": 70, "content_match": 80, "notes": "ok"}'));
   const saved = db.updates[0].evaluation as Record<string, unknown>;
   assertEquals((saved.transcription as Record<string, unknown>).language, 'en');
-  assertEquals(saved.evaluator_version, 'voice-eval-2');
+  assertEquals(saved.evaluator_version, 'voice-eval-3');
 });

@@ -96,7 +96,7 @@ print("   transcript:", (r_on["transcript"] or "")[:160])
 check(f"on-topic: transcribed and scored in {secs}s", r_on["status"] == "scored" and (r_on["word_count"] or 0) > 40, (r_on["status"], r_on["communication_notes"]))
 ev = r_on["evaluation"] or {}
 check("on-topic: evaluation saved with version, linked to the submission, high content match",
-      ev.get("evaluator_version") == "voice-eval-2" and ev.get("linked_to_submission") is True and (ev.get("content_match") or 0) >= 60,
+      ev.get("evaluator_version") in ("voice-eval-2", "voice-eval-3") and ev.get("linked_to_submission") is True and (ev.get("content_match") or 0) >= 60,
       (r_on["communication_score"], ev))
 
 tr = (r_on["evaluation"] or {}).get("transcription") or {}

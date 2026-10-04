@@ -34,7 +34,8 @@ open(sql, "w", encoding="utf-8", newline="\n").write("\n".join([
     r"\pset pager off", r"\pset format unaligned", r"\pset fieldsep |",
     "select 'FN', p.oid::regprocedure, has_function_privilege('anon',p.oid,'execute'), "
     "has_function_privilege('authenticated',p.oid,'execute'), has_function_privilege('service_role',p.oid,'execute'), "
-    "coalesce((select bool_or(a.grantee=0) from aclexplode(p.proacl) a), true), p.prorettype::regtype "
+    "coalesce((select bool_or(a.grantee=0) from aclexplode(p.proacl) a), true), p.prorettype::regtype, "
+    "(p.prosrc ~* 'is_admin\(\)|has_role\(') "
     "from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind='f';"]) + "\n")
 r = subprocess.run(["bash", "scripts/dev-tools/staging_sql.sh", "e2e-out/rpc-authz.sql"], capture_output=True, text=True, cwd=ROOT)
 ex = r.stdout.strip().split("(")[-1].rstrip(")")
@@ -44,8 +45,9 @@ log = subprocess.run(f'gcloud logging read "resource.type=cloud_run_job AND labe
 acl = {}
 for line in log.splitlines():
     if line.startswith("FN|"):
-        _, sig, anon, auth, svc, pub, rt = line.split("|")
-        acl[sig] = {"anon": anon == "t", "authenticated": auth == "t", "service_role": svc == "t", "PUBLIC": pub == "t", "trigger": rt == "trigger"}
+        _, sig, anon, auth, svc, pub, rt, guard = line.split("|")
+        acl[sig] = {"anon": anon == "t", "authenticated": auth == "t", "service_role": svc == "t", "PUBLIC": pub == "t",
+                    "trigger": rt == "trigger", "admin_guard": guard == "t"}
 check("read function privileges on staging", len(acl) > 200, f"{len(acl)} functions")
 
 bad = []
@@ -57,7 +59,19 @@ for sig in M["server_only"]:
         bad.append((sig, {k: a[k] for k in ("PUBLIC", "anon", "authenticated", "service_role")}, "PUBLIC/anon/authenticated false, service_role true"))
 check(f"server-only functions refuse PUBLIC/anon/authenticated ({len(M['server_only'])} signatures)", not bad,
       "; ".join(f"FUNCTION {s} ACTUAL {a} EXPECTED {e}" for s, a, e in bad))
-known = set(M["server_only"]) | set(M["user_callable"]) | set(M["admin_only"]) | set(M["pending_review"])
+bad = []
+for sig in M["sql_internal"]:
+    a = acl.get(sig)
+    if a is None or a["PUBLIC"] or a["anon"] or a["authenticated"] or not a["service_role"]:
+        bad.append((sig, a and {k: a[k] for k in ("PUBLIC", "anon", "authenticated", "service_role")}, "PUBLIC/anon/authenticated false, service_role true"))
+check(f"SQL-internal functions are not directly callable ({len(M['sql_internal'])} signatures)", not bad,
+      "; ".join(f"FUNCTION {s} ACTUAL {a} EXPECTED {e}" for s, a, e in bad))
+bad = [s for s in M["admin_only"] if s in acl and (acl[s]["anon"] or acl[s]["authenticated"]) and not acl[s]["admin_guard"]]
+check(f"every directly callable admin function checks is_admin()/has_role() ({len(M['admin_only'])} signatures)", not bad,
+      "; ".join(f"FUNCTION {s} ACTUAL callable without is_admin()/has_role() in its body EXPECTED an admin guard" for s in bad))
+bad = [s for s in M["policy_helper"] if s in acl and not acl[s]["authenticated"]]
+check("policy helpers still executable by signed-in users (RLS needs them)", not bad, "; ".join(f"FUNCTION {s} lost authenticated EXECUTE" for s in bad))
+known = set(M["server_only"]) | set(M["sql_internal"]) | set(M["user_callable"]) | set(M["admin_only"]) | set(M["policy_helper"]) | set(M["pending_review"])
 new = sorted(s for s, a in acl.items() if not a["trigger"] and (a["anon"] or a["authenticated"]) and s not in known)
 check("no function outside the manifest is executable by anon/authenticated", not new,
       "; ".join(f"FUNCTION {s} ACTUAL {acl[s]} EXPECTED listed in scripts/rpc_manifest.json with a caller class" for s in new))
@@ -76,6 +90,22 @@ for sig in M["server_only"]:
         if not (c in (401, 403, 404) and code in ("42501", "PGRST202")):
             leaks.append(f"{name} as {who}: {c} {str(b)[:80]}")
 check(f"API refuses every server-only function to anonymous and student callers ({2 * len(M['server_only'])} calls)", not leaks, "; ".join(leaks))
+
+import uuid as _uuid
+R = str(_uuid.uuid4())
+NOOP = {"advance_season": {"_season_id": R}, "close_season": {"_season_id": R}, "run_squad_week": {"_season_id": R, "_week": 1},
+        "settle_round": {"_season_id": R, "_round": 1}, "create_lot_for": {"_student_id": R, "_for_date": "2000-01-01"},
+        "seed_lot_template": {"_source_content_id": R}, "claim_lot_template": {"_source_content_id": R}, "has_role": {"_user_id": R, "_role": "admin"},
+        "plan_student_week": {"_student_id": R, "_week_start": "2000-01-03"}, "suggest_tracks": {"_student_id": R, "_limit": 1},
+        "score_student_week": {"_student_id": R, "_season_id": R, "_week": 1}, "next_lot_source": {"_student_id": R}}
+reached = []
+for name, args in NOOP.items():
+    for who, h in (("anonymous", {}), ("student", student)):
+        c, b = st.http(f"{st.API}/rpc/{name}", args, h, "POST")
+        code = b.get("code") if isinstance(b, dict) else None
+        if not ((c in (401, 403) and code == "42501") or code == "PGRST202"):
+            reached.append(f"{name} as {who}: {c} {code}")
+check(f"API refuses SQL-internal functions with a no-op input ({2 * len(NOOP)} calls, random ids)", not reached, "; ".join(reached))
 
 # ---- 3. forged grade -------------------------------------------------------------------------
 G = "3545a46b-a17f-4f2e-8788-35ada1b5e699"

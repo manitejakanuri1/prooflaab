@@ -28,13 +28,22 @@ def check(name, ok, detail=""):
 
 
 def req(url, token=None, method="GET", data=None):
-    r = urllib.request.Request(url, data=data, method=method,
-                               headers={**({"Authorization": f"Bearer {token}"} if token else {}), "Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(r, timeout=60) as x:
-            return x.status, x.read().decode()[:200]
-    except urllib.error.HTTPError as e:
-        return e.code, e.read().decode()[:200]
+    # A 503 "Rate exceeded" / quota answer comes from Google's front end when a scaled-to-zero
+    # staging service cannot start (the 20-vCPU quota is shared with production and is full at
+    # rest). It says nothing about the token, so wait and ask again; it is printed, not hidden.
+    for attempt in range(4):
+        r = urllib.request.Request(url, data=data, method=method,
+                                   headers={**({"Authorization": f"Bearer {token}"} if token else {}), "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(r, timeout=60) as x:
+                return x.status, x.read().decode()[:200]
+        except urllib.error.HTTPError as e:
+            code, body = e.code, e.read().decode()[:200]
+        if code == 503 and ("Rate exceeded" in body or "quota" in body) and attempt < 3:
+            print(f"  (service could not start: {body[:60]!r}; retrying in 60 s)", flush=True)
+            __import__("time").sleep(60)
+            continue
+        return code, body
 
 
 b64 = st.b64

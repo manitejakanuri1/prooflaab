@@ -275,7 +275,7 @@ Key: ✅ scales out now · 🟡 scales but limited by configuration / quota · �
   - Both marker rows were deleted straight after; 0 left.
 - **Production:** anonymous **read** works (HTTP 200). Writes were **not** attempted. Exposure is **UNVERIFIED, likely** (same default privileges).
 - **Risk:** anyone on the internet could change or empty the alias list. That would quietly change resume skill matching (integrity, not privacy).
-- **Verdict: NEEDS CHANGE.** Revoke INSERT / UPDATE / DELETE / TRUNCATE from `anon` and `authenticated` (keep SELECT), or enable RLS with a read-only policy. Not applied.
+- **Verdict: NEEDS CHANGE.** Fixed on staging by migration 79 (§13.5); production pending.
 
 ## 9. Open questions this audit could not settle without changes
 
@@ -283,3 +283,144 @@ Key: ✅ scales out now · 🟡 scales but limited by configuration / quota · �
 2. **Staging slow queries.** Needs `pg_stat_statements` on staging (a staging database flag change). Proposed, not applied.
 3. **Real application limits.** With about 6 vCPU free at rest, staging tests reach the shared quota quickly, so several limits measured so far are quota limits, not application limits.
 4. **Production write exposure of `skill_aliases`.** UNVERIFIED (no write test on production).
+
+## 13. Security hardening, staging (4 Oct 2026, evening)
+
+Starting commit `2c52125`. Production was not touched: no IAM, settings, database or deploy change. Re-checked: production `skill_aliases` anonymous read still answers 200, as before.
+
+### 13.1 Who really calls the internal services (CODE + MEASURED)
+
+| Service | Callers in code | How they authenticate | Allowed caller should be | Browser calls it directly? |
+|---|---|---|---|---|
+| code-runner | `supabase/functions/_shared/sandbox.ts` → `runOnOwnRunner` (functions: run-code, run-sandbox, submit-sandbox-task, resume-code-execute, the generators' quality gate) | prod: `x-runner-secret`; staging: the functions SA's Google identity token (`CODE_RUNNER_AUTH=iam`) | prod `prooflab-rt-functions@`, staging `prooflab-staging-functions@` | **No.** No frontend reference |
+| transcriber | (1) `transcription-worker/server.py` `transcribe()`: a **ProofLab app ticket** (`mint_token("authenticated")`), not a Google identity. (2) **Browser:** `src/lib/transcribeAudio.ts`, used by **`MockInterview.tsx`** (always) and by `VoiceExplainModal.tsx` only when `VITE_ASYNC_TRANSCRIPTION` is not `true` | app ticket checked by `transcriber/apptoken.py` (any valid user ticket is accepted) | the worker SA (`prooflab-transc-wk@` / `prooflab-staging-transc-wk@`) and, today, students for the mock interview | **YES: current** for the mock interview (Profile → Mock interview). **Legacy** for voice explanations (both `.env.production` and `.env.staging` set `VITE_ASYNC_TRANSCRIPTION=true`) |
+| transcription-worker | Cloud Tasks queue only | Cloud Tasks OIDC as `prooflab-tasks-invoker@` / `prooflab-staging-tasks-invoker@` | that tasks-invoker SA | No |
+
+### 13.2 Staging transcriber: NOT changed (stop condition met)
+
+- Removing `allUsers` would make the **mock interview** lose every transcript.
+  - `transcribeAudio` would fail, and `MockInterview` saves `""` on failure, so each answer would read "(no speech captured)".
+  - That breaks a current student flow without an error message.
+- It would also stop the **worker**: it sends a ProofLab ticket in `Authorization`, not a Google identity token.
+- So the private path needs code first. Proposed design (owner approval needed):
+
+  1. **Mock interview** goes through the backend, like voice explanations.
+     - The browser uploads the answer to **files**.
+     - It then calls a new function `mock-interview-transcribe`, or the existing queue.
+     - Functions call the transcriber with its Google identity.
+  2. **Worker** sends a Google identity token for the transcriber audience. The runner already works this way (`identityTokenFor` / metadata server).
+  3. **Transcriber** accepts only an allow-listed caller email (`TRANSCRIBER_ALLOWED_CALLERS`, same pattern as `RUNNER_ALLOWED_CALLERS`). The app-ticket path is kept only until the cutover.
+  4. Delete the legacy sync path: `transcribeWithTimestamps` use in `VoiceExplainModal`, and `transcribeAudio.ts` once the mock interview has moved.
+  5. Then IAM: remove `allUsers`; `run.invoker` = worker SA (+ functions SA if used for the mock interview).
+
+  Expected after that:
+  - no credential → 403 (Google front end);
+  - student ticket → 401 / 403;
+  - wrong SA → 403;
+  - worker SA → 200.
+
+### 13.3 Staging code runner: re-proved (MEASURED today)
+
+| Check | Result |
+|---|---|
+| `allUsers` / `allAuthenticatedUsers` | absent; `run.invoker` = `prooflab-staging-functions@` only |
+| No credential | 403 (Google front end) |
+| Student ProofLab ticket | 401 |
+| Wrong Google identity (staging scheduler SA) | 403 |
+| Functions identity | accepted: Run 200 through functions (`staging_identity_check.py` 23/23) |
+| Submit | passed 100; hidden tests returned as `id / visible / verdict / passed` only; no hidden expected output in the reply |
+| Direct browser path | none in `src/` |
+
+### 13.4 Production code-runner: proposal only (not applied)
+
+| | |
+|---|---|
+| Current (MEASURED) | ingress all; `run.invoker` = **allUsers**; app check = `x-runner-secret` (functions env `CODE_RUNNER_SECRET`) |
+| Target | `run.invoker` = `serviceAccount:prooflab-rt-functions@prooflab-508214.iam.gserviceaccount.com` only; runner env `RUNNER_ALLOWED_CALLERS=prooflab-rt-functions@…`; functions env `CODE_RUNNER_AUTH=iam`; no shared secret |
+| Prerequisite | production runs this release's runner and functions images (rollout stage 3). Today's production images predate identity support (INFERRED from the release history; image not inspected) |
+| Downtime | about 1–3 minutes of Run / Submit answering "runner busy, try again" (nothing saved, nothing lost), because the runner checks either the secret or the identity, not both. Zero-downtime option: a small runner change accepting both during the switch (not built) |
+
+Commands, in order (after stage 3):
+```
+P=prooflab-508214; R=asia-south1; FN=prooflab-rt-functions@$P.iam.gserviceaccount.com
+gcloud run services add-iam-policy-binding prooflab-code-runner --region=$R --project=$P --member=serviceAccount:$FN --role=roles/run.invoker
+gcloud run services update prooflab-code-runner --region=$R --project=$P --update-env-vars=RUNNER_ALLOWED_CALLERS=$FN
+gcloud run services update prooflab-functions --region=$R --project=$P --update-env-vars=CODE_RUNNER_AUTH=iam --remove-secrets=CODE_RUNNER_SECRET
+# check: a student Run works on prooflab.co.in, then:
+gcloud run services remove-iam-policy-binding prooflab-code-runner --region=$R --project=$P --member=allUsers --role=roles/run.invoker
+gcloud run services update prooflab-code-runner --region=$R --project=$P --remove-secrets=CODE_RUNNER_SECRET   # only if mounted as a secret; else --remove-env-vars
+```
+Rollback:
+```
+gcloud run services add-iam-policy-binding prooflab-code-runner --region=$R --project=$P --member=allUsers --role=roles/run.invoker
+gcloud run services update prooflab-code-runner --region=$R --project=$P --remove-env-vars=RUNNER_ALLOWED_CALLERS --update-secrets=CODE_RUNNER_SECRET=<secret name>:latest
+gcloud run services update prooflab-functions --region=$R --project=$P --remove-env-vars=CODE_RUNNER_AUTH --update-secrets=CODE_RUNNER_SECRET=<secret name>:latest
+```
+(The secret's name is read from the current production revision before starting.)
+
+Tests after the change:
+1. No credential → 403.
+2. Old secret header → 403.
+3. Another SA → 403.
+4. Run and Submit on the live site; `scripts/healthcheck.py`; `attack_surface_check.py`.
+
+### 13.5 `skill_aliases`: fixed on staging (migration 79)
+
+**Before** (MEASURED staging; `aclexplode`):
+- `anon`, `authenticated`, `service_role`, `postgres` each had **SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN**. No PUBLIC entry.
+- RLS off.
+- Cause: the schema's **default privileges** (`pg_default_acl` for role `postgres` in `public`):
+  - tables: `anon=arwdDxtm, authenticated=arwdDxtm, service_role=arwdDxtm`
+  - sequences: `rwU`
+  - functions: `X` (execute)
+- So **every new table is fully open to anon unless RLS is turned on**. `skill_aliases` was the only table without RLS.
+- Proven earlier: an anonymous request and a student request each inserted a row (HTTP 201; rows removed).
+
+**Who needs it** (CODE): only `suggest_tracks()` (security definer, owner `postgres`). No frontend or server code reads the table directly. So app callers need **no** access, not even SELECT.
+
+**Chosen fix (option A + RLS as a second guard):**
+- Revoke everything from PUBLIC, `anon`, `authenticated`.
+- `service_role` keeps SELECT only.
+- RLS on with no policy (the owner and `suggest_tracks` are unaffected because RLS is not forced).
+- Simpler and safer than option B: no policy to get wrong; nobody but the owner writes.
+- Files: `migration/79-skill-aliases-read-only.sql` (self-check), mirror `supabase/migrations/20261103002900_skill_aliases_read_only.sql`, rollback `79-rollback-…` (restores the unsafe state; warned). Number 78 stays reserved for the coding-verification change.
+- Applied to staging through the ledger: "LEDGER: 79-skill-aliases-read-only applied and recorded".
+
+**After** (MEASURED staging):
+
+| Caller | SELECT | INSERT | UPDATE | DELETE | TRUNCATE |
+|---|---|---|---|---|---|
+| anon, through the API | 401 | 401 | 401 | 401 | not exposed by the API; in SQL as `anon`: refused |
+| student, through the API | 403 | 403 | 403 | 403 | in SQL as `authenticated`: refused |
+| `service_role` | allowed (SELECT only) | refused | refused | refused | refused |
+
+Regression, in a transaction rolled back afterwards:
+- A student whose only skill is `py`, with alias `py → Python` present.
+- `suggest_tracks` called **as that student** returns the Python track with `matched_steps = 3`, `matched_skills = {py}`.
+- Afterwards: the student's skills and the alias table are unchanged (verified).
+- No marker rows remain.
+
+### 13.6 Read-only sweep of every Cloud Run service (MEASURED)
+
+| Service | Ingress | run.invoker | Public by design? | Safe? |
+|---|---|---|---|---|
+| prooflab-api / staging-api | all | allUsers | **yes** (browser; RLS + ticket) | yes |
+| prooflab-functions / staging-functions | all | allUsers | **yes** (browser; ticket checked per function) | yes |
+| prooflab-auth-bridge / staging | all | allUsers | **yes** (sign-in) | yes |
+| prooflab-files / staging | all | allUsers | **yes** (uploads; ticket + grant) | yes |
+| prooflab-accounts / staging | all | allUsers | partly (Scheduler `/sync`; app check: no credential → 401 MEASURED) | yes (app-level) — LOW |
+| **prooflab-code-runner** | all | **allUsers** | no | **HIGH**: app secret only |
+| **prooflab-transcriber / staging-transcriber** | all | **allUsers** | no (mock interview uses it from the browser today) | **MEDIUM**: no data exposure; any student can use CPU |
+| staging-code-runner | all | staging functions SA | no | yes |
+| (staging-)transcription-worker, staging-tasks-test-worker | all | tasks-invoker SA | no | yes |
+
+No service grants `allAuthenticatedUsers`.
+
+### 13.7 New database findings (not fixed; need approval)
+
+| # | Finding (MEASURED) | Severity | Note |
+|---|---|---|---|
+| D1 | **Staging only:** 22 server-only functions are executable by `anon` and `authenticated`, including `record_task_submission` (writes a grade; **no caller check inside**), `touch_streak`, `create_lot_for`, `run_all_seasons`, `form_all_colleges`, `prune_app_events`, `account_id_for_email` (anonymous call returned the admin's account id). The migrations revoke these (stage 69/70, migration 04), so **staging's permissions drifted from its migrations** | **CRITICAL on staging** (any visitor could write a passed grade there); it also means earlier staging security evidence did not cover direct RPC calls to these functions | production refused both functions probed (`account_id_for_email`, `similar_written_submission`: 401 permission denied). The other 20 are **UNVERIFIED on production** without a read-only SQL session |
+| D2 | Default privileges give `anon` / `authenticated` all table rights, sequence use and function execute on every **new** object in `public` | **HIGH** (systemic): one forgotten `enable row level security` or `revoke` reopens it | fix: `alter default privileges … revoke … from anon, authenticated` and grant explicitly per object |
+| D3 | View `admin_users` has no `security_invoker` and `anon` can SELECT it | LOW (MEASURED: returns `[]` to anon and a student; it filters internally) | add `security_invoker` |
+| D4 | 171 security-definer functions executable by `anon` on staging; most check the caller inside (e.g. `admin_users_write` checks `is_admin()`) | needs a per-function review | the `attack_surface_check.py` / `authz_matrix_check.py` coverage should include direct RPC calls |

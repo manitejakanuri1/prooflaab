@@ -10,6 +10,7 @@
   "form_all_colleges()",
   "form_squads(uuid,uuid)",
   "log_security_event(text,text,text,uuid,text,text,text,jsonb)",
+  "notify_all_admins(text,text,text,text)",
   "notify_weekly_progress()",
   "plan_all_weeks()",
   "prune_app_events()",
@@ -56,7 +57,6 @@
   "my_todays_lot()",
   "my_week()",
   "needs_review_submissions()",
-  "notify_all_admins(text,text,text,text)",
   "placement_questions(uuid)",
   "portfolio_work(uuid)",
   "record_outcome(uuid,text)",
@@ -251,8 +251,9 @@
   "student_is_discoverable(uuid)",
   "viewer_college_id()"
  ],
- "flagged": {
-  "topic_priorities(uuid,integer)": "no ownership check: any caller reads any student's topic priorities (LOW)",
-  "notify_all_admins(text,text,text,text)": "any caller, even anonymous, can insert a notification with any text for every admin (MEDIUM)"
+ "flagged": {},
+ "_fixed": {
+  "topic_priorities(uuid,integer)": "migration 82: own / admin / owning college / backend only (behaviour tested in the gate)",
+  "notify_all_admins(text,text,text,text)": "migration 82: backend only (service_role), refuses inside unless backend or admin"
  }
 }

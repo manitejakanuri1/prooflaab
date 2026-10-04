@@ -107,6 +107,33 @@ for name, args in NOOP.items():
             reached.append(f"{name} as {who}: {c} {code}")
 check(f"API refuses SQL-internal functions with a no-op input ({2 * len(NOOP)} calls, random ids)", not reached, "; ".join(reached))
 
+# ---- 2b. topic_priorities ownership and notify_all_admins (migration 82), by behaviour -------------
+B, PEER, OTHER = (f"10ad0000-0000-4000-8000-{n:012d}" for n in (14607, 14617, 14608))   # B and PEER: college 7; OTHER: college 8
+TPO7, TPO8, ADMIN = "10adc011-0000-4000-8000-000000000007", "10adc011-0000-4000-8000-000000000008", "ffed80fc-08ee-4cce-ac54-9432ef2d81f9"
+def tp(who):
+    c, b = st.http(f"{st.API}/rpc/topic_priorities", {"_student_id": B, "_limit": 1}, {} if who is None else {"Authorization": f"Bearer {st.token('user:' + who)}"}, "POST")
+    return c
+got = {"anonymous": tp(None), "student self": tp(B), "same-college student": tp(PEER), "other-college student": tp(OTHER),
+       "owning college (TPO)": tp(TPO7), "other college (TPO)": tp(TPO8), "admin": tp(ADMIN)}
+want = {"anonymous": 401, "student self": 200, "same-college student": 403, "other-college student": 403,
+        "owning college (TPO)": 200, "other college (TPO)": 403, "admin": 200}
+check("topic_priorities: only self, owning college, admin (and backend) may read a student's priorities",
+      got == want and st.call("svc", "RPC", "topic_priorities", {"_student_id": B, "_limit": 1})[0] == 200,
+      "; ".join(f"{k}: got {got[k]} expected {want[k]}" for k in want if got[k] != want[k]) or got)
+before = len(st.call("svc", "GET", "notifications?select=id&title=eq.GATE-NOTIFY-PROBE")[1])
+refused = {}
+for who, h in (("anonymous", {}), ("student", {"Authorization": f"Bearer {st.token('user:' + B)}"}),
+               ("TPO", {"Authorization": f"Bearer {st.token('user:' + TPO7)}"}), ("admin via API", {"Authorization": f"Bearer {st.token('user:' + ADMIN)}"})):
+    c, b = st.http(f"{st.API}/rpc/notify_all_admins", {"_title": "GATE-NOTIFY-PROBE", "_message": "gate", "_type": "system", "_link": None}, h, "POST")
+    refused[who] = c
+after = len(st.call("svc", "GET", "notifications?select=id&title=eq.GATE-NOTIFY-PROBE")[1])
+check("notify_all_admins: anonymous, student, TPO and direct-API admin refused; no notification created",
+      all(c in (401, 403) for c in refused.values()) and after == before, (refused, after - before))
+c, _ = st.call("svc", "RPC", "notify_all_admins", {"_title": "GATE-NOTIFY-PROBE", "_message": "gate backend path", "_type": "system", "_link": None})
+made = st.call("svc", "GET", "notifications?select=id&title=eq.GATE-NOTIFY-PROBE")[1]
+st.call("svc", "DELETE", "notifications?title=eq.GATE-NOTIFY-PROBE")                 # staging test admins only; removed at once
+check("notify_all_admins: the backend path works (staging test admins; rows removed)", c in (200, 204) and len(made) >= 1, (c, len(made)))
+
 # ---- 3. forged grade -------------------------------------------------------------------------
 G = "3545a46b-a17f-4f2e-8788-35ada1b5e699"
 c, t = st.call("svc", "POST", "tasks", {"student_id": S, "title": "AUDIT D1 forge probe", "description": "x", "category": "technical",

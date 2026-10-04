@@ -96,7 +96,9 @@ serve(async (req) => {
   return reply({ ok: true, job, ms, status: state, result: data ?? null });
 });
 
-const BATCH = 1000;
+// 250, not 1000: a 1000-student batch with many failing students took over the API's 30 s
+// limit on staging (4 Oct, "upstream request timeout"); 250 keeps each call a few seconds.
+const BATCH = 250;
 const TIME_BUDGET_MS = 240_000;   // the function itself is allowed 300 s
 
 /** Same thresholds as migration 75: 5% or 50 students failing is a failure. */

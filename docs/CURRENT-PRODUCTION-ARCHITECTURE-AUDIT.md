@@ -605,3 +605,109 @@ alter default privileges for role postgres in schema public revoke execute on fu
 | Rollback | the same three statements with `grant` |
 | Production | its `pg_default_acl` is UNVERIFIED (needs the approved read-only check) |
 | Risk | a future migration that forgets its grant breaks that feature on staging, which the gate's browser journeys and function sweep should catch before release |
+
+## 16. D1 closure and D1b: SQL-internal functions (staging, 4 Oct 2026)
+
+### D1 proof gaps closed (MEASURED / CODE)
+- **Does the committed migration 80 grant execute to PUBLIC? NO.**
+  - `migration/80-server-only-functions-revoked.sql` (commit `2b9c9a5`), SHA-256 `f3773e32…64ef`, is byte-identical to `supabase/migrations/20261103003000_server_only_functions_revoked.sql`.
+  - Its only grant/revoke statements:
+    - line 46 `revoke all on function %s from public, anon, authenticated`;
+    - line 47 `grant execute on function %s to service_role`.
+  - The committed blob contains no "to public".
+- **The confusing line** `grant execute on function %s to public` is line 19 of the separate rollback file `80-rollback-server-only-functions-revoked.sql`. That is the undo script, which restores the open state. It was written in the same step and **never run**: the ledger records only `80-server-only-functions-revoked`.
+- **Fresh 26-function matrix:** all `PUBLIC=f anon=f authenticated=f service_role=t`.
+- **Clean D1 regression run:** 10/10, including `check_rate_limit` with the real argument names `p_bucket`, `p_subject`, `p_limit`, `p_window_seconds`.
+- **D1 gate check rerun:** 7/7; forged grade refused; nothing changed (XP 624 → 624).
+- **D1 VERIFIED (staging).**
+
+### D1b: what was reviewed
+- Every **security-definer** function (not triggers) that `anon` / `authenticated` could still execute and that was not already classed browser user-callable or admin: **60 functions**.
+- For each one, read from staging:
+  - execute rights (PUBLIC / anon / authenticated / service_role);
+  - use in RLS policies and views;
+  - every other public function that calls it, and whether that caller is security definer;
+  - whether the body checks `auth.uid()`, `is_admin()` / `has_role()`, college or company ownership;
+  - whether it writes;
+  - the creating migration's intent.
+- Plus code references (browser, servers, scripts).
+
+### Classification (all 60, exact signatures)
+
+| Class | Functions | Evidence | Action |
+|---|---|---|---|
+| **B. SQL-internal; direct execute revoked** (35) | `advance_season(uuid)`, `backfill_rounds(uuid)`, `claim_lot_template(uuid)`, `close_season(uuid)`, `create_lot_for(uuid,date)`, `ensure_season(uuid)`, `extend_fixtures(uuid)`, `generate_championship(uuid)`, `generate_cohort_league(uuid,boolean)`, `generate_final(uuid)`, `generate_knockout(uuid)`, `generate_round_robin(uuid,boolean,integer)`, `has_role(uuid,app_role)`, `is_duplicate_source(text,text,bigint,real)`, `log_activity(uuid,text,text,uuid,jsonb)`, `lot_needs_writer(uuid)`, `next_lot_source(uuid)`, `notify_retest_unlocks()`, `plan_student_week(uuid,date)`, `prune_bug_finder_runs()`, `prune_rate_limits()`, `qualify_squads(uuid)`, `record_activity(uuid,text)`, `recount_season(uuid)`, `refresh_unlock(uuid,text)`, `reshuffle_quiz_options()`, `resolve_account_uuid(text,text)`, `run_squad_week(uuid,integer)`, `schedule_round_robin(uuid,uuid[],integer,integer,text,text)`, `score_student_week(uuid,uuid,integer)`, `seed_championship(uuid)`, `seed_lot_template(uuid)`, `settle_round(uuid,integer)`, `suggest_tracks(uuid,integer)`, `write_audit(text,text,uuid,jsonb,jsonb,uuid)` | No browser or server code calls them (one test script calls `next_lot_source` with the service key). No policy or view uses them. **Every calling function is security definer** (runs as owner). Most were meant to be revoked by their creating migration. None checks the caller except `write_audit` (uid) | migration 81 |
+| **E. Policy / RLS helpers: keep executable** (7) | `is_admin()` (90 policies, 2 views, an invoker trigger), `college_owns_student(uuid)` (2 policies), `is_verified_recruiter()` (2), `my_approved_college_ids()` (7), `viewer_college_id()` (5), `student_is_discoverable(uuid)` (1 policy), `refuse_suspended()` (the API's pre-request hook: must run as the caller) | Used where the caller's own rights apply | unchanged; the gate now **requires** `authenticated` to keep EXECUTE |
+| **C. Admin-only, with an internal guard** (6) | `admin_notify_student(uuid,text,text,text,text)`, `admin_trace_errors(integer)`, `admin_trace_funnels(integer)`, `admin_trace_search(text)`, `admin_trace_slow(integer)`, `admin_trace_student(uuid,integer,integer)` | Body calls `is_admin()`. A student calling `admin_trace_search` gets `P0001 admins only` (MEASURED). The admin gets 200 | unchanged; the gate now fails if any admin-only function loses its `is_admin()`/`has_role()` guard |
+| **A. User-callable by design** (10) | `can_see_season(uuid)`, `get_leaderboard(integer)` (browser), `my_company_ok()`, `my_recruiter_id()`, `my_season_id()`, `my_shortlists()`, `placement_questions(uuid)`, `respond_to_shortlist(uuid,boolean)`, `submit_placement(jsonb)`, `squad_championship_achievements(uuid)` | Granted to users on purpose in their migrations; check `auth.uid()` or return public data. All except `get_leaderboard` have **no current screen** (legacy features) | unchanged; legacy ones can be retired later |
+| **F. Unsafe, needs an owner decision** (2) | `topic_priorities(uuid,integer)`: **no ownership check**, any caller reads any student's topic priorities (LOW, read-only). `notify_all_admins(text,text,text,text)`: **any caller, even anonymous, inserts a notification with any text for every admin** (MEDIUM: spam / phishing inside the admin inbox) | Granted on purpose in stage 10 / 55 migrations, so changing them is a product decision | **BLOCKED / NEEDS REVIEW**; listed as `flagged` in the manifest |
+| **G. Unknown** | none among the 60 | | — |
+
+The remaining **79 `pending_review`** entries are mostly **not** security definer (they run with the caller's rights, so RLS still applies), plus trigram helpers. They are listed by signature so any new exposure still fails the gate.
+
+### Attack test (MEASURED, `scripts/dev-tools/staging_d1b_probe.py`)
+- Inputs were **random ids only**, so no row matches and nothing can change.
+- Functions without arguments that would change data (`notify_retest_unlocks`, `prune_*`, `reshuffle_quiz_options`) were not called; their state is proven by the privilege check.
+
+| | Before migration 81 | After |
+|---|---|---|
+| 25 functions × (anonymous, student) | **50 / 50 reached the function body** (200 / 204, or an error raised inside: `P0001`, or `23503` = the database refused a missing foreign key) | **0 / 50** (401 / 403 `42501` permission denied) |
+| Data changed | none (random ids; the inserts attempted were refused by foreign keys) | none |
+| Impact if real ids had been used (INFERRED from the bodies) | Any visitor could close or advance a college's season, run or settle a squad week, create a Lot for any student, seed or claim Lot templates, or recompute scores | blocked |
+
+### Migration 81
+- Files: `migration/81-sql-internal-functions-revoked.sql`, mirrored as `supabase/migrations/20261103003100_sql_internal_functions_revoked.sql`; rollback `81-rollback-…` (re-opens; warned).
+- **Pre-check inside the migration:** refuses to run if any non-security-definer public function, any RLS policy or any view calls one of the 35.
+- Then `revoke all … from public, anon, authenticated` and `grant execute … to service_role`.
+- Self-check fails if any of the 35 is still executable by PUBLIC / anon / authenticated, lost service_role, or if `is_admin()` lost authenticated execute.
+- Applied through the ledger: "LEDGER: 81-sql-internal-functions-revoked applied and recorded".
+
+### Legitimate paths after migration 81 (MEASURED)
+- **Nested calls through user functions, all 200:**
+  - `my_suggested_tracks` (→ `suggest_tracks`);
+  - `my_week` (→ `plan_student_week`);
+  - `my_todays_lot` (→ Lot functions);
+  - `my_squad_members`.
+- **Admin, all 200:**
+  - `admin_trace_search` (→ `is_admin` → `has_role`);
+  - reading `user_roles` through the `is_admin` policy.
+- **Service key:** `next_lot_source` 200.
+- **Jobs:** `weekly-seasons` (→ `run_all_seasons` → season engine) ok, 1 season scored; `nightly-squads` ok.
+- **D1 regression:** 10/10 again.
+- The release gate covers the rest: crawler (Lot templates), daily Lots, real voice, Run / Submit, browser journeys.
+
+### Permanent gate (`staging_rpc_authz_check.py`, now 11 checks)
+
+Manifest classes (`scripts/rpc_manifest.json`): `server_only` 26, `sql_internal` 35, `admin_only` 13, `policy_helper` 7, `user_callable` 79, `flagged` 2, `pending_review` 79.
+
+The check fails when:
+- a server-only or SQL-internal function is executable by PUBLIC / anon / authenticated, or loses service_role;
+- a directly callable admin function has no `is_admin()`/`has_role()` in its body;
+- a policy helper loses authenticated execute (it would break RLS);
+- **any function not in the manifest** becomes executable by anon / authenticated;
+- any of 52 server-only or 24 SQL-internal API calls is not refused;
+- a forged `record_task_submission` gets through or changes anything.
+
+### D2 proposal update (still NOT applied)
+D1 and D1b were both caused by Postgres's default "PUBLIC may execute a new function" plus the schema's default grants.
+
+The D2 migration (§15) should therefore also:
+- revoke `EXECUTE ON FUNCTIONS FROM PUBLIC` in the default privileges;
+- make the gate's "not in the manifest" rule the safety net for any function that a future migration creates without an explicit grant.
+
+### Release gate after D1b (MEASURED)
+
+**Security result**
+- `FINAL STAGING RELEASE GATE: PASS (commit f8d77ac, 2026-10-04T15:42Z)`, exit 0.
+- **30 of 30 steps**, including "server-only + SQL-internal DB functions refused (D1, D1b)" 11/11.
+- No retries. No "permission denied" in any staging log.
+
+**Capacity / quota result** (staging, during the gate; reported separately, not hidden in the PASS)
+
+| Events | Service | Cause |
+|---|---|---|
+| 9 × 429, 1 × 503, 2 × 500 within 1.5 s at 15:42:27 on `task_assignments` | staging API | **shared quota**: staging 11 + production 9 = 20 of 20 vCPU; the API could not start a second instance during a burst of parallel page queries in the browser journeys. The browser step still passed |
+| 35 × 500 | transcription worker | transcriber at its one-job-per-instance limit (2 × 429, 1 × 503): the voice burst's known queue-retry path; every recording was scored |
+| 1 × 500 | functions `scheduled-job?job=daily-lots` | the daily-Lots check's deliberate "2,000 students fail" case |
+
+**Production:** 0 errors during the run.

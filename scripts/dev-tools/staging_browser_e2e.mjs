@@ -141,7 +141,7 @@ const JOURNEYS = {
   admin: [
     ["admin home; menu is Home / People / Work / Operations", seq(go("/admin/dashboard"), see("Overview"), menuIs(["Home", "People", "Work", "Operations"], ["Work Queue", "Platform", "Proof Review", "Trust & XP"]))],
     ["People", seq(click("People"), see("Students"), see("Companies"), see("Colleges"))],
-    ["Work > Submissions (current work)", seq(click("Work"), noText("Proof Review"), click("Submissions"), urlHas("tab=submissions"), see("Count failed logins per user"))],
+    ["Work > Submissions (current work)", seq(click("Work"), noText("Proof Review"), click("Submissions"), urlHas("tab=submissions"), see("passed ·|failed ·|needs_review"))],   // newest 200 rows; any real graded row proves current work (a fixed title falls off the page once load tests add work)
     ["Work > Flags & reviews", seq(click("Flags & reviews"), see("Flag|flag|No submissions|review"))],
     ["Operations > AI usage", seq(click("Operations"), click("AI usage"), see("Token|Usage|usage"))],
     ["Operations > Jobs & health survives refresh", seq(click("Jobs & health"), urlHas("tab=ops-jobs"), see("Lots dated today"), reload, see("Voice queue"))],

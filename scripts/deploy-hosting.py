@@ -11,6 +11,7 @@ have. A redeploy that changes one file therefore uploads one file.
 
 Usage:
     python scripts/deploy-hosting.py [dist-dir]
+    HOSTING_SITE=prooflab-staging python scripts/deploy-hosting.py dist-staging   # staging-only site
 """
 
 import gzip
@@ -25,7 +26,7 @@ import urllib.error
 import urllib.request
 
 PROJECT = "prooflab-508214"
-SITE = "prooflab-508214"
+SITE = os.environ.get("HOSTING_SITE", "prooflab-508214")   # default: the production site
 API = "https://firebasehosting.googleapis.com/v1beta1"
 DIST = sys.argv[1] if len(sys.argv) > 1 else "dist"
 
@@ -176,4 +177,4 @@ for i, h in enumerate(wanted, 1):
 call("PATCH", f"{version_name}?updateMask=status", {"status": "FINALIZED"})
 release = call("POST", f"sites/{SITE}/releases?versionName={version_name}", {})
 print(f"  released: {release.get('name','').split('/')[-1]}")
-print("  live at https://prooflab-508214.web.app")
+print(f"  live at https://{SITE}.web.app")

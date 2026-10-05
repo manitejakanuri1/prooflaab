@@ -4,7 +4,7 @@
   "concurrency": 80,
   "cpu": "1",
   "env": {
-   "ALLOWED_ORIGINS": "http://localhost:5173",
+   "ALLOWED_ORIGINS": "http://localhost:5173,https://prooflab-staging.web.app,https://prooflab-staging.firebaseapp.com",
    "APP_JWT_PUBLIC_JWKS": "{\"keys\": [{\"kty\": \"RSA\", \"n\": \"s1xyA4jIItujyce-XMulsMvLn2P7l5iEOqoPd3Tchab36qUdhcYSij-7X-OryISXI5s_ruWldt6emJfwZc2jqbs3c4HYRFVieZY-94sUVebTRkzK1K0awjXKmAgBwm-lhjPbhQxU6_Mm7ug4s23-7XE083I3DIfSkCTrRR88aacvOErcoKFAfJCJVuJ5nFDGQXwvr1LiW2MfQFfQ0vT_uv3MQMboGp3n9v9YCdJI2GMk7NyiMhTyWkXqAaH8j61-z6FnWl7XSh6s6wjr1qlbKQbFgZu5dYguLS3hJczD8H_kwL4e4JTsFjXQTWDKV3vQCUKJlmsFYM29PyEDaSqAIw\", \"e\": \"AQAB\", \"alg\": \"RS256\", \"use\": \"sig\", \"kid\": \"6a7e46dd0d6f1cc4\"}]}",
    "GCP_PROJECT": "prooflab-508214",
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
@@ -59,7 +59,7 @@
   "concurrency": 80,
   "cpu": "1",
   "env": {
-   "ALLOWED_ORIGINS": "http://localhost:5173",
+   "ALLOWED_ORIGINS": "http://localhost:5173,https://prooflab-staging.web.app,https://prooflab-staging.firebaseapp.com",
    "APP_SIGNING_KEY": {
     "secret": "prooflab-staging-app-signing-key",
     "version": "2"
@@ -102,7 +102,7 @@
   "concurrency": 80,
   "cpu": "1",
   "env": {
-   "ALLOWED_ORIGINS": "http://localhost:5173",
+   "ALLOWED_ORIGINS": "http://localhost:5173,https://prooflab-staging.web.app,https://prooflab-staging.firebaseapp.com",
    "APP_JWT_PUBLIC_JWKS": "{\"keys\": [{\"kty\": \"RSA\", \"n\": \"s1xyA4jIItujyce-XMulsMvLn2P7l5iEOqoPd3Tchab36qUdhcYSij-7X-OryISXI5s_ruWldt6emJfwZc2jqbs3c4HYRFVieZY-94sUVebTRkzK1K0awjXKmAgBwm-lhjPbhQxU6_Mm7ug4s23-7XE083I3DIfSkCTrRR88aacvOErcoKFAfJCJVuJ5nFDGQXwvr1LiW2MfQFfQ0vT_uv3MQMboGp3n9v9YCdJI2GMk7NyiMhTyWkXqAaH8j61-z6FnWl7XSh6s6wjr1qlbKQbFgZu5dYguLS3hJczD8H_kwL4e4JTsFjXQTWDKV3vQCUKJlmsFYM29PyEDaSqAIw\", \"e\": \"AQAB\", \"alg\": \"RS256\", \"use\": \"sig\", \"kid\": \"6a7e46dd0d6f1cc4\"}]}",
    "FILE_GRANT_SECRET": {
     "secret": "prooflab-staging-file-grant-secret",
@@ -132,7 +132,7 @@
   "cpu": "1",
   "env": {
    "ACCOUNTS_URL": "https://prooflab-staging-accounts-ysn2mpe6sa-el.a.run.app",
-   "ALLOWED_ORIGINS": "http://localhost:5173",
+   "ALLOWED_ORIGINS": "http://localhost:5173,https://prooflab-staging.web.app,https://prooflab-staging.firebaseapp.com",
    "APP_JWT_PUBLIC_JWKS": "{\"keys\": [{\"kty\": \"RSA\", \"n\": \"s1xyA4jIItujyce-XMulsMvLn2P7l5iEOqoPd3Tchab36qUdhcYSij-7X-OryISXI5s_ruWldt6emJfwZc2jqbs3c4HYRFVieZY-94sUVebTRkzK1K0awjXKmAgBwm-lhjPbhQxU6_Mm7ug4s23-7XE083I3DIfSkCTrRR88aacvOErcoKFAfJCJVuJ5nFDGQXwvr1LiW2MfQFfQ0vT_uv3MQMboGp3n9v9YCdJI2GMk7NyiMhTyWkXqAaH8j61-z6FnWl7XSh6s6wjr1qlbKQbFgZu5dYguLS3hJczD8H_kwL4e4JTsFjXQTWDKV3vQCUKJlmsFYM29PyEDaSqAIw\", \"e\": \"AQAB\", \"alg\": \"RS256\", \"use\": \"sig\", \"kid\": \"6a7e46dd0d6f1cc4\"}]}",
    "BACKEND": "google",
    "CODE_RUNNER_AUTH": "iam",
@@ -200,7 +200,7 @@
   "concurrency": 1,
   "cpu": "2",
   "env": {
-   "ALLOWED_ORIGINS": "http://localhost:5173",
+   "ALLOWED_ORIGINS": "http://localhost:5173,https://prooflab-staging.web.app,https://prooflab-staging.firebaseapp.com",
    "APP_JWT_PUBLIC_JWKS": "{\"keys\": [{\"kty\": \"RSA\", \"n\": \"s1xyA4jIItujyce-XMulsMvLn2P7l5iEOqoPd3Tchab36qUdhcYSij-7X-OryISXI5s_ruWldt6emJfwZc2jqbs3c4HYRFVieZY-94sUVebTRkzK1K0awjXKmAgBwm-lhjPbhQxU6_Mm7ug4s23-7XE083I3DIfSkCTrRR88aacvOErcoKFAfJCJVuJ5nFDGQXwvr1LiW2MfQFfQ0vT_uv3MQMboGp3n9v9YCdJI2GMk7NyiMhTyWkXqAaH8j61-z6FnWl7XSh6s6wjr1qlbKQbFgZu5dYguLS3hJczD8H_kwL4e4JTsFjXQTWDKV3vQCUKJlmsFYM29PyEDaSqAIw\", \"e\": \"AQAB\", \"alg\": \"RS256\", \"use\": \"sig\", \"kid\": \"6a7e46dd0d6f1cc4\"}]}",
    "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
    "WHISPER_MODEL": "base"

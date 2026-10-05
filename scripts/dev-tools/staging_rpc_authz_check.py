@@ -96,7 +96,14 @@ open(os.path.join(ROOT, "e2e-out", "d2-defaults.sql"), "w", encoding="utf-8", ne
     "has_function_privilege('authenticated','public.__gate_d2_probe_fn()','execute'), "
     "(select proacl is null or exists (select 1 from aclexplode(proacl) a where a.grantee=0) from pg_proc where oid='public.__gate_d2_probe_fn()'::regprocedure), "
     "has_table_privilege('service_role','public.__gate_d2_probe','select,insert'), has_function_privilege('service_role','public.__gate_d2_probe_fn()','execute');",
+    "select 'D2M', has_table_privilege('anon','public.__gate_d2_probe','MAINTAIN'), "
+    "has_table_privilege('authenticated','public.__gate_d2_probe','MAINTAIN'), has_table_privilege('postgres','public.__gate_d2_probe','MAINTAIN');",
     "rollback;",
+    # default privileges that would hand MAINTAIN (or anything) on new tables to the browser roles
+    "select 'DEFM', count(*) filter (where a.privilege_type = 'MAINTAIN'), count(*) "
+    "from pg_default_acl d cross join lateral aclexplode(d.defaclacl) a "
+    "where d.defaclobjtype = 'r' and (d.defaclnamespace = 0 or d.defaclnamespace = 'public'::regnamespace) "
+    "and a.grantee in ('anon'::regrole, 'authenticated'::regrole);",
     # existing tables: none may be writable by anon/authenticated without row-level security
     "select 'OPEN', c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' "
     "and not c.relrowsecurity and (has_table_privilege('anon',c.oid,'insert,update,delete,truncate') or has_table_privilege('authenticated',c.oid,'insert,update,delete,truncate'));",
@@ -120,8 +127,8 @@ open(os.path.join(ROOT, "e2e-out", "d2-defaults.sql"), "w", encoding="utf-8", ne
     "from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p');",
     "begin;",
     "do $$ begin perform set_config('request.jwt.claims', '{\"role\":\"authenticated\"}', true); execute 'set local role authenticated'; "
-    "begin execute 'lock table public.student_credits in share update exclusive mode'; raise notice 'MLOCK|ALLOWED'; "
-    "exception when insufficient_privilege then raise notice 'MLOCK|denied'; end; execute 'reset role'; end $$;",
+    "begin execute 'lock table public.student_credits in share update exclusive mode'; raise notice 'MLOCK|ALLOWED|00000'; "
+    "exception when others then raise notice 'MLOCK|denied|%', sqlstate; end; execute 'reset role'; end $$;",
     "lock table public.student_credits in share update exclusive mode;",
     "select 'OWNERLOCK', 'ok';",
     "rollback;"]) + "\n")
@@ -151,9 +158,17 @@ xmaint = [l.split("|", 1)[1] for l in log2.splitlines() if l.startswith("XMAINT|
 owner_missing = next((l.split("|")[1] for l in log2.splitlines() if l.startswith("OWNERMAINT|")), "?")
 check(f"no MAINTAIN for anon or authenticated on any of {ntab} public tables / views (effective rights); the owner keeps it",
       ntab != "?" and not xmaint and owner_missing == "0", {"browser": xmaint[:10], "owner tables without MAINTAIN": owner_missing})
-mlock = next((l.split("MLOCK|")[1].strip() for l in log2.splitlines() if "MLOCK|" in l), "?")
+d2m = next((l.split("|")[1:] for l in log2.splitlines() if l.startswith("D2M|")), None)
+check("D2: a newly created table gives anon and authenticated no MAINTAIN; the owner has it (rolled-back probe)",
+      d2m == ["f", "f", "t"], {"anon": d2m and d2m[0], "authenticated": d2m and d2m[1], "postgres": d2m and d2m[2]})
+defm = next((l.split("|")[1:] for l in log2.splitlines() if l.startswith("DEFM|")), None)
+check("default privileges give anon/authenticated nothing on new tables (MAINTAIN grants, all grants)",
+      defm == ["0", "0"], {"MAINTAIN defaults": defm and defm[0], "any default for these roles": defm and defm[1]})
+mlock = next((l.split("MLOCK|")[1].strip().split("|") for l in log2.splitlines() if "MLOCK|" in l), ["?", "?"])
 owner_lock = any(l.startswith("OWNERLOCK|") for l in log2.splitlines())
-check("a signed-in user cannot take a maintenance lock; the owner can (rolled back)", mlock == "denied" and owner_lock, (mlock, owner_lock))
+# Decisive: ANALYZE only warns and skips without MAINTAIN, so the strong lock is the behavioural proof.
+check("a signed-in user's SHARE UPDATE EXCLUSIVE lock is refused with 42501; the owner's lock works (rolled back)",
+      mlock == ["denied", "42501"] and owner_lock, {"authenticated": mlock, "postgres owner lock": owner_lock})
 
 # ---- 2. through the API --------------------------------------------------------------------
 S = "10ad0000-0000-4000-8000-000000014602"

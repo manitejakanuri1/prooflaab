@@ -28,7 +28,8 @@ export interface Candidate {
   consistency: number
   lastActive: string
   lastActiveDays: number
-  communicationScore: number
+  /** null when no spoken explanation has been scored yet (shown as "not tested", never 0) */
+  communicationScore: number | null
   squad: { squadName: string; rank: number; totalMembers: number; seasonPoints: number; wins: number; losses: number }
   seasonRank: number
   sponsoredTasks: { id: string; title: string; description: string; status: 'pending' | 'in_progress' | 'submitted' | 'reviewed'; createdDate: string; deadline: string; outcome?: 'continue' | 'reject' | 'another_round' | 'interested'; reviewNotes?: string; submittedDate?: string }[]

@@ -100,7 +100,7 @@ export function toCandidate(row: Record<string, unknown>): Candidate {
     consistency: Number(row.active_weeks ?? 0),
     lastActive: daysAgo(Number(row.days_since_active ?? 999)),
     lastActiveDays: Number(row.days_since_active ?? 999),
-    communicationScore: Number(row.comms_score ?? 0),
+    communicationScore: row.comms_score == null ? null : Number(row.comms_score),
     squad: {
       squadName: String(row.squad_name ?? ""),
       rank: Number(row.squad_rank ?? 0),
@@ -261,7 +261,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     consistency: Number(p.consistency?.active_weeks ?? 0),
     lastActive: daysAgo(Number(p.days_since_active ?? 999)),
     lastActiveDays: Number(p.days_since_active ?? 999),
-    communicationScore: Number(p.communication ?? 0),
+    communicationScore: p.communication ?? null,
     squad: {
       squadName: p.squad?.name ?? "",
       rank: Number(p.squad?.rank ?? 0),

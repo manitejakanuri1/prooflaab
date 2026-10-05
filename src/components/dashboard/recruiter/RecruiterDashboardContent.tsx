@@ -296,7 +296,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                           {c.skillsProven ?? 0}
                         </td>
                         <td className="py-2.5 pr-3 font-mono tabular-nums">{c.proofsVerified ?? 0}</td>
-                        <td className="py-2.5 pr-3 font-mono tabular-nums">{c.communicationScore || "—"}</td>
+                        <td className="py-2.5 pr-3 font-mono tabular-nums">{c.communicationScore ?? "—"}</td>
                         <td className="py-2.5 text-muted-foreground">{c.lastActive}</td>
                       </tr>
                     ))}

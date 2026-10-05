@@ -100,7 +100,19 @@ open(os.path.join(ROOT, "e2e-out", "d2-defaults.sql"), "w", encoding="utf-8", ne
     # existing tables: none may be writable by anon/authenticated without row-level security
     "select 'OPEN', c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' "
     "and not c.relrowsecurity and (has_table_privilege('anon',c.oid,'insert,update,delete,truncate') or has_table_privilege('authenticated',c.oid,'insert,update,delete,truncate'));",
-    r"select 'LEFT', count(*) from pg_class where relname like '\_\_gate\_d2%' or relname like '\_\_d2\_probe%';"]) + "\n")
+    r"select 'LEFT', count(*) from pg_class where relname like '\_\_gate\_d2%' or relname like '\_\_d2\_probe%';",
+    # migration 86: effective table rights nobody in the app needs, and system-owned credits
+    "select 'XRIGHT', x.r || ':' || x.p || ':' || c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace, "
+    "(select r, p from unnest(array['anon','authenticated']) r, unnest(array['TRUNCATE','REFERENCES','TRIGGER']) p) x "
+    "where n.nspname='public' and c.relkind in ('r','p','v','m') and has_table_privilege(x.r, c.oid, x.p);",
+    "select 'NTABLES', count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p');",
+    "select 'BACKEND', count(*) filter (where not has_table_privilege('service_role', c.oid, 'select')) "
+    "from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p');",
+    "select 'CREDITS', has_table_privilege('authenticated','public.student_credits','insert,update,delete'), "
+    "has_table_privilege('anon','public.student_credits','select,insert,update,delete'), "
+    "has_table_privilege('authenticated','public.student_credits','select'), "
+    "has_table_privilege('service_role','public.student_credits','select,insert,update,delete'), "
+    "(select count(*) from pg_policy where polrelid='public.student_credits'::regclass and polcmd in ('a','w','d','*'));"]) + "\n")
 r2 = subprocess.run(["bash", "scripts/dev-tools/staging_sql.sh", "e2e-out/d2-defaults.sql"], capture_output=True, text=True, cwd=ROOT)
 ex2 = r2.stdout.strip().split("(")[-1].rstrip(")")
 log2 = subprocess.run(f'gcloud logging read "resource.type=cloud_run_job AND labels.\\"run.googleapis.com/execution_name\\"={ex2}" '
@@ -114,6 +126,15 @@ open_tables = [l.split("|")[1] for l in log2.splitlines() if l.startswith("OPEN|
 check("no existing table is writable by anon/authenticated without row-level security", not open_tables, open_tables)
 left = next((l.split("|")[1] for l in log2.splitlines() if l.startswith("LEFT|")), "?")
 check("no probe objects left behind", left == "0", left)
+xright = [l.split("|", 1)[1] for l in log2.splitlines() if l.startswith("XRIGHT|")]
+ntab = next((l.split("|")[1] for l in log2.splitlines() if l.startswith("NTABLES|")), "?")
+check(f"no TRUNCATE / REFERENCES / TRIGGER for anon or authenticated on any of {ntab} public tables (effective rights)",
+      ntab != "?" and not xright, xright[:10])
+backend_missing = next((l.split("|")[1] for l in log2.splitlines() if l.startswith("BACKEND|")), "?")
+check("the backend (service_role) can still read every public table", backend_missing == "0", backend_missing)
+cr = next((l.split("|")[1:] for l in log2.splitlines() if l.startswith("CREDITS|")), None)
+check("student_credits is system-owned: students read only, cannot insert/update/delete; anon nothing; backend full",
+      cr == ["f", "f", "t", "t", "0"], cr)
 
 # ---- 2. through the API --------------------------------------------------------------------
 S = "10ad0000-0000-4000-8000-000000014602"

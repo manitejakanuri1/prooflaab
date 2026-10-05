@@ -242,6 +242,60 @@ check("D3 admin_users: anonymous / student / college / company read nothing and 
       and len(g("user_roles?select=id&role=eq.admin")) == admins_before and g(f"user_roles?select=role&user_id=eq.{B}") == [{"role": "student"}],
       {"callers": got, "admin": admin_sees})
 
+# ---- 4c. migration 86: system-owned credits; review_task_submission tells strangers nothing ------
+credits_before = g("student_credits?select=student_id,credits_available,premium_status&order=student_id")
+c1, _ = st.call(f"user:{A}", "POST", "student_credits", {"student_id": A, "credits_available": 99999, "credits_used_today": 0, "premium_status": True})
+own_after_attack = g(f"student_credits?select=id&student_id=eq.{A}")
+cs, _ = st.call("svc", "POST", "student_credits", {"student_id": A, "credits_available": 5, "credits_used_today": 0, "premium_status": False})
+cu, _ = st.call("svc", "PATCH", f"student_credits?student_id=eq.{A}", {"credits_available": 6})
+svc_row = g(f"student_credits?select=credits_available&student_id=eq.{A}")
+own_read = st.call(f"user:{A}", "GET", f"student_credits?select=credits_available&student_id=eq.{A}")[1]
+c3, _ = st.call(f"user:{A}", "PATCH", f"student_credits?student_id=eq.{A}", {"credits_available": 99999, "premium_status": True})
+after_student_patch = g(f"student_credits?select=credits_available,premium_status&student_id=eq.{A}")
+st.call("svc", "DELETE", f"student_credits?student_id=eq.{A}")
+credits_after = g("student_credits?select=student_id,credits_available,premium_status&order=student_id")
+check("credits: a student cannot create or raise their own credits/premium; the backend can; the student can read their row; test row removed",
+      c1 in (401, 403) and not own_after_attack and cs in (200, 201) and cu in (200, 204) and svc_row == [{"credits_available": 6}]
+      and own_read == [{"credits_available": 6}] and c3 in (401, 403)
+      and after_student_patch == [{"credits_available": 6, "premium_status": False}] and credits_after == credits_before,
+      {"student insert": c1, "row after attack": own_after_attack, "backend insert/update": (cs, cu, svc_row), "student read": own_read,
+       "student patch": c3, "after student patch": after_student_patch, "table unchanged": credits_after == credits_before})
+
+NR_STUDENT = "10ad0000-0000-4000-8000-000000000027"   # Load Student 27, college 7, has a submission awaiting review
+NR = (g(f"task_submissions?select=id&status=eq.needs_review&student_id=eq.{NR_STUDENT}&limit=1") or [None])[0]
+SUBS = ",".join([SUBB] + ([NR["id"]] if NR else []))
+
+
+def review_state():
+    return (g(f"task_submissions?select=id,status,xp_awarded&id=in.({SUBS})&order=id"),
+            g(f"student_profiles?select=id,total_xp&id=in.({B},{NR_STUDENT})&order=id"),
+            g(f"tasks?select=status&id=eq.{TB}"), len(g(f"xp_logs?select=id&student_id=in.({B},{NR_STUDENT})")),
+            len(g(f"student_activity_events?select=id&student_id=eq.{NR_STUDENT}")))
+
+
+def reason(who, sid):
+    body = {"_submission_id": sid, "_approve": False}
+    c, b = st.call(f"user:{who}", "RPC", "review_task_submission", body) if who else st.http(f"{st.API}/rpc/review_task_submission", body, {}, "POST")
+    if isinstance(b, dict) and "reason" in b:
+        return b["reason"]
+    return f"{c}:{b.get('code') if isinstance(b, dict) else b}"
+
+
+rs_before = review_state()
+R = str(uuid.uuid4())
+want = [  # (label, caller, submission, exact answer)
+    ("anonymous", None, SUBB, "401:42501"), ("student A", A, SUBB, "forbidden"), ("college 7 (wrong)", TPO7, SUBB, "forbidden"),
+    ("company", REC_OK, SUBB, "forbidden"), ("student A, random id", A, R, "forbidden"), ("college 7, random id", TPO7, R, "forbidden"),
+    ("college 8 (owner)", TPO8, SUBB, "not awaiting review"), ("admin", ADMIN, SUBB, "not awaiting review"),
+    ("admin, random id", ADMIN, R, "no such submission")]
+if NR:   # rejection path is only reached by an authorized caller; every caller here is unauthorized
+    want += [("student A -> awaiting review", A, NR["id"], "forbidden"), ("college 8 (wrong) -> awaiting review", TPO8, NR["id"], "forbidden"),
+             ("Student B -> awaiting review", B, NR["id"], "forbidden")]
+got = {label: reason(who, sid) for label, who, sid, _ in want}
+bad = {label: (got[label], exp) for label, _, _, exp in want if got[label] != exp}
+check(f"review_task_submission: unauthorized callers always get 'forbidden' (no state or existence oracle); owner and admin get the real answer ({len(want)} bodies compared)",
+      not bad and review_state() == rs_before, bad or got)
+
 # ---- 5. nothing changed for Student B ------------------------------------------------------------
 after = state()
 check("nothing changed for Student B (task, submission, voice, notifications, role, profile, squad, shortlists, reminders, squads)",

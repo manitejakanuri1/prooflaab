@@ -70,5 +70,5 @@ if [ "$MODE" != "quick" ]; then
 fi
 
 echo
-if [ "$FAILED" -eq 0 ]; then echo "FINAL STAGING RELEASE GATE: PASS  (commit $(git rev-parse --short HEAD), $(date -u +%Y-%m-%dT%H:%MZ))"; else echo "FINAL STAGING RELEASE GATE: FAIL ($FAILED gate(s))"; fi
+if [ "$FAILED" -eq 0 ]; then echo "FINAL STAGING RELEASE GATE [${MODE^^}]: PASS  (commit $(git rev-parse --short HEAD), $(date -u +%Y-%m-%dT%H:%MZ))"; else echo "FINAL STAGING RELEASE GATE [${MODE^^}]: FAIL ($FAILED gate(s))"; fi
 exit "$FAILED"

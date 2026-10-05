@@ -33,6 +33,9 @@ interface Lot {
   rubric_config_id: string | null;
   /** Where the question came from: the source's name only, never a link. */
   source_name?: string | null;
+  /** Migration 88: why this Lot was chosen, built only from stored Daily-Lot evidence. */
+  why_selected?: string | null;
+  lot_skills?: string[] | null;
 }
 
 /** One dot per day, coloured by what was submitted. */
@@ -248,6 +251,12 @@ const StudentDailyCard = () => {
               </span>
             )}
             <h2 className="mt-2 text-lg font-semibold leading-snug">{tidyTitle(lot.title)}</h2>
+            {lot.why_selected && (
+              <p className="mt-2 rounded-md bg-[#efe9dc] px-3 py-2 text-xs text-[#4a463d]">
+                <span className="font-semibold">Why this Lot: </span>{lot.why_selected}
+                {lot.lot_skills && lot.lot_skills.length > 0 && <> · Skills: {lot.lot_skills.join(", ")}</>}
+              </p>
+            )}
             {lot.description && (
               <div className="mt-3 text-[#2b2a26]">
                 <SimpleQuestionShort taskId={lot.id} original={lot.description} />

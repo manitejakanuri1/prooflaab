@@ -76,6 +76,8 @@ interface LevelPayload {
   evidence: string | null;
   best_score: number;
   attempts: number;
+  /** Set when this topic is a short primer of a full course, whatever the student's progress on it. */
+  linked_course?: CourseLinkInfo | null;
 }
 
 interface QuizResult {
@@ -308,6 +310,19 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
 
           {phase === "read" && data && (
             <div className="space-y-5 animate-level-in">
+              {/* Progress credit and course access are different things: a primer that is already
+                  placed, revised or cleared must still lead to the complete course. */}
+              {data.linked_course && onOpenCourse && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm">
+                    This topic is part of the full {data.linked_course.course_name} course
+                    ({data.linked_course.done_topics} of {data.linked_course.topics} levels done).
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); onOpenCourse(data.linked_course!.course_slug); }}>
+                    Open the full {data.linked_course.course_name} course
+                  </Button>
+                </div>
+              )}
               {/* Placement ticked this off from their resume without ever asking a
                   question about it. Saying so out loud is the difference between
                   a map they trust and one that quietly claims things for them. */}

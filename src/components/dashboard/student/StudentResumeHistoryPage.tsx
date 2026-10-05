@@ -97,36 +97,47 @@ const StudentResumeHistoryPage = () => {
           <>
             {(() => {
               const latest = history[0];
-              const scores = [
-                latest.resume_quality_score, latest.ats_match_score, latest.skill_proof_score,
-                latest.project_proof_score, latest.reasoning_score, latest.coding_score,
-                latest.interview_readiness_score,
-              ].filter((s): s is number => s != null);
-              const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+              // ONE readiness number: the backend's interview_readiness_score (resume-assessment-submit).
+              // Never re-average it with its own parts - that counted each part twice.
+              const readiness = latest.interview_readiness_score;
+              // Its parts and weights, exactly as the backend combines them; a part that was not
+              // assessed is left out and the remaining weights are renormalised there too.
+              const parts: [string, number | null, number][] = [
+                ["Resume quality", latest.resume_quality_score, 20],
+                ["ATS match", latest.ats_match_score, 20],
+                ["Skill proof", latest.skill_proof_score, 30],
+                ["Project proof", latest.project_proof_score, 15],
+                ["Reasoning", latest.reasoning_score, 15],
+              ];
+              const weightSum = parts.reduce((a, [, v, w]) => a + (v != null ? w : 0), 0);
               const gap = latest.skill_gap;
               return (
                 <div className="mb-4 rounded-lg border p-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-sm font-medium">Company readiness</span>
-                    {avg != null && (
-                      <Badge variant={avg >= 70 ? "default" : avg >= 45 ? "secondary" : "outline"}>
-                        {avg}/100 overall
+                    {readiness != null && (
+                      <Badge variant={readiness >= 70 ? "default" : readiness >= 45 ? "secondary" : "outline"}>
+                        {readiness}/100
                       </Badge>
                     )}
                   </div>
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                    {[
-                      ["Interview readiness", latest.interview_readiness_score],
-                      ["Project proof", latest.project_proof_score],
-                      ["Reasoning", latest.reasoning_score],
-                      ["ATS match", latest.ats_match_score],
-                    ].map(([label, v]) => (
-                      <div key={label as string} className="rounded bg-muted/50 p-2">
+                  <p className="text-xs text-muted-foreground mt-2">Why this score: a weighted mix of the parts below.</p>
+                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                    {parts.map(([label, v, w]) => (
+                      <div key={label} className="rounded bg-muted/50 p-2">
                         <div className="text-muted-foreground">{label}</div>
                         <div className="font-mono text-base font-semibold">{v ?? "—"}</div>
+                        <div className="text-muted-foreground">
+                          {v == null ? "not assessed" : `counts ${Math.round((w / weightSum) * 100)}%`}
+                        </div>
                       </div>
                     ))}
                   </div>
+                  {latest.coding_score != null && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Coding round: {latest.coding_score}/100 (shown separately, not part of readiness).
+                    </p>
+                  )}
                   {gap && (gap.needs_improvement?.length > 0 || gap.missing?.length > 0) && (
                     <p className="text-xs text-muted-foreground mt-3">
                       {gap.needs_improvement?.length > 0 && (

@@ -8,7 +8,8 @@
  */
 
 export interface ProofItem { type: 'assessment' | 'project' | 'task' | 'voice' | 'cert'; title: string; detail: string; date: string; score?: number; url?: string }
-export interface SkillScore { name: string; score: number; verified: boolean; assessments: number; proof: ProofItem[] }
+/** score: the skill's own assessed score; null when nothing has tested it (never borrowed from another score). */
+export interface SkillScore { name: string; score: number | null; verified: boolean; assessments: number; proof: ProofItem[] }
 export interface Candidate {
   id: string
   name: string

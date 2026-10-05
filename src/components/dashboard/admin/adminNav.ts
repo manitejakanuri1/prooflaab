@@ -23,6 +23,7 @@ export const ADMIN_GROUPS = [
   ] },
   { id: "work", label: "Work", icon: ClipboardList, children: [
     { id: "task-oversight", label: "Lots & tasks" },
+    { id: "daily-lots", label: "Daily Lots" },
     { id: "submissions", label: "Submissions" },
     { id: "reviewed-submissions", label: "Flags & reviews" },
     { id: "assign-tasks", label: "Assign tasks" },

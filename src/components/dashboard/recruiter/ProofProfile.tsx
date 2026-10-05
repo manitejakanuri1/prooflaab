@@ -17,13 +17,13 @@ function Avatar({ initials, color }: { initials: string; color: string }) {
   return <div className='flex h-10 w-10 items-center justify-center rounded-full border font-mono text-xs font-semibold' style={{ backgroundColor: `${color}20`, borderColor: `${color}40`, color }}>{initials}</div>
 }
 
-function ScorePill({ label, score, proof, verified }: { label: string; score: number; proof: ProofItem[]; verified?: boolean }) {
+function ScorePill({ label, score, proof, verified }: { label: string; score: number | null; proof: ProofItem[]; verified?: boolean }) {
   const [open, setOpen] = useState(false)
-  const tone = score >= 85 ? 'text-emerald-400' : score >= 75 ? 'text-amber-400' : 'text-zinc-300'
+  const tone = score == null ? 'text-muted-foreground' : score >= 85 ? 'text-emerald-400' : score >= 75 ? 'text-amber-400' : 'text-zinc-300'
   return (
     <div>
       <button onClick={() => setOpen(v => !v)} className='rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-left text-xs font-mono hover:border-primary/50'>
-        <span className='text-muted-foreground'>{label} </span><span className={tone}>{score}</span>{verified ? <span className='ml-1 text-primary'>•</span> : null}
+        <span className='text-muted-foreground'>{label} </span><span className={tone}>{score ?? 'not tested'}</span>{verified ? <span className='ml-1 text-primary'>•</span> : null}
       </button>
       {open && (
         <div className='mt-2 rounded-lg border border-border bg-secondary/40 p-3 animate-slide-down'>

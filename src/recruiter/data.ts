@@ -86,7 +86,9 @@ export function toCandidate(row: Record<string, unknown>): Candidate {
     projects: [],
     skills: skills.slice(0, 6).map((skill, i) => ({
       name: skill,
-      score: Number(row.comms_score ?? 0),
+      // recruiter_talent returns no per-skill score; never borrow the communication score.
+      // The full profile (loadProfile) carries each skill's own assessed score.
+      score: null,
       verified: i < proven,
       assessments: 0,
       proof: [],
@@ -158,11 +160,32 @@ export async function loadHome() {
  * The full profile. Unlike the list row, this one carries the evidence — which
  * is the whole point of the screen.
  */
+/** Shape of recruiter_proof_profile's JSON, as this file reads it (types only, no runtime effect). */
+type ProfileSkill = Parameters<typeof skillProof>[0];
+interface ProfileCert { name: string; issuer?: string | null; issued_on?: string | null; url?: string | null }
+interface ProfileWork { submitted_at?: string | null; title?: string | null; status?: string | null; ai_score?: number | null }
+interface ProfileExplanation {
+  id: string; about?: string | null; duration_seconds?: number | null;
+  created_at?: string | null; communication_notes?: string | null;
+}
+interface ProofProfilePayload {
+  error?: unknown; id: string; full_name?: string | null; branch?: string | null; batch?: string | null;
+  year_of_study?: number | null; target_role?: string | null; secondary_roles?: string[] | null;
+  skills?: ProfileSkill[] | null; certifications?: ProfileCert[] | null; work?: ProfileWork[] | null;
+  explanations?: ProfileExplanation[] | null;
+  scorecard?: Partial<Record<"skill_proof" | "project_proof" | "reasoning" | "coding" | "interview_readiness"
+    | "resume_quality" | "ats_match", number | null>> & { at?: string | null } | null;
+  consistency?: { current_streak?: number | null; active_weeks?: number | null } | null;
+  days_since_active?: number | null; communication?: number | null;
+  squad?: { name?: string | null; rank?: number | null; points?: number | null; record?: string | null } | null;
+  shortlist?: { note?: string | null } | null; contact_unlocked?: boolean | null; contact?: Candidate["contact"] | null;
+}
+
 export async function loadProfile(studentId: string): Promise<Candidate | null> {
   const { data } = await supabase.rpc("recruiter_proof_profile", {
     _student_id: studentId,
   });
-  const p = data as unknown as Record<string, any> | null;
+  const p = data as unknown as ProofProfilePayload | null;
   if (!p || p.error) return null;
 
   // Recording the view is bookkeeping; a failure must not blank the page.
@@ -170,15 +193,15 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
   supabase.rpc("recruiter_log_view", { _student_id: studentId }).then(() => {}, () => {});
 
   const name = String(p.full_name ?? "");
-  const skills: SkillScore[] = (p.skills ?? []).map((s: any) => ({
+  const skills: SkillScore[] = (p.skills ?? []).map((s) => ({
     name: s.skill,
-    score: s.score ?? 0,
+    score: s.score ?? null,          // untested stays untested, not 0
     verified: s.status === "proven",
     assessments: s.score != null ? 1 : 0,
     proof: skillProof(s),
   }));
 
-  const sc = p.scorecard ?? {};
+  const sc: NonNullable<ProofProfilePayload["scorecard"]> = p.scorecard ?? {};
   const assessmentScores = [
     ["Skill proof", sc.skill_proof],
     ["Project proof", sc.project_proof],
@@ -212,7 +235,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     initials: initialsOf(name),
     avatarColor: colourFor(String(p.id)),
     roleFit: [p.target_role, ...(p.secondary_roles ?? [])].filter(Boolean),
-    certifications: (p.certifications ?? []).map((c: any) => ({
+    certifications: (p.certifications ?? []).map((c) => ({
       name: c.name,
       issuer: c.issuer ?? "",
       date: c.issued_on ?? "",
@@ -221,13 +244,13 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     projects: [],
     skills,
     assessmentScores,
-    dailyTasks: (p.work ?? []).map((w: any) => ({
+    dailyTasks: (p.work ?? []).map((w) => ({
       date: String(w.submitted_at ?? "").slice(0, 10),
       task: w.title ?? "Submitted work",
       status: /verified/i.test(w.status ?? "") ? "completed" as const : "pending" as const,
       score: w.ai_score ?? undefined,
     })),
-    voiceExplanations: (p.explanations ?? []).map((v: any) => ({
+    voiceExplanations: (p.explanations ?? []).map((v) => ({
       id: v.id,
       topic: v.about ?? "Explanation",
       duration: v.duration_seconds ? `${v.duration_seconds}s` : "—",

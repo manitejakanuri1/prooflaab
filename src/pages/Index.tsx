@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
-import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight, Menu, X, Building, Briefcase, GraduationCap, Upload, Clock, Trophy } from "lucide-react";
+import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight, Menu, X, Building, Briefcase, GraduationCap, Clock, Trophy } from "lucide-react";
 import { useState } from "react";
 import StickyCtaBar from "@/components/StickyCtaBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -283,23 +283,23 @@ const Index = () => {
                 {[
                   {
                     icon: Target,
-                    title: "Discover Real Tasks",
-                    description: "Get tasks designed by real startups and verified by AI"
+                    title: "One Lot a Day",
+                    description: "Get one real task each day, built from real industry material"
                   },
                   {
                     icon: Clock,
-                    title: "Build in 7 Days",
-                    description: "Work on meaningful projects with clear deadlines"
+                    title: "Do It In The App",
+                    description: "Write code in the editor or a written answer, checked on the spot"
                   },
                   {
-                    icon: Upload,
-                    title: "Upload Your Work",
-                    description: "Submit files, links, or documentation as proof"
+                    icon: Clock,
+                    title: "Explain In 60 Seconds",
+                    description: "Record a short explanation of your own work"
                   },
                   {
                     icon: Trophy,
-                    title: "Get Verified & Rewarded",
-                    description: "Earn XP, Trust Score, and unlock internship opportunities"
+                    title: "Build Your Record",
+                    description: "Every score comes with the evidence behind it, for companies to read"
                   }
                 ].map((item, index) => (
                   <Card key={index} className="rounded-2xl border-2 hover:shadow-lg transition-all duration-300">
@@ -330,17 +330,17 @@ const Index = () => {
                   {
                     icon: Users,
                     title: "Upload Students",
-                    description: "Add your students and track their real-world progress"
+                    description: "Upload a student CSV; squads are formed automatically"
                   },
                   {
                     icon: Target,
-                    title: "Assign Tasks",
-                    description: "Create custom tasks or use AI-generated assignments"
+                    title: "Daily Lots",
+                    description: "Every student gets a daily real-world task, no setup needed"
                   },
                   {
                     icon: TrendingUp,
                     title: "Monitor Progress",
-                    description: "View portfolio, trust scores, and proof reviews in real-time"
+                    description: "See each student's submissions, scores and learning paths"
                   },
                   {
                     icon: Shield,
@@ -453,7 +453,7 @@ const Index = () => {
               <CardContent className="space-y-4">
                 <TrendingUp className="w-12 h-12 text-primary mx-auto" />
                 <h3 className="text-xl font-bold">Progress Analytics</h3>
-                <p>View portfolios, trust scores, and skill growth</p>
+                <p>See submissions, scores and learning progress</p>
               </CardContent>
             </Card>
           </div>
@@ -531,8 +531,8 @@ const Index = () => {
             <Card className="rounded-2xl p-8">
               <CardContent className="space-y-4">
                 <Shield className="w-12 h-12 text-success mx-auto" />
-                <h3 className="text-xl font-bold">100% Verified</h3>
-                <p>All proofs are reviewed</p>
+                <h3 className="text-xl font-bold">Checked On The Spot</h3>
+                <p>Code runs against tests; written answers are graded against a rubric</p>
               </CardContent>
             </Card>
           </div>

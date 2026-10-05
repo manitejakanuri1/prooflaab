@@ -101,6 +101,46 @@ serve(async (req) => {
       track = created;
     }
 
+    // This topic is a short primer of a full course (Python inside Data Science, ...). Decided BEFORE any
+    // lesson text is written: a student who opens the full course never pays for the primer's AI writing.
+    // Unless the student already worked in the primer, offer the full course, skipping it, or the short version.
+    const link = await courseLinkFor(supabase, profile.id, seed.id);
+    if (link && course_choice !== 'short') {
+      const { data: topicRows } = await supabase
+        .from('levels').select('id').eq('track_slug', track_slug).eq('level_number', level_number);
+      const { data: topicProgress } = await supabase
+        .from('student_levels').select('status').eq('student_id', profile.id)
+        .in('level_id', (topicRows ?? []).map((r: any) => r.id));
+      const touched = (topicProgress ?? []).some((p: any) => ['cleared', 'mastered', 'placed', 'revise'].includes(p.status));
+      if (!touched) {
+        if (level_number > track!.unlocked_through) {
+          return json(
+            {
+              error: 'This topic is still locked. Finish the one before it first.',
+              locked: true,
+              unlocked_through: track!.unlocked_through,
+            },
+            403,
+          );
+        }
+        if (course_choice === 'skip') {
+          await supabase.from('student_levels').upsert({
+            student_id: profile.id,
+            level_id: seed.id,
+            status: 'revise',
+            evidence: `You chose to skip this. The full ${link.course_name} course is there whenever you want it.`,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'student_id,level_id' });
+          const unlocked = await advanceUnlock(supabase, profile.id, track_slug);
+          return json({ credited: true, status: 'revise', unlocked_through: unlocked });
+        }
+        return json({
+          course_link: link,
+          level: { track_slug, level_number, title: seed.title, skill: seed.skill },
+        });
+      }
+    }
+
     let steps: LevelRow[];
     let contentByLevelId: Record<string, any>;
     try {
@@ -196,28 +236,6 @@ serve(async (req) => {
       );
     }
 
-    // This topic is a short primer of a full course (Python inside Data Science, ...). Unless the
-    // student already worked in it, offer the full course, or skipping it, or the short version.
-    const link = await courseLinkFor(supabase, profile.id, seed.id);
-    const touched = (progressRows ?? []).some((p: any) => ['cleared', 'mastered', 'placed', 'revise'].includes(p.status));
-    if (link && !touched && course_choice !== 'short') {
-      if (course_choice === 'skip') {
-        await supabase.from('student_levels').upsert({
-          student_id: profile.id,
-          level_id: seed.id,
-          status: 'revise',
-          evidence: `You chose to skip this. The full ${link.course_name} course is there whenever you want it.`,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'student_id,level_id' });
-        const unlocked = await advanceUnlock(supabase, profile.id, track_slug);
-        return json({ credited: true, status: 'revise', unlocked_through: unlocked });
-      }
-      return json({
-        course_link: link,
-        level: { track_slug, level_number, title: seed.title, skill: seed.skill },
-      });
-    }
-
     const content = contentByLevelId[target.id];
 
     // Mark it opened, but never downgrade a step they have already finished.
@@ -265,6 +283,9 @@ serve(async (req) => {
       attempts: progress?.attempts ?? 0,
       task_id: progress?.task_id ?? null,
       unlocked_through: unlockedThrough,
+      // Credit and access are separate: a primer already placed / revised / cleared still
+      // offers its full course. Read-only - opening the course changes no progress here.
+      linked_course: link,
     });
   } catch (error) {
     console.error('Error in level-open:', error);

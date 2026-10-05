@@ -112,7 +112,19 @@ open(os.path.join(ROOT, "e2e-out", "d2-defaults.sql"), "w", encoding="utf-8", ne
     "has_table_privilege('anon','public.student_credits','select,insert,update,delete'), "
     "has_table_privilege('authenticated','public.student_credits','select'), "
     "has_table_privilege('service_role','public.student_credits','select,insert,update,delete'), "
-    "(select count(*) from pg_policy where polrelid='public.student_credits'::regclass and polcmd in ('a','w','d','*'));"]) + "\n")
+    "(select count(*) from pg_policy where polrelid='public.student_credits'::regclass and polcmd in ('a','w','d','*'));",
+    # migration 87: no MAINTAIN (VACUUM / ANALYZE / REINDEX / CLUSTER / strong locks) for browser roles
+    "select 'XMAINT', x.r || ':' || c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace, unnest(array['anon','authenticated']) x(r) "
+    "where n.nspname='public' and c.relkind in ('r','p','v','m') and has_table_privilege(x.r, c.oid, 'MAINTAIN');",
+    "select 'OWNERMAINT', count(*) filter (where not has_table_privilege('postgres', c.oid, 'MAINTAIN')) "
+    "from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p');",
+    "begin;",
+    "do $$ begin perform set_config('request.jwt.claims', '{\"role\":\"authenticated\"}', true); execute 'set local role authenticated'; "
+    "begin execute 'lock table public.student_credits in share update exclusive mode'; raise notice 'MLOCK|ALLOWED'; "
+    "exception when insufficient_privilege then raise notice 'MLOCK|denied'; end; execute 'reset role'; end $$;",
+    "lock table public.student_credits in share update exclusive mode;",
+    "select 'OWNERLOCK', 'ok';",
+    "rollback;"]) + "\n")
 r2 = subprocess.run(["bash", "scripts/dev-tools/staging_sql.sh", "e2e-out/d2-defaults.sql"], capture_output=True, text=True, cwd=ROOT)
 ex2 = r2.stdout.strip().split("(")[-1].rstrip(")")
 log2 = subprocess.run(f'gcloud logging read "resource.type=cloud_run_job AND labels.\\"run.googleapis.com/execution_name\\"={ex2}" '
@@ -135,6 +147,13 @@ check("the backend (service_role) can still read every public table", backend_mi
 cr = next((l.split("|")[1:] for l in log2.splitlines() if l.startswith("CREDITS|")), None)
 check("student_credits is system-owned: students read only, cannot insert/update/delete; anon nothing; backend full",
       cr == ["f", "f", "t", "t", "0"], cr)
+xmaint = [l.split("|", 1)[1] for l in log2.splitlines() if l.startswith("XMAINT|")]
+owner_missing = next((l.split("|")[1] for l in log2.splitlines() if l.startswith("OWNERMAINT|")), "?")
+check(f"no MAINTAIN for anon or authenticated on any of {ntab} public tables / views (effective rights); the owner keeps it",
+      ntab != "?" and not xmaint and owner_missing == "0", {"browser": xmaint[:10], "owner tables without MAINTAIN": owner_missing})
+mlock = next((l.split("MLOCK|")[1].strip() for l in log2.splitlines() if "MLOCK|" in l), "?")
+owner_lock = any(l.startswith("OWNERLOCK|") for l in log2.splitlines())
+check("a signed-in user cannot take a maintenance lock; the owner can (rolled back)", mlock == "denied" and owner_lock, (mlock, owner_lock))
 
 # ---- 2. through the API --------------------------------------------------------------------
 S = "10ad0000-0000-4000-8000-000000014602"

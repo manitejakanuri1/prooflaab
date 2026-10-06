@@ -1,3 +1,13 @@
+import {
+  buildFunctionHarness,
+  extractFunctionResult,
+} from "./function-harness.ts";
+import {
+  canonicalFunctionValueJson,
+  parseFunctionSpec,
+  type FunctionSpec,
+} from "./function-mode.ts";
+
 import { identityTokenFor } from './googleIdentity.ts';
 // Shared code runner. ProofLab's own runner is the only one used; public runners
 // exist only for a non-production developer opt-in (publicRunnersAllowed, F10).
@@ -79,11 +89,24 @@ export interface TestCase {
 export type ExecStatus = 'ok' | 'compile_error' | 'runtime_error' | 'time_limit';
 
 export type RunResult =
-  | { ok: true; status: ExecStatus; stdout: string; stderr: string; runner: string }
+  | {
+      ok: true;
+      status: ExecStatus;
+      stdout: string;
+      stderr: string;
+      runner: string;
+      stdoutTruncated?: boolean;
+      stderrTruncated?: boolean;
+    }
   | { ok: false; reason: string };
 
+export interface RunOptions {
+  /** Trusted Java entrypoint; omitted for historical stdio execution. */
+  entrypoint?: string;
+}
+
 /** What a single test case ended up being worth, once compared. */
-export type Verdict = 'accepted' | 'wrong_answer' | 'runtime_error' | 'compile_error' | 'time_limit';
+export type Verdict = 'accepted' | 'wrong_answer' | 'runtime_error' | 'compile_error' | 'time_limit' | 'output_limit';
 
 export type CheckerMode =
   | 'exact'
@@ -406,6 +429,7 @@ export async function runOnOwnRunner(
   code: string,
   stdin: string,
   limits?: RunLimits,
+  options?: RunOptions,
 ): Promise<RunResult> {
   const url = Deno.env.get('CODE_RUNNER_URL');
   const secret = Deno.env.get('CODE_RUNNER_SECRET');
@@ -435,6 +459,7 @@ export async function runOnOwnRunner(
         code,
         stdin,
         ...(limits ? normalizeRunLimits(limits) : {}),
+        ...(options?.entrypoint ? { entrypoint: options.entrypoint } : {}),
       }),
       signal: withTimeout(70000),
     });
@@ -448,7 +473,15 @@ export async function runOnOwnRunner(
   if (!['ok', 'compile_error', 'runtime_error', 'time_limit'].includes(status)) {
     return { ok: false, reason: 'own runner gave no status' };
   }
-  return { ok: true, status, stdout: data.stdout ?? '', stderr: data.stderr ?? '', runner: 'prooflab' };
+  return {
+    ok: true,
+    status,
+    stdout: data.stdout ?? '',
+    stderr: data.stderr ?? '',
+    runner: 'prooflab',
+    stdoutTruncated: data.stdout_truncated === true,
+    stderrTruncated: data.stderr_truncated === true,
+  };
 }
 
 /**
@@ -471,11 +504,18 @@ export async function runCode(
   code: string,
   stdin: string,
   limits?: RunLimits,
+  options?: RunOptions,
 ): Promise<RunResult> {
   let lastReason = 'runner unavailable';
 
   try {
-    const own = await runOnOwnRunner(language, code, stdin, limits);
+    const own = await runOnOwnRunner(
+      language,
+      code,
+      stdin,
+      limits,
+      options,
+    );
     if (own.ok) return own;
     lastReason = own.reason;
   } catch (e) {
@@ -484,8 +524,10 @@ export async function runCode(
 
   // A task carrying an explicit execution budget must never fall back to a
   // third-party runner that cannot prove the same time/memory enforcement.
-  if (limits) {
-    console.error(`RUNNER UNAVAILABLE (task limits require private runner) for ${language}: ${lastReason}`);
+  if (limits || options) {
+    console.error(
+      `RUNNER UNAVAILABLE (task limits/options require private runner) for ${language}: ${lastReason}`,
+    );
     return { ok: false, reason: `runner busy: ${lastReason}` };
   }
 
@@ -569,6 +611,270 @@ export type Graded =
  * raw stdin/expected/actual here; callers must call redact() before this
  * leaves the server.
  */
+export interface SandboxExecutionConfig {
+  /** Missing kind means legacy stdio for backwards compatibility. */
+  kind?: string;
+  language: string;
+  function_spec?: unknown;
+  test_cases: SandboxTest[];
+  time_limit_ms?: number;
+  memory_limit_mb?: number;
+}
+
+function functionRunToken(): string {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function scoreGradedResults(
+  tests: SandboxTest[],
+  results: GradedTest[],
+  runner: string,
+): Graded {
+  const total = tests.reduce((s, t) => s + (t.weight ?? 1), 0);
+  const earned = tests.reduce(
+    (s, t, i) => s + (results[i]?.passed ? (t.weight ?? 1) : 0),
+    0,
+  );
+
+  return {
+    ok: true,
+    results,
+    passedCount: results.filter((r) => r.passed).length,
+    score: total > 0 ? Math.round((earned / total) * 100) : 0,
+    runner,
+  };
+}
+
+/**
+ * Function-mode grading keeps the frozen SandboxTest pipeline:
+ *
+ *   tc.stdin            = canonical JSON array of function arguments
+ *   tc.expected_output  = canonical JSON return value
+ *
+ * Hidden arguments never go to the browser. Trusted server code validates them,
+ * builds a language-specific harness, and sends the combined program plus the
+ * canonical argument JSON through stdin to ProofLab's private runner.
+ */
+export async function gradeFunctionTests(
+  language: string,
+  code: string,
+  tests: SandboxTest[],
+  spec: FunctionSpec,
+  limits?: RunLimits,
+): Promise<Graded> {
+  const results: GradedTest[] = [];
+  let runner = "";
+  let compileError = false;
+
+  // The token is intentionally stable for this whole grading call.
+  // Because runtime arguments are delivered only through stdin, the
+  // generated program must be byte-identical for every visible/hidden test.
+  const token = functionRunToken();
+  let baselineHarness: string | null = null;
+
+  for (const tc of tests) {
+    if (compileError) {
+      results.push({
+        id: tc.id,
+        visible: tc.visible,
+        verdict: "compile_error",
+        passed: false,
+      });
+
+      continue;
+    }
+
+    const expected = canonicalFunctionValueJson(
+      tc.expected_output,
+      spec.return_type,
+    );
+
+    if (expected === null) {
+      return {
+        ok: false,
+        reason: `invalid function expected_output for test ${tc.id}`,
+      };
+    }
+
+    // Function mode deliberately has a narrow deterministic checker surface.
+    // JSON exact handles all supported scalar/array returns; tolerance is
+    // allowed only for scalar numeric returns.
+    const checker = tc.checker ?? "exact";
+
+    if (
+      checker !== "exact" &&
+      !(
+        checker === "numeric_tolerance" &&
+        spec.return_type === "number"
+      )
+    ) {
+      return {
+        ok: false,
+        reason:
+          `checker ${checker} is unsupported for function test ${tc.id}`,
+      };
+    }
+
+    let harness: string;
+
+    try {
+      harness = buildFunctionHarness(
+        language,
+        code,
+        spec,
+        tc.stdin,
+        token,
+      );
+    } catch (e) {
+      return {
+        ok: false,
+        reason:
+          `invalid function test ${tc.id}: ${(e as Error).message}`,
+      };
+    }
+
+    if (baselineHarness === null) {
+      baselineHarness = harness;
+    } else if (harness !== baselineHarness) {
+      // Generic configuration failure only. Never include hidden arguments,
+      // expected output, source fragments or student data in this reason.
+      return {
+        ok: false,
+        reason: "function harness changed across tests",
+      };
+    }
+
+    const run = await runCode(
+      language,
+      harness,
+      tc.stdin,
+      limits,
+      language === "java"
+        ? { entrypoint: "__ProofLabMain" }
+        : {},
+    );
+
+    if (!run.ok) {
+      return {
+        ok: false,
+        reason: run.reason,
+      };
+    }
+
+    runner = run.runner;
+
+    let actual = "";
+    let verdict: Verdict;
+
+    if (run.status === "ok") {
+      if (run.stdoutTruncated) {
+        // A truncated stdout may have lost part/all of the trusted result
+        // frame. Never attempt to grade such output.
+        verdict = "output_limit";
+      } else {
+        const extracted = extractFunctionResult(
+          run.stdout,
+          token,
+          spec.return_type,
+        );
+
+        if (extracted === null) {
+          verdict = "runtime_error";
+        } else {
+          actual = extracted;
+
+          verdict = verdictFor(
+            "ok",
+            actual,
+            expected,
+            checker,
+            tc.numeric_tolerance,
+          );
+        }
+      }
+    } else {
+      verdict = verdictFor(
+        run.status,
+        "",
+        expected,
+        checker,
+        tc.numeric_tolerance,
+      );
+    }
+
+    results.push({
+      id: tc.id,
+      visible: tc.visible,
+      verdict,
+      passed: verdict === "accepted",
+      stdin: tc.stdin,
+      expected,
+      actual,
+      stderr: run.stderr.trim(),
+    });
+
+    if (verdict === "compile_error") {
+      // Source is byte-identical for every test. Recompiling later tests
+      // cannot change the compile result, and no stderr is copied forward.
+      compileError = true;
+    }
+  }
+
+  return scoreGradedResults(
+    tests,
+    results,
+    runner,
+  );
+}
+
+export async function gradeSandboxConfig(
+  config: SandboxExecutionConfig,
+  code: string,
+  tests: SandboxTest[] = config.test_cases,
+): Promise<Graded> {
+  const limits: RunLimits = {
+    time_limit_ms: config.time_limit_ms,
+    memory_limit_mb: config.memory_limit_mb,
+  };
+
+  const kind = config.kind ?? "stdio";
+
+  if (kind === "stdio") {
+    return gradeTests(
+      config.language,
+      code,
+      tests,
+      limits,
+    );
+  }
+
+  if (kind !== "function") {
+    return {
+      ok: false,
+      reason: `unsupported sandbox kind: ${kind}`,
+    };
+  }
+
+  const spec = parseFunctionSpec(config.function_spec);
+
+  if (!spec) {
+    return {
+      ok: false,
+      reason: "invalid function evaluator configuration",
+    };
+  }
+
+  return gradeFunctionTests(
+    config.language,
+    code,
+    tests,
+    spec,
+    limits,
+  );
+}
+
 export async function gradeTests(
   language: string,
   code: string,
@@ -581,7 +887,12 @@ export async function gradeTests(
 
   for (const tc of tests) {
     if (compileError) {
-      results.push({ id: tc.id, visible: tc.visible, verdict: 'compile_error', passed: false, stderr: compileError.stderr });
+      results.push({
+        id: tc.id,
+        visible: tc.visible,
+        verdict: 'compile_error',
+        passed: false,
+      });
       continue;
     }
     const run = await runCode(language, code, tc.stdin, limits);
@@ -601,18 +912,44 @@ export async function gradeTests(
     if (verdict === 'compile_error') compileError = { stderr: run.stderr.trim() };
   }
 
-  const total = tests.reduce((s, t) => s + (t.weight ?? 1), 0);
-  const earned = tests.reduce((s, t, i) => s + (results[i].passed ? (t.weight ?? 1) : 0), 0);
-  return {
-    ok: true,
-    results,
-    passedCount: results.filter((r) => r.passed).length,
-    score: total > 0 ? Math.round((earned / total) * 100) : 0,
-    runner,
-  };
+  return scoreGradedResults(tests, results, runner);
 }
 
-/** What a student may see: a hidden test keeps only its verdict. */
-export function redact(results: GradedTest[]) {
-  return results.map((r) => (r.visible ? r : { id: r.id, visible: false, verdict: r.verdict, passed: r.passed }));
+export interface HiddenResultSummary {
+  id: "hidden-summary";
+  visible: false;
+  verdict: "hidden";
+  passed: boolean;
+  hidden_count: number;
+  hidden_passed: number;
+  hidden_failed: number;
+}
+
+/**
+ * Visible tests keep diagnostics.
+ * Hidden tests become ONE aggregate result so repeated submissions cannot
+ * reveal per-hidden-test verdicts or identifiers.
+ */
+export function redact(
+  results: GradedTest[],
+): Array<GradedTest | HiddenResultSummary> {
+  const visible = results.filter((r) => r.visible);
+  const hidden = results.filter((r) => !r.visible);
+
+  if (hidden.length === 0) return visible;
+
+  const hiddenPassed = hidden.filter((r) => r.passed).length;
+
+  return [
+    ...visible,
+    {
+      id: "hidden-summary",
+      visible: false,
+      verdict: "hidden",
+      passed: hiddenPassed === hidden.length,
+      hidden_count: hidden.length,
+      hidden_passed: hiddenPassed,
+      hidden_failed: hidden.length - hiddenPassed,
+    },
+  ];
 }

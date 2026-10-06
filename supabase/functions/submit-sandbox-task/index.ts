@@ -3,7 +3,7 @@ import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
 import { submissionPassed } from "../_shared/submission.ts";
-import { gradeTests, redact, type SandboxTest } from "../_shared/sandbox.ts";
+import { gradeSandboxConfig, redact, type SandboxTest } from "../_shared/sandbox.ts";
 
 /**
  * Final submit for a sandbox task: grades against EVERY test (visible and
@@ -68,16 +68,18 @@ serve(async (req) => {
 
     // 6. Grade against ALL tests
     const { data: cfg } = await db.from("task_sandbox_config")
-      .select("id, language, test_cases, pass_threshold, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
+      .select("id, kind, language, function_spec, test_cases, pass_threshold, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
     if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
 
     const started = Date.now();
-    const graded = await gradeTests(
-      cfg.language,
-      code,
-      cfg.test_cases as SandboxTest[],
-      { time_limit_ms: cfg.time_limit_ms, memory_limit_mb: cfg.memory_limit_mb },
-    );
+    const graded = await gradeSandboxConfig({
+      kind: cfg.kind,
+      language: cfg.language,
+      function_spec: cfg.function_spec,
+      test_cases: cfg.test_cases as SandboxTest[],
+      time_limit_ms: cfg.time_limit_ms,
+      memory_limit_mb: cfg.memory_limit_mb,
+    }, code);
     if (!graded.ok) {
       console.error("submit-sandbox-task: runner unavailable:", graded.reason);
       return json({

@@ -2,7 +2,7 @@ import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
-import { gradeTests, redact, type SandboxTest } from "../_shared/sandbox.ts";
+import { gradeSandboxConfig, redact, type SandboxTest } from "../_shared/sandbox.ts";
 
 // stage69: the runner (Wandbox -> Godbolt -> Glot chain) moved to
 // _shared/sandbox.ts so run-sandbox and submit-sandbox-task use the exact
@@ -120,11 +120,13 @@ serve(async (req) => {
     // its tests inline, where test 1 was the visible sample.
     let tests: SandboxTest[];
     let language: string = question.language;
+    let sandboxKind = "stdio";
+    let functionSpec: unknown = null;
     let timeLimitMs = 5000;
     let memoryLimitMb = 256;
     if (question.sandbox_config_id) {
       const { data: cfg } = await supabase
-        .from('task_sandbox_config').select('language, test_cases, time_limit_ms, memory_limit_mb').eq('id', question.sandbox_config_id).maybeSingle();
+        .from('task_sandbox_config').select('kind, language, function_spec, test_cases, time_limit_ms, memory_limit_mb').eq('id', question.sandbox_config_id).maybeSingle();
       if (!cfg) {
         return new Response(
           JSON.stringify({ error: 'This coding question is no longer available' }),
@@ -133,6 +135,8 @@ serve(async (req) => {
       }
       tests = cfg.test_cases as SandboxTest[];
       language = cfg.language;
+      sandboxKind = cfg.kind ?? "stdio";
+      functionSpec = cfg.function_spec;
       timeLimitMs = cfg.time_limit_ms;
       memoryLimitMb = cfg.memory_limit_mb;
     } else {
@@ -145,12 +149,14 @@ serve(async (req) => {
     const toRun = mode === 'run' ? tests.filter((t) => t.visible) : mode === 'skip' ? [] : tests;
     let results: any[] = [];
     if (toRun.length) {
-      const graded = await gradeTests(
+      const graded = await gradeSandboxConfig({
+        kind: sandboxKind,
         language,
-        code,
-        toRun,
-        { time_limit_ms: timeLimitMs, memory_limit_mb: memoryLimitMb },
-      );
+        function_spec: functionSpec,
+        test_cases: toRun,
+        time_limit_ms: timeLimitMs,
+        memory_limit_mb: memoryLimitMb,
+      }, code);
       // The runner never started. Stop here rather than recording a failure the
       // student did not earn.
       if (!graded.ok) {

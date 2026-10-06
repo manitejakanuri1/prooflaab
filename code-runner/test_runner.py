@@ -119,5 +119,150 @@ try:
 except urllib.error.HTTPError as e:
     check("wrong secret refused", e.code == 401, e.code)
 
+
+# C2-B1-A2-TESTS
+import urllib.error
+
+
+def c2_post(payload: dict, timeout: int = 90) -> dict:
+    req = urllib.request.Request(
+        f"{URL}/run",
+        method="POST",
+        data=json.dumps(payload).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "x-runner-secret": SECRET,
+        },
+    )
+
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return json.load(response)
+
+
+# Explicit Java entrypoint must win over a student's own main().
+java_student_main = """
+class StudentMain {
+    public static void main(String[] args) {
+        System.out.println("STUDENT-MAIN");
+    }
+}
+
+class __ProofLabMain {
+    public static void main(String[] args) {
+        System.out.println("TRUSTED-MAIN");
+    }
+}
+"""
+
+result = c2_post({
+    "language": "java",
+    "code": java_student_main,
+    "stdin": "",
+    "entrypoint": "__ProofLabMain",
+    "time_limit_ms": 5000,
+    "memory_limit_mb": 256,
+})
+
+check(
+    "C2 explicit Java entrypoint overrides student main",
+    result.get("status") == "ok"
+    and result.get("stdout", "").strip() == "TRUSTED-MAIN",
+    result,
+)
+
+
+# A misleading comment must not influence execution.
+java_comment_main = """
+// static void main( must not become the runner entry point.
+class Solution {}
+
+class __ProofLabMain {
+    public static void main(String[] args) {
+        System.out.println("COMMENT-SAFE");
+    }
+}
+"""
+
+result = c2_post({
+    "language": "java",
+    "code": java_comment_main,
+    "stdin": "",
+    "entrypoint": "__ProofLabMain",
+    "time_limit_ms": 5000,
+    "memory_limit_mb": 256,
+})
+
+check(
+    "C2 explicit Java entrypoint ignores commented main",
+    result.get("status") == "ok"
+    and result.get("stdout", "").strip() == "COMMENT-SAFE",
+    result,
+)
+
+
+# Bad entrypoint must fail closed.
+try:
+    c2_post({
+        "language": "java",
+        "code": "class Main {}",
+        "stdin": "",
+        "entrypoint": "bad-entrypoint!",
+    })
+
+    check(
+        "C2 invalid Java entrypoint refused",
+        False,
+        "request unexpectedly succeeded",
+    )
+
+except urllib.error.HTTPError as exc:
+    try:
+        error_body = json.load(exc)
+    except Exception:
+        error_body = {}
+
+    check(
+        "C2 invalid Java entrypoint refused",
+        exc.code == 400
+        and error_body.get("error") == "invalid java entrypoint",
+        {
+            "status": exc.code,
+            "body": error_body,
+        },
+    )
+
+
+# Runner must tell the caller when stdout was clipped.
+result = c2_post({
+    "language": "python",
+    "code": "print('x' * 70000)",
+    "stdin": "",
+})
+
+check(
+    "C2 stdout truncation flag",
+    result.get("status") == "ok"
+    and result.get("stdout_truncated") is True
+    and len(result.get("stdout", "")) <= 64 * 1024,
+    result.get("status"),
+)
+
+
+# Same guarantee for stderr.
+result = c2_post({
+    "language": "python",
+    "code": "import sys; sys.stderr.write('x' * 70000)",
+    "stdin": "",
+})
+
+check(
+    "C2 stderr truncation flag",
+    result.get("status") == "ok"
+    and result.get("stderr_truncated") is True
+    and len(result.get("stderr", "")) <= 64 * 1024,
+    result.get("status"),
+)
+
+
 print(f"\n{len(failures)} failure(s)" + (": " + ", ".join(failures) if failures else ""))
 sys.exit(1 if failures else 0)

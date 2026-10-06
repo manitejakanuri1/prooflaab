@@ -2,7 +2,7 @@ import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
-import { gradeTests, type SandboxTest } from "../_shared/sandbox.ts";
+import { gradeSandboxConfig, type SandboxTest } from "../_shared/sandbox.ts";
 
 /**
  * Practice run for a sandbox task: grades only the VISIBLE tests, never
@@ -51,15 +51,17 @@ serve(async (req) => {
       if (!(roles ?? []).some((r: { role: string }) => r.role === "admin")) return json({ error: "Forbidden" }, 403);
 
       const { data: cfg } = await db.from("task_sandbox_config")
-        .select("language, test_cases, reference_solution, time_limit_ms, memory_limit_mb").eq("id", configId).maybeSingle();
+        .select("kind, language, function_spec, test_cases, reference_solution, time_limit_ms, memory_limit_mb").eq("id", configId).maybeSingle();
       if (!cfg) return json({ error: "No such config" }, 404);
 
-      const graded = await gradeTests(
-        cfg.language,
-        cfg.reference_solution,
-        cfg.test_cases as SandboxTest[],
-        { time_limit_ms: cfg.time_limit_ms, memory_limit_mb: cfg.memory_limit_mb },
-      );
+      const graded = await gradeSandboxConfig({
+        kind: cfg.kind,
+        language: cfg.language,
+        function_spec: cfg.function_spec,
+        test_cases: cfg.test_cases as SandboxTest[],
+        time_limit_ms: cfg.time_limit_ms,
+        memory_limit_mb: cfg.memory_limit_mb,
+      }, cfg.reference_solution);
       return json(graded, graded.ok ? 200 : 503);
     }
 
@@ -83,7 +85,7 @@ serve(async (req) => {
     }
 
     const { data: cfg } = await db.from("task_sandbox_config")
-      .select("language, test_cases, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
+      .select("kind, language, function_spec, test_cases, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
     if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
 
     // Visible tests only — hidden inputs never leave the server through this
@@ -91,12 +93,14 @@ serve(async (req) => {
     const visible = (cfg.test_cases as SandboxTest[]).filter((t) => t.visible);
     if (visible.length === 0) return json({ results: [] });
 
-    const graded = await gradeTests(
-      cfg.language,
-      code,
-      visible,
-      { time_limit_ms: cfg.time_limit_ms, memory_limit_mb: cfg.memory_limit_mb },
-    );
+    const graded = await gradeSandboxConfig({
+      kind: cfg.kind,
+      language: cfg.language,
+      function_spec: cfg.function_spec,
+      test_cases: visible,
+      time_limit_ms: cfg.time_limit_ms,
+      memory_limit_mb: cfg.memory_limit_mb,
+    }, code);
     if (!graded.ok) {
       return json({
         error: "The code runner is busy right now. This is not a problem with your code. Try again in a minute.",

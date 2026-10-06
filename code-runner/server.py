@@ -122,7 +122,7 @@ def java_file_name(code: str) -> str:
     return f"{public.group(1) if public else java_main_class(code)}.java"
 
 
-def plan(language: str, code: str, memory_mb: int):
+def plan(language: str, code: str, memory_mb: int, entrypoint: str | None = None):
     """(source file name, compile command or None, run command), or None if unsupported."""
     if language == "python":
         return "main.py", None, ["python3", "main.py"]
@@ -140,7 +140,8 @@ def plan(language: str, code: str, memory_mb: int):
         return "main.go", ["go", "build", "-o", "main", "main.go"], ["./main"]
     if language == "java":
         name = java_file_name(code)
-        return name, ["javac", "-J-Xmx512m", name], ["java", f"-Xmx{memory_mb}m", "-Xss1m", "-cp", ".", java_main_class(code)]
+        main_class = entrypoint or java_main_class(code)
+        return name, ["javac", "-J-Xmx512m", name], ["java", f"-Xmx{memory_mb}m", "-Xss1m", "-cp", ".", main_class]
     return None
 
 
@@ -202,43 +203,84 @@ def clean_shared_tmp() -> None:
 
 
 def execute(cmd, cwd, stdin, seconds: float, memory_mb=None, env_overrides=None):
-    """(exit code, or None when stopped for time; stdout; stderr).
+    """Run one program with isolated stdin/stdout/stderr and bounded output."""
+    env = {
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "HOME": cwd,
+        "TMPDIR": cwd,
+        "GOCACHE": f"{cwd}/.gocache",
+        "GOPATH": f"{cwd}/.gopath",
+        "LANG": "C.UTF-8",
+        "GO111MODULE": "off",
+        "GOMEMLIMIT": "512MiB",
+    }
 
-    Output goes to files in a root-only directory, capped by RLIMIT_FSIZE, and
-    only the first MAX_OUTPUT bytes are read back. With pipes, a child that kept
-    stdout open made communicate() wait forever.
-    """
-    env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": cwd, "TMPDIR": cwd, "GOCACHE": f"{cwd}/.gocache",
-           "GOPATH": f"{cwd}/.gopath", "LANG": "C.UTF-8", "GO111MODULE": "off", "GOMEMLIMIT": "512MiB"}
     if env_overrides:
         env.update(env_overrides)
+
     cpu_seconds = max(1, math.ceil(seconds))
-    io_dir = tempfile.mkdtemp(prefix="io-")          # root-owned, 0700: the program cannot reach it
+    io_dir = tempfile.mkdtemp(prefix="io-")
+
     try:
-        out_path, err_path, in_path = (os.path.join(io_dir, n) for n in ("out", "err", "in"))
+        out_path, err_path, in_path = (
+            os.path.join(io_dir, n)
+            for n in ("out", "err", "in")
+        )
+
         with open(in_path, "wb") as fh:
             fh.write(stdin.encode())
-        with open(in_path, "rb") as fin, open(out_path, "wb") as fout, open(err_path, "wb") as ferr:
-            proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdin=fin, stdout=fout, stderr=ferr,
-                                    preexec_fn=limits(cpu_seconds, memory_mb))
+
+        with (
+            open(in_path, "rb") as fin,
+            open(out_path, "wb") as fout,
+            open(err_path, "wb") as ferr,
+        ):
+            proc = subprocess.Popen(
+                cmd,
+                cwd=cwd,
+                env=env,
+                stdin=fin,
+                stdout=fout,
+                stderr=ferr,
+                preexec_fn=limits(cpu_seconds, memory_mb),
+            )
+
             try:
                 code = proc.wait(timeout=seconds)
-                # A CPU-limit kill arrives as a signal, not as a timeout.
+
                 if code in (-signal.SIGXCPU, -signal.SIGKILL):
                     code = None
             except subprocess.TimeoutExpired:
                 code = None
             finally:
-                kill_runner_processes()                 # the program AND anything it left behind
+                kill_runner_processes()
+
                 try:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     pass
 
-        def read(path):
+        def read_limited(path):
+            size = os.path.getsize(path)
+
             with open(path, "rb") as fh:
-                return fh.read(MAX_OUTPUT).decode("utf-8", "replace")
-        return code, read(out_path), read(err_path)
+                payload = fh.read(MAX_OUTPUT)
+
+            return (
+                payload.decode("utf-8", "replace"),
+                size > MAX_OUTPUT,
+            )
+
+        out, stdout_truncated = read_limited(out_path)
+        err, stderr_truncated = read_limited(err_path)
+
+        return (
+            code,
+            out,
+            err,
+            stdout_truncated,
+            stderr_truncated,
+        )
     finally:
         shutil.rmtree(io_dir, ignore_errors=True)
 
@@ -249,32 +291,84 @@ def run(
     stdin: str,
     time_limit_ms: int = DEFAULT_TIME_LIMIT_MS,
     memory_limit_mb: int = DEFAULT_MEMORY_LIMIT_MB,
+    entrypoint: str | None = None,
 ) -> dict:
-    steps = plan(language, code, memory_limit_mb)
+    steps = plan(
+        language,
+        code,
+        memory_limit_mb,
+        entrypoint,
+    )
+
     if steps is None:
-        return {"status": "compile_error", "stdout": "", "stderr": f"Unsupported language: {language}"}
+        return {
+            "status": "compile_error",
+            "stdout": "",
+            "stderr": f"Unsupported language: {language}",
+            "stdout_truncated": False,
+            "stderr_truncated": False,
+        }
+
     filename, compile_cmd, run_cmd = steps
     work = tempfile.mkdtemp(prefix="run-")
+
     try:
         path = os.path.join(work, filename)
+
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(code)
+
         os.chown(work, RUNNER.pw_uid, RUNNER.pw_gid)
         os.chown(path, RUNNER.pw_uid, RUNNER.pw_gid)
 
-        # Compilation has its own infrastructure ceiling. A task's time limit
-        # measures execution, not gcc/javac/go compiler startup.
         if compile_cmd:
-            c, out, err = execute(compile_cmd, work, "", COMPILE_SECONDS)
+            (
+                c,
+                out,
+                err,
+                stdout_truncated,
+                stderr_truncated,
+            ) = execute(
+                compile_cmd,
+                work,
+                "",
+                COMPILE_SECONDS,
+            )
+
             if c != 0:
-                return {"status": "compile_error", "stdout": "",
-                        "stderr": (err or out or "compilation took too long").strip()}
+                return {
+                    "status": "compile_error",
+                    "stdout": "",
+                    "stderr": (
+                        err
+                        or out
+                        or "compilation took too long"
+                    ).strip(),
+                    "stdout_truncated": stdout_truncated,
+                    "stderr_truncated": stderr_truncated,
+                }
 
         execution_seconds = time_limit_ms / 1000.0
-        address_space_mb = memory_limit_mb if language in AS_LIMIT_LANGUAGES else None
-        env_overrides = {"GOMEMLIMIT": f"{memory_limit_mb}MiB"} if language == "go" else None
 
-        c, out, err = execute(
+        address_space_mb = (
+            memory_limit_mb
+            if language in AS_LIMIT_LANGUAGES
+            else None
+        )
+
+        env_overrides = (
+            {"GOMEMLIMIT": f"{memory_limit_mb}MiB"}
+            if language == "go"
+            else None
+        )
+
+        (
+            c,
+            out,
+            err,
+            stdout_truncated,
+            stderr_truncated,
+        ) = execute(
             run_cmd,
             work,
             stdin,
@@ -282,9 +376,28 @@ def run(
             address_space_mb,
             env_overrides,
         )
+
         if c is None:
-            return {"status": "time_limit", "stdout": out, "stderr": err}
-        return {"status": "ok" if c == 0 else "runtime_error", "stdout": out, "stderr": err}
+            return {
+                "status": "time_limit",
+                "stdout": out,
+                "stderr": err,
+                "stdout_truncated": stdout_truncated,
+                "stderr_truncated": stderr_truncated,
+            }
+
+        return {
+            "status": (
+                "ok"
+                if c == 0
+                else "runtime_error"
+            ),
+            "stdout": out,
+            "stderr": err,
+            "stdout_truncated": stdout_truncated,
+            "stderr_truncated": stderr_truncated,
+        }
+
     finally:
         kill_runner_processes()
         shutil.rmtree(work, ignore_errors=True)
@@ -317,6 +430,12 @@ class Handler(BaseHTTPRequestHandler):
             language = str(body.get("language", "")).lower()
             code = str(body.get("code", ""))
             stdin = str(body.get("stdin", ""))
+            raw_entrypoint = body.get("entrypoint")
+            entrypoint = (
+                None
+                if raw_entrypoint in (None, "")
+                else str(raw_entrypoint)
+            )
             time_limit_ms = clamp_int(
                 body.get("time_limit_ms"),
                 DEFAULT_TIME_LIMIT_MS,
@@ -333,9 +452,32 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(400, {"error": "bad json"})
         if not code or len(code) > MAX_CODE:
             return self.reply(400, {"error": "code missing or too long"})
+
+        if entrypoint is not None:
+            if language != "java":
+                return self.reply(
+                    400,
+                    {"error": "entrypoint is supported only for java"},
+                )
+
+            if re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]{0,63}",
+                entrypoint,
+            ) is None:
+                return self.reply(
+                    400,
+                    {"error": "invalid java entrypoint"},
+                )
         with RUN_LOCK:                                  # one run per instance, always
             try:
-                result = run(language, code, stdin, time_limit_ms, memory_limit_mb)
+                result = run(
+                    language,
+                    code,
+                    stdin,
+                    time_limit_ms,
+                    memory_limit_mb,
+                    entrypoint,
+                )
             except (OSError, subprocess.SubprocessError) as e:
                 print(f"RUNNER INFRA ERROR: {e}", flush=True)
                 return self.reply(503, {"error": "runner could not start the program"})

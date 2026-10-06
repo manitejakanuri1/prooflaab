@@ -98,6 +98,9 @@ serve(async (req) => {
       score: graded.score,
       pass_threshold: cfg.pass_threshold,
       passed: submissionPassed(rec),
+      // Verified correct only when every test passed (migration 91); score is the partial score.
+      verified_correct: submissionPassed(rec),
+      failed_tests: graded.results.length - graded.passedCount,
       already_completed: rec.already_completed,
       xp_awarded: rec.xp_awarded,
       results: safe,

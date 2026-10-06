@@ -35,7 +35,8 @@ Deno.test('F10: graded code never reaches a public runner by default', async () 
     async () => { result = await runCode('python', 'print(input())', 'HIDDEN-TEST-INPUT'); },
   );
   assert(result !== null && !(result as { ok: boolean }).ok, 'a busy own runner must give ok:false');
-  assert(calls.length === 1 && calls[0].startsWith('https://own-runner.invalid'), `unexpected calls: ${calls.join(', ')}`);
+  // 1 call + 3 busy retries, all to our own runner
+  assert(calls.length === 4 && calls.every((u) => u.startsWith('https://own-runner.invalid')), `unexpected calls: ${calls.join(', ')}`);
   assert(!calls.some((u) => /wandbox|godbolt|glot/.test(u)), 'hidden test input was sent to a public runner');
 });
 
@@ -55,4 +56,23 @@ Deno.test('F10: public runners only when explicitly allowed in staging/developme
     async () => { await runCode('python', 'print(1)', ''); },
   );
   assert(calls.some((u) => u.includes('wandbox')), 'opt-in fallback did not reach wandbox');
+});
+
+Deno.test('a busy own runner is retried, and a later free instance gives the real result', async () => {
+  const realFetch = globalThis.fetch;
+  const saved = { u: Deno.env.get('CODE_RUNNER_URL'), s: Deno.env.get('CODE_RUNNER_SECRET') };
+  Deno.env.set('CODE_RUNNER_URL', 'https://own-runner.invalid'); Deno.env.set('CODE_RUNNER_SECRET', 's');
+  let n = 0;
+  globalThis.fetch = (() => Promise.resolve(++n <= 2
+    ? new Response('busy', { status: 429 })
+    : new Response(JSON.stringify({ status: 'ok', stdout: '42', stderr: '' }), { status: 200 }))) as typeof fetch;
+  try {
+    const r = await runCode('python', 'print(42)', '');
+    assert(r.ok && (r as { stdout: string }).stdout === '42', `expected the real result after retries, got ${JSON.stringify(r)}`);
+    assert(n === 3, `expected 2 busy answers then success, saw ${n} calls`);
+  } finally {
+    globalThis.fetch = realFetch;
+    if (saved.u === undefined) Deno.env.delete('CODE_RUNNER_URL'); else Deno.env.set('CODE_RUNNER_URL', saved.u);
+    if (saved.s === undefined) Deno.env.delete('CODE_RUNNER_SECRET'); else Deno.env.set('CODE_RUNNER_SECRET', saved.s);
+  }
 });

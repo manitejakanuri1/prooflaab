@@ -388,10 +388,12 @@ export async function generateText(prompt: string, opts: GenOptions = {}, track?
       if (isTimeout(err)) {
         timedOut = true;
         console.error(`LLM TIMEOUT: ${provider} gave no answer within ${opts.timeoutMs ?? DEFAULT_TIMEOUT_MS} ms (feature ${track?.feature ?? 'unattributed'})`);
-      } else {
-        console.error(`LLM ERROR: ${provider}: ${err instanceof Error ? err.message : err}`);
+        return null;
       }
-      return null;
+      // A connection error (reset, refused, DNS) means no answer arrived: worth one more try on the
+      // same provider. Seen on staging 6 Oct 2026: one reset failed a voice score outright.
+      console.error(`LLM ERROR: ${provider}: ${err instanceof Error ? err.message : err}`);
+      return { ok: false, status: 0 };
     }
   };
 
@@ -401,7 +403,7 @@ export async function generateText(prompt: string, opts: GenOptions = {}, track?
       const result = await attempt('deepseek', () => callDeepSeek(prompt, deepseekKey, opts));
       if (!result) break;
       if (result.ok) return finish({ text: result.text, truncated: result.truncated, provider: 'deepseek', model: 'deepseek-chat', usage: result.usage ?? EMPTY_USAGE }, track, hash);
-      if (![429, 503].includes(result.status)) break;
+      if (![0, 429, 503].includes(result.status)) break;
       await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
     }
   }
@@ -411,7 +413,7 @@ export async function generateText(prompt: string, opts: GenOptions = {}, track?
       const result = await attempt('gemini', () => callGemini(prompt, key, opts));
       if (!result) break;
       if (result.ok) return finish({ text: result.text, truncated: result.truncated, provider: 'gemini', model: 'gemini-flash-latest', usage: result.usage ?? EMPTY_USAGE }, track, hash);
-      if (![429, 503].includes(result.status)) break;
+      if (![0, 429, 503].includes(result.status)) break;
       await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
     }
   }

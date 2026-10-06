@@ -36,6 +36,7 @@ HISTORICAL = re.compile(r"^(migration/|supabase/migrations/|supabase/tests/|docs
 # Active files that may contain a term, each with the reason. Keep this list short.
 ALLOW = {
     "scripts/legacy_guard.py": "this guard: the list of retired names",
+    "scripts/rpc_manifest.json": "legacy_until_66: names the four old-site functions production keeps until Stage 7 / migration 66, so the permission gate can check them",
     "src/integrations/supabase/types.ts": "GENERATED from the production schema, which still has these tables until migrations 66/71 are approved there; regenerate after the production cleanup",
     "src/lib/voiceJob.ts": "COMPATIBILITY: optional proof_id on a row type so recovery markers written by older recorder builds still match; never read from the server",
     "src/lib/voiceRound4.test.ts": "tests of that marker compatibility",

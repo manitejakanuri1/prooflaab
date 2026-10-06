@@ -44,7 +44,7 @@ for t in TRG:
     trig.setdefault(t["fn"], []).append(f"{t['table']}.{t['name']}")
 
 cls_of = {}
-for k in ("server_only", "sql_internal", "policy_helper", "admin_only", "user_callable", "pending_review"):
+for k in ("server_only", "sql_internal", "policy_helper", "admin_only", "user_callable", "pending_review", "legacy_revoked", "legacy_until_66"):
     for s in M[k]:
         cls_of[s] = k
 

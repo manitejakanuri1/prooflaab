@@ -263,6 +263,13 @@
   "placement_questions(uuid)",
   "submit_placement(jsonb)"
  ],
+ "_legacy_until_66": "TEMPORARILY RETAINED FOR OLD-SITE COMPATIBILITY UNTIL STAGE 7 / MIGRATION 66. Exist only on production (staging dropped them with 66). Signed-in users may call them (the old website's cosign screens); each checks auth.uid() inside, null-safe since 84a. Migration 66 drops all four.",
+ "legacy_until_66": [
+  "cosignable_proofs()",
+  "cosign_proof(uuid,text)",
+  "my_cosigns()",
+  "set_proof_publicity(uuid,boolean)"
+ ],
  "public_pure": [
   "check_answer(text,jsonb,jsonb)",
   "template_key(text,text,text[],text)"

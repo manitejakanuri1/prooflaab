@@ -11,20 +11,18 @@ The staging JWT secret is read from Secret Manager into memory only; nothing sec
 usage: python scripts/dev-tools/staging_reaper_fixture.py <speech.wav> [--keep]
 Costs: one Whisper transcription + one or two DeepSeek scoring calls on staging.
 """
-import base64, datetime, hashlib, hmac, json, shutil, subprocess, sys, time, urllib.error, urllib.request, uuid
+import base64, datetime, hashlib, hmac, json, os, shutil, subprocess, sys, time, urllib.error, urllib.request, uuid
 
 API = "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app"
 BUCKET = "prooflab-staging-private-508214"
 STUDENT = "99999999-0001-0000-0000-000000000006"   # fake staging fixture student
 G = shutil.which("gcloud") or shutil.which("gcloud.cmd")
-KEY = subprocess.run([G, "secrets", "versions", "access", "latest", "--secret=prooflab-staging-jwt-secret"],
-                     capture_output=True, text=True, check=True).stdout.strip().encode()
-b64 = lambda x: base64.urlsafe_b64encode(x).rstrip(b"=").decode()
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import st as sthelp  # noqa: E402  - staging tickets are RS256-signed since F1; the old shared-secret ticket is refused
+
 
 def token():
-    h = b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    p = b64(json.dumps({"role": "service_role", "exp": int(time.time()) + 900}).encode())
-    return f"{h}.{p}." + b64(hmac.new(KEY, f"{h}.{p}".encode(), hashlib.sha256).digest())
+    return sthelp.token("svc", ttl=900)
 
 def call(verb, path, body=None):
     req = urllib.request.Request(f"{API}/{path}", data=json.dumps(body).encode() if body is not None else None, method=verb,

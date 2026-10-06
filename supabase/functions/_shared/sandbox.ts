@@ -245,6 +245,8 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
  * only way code ever ran - they were, until Wandbox went down for every
  * language on 16 Sep 2026 and students could not run code at all.
  */
+const RUNNER_BUSY_RETRIES = [1500, 3000, 6000];
+
 export async function runOnOwnRunner(language: string, code: string, stdin: string): Promise<RunResult> {
   const url = Deno.env.get('CODE_RUNNER_URL');
   const secret = Deno.env.get('CODE_RUNNER_SECRET');
@@ -261,12 +263,21 @@ export async function runOnOwnRunner(language: string, code: string, stdin: stri
     return { ok: false, reason: `own runner identity: ${(e as Error).message}` };
   }
 
-  const res = await fetch(`${base}/run`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...auth },
-    body: JSON.stringify({ language, code, stdin }),
-    signal: withTimeout(70000),
-  });
+  // Every instance busy (Cloud Run answers 429; the runner 503 when it could not start the
+  // program): wait and try again a few times (~10 s in all) before reporting "runner busy".
+  // Safe to repeat: a run has no side effects.
+  let res: Response;
+  for (let attempt = 0; ; attempt++) {
+    res = await fetch(`${base}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({ language, code, stdin }),
+      signal: withTimeout(70000),
+    });
+    if ((res.status !== 429 && res.status !== 503) || attempt >= RUNNER_BUSY_RETRIES.length) break;
+    await res.body?.cancel();
+    await new Promise((r) => setTimeout(r, RUNNER_BUSY_RETRIES[attempt]));
+  }
   if (!res.ok) return { ok: false, reason: `own runner http ${res.status}` };
   const data = await res.json();
   const status = data.status as ExecStatus;

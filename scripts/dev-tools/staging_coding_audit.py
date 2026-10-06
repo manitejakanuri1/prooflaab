@@ -71,9 +71,30 @@ SOLUTIONS = {
         "12 excessive memory": MEMORY,
     },
 }
+# Release-freeze additions (6 Oct 2026): failure and abuse cases, on the first problem only.
+FORK = "import os\nfor _ in range(400):\n    try:\n        os.fork()\n    except OSError:\n        break\nprint(6)"
+METADATA = ("import urllib.request\ntry:\n    r = urllib.request.Request('http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token',"
+            " headers={'Metadata-Flavor': 'Google'})\n    print(urllib.request.urlopen(r, timeout=3).read()[:40])\nexcept Exception as e:\n    print('blocked', type(e).__name__)")
+COMMAND = ("import subprocess\nr = subprocess.run(['sh', '-c', 'id; ls /app; cat /proc/1/environ | head -c 300'], capture_output=True, text=True)\n"
+           "print(r.stdout.replace(chr(0), ' '), r.stderr[:100])")
+DBCONN = ("import socket\nfor host in ('35.234.220.224', '8.234.86.229', '10.0.0.3'):\n    try:\n        socket.create_connection((host, 5432), timeout=3)\n"
+          "        print('DB REACHABLE', host)\n    except Exception as e:\n        print('blocked', host, type(e).__name__)\n"
+          "import os\nprint('cloudsql dir', os.path.exists('/cloudsql'))")
+SOLUTIONS[SUM].update({
+    "13 empty code": "   ",
+    "14 syntax error (does not compile)": READ_N + "print(sum(nums)",
+    "15 runtime error": READ_N + "print(nums[10 ** 6])",
+    "16 fork / process abuse": FORK,
+    "17 metadata-server attempt": METADATA,
+    "18 command execution attempt": COMMAND,
+    "19 database connection attempt": DBCONN,
+})
+ESCAPE_MARKS = ("NETWORK OPEN", "DB REACHABLE", "ya29.", "RUNNER_SECRET", "SERVICE_ROLE", "uid=0", "cloudsql dir True")
+
 # What a correct evaluator must say, written before running.
 EXPECT = {"1": "passed", "2": "passed", "3": "passed", "4": "failed", "5": "failed", "6": "failed", "7": "failed",
-          "8": "passed", "10": "failed", "11": "failed", "12": "failed"}
+          "8": "passed", "10": "failed", "11": "failed", "12": "failed",
+          "13": "http 400", "14": "failed", "15": "failed", "16": "failed", "17": "failed", "18": "failed", "19": "failed"}
 EXPECT_9 = {SUM: "passed", FAILS: "failed", GRADE: "failed"}   # whitespace is forgiven; order and case are answers
 
 cfgs = {c["id"]: c for c in st.call("svc", "GET", f"task_sandbox_config?select=id,test_cases,reference_solution,pass_threshold&id=in.({SUM},{FAILS},{GRADE})")[1]}
@@ -120,7 +141,12 @@ for cid, sols in SOLUTIONS.items():
         verdicts = [r.get("verdict") for r in (b.get("results") or [])] if isinstance(b, dict) else []
         rows.append({"problem": cid[:8], "solution": label, "student": who, "task": tid, "expected": expect, "actual": status, "score": b.get("score") if isinstance(b, dict) else None,
                      "threshold": cfgs[cid]["pass_threshold"], "verdicts": verdicts, "ok": status == expect, "seconds": round(time.time() - t0, 1),
-                     "visible_output": [r.get("actual", "")[:160] for r in (b.get("results") or []) if r.get("visible")] if k == "10" else None})
+                     # migration 91: "passed" means verified correct - every test accepted, whatever the score
+                     "verified_rule_ok": status != "passed" or (bool(verdicts) and all(v == "accepted" for v in verdicts)),
+                     "visible_output": [r.get("actual", "")[:300] for r in (b.get("results") or []) if r.get("visible")]
+                                       if k in ("10", "16", "17", "18", "19") else None})
+        rows[-1]["escape"] = any(m in " ".join(rows[-1]["visible_output"] or []) for m in ESCAPE_MARKS)
+        rows[-1]["ok"] = rows[-1]["ok"] and rows[-1]["verified_rule_ok"] and not rows[-1]["escape"]
         if leaked(cid, text):
             leaks.append(("submit", label, leaked(cid, text)))
         print(f"{'OK  ' if rows[-1]['ok'] else 'BAD '} {cid[:8]} {label:52} expected={expect:7} actual={status:7} score={rows[-1]['score']} {verdicts}", flush=True)

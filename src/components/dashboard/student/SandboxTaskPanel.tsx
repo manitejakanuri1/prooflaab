@@ -36,6 +36,7 @@ interface SubmitResult {
   score: number;
   pass_threshold: number;
   passed: boolean;
+  failed_tests?: number;
   already_completed: boolean;
   xp_awarded: number;
   results: TestResult[];
@@ -77,6 +78,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   const [runResults, setRunResults] = useState<TestResult[] | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryNote, setRetryNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,8 +109,16 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
 
   const submit = async () => {
     setBusy("submit"); setError(null);
-    const { data, error: e } = await supabase.functions.invoke("submit-sandbox-task", { body: { task_id: taskId, code } });
-    setBusy(null);
+    // A busy runner answers 503 BEFORE anything is stored, so sending the same code again
+    // cannot duplicate or lose a submission. Retry for the student instead of asking them to.
+    let data: unknown, e: unknown;
+    for (let attempt = 0; ; attempt++) {
+      ({ data, error: e } = await supabase.functions.invoke("submit-sandbox-task", { body: { task_id: taskId, code } }));
+      if (!e || (e as { context?: Response }).context?.status !== 503 || attempt >= 3) break;
+      setRetryNote(`The code runner is busy. Your code is safe - checking again (${attempt + 1} of 3)...`);
+      await new Promise((r) => setTimeout(r, 8000 * (attempt + 1)));
+    }
+    setBusy(null); setRetryNote(null);
     if (e) return setError(await errorMessage(e));
     const r = data as SubmitResult;
     setResult(r);
@@ -141,7 +151,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
           <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
         )}
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          {view.language} · pass mark {view.pass_threshold}% · {view.visible_tests.length} sample
+          {view.language} · every test must pass · {view.visible_tests.length} sample
           {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
           {view.hidden_test_count === 1 ? "" : "s"}
         </p>
@@ -170,12 +180,19 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
         </Button>
       </div>
 
+      {busy === "submit" && (
+        <p className="text-sm text-muted-foreground">{retryNote ?? "Evaluating against every test..."}</p>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {result && (
         <div className={`rounded-lg border p-3 ${result.passed ? "border-emerald-500/50" : "border-amber-500/50"}`}>
           <p className="font-semibold">
-            Score {result.score}% {result.passed ? "· Passed" : `· Needs ${result.pass_threshold}%`}
+            Score {result.score}% {result.passed
+              ? "· Passed"
+              : result.score >= result.pass_threshold && result.failed_tests
+                ? `· ${result.failed_tests} test${result.failed_tests === 1 ? "" : "s"} failed - every test must pass`
+                : `· Needs ${result.pass_threshold}%`}
             {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
           </p>
           {result.already_completed && !result.passed && (

@@ -76,7 +76,11 @@ bad = [s for s in M["extension_pure"] + M["public_pure"] if s in acl and acl[s][
 check("public pure helpers (pgcrypto / pg_trgm / check_answer / template_key) run with the caller's rights", not bad, bad)
 bad = [s for s, a in acl.items() if a["secdef"] and not a["fixed_path"]]
 check("every security-definer function has a fixed search_path", not bad, bad)
-known = set().union(*(set(M[k]) for k in ("server_only", "sql_internal", "legacy_revoked", "user_callable", "admin_only",
+# Kept on production only until 66 (old-site compatibility). Wherever they still exist they must be
+# security definer with a fixed search_path and check the caller inside; anon must not run them.
+bad = [s for s in M["legacy_until_66"] if s in acl and (acl[s]["anon"] or not acl[s]["secdef"] or not acl[s]["fixed_path"])]
+check(f"old-site functions kept until 66 are signed-in only, security definer, fixed search_path ({len(M['legacy_until_66'])} signatures, absent where 66 ran)", not bad, bad)
+known = set().union(*(set(M[k]) for k in ("server_only", "sql_internal", "legacy_revoked", "legacy_until_66", "user_callable", "admin_only",
                                            "policy_helper", "extension_pure", "public_pure", "pending_review")))
 new = sorted(s for s, a in acl.items() if not a["trigger"] and (a["anon"] or a["authenticated"]) and s not in known)
 check("no function outside the manifest is executable by anon/authenticated", not new,

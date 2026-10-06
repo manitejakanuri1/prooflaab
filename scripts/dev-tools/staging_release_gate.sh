@@ -7,6 +7,7 @@
 #   bash scripts/dev-tools/staging_release_gate.sh quick      # no browser, no real-audio run
 #   bash scripts/dev-tools/staging_release_gate.sh noload     # everything except the two load steps
 #   bash scripts/dev-tools/staging_release_gate.sh nopaid     # everything except the load steps and the two paid-AI steps (crawler Lot writing, voice scoring)
+#   E2E_BASE=https://prooflab-staging.web.app selects the deployed staging site for the browser journeys.
 #
 # Prints PASS/FAIL per gate and exits non-zero if any gate fails.
 set -uo pipefail
@@ -20,21 +21,23 @@ ADVISORY_FAILED=0
 advisory() {
   local name="$1"; shift
   local log="$OUT/$(echo "$name" | tr ' /' '__').log"
-  if "$@" > "$log" 2>&1; then
-    printf 'ADVISORY PASS  %-37s %s
-' "$name" "$(grep -E '[0-9]+/[0-9]+ (checks|steps) passed|within limits' "$log" | tail -1 | cut -c1-60)"
+  "$@" > "$log" 2>&1; local rc=$?
+  echo "exit=$rc" >> "$log"
+  if [ "$rc" -eq 0 ]; then
+    printf 'ADVISORY PASS  exit=0  %-37s %s\n' "$name" "$(grep -E '[0-9]+/[0-9]+ (checks|steps) passed|within limits' "$log" | tail -1 | cut -c1-60)"
   else
-    printf 'ADVISORY FAIL  %-37s does not block the 2,000-student launch; see %s
-' "$name" "$log"; ADVISORY_FAILED=$((ADVISORY_FAILED + 1))
+    printf 'ADVISORY FAIL  exit=%s  %-37s does not block the 2,000-student launch; see %s\n' "$rc" "$name" "$log"; ADVISORY_FAILED=$((ADVISORY_FAILED + 1))
   fi
 }
 gate() {            # gate "name" command...
   local name="$1"; shift
   local log="$OUT/$(echo "$name" | tr ' /' '__').log"
-  if "$@" > "$log" 2>&1; then
-    printf 'PASS  %-46s %s\n' "$name" "$(grep -E '[0-9]+/[0-9]+ (checks|steps) passed|within limits|problems$|findings$|differences$|active occurrences$|passed \|' "$log" | tail -1 | sed 's/\x1b\[[0-9;]*m//g' | cut -c1-70)"
+  "$@" > "$log" 2>&1; local rc=$?
+  echo "exit=$rc" >> "$log"
+  if [ "$rc" -eq 0 ]; then
+    printf 'PASS  exit=0  %-46s %s\n' "$name" "$(grep -E '[0-9]+/[0-9]+ (checks|steps) passed|within limits|problems$|findings$|differences$|active occurrences$|passed \|' "$log" | tail -1 | sed 's/\x1b\[[0-9;]*m//g' | cut -c1-70)"
   else
-    printf 'FAIL  %-46s see %s\n' "$name" "$log"; FAILED=$((FAILED + 1))
+    printf 'FAIL  exit=%s  %-46s see %s\n' "$rc" "$name" "$log"; FAILED=$((FAILED + 1))
   fi
 }
 

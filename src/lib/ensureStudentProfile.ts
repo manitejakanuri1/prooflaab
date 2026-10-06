@@ -14,26 +14,30 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const ensureStudentProfile = async (user: User): Promise<void> => {
   try {
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile, error: readError } = await supabase
       .from("student_profiles")
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (existingProfile) return;
+    // A failed read (timeout, busy API) says nothing about whether the profile exists. Treating it as
+    // "missing" re-created the profile over the real one: the name became the email prefix (seen on
+    // staging 6 Oct 2026). Do nothing now; the next sign-in or page load tries again.
+    if (readError || existingProfile) return;
 
     // Only students get a student profile.
-    const { data: roleData } = await supabase
+    const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (roleData?.role !== "student") return;
+    if (roleError || roleData?.role !== "student") return;
 
     // No email here. It moved to student_contact, and a trigger on
     // student_profiles copies it across from the auth account, which is where
     // it was really coming from all along.
+    // Insert only: if a profile exists after all (a race, or a read that missed it), it is left as it is.
     const { error } = await supabase.from("student_profiles").upsert(
       [
         {
@@ -43,7 +47,7 @@ export const ensureStudentProfile = async (user: User): Promise<void> => {
           total_xp: 0,
         },
       ],
-      { onConflict: "user_id" },
+      { onConflict: "user_id", ignoreDuplicates: true },
     );
 
     if (error) {

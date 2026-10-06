@@ -62,6 +62,7 @@ Every migration has a rollback file or note in `migration/`. Apply in **reverse*
 | 57, 57b, 56 | `56-rollback-company-lots.sql`, `52-rollback…` | company Lots created meanwhile keep working as tasks |
 | 55 | `55-rollback-…` | suspension marks, protected-account list |
 | 54 | `54-rollback-…` | company review decisions (`submission_reviews`) |
+| 91, 90, 89, 88, 87, 86c, 86b, 86, 85, 84a, 84, 83, 82b, 82, 81, 80, 79 | their `NN-rollback-…` files, newest first (all 17 exist). For 84a, 88 and 91 on production use the bodies saved in Stage 1.3; roll back 91 only together with the previous functions image | 91: a coding Submit with a failed test is passed again; 88: Daily Lots v2 selection |
 | 53, 52, 51, 50 | their rollback files | — |
 
 After any database rollback: `notify pgrst, 'reload schema';`.

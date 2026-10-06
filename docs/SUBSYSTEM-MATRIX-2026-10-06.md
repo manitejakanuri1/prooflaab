@@ -37,7 +37,7 @@ part is untested or missing) · **BROKEN** · **DEFERRED** · **NOT PRESENT**. N
 | Daily Lots | COMPLETE (2,000) | yes | yes | ID (Scheduler identity) | partial_failure / failure / retry | DL, SC, BJ | 15,000 exceeds production's 3 tries (advisory); threshold between 2,000 and 15,000 not measured |
 | Coding Run + Submit | COMPLETE | yes | yes | FA, runner IAM (ID) | busy / timeout messages | CA, SS, LD | Coding latency degrades at 300 concurrent |
 | Written / rubric work | COMPLETE | yes | yes | FA | 503 when AI fails, nothing stored | WA, EV | Paid AI; not re-run this pass |
-| Voice | **PARTIAL — FINAL LIVE PAID RETRY PENDING** | yes | yes | VB, FA | failed / no score; reaper | VC 15/16, VS 6/6, VB 14/14, RF 3/3 | The failed paid case received retry changes afterwards; a paid post-fix run has NOT been done. Enqueue has no per-student rate limit (queue caps concurrency at 2, so one student can delay others) |
+| Voice | COMPLETE (functional) | yes | yes | VB, FA | failed / no score; reaper; LLM connection retry | VC 15/16 then case K re-run after the retry fix: scored, bound to its submission (6 Oct 16:44 UTC, request `4d637595-353a-4719-a12c-17dc52f03e7b`); retry unit test (reset then retried once) passes; VS 6/6, VB 14/14, RF 3/3 | The retry path was proven by unit test, not by a live connection reset. Enqueue has no per-student rate limit (queue caps concurrency at 2, so one student can delay others). Indian-English accuracy not measured (synthetic en-US voices) |
 | Proof / evidence (Build-log) | COMPLETE | yes | yes | RA, VB | yes | BJ, SJ (6 of 6 matches the database) | — |
 | Portfolio (public) | COMPLETE | yes | yes | RA (opt-in) | not-found page | BJ, SW | — |
 | Squads | COMPLETE | yes | yes | D4 | yes | BJ, SC, SW | — |
@@ -91,7 +91,7 @@ part is untested or missing) · **BROKEN** · **DEFERRED** · **NOT PRESENT**. N
 | RLS / grants / SECURITY DEFINER | COMPLETE | RA 27/27, D4 12/12, FA 75/75 | — |
 | API / functions | COMPLETE | `/ready` 32/32, FA, server function tests 112/112 | — |
 | Files | COMPLETE | files tests 16/16, VB | — |
-| Voice pipeline | PARTIAL | VB, VS, RF; VC 15/16 | Paid post-fix retry pending; no per-student enqueue limit |
+| Voice pipeline | COMPLETE (functional) | VB, VS, RF; VC 15/16 + K re-run passed | No per-student enqueue limit |
 | Code runner | COMPLETE | ID 28/28 (private, IAM), CA 43/43 | Dedicated runner is staging-only until rollout Stage 3.1 |
 | Scheduled jobs | COMPLETE (2,000) | SC 26/26, DL 16/16, ID | Daily Lots at 15,000 exceeds the retry budget (advisory) |
 | Rate limiting | PARTIAL | `guard()` on run-code, run-sandbox, submit-*, resume-code-execute, client-log; all AI calls limited centrally in `generateText` | Fails open by design (alerts); `transcription-enqueue` has no per-user limit |

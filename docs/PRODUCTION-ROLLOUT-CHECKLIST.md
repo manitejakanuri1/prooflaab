@@ -4,6 +4,8 @@ For the release candidate on `work/stabilization`. **Nothing here has been run.*
 
 What ships is listed exactly in `RELEASE-MANIFEST.md` (commit, image digests, migration checksums). Production must receive those artifacts, not rebuilt ones.
 
+**Release SHA (6 Oct 2026):** the non-coding release candidate is `ba873d3` (website-only changes since `e4e2922`; backend images and migrations unchanged). The coding-evaluation work on a parallel branch changes the functions image and the code-runner image (and possibly `task_sandbox_config` migrations). The SHA to deploy is the commit AFTER that branch is integrated, the manifest regenerated, new images proven on staging, and the full gate passed once more. If any migration file changes, Stage 0.4 must be repeated.
+
 Do it at a quiet hour (late evening IST; never 05:30–06:00 when nightly jobs run; not Sunday night). About 90 minutes, with a few minutes where some buttons show an error.
 
 ---
@@ -23,7 +25,7 @@ Do it at a quiet hour (late evening IST; never 05:30–06:00 when nightly jobs r
 | # | Step | Check |
 |---|---|---|
 | 1.1 | `python scripts/healthcheck.py` | all PASS (the "before" picture) |
-| 1.2 | On-demand Cloud SQL backup of `prooflab-db` | listed; time noted |
+| 1.2 | On-demand Cloud SQL backup of `prooflab-db`: `gcloud sql backups create --instance=prooflab-db --project=prooflab-508214 --description="before release <sha>"`, then `gcloud sql backups list --instance=prooflab-db --project=prooflab-508214 --limit=1` | status SUCCESSFUL; id and time noted |
 | 1.3 | Save the current production bodies of every function this release replaces: `recruiter_home`, `recruiter_talent`, `recruiter_proof_profile`, `record_activity`, `remove_students`, `assign_todays_lots`, `tpo_students`, `tpo_student_profile`, `form_squads`, `get_leaderboard`, `company_submissions`, `recruiter_lots`, `task_default_checker`, `guard_voice_explanations_insert`, `next_lot_source`, `seed_lot_template`, `create_lot_for`, `my_todays_lot`, `protect_tasks`, `record_task_submission`, `cosignable_proofs`, `set_proof_publicity`, and every function 80–87 re-grants (simplest: all public functions, as the rehearsal did: 274 bodies + triggers + grants) | one file; it is the production rollback for 53, 59, 61, 64, 65, 68, 74, 84a, 88, 91 |
 | 1.4 | `python scripts/infra_snapshot.py --check` | production matches `infra/production/` |
 
@@ -68,7 +70,7 @@ This is "Option 2", proved on a restored production copy (Stage 0.4, 6 Oct 2026)
 - **Not 66, 71, 72** — they delete; Stage 7. 71 and 72 refuse to run before 66.
 - After 73: nothing changes until the API setting in Stage 3 turns the check on.
 
-Effects while the OLD website and functions are still live (keep this gap to minutes: Stage 3 and 4 follow immediately): the company "sponsor a Lot" button fails (56, and `sponsor_lot` is removed by 74), "Explain" before "Submit" is refused with a message (61), "delete recording" in Privacy fails (61), the old verification screen's admin notification fails (82 locks `notify_all_admins`), a coding Submit that fails a test is no longer passed (91).
+Effects while the OLD website and functions are still live (keep this gap to minutes: Stage 3 and 4 follow immediately): the company "sponsor a Lot" button fails (56, and `sponsor_lot` is removed by 74), "Explain" before "Submit" is refused with a message (61), "delete recording" in Privacy fails (61), the old verification screen's admin notification fails (82 locks `notify_all_admins`), a coding Submit that fails a test is no longer passed (91). After Stage 3 row 2 the old website's proof "verify" button fails too: the release functions image no longer has `verify-proof` (40 functions become 32: `ai-authorship`, `github-check`, `leetcode-streak-sync`, `proof-file-url`, `question-generator`, `response-evaluator`, `submit-conceptual-answers`, `trust-compute`, `verify-proof` removed, `company-lot` added). No production Scheduler job calls a removed function (checked 6 Oct 2026).
 
 Check after: API answers; `select count(*) from schema_migrations` = 43 (the 43 files above); `python scripts/migrations.py plan` checksums equal the ledger's.
 

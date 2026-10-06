@@ -62,6 +62,21 @@ export function structuralProblems(tests: SandboxTest[]): string[] {
   if (visible < 1) problems.push('No visible test; mark one example as visible.');
   if (hidden < 1) problems.push('No hidden test; at least one test must be hidden.');
   if (hidden < visible) problems.push('More visible than hidden tests; hidden tests must be at least as many.');
+
+  // Every generated coding evaluator must deliberately cover the basic
+  // semantic test taxonomy. Merely having several distinct inputs does not
+  // prove that boundary or edge behaviour is tested.
+  const kinds = new Set(
+    tests
+      .map((t) => t.kind)
+      .filter((k): k is string => typeof k === 'string'),
+  );
+  for (const required of ['normal', 'boundary', 'edge']) {
+    if (!kinds.has(required)) {
+      problems.push(`Missing ${required} test; generated coding evaluators must include normal, boundary and edge coverage.`);
+    }
+  }
+
   const inputs = new Set(tests.map((t) => t.stdin.trim()));
   if (tests.length >= 2 && inputs.size < Math.min(3, tests.length)) {
     problems.push(`Only ${inputs.size} distinct input(s) across ${tests.length} tests; each test needs a different input.`);

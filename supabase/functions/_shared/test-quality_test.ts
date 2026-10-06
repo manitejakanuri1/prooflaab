@@ -4,7 +4,13 @@ function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(msg);
 }
 
-const t = (id: string, stdin: string, out: string, visible = false) => ({ id, stdin, expected_output: out, visible });
+const t = (
+  id: string,
+  stdin: string,
+  out: string,
+  visible = false,
+  kind: 'normal' | 'boundary' | 'edge' = 'normal',
+) => ({ id, stdin, expected_output: out, visible, kind });
 
 Deno.test('the 3 Oct constant-output config is rejected', () => {
   const tests = [t('t1', '', 'EDIT\nFAILED', true), t('t2', '', 'EDIT\nFAILED'), t('t3', '', 'EDIT\nFAILED')];
@@ -14,8 +20,35 @@ Deno.test('the 3 Oct constant-output config is rejected', () => {
 });
 
 Deno.test('a sound small set passes the structural checks', () => {
-  const tests = [t('t1', '3', '6', true), t('t2', '0', '0'), t('t3', '-2', '-4'), t('t4', '1000000', '2000000')];
+  const tests = [
+    t('t1', '3', '6', true, 'normal'),
+    t('t2', '0', '0', false, 'boundary'),
+    t('t3', '-2', '-4', false, 'edge'),
+    t('t4', '1000000', '2000000', false, 'boundary'),
+  ];
   assert(structuralProblems(tests).length === 0, JSON.stringify(structuralProblems(tests)));
+});
+
+Deno.test('normal boundary and edge coverage are all required', () => {
+  const missingEdge = [
+    t('n', '5', '10', true, 'normal'),
+    t('b1', '0', '0', false, 'boundary'),
+    t('b2', '100', '200', false, 'boundary'),
+  ];
+  assert(
+    structuralProblems(missingEdge).some((x) => x.includes('Missing edge')),
+    'test set with no edge case was accepted',
+  );
+
+  const complete = [
+    t('n', '5', '10', true, 'normal'),
+    t('b', '0', '0', false, 'boundary'),
+    t('e', '-2', '-4', false, 'edge'),
+  ];
+  assert(
+    !structuralProblems(complete).some((x) => x.startsWith('Missing ')),
+    'complete normal/boundary/edge taxonomy was rejected',
+  );
 });
 
 Deno.test('hidden tests are required and must not be outnumbered by visible ones', () => {

@@ -14,8 +14,19 @@ import time
 import urllib.request
 
 URL = os.environ["RUNNER_URL"].rstrip("/")
-SECRET = os.environ["RUNNER_SECRET"]
+SECRET = os.environ.get("RUNNER_SECRET", "")
+ID_TOKEN = os.environ.get("RUNNER_ID_TOKEN", "").strip()
 failures: list[str] = []
+
+
+def request_headers(extra: dict | None = None) -> dict:
+    """Headers for either shared-secret or Cloud Run IAM mode."""
+    headers = dict(extra or {})
+
+    if ID_TOKEN:
+        headers["Authorization"] = f"Bearer {ID_TOKEN}"
+
+    return headers
 
 
 def run(language: str, code: str, stdin: str = "", timeout: int = 90,
@@ -27,7 +38,10 @@ def run(language: str, code: str, stdin: str = "", timeout: int = 90,
         payload["memory_limit_mb"] = memory_limit_mb
     req = urllib.request.Request(f"{URL}/run", method="POST",
                                  data=json.dumps(payload).encode(),
-                                 headers={"Content-Type": "application/json", "x-runner-secret": SECRET})
+                                 headers=request_headers({
+                                       "Content-Type": "application/json",
+                                       "x-runner-secret": SECRET,
+                                   }))
     started = time.time()
     with urllib.request.urlopen(req, timeout=timeout) as r:
         out = json.load(r)
@@ -41,7 +55,11 @@ def check(name: str, cond: bool, detail="") -> None:
         failures.append(name)
 
 
-ready = json.load(urllib.request.urlopen(f"{URL}/ready", timeout=30))
+ready_req = urllib.request.Request(
+    f"{URL}/ready",
+    headers=request_headers(),
+)
+ready = json.load(urllib.request.urlopen(ready_req, timeout=30))
 net = bool(ready.get("net_isolation"))
 print(f"ready: {ready}")
 if os.environ.get("REQUIRE_NET_ISOLATION") == "1":
@@ -112,12 +130,38 @@ else:
     print(f"SKIP network checks (no net isolation on this host): {r.get('stdout', '').split()}")
 
 # --- secret ---------------------------------------------------------------------------
-try:
-    urllib.request.urlopen(urllib.request.Request(f"{URL}/run", method="POST", data=b"{}",
-                                                  headers={"x-runner-secret": "wrong"}), timeout=30)
-    check("wrong secret refused", False, "200")
-except urllib.error.HTTPError as e:
-    check("wrong secret refused", e.code == 401, e.code)
+if ID_TOKEN:
+    # Cloud Run IAM mode: the relevant negative test is a request with
+    # no bearer identity at all. A shared-secret header must not bypass IAM.
+    try:
+        unauth_req = urllib.request.Request(
+            f"{URL}/run",
+            method="POST",
+            data=json.dumps({
+                "language": "python",
+                "code": "print(1)",
+                "stdin": "",
+            }).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "x-runner-secret": "wrong",
+            },
+        )
+        urllib.request.urlopen(unauth_req, timeout=30)
+        check("unauthenticated caller refused", False, "200")
+    except urllib.error.HTTPError as e:
+        check(
+            "unauthenticated caller refused",
+            e.code in (401, 403),
+            e.code,
+        )
+else:
+    try:
+        urllib.request.urlopen(urllib.request.Request(f"{URL}/run", method="POST", data=b"{}",
+                                                      headers={"x-runner-secret": "wrong"}), timeout=30)
+        check("wrong secret refused", False, "200")
+    except urllib.error.HTTPError as e:
+        check("wrong secret refused", e.code == 401, e.code)
 
 
 # C2-B1-A2-TESTS
@@ -129,10 +173,10 @@ def c2_post(payload: dict, timeout: int = 90) -> dict:
         f"{URL}/run",
         method="POST",
         data=json.dumps(payload).encode(),
-        headers={
+        headers=request_headers({
             "Content-Type": "application/json",
             "x-runner-secret": SECRET,
-        },
+        }),
     )
 
     with urllib.request.urlopen(req, timeout=timeout) as response:

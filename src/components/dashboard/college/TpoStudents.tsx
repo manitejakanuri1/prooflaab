@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
-import { removeStudents } from "@/lib/removeStudents";
+import { confirmRemoval, removeStudents } from "@/lib/removeStudents";
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -133,7 +133,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   useAutoRefresh(load);
 
   // Removing: one student from their row, or several ticked at once. Removes
-  // their data and their login together; a backup row is kept first.
+  // their data and their login together; a partial record is kept first (no restore tool).
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [removing, setRemoving] = useState(false);
   const togglePick = (id: string) => setPicked((cur) => {
@@ -141,7 +141,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   });
   const remove = async (ids: string[], label: string) => {
     if (!ids.length) return;
-    if (!window.confirm(`Remove ${label}? This deletes their login and all their work on ProofLab. A backup is kept, but they will no longer be able to sign in.`)) return;
+    if (!confirmRemoval(label)) return;
     setRemoving(true);
     try {
       const r = await removeStudents(ids);

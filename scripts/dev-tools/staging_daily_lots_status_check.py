@@ -33,7 +33,11 @@ def run_once():
         with urllib.request.urlopen(req, timeout=300) as r:
             return r.status, json.loads(r.read())
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read())
+        raw = e.read().decode("utf-8", "replace")
+        try:
+            return e.code, json.loads(raw)
+        except ValueError:          # a body that is not JSON: keep its text so the caller can still read it
+            return e.code, {"ok": False, "error": raw[:500] or f"HTTP {e.code} with an empty body"}
 
 
 def production_attempt_budget():

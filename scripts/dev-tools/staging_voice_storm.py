@@ -153,3 +153,4 @@ record("refresh", c == 200 and len(mine) == 1 and mine[0]["status"] == "scored" 
 os.makedirs(os.path.join(os.path.dirname(__file__), "..", "..", "e2e-out", "final"), exist_ok=True)
 json.dump(out, open(os.path.join(os.path.dirname(__file__), "..", "..", "e2e-out", "final", "voice-storm.json"), "w"), indent=1, default=str)
 print(f"\n{sum(r['ok'] for r in out)}/{len(out)} voice storm cases clean")
+sys.exit(0 if out and all(r["ok"] for r in out) else 1)

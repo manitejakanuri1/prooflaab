@@ -71,3 +71,4 @@ for i, (label, answer, expect) in enumerate(CASES):
 
 json.dump(rows, open(os.path.join(os.path.dirname(__file__), "..", "..", "e2e-out", "written-audit.json"), "w"), indent=1)
 print(f"\n{sum(r['ok'] for r in rows)}/{len(rows)} written cases as expected")
+sys.exit(0 if rows and all(r["ok"] for r in rows) else 1)

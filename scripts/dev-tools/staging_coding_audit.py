@@ -194,3 +194,4 @@ json.dump({"run": run, "solutions": rows, "leaks": leaks, "run_vs_submit": check
 bad = [r for r in rows if not r["ok"]]
 print(f"\nsolutions: {len(rows) - len(bad)}/{len(rows)} as expected; hidden-test leaks: {len(leaks)}; run-vs-submit: "
       f"{sum(c['ok'] for c in checks)}/{len(checks)} checks passed")
+sys.exit(0 if rows and not bad and not leaks and checks and all(c["ok"] for c in checks) else 1)

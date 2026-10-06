@@ -90,3 +90,4 @@ case("timeout-retry", 4, timeout_retry, {"passed": 1, "xp_rows": 1, "xp_gain": 1
 os.makedirs(os.path.join(os.path.dirname(__file__), "..", "..", "e2e-out", "final"), exist_ok=True)
 json.dump(out, open(os.path.join(os.path.dirname(__file__), "..", "..", "e2e-out", "final", "submit-storm.json"), "w"), indent=1)
 print(f"\n{sum(r['ok'] for r in out)}/{len(out)} storm cases clean")
+sys.exit(0 if out and all(r["ok"] for r in out) else 1)

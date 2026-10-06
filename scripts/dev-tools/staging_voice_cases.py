@@ -212,3 +212,4 @@ json.dump({"run": run, "expected": EXPECT, "results": res, "ok": ok, "reproducib
 for k in "ABCDEFGHIJKLMNPQ":
     print(f"{'OK ' if ok[k] else 'BAD'} {k} expected: {EXPECT[k]} | actual: {res[k]['status']} score={res[k]['score']} cm={res[k]['content_match']} flags={res[k]['flags']} lang={res[k]['language']}/{res[k]['gate']}")
 print(f"\n{sum(ok.values())}/{len(ok)} voice cases as expected")
+sys.exit(0 if ok and all(ok.values()) else 1)

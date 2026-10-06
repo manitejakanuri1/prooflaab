@@ -26,7 +26,6 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const Pricing = lazy(() => import("./pages/Pricing"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const OnboardingCollege = lazy(() => import("./pages/OnboardingCollege"));
 const OnboardingStartup = lazy(() => import("./pages/OnboardingStartup"));
@@ -96,7 +95,8 @@ const App = () => (
                     <OnboardingStudent />
                   </ProtectedRoute>
                 } />
-                <Route path="/pricing" element={<Pricing />} />
+                {/* The old pricing page advertised plans and features the product does not have; nothing links to it. */}
+                <Route path="/pricing" element={<Navigate to="/" replace />} />
                 <Route path="/portfolio/:slug" element={<Portfolio />} />
                 
                 {/* Student Routes */}

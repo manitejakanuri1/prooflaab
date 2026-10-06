@@ -225,18 +225,34 @@ const TaskOversight = () => {
     }
   });
 
+  // Deleting a task deletes its submissions and assignments too (ON DELETE CASCADE) and unlinks its
+  // recordings, so a task with any student work is never deleted from here: hide it instead.
+  // Counts that cannot be read count as "has work" (fail closed).
   const removeTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
+      const counts = await Promise.all(
+        (["task_submissions", "task_assignments", "voice_explanations", "student_levels"] as const).map((table) =>
+          supabase.from(table).select("id", { count: "exact", head: true }).eq("task_id", taskId)),
+      );
+      if (counts.some((c) => c.error || c.count === null || c.count > 0)) {
+        throw new Error("This task has student work (submissions, assignments, recordings or level progress), so it was not removed. Use Make Private to hide it.");
+      }
+      if (!window.confirm("Remove this task permanently? It has no student work.")) return false;
       const { error } = await supabase
         .from('tasks')
         .delete()
         .eq('id', taskId);
       if (error) throw error;
+      return true;
     },
-    onSuccess: () => {
+    onSuccess: (removed) => {
+      if (!removed) return;
       queryClient.invalidateQueries({ queryKey: ['admin-tasks'] });
       toast({ title: "Success", description: "Task removed successfully." });
-    }
+    },
+    onError: (e: Error) => {
+      toast({ title: "Not removed", description: e.message, variant: "destructive" });
+    },
   });
 
   const toggleRow = (taskId: string) => {

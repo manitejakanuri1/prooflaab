@@ -103,6 +103,44 @@ const CHECKER_MODES = new Set<CheckerMode>([
 const DEFAULT_NUMERIC_TOLERANCE = 1e-6;
 const MAX_NUMERIC_TOLERANCE = 1e-3;
 
+export interface RunLimits {
+  time_limit_ms?: number;
+  memory_limit_mb?: number;
+}
+
+export const DEFAULT_RUN_LIMITS = Object.freeze({
+  time_limit_ms: 5000,
+  memory_limit_mb: 256,
+});
+
+const MIN_TIME_LIMIT_MS = 500;
+const MAX_TIME_LIMIT_MS = 20000;
+const MIN_MEMORY_LIMIT_MB = 32;
+const MAX_MEMORY_LIMIT_MB = 1024;
+
+function boundedInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+export function normalizeRunLimits(limits?: RunLimits): Required<RunLimits> {
+  return {
+    time_limit_ms: boundedInteger(
+      limits?.time_limit_ms,
+      DEFAULT_RUN_LIMITS.time_limit_ms,
+      MIN_TIME_LIMIT_MS,
+      MAX_TIME_LIMIT_MS,
+    ),
+    memory_limit_mb: boundedInteger(
+      limits?.memory_limit_mb,
+      DEFAULT_RUN_LIMITS.memory_limit_mb,
+      MIN_MEMORY_LIMIT_MB,
+      MAX_MEMORY_LIMIT_MB,
+    ),
+  };
+}
+
 export function isCheckerMode(value: unknown): value is CheckerMode {
   return typeof value === 'string' && CHECKER_MODES.has(value as CheckerMode);
 }
@@ -363,7 +401,12 @@ async function runOnGlot(language: string, code: string, stdin: string): Promise
  */
 const RUNNER_BUSY_RETRIES = [1500, 3000, 6000];
 
-export async function runOnOwnRunner(language: string, code: string, stdin: string): Promise<RunResult> {
+export async function runOnOwnRunner(
+  language: string,
+  code: string,
+  stdin: string,
+  limits?: RunLimits,
+): Promise<RunResult> {
   const url = Deno.env.get('CODE_RUNNER_URL');
   const secret = Deno.env.get('CODE_RUNNER_SECRET');
   // G12: with CODE_RUNNER_AUTH=iam this service proves who it is with its own Google
@@ -387,7 +430,12 @@ export async function runOnOwnRunner(language: string, code: string, stdin: stri
     res = await fetch(`${base}/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...auth },
-      body: JSON.stringify({ language, code, stdin }),
+      body: JSON.stringify({
+        language,
+        code,
+        stdin,
+        ...(limits ? normalizeRunLimits(limits) : {}),
+      }),
       signal: withTimeout(70000),
     });
     if ((res.status !== 429 && res.status !== 503) || attempt >= RUNNER_BUSY_RETRIES.length) break;
@@ -418,15 +466,27 @@ export function publicRunnersAllowed(): boolean {
   return (env === 'staging' || env === 'development') && Deno.env.get('PUBLIC_RUNNER_FALLBACK') === 'allow';
 }
 
-export async function runCode(language: string, code: string, stdin: string): Promise<RunResult> {
+export async function runCode(
+  language: string,
+  code: string,
+  stdin: string,
+  limits?: RunLimits,
+): Promise<RunResult> {
   let lastReason = 'runner unavailable';
 
   try {
-    const own = await runOnOwnRunner(language, code, stdin);
+    const own = await runOnOwnRunner(language, code, stdin, limits);
     if (own.ok) return own;
     lastReason = own.reason;
   } catch (e) {
     lastReason = `own runner: ${String(e)}`;
+  }
+
+  // A task carrying an explicit execution budget must never fall back to a
+  // third-party runner that cannot prove the same time/memory enforcement.
+  if (limits) {
+    console.error(`RUNNER UNAVAILABLE (task limits require private runner) for ${language}: ${lastReason}`);
+    return { ok: false, reason: `runner busy: ${lastReason}` };
   }
 
   // F10: graded runs carry the student's code AND hidden test inputs, so they
@@ -509,7 +569,12 @@ export type Graded =
  * raw stdin/expected/actual here; callers must call redact() before this
  * leaves the server.
  */
-export async function gradeTests(language: string, code: string, tests: SandboxTest[]): Promise<Graded> {
+export async function gradeTests(
+  language: string,
+  code: string,
+  tests: SandboxTest[],
+  limits?: RunLimits,
+): Promise<Graded> {
   const results: GradedTest[] = [];
   let runner = '';
   let compileError: { stderr: string } | null = null;
@@ -519,7 +584,7 @@ export async function gradeTests(language: string, code: string, tests: SandboxT
       results.push({ id: tc.id, visible: tc.visible, verdict: 'compile_error', passed: false, stderr: compileError.stderr });
       continue;
     }
-    const run = await runCode(language, code, tc.stdin);
+    const run = await runCode(language, code, tc.stdin, limits);
     if (!run.ok) return { ok: false, reason: run.reason }; // never grade a run that did not happen
     runner = run.runner;
     const verdict = verdictFor(

@@ -51,10 +51,15 @@ serve(async (req) => {
       if (!(roles ?? []).some((r: { role: string }) => r.role === "admin")) return json({ error: "Forbidden" }, 403);
 
       const { data: cfg } = await db.from("task_sandbox_config")
-        .select("language, test_cases, reference_solution").eq("id", configId).maybeSingle();
+        .select("language, test_cases, reference_solution, time_limit_ms, memory_limit_mb").eq("id", configId).maybeSingle();
       if (!cfg) return json({ error: "No such config" }, 404);
 
-      const graded = await gradeTests(cfg.language, cfg.reference_solution, cfg.test_cases as SandboxTest[]);
+      const graded = await gradeTests(
+        cfg.language,
+        cfg.reference_solution,
+        cfg.test_cases as SandboxTest[],
+        { time_limit_ms: cfg.time_limit_ms, memory_limit_mb: cfg.memory_limit_mb },
+      );
       return json(graded, graded.ok ? 200 : 503);
     }
 
@@ -78,7 +83,7 @@ serve(async (req) => {
     }
 
     const { data: cfg } = await db.from("task_sandbox_config")
-      .select("language, test_cases").eq("id", task.sandbox_config_id).maybeSingle();
+      .select("language, test_cases, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
     if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
 
     // Visible tests only — hidden inputs never leave the server through this
@@ -86,7 +91,12 @@ serve(async (req) => {
     const visible = (cfg.test_cases as SandboxTest[]).filter((t) => t.visible);
     if (visible.length === 0) return json({ results: [] });
 
-    const graded = await gradeTests(cfg.language, code, visible);
+    const graded = await gradeTests(
+      cfg.language,
+      code,
+      visible,
+      { time_limit_ms: cfg.time_limit_ms, memory_limit_mb: cfg.memory_limit_mb },
+    );
     if (!graded.ok) {
       return json({
         error: "The code runner is busy right now. This is not a problem with your code. Try again in a minute.",

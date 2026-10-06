@@ -18,9 +18,15 @@ SECRET = os.environ["RUNNER_SECRET"]
 failures: list[str] = []
 
 
-def run(language: str, code: str, stdin: str = "", timeout: int = 90) -> dict:
+def run(language: str, code: str, stdin: str = "", timeout: int = 90,
+        time_limit_ms: int | None = None, memory_limit_mb: int | None = None) -> dict:
+    payload = {"language": language, "code": code, "stdin": stdin}
+    if time_limit_ms is not None:
+        payload["time_limit_ms"] = time_limit_ms
+    if memory_limit_mb is not None:
+        payload["memory_limit_mb"] = memory_limit_mb
     req = urllib.request.Request(f"{URL}/run", method="POST",
-                                 data=json.dumps({"language": language, "code": code, "stdin": stdin}).encode(),
+                                 data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json", "x-runner-secret": SECRET})
     started = time.time()
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -66,6 +72,14 @@ r = run("python", "raise SystemExit(3)")
 check("runtime error classified", r.get("status") == "runtime_error", r)
 r = run("python", "while True: pass")
 check("infinite loop -> time_limit within ~15 s", r.get("status") == "time_limit" and r["seconds"] < 30, r)
+
+r = run("python", "import time\ntime.sleep(2)", time_limit_ms=500)
+check("C4: per-task 500 ms execution limit enforced",
+      r.get("status") == "time_limit" and r["seconds"] < 5, r)
+
+r = run("python", "x=bytearray(256*1024*1024)\nprint('allocated')", memory_limit_mb=128)
+check("C4: per-task python memory limit enforced",
+      "allocated" not in r.get("stdout", "") and r.get("status") != "ok", r)
 r = run("python", "import sys\nwhile True: sys.stdout.write('x'*65536)")
 check("huge output capped at 64 KB, request returns", len(r.get("stdout", "")) <= 64 * 1024 and r["seconds"] < 30, r.get("status"))
 r = run("python", "print(9)")

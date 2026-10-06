@@ -120,9 +120,11 @@ serve(async (req) => {
     // its tests inline, where test 1 was the visible sample.
     let tests: SandboxTest[];
     let language: string = question.language;
+    let timeLimitMs = 5000;
+    let memoryLimitMb = 256;
     if (question.sandbox_config_id) {
       const { data: cfg } = await supabase
-        .from('task_sandbox_config').select('language, test_cases').eq('id', question.sandbox_config_id).maybeSingle();
+        .from('task_sandbox_config').select('language, test_cases, time_limit_ms, memory_limit_mb').eq('id', question.sandbox_config_id).maybeSingle();
       if (!cfg) {
         return new Response(
           JSON.stringify({ error: 'This coding question is no longer available' }),
@@ -131,6 +133,8 @@ serve(async (req) => {
       }
       tests = cfg.test_cases as SandboxTest[];
       language = cfg.language;
+      timeLimitMs = cfg.time_limit_ms;
+      memoryLimitMb = cfg.memory_limit_mb;
     } else {
       tests = (question.test_cases || []).map((t: any, i: number) => ({
         id: `t${i + 1}`, stdin: String(t.stdin ?? ''), expected_output: String(t.expected_output ?? ''), visible: i === 0,
@@ -141,7 +145,12 @@ serve(async (req) => {
     const toRun = mode === 'run' ? tests.filter((t) => t.visible) : mode === 'skip' ? [] : tests;
     let results: any[] = [];
     if (toRun.length) {
-      const graded = await gradeTests(language, code, toRun);
+      const graded = await gradeTests(
+        language,
+        code,
+        toRun,
+        { time_limit_ms: timeLimitMs, memory_limit_mb: memoryLimitMb },
+      );
       // The runner never started. Stop here rather than recording a failure the
       // student did not earn.
       if (!graded.ok) {

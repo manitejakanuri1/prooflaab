@@ -21,6 +21,7 @@ import threading
 import time
 import hmac
 import json
+import math
 import os
 import pwd
 import re
@@ -57,18 +58,37 @@ PORT = int(os.environ.get("PORT", "8080"))
 RUNNER = pwd.getpwnam("runner")
 
 COMPILE_SECONDS = 40
-RUN_SECONDS = 10
+
+# Must match task_sandbox_config's legal range. The caller clamps first and the
+# runner clamps again because the runner is the final security boundary.
+DEFAULT_TIME_LIMIT_MS = 5000
+MIN_TIME_LIMIT_MS = 500
+MAX_TIME_LIMIT_MS = 20000
+
+DEFAULT_MEMORY_LIMIT_MB = 256
+MIN_MEMORY_LIMIT_MB = 32
+MAX_MEMORY_LIMIT_MB = 1024
+
 MAX_OUTPUT = 64 * 1024
 MAX_CODE = 100 * 1024
-# Address-space cap for languages whose runtimes tolerate it. JVM and V8 reserve
-# large virtual ranges up front, so they are capped by their own flags instead
-# (-Xmx, --max-old-space-size); Go by GOMEMLIMIT plus the instance limit.
-AS_LIMIT = {"python": 768, "ruby": 768, "php": 768, "c": 768, "cpp": 768}
+
+# These runtimes tolerate a hard address-space ceiling. JVM/V8 reserve large
+# virtual regions and Go manages its heap differently, so those use native
+# runtime controls below instead of RLIMIT_AS.
+AS_LIMIT_LANGUAGES = {"python", "ruby", "php", "c", "cpp"}
 SHARED_TMP = ("/tmp", "/var/tmp", "/dev/shm")
 RUN_LOCK = threading.Lock()
 
 CLONE_NEWNET = 0x40000000
 _libc = ctypes.CDLL(None, use_errno=True)
+
+
+def clamp_int(value, default: int, low: int, high: int) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return max(low, min(high, n))
 
 
 def _probe_net_isolation() -> bool:
@@ -102,12 +122,12 @@ def java_file_name(code: str) -> str:
     return f"{public.group(1) if public else java_main_class(code)}.java"
 
 
-def plan(language: str, code: str):
+def plan(language: str, code: str, memory_mb: int):
     """(source file name, compile command or None, run command), or None if unsupported."""
     if language == "python":
         return "main.py", None, ["python3", "main.py"]
     if language == "javascript":
-        return "main.js", None, ["node", "--max-old-space-size=256", "main.js"]
+        return "main.js", None, ["node", f"--max-old-space-size={memory_mb}", "main.js"]
     if language == "ruby":
         return "main.rb", None, ["ruby", "main.rb"]
     if language == "php":
@@ -120,7 +140,7 @@ def plan(language: str, code: str):
         return "main.go", ["go", "build", "-o", "main", "main.go"], ["./main"]
     if language == "java":
         name = java_file_name(code)
-        return name, ["javac", "-J-Xmx512m", name], ["java", "-Xmx256m", "-Xss64m", "-cp", ".", java_main_class(code)]
+        return name, ["javac", "-J-Xmx512m", name], ["java", f"-Xmx{memory_mb}m", "-Xss1m", "-cp", ".", java_main_class(code)]
     return None
 
 
@@ -181,7 +201,7 @@ def clean_shared_tmp() -> None:
                 pass
 
 
-def execute(cmd, cwd, stdin, seconds, memory_mb=None):
+def execute(cmd, cwd, stdin, seconds: float, memory_mb=None, env_overrides=None):
     """(exit code, or None when stopped for time; stdout; stderr).
 
     Output goes to files in a root-only directory, capped by RLIMIT_FSIZE, and
@@ -190,6 +210,9 @@ def execute(cmd, cwd, stdin, seconds, memory_mb=None):
     """
     env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": cwd, "TMPDIR": cwd, "GOCACHE": f"{cwd}/.gocache",
            "GOPATH": f"{cwd}/.gopath", "LANG": "C.UTF-8", "GO111MODULE": "off", "GOMEMLIMIT": "512MiB"}
+    if env_overrides:
+        env.update(env_overrides)
+    cpu_seconds = max(1, math.ceil(seconds))
     io_dir = tempfile.mkdtemp(prefix="io-")          # root-owned, 0700: the program cannot reach it
     try:
         out_path, err_path, in_path = (os.path.join(io_dir, n) for n in ("out", "err", "in"))
@@ -197,7 +220,7 @@ def execute(cmd, cwd, stdin, seconds, memory_mb=None):
             fh.write(stdin.encode())
         with open(in_path, "rb") as fin, open(out_path, "wb") as fout, open(err_path, "wb") as ferr:
             proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdin=fin, stdout=fout, stderr=ferr,
-                                    preexec_fn=limits(seconds, memory_mb))
+                                    preexec_fn=limits(cpu_seconds, memory_mb))
             try:
                 code = proc.wait(timeout=seconds)
                 # A CPU-limit kill arrives as a signal, not as a timeout.
@@ -220,8 +243,14 @@ def execute(cmd, cwd, stdin, seconds, memory_mb=None):
         shutil.rmtree(io_dir, ignore_errors=True)
 
 
-def run(language: str, code: str, stdin: str) -> dict:
-    steps = plan(language, code)
+def run(
+    language: str,
+    code: str,
+    stdin: str,
+    time_limit_ms: int = DEFAULT_TIME_LIMIT_MS,
+    memory_limit_mb: int = DEFAULT_MEMORY_LIMIT_MB,
+) -> dict:
+    steps = plan(language, code, memory_limit_mb)
     if steps is None:
         return {"status": "compile_error", "stdout": "", "stderr": f"Unsupported language: {language}"}
     filename, compile_cmd, run_cmd = steps
@@ -232,12 +261,27 @@ def run(language: str, code: str, stdin: str) -> dict:
             fh.write(code)
         os.chown(work, RUNNER.pw_uid, RUNNER.pw_gid)
         os.chown(path, RUNNER.pw_uid, RUNNER.pw_gid)
+
+        # Compilation has its own infrastructure ceiling. A task's time limit
+        # measures execution, not gcc/javac/go compiler startup.
         if compile_cmd:
             c, out, err = execute(compile_cmd, work, "", COMPILE_SECONDS)
             if c != 0:
                 return {"status": "compile_error", "stdout": "",
                         "stderr": (err or out or "compilation took too long").strip()}
-        c, out, err = execute(run_cmd, work, stdin, RUN_SECONDS, AS_LIMIT.get(language))
+
+        execution_seconds = time_limit_ms / 1000.0
+        address_space_mb = memory_limit_mb if language in AS_LIMIT_LANGUAGES else None
+        env_overrides = {"GOMEMLIMIT": f"{memory_limit_mb}MiB"} if language == "go" else None
+
+        c, out, err = execute(
+            run_cmd,
+            work,
+            stdin,
+            execution_seconds,
+            address_space_mb,
+            env_overrides,
+        )
         if c is None:
             return {"status": "time_limit", "stdout": out, "stderr": err}
         return {"status": "ok" if c == 0 else "runtime_error", "stdout": out, "stderr": err}
@@ -273,13 +317,25 @@ class Handler(BaseHTTPRequestHandler):
             language = str(body.get("language", "")).lower()
             code = str(body.get("code", ""))
             stdin = str(body.get("stdin", ""))
+            time_limit_ms = clamp_int(
+                body.get("time_limit_ms"),
+                DEFAULT_TIME_LIMIT_MS,
+                MIN_TIME_LIMIT_MS,
+                MAX_TIME_LIMIT_MS,
+            )
+            memory_limit_mb = clamp_int(
+                body.get("memory_limit_mb"),
+                DEFAULT_MEMORY_LIMIT_MB,
+                MIN_MEMORY_LIMIT_MB,
+                MAX_MEMORY_LIMIT_MB,
+            )
         except (ValueError, TypeError):
             return self.reply(400, {"error": "bad json"})
         if not code or len(code) > MAX_CODE:
             return self.reply(400, {"error": "code missing or too long"})
         with RUN_LOCK:                                  # one run per instance, always
             try:
-                result = run(language, code, stdin)
+                result = run(language, code, stdin, time_limit_ms, memory_limit_mb)
             except (OSError, subprocess.SubprocessError) as e:
                 print(f"RUNNER INFRA ERROR: {e}", flush=True)
                 return self.reply(503, {"error": "runner could not start the program"})

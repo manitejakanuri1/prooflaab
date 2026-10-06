@@ -68,11 +68,16 @@ serve(async (req) => {
 
     // 6. Grade against ALL tests
     const { data: cfg } = await db.from("task_sandbox_config")
-      .select("id, language, test_cases, pass_threshold").eq("id", task.sandbox_config_id).maybeSingle();
+      .select("id, language, test_cases, pass_threshold, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
     if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
 
     const started = Date.now();
-    const graded = await gradeTests(cfg.language, code, cfg.test_cases as SandboxTest[]);
+    const graded = await gradeTests(
+      cfg.language,
+      code,
+      cfg.test_cases as SandboxTest[],
+      { time_limit_ms: cfg.time_limit_ms, memory_limit_mb: cfg.memory_limit_mb },
+    );
     if (!graded.ok) {
       console.error("submit-sandbox-task: runner unavailable:", graded.reason);
       return json({

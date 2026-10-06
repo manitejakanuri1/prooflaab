@@ -1,4 +1,4 @@
-import { outputsMatch, runCode, verdictFor } from './sandbox.ts';
+import { outputsMatch, runCode, runOnOwnRunner, verdictFor } from './sandbox.ts';
 
 function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(msg);
@@ -55,6 +55,46 @@ async function withFetchSpy(env: Record<string, string | undefined>, fn: () => P
   }
   return calls;
 }
+
+Deno.test('C4: task limits are clamped and sent to the private runner', async () => {
+  const realFetch = globalThis.fetch;
+  const saved = {
+    u: Deno.env.get('CODE_RUNNER_URL'),
+    s: Deno.env.get('CODE_RUNNER_SECRET'),
+    a: Deno.env.get('CODE_RUNNER_AUTH'),
+  };
+
+  Deno.env.set('CODE_RUNNER_URL', 'https://own-runner.invalid');
+  Deno.env.set('CODE_RUNNER_SECRET', 's');
+  Deno.env.delete('CODE_RUNNER_AUTH');
+
+  let sent: Record<string, unknown> = {};
+  globalThis.fetch = ((_input: string | URL | Request, init?: RequestInit) => {
+    sent = JSON.parse(String(init?.body ?? '{}'));
+    return Promise.resolve(new Response(
+      JSON.stringify({ status: 'ok', stdout: '1\n', stderr: '' }),
+      { status: 200 },
+    ));
+  }) as typeof fetch;
+
+  try {
+    const result = await runOnOwnRunner(
+      'python',
+      'print(1)',
+      '',
+      { time_limit_ms: 1, memory_limit_mb: 99999 },
+    );
+
+    assert(result.ok, `private runner result failed: ${JSON.stringify(result)}`);
+    assert(sent.time_limit_ms === 500, `time limit not clamped: ${JSON.stringify(sent)}`);
+    assert(sent.memory_limit_mb === 1024, `memory limit not clamped: ${JSON.stringify(sent)}`);
+  } finally {
+    globalThis.fetch = realFetch;
+    if (saved.u === undefined) Deno.env.delete('CODE_RUNNER_URL'); else Deno.env.set('CODE_RUNNER_URL', saved.u);
+    if (saved.s === undefined) Deno.env.delete('CODE_RUNNER_SECRET'); else Deno.env.set('CODE_RUNNER_SECRET', saved.s);
+    if (saved.a === undefined) Deno.env.delete('CODE_RUNNER_AUTH'); else Deno.env.set('CODE_RUNNER_AUTH', saved.a);
+  }
+});
 
 Deno.test('F10: graded code never reaches a public runner by default', async () => {
   let result: Awaited<ReturnType<typeof runCode>> | null = null;

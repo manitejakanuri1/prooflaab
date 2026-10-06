@@ -73,7 +73,6 @@ echo "== staging scale (screens and nightly jobs on the 15,000-student dataset; 
 gate "screen queries + nightly jobs"      python scripts/dev-tools/staging_scale_check.py --jobs
 if [ "$MODE" != "quick" ]; then
   gate "daily Lots at release target (2,000)" python scripts/dev-tools/staging_daily_lots_release2k_check.py
-  advisory "daily Lots stress (15,000): statuses" python scripts/dev-tools/staging_daily_lots_status_check.py
 fi
 
 if [ "$MODE" != "quick" ]; then
@@ -91,6 +90,13 @@ if [ "$MODE" != "quick" ]; then
   gate "voice burst (10 recordings at once)"  bash -c 'out=$(python scripts/dev-tools/staging_load_test.py voice e2e-out/loadvoice.wav 10); echo "$out"; echo "$out" | grep -q "scored=10 failed=0" && echo "1/1 checks passed"'
   fi
   gate "browser journeys (all roles)"       node scripts/dev-tools/staging_browser_e2e.mjs
+fi
+
+# The 15,000-student stress test runs LAST: it saturates the small staging database for a while, and a blocking
+# gate after it (the browser journeys) failed on that leftover load (HTTP 504), not on the product.
+if [ "$MODE" != "quick" ]; then
+  echo "== advisory future-scale stress (does not block the 2,000-student launch)"
+  advisory "daily Lots stress (15,000): statuses" python scripts/dev-tools/staging_daily_lots_status_check.py
 fi
 
 echo

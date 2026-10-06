@@ -80,7 +80,7 @@ const SANDBOX_SCHEMA = `"language": one of "python","javascript","java","cpp","c
 "constraints_text": string or null,
 "reference_solution": a COMPLETE, CORRECT solution in that language, reading from stdin and writing to stdout exactly as the test cases expect,
 "test_cases": array of objects {"id": string, "stdin": string, "expected_output": string, "visible": boolean, "weight": integer 1-5, "kind": "normal" | "boundary" | "edge"}.
-  How many: 4 to 5 for an easy problem, 6 to 8 for a harder one - no more than needed.
+  How many: if the surrounding task has difficulty "Easy", create 4 to 5 tests; "Medium", 6 to 8; "Hard", 8 to 10. Do not pad with duplicate or meaningless tests.
   Cover: at least one normal case, one boundary case (smallest/largest allowed input, empty list, zero) and one edge case (duplicates, negatives, unusual but valid input).
   Every test has a DIFFERENT stdin. Exactly 1 or 2 are "visible": true (the examples the student sees); the rest are hidden, and hidden tests are at least as many as visible ones.
   expected_output must be EXACTLY what reference_solution prints (trailing newline agnostic).
@@ -229,7 +229,15 @@ export async function tryGenerateSandbox(
     const graded = await gradeTests(fields.language, fields.reference_solution, fields.test_cases);
     if (graded.ok && graded.passedCount === fields.test_cases.length) {
       // Consistent is not enough: obviously wrong programs must fail (test-quality.ts).
-      const quality = await checkTestQuality(fields.language, fields.test_cases, fields.buggy_solution);
+      const difficulty = ["Easy", "Medium", "Hard"].includes(String(parsed.difficulty))
+        ? String(parsed.difficulty)
+        : undefined;
+      const quality = await checkTestQuality(
+        fields.language,
+        fields.test_cases,
+        fields.buggy_solution,
+        difficulty,
+      );
       if (quality.ok) return { ok: true, attempt: fields, scenarioFields: parsed };
       console.warn(`TEST QUALITY REJECTED (${feature}): ${quality.problems.join(" | ")}`);
       retryNote = `\n\nYour reference solution passes, but the tests are too weak:\n- ${quality.problems.join("\n- ")}\n\nReturn improved test_cases (and a buggy_solution they catch). Keep the same problem.`;

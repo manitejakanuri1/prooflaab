@@ -51,6 +51,46 @@ Deno.test('normal boundary and edge coverage are all required', () => {
   );
 });
 
+Deno.test('test depth scales with declared difficulty', () => {
+  const make = (count: number) =>
+    Array.from({ length: count }, (_, i) =>
+      t(
+        `t${i}`,
+        String(i),
+        String(i * 2),
+        i === 0,
+        i === 0 ? 'normal' : i === 1 ? 'boundary' : i === 2 ? 'edge' : 'normal',
+      )
+    );
+
+  assert(
+    structuralProblems(make(4), 'Easy').every((x) => !x.includes('coding tasks require')),
+    'valid Easy test count rejected',
+  );
+  assert(
+    structuralProblems(make(6), 'Easy').some((x) => x.includes('Easy coding tasks require 4-5')),
+    'too many Easy tests accepted',
+  );
+
+  assert(
+    structuralProblems(make(5), 'Medium').some((x) => x.includes('Medium coding tasks require 6-8')),
+    'too few Medium tests accepted',
+  );
+  assert(
+    structuralProblems(make(6), 'Medium').every((x) => !x.includes('coding tasks require')),
+    'valid Medium test count rejected',
+  );
+
+  assert(
+    structuralProblems(make(7), 'Hard').some((x) => x.includes('Hard coding tasks require 8-10')),
+    'too few Hard tests accepted',
+  );
+  assert(
+    structuralProblems(make(8), 'Hard').every((x) => !x.includes('coding tasks require')),
+    'valid Hard test count rejected',
+  );
+});
+
 Deno.test('hidden tests are required and must not be outnumbered by visible ones', () => {
   assert(structuralProblems([t('a', '1', '1', true), t('b', '2', '2', true), t('c', '3', '3', true)])
     .some((x) => x.includes('No hidden')), 'all-visible set accepted');

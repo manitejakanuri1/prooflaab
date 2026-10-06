@@ -54,7 +54,7 @@ export function echoProgram(language: string): string | null {
 }
 
 /** Shape checks that need no runner. Exported for unit tests. */
-export function structuralProblems(tests: SandboxTest[]): string[] {
+export function structuralProblems(tests: SandboxTest[], difficulty?: string): string[] {
   const problems: string[] = [];
   const visible = tests.filter((t) => t.visible).length;
   const hidden = tests.length - visible;
@@ -62,6 +62,23 @@ export function structuralProblems(tests: SandboxTest[]): string[] {
   if (visible < 1) problems.push('No visible test; mark one example as visible.');
   if (hidden < 1) problems.push('No hidden test; at least one test must be hidden.');
   if (hidden < visible) problems.push('More visible than hidden tests; hidden tests must be at least as many.');
+
+  // Until the runner batches tests in one sandbox, keep the evaluator bounded
+  // while still scaling test depth with the declared problem difficulty.
+  const countRanges: Record<string, [number, number]> = {
+    Easy: [4, 5],
+    Medium: [6, 8],
+    Hard: [8, 10],
+  };
+  const countRange = difficulty ? countRanges[difficulty] : undefined;
+  if (countRange) {
+    const [minTests, maxTests] = countRange;
+    if (tests.length < minTests || tests.length > maxTests) {
+      problems.push(
+        `${difficulty} coding tasks require ${minTests}-${maxTests} tests; received ${tests.length}.`,
+      );
+    }
+  }
 
   // Every generated coding evaluator must deliberately cover the basic
   // semantic test taxonomy. Merely having several distinct inputs does not
@@ -98,8 +115,9 @@ export async function checkTestQuality(
   language: string,
   tests: SandboxTest[],
   buggySolution?: string | null,
+  difficulty?: string,
 ): Promise<QualityResult> {
-  const problems = structuralProblems(tests);
+  const problems = structuralProblems(tests, difficulty);
   if (problems.length) return { ok: false, problems };
 
   const firstVisible = tests.find((t) => t.visible) ?? tests[0];

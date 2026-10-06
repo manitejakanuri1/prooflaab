@@ -1,6 +1,14 @@
 import { generateText } from "./llm.ts";
-import { gradeTests, type CheckerMode, type SandboxTest } from "./sandbox.ts";
-import { checkTestQuality } from "./test-quality.ts";
+import { gradeSandboxConfig, gradeTests, type CheckerMode, type SandboxTest } from "./sandbox.ts";
+import { checkFunctionTestQuality, checkTestQuality } from "./test-quality.ts";
+import {
+  canonicalFunctionArgumentsJson,
+  canonicalFunctionValueJson,
+  parseFunctionSpec,
+  type FunctionSpec,
+} from "./function-mode.ts";
+import { chooseSandboxKind, resolveDifficulty, rubricFallbackAllowed, TEST_COUNT_RANGE, type Difficulty, type SandboxKind } from "./coding-mode.ts";
+import { FUNCTION_SCHEMA, parseFunctionFields, sandboxConfigRow, type FunctionAttempt, type FunctionValidators } from "./function-generation.ts";
 import { gradeOnce, zeroUnquotedCredit, totalOf, type Criterion } from "./rubric-grading.ts";
 
 /**
@@ -64,6 +72,17 @@ export interface GenerateConfigParams {
   usageCtx: { userId?: string | null; studentId?: string | null };
   createdBy?: string | null;
   passThreshold?: number;
+  /**
+   * stdio (whole program) or function (implement a function). "auto" - the
+   * default - picks function only for a fixed task that clearly asks to
+   * implement a function (coding-mode.ts chooseSandboxKind); scenario content
+   * (Lots) stays stdio unless the caller says otherwise.
+   */
+  sandboxKind?: SandboxKind | "auto";
+  /** Test-count scaling: an explicit Easy/Medium/Hard, or "from_reply" (the model's own value, Medium if absent). */
+  difficulty?: Difficulty | "from_reply";
+  /** An explicit coding request: if real tests cannot be built, fail - never fall back to a written task. */
+  explicitSandbox?: boolean;
 }
 
 export interface GenerateConfigResult {
@@ -73,6 +92,9 @@ export interface GenerateConfigResult {
   scenarioFields: Record<string, unknown>;
   usedFallback: "none" | "rubric_downgrade" | "generic_fallback";
   reason?: string;
+  /** For a sandbox result: which kind of evaluator and the difficulty its tests were held to. */
+  sandboxKind?: SandboxKind;
+  difficulty?: Difficulty;
 }
 
 const SANDBOX_SCHEMA = `"language": one of "python","javascript","java","cpp","c","go","ruby","php" — pick the one this task is written in/for,
@@ -98,12 +120,23 @@ const RUBRIC_SCHEMA = `"criteria": array of 2 to 8 objects {"id": string, "name"
 "max_words": integer <= 3000,
 "reference_answer": a strong model answer, written the way a student would write it (not a rubric-style list), that would score close to full marks against your own criteria above.`;
 
-function schemaFor(mode: AutoConfigMode): string {
-  return mode === "sandbox" ? SANDBOX_SCHEMA : RUBRIC_SCHEMA;
+function schemaFor(mode: AutoConfigMode, kind: SandboxKind = "stdio"): string {
+  if (mode !== "sandbox") return RUBRIC_SCHEMA;
+  return kind === "function" ? FUNCTION_SCHEMA : SANDBOX_SCHEMA;
 }
 
-function buildPrompt(content: ScenarioSpec | FixedContent, mode: AutoConfigMode, retryNote?: string): string {
-  const schema = schemaFor(mode);
+function buildPrompt(
+  content: ScenarioSpec | FixedContent,
+  mode: AutoConfigMode,
+  retryNote?: string,
+  kind: SandboxKind = "stdio",
+  difficulty?: Difficulty,
+): string {
+  const schema = schemaFor(mode, kind);
+  if (difficulty) {
+    const [min, max] = TEST_COUNT_RANGE[difficulty];
+    retryNote = `\n\nThis task's difficulty is ${difficulty}: write ${min} to ${max} test cases.${retryNote ?? ""}`;
+  }
   if (content.kind === "scenario") {
     const fieldLines = Object.entries(content.fields).map(([k, v]) => `"${k}": ${v}`).join(",\n ");
     return `${content.promptBody}${retryNote ?? ""}
@@ -131,6 +164,7 @@ function parseJson(text: string): Record<string, unknown> | null {
 }
 
 export interface SandboxAttempt {
+  kind?: "stdio";
   language: string;
   starter_code: string;
   constraints_text: string | null;
@@ -220,17 +254,37 @@ export interface AttemptOutcome<T> {
   promptText?: string;
 }
 
+export interface SandboxOptions {
+  kind?: SandboxKind;
+  /** Explicit difficulty, or "from_reply"; absent keeps the old behaviour (the reply's value, if any). */
+  difficulty?: Difficulty | "from_reply";
+}
+
+/** function-mode.ts is the one contract for specs and canonical JSON, here and when grading. */
+const FUNCTION_VALIDATORS: FunctionValidators<FunctionSpec> = {
+  parseSpec: (raw) => parseFunctionSpec(raw),
+  canonicalArgs: (json, spec) => canonicalFunctionArgumentsJson(json, spec),
+  canonicalValue: (json, returnType) => canonicalFunctionValueJson(json, returnType),
+};
+
+export type GeneratedSandbox =
+  | (SandboxAttempt & { difficulty?: Difficulty })
+  | (FunctionAttempt<FunctionSpec> & { difficulty: Difficulty });
+
 export async function tryGenerateSandbox(
   content: ScenarioSpec | FixedContent,
   feature: string,
   usageCtx: { userId?: string | null; studentId?: string | null },
-): Promise<AttemptOutcome<SandboxAttempt>> {
+  options: SandboxOptions = {},
+): Promise<AttemptOutcome<GeneratedSandbox>> {
+  if (options.kind === "function") return tryGenerateFunction(content, feature, usageCtx, options);
+  const explicitDifficulty = options.difficulty && options.difficulty !== "from_reply" ? options.difficulty : undefined;
   let retryNote = "";
   let lastFields: Record<string, unknown> = {};
   // Three tries, not two: the quality gate rejects first drafts that only looked fine.
   for (let attempt = 0; attempt < 3; attempt++) {
     const { text } = await generateText(
-      buildPrompt(content, "sandbox", retryNote),
+      buildPrompt(content, "sandbox", retryNote, "stdio", explicitDifficulty),
       { temperature: attempt === 0 ? 0.7 : 0.4, maxOutputTokens: 2600, json: true },
       { feature, ...usageCtx },
     );
@@ -249,16 +303,18 @@ export async function tryGenerateSandbox(
     const graded = await gradeTests(fields.language, fields.reference_solution, fields.test_cases);
     if (graded.ok && graded.passedCount === fields.test_cases.length) {
       // Consistent is not enough: obviously wrong programs must fail (test-quality.ts).
-      const difficulty = ["Easy", "Medium", "Hard"].includes(String(parsed.difficulty))
-        ? String(parsed.difficulty)
-        : undefined;
+      // An explicit or "from_reply" difficulty is always enforced; without one, as before,
+      // only a difficulty the model actually wrote is.
+      const difficulty: Difficulty | undefined = options.difficulty
+        ? resolveDifficulty(explicitDifficulty, parsed)
+        : (["Easy", "Medium", "Hard"].includes(String(parsed.difficulty)) ? String(parsed.difficulty) as Difficulty : undefined);
       const quality = await checkTestQuality(
         fields.language,
         fields.test_cases,
         fields.buggy_solution,
         difficulty,
       );
-      if (quality.ok) return { ok: true, attempt: fields, scenarioFields: parsed };
+      if (quality.ok) return { ok: true, attempt: { ...fields, ...(difficulty ? { difficulty } : {}) }, scenarioFields: parsed };
       console.warn(`TEST QUALITY REJECTED (${feature}): ${quality.problems.join(" | ")}`);
       retryNote = `\n\nYour reference solution passes, but the tests are too weak:\n- ${quality.problems.join("\n- ")}\n\nReturn improved test_cases (and a buggy_solution they catch). Keep the same problem.`;
       continue;
@@ -271,6 +327,65 @@ export async function tryGenerateSandbox(
       retryNote = `\n\nYour previous reference_solution failed ${graded.results.length - graded.passedCount} of ${graded.results.length} tests. Failing cases:\n${failing}\n\nReturn a corrected, complete solution (and corrected test cases if the expected_output was wrong). It must pass every test case.`;
     } else {
       retryNote = "\n\nYour previous submission could not be parsed or run. Return valid JSON in exactly the shape asked, with a complete, runnable reference_solution.";
+    }
+  }
+  return { ok: false, attempt: null, scenarioFields: lastFields };
+}
+
+async function tryGenerateFunction(
+  content: ScenarioSpec | FixedContent,
+  feature: string,
+  usageCtx: { userId?: string | null; studentId?: string | null },
+  options: SandboxOptions,
+): Promise<AttemptOutcome<GeneratedSandbox>> {
+  const explicitDifficulty = options.difficulty && options.difficulty !== "from_reply" ? options.difficulty : undefined;
+  let retryNote = "";
+  let lastFields: Record<string, unknown> = {};
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { text } = await generateText(
+      buildPrompt(content, "sandbox", retryNote, "function", explicitDifficulty),
+      { temperature: attempt === 0 ? 0.7 : 0.4, maxOutputTokens: 2600, json: true },
+      { feature, ...usageCtx },
+    );
+    const parsed = parseJson(text);
+    if (!parsed) continue;
+    lastFields = parsed;
+    const wording = wordingProblems(content, parsed, "sandbox");
+    if (wording.length) {
+      console.warn(`LOT WORDING REJECTED (${feature}): ${wording.join(" | ")}`);
+      retryNote = wordingRetry(wording);
+      continue;
+    }
+    const fields = parseFunctionFields(parsed, FUNCTION_VALIDATORS);
+    if (!fields) {
+      retryNote = "\n\nYour previous reply did not match the function contract (language, function_spec names and types, one args value per parameter, expected matching return_type, a reference_solution and a buggy_solution). Return valid JSON in exactly the shape asked.";
+      continue;
+    }
+    const difficulty = resolveDifficulty(explicitDifficulty, parsed);
+    const config = { kind: "function" as const, language: fields.language, function_spec: fields.function_spec, test_cases: fields.test_cases };
+
+    // The reference must pass every test through the same grader students get.
+    const graded = await gradeSandboxConfig(config, fields.reference_solution);
+    if (graded.ok && graded.passedCount === fields.test_cases.length) {
+      const quality = await checkFunctionTestQuality(
+        fields.test_cases,
+        fields.starter_code,
+        fields.buggy_solution,
+        difficulty,
+        (code) => gradeSandboxConfig(config, code),
+      );
+      if (quality.ok) return { ok: true, attempt: { ...fields, difficulty }, scenarioFields: parsed };
+      console.warn(`TEST QUALITY REJECTED (${feature}, function): ${quality.problems.join(" | ")}`);
+      retryNote = `\n\nYour reference implementation passes, but the tests are too weak:\n- ${quality.problems.join("\n- ")}\n\nReturn improved test_cases (and a buggy_solution the hidden tests catch). Keep the same function.`;
+      continue;
+    }
+    if (graded.ok) {
+      const failing = graded.results.filter((r) => !r.passed).slice(0, 3)
+        .map((r) => `args=${r.stdin} expected=${r.expected} actual=${JSON.stringify(r.actual)} verdict=${r.verdict}`)
+        .join("\n");
+      retryNote = `\n\nYour previous reference implementation failed ${graded.results.length - graded.passedCount} of ${graded.results.length} tests. Failing cases:\n${failing}\n\nReturn a corrected function (and corrected expected values if they were wrong). It must pass every test.`;
+    } else {
+      retryNote = "\n\nYour previous reply could not be run. Return valid JSON in exactly the shape asked, with a complete reference implementation of only the function.";
     }
   }
   return { ok: false, attempt: null, scenarioFields: lastFields };
@@ -330,18 +445,10 @@ const DOWNGRADE_CRITERIA: Criterion[] = [
 ];
 
 async function insertSandboxConfig(
-  db: Db, attempt: SandboxAttempt, createdBy: string | null | undefined, passThreshold: number,
+  db: Db, attempt: GeneratedSandbox, createdBy: string | null | undefined, passThreshold: number,
 ): Promise<string | null> {
-  const { data, error } = await db.from("task_sandbox_config").insert({
-    language: attempt.language,
-    starter_code: attempt.starter_code,
-    constraints_text: attempt.constraints_text,
-    test_cases: attempt.test_cases,
-    reference_solution: attempt.reference_solution,
-    pass_threshold: passThreshold,
-    created_by: createdBy ?? null,
-    origin: "auto",
-  }).select("id").single();
+  const { data, error } = await db.from("task_sandbox_config")
+    .insert(sandboxConfigRow(attempt, createdBy, passThreshold, "auto")).select("id").single();
   if (error) {
     console.error("insertSandboxConfig failed:", error.message);
     return null;
@@ -384,11 +491,28 @@ export async function generateGradedConfig(params: GenerateConfigParams): Promis
   const { db, mode, content, feature, usageCtx, createdBy, passThreshold } = params;
 
   if (mode === "sandbox") {
-    const result = await tryGenerateSandbox(content, feature, usageCtx);
+    const sandboxKind: SandboxKind = params.sandboxKind === "stdio" || params.sandboxKind === "function"
+      ? params.sandboxKind
+      : content.kind === "fixed" ? chooseSandboxKind(content.title, content.description) : "stdio";
+    const result = await tryGenerateSandbox(content, feature, usageCtx, { kind: sandboxKind, difficulty: params.difficulty });
     if (result.ok && result.attempt) {
       const configId = await insertSandboxConfig(db, result.attempt, createdBy, passThreshold ?? 80);
-      if (configId) return { ok: true, mode: "sandbox", configId, scenarioFields: result.scenarioFields, usedFallback: "none" };
+      if (configId) {
+        return {
+          ok: true, mode: "sandbox", configId, scenarioFields: result.scenarioFields, usedFallback: "none",
+          sandboxKind, ...(result.attempt.difficulty ? { difficulty: result.attempt.difficulty } : {}),
+        };
+      }
     }
+    if (!rubricFallbackAllowed(Boolean(params.explicitSandbox))) {
+      // An explicit coding request is graded by real tests or not created at all.
+      console.error(`CODING GENERATION FAILED (${feature}, ${sandboxKind}): no written fallback for an explicit coding request`);
+      return {
+        ok: false, mode: "sandbox", configId: null, scenarioFields: result.scenarioFields, usedFallback: "none",
+        sandboxKind, reason: "working tests could not be built for this coding task",
+      };
+    }
+    console.warn(`CODING GENERATION FELL BACK TO WRITTEN (${feature}, ${sandboxKind}): auto-chosen mode, rubric downgrade`);
     // Sandbox generation failed twice (or the insert itself failed) — downgrade
     // to a rubric grading the SAME topic instead of leaving it ungradeable.
     // Fresh generation (own scenario+criteria+answer call), fixed criteria.

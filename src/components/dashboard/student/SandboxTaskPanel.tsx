@@ -3,13 +3,19 @@ import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SimpleQuestion } from "./SimpleQuestion";
-import { GivenMaterial, SampleExamples } from "./GivenMaterial";
+import { FunctionSignature, GivenMaterial, SampleExamples } from "./GivenMaterial";
+import {
+  formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, type HiddenSummary,
+} from "@/lib/functionSignature";
 import { CheckCircle2, Loader2, Play, Send, XCircle } from "lucide-react";
 
 interface SandboxView {
   task_id: string;
   title: string;
   description: string | null;
+  /** "function" for implement-a-function tasks; absent or "stdio" for whole programs. */
+  kind?: string | null;
+  function_spec?: unknown;
   language: string;
   starter_code: string;
   constraints: string | null;
@@ -39,7 +45,8 @@ interface SubmitResult {
   failed_tests?: number;
   already_completed: boolean;
   xp_awarded: number;
-  results: TestResult[];
+  /** Visible tests in detail; hidden tests only as one aggregate row. */
+  results: (TestResult | HiddenSummary)[];
 }
 
 const VERDICT_TEXT: Record<TestResult["verdict"], string> = {
@@ -138,7 +145,8 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   }
 
   const done = view.completed || result?.passed;
-  const shownResults = result?.results ?? runResults;
+  const shownResults: (TestResult | HiddenSummary)[] | null = result?.results ?? runResults;
+  const spec = functionSpecOf(view);
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -146,7 +154,8 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
         <h2 className="text-lg font-semibold">{view.title}</h2>
         <SimpleQuestion taskId={taskId} original={view.description} />
         <GivenMaterial taskId={taskId} language={view.language} />
-        <SampleExamples tests={view.visible_tests} />
+        {spec && <FunctionSignature language={view.language} spec={spec} />}
+        <SampleExamples tests={view.visible_tests} spec={spec} />
         {view.constraints && (
           <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
         )}
@@ -204,7 +213,16 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
         </div>
       )}
 
-      {shownResults?.map((t, i) => (
+      {shownResults?.map((t, i) => isHiddenSummary(t) ? (
+        <div key={t.id} className="flex items-start gap-2 text-sm">
+          {t.passed ? (
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+          ) : (
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+          )}
+          <p>{hiddenSummaryText(t)}</p>
+        </div>
+      ) : (
         <div key={t.id} className="flex items-start gap-2 text-sm">
           {t.passed ? (
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
@@ -217,7 +235,9 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
             </p>
             {t.visible && !t.passed && (
               <pre className="mt-1 overflow-x-auto rounded bg-muted p-2 font-mono text-xs">
-                {`input:    ${t.stdin}\nexpected: ${t.expected}\ngot:      ${t.actual}${t.stderr ? `\n${t.stderr}` : ""}`}
+                {spec
+                  ? `arguments: ${formatArguments(t.stdin ?? "", spec)}\nexpected:  ${formatReturn(t.expected ?? "")}\nreturned:  ${t.actual ? formatReturn(t.actual) : "(nothing)"}${t.stderr ? `\n${t.stderr}` : ""}`
+                  : `input:    ${t.stdin}\nexpected: ${t.expected}\ngot:      ${t.actual}${t.stderr ? `\n${t.stderr}` : ""}`}
               </pre>
             )}
           </div>

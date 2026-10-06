@@ -1,6 +1,7 @@
 import { explainTask } from "./explain.ts";
 import { pageExcerpt } from "./excerpt.ts";
 import { generateGradedConfig, type AutoConfigMode } from "./auto-config.ts";
+import { explicitCodingProblem, resolveDifficulty } from "./coding-mode.ts";
 import { applyScratchLanguage, scratchLanguageFor } from "./scratch.ts";
 import { lotWordingProblems } from "./lot-wording.ts";
 
@@ -20,7 +21,6 @@ import { lotWordingProblems } from "./lot-wording.ts";
  */
 
 const CATEGORIES = new Set(["technical", "business", "pitch"]);
-const DIFFICULTIES = new Set(["Easy", "Medium", "Hard"]);
 
 const clampInt = (v: unknown, lo: number, hi: number, fallback: number) => {
   const n = Number(v);
@@ -152,7 +152,22 @@ export async function writeLotTemplate(supabase: any, sourceContentId: string, a
       },
       feature: "lot-writer",
       usageCtx: { userId: actorId, studentId: actorId },
+      // Lots stay whole-program (stdio) coding tasks; the model picks the Lot's
+      // difficulty in the same reply and its tests are held to that value.
+      sandboxKind: "stdio",
+      difficulty: "from_reply",
+      explicitSandbox: content.grading_mode_hint === "sandbox",
     });
+
+    const codingProblem = explicitCodingProblem(content.grading_mode_hint === "sandbox", genResult);
+    if (codingProblem) {
+      await letGo();
+      console.error(`LOT NOT PUBLISHED (coding) for ${sourceContentId}: ${codingProblem}`);
+      return { written: false, reason: codingProblem, status: 502 };
+    }
+    if (gradingMode === "sandbox" && genResult.mode !== "sandbox") {
+      console.warn(`LOT AUTO-MODE FALLBACK for ${sourceContentId}: guessed coding, published as written (${genResult.usedFallback})`);
+    }
 
     const parsed = genResult.scenarioFields;
     // The generic fallback can still carry whatever the last reply said: a Lot
@@ -180,7 +195,8 @@ export async function writeLotTemplate(supabase: any, sourceContentId: string, a
       source_jd: realSource.kind === "job"
         ? `${realSource.role} at ${realSource.company}`
         : `Real source: ${realSource.title}${realSource.origin === "college" ? " (from your college)" : ""}`,
-      difficulty: DIFFICULTIES.has(String(parsed.difficulty)) ? String(parsed.difficulty) : "Medium",
+      // A coding Lot keeps the difficulty its tests were generated for.
+      difficulty: genResult.difficulty ?? resolveDifficulty(null, parsed),
       estimate_minutes: clampInt(parsed.estimate_minutes, 10, 45, 20),
       lot_category: lotCategory,
       sandbox_config_id: genResult.mode === "sandbox" ? genResult.configId : null,

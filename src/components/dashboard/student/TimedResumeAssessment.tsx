@@ -8,6 +8,10 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, signatureLine,
+  type HiddenSummary,
+} from "@/lib/functionSignature";
 import { useToast } from "@/hooks/use-toast";
 import { RoadmapStages } from "./RoadmapStages";
 
@@ -65,6 +69,9 @@ interface CodingQuestion {
   prompt: string;
   starter_code: string;
   sample_test: { stdin: string; expected_output: string } | null;
+  /** "function" for implement-a-function problems; absent on stdio (and older) rounds. */
+  kind?: string;
+  function_spec?: unknown;
 }
 
 type Verdict = "accepted" | "wrong_answer" | "runtime_error" | "compile_error" | "time_limit";
@@ -172,7 +179,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   const [code, setCode] = useState("");
   const [codingTimeLeft, setCodingTimeLeft] = useState(SECONDS_PER_CODING_PROBLEM);
   const [running, setRunning] = useState(false);
-  const [runResults, setRunResults] = useState<RunResult[] | null>(null);
+  const [runResults, setRunResults] = useState<(RunResult | HiddenSummary)[] | null>(null);
   const [submittingCode, setSubmittingCode] = useState(false);
   // Set when the executor itself is down, so the student is told it is not their
   // code rather than shown six silently failed test cases.
@@ -187,6 +194,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
   const currentCodingQuestion = codingQuestions[codingIndex];
+  const codingSpec = currentCodingQuestion ? functionSpecOf(currentCodingQuestion) : null;
   const isLastCodingQuestion = codingIndex === codingQuestions.length - 1;
 
   const applyCodingQuestions = (qs: CodingQuestion[]) => {
@@ -644,12 +652,22 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
 
             <div className="space-y-3" key={currentCodingQuestion.id}>
               <p className="text-sm">{currentCodingQuestion.prompt}</p>
-              {currentCodingQuestion.sample_test && (
+              {codingSpec && (
+                <pre className="text-xs bg-muted rounded p-2 font-mono overflow-x-auto">
+                  {signatureLine(currentCodingQuestion.language, codingSpec)}
+                </pre>
+              )}
+              {currentCodingQuestion.sample_test && (codingSpec ? (
+                <div className="text-xs bg-muted rounded p-2 font-mono">
+                  <div>arguments: {formatArguments(currentCodingQuestion.sample_test.stdin, codingSpec)}</div>
+                  <div>expected return: {formatReturn(currentCodingQuestion.sample_test.expected_output)}</div>
+                </div>
+              ) : (
                 <div className="text-xs bg-muted rounded p-2 font-mono">
                   <div>sample input: {currentCodingQuestion.sample_test.stdin || "(none)"}</div>
                   <div>expected output: {currentCodingQuestion.sample_test.expected_output}</div>
                 </div>
-              )}
+              ))}
 
               <div className="border rounded-md overflow-hidden">
                 <Editor
@@ -685,6 +703,16 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
               {runResults && (
                 <div className="space-y-1">
                   {runResults.map((r, i) => {
+                    if (isHiddenSummary(r)) {
+                      return (
+                        <div key={i} className="flex items-start gap-2 text-xs">
+                          {r.passed
+                            ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                            : <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />}
+                          <div className="font-medium">{hiddenSummaryText(r)}</div>
+                        </div>
+                      );
+                    }
                     const verdict: Verdict = r.verdict ?? (r.passed ? "accepted" : "wrong_answer");
                     const label = VERDICT_LABEL[verdict];
                     // Only a wrong answer is about the output. A crash or a
@@ -702,10 +730,18 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                             {label.hint && <span className="font-normal text-muted-foreground"> — {label.hint}</span>}
                           </div>
                           {compareOutput && (
-                            <div className="font-mono">
-                              <div>expected: {r.expected}</div>
-                              <div>got: {r.actual || "(empty)"}</div>
-                            </div>
+                            codingSpec ? (
+                              <div className="font-mono">
+                                <div>arguments: {formatArguments(r.stdin, codingSpec)}</div>
+                                <div>expected return: {formatReturn(r.expected)}</div>
+                                <div>returned: {r.actual ? formatReturn(r.actual) : "(nothing)"}</div>
+                              </div>
+                            ) : (
+                              <div className="font-mono">
+                                <div>expected: {r.expected}</div>
+                                <div>got: {r.actual || "(empty)"}</div>
+                              </div>
+                            )
                           )}
                           {r.stderr && (
                             <pre className="font-mono whitespace-pre-wrap text-destructive/90">{r.stderr}</pre>

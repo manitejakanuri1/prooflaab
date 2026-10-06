@@ -138,3 +138,51 @@ export async function checkTestQuality(
   }
   return { ok: problems.length === 0, problems };
 }
+
+/** What checkFunctionTestQuality needs back from one graded run. */
+export interface ProbeGrade {
+  ok: boolean;
+  reason?: string;
+  results?: { visible: boolean; passed: boolean }[];
+}
+
+/**
+ * Quality gate for a FUNCTION-mode test set (stdio sets keep checkTestQuality).
+ * Same structure rules, plus: every test has a different argument list; the
+ * server-built starter (it returns the empty value) must fail a test; and the
+ * model's buggy solution must fail at least one HIDDEN test - a test set that
+ * only the visible samples can tell apart from a wrong answer is too weak.
+ *
+ * `grade` runs one program against the tests (auto-config passes the real
+ * function grader); an unavailable runner is reported, never treated as a pass.
+ */
+export async function checkFunctionTestQuality(
+  tests: SandboxTest[],
+  starterCode: string,
+  buggySolution: string,
+  difficulty: string | undefined,
+  grade: (code: string) => Promise<ProbeGrade>,
+): Promise<QualityResult> {
+  const problems = structuralProblems(tests, difficulty);
+  if (new Set(tests.map((t) => t.stdin)).size !== tests.length) {
+    problems.push('Two tests have the same arguments; every test needs different arguments.');
+  }
+  if (problems.length) return { ok: false, problems };
+
+  const starter = await grade(starterCode);
+  if (!starter.ok || !starter.results) {
+    return { ok: false, problems: [`Could not check test quality: ${starter.reason ?? 'runner unavailable'}`] };
+  }
+  if (starter.results.every((r) => r.passed)) {
+    problems.push('A function that only returns the empty/zero value passes every test; add tests with other answers.');
+  }
+
+  const buggy = await grade(buggySolution);
+  if (!buggy.ok || !buggy.results) {
+    return { ok: false, problems: [`Could not check test quality: ${buggy.reason ?? 'runner unavailable'}`] };
+  }
+  if (!buggy.results.some((r) => !r.visible && !r.passed)) {
+    problems.push('The deliberately buggy solution passes every hidden test; add hidden tests that catch it.');
+  }
+  return { ok: problems.length === 0, problems };
+}

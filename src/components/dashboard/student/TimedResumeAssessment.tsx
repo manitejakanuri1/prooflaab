@@ -9,7 +9,7 @@ import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, Al
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, signatureLine,
+  formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, signatureLine,
   type HiddenSummary,
 } from "@/lib/functionSignature";
 import { useToast } from "@/hooks/use-toast";
@@ -77,6 +77,8 @@ interface CodingQuestion {
 type Verdict = "accepted" | "wrong_answer" | "runtime_error" | "compile_error" | "time_limit";
 
 interface RunResult {
+  /** false only for a hidden test; such rows are collapsed into a count (safeResultRows). */
+  visible?: boolean;
   stdin: string;
   expected: string;
   actual: string;
@@ -702,7 +704,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
 
               {runResults && (
                 <div className="space-y-1">
-                  {runResults.map((r, i) => {
+                  {safeResultRows<RunResult>(runResults).map((r, i) => {
                     if (isHiddenSummary(r)) {
                       return (
                         <div key={i} className="flex items-start gap-2 text-xs">

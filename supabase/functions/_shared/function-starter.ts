@@ -38,9 +38,11 @@ const TYPES: Record<"java" | "c" | "cpp" | "go" | "python", Record<ValueType, st
     integer: "int", number: "double", boolean: "int", string: "const char *",
     "array<integer>": "PLIntArray", "array<number>": "PLNumberArray", "array<boolean>": "PLBoolArray", "array<string>": "PLStringArray",
   },
+  // Exactly the harness prototype's types (function-harness.ts cppType).
   cpp: {
-    integer: "int", number: "double", boolean: "bool", string: "string",
-    "array<integer>": "vector<int>", "array<number>": "vector<double>", "array<boolean>": "vector<bool>", "array<string>": "vector<string>",
+    integer: "int", number: "double", boolean: "bool", string: "std::string",
+    "array<integer>": "std::vector<int>", "array<number>": "std::vector<double>",
+    "array<boolean>": "std::vector<bool>", "array<string>": "std::vector<std::string>",
   },
   go: {
     integer: "int", number: "float64", boolean: "bool", string: "string",

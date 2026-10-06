@@ -69,6 +69,13 @@ serve(async (req) => {
       content: { kind: "scenario", promptBody, fields: SCENARIO_FIELDS, validate: (p, m) => lotWordingProblems(p, m) },
       feature: "company-lot",
       usageCtx: { userId: companyId },
+      // The company chose the mode: a coding brief is graded by real tests or refused,
+      // never turned into a written Lot (no wasted rubric call, no orphan config).
+      explicitSandbox: mode === "sandbox",
+      // Company briefs describe whole programs (input and output), like every Lot.
+      sandboxKind: "stdio",
+      // The Lot's difficulty comes from the same reply; the tests are held to it.
+      difficulty: "from_reply",
     });
 
     // Coding must be graded by validated tests; written by its own rubric. A
@@ -92,7 +99,7 @@ serve(async (req) => {
       _criteria: criteria || null, _days: days,
       _sandbox_config_id: mode === "sandbox" ? result.configId : null,
       _rubric_config_id: mode === "rubric" ? result.configId : null,
-      _difficulty: ["Easy", "Medium", "Hard"].includes(String(f.difficulty)) ? String(f.difficulty) : "Medium",
+      _difficulty: result.difficulty ?? (["Easy", "Medium", "Hard"].includes(String(f.difficulty)) ? String(f.difficulty) : "Medium"),
       _estimate_minutes: Math.min(45, Math.max(10, Number(f.estimate_minutes) || 30)),
       _lot_category: ["technical", "business", "pitch"].includes(String(f.lot_category)) ? String(f.lot_category) : "technical",
     });

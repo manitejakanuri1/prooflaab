@@ -8,7 +8,7 @@ import {
   type FunctionSpec,
 } from "./function-mode.ts";
 import { chooseSandboxKind, resolveDifficulty, rubricFallbackAllowed, TEST_COUNT_RANGE, type Difficulty, type SandboxKind } from "./coding-mode.ts";
-import { FUNCTION_SCHEMA, parseFunctionFields, sandboxConfigRow, type FunctionAttempt, type FunctionValidators } from "./function-generation.ts";
+import { evaluateFunctionDraft, FUNCTION_SCHEMA, sandboxConfigRow, type FunctionAttempt, type FunctionValidators } from "./function-generation.ts";
 import { gradeOnce, zeroUnquotedCredit, totalOf, type Criterion } from "./rubric-grading.ts";
 
 /**
@@ -356,37 +356,20 @@ async function tryGenerateFunction(
       retryNote = wordingRetry(wording);
       continue;
     }
-    const fields = parseFunctionFields(parsed, FUNCTION_VALIDATORS);
-    if (!fields) {
-      retryNote = "\n\nYour previous reply did not match the function contract (language, function_spec names and types, one args value per parameter, expected matching return_type, a reference_solution and a buggy_solution). Return valid JSON in exactly the shape asked.";
-      continue;
-    }
     const difficulty = resolveDifficulty(explicitDifficulty, parsed);
-    const config = { kind: "function" as const, language: fields.language, function_spec: fields.function_spec, test_cases: fields.test_cases };
-
-    // The reference must pass every test through the same grader students get.
-    const graded = await gradeSandboxConfig(config, fields.reference_solution);
-    if (graded.ok && graded.passedCount === fields.test_cases.length) {
-      const quality = await checkFunctionTestQuality(
-        fields.test_cases,
-        fields.starter_code,
-        fields.buggy_solution,
-        difficulty,
-        (code) => gradeSandboxConfig(config, code),
-      );
-      if (quality.ok) return { ok: true, attempt: { ...fields, difficulty }, scenarioFields: parsed };
-      console.warn(`TEST QUALITY REJECTED (${feature}, function): ${quality.problems.join(" | ")}`);
-      retryNote = `\n\nYour reference implementation passes, but the tests are too weak:\n- ${quality.problems.join("\n- ")}\n\nReturn improved test_cases (and a buggy_solution the hidden tests catch). Keep the same function.`;
-      continue;
-    }
-    if (graded.ok) {
-      const failing = graded.results.filter((r) => !r.passed).slice(0, 3)
-        .map((r) => `args=${r.stdin} expected=${r.expected} actual=${JSON.stringify(r.actual)} verdict=${r.verdict}`)
-        .join("\n");
-      retryNote = `\n\nYour previous reference implementation failed ${graded.results.length - graded.passedCount} of ${graded.results.length} tests. Failing cases:\n${failing}\n\nReturn a corrected function (and corrected expected values if they were wrong). It must pass every test.`;
-    } else {
-      retryNote = "\n\nYour previous reply could not be run. Return valid JSON in exactly the shape asked, with a complete reference implementation of only the function.";
-    }
+    const configOf = (a: FunctionAttempt<FunctionSpec>) =>
+      ({ kind: "function" as const, language: a.language, function_spec: a.function_spec, test_cases: a.test_cases });
+    // Parse -> reference passes every test (the grader students get) -> quality gate.
+    const verdict = await evaluateFunctionDraft(
+      parsed,
+      FUNCTION_VALIDATORS,
+      (a, code) => gradeSandboxConfig(configOf(a), code),
+      (a) => checkFunctionTestQuality(a.test_cases, a.starter_code, a.buggy_solution, difficulty,
+        (code) => gradeSandboxConfig(configOf(a), code)),
+    );
+    if (verdict.accepted) return { ok: true, attempt: { ...verdict.attempt, difficulty }, scenarioFields: parsed };
+    console.warn(`FUNCTION DRAFT REJECTED (${feature}, attempt ${attempt + 1})`);
+    retryNote = verdict.retryNote;
   }
   return { ok: false, attempt: null, scenarioFields: lastFields };
 }

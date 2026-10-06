@@ -10,6 +10,7 @@ import {
   functionSpecOf,
   hiddenSummaryText,
   isHiddenSummary,
+  safeResultRows,
   signatureLine,
   type FunctionSpecView,
 } from "./functionSignature.ts";
@@ -60,4 +61,44 @@ test("hidden tests arrive as one summary with counts only", () => {
   // A visible per-test result is not a summary.
   assert.equal(isHiddenSummary({ id: "t1", visible: true, verdict: "accepted", passed: true }), false);
   assert.equal(isHiddenSummary(null), false);
+});
+
+const SECRET = "SECRET-HIDDEN-VALUE";
+
+test("results: visible rows kept, the server's hidden summary kept as one count row", () => {
+  const rows = safeResultRows([
+    { id: "t1", visible: true, verdict: "wrong_answer", passed: false, stdin: "[1]", expected: "2", actual: "3", stderr: "" },
+    { id: "hidden-summary", visible: false, verdict: "hidden", passed: false, hidden_count: 3, hidden_passed: 2, hidden_failed: 1 },
+  ]);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].id, "t1");
+  assert.deepEqual(rows[1], { id: "hidden-summary", visible: false, verdict: "hidden", passed: false, hidden_count: 3, hidden_passed: 2, hidden_failed: 1 });
+});
+
+test("results: per-test hidden rows (older server) are collapsed - no hidden stdin, output, error, id or verdict survives", () => {
+  const rows = safeResultRows([
+    { id: "t1", visible: true, verdict: "accepted", passed: true, stdin: "[1]", expected: "1", actual: "1" },
+    { id: "SECRET-ID-1", visible: false, verdict: "wrong_answer", passed: false, stdin: SECRET, expected: SECRET, actual: SECRET, stderr: SECRET },
+    { id: "SECRET-ID-2", visible: false, verdict: "accepted", passed: true, stdin: SECRET, expected: SECRET, actual: SECRET },
+  ]);
+  const text = JSON.stringify(rows);
+  assert.equal(text.includes(SECRET), false);
+  assert.equal(text.includes("SECRET-ID"), false);
+  assert.equal(text.includes("wrong_answer"), false);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows[1], { id: "hidden-summary", visible: false, verdict: "hidden", passed: false, hidden_count: 2, hidden_passed: 1, hidden_failed: 1 });
+});
+
+test("results: extra fields on a server summary are dropped; counts are recomputed consistently", () => {
+  const rows = safeResultRows([
+    { id: "hidden-summary", visible: false, verdict: "hidden", passed: true, hidden_count: 2, hidden_passed: 2, hidden_failed: 0, stdin: SECRET } as never,
+  ]);
+  assert.equal(JSON.stringify(rows).includes(SECRET), false);
+});
+
+test("results: stdio rows without a visible flag (old run results) still show; no hidden rows -> no summary", () => {
+  const rows = safeResultRows([{ stdin: "1 2", expected: "3", actual: "3", stderr: "", passed: true }]);
+  assert.equal(rows.length, 1);
+  assert.equal((rows[0] as { stdin: string }).stdin, "1 2");
+  assert.deepEqual(safeResultRows(null), []);
 });

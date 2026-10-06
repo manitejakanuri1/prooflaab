@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SimpleQuestion } from "./SimpleQuestion";
 import { FunctionSignature, GivenMaterial, SampleExamples } from "./GivenMaterial";
 import {
-  formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, type HiddenSummary,
+  formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, type HiddenSummary,
 } from "@/lib/functionSignature";
 import { CheckCircle2, Loader2, Play, Send, XCircle } from "lucide-react";
 
@@ -145,7 +145,8 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   }
 
   const done = view.completed || result?.passed;
-  const shownResults: (TestResult | HiddenSummary)[] | null = result?.results ?? runResults;
+  // Visible rows + one hidden count at most: hidden inputs/outputs/errors/ids are never rendered.
+  const shownResults = safeResultRows<TestResult>(result?.results ?? runResults);
   const spec = functionSpecOf(view);
 
   return (
@@ -231,9 +232,9 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
           )}
           <div className="min-w-0">
             <p>
-              {t.visible ? `Sample ${i + 1}` : `Hidden test ${i + 1}`}: {VERDICT_TEXT[t.verdict]}
+              Sample {i + 1}: {VERDICT_TEXT[t.verdict]}
             </p>
-            {t.visible && !t.passed && (
+            {!t.passed && (
               <pre className="mt-1 overflow-x-auto rounded bg-muted p-2 font-mono text-xs">
                 {spec
                   ? `arguments: ${formatArguments(t.stdin ?? "", spec)}\nexpected:  ${formatReturn(t.expected ?? "")}\nreturned:  ${t.actual ? formatReturn(t.actual) : "(nothing)"}${t.stderr ? `\n${t.stderr}` : ""}`

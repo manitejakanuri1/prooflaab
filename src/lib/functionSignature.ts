@@ -26,9 +26,11 @@ const TYPES: Record<"java" | "c" | "cpp" | "go" | "python", Record<ValueType, st
     integer: "int", number: "double", boolean: "int", string: "const char *",
     "array<integer>": "PLIntArray", "array<number>": "PLNumberArray", "array<boolean>": "PLBoolArray", "array<string>": "PLStringArray",
   },
+  // Exactly the harness prototype's types (function-harness.ts cppType).
   cpp: {
-    integer: "int", number: "double", boolean: "bool", string: "string",
-    "array<integer>": "vector<int>", "array<number>": "vector<double>", "array<boolean>": "vector<bool>", "array<string>": "vector<string>",
+    integer: "int", number: "double", boolean: "bool", string: "std::string",
+    "array<integer>": "std::vector<int>", "array<number>": "std::vector<double>",
+    "array<boolean>": "std::vector<bool>", "array<string>": "std::vector<std::string>",
   },
   go: {
     integer: "int", number: "float64", boolean: "bool", string: "string",
@@ -120,4 +122,42 @@ export function isHiddenSummary(r: unknown): r is HiddenSummary {
 /** "3 of 4 hidden tests passed". */
 export function hiddenSummaryText(s: HiddenSummary): string {
   return `${s.hidden_passed} of ${s.hidden_count} hidden test${s.hidden_count === 1 ? "" : "s"} passed`;
+}
+
+/**
+ * The only rows a results list may render: every visible row, plus at most ONE
+ * hidden summary with counts. A server summary is used as is; per-test hidden
+ * rows (an older server) are collapsed into a computed summary, so their
+ * stdin, expected, actual, stderr, id and verdict are never rendered.
+ * A row is hidden only when it says `visible: false`.
+ */
+export function safeResultRows<T extends { visible?: boolean; passed: boolean }>(
+  results: readonly (T | HiddenSummary)[] | null | undefined,
+): (T | HiddenSummary)[] {
+  if (!results) return [];
+  const visible: T[] = [];
+  let summary: HiddenSummary | null = null;
+  let hiddenCount = 0;
+  let hiddenPassed = 0;
+  for (const r of results) {
+    if (isHiddenSummary(r)) {
+      summary = {
+        id: "hidden-summary", visible: false, verdict: "hidden",
+        passed: r.hidden_passed === r.hidden_count,
+        hidden_count: r.hidden_count, hidden_passed: r.hidden_passed, hidden_failed: r.hidden_count - r.hidden_passed,
+      };
+    } else if ((r as T).visible === false) {
+      hiddenCount++;
+      if ((r as T).passed) hiddenPassed++;
+    } else {
+      visible.push(r as T);
+    }
+  }
+  if (!summary && hiddenCount > 0) {
+    summary = {
+      id: "hidden-summary", visible: false, verdict: "hidden", passed: hiddenPassed === hiddenCount,
+      hidden_count: hiddenCount, hidden_passed: hiddenPassed, hidden_failed: hiddenCount - hiddenPassed,
+    };
+  }
+  return summary ? [...visible, summary] : visible;
 }

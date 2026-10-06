@@ -4,6 +4,7 @@ import { createClient } from "../_shared/backend.ts";
 import { generateText } from "../_shared/llm.ts";
 import { cors } from "../_shared/cors.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
+import { explicitCodingProblem } from '../_shared/coding-mode.ts';
 
 interface AssignTasksRequest {
   mode: 'manual' | 'ai' | 'template' | 'personalized';
@@ -279,10 +280,12 @@ serve(async (req) => {
         feature: 'assign_tasks',
         usageCtx: { userId: callerId },
         createdBy: callerId,
+        // A Coding task fails cleanly instead of first building a written fallback it would refuse.
+        explicitSandbox: gradingMode === 'sandbox',
       });
       // A Coding task is graded by real tests or it is not created (migration 74):
       // it must never quietly become a written task marked against a checklist.
-      if (gradingMode === 'sandbox' && result.mode !== 'sandbox') {
+      if (explicitCodingProblem(gradingMode === 'sandbox', result)) {
         throw new Error('Could not build working tests for this coding task. Reword the task or choose another category.');
       }
       return {

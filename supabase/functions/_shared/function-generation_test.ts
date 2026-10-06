@@ -150,3 +150,119 @@ Deno.test("function quality gate: buggy must fail a HIDDEN test, starter must fa
   const down = await checkFunctionTestQuality(tests, "s", "b", "Easy", () => Promise.resolve({ ok: false, reason: "runner busy" }));
   assert(!down.ok && down.problems[0].includes("runner busy"), "an unavailable runner is never a pass");
 });
+
+import { evaluateFunctionDraft, functionSourceProblem, type DraftGrade } from "./function-generation.ts";
+
+Deno.test("function-only source rules: entry points, packages, input and harness names are refused", () => {
+  const bad: [string, string][] = [
+    ["python", "def f(a):\n    return int(input())"],
+    ["python", "import sys\ndef f(a):\n    return sys.stdin.read()"],
+    ["python", "def f(a):\n    return a\nif __name__ == '__main__':\n    print(f(1))"],
+    ["javascript", "function f(a){ return require('fs').readFileSync(0,'utf8') }"],
+    ["javascript", "process.stdin.on('data', () => {}); function f(a){ return a }"],
+    ["ruby", "def f(a)\n  gets.to_i\nend"],
+    ["php", "<?php function f($a) { return fgets(STDIN); }"],
+    ["java", "class Solution { public int f(int a) { return new java.util.Scanner(System.in).nextInt(); } }"],
+    ["java", "class Solution { public static void main(String[] a) {} public int f(int a) { return a; } }"],
+    ["java", "package app;\nclass Solution { public int f(int a) { return a; } }"],
+    ["java", "class __ProofLabMain {} class Solution { public int f(int a) { return a; } }"],
+    ["c", "int f(int a) { int x; scanf(\"%d\", &x); return x; }"],
+    ["c", "int f(int a) { return a; }\nint main(void) { return 0; }"],
+    ["cpp", "int f(int a) { int x; std::cin >> x; return x; }"],
+    ["go", "package main\nfunc f(a int) int { return a }"],
+    ["go", "func f(a int) int { return a }\nfunc main() {}"],
+    ["go", "func f(a int) int { var x int; fmt.Scan(&x); return x }"],
+    ["python", "def f(a):\n    __prooflab_value = a\n    return a"],
+    ["c", "int f(int a) { __PLParser p; return a; }"],
+    ["python", "def f(a):\n    return a\n" + "#".repeat(20_001)],
+  ];
+  for (const [language, code] of bad) {
+    assert(functionSourceProblem(language, code) !== null, `${language} should be refused: ${code.slice(0, 60)}`);
+  }
+  const good: [string, string][] = [
+    ["python", "def f(a):\n    # read the list, return its sum\n    return sum(a)"],
+    ["javascript", "function f(a) { return a.length; }"],
+    ["java", "class Solution { public int f(int[] a) { return a.length; } }"],
+    ["c", "int f(PLIntArray a) { return (int)a.len; }"],
+    ["cpp", "int f(std::vector<int> a) { return (int)a.size(); }"],
+    ["go", "func f(a []int) int { return len(a) }"],
+    ["ruby", "def f(a)\n  a.sum\nend"],
+    ["php", "<?php function f($a) { return count($a); }"],
+  ];
+  for (const [language, code] of good) assertEquals(functionSourceProblem(language, code), null, language);
+});
+
+Deno.test("an AI reply whose reference or buggy brings its own main/input never reaches grading", async () => {
+  let graded = 0;
+  const v = await evaluateFunctionDraft(
+    reply({ reference_solution: "def pairSum(nums, target):\n    return int(input())" }), V,
+    () => { graded++; return Promise.resolve({ ok: true, results: [] }); },
+    () => Promise.resolve({ ok: true, problems: [] }),
+  );
+  assert(!v.accepted && graded === 0, "refused before any run");
+  const b = await evaluateFunctionDraft(
+    reply({
+      language: "go",
+      reference_solution: "func pairSum(nums []int, target int) int { return target }",
+      buggy_solution: "package main\nfunc pairSum(nums []int, target int) int { return 0 }",
+    }), V,
+    () => { graded++; return Promise.resolve({ ok: true, results: [] }); },
+    () => Promise.resolve({ ok: true, problems: [] }),
+  );
+  assert(!b.accepted && graded === 0);
+});
+
+const allPass = (a: { test_cases: { visible: boolean }[] }): DraftGrade =>
+  ({ ok: true, passedCount: a.test_cases.length, results: a.test_cases.map((t) => ({ visible: t.visible, passed: true })) });
+
+Deno.test("draft chain: reference must pass 100% - a wrong expected value is rejected with the failing case", async () => {
+  const v = await evaluateFunctionDraft(reply(), V,
+    (a) => Promise.resolve({
+      ok: true,
+      results: a.test_cases.map((t, i) => ({ visible: t.visible, passed: i !== 2, stdin: t.stdin, expected: t.expected_output, actual: "5", verdict: i === 2 ? "wrong_answer" : "accepted" })),
+    }),
+    () => Promise.resolve({ ok: true, problems: [] }));
+  assert(!v.accepted, "a failing reference is never accepted");
+  assert(!v.accepted && v.retryNote.includes("failed 1 of 4") && v.retryNote.includes("[[-5,5,7],-1]"), "retry names the failing case");
+});
+
+Deno.test("draft chain: a short result list or an unavailable runner is never a pass", async () => {
+  const short = await evaluateFunctionDraft(reply(), V,
+    () => Promise.resolve({ ok: true, results: [{ visible: true, passed: true }] }),
+    () => Promise.resolve({ ok: true, problems: [] }));
+  assert(!short.accepted);
+  const down = await evaluateFunctionDraft(reply(), V,
+    () => Promise.resolve({ ok: false, reason: "runner busy" }),
+    () => Promise.resolve({ ok: true, problems: [] }));
+  assert(!down.accepted && down.retryNote.includes("could not be run"));
+});
+
+Deno.test("draft chain: quality problems reject; all green accepts, with the server's starter and ids", async () => {
+  const weak = await evaluateFunctionDraft(reply(), V, (a) => Promise.resolve(allPass(a)),
+    () => Promise.resolve({ ok: false, problems: ["The deliberately buggy solution passes every hidden test; add hidden tests that catch it."] }));
+  assert(!weak.accepted && weak.retryNote.includes("buggy solution passes every hidden test"));
+  const good = await evaluateFunctionDraft(reply({ function_spec: { ...spec, class_name: "Injected" } }), V,
+    (a) => Promise.resolve(allPass(a)), () => Promise.resolve({ ok: true, problems: [] }));
+  assert(good.accepted, "valid draft accepted");
+  if (good.accepted) {
+    assertEquals(good.attempt.function_spec.class_name, undefined, "AI class name ignored");
+    assertEquals(good.attempt.test_cases.map((t) => t.id), ["t1", "t2", "t3", "t4"]);
+    assert(good.attempt.starter_code.startsWith("def pairSum("));
+  }
+});
+
+Deno.test("model test ids are replaced by the server's", () => {
+  const a = parseFunctionFields(reply({ test_cases: reply().test_cases.map((t, i) => ({ ...t, id: `<script>${i}` })) }), V);
+  assertEquals(a!.test_cases.map((t) => t.id), ["t1", "t2", "t3", "t4"]);
+});
+
+Deno.test("function quality gate: more than 2 visible tests is refused; missing taxonomy is refused", async () => {
+  const many = tests.map((t) => ({ ...t, visible: true }));
+  const r = await checkFunctionTestQuality(many, "s", "b", "Easy", () => Promise.resolve(graded([false, false, false, false])));
+  assert(!r.ok && r.problems.some((p) => p.includes("More than 2 visible")));
+  const noEdge = tests.map((t) => ({ ...t, kind: t.kind === "edge" ? "normal" as const : t.kind }));
+  const e = await checkFunctionTestQuality(noEdge, "s", "b", "Easy", () => Promise.resolve(graded([false, false, false, false])));
+  assert(!e.ok && e.problems.some((p) => p.includes("Missing edge")));
+  const medium = await checkFunctionTestQuality(tests, "s", "b", "Medium", () => Promise.resolve(graded([false, false, false, false])));
+  assert(!medium.ok && medium.problems.some((p) => p.includes("Medium coding tasks require 6-8")));
+});

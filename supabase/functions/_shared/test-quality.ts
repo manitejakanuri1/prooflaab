@@ -164,6 +164,9 @@ export async function checkFunctionTestQuality(
   grade: (code: string) => Promise<ProbeGrade>,
 ): Promise<QualityResult> {
   const problems = structuralProblems(tests, difficulty);
+  if (tests.filter((t) => t.visible).length > 2) {
+    problems.push('More than 2 visible tests; show exactly 1 or 2 examples and keep the rest hidden.');
+  }
   if (new Set(tests.map((t) => t.stdin)).size !== tests.length) {
     problems.push('Two tests have the same arguments; every test needs different arguments.');
   }

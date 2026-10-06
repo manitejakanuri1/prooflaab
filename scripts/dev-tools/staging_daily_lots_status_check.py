@@ -73,9 +73,37 @@ def run_job():
 
 
 BROKEN = "array[array['x','y']]"      # a two-dimensional skills array makes create_lot_for() raise
-WHERE = "full_name like 'Load Student %' and substring(full_name from 14)::int"
-FIX = "string_to_array((array['python,sql','javascript,react','java,dsa','linux,docker'])[1 + substring(full_name from 14)::int % 4], ',')"
-today = "delete from public.tasks where lot_date = current_date and student_id in (select id from public.student_profiles where full_name like 'Load Student %');\n"
+WHERE = "full_name ~ '^Load Student [0-9]+$' and substring(full_name from 14)::int"
+# Before deleting today's Lots of the load students: none of them may have dependent rows (task_submissions and
+# task_assignments are deleted with a task; voice_explanations and student_levels lose their link). Checked inside
+# the same transaction, so nothing is deleted if any exists.
+today = """do $d$ declare n int; begin
+  select count(*) into n from public.tasks t join public.student_profiles p on p.id = t.student_id
+   where t.lot_date = current_date and p.full_name ~ '^Load Student [0-9]+$'
+     and (exists (select 1 from public.task_submissions x where x.task_id = t.id) or exists (select 1 from public.task_assignments x where x.task_id = t.id)
+       or exists (select 1 from public.voice_explanations x where x.task_id = t.id) or exists (select 1 from public.student_levels x where x.task_id = t.id));
+  if n > 0 then raise exception 'refusing: % load-student Lots of today have dependent evidence', n; end if;
+  delete from public.tasks t using public.student_profiles p where p.id = t.student_id and t.lot_date = current_date and p.full_name ~ '^Load Student [0-9]+$';
+end $d$;
+"""
+# The skills this test breaks (Load Student 1..2000) are snapshotted first and restored exactly (with updated_at).
+sql(f"""do $p$ begin if to_regclass('release_test.status15k') is not null then raise exception 'snapshot exists - restore it first'; end if; end $p$;
+create schema if not exists release_test;
+create table release_test.status15k as select id, preferred_skills, updated_at from public.student_profiles where {WHERE} between 1 and 2000;""")
+
+
+def restore_skills():
+    sql("""do $r$ begin
+  if to_regclass('release_test.status15k') is null then return; end if;
+  alter table public.student_profiles disable trigger student_profiles_set_updated_at;
+  update public.student_profiles p set preferred_skills = s.preferred_skills, updated_at = s.updated_at from release_test.status15k s where p.id = s.id;
+  alter table public.student_profiles enable trigger student_profiles_set_updated_at;
+  drop table release_test.status15k;
+  if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'release_test') then
+    drop schema release_test;
+  end if;
+end $r$;""")
+
 
 try:
     # 1. Everyone fine.
@@ -94,7 +122,7 @@ try:
     check("2,000 fail -> failure, HTTP 500, ok:false", c == 500 and b.get("ok") is False and r.get("status") == "failure" and r.get("failed") == 2000, (c, b.get("ok"), {k: r.get(k) for k in ("status", "failed", "lots_created")}))
     check("even then the 13,000 healthy students got their Lot", r.get("lots_created", 0) >= 13000, r.get("lots_created"))
 finally:
-    sql(f"update public.student_profiles set preferred_skills = {FIX} where {WHERE} between 1 and 2000;")
+    restore_skills()
 
 c, b = run_job(); r = b.get("result") or {}
 check("after the data is repaired the retry completes: success", c == 200 and r.get("status") == "success" and r.get("lots_created") == 2000, (c, {k: r.get(k) for k in ("status", "failed", "lots_created")}))

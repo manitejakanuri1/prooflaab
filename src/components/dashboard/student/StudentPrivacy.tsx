@@ -173,7 +173,7 @@ const StudentPrivacy = () => {
                 paste into an application. Off by default.
               </p>
               {portfolio?.is_public && portfolio.slug && (
-                <p className="font-mono text-xs text-primary mt-2">/p/{portfolio.slug}</p>
+                <p className="font-mono text-xs text-primary mt-2 break-all">{`${window.location.origin}/portfolio/${portfolio.slug}`}</p>
               )}
             </div>
             <Switch

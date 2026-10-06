@@ -1,6 +1,7 @@
 """STAGING ONLY. Voice scoring quality and reproducibility (release audit, steps 4-5).
 
     python scripts/dev-tools/staging_voice_cases.py
+    python scripts/dev-tools/staging_voice_cases.py --only K     # re-run named cases only (one AI call each; no N, no reproducibility)
 
 Fifteen controlled cases (A-O) through the REAL pipeline: synthetic speech (Windows SAPI, en-US
 voices only - this proves function, never Indian-English accuracy) -> files -> transcription-
@@ -144,24 +145,52 @@ def summary(r):
             "submission": r["submission_id"]}
 
 
-audio = {k: speak(v, f"{k}.wav") for k, v in T.items()}
-audio["I"] = silence("I.wav")
-hindi = os.path.join(tmp, "J.ogg")
-open(hindi, "wb").write(urllib.request.urlopen(urllib.request.Request(
-    "https://upload.wikimedia.org/wikipedia/commons/f/fe/Hindi_Dengue_Introduction.ogg",
-    headers={"User-Agent": "ProofLabStagingTest/1.0 (staging language-gate test)"}), timeout=60).read())
-audio["J"] = hindi
+ALL = "ABCDEFGHIJKLMPQ"
+ONLY = sys.argv[sys.argv.index("--only") + 1].upper() if "--only" in sys.argv else ""
+STANDALONE = "EGHIJKL"   # cases whose rule does not compare with another case (checked before any AI call is paid for)
+if ONLY and set(ONLY) - set(STANDALONE):
+    sys.exit(f"--only takes cases from {STANDALONE}; the others compare with case A and need the full run")
+CASES = ONLY or ALL
+audio = {k: speak(v, f"{k}.wav") for k, v in T.items() if k in CASES}
+if "I" in CASES:
+    audio["I"] = silence("I.wav")
+if "J" in CASES:
+    hindi = os.path.join(tmp, "J.ogg")
+    open(hindi, "wb").write(urllib.request.urlopen(urllib.request.Request(
+        "https://upload.wikimedia.org/wikipedia/commons/f/fe/Hindi_Dengue_Introduction.ogg",
+        headers={"User-Agent": "ProofLabStagingTest/1.0 (staging language-gate test)"}), timeout=60).read())
+    audio["J"] = hindi
 
 fx, vids = {}, {}
-for i, k in enumerate("ABCDEFGHIJKLMPQ"):
+for k in CASES:
+    i = ALL.index(k)   # same synthetic student per case as the full run
     fx[k] = fixture(i)
     vids[k] = record(*fx[k], audio[k], k, ctype="audio/ogg" if k == "J" else "audio/wav")
     print("queued", k, flush=True)
 res = {}
-for k in "ABCDEFGHIJKLMPQ":
+for k in CASES:
     r, secs = wait(vids[k])
     res[k] = {**summary(r), "seconds": secs}
     print(k, json.dumps({x: res[k][x] for x in ("status", "score", "content_match", "flags", "language", "gate", "error")}), flush=True)
+
+if ONLY:
+    # Each named case's own rule from the full run (A-dependent cases B, C compare to A, so they need A too).
+    rules = {
+        "E": lambda: res["E"]["status"] == "scored" and "off_topic" in (res["E"]["flags"] or []) and (res["E"]["score"] or 0) <= 30,
+        "G": lambda: res["G"]["status"] == "scored" and (res["G"]["score"] or 0) <= 50,
+        "H": lambda: res["H"]["status"] == "failed" and res["H"]["score"] is None,
+        "I": lambda: res["I"]["status"] == "failed" and res["I"]["score"] is None,
+        "J": lambda: res["J"]["status"] == "failed" and res["J"]["error"] == "non_english" and res["J"]["score"] is None,
+        "K": lambda: res["K"]["error"] != "non_english" and res["K"]["status"] == "scored",
+        "L": lambda: res["L"]["status"] == "scored" and res["L"]["gate"] == "english" and (res["L"]["score"] or 0) >= 60,
+    }
+    ok = {k: bool(rules[k]()) for k in CASES}
+    out = os.path.join(os.path.dirname(__file__), "..", "..", "e2e-out", f"voice-cases-only-{CASES}-{run}.json")
+    json.dump({"run": run, "only": CASES, "expected": {k: EXPECT[k] for k in CASES}, "results": res, "ok": ok}, open(out, "w"), indent=1)
+    for k in CASES:
+        print(f"{'OK ' if ok[k] else 'BAD'} {k} expected: {EXPECT[k]} | actual: {json.dumps(res[k], default=str)[:600]}")
+    print(f"\n{sum(ok.values())}/{len(ok)} voice cases as expected")
+    sys.exit(0 if all(ok.values()) else 1)
 
 # N: replay A's exact audio as a new attempt on the same submission.
 n = record(*fx["A"], audio["A"], "N")

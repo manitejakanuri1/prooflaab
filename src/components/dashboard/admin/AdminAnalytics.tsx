@@ -81,7 +81,7 @@ const AdminAnalytics = () => {
       }));
 
       return days.map((day, i) => ({
-        date: new Date(day).toLocaleDateString('en-US', { 
+        date: new Date(day).toLocaleDateString('en-US', {
           weekday: dateRange === "weekly" ? 'short' : undefined,
           month: 'short',
           day: 'numeric'

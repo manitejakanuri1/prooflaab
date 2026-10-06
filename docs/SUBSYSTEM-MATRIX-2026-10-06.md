@@ -1,4 +1,6 @@
-# Subsystem matrix — 6 Oct 2026 (staging, work/stabilization)
+# Subsystem matrix — 6 Oct 2026 (staging, work/stabilization, release candidate `ba873d3`)
+
+Full staging release gate [NOPAID] on `ba873d3`: **PASS** (raw: `e2e-out/final/release-gate-nopaid-ba873d3.txt`). Paid-AI gates (crawler Lot writing, real-audio voice) were not run.
 
 Status words: **COMPLETE** (reachable, wired, authorized, failure state, and tested end to end) · **PARTIAL** (works, but a named
 part is untested or missing) · **BROKEN** · **DEFERRED** · **NOT PRESENT**. Nothing is COMPLETE because a file exists.
@@ -9,7 +11,7 @@ part is untested or missing) · **BROKEN** · **DEFERRED** · **NOT PRESENT**. N
 |---|---|---|
 | BJ | `staging_browser_e2e.mjs` role journeys (content assertions) | 31/31 |
 | SJ | `e2e-out/sprint/sprint_e2e.mjs` sprint journeys | 9/9 |
-| SW | `staging_screen_walk.mjs`: every screen of every role opened, no crash / console error / failed request | 60/61 (the 61st = admin notifications, legitimately empty) |
+| SW | `staging_screen_walk.mjs`: every screen of every role opened, no crash / console error / failed request | 61/61 on `ba873d3` (one earlier run: 60/61, "Job sources" page-load timeout once, no server error logged) |
 | SC | `staging_scale_check.py --jobs` screen queries + nightly jobs on 15,000 students | 26/26 |
 | FA | cross-account sweep of all functions | 75/75 |
 | RA / D4 | database permissions / behaviour (cross-tenant) | 27/27 · 12/12 |
@@ -21,9 +23,9 @@ part is untested or missing) · **BROKEN** · **DEFERRED** · **NOT PRESENT**. N
 | WA | written/rubric audit — release freeze (paid AI) | as recorded then |
 | VC / VS | voice paid cases / voice storm — release freeze | **15/16** / 6/6 |
 | SS / RF | submit storm / reaper fixture — release freeze | 5/5 / 3/3 |
-| DG | admin task-delete guard browser check | 5/5 |
+| DG | admin task-delete guard + student-removal confirmation browser check | 7/7 on `ba873d3` |
 | OUT | `record_outcome` API: company moves a stage and back (200, row checked); student refused ("not a recruiter") | 2/2 |
-| BF | bug-finder plumbing run (release gate) | see gate |
+| BF | bug-finder plumbing run (release gate) | 4/4 |
 | LD | mixed load 100–300 (4 Oct report) | clean to 250; 300 request-clean, coding latency degraded |
 
 ## Student
@@ -72,11 +74,11 @@ part is untested or missing) · **BROKEN** · **DEFERRED** · **NOT PRESENT**. N
 
 | Feature | Status | UI | Backend | Auth | Failure state | Evidence | Remaining risk |
 |---|---|---|---|---|---|---|---|
-| Dashboard / reports / announcements | PARTIAL | yes | yes | RA | yes | BJ (home), SW | Announcements and reports opened only (SW) |
+| Dashboard / reports / announcements | PARTIAL (fixed today) | yes | yes | RA | yes | BJ (home), SW | Fixed today (`7aca137`): Reports downloaded every task row to count them, fill rate always 0% (status case), Overview "active tasks" counted 2 of 105,000; dead CSV/PDF buttons removed. Announcements opened only (SW) |
 | Student Trace | COMPLETE | yes | `admin_trace_*` | admin-only RPCs (RA) | yes | SW (timeline with real step counts) | Low: its three inner views are buttons, not in the address, so a refresh returns to the timeline |
 | Bug Finder | COMPLETE | yes | Cloud Run job | admin-only RPCs | records failed steps | BF, SW | — |
 | Work / Daily Lots | COMPLETE | yes | yes | RA | yes | SJ (provenance, why, score parts), SW | — |
-| Task oversight | COMPLETE (fixed today) | yes | yes | RA | error state | DG, SW | Fixed today: delete guard; ~2,500 requests per page open → batched; status filter matched no rows (case) |
+| Task oversight | COMPLETE (fixed today) | yes | yes | RA | error state | DG, SW, browser: 21 API requests to open, Completed filter shows 500 completed Lots | Fixed today: delete guard (`0e6a631`); ~2,500 requests per page open, which exhausted the staging API pool, now batched (`069ce40`); status filter matched no rows (case) |
 | Student management (oversight, suspend, remove) | COMPLETE | yes | yes | RA, SUS | yes | SW, SUS | Remove now needs the typed word REMOVE |
 | Notifications | PARTIAL | yes | yes | RA | empty state | SW (empty) | No notification content to verify |
 | Security / diagnostics (AI usage, Jobs & health, Security & audit) | COMPLETE | yes | yes | RA | yes | BJ, SW | — |

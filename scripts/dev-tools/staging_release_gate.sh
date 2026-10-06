@@ -55,7 +55,8 @@ gate "infrastructure matches infra/"      python scripts/infra_snapshot.py --che
 echo "== staging scale (historical 15,000-student dataset; release target is 2,000)"
 gate "screen queries + nightly jobs"      python scripts/dev-tools/staging_scale_check.py --jobs
 if [ "$MODE" != "quick" ]; then
-  gate "daily Lots: success / partial / failure" python scripts/dev-tools/staging_daily_lots_status_check.py
+  gate "daily Lots at release target (2,000)" python scripts/dev-tools/staging_daily_lots_release2k_check.py
+  gate "daily Lots stress (15,000): success / partial / failure" python scripts/dev-tools/staging_daily_lots_status_check.py
 fi
 
 if [ "$MODE" != "quick" ]; then

@@ -27,6 +27,20 @@ import { EditTaskModal } from "./EditTaskModal";
 import { ReassignTaskModal } from "./ReassignTaskModal";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Person = { id: string; full_name: string | null; profile_photo_url?: string | null; email?: string; student_contact?: { email?: string | null } | null };
+type Assignment = { id: string; student_id: string; status: string | null; assigned_at: string | null; student_profiles: Person | null };
+type Submission = { id: string; status: string | null; submitted_at: string | null };
+type AdminTask = Tables<"tasks"> & {
+  colleges?: { id: string; name: string } | null;
+  startups?: { id: string; name: string } | null;
+  student_creator?: { id: string; full_name: string | null } | null;
+  created_by_student_id?: string;
+  task_assignments: Assignment[];
+  student_profiles?: Person | null;
+  submissions: Submission[];
+};
 
 const TaskOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,17 +49,16 @@ const TaskOversight = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dueDateFilter, setDueDateFilter] = useState("all");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [viewStudentsTask, setViewStudentsTask] = useState<any>(null);
-  const [editTask, setEditTask] = useState<any>(null);
-  const [reassignTask, setReassignTask] = useState<any>(null);
-  const [detailsTask, setDetailsTask] = useState<any>(null);
+  const [viewStudentsTask, setViewStudentsTask] = useState<AdminTask | null>(null);
+  const [editTask, setEditTask] = useState<AdminTask | null>(null);
+  const [reassignTask, setReassignTask] = useState<AdminTask | null>(null);
+  const [detailsTask, setDetailsTask] = useState<AdminTask | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: tasks, isLoading, error } = useQuery({
     queryKey: ['admin-tasks', searchTerm, statusFilter, creatorFilter, categoryFilter, dueDateFilter],
     queryFn: async () => {
-      console.log('Fetching tasks...');
       let query = supabase
         .from('tasks')
         .select('*');
@@ -56,11 +69,12 @@ const TaskOversight = () => {
 
       if (statusFilter !== 'all') {
         if (statusFilter === 'active') {
-          query = query.in('status', ['Pending', 'In Progress', 'Assigned']);
+          // The database stores lowercase pending / completed (Daily Lots); a few older rows use capitalised words.
+          query = query.in('status', ['pending', 'Pending', 'In Progress', 'Assigned']);
         } else if (statusFilter === 'completed') {
-          query = query.eq('status', 'Completed');
+          query = query.in('status', ['completed', 'Completed']);
         } else if (statusFilter === 'overdue') {
-          query = query.lt('due_date', new Date().toISOString()).neq('status', 'Completed');
+          query = query.lt('due_date', new Date().toISOString()).not('status', 'in', '(completed,Completed)');
         }
       }
 
@@ -94,61 +108,36 @@ const TaskOversight = () => {
 
       const { data: tasksData, error: tasksError } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
       if (tasksError) {
-        console.error('Task fetch error:', tasksError);
         throw tasksError;
       }
       
-      console.log('Tasks fetched:', tasksData);
-      
-      // Fetch related data separately and merge
-      const enrichedTasks = await Promise.all(
-        (tasksData || []).map(async (task) => {
-          const enrichedTask: any = { ...task };
-          
-          // Fetch college data
-          if (task.created_by_college_id) {
-            const { data: college, error: collegeError } = await supabase
-              .from('colleges')
-              .select('id, name')
-              .eq('id', task.created_by_college_id)
-              .maybeSingle();
-            
-            if (collegeError) {
-              console.error('Error fetching college:', collegeError, 'for task:', task.id);
-            }
-            enrichedTask.colleges = college;
-          }
-          
-          // Fetch startup data
-          if (task.created_by_startup_id) {
-            const { data: startup, error: startupError } = await supabase
-              .from('startups')
-              .select('id, name')
-              .eq('user_id', task.created_by_startup_id)
-              .maybeSingle();
-            
-            if (startupError) {
-              console.error('Error fetching startup:', startupError, 'for task:', task.id);
-            }
-            enrichedTask.startups = startup;
-          }
-          
-          // Fetch student creator data (for student-created tasks)
-          if (task.created_by_type === 'student' && task.student_id) {
-            const { data: studentCreator } = await supabase
-              .from('student_profiles')
-              .select('id, full_name')
-              .eq('id', task.student_id)
-              .maybeSingle();
-            enrichedTask.student_creator = studentCreator;
-            enrichedTask.created_by_student_id = task.student_id;
-          }
-          
-          // Fetch assigned students from task_assignments table
-          const { data: assignments } = await supabase
-            .from('task_assignments')
-            .select(`
+      // Related rows are fetched in a few batched requests (by id lists), not 4-5 requests per task:
+      // with up to ADMIN_LIST_CAP (500) tasks that was about 2,500 requests per page open.
+      const rows = tasksData || [];
+      const uniq = (xs: (string | null | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))];
+      // The generated types do not know the student_contact relation, so rows are typed here, not inferred.
+      const inBatches = async <T,>(ids: string[], fetchBatch: (batch: string[]) => PromiseLike<{ data: unknown; error: unknown }>) => {
+        const out: T[] = [];
+        for (let i = 0; i < ids.length; i += 100) {
+          const { data, error: batchError } = await fetchBatch(ids.slice(i, i + 100));
+          if (batchError) throw batchError;
+          out.push(...((data as T[] | null) || []));
+        }
+        return out;
+      };
+      const taskIds = rows.map((t) => t.id);
+      const [colleges, startups, students, assignments, submissions] = await Promise.all([
+        inBatches<{ id: string; name: string }>(uniq(rows.map((t) => t.created_by_college_id)),
+          (b) => supabase.from('colleges').select('id, name').in('id', b)),
+        inBatches<{ user_id: string; id: string; name: string }>(uniq(rows.map((t) => t.created_by_startup_id)),
+          (b) => supabase.from('startups').select('id, name, user_id').in('user_id', b)),
+        inBatches<Person>(uniq(rows.map((t) => t.student_id)),
+          // email moved to student_contact
+          (b) => supabase.from('student_profiles').select('id, full_name, profile_photo_url, student_contact (email)').in('id', b)),
+        inBatches<Assignment & { task_id: string }>(taskIds,
+          (b) => supabase.from('task_assignments').select(`
               id,
+              task_id,
               student_id,
               status,
               assigned_at,
@@ -158,41 +147,39 @@ const TaskOversight = () => {
                 profile_photo_url,
                 student_contact (email)
               )
-            `)
-            .eq('task_id', task.id);
-          enrichedTask.task_assignments = assignments || [];
-          
-          // Also keep direct student assignment for backwards compatibility
-          if (task.student_id) {
-            const { data: student, error: studentError } = await supabase
-              .from('student_profiles')
-              // email moved to student_contact
-              .select('id, full_name, profile_photo_url, student_contact (email)')
-              .eq('id', task.student_id)
-              .maybeSingle();
+            `).in('task_id', b)),
+        // The students' graded attempts (task_submissions), newest first
+        inBatches<Submission & { task_id: string }>(taskIds,
+          (b) => supabase.from('task_submissions').select('id, task_id, status, submitted_at:created_at').in('task_id', b).order('created_at', { ascending: false })),
+      ]);
+      const byId = <T,>(xs: T[], key: (x: T) => string) => new Map(xs.map((x) => [key(x), x]));
+      const collegeById = byId(colleges, (c) => c.id);
+      const startupByUser = byId(startups, (s) => s.user_id);
+      const studentById = byId(students, (s) => s.id);
+      const group = <T extends { task_id: string }>(xs: T[]) => {
+        const m = new Map<string, T[]>();
+        for (const x of xs) m.set(x.task_id, [...(m.get(x.task_id) || []), x]);
+        return m;
+      };
+      const assignmentsByTask = group(assignments);
+      const submissionsByTask = group(submissions);
 
-            if (studentError) {
-              console.error('Error fetching student:', studentError, 'for task:', task.id);
-            }
-            enrichedTask.student_profiles = student
-              ? { ...student, email: (student as any).student_contact?.email ?? '' }
-              : student;
-          }
-          
-          // The student's graded attempts (task_submissions)
-          const { data: proofs } = await supabase
-            .from('task_submissions')
-            .select('id, status, submitted_at:created_at')
-            .eq('task_id', task.id)
-            .order('created_at', { ascending: false });
-          enrichedTask.submissions = proofs || [];
-          
-          return enrichedTask;
-        })
-      );
-      
-      console.log('Enriched tasks:', enrichedTasks);
-      return enrichedTasks;
+      return rows.map((task): AdminTask => {
+        const student = task.student_id ? studentById.get(task.student_id) ?? null : undefined;
+        return {
+          ...task,
+          colleges: task.created_by_college_id ? collegeById.get(task.created_by_college_id) ?? null : undefined,
+          startups: task.created_by_startup_id ? startupByUser.get(task.created_by_startup_id) ?? null : undefined,
+          // Student creator data (for student-created tasks)
+          ...(task.created_by_type === 'student' && task.student_id
+            ? { student_creator: student ? { id: student.id, full_name: student.full_name } : null, created_by_student_id: task.student_id }
+            : {}),
+          task_assignments: assignmentsByTask.get(task.id) || [],
+          // Also keep direct student assignment for backwards compatibility
+          student_profiles: student ? { ...student, email: student.student_contact?.email ?? '' } : student,
+          submissions: submissionsByTask.get(task.id) || [],
+        };
+      });
     }
   });
 
@@ -265,7 +252,7 @@ const TaskOversight = () => {
     setExpandedRows(newExpanded);
   };
 
-  const getCreatorBadge = (task: any) => {
+  const getCreatorBadge = (task: AdminTask) => {
     // Admin created
     if (task.created_by_admin_id) {
       return (
@@ -343,7 +330,7 @@ const TaskOversight = () => {
     return <Badge variant="outline">Unknown</Badge>;
   };
 
-  const getStudentProgress = (task: any) => {
+  const getStudentProgress = (task: AdminTask) => {
     if (!task.student_profiles) return "Not Started";
     
     const proofs = task.submissions || [];
@@ -359,20 +346,22 @@ const TaskOversight = () => {
   };
 
   const getStatusBadge = (status: string, dueDate: string) => {
-    const isOverdue = new Date(dueDate) < new Date() && status !== 'Completed';
+    const key = (status || '').toLowerCase();
+    const isOverdue = !!dueDate && new Date(dueDate) < new Date() && key !== 'completed';
     
     if (isOverdue) {
       return <Badge className="bg-red-500 text-white hover:bg-red-500">Overdue</Badge>;
     }
     
     const statusConfig: Record<string, { className: string, label: string }> = {
-      'Completed': { className: 'bg-blue-500 text-white hover:bg-blue-500', label: 'Completed' },
-      'In Progress': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
-      'Assigned': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
-      'Pending': { className: 'bg-orange-500 text-white hover:bg-orange-500', label: 'Pending' }
+      'completed': { className: 'bg-blue-500 text-white hover:bg-blue-500', label: 'Completed' },
+      'in progress': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
+      'assigned': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
+      'pending': { className: 'bg-orange-500 text-white hover:bg-orange-500', label: 'Pending' },
+      'flagged': { className: 'bg-red-500 text-white hover:bg-red-500', label: 'Flagged' }
     };
     
-    const config = statusConfig[status] || statusConfig.Pending;
+    const config = statusConfig[key] || statusConfig.pending;
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
@@ -587,7 +576,7 @@ const TaskOversight = () => {
                           <h4 className="font-semibold mb-3 text-sm">Assigned Students</h4>
                           {task.task_assignments && task.task_assignments.length > 0 ? (
                             <div className="space-y-2">
-                              {task.task_assignments.map((assignment: any) => (
+                              {task.task_assignments.map((assignment) => (
                                 <div key={assignment.id} className="flex items-center justify-between p-3 bg-background rounded border">
                                   <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">

@@ -12,6 +12,7 @@ import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, signatureLine,
   type HiddenSummary,
 } from "@/lib/functionSignature";
+import { verdictLabel, type Verdict } from "@/lib/codingVerdicts";
 import { useToast } from "@/hooks/use-toast";
 import { RoadmapStages } from "./RoadmapStages";
 
@@ -74,8 +75,6 @@ interface CodingQuestion {
   function_spec?: unknown;
 }
 
-type Verdict = "accepted" | "wrong_answer" | "runtime_error" | "compile_error" | "time_limit";
-
 interface RunResult {
   /** false only for a hidden test; such rows are collapsed into a count (safeResultRows). */
   visible?: boolean;
@@ -87,21 +86,6 @@ interface RunResult {
   /** Absent on results graded before verdicts existed. */
   verdict?: Verdict;
 }
-
-/**
- * What each outcome should teach.
- *
- * A single red cross for every kind of failure tells a student only that they
- * are wrong, which they can already see. Naming the failure is the difference
- * between "you are bad at this" and "you have a typo on line 4".
- */
-const VERDICT_LABEL: Record<Verdict, { title: string; hint: string }> = {
-  accepted: { title: "Passed", hint: "" },
-  wrong_answer: { title: "Wrong answer", hint: "It ran fine — the logic is off." },
-  runtime_error: { title: "Crashed", hint: "It started, then threw. The error is below." },
-  compile_error: { title: "Won't build", hint: "A syntax problem — nothing ran yet." },
-  time_limit: { title: "Too slow", hint: "It may be correct, but it took too long." },
-};
 
 type ConfidenceLevel = "high" | "medium" | "low";
 
@@ -716,7 +700,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                       );
                     }
                     const verdict: Verdict = r.verdict ?? (r.passed ? "accepted" : "wrong_answer");
-                    const label = VERDICT_LABEL[verdict];
+                    const label = verdictLabel(verdict);
                     // Only a wrong answer is about the output. A crash or a
                     // build failure makes "expected vs got" noise around the
                     // one line that actually explains it.

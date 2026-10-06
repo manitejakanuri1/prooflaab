@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SimpleQuestion } from "./SimpleQuestion";
 import { FunctionSignature, GivenMaterial, SampleExamples } from "./GivenMaterial";
+import { verdictText, type Verdict } from "@/lib/codingVerdicts";
 import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, type HiddenSummary,
 } from "@/lib/functionSignature";
@@ -30,7 +31,7 @@ interface SandboxView {
 interface TestResult {
   id: string;
   visible: boolean;
-  verdict: "accepted" | "wrong_answer" | "runtime_error" | "compile_error" | "time_limit";
+  verdict: Verdict;
   passed: boolean;
   stdin?: string;
   expected?: string;
@@ -48,14 +49,6 @@ interface SubmitResult {
   /** Visible tests in detail; hidden tests only as one aggregate row. */
   results: (TestResult | HiddenSummary)[];
 }
-
-const VERDICT_TEXT: Record<TestResult["verdict"], string> = {
-  accepted: "Passed",
-  wrong_answer: "Wrong answer",
-  runtime_error: "Crashed",
-  compile_error: "Did not compile",
-  time_limit: "Too slow",
-};
 
 /** Reads the message the edge function wrote, instead of supabase-js's generic one. */
 async function errorMessage(e: unknown): Promise<string> {
@@ -232,7 +225,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
           )}
           <div className="min-w-0">
             <p>
-              Sample {i + 1}: {VERDICT_TEXT[t.verdict]}
+              Sample {i + 1}: {verdictText(t.verdict)}
             </p>
             {!t.passed && (
               <pre className="mt-1 overflow-x-auto rounded bg-muted p-2 font-mono text-xs">

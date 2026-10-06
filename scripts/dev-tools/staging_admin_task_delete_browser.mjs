@@ -4,7 +4,8 @@
 // through the real submit path; task WITHOUT work = a fresh task with nothing attached. Then as the staging admin:
 //   1. Remove on the task with work -> "Not removed" message, task and its submission still in the database
 //   2. Remove on the empty task -> confirmation dialog; dismiss -> still there; accept -> deleted
-//   3. /pricing -> lands on the home page
+//   3. Student removal: cancel / a wrong word -> nothing removed (REMOVE is never typed)
+//   4. /pricing -> lands on the home page
 // Exit code = number of failed checks. Leaves only the first task (with its submission) as evidence.
 import { chromium } from "playwright";
 import { createHash, createPublicKey, createSign } from "node:crypto";
@@ -76,7 +77,24 @@ await page.getByRole("menuitem", { name: /Remove/ }).first().click();
 await page.getByText("Task removed successfully").first().waitFor({ timeout: 20000 }).catch(() => {});
 check("empty task: accepting removes it", count(`tasks?select=id&id=eq.${setup.b}`) === 0);
 
-// 3. /pricing
+// 3. Student removal needs the typed word REMOVE: cancel and a wrong word both leave the student untouched.
+//    (REMOVE itself is never typed here.)
+const LS = "Load Student 14989", LSID = "10ad0000-0000-4000-8000-000000014989";
+for (const answer of [null, "remove please"]) {
+  await page.goto(`${BASE}/admin/dashboard?tab=student-oversight`, { waitUntil: "domcontentloaded" });
+  await page.getByPlaceholder("Search student...").fill(LS);
+  const row = page.locator("tr", { hasText: LS }).first();
+  await row.waitFor({ timeout: 30000 });
+  let prompt = "";
+  page.once("dialog", (d) => { prompt = d.message(); void (answer === null ? d.dismiss() : d.accept(answer)); });
+  await row.locator("button").last().click();
+  await page.getByRole("menuitem", { name: /Remove student/ }).click();
+  await page.waitForTimeout(4000);
+  check(`removal ${answer === null ? "cancelled" : "with a wrong word"}: prompt requires REMOVE and student untouched`,
+    prompt.includes("Type REMOVE") && prompt.includes("CANNOT be undone") && count(`student_profiles?select=id&id=eq.${LSID}`) === 1, prompt.slice(0, 60));
+}
+
+// 4. /pricing
 await page.goto(`${BASE}/pricing`, { waitUntil: "domcontentloaded" });
 await page.waitForURL((u) => !u.toString().includes("/pricing"), { timeout: 15000 }).catch(() => {});
 check("/pricing redirects to the home page", new URL(page.url()).pathname === "/", page.url());

@@ -1,5 +1,5 @@
 import { generateText } from "./llm.ts";
-import { gradeTests, type SandboxTest } from "./sandbox.ts";
+import { gradeTests, type CheckerMode, type SandboxTest } from "./sandbox.ts";
 import { checkTestQuality } from "./test-quality.ts";
 import { gradeOnce, zeroUnquotedCredit, totalOf, type Criterion } from "./rubric-grading.ts";
 
@@ -79,11 +79,18 @@ const SANDBOX_SCHEMA = `"language": one of "python","javascript","java","cpp","c
 "starter_code": short starter stub, string (may be ""),
 "constraints_text": string or null,
 "reference_solution": a COMPLETE, CORRECT solution in that language, reading from stdin and writing to stdout exactly as the test cases expect,
-"test_cases": array of objects {"id": string, "stdin": string, "expected_output": string, "visible": boolean, "weight": integer 1-5, "kind": "normal" | "boundary" | "edge"}.
+"test_cases": array of objects {"id": string, "stdin": string, "expected_output": string, "visible": boolean, "weight": integer 1-5, "kind": "normal" | "boundary" | "edge", "checker": "exact" | "tokens" | "numeric_tolerance" | "unordered_tokens" | "unordered_lines", "numeric_tolerance": number | null}.
   How many: if the surrounding task has difficulty "Easy", create 4 to 5 tests; "Medium", 6 to 8; "Hard", 8 to 10. Do not pad with duplicate or meaningless tests.
   Cover: at least one normal case, one boundary case (smallest/largest allowed input, empty list, zero) and one edge case (duplicates, negatives, unusual but valid input).
   Every test has a DIFFERENT stdin. Exactly 1 or 2 are "visible": true (the examples the student sees); the rest are hidden, and hidden tests are at least as many as visible ones.
-  expected_output must be EXACTLY what reference_solution prints (trailing newline agnostic).
+  Choose checker="exact" unless the task semantics genuinely require another mode.
+  - exact: current strict output comparison (outer whitespace/newline ignored).
+  - tokens: whitespace differences do not matter, token order still matters.
+  - numeric_tolerance: numeric tokens only; use a small tolerance, normally 0.000001 and never above 0.001.
+  - unordered_tokens: token order does not matter; duplicate counts still matter.
+  - unordered_lines: line order does not matter.
+  Never invent executable/custom checker code.
+  expected_output must be a correct oracle output for the chosen checker.
 "buggy_solution": a plausible but WRONG solution in the same language - the kind of mistake a student makes (off-by-one, ignores an edge case, hardcodes the example). Your tests must make it fail at least one test.`;
 
 const RUBRIC_SCHEMA = `"criteria": array of 2 to 8 objects {"id": string, "name": string, "description": string, "max_points": integer}, max_points summing to 100,
@@ -141,6 +148,17 @@ function parseSandboxFields(parsed: Record<string, unknown>): SandboxAttempt | n
   const test_cases: SandboxTest[] = [];
   for (const t of rawTests as any[]) {
     if (typeof t?.id !== "string" || typeof t?.stdin !== "string" || typeof t?.expected_output !== "string") return null;
+    const checker = (
+      ["exact", "tokens", "numeric_tolerance", "unordered_tokens", "unordered_lines"].includes(String(t.checker))
+        ? String(t.checker)
+        : "exact"
+    ) as CheckerMode;
+
+    const rawTolerance = Number(t.numeric_tolerance);
+    const numericTolerance = Number.isFinite(rawTolerance) && rawTolerance > 0
+      ? Math.min(rawTolerance, 0.001)
+      : 0.000001;
+
     test_cases.push({
       id: t.id,
       stdin: t.stdin,
@@ -148,6 +166,8 @@ function parseSandboxFields(parsed: Record<string, unknown>): SandboxAttempt | n
       visible: Boolean(t.visible),
       weight: Number.isFinite(Number(t.weight)) ? Math.max(1, Math.min(5, Math.round(Number(t.weight)))) : 1,
       ...(["normal", "boundary", "edge"].includes(t.kind) ? { kind: t.kind } : {}),
+      checker,
+      ...(checker === "numeric_tolerance" ? { numeric_tolerance: numericTolerance } : {}),
     });
   }
   if (!test_cases.some((t) => t.visible)) test_cases[0].visible = true;

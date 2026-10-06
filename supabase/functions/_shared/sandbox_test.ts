@@ -1,8 +1,36 @@
-import { runCode } from './sandbox.ts';
+import { outputsMatch, runCode, verdictFor } from './sandbox.ts';
 
 function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(msg);
 }
+
+Deno.test('checker modes are deterministic and bounded', () => {
+  assert(outputsMatch('hello\n', 'hello', 'exact'), 'exact should ignore the final newline');
+  assert(!outputsMatch('hello world', 'hello  world', 'exact'), 'exact unexpectedly normalized internal whitespace');
+
+  assert(outputsMatch('1   2\n3', '1 2 3', 'tokens'), 'tokens should normalize whitespace');
+  assert(!outputsMatch('2 1 3', '1 2 3', 'tokens'), 'tokens ignored token order');
+
+  assert(outputsMatch('pear apple apple', 'apple pear apple', 'unordered_tokens'), 'unordered tokens rejected same multiset');
+  assert(!outputsMatch('pear apple', 'apple pear apple', 'unordered_tokens'), 'unordered tokens ignored duplicate count');
+
+  assert(outputsMatch('beta\nalpha', 'alpha\nbeta', 'unordered_lines'), 'unordered lines rejected reordered lines');
+  assert(!outputsMatch('alpha\nbeta', 'alpha\ngamma', 'unordered_lines'), 'unordered lines accepted different content');
+
+  assert(outputsMatch('3.1415927', '3.1415926', 'numeric_tolerance', 1e-6), 'numeric tolerance rejected close values');
+  assert(!outputsMatch('3.15', '3.14', 'numeric_tolerance', 1e-6), 'numeric tolerance accepted distant values');
+  assert(!outputsMatch('value=3.14', '3.14', 'numeric_tolerance', 1e-6), 'numeric checker accepted non-numeric output');
+
+  // Even if an old/manual row contains an unknown checker, it fails closed to exact.
+  assert(outputsMatch('a b', 'a b', 'not-a-checker'), 'invalid checker did not fall back to exact');
+  assert(!outputsMatch('a   b', 'a b', 'not-a-checker'), 'invalid checker gained permissive semantics');
+
+  // A maliciously loose stored tolerance is capped at 1e-3 at runtime.
+  assert(!outputsMatch('101', '100', 'numeric_tolerance', 999), 'numeric tolerance was not defensively capped');
+
+  assert(verdictFor('runtime_error', '1', '1', 'exact') === 'runtime_error', 'runtime error was hidden by checker');
+  assert(verdictFor('ok', '2 1', '1 2', 'unordered_tokens') === 'accepted', 'verdict did not use checker');
+});
 
 /** Runs fn with fetch recorded (and failing), and the given env overrides. */
 async function withFetchSpy(env: Record<string, string | undefined>, fn: () => Promise<void>): Promise<string[]> {

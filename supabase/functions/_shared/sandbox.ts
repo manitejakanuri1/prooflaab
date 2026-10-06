@@ -85,11 +85,127 @@ export type RunResult =
 /** What a single test case ended up being worth, once compared. */
 export type Verdict = 'accepted' | 'wrong_answer' | 'runtime_error' | 'compile_error' | 'time_limit';
 
-export function verdictFor(status: ExecStatus, stdout: string, expected: string): Verdict {
+export type CheckerMode =
+  | 'exact'
+  | 'tokens'
+  | 'numeric_tolerance'
+  | 'unordered_tokens'
+  | 'unordered_lines';
+
+const CHECKER_MODES = new Set<CheckerMode>([
+  'exact',
+  'tokens',
+  'numeric_tolerance',
+  'unordered_tokens',
+  'unordered_lines',
+]);
+
+const DEFAULT_NUMERIC_TOLERANCE = 1e-6;
+const MAX_NUMERIC_TOLERANCE = 1e-3;
+
+export function isCheckerMode(value: unknown): value is CheckerMode {
+  return typeof value === 'string' && CHECKER_MODES.has(value as CheckerMode);
+}
+
+function whitespaceTokens(text: string): string[] {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/) : [];
+}
+
+function unorderedLines(text: string): string[] {
+  const normalized = text.replace(/\r\n/g, '\n').trim();
+  if (!normalized) return [];
+  return normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .sort();
+}
+
+function safeTolerance(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_NUMERIC_TOLERANCE;
+  return Math.min(n, MAX_NUMERIC_TOLERANCE);
+}
+
+/**
+ * Deterministic output comparison only. There is deliberately no executable
+ * custom-checker hook: a frozen evaluator may choose only one allow-listed
+ * comparison mode.
+ */
+export function outputsMatch(
+  actual: string,
+  expected: string,
+  checker: CheckerMode | string = 'exact',
+  numericTolerance?: number,
+): boolean {
+  const mode: CheckerMode = isCheckerMode(checker) ? checker : 'exact';
+
+  if (mode === 'exact') {
+    // Preserve ProofLab's existing behaviour: leading/trailing whitespace and
+    // the final newline are ignored, but content inside the output is exact.
+    return actual.trim() === expected.trim();
+  }
+
+  const actualTokens = whitespaceTokens(actual);
+  const expectedTokens = whitespaceTokens(expected);
+
+  if (mode === 'tokens') {
+    return actualTokens.length === expectedTokens.length &&
+      actualTokens.every((token, i) => token === expectedTokens[i]);
+  }
+
+  if (mode === 'unordered_tokens') {
+    if (actualTokens.length !== expectedTokens.length) return false;
+    return [...actualTokens].sort().every(
+      (token, i) => token === [...expectedTokens].sort()[i],
+    );
+  }
+
+  if (mode === 'unordered_lines') {
+    const a = unorderedLines(actual);
+    const e = unorderedLines(expected);
+    return a.length === e.length && a.every((line, i) => line === e[i]);
+  }
+
+  // numeric_tolerance: the entire output must consist of the same number of
+  // finite numeric tokens. Non-numeric labels never silently pass.
+  if (actualTokens.length !== expectedTokens.length) return false;
+
+  const tolerance = safeTolerance(numericTolerance);
+  for (let i = 0; i < expectedTokens.length; i++) {
+    const actualNumber = Number(actualTokens[i]);
+    const expectedNumber = Number(expectedTokens[i]);
+
+    if (!Number.isFinite(actualNumber) || !Number.isFinite(expectedNumber)) {
+      return false;
+    }
+
+    const difference = Math.abs(actualNumber - expectedNumber);
+    const scale = Math.max(1, Math.abs(expectedNumber));
+
+    if (difference > tolerance && difference > tolerance * scale) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function verdictFor(
+  status: ExecStatus,
+  stdout: string,
+  expected: string,
+  checker: CheckerMode | string = 'exact',
+  numericTolerance?: number,
+): Verdict {
   if (status === 'compile_error') return 'compile_error';
   if (status === 'runtime_error') return 'runtime_error';
   if (status === 'time_limit') return 'time_limit';
-  return stdout.trim() === expected.trim() ? 'accepted' : 'wrong_answer';
+
+  return outputsMatch(stdout, expected, checker, numericTolerance)
+    ? 'accepted'
+    : 'wrong_answer';
 }
 
 /** Runners signal a killed process in prose rather than in a field. */
@@ -363,8 +479,12 @@ export interface SandboxTest {
   expected_output: string;
   visible: boolean;
   weight?: number;
-  /** normal | boundary | edge, when the generator labelled it (audit only). */
+  /** normal | boundary | edge, when the generator labelled it. */
   kind?: string;
+  /** Safe deterministic output comparison. Missing/invalid values mean exact. */
+  checker?: CheckerMode;
+  /** Used only by numeric_tolerance; runtime is defensively capped at 1e-3. */
+  numeric_tolerance?: number;
 }
 
 export interface GradedTest {
@@ -402,7 +522,13 @@ export async function gradeTests(language: string, code: string, tests: SandboxT
     const run = await runCode(language, code, tc.stdin);
     if (!run.ok) return { ok: false, reason: run.reason }; // never grade a run that did not happen
     runner = run.runner;
-    const verdict = verdictFor(run.status, run.stdout, tc.expected_output);
+    const verdict = verdictFor(
+      run.status,
+      run.stdout,
+      tc.expected_output,
+      tc.checker ?? 'exact',
+      tc.numeric_tolerance,
+    );
     results.push({
       id: tc.id, visible: tc.visible, verdict, passed: verdict === 'accepted',
       stdin: tc.stdin, expected: tc.expected_output, actual: run.stdout.trim(), stderr: run.stderr.trim(),

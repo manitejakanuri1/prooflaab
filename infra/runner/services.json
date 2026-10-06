@@ -1,0 +1,63 @@
+{
+ "prooflab-code-runner-1cpu-test": {
+  "cloudsql": null,
+  "concurrency": 1,
+  "cpu": "1",
+  "env": {
+   "RUNNER_ALLOWED_CALLERS": "deploy.openfloor@gmail.com"
+  },
+  "execution_environment": "gen2",
+  "image": "asia-south1-docker.pkg.dev/prooflab-runner-508214/prooflab-runner/code-runner@sha256:4356326cdf1c1cef695731c9ed167ccbd734cf882a79db0865e6a043f415f619",
+  "ingress": "all",
+  "invokers": [
+   "user:deploy.openfloor@gmail.com"
+  ],
+  "max_instances": "20",
+  "memory": "2Gi",
+  "min_instances": null,
+  "service_account": "prooflab-code-runner@prooflab-runner-508214.iam.gserviceaccount.com",
+  "timeout_seconds": 120,
+  "volumes": []
+ },
+ "prooflab-code-runner-rc": {
+  "cloudsql": null,
+  "concurrency": 1,
+  "cpu": "1",
+  "env": {
+   "RUNNER_ALLOWED_CALLERS": "prooflab-rt-functions@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com"
+  },
+  "execution_environment": "gen2",
+  "image": "asia-south1-docker.pkg.dev/prooflab-runner-508214/prooflab-runner/code-runner@sha256:01105361aaf3d19d16b9d74b7e6c7913c9af0b7cbd10ef4ddd24e4bd8695716d",
+  "ingress": "all",
+  "invokers": [
+   "serviceAccount:prooflab-rt-functions@prooflab-508214.iam.gserviceaccount.com",
+   "serviceAccount:prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com"
+  ],
+  "max_instances": "20",
+  "memory": "2Gi",
+  "min_instances": null,
+  "service_account": "prooflab-code-runner@prooflab-runner-508214.iam.gserviceaccount.com",
+  "timeout_seconds": 120,
+  "volumes": []
+ },
+ "prooflab-code-runner-test": {
+  "cloudsql": null,
+  "concurrency": 1,
+  "cpu": "2",
+  "env": {
+   "RUNNER_ALLOWED_CALLERS": "deploy.openfloor@gmail.com"
+  },
+  "execution_environment": "gen2",
+  "image": "asia-south1-docker.pkg.dev/prooflab-runner-508214/prooflab-runner/code-runner@sha256:4356326cdf1c1cef695731c9ed167ccbd734cf882a79db0865e6a043f415f619",
+  "ingress": "all",
+  "invokers": [
+   "user:deploy.openfloor@gmail.com"
+  ],
+  "max_instances": "10",
+  "memory": "2Gi",
+  "min_instances": null,
+  "service_account": "prooflab-code-runner@prooflab-runner-508214.iam.gserviceaccount.com",
+  "timeout_seconds": 120,
+  "volumes": []
+ }
+}

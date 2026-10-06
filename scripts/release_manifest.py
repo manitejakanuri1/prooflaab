@@ -9,13 +9,31 @@ checksum. Production must receive exactly these.
 import json, os, re, subprocess, sys
 
 P, R = "prooflab-508214", "asia-south1"
+RUNNER_PROJECT, RUNNER_SERVICE = "prooflab-runner-508214", "prooflab-code-runner-rc"   # dedicated runner project (6 Oct 2026)
+PRODUCT = ("src supabase functions-service auth-bridge files-service accounts transcriber transcription-worker code-runner crawler "
+           "bug-finder migration package.json package-lock.json index.html vite.config.ts .env.production")
+SOURCE = {"auth-bridge": "auth-bridge", "functions": "functions-service supabase/functions", "files": "files-service",
+          "accounts": "accounts", "code-runner": "code-runner", "transcriber": "transcriber",
+          "transcription-worker": "transcription-worker", "crawler": "crawler", "bug-finder": "bug-finder"}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sh = lambda c: subprocess.run(c, shell=True, capture_output=True, text=True, cwd=ROOT).stdout.strip()
 
 head = sh("git rev-parse HEAD")
+# The release is the last commit that changed product source; later commits may only touch documents and tools.
+product = sh(f"git log -1 --format=%H -- {PRODUCT}")
 # Only product source counts: documents, the infrastructure snapshot and this script do not ship.
-dirty = sh("git status --porcelain --untracked-files=no -- src supabase functions-service auth-bridge files-service accounts transcriber transcription-worker code-runner crawler bug-finder migration package.json package-lock.json index.html vite.config.ts .env.production")
-services = ["api", "auth-bridge", "functions", "files", "accounts", "code-runner", "transcriber", "transcription-worker"]
+dirty = sh(f"git status --porcelain --untracked-files=no -- {PRODUCT}")
+
+
+def unchanged(built_from, svc):
+    """An older image may ship only if its service's source is identical at the release commit."""
+    if not built_from or svc not in SOURCE:
+        return "-"
+    same = subprocess.run(f"git diff --quiet {built_from} {product} -- {SOURCE[svc]}", shell=True, cwd=ROOT).returncode == 0
+    return f"source identical {built_from}..{product[:7]}" if same else f"SOURCE CHANGED since {built_from} - rebuild"
+
+
+services = ["api", "auth-bridge", "functions", "files", "accounts", "transcriber", "transcription-worker"]
 rows, images_commit = [], set()
 for s in services:
     rev = sh(f'gcloud run services describe prooflab-staging-{s} --region={R} --project={P} --format="value(status.latestReadyRevisionName)"')
@@ -27,19 +45,31 @@ for s in services:
     m = re.search(r":stab-([0-9a-f]{7})(-\d+)?$", image)
     if m:
         images_commit.add(m.group(1) + (" (built from uncommitted files)" if m.group(2) else ""))
-    rows.append((s, rev, image.split("/")[-1], digest, env))
+    rows.append((s, rev, image.split("/")[-1], digest, env, unchanged(m.group(1) if m and not m.group(2) else "", s)))
+# The code runner lives in its own project; its image is pinned by digest and tagged rc-<commit>.
+rrev = sh(f'gcloud run services describe {RUNNER_SERVICE} --region={R} --project={RUNNER_PROJECT} --format="value(status.latestReadyRevisionName)"')
+rd = json.loads(sh(f"gcloud run revisions describe {rrev} --region={R} --project={RUNNER_PROJECT} --format=json"))
+rimage = sh(f'gcloud run services describe {RUNNER_SERVICE} --region={R} --project={RUNNER_PROJECT} --format="value(spec.template.spec.containers[0].image)"')
+rdigest = rd["status"]["imageDigest"].split("@")[-1]
+rtags = sh(f'gcloud artifacts docker images list {rimage.split("@")[0]} --include-tags --filter="version={rdigest}" --format="value(tags)"')
+rbuilt = (re.search(r"rc-([0-9a-f]{7})", rtags) or [None, ""])[1]
+rows.append((f"code-runner ({RUNNER_PROJECT} / {RUNNER_SERVICE})", rrev, f"code-runner, tag {rtags or '-'}", rdigest,
+             sorted(e["name"] for e in rd["spec"]["containers"][0].get("env", [])),
+             unchanged(rbuilt, "code-runner") + "; built from that commit per its tag (no Cloud Build record)"))
 jobs = []
 for j in ("crawler", "bug-finder"):
     image = sh(f'gcloud run jobs describe prooflab-staging-{j} --region={R} --project={P} --format="value(spec.template.spec.template.spec.containers[0].image)"')
     digest = sh(f'gcloud artifacts docker images describe {image} --format="value(image_summary.digest)"')
     env = sh(f'gcloud run jobs describe prooflab-staging-{j} --region={R} --project={P} --format="value(spec.template.spec.template.spec.containers[0].env)"')
     jobs.append((j, image.split("/")[-1], digest, sorted(set(re.findall(r"'name': '([A-Z_]+)'", env)))))
+    mj = re.search(r":stab-([0-9a-f]{7})(-\d+)?$", image)
+    jobs[-1] = (*jobs[-1], unchanged(mj.group(1) if mj and not mj.group(2) else "", j))
     m = re.search(r":stab-([0-9a-f]{7})(-\d+)?$", image)
     if m:
         images_commit.add(m.group(1) + (" (built from uncommitted files)" if m.group(2) else ""))
 
 plan = [l.split() for l in sh(f"{sys.executable} scripts/migrations.py plan").splitlines()]
-run = json.loads(sh(f"gh run list --repo manitejakanuri1/prooflaab --commit {head} --json databaseId,conclusion --limit 1") or "[]")
+run = json.loads(sh(f"gh run list --repo manitejakanuri1/prooflaab --commit {product} --json databaseId,conclusion --limit 1") or "[]")
 artifact = ""
 if run:
     log = sh(f"gh run view --repo manitejakanuri1/prooflaab {run[0]['databaseId']} --log")
@@ -53,29 +83,30 @@ Generated by `scripts/release_manifest.py` from what **staging** is running. Pro
 
 | | |
 |---|---|
-| Git commit (source of everything below) | `{head}` |
+| Release commit (last change to product source; everything below) | `{product}` |
+| Branch head when generated (later commits touch documents/tools only) | `{head}` |
 | Branch | `work/stabilization` |
 | Product source when generated | {"product source identical to the commit" if not dirty else "PRODUCT SOURCE DIFFERS FROM THE COMMIT - commit and regenerate"} |
 | Images built from commit(s) | {", ".join(sorted(images_commit)) or "-"} |
-| Website build (CI artifact `site-{head}`) | `dist.sha256` = `{artifact or "CI has not finished for this commit - re-run this script"}` |
+| Website build (CI artifact `site-{product}`) | `dist.sha256` = `{artifact or "CI has not finished for this commit - re-run this script"}` |
 | CI run | {("https://github.com/manitejakanuri1/prooflaab/actions/runs/" + str(run[0]["databaseId"]) + " (" + (run[0]["conclusion"] or "running") + ")") if run else "none yet"} |
 | Gate | `scripts/dev-tools/staging_release_gate.sh` at this commit |
 | Infrastructure snapshot | `infra/` at commit `{snapshot_commit}` |
 
 ## Backend images (by digest)
 
-| Service | Staging revision | Image | Digest |
-|---|---|---|---|"""]
-for s, rev, image, digest, env in rows:
-    out.append(f"| {s} | `{rev}` | `{image}` | `{digest}` |")
-out.append("\n| Job | Image | Digest |\n|---|---|---|")
-for j, image, digest, env in jobs:
-    out.append(f"| {j} | `{image}` | `{digest}` |")
+| Service | Revision proven on staging | Image | Digest | Provenance |
+|---|---|---|---|---|"""]
+for s, rev, image, digest, env, prov in rows:
+    out.append(f"| {s} | `{rev}` | `{image}` | `{digest}` | {prov} |")
+out.append("\n| Job | Image | Digest | Provenance |\n|---|---|---|---|")
+for j, image, digest, env, prov in jobs:
+    out.append(f"| {j} | `{image}` | `{digest}` | {prov} |")
 out.append("\nThe API is the public PostgREST image; production already runs the same version.\n")
 out.append("## Setting names each service needs (names only; values are in Secret Manager or the rollout checklist)\n\n| Service | Settings |\n|---|---|")
-for s, rev, image, digest, env in rows:
+for s, rev, image, digest, env, prov in rows:
     out.append(f"| {s} | {', '.join(f'`{e}`' for e in env)} |")
-for j, image, digest, env in jobs:
+for j, image, digest, env, prov in jobs:
     out.append(f"| job {j} | {', '.join(f'`{e}`' for e in env)} |")
 out.append("\nStaging values point at staging addresses. Production uses its own addresses and secrets; identity settings (`APP_SIGNING_KEY`, `APP_JWT_PUBLIC_JWKS`, `SIGNER_URL`, `SCHEDULER_*`, `CODE_RUNNER_AUTH`, `RUNNER_ALLOWED_CALLERS`, `PGRST_DB_PRE_REQUEST`) are switched on stage by stage (rollout checklist).\n")
 out.append(f"## Migrations ({len(plan)} files under the ledger)\n\nApply through `python scripts/migrations.py wrap <file>`; the ledger refuses a file whose checksum differs.\n\n| File | SHA-256 |\n|---|---|")
@@ -83,4 +114,4 @@ for version, digest in plan:
     out.append(f"| `{version}.sql` | `{digest}` |")
 out.append("\nOrder and grouping for production: see `PRODUCTION-ROLLOUT-CHECKLIST.md` stage 2 (66, 71, 72 are permanent drops and belong to stage 7).\n")
 open(os.path.join(ROOT, "docs", "RELEASE-MANIFEST.md"), "w", encoding="utf-8", newline="\n").write("\n".join(out))
-print("written docs/RELEASE-MANIFEST.md:", head[:7], "| images from", sorted(images_commit), "| artifact", artifact[:16] or "pending")
+print("written docs/RELEASE-MANIFEST.md:", product[:7], "(head", head[:7] + ")", "| images from", sorted(images_commit), "| artifact", artifact[:16] or "pending")

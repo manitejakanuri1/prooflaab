@@ -82,28 +82,46 @@ Deploy the exact images in `RELEASE-MANIFEST.md` by digest (do not rebuild), in 
 | 2 | functions | none yet | **32 of 32** |
 | 3 | files, accounts, auth-bridge | none yet | ready |
 | 4 | transcriber, then transcription-worker | none yet | ready; one test recording is scored |
-| 5 | code-runner (launch blocker: production runs the old `v1` image, open to `allUsers`) | see 3.1 below | ready, `net_isolation: true` |
+| 5 | code-runner | **not redeployed**: production switches to the dedicated runner in 3.1; the old `prooflab-code-runner` stays untouched as the rollback | — |
 | 6 | crawler job, bug-finder job | none yet | next scheduled run passes |
 
 With no new settings the new code behaves as before on tokens, Scheduler and the runner (every identity feature is off until configured).
 
 **One service at a time, a few minutes apart.** Each deploy starts new instances beside the old ones; until the CPU quota is raised, deploying several services at once can exhaust it and the new revision will not start (seen on staging). If a revision reports "Quota exceeded for total allowable CPU", wait two minutes and deploy the same image again — the old revision keeps serving meanwhile.
 
-### 3.1 Code runner made private (moved here from Stage 6.3: required for launch)
+### 3.1 Code runner: switch production functions to the dedicated private runner (launch blocker)
 
-Each step is checked before the next. Steps 1–6 keep the old path working, so nothing breaks while switching.
+Production today calls `prooflab-code-runner` in the main project: image `v1` (before the 3 Oct hardening), open to
+`allUsers`, protected only by a shared secret. It is **not changed** in this release; it stays as the rollback.
+
+The dedicated runner already exists and is proven on staging (6 Oct 2026):
+
+| | |
+|---|---|
+| Project / service | `prooflab-runner-508214` / `prooflab-code-runner-rc` (own CPU quota, no data, no secrets) |
+| URL | `https://prooflab-code-runner-rc-lfnoedpoca-el.a.run.app` |
+| Image | `code-runner@sha256:01105361aaf3d19d16b9d74b7e6c7913c9af0b7cbd10ef4ddd24e4bd8695716d` (tag `rc-e4e29225`) |
+| Size | 1 vCPU, 2 GiB, concurrency 1, max 20 instances |
+| Who may call (Cloud Run IAM) | `prooflab-staging-functions@…`, `prooflab-rt-functions@…` only; no `allUsers`, no person |
+| Runner's own caller list | `RUNNER_ALLOWED_CALLERS` = the same two accounts; no `RUNNER_SECRET` |
+| Proven | anonymous 403; operator 401; staging Run 42; coding audit 43/43, Run-vs-Submit 12/12, 0 hidden-test leaks; network/metadata/DB/fork/command/memory contained; `staging_identity_check.py` 28/28 |
+
+Because production functions are already on the runner's two lists, there is **no secret-to-IAM window**: one
+functions setting change moves production from the old runner to the new one.
 
 | # | Step | Check |
 |---|---|---|
-| 1 | Deploy the release runner image with `RUNNER_ALLOWED_CALLERS=prooflab-rt-functions@prooflab-508214.iam.gserviceaccount.com` **and** the old `RUNNER_SECRET` still set | `/ready` shows `net_isolation: true` |
-| 2 | Grant `roles/run.invoker` on the runner to `prooflab-rt-functions@…` | IAM policy lists it (and still `allUsers`) |
-| 3 | Functions: `CODE_RUNNER_AUTH=iam` (keep `CODE_RUNNER_SECRET` for now) | `/ready` 32/32 |
-| 4 | Smoke student: Run samples, then Submit (hidden tests) on a coding task | Run shows results; Submit stores one submission |
-| 5 | A call with any other Google identity | 401 from the runner |
-| 6 | Remove `allUsers` from the runner | anonymous POST /run and GET /ready: 403 |
-| 7 | Remove `RUNNER_SECRET` from the runner and `CODE_RUNNER_SECRET` from functions | Run + Submit again work |
+| 1 | Before: `python scripts/dev-tools/staging_identity_check.py` (28/28), and `gcloud run services get-iam-policy prooflab-code-runner-rc --region=asia-south1 --project=prooflab-runner-508214` | invokers are exactly the two functions accounts |
+| 2 | Production functions (the release image from Stage 3 row 2): set `CODE_RUNNER_URL=https://prooflab-code-runner-rc-lfnoedpoca-el.a.run.app` and `CODE_RUNNER_AUTH=iam` in the same deploy; leave `CODE_RUNNER_SECRET` in place for now (unused in IAM mode) | `/ready` 32/32 |
+| 3 | Smoke student: Run samples on a coding task | sample results |
+| 4 | Smoke student: Submit a wrong answer that passes the samples, then the right answer | first is not passed ("N tests failed - every test must pass"), second passes; one submission each |
+| 5 | Direct call to the runner with no credentials, and with the operator's own identity | 403 / 401 |
+| 6 | Watch for 30 minutes: functions logs show no `own runner http` errors; `[P1]` alerts quiet | yes |
+| 7 | Later (after at least 24 healthy hours, separate yes): remove `CODE_RUNNER_SECRET` from production functions, then retire the old `prooflab-code-runner` (remove `allUsers`, then delete), and delete the secret `code-runner-secret` | Run/Submit still work |
 
-Rollback for each step: undo that step only (add `allUsers` back, set `CODE_RUNNER_AUTH` unset, redeploy the previous runner revision).
+Rollback (any step 2-6): deploy production functions again with `CODE_RUNNER_URL=https://prooflab-code-runner-135298577404.asia-south1.run.app` and **without** `CODE_RUNNER_AUTH` (the secret is still set), i.e. exactly the previous revision `prooflab-functions-00053-c7m`'s settings. The old runner was never touched, so this is immediate.
+
+Note: the runner project also holds two operator-only test services (`prooflab-code-runner-test`, `prooflab-code-runner-1cpu-test`) that share its CPU quota; delete them before launch.
 
 ### 3.2 Google sign-in key restricted
 
@@ -135,7 +153,7 @@ One step at a time; each has its own rollback.
 |---|---|
 | 6.1 | **Tokens (F1).** Create the production signing key in Secret Manager, readable only by the bridge's account. Bridge: `APP_SIGNING_KEY`, `SERVICE_TOKEN_AUDIENCE`, `SERVICE_TOKEN_CALLERS`. API: key set = bridge public key **plus** the old key. Services: `APP_JWT_PUBLIC_JWKS`, `SIGNER_URL`; functions and files: `FILE_GRANT_SECRET`. Jobs: `SIGNER_URL`. Replace or retire the GitHub crawl workflow (it holds a copy of the old key). Wait 2 hours. API: public key only; remove `PGRST_JWT_SECRET` from every service. Old-style tokens must now be refused. |
 | 6.2 | **Scheduler (G11).** Functions: `SCHEDULER_CALLERS=prooflab-rt-scheduler@…`, `SCHEDULER_AUDIENCE=<functions URL>`. Change each of the 9 webhook jobs to send an identity token for that audience and no secret header (production Scheduler change). When all 9 have run green once: `SCHEDULER_AUTH=oidc`. |
-| 6.3 | **Code runner (G12).** Moved to Stage 3.1 (launch blocker). |
+| 6.3 | **Code runner (G12).** Done in Stage 3.1 by switching to the dedicated runner project; Stage 3.1 step 7 retires the old runner. |
 
 ## Stage 7 — Permanent cleanup (at least a week after Stage 4)
 

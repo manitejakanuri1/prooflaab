@@ -6,6 +6,7 @@ Scenarios (each user is a different synthetic student, all fire within ~1 s):
   reads     n students each read Floor + Build-log + Squad 5 times (browsing only)
   run       n students press Run once (stage-9 coding tasks; Run never stores anything)
   submit    n students press Submit once (stage-8 coding tasks; reconciled afterwards)
+  submit-fresh  n students press Submit once on a brand-new task each (real grading every time)
   voice     n students upload + queue a recording (stage-8 tasks that have a submission)
   mixed     n/2 Run + n/2 reads at the same moment, while the voice queue may be busy
 Every result line goes to e2e-out/load2k/burst-<scenario>-<n>.json.
@@ -31,7 +32,11 @@ def tasks(stage, kind_code=True):
 async def main(scenario, n, part=0, parts=1, at=None, rows=None):
     rows = [] if rows is None else rows
     refs = {c["id"]: c["reference_solution"] for c in st.call("svc", "GET", "task_sandbox_config?select=id,reference_solution&id=in.(452e588c-42b6-4f55-bf5c-b7090cad2a09,3545a46b-a17f-4f2e-8788-35ada1b5e699)")[1]}
-    pool = tasks(9 if scenario in ("run", "mixed", "reads") else 8)[:n][part::parts]
+    if scenario == "submit-fresh":
+        # Real grading under load: every student gets a brand-new coding task (made once, by part 0's caller).
+        pool = json.load(open(os.path.join("e2e-out", "load2k", "fresh-tasks.json")))[:n][part::parts]
+    else:
+        pool = tasks(9 if scenario in ("run", "mixed", "reads") else 8)[:n][part::parts]
     if at:
         await asyncio.sleep(max(0, at - time.time()))
     async with httpx.AsyncClient(limits=httpx.Limits(max_connections=n + 20)) as client:
@@ -59,7 +64,7 @@ async def main(scenario, n, part=0, parts=1, at=None, rows=None):
                     await call("read", "POST", f"{st.API}/rpc/my_squad_members", tok, {})
             elif scenario in ("run", "mixed"):
                 await call("run", "POST", f"{st.FUNCTIONS}/run-sandbox", tok, {"task_id": t["id"], "code": refs[t["sandbox_config_id"]]})
-            elif scenario == "submit":
+            elif scenario in ("submit", "submit-fresh"):
                 await call("submit", "POST", f"{st.FUNCTIONS}/submit-sandbox-task", tok, {"task_id": t["id"], "code": refs[t["sandbox_config_id"]]})
             elif scenario == "voice":
                 code = await call("submit", "POST", f"{st.FUNCTIONS}/submit-sandbox-task", tok, {"task_id": t["id"], "code": refs[t["sandbox_config_id"]]})
@@ -81,6 +86,18 @@ def proc(scenario, n, part, parts, at, path):
 if __name__ == "__main__":
     import multiprocessing as mp
     scenario, n = sys.argv[1], int(sys.argv[2])
+    if scenario == "submit-fresh":
+        base = tasks(8)[:n]
+        tag = time.strftime("%H%M%S")
+        fresh = []
+        for i in range(0, len(base), 200):
+            rows_ = [{"student_id": t["student_id"], "title": f"LOAD2K fresh {tag} {i + j}", "description": "load", "category": "technical",
+                      "status": "pending", "source": "lot", "lot_category": "technical", "difficulty": "Easy",
+                      "sandbox_config_id": t["sandbox_config_id"]} for j, t in enumerate(base[i:i + 200])]
+            c, b = st.call("svc", "POST", "tasks", rows_)
+            assert c == 201, (c, str(b)[:200])
+            fresh += [{"id": r["id"], "student_id": r["student_id"], "sandbox_config_id": r["sandbox_config_id"]} for r in b]
+        json.dump(fresh, open(os.path.join("e2e-out", "load2k", "fresh-tasks.json"), "w"))
     parts = max(1, n // 50)          # one client process per 50 users, so the client is never the bottleneck
     at = time.time() + 15 + parts * 0.5
     paths = [os.path.join("e2e-out", "load2k", f"burst-tmp-{i}.json") for i in range(parts)]

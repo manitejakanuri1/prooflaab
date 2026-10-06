@@ -3,7 +3,8 @@
     python scripts/infra_snapshot.py            # rewrite infra/ from what is running now
     python scripts/infra_snapshot.py --check    # exit 1 if what is running differs from infra/
 
-It only READS (describe / list). It records, per environment: every Cloud Run service and
+It only READS (describe / list / get-iam-policy). It records, per environment (production, staging, and
+the dedicated runner project prooflab-runner-508214 with each service's invokers): every Cloud Run service and
 job (image, identity, environment variable NAMES and non-secret values, secret references,
 scaling, resources), Scheduler jobs and the Cloud Tasks queue. Secret VALUES are never read:
 a secret appears only as the name it is mounted from. A change made by hand in the console
@@ -12,12 +13,13 @@ then shows up as a diff here instead of being discovered months later.
 import json, os, shutil, subprocess, sys
 
 P, R = "prooflab-508214", "asia-south1"
+RUNNER_PROJECT = "prooflab-runner-508214"     # dedicated code-runner project (6 Oct 2026): its own quota, no data, no secrets
 ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "infra")
 G = shutil.which("gcloud") or shutil.which("gcloud.cmd")
 
 
-def gcloud(*args):
-    out = subprocess.run([G, *args, f"--project={P}", "--format=json"], capture_output=True, text=True)
+def gcloud(*args, project=P):
+    out = subprocess.run([G, *args, f"--project={project}", "--format=json"], capture_output=True, text=True)
     return json.loads(out.stdout) if out.returncode == 0 and out.stdout.strip() else []
 
 
@@ -77,9 +79,16 @@ def snapshot():
             "oidc_service_account": (target.get("oidcToken") or {}).get("serviceAccountEmail"),
             "oauth_service_account": (target.get("oauthToken") or {}).get("serviceAccountEmail"),
         }
+    # The dedicated runner project: services, plus who may invoke each (the privacy of the runner IS its IAM).
+    state["runner"] = {"services": {}}
+    for s in gcloud("run", "services", "list", f"--region={R}", project=RUNNER_PROJECT):
+        name = s["metadata"]["name"]
+        policy = gcloud("run", "services", "get-iam-policy", name, f"--region={R}", project=RUNNER_PROJECT) or {}
+        state["runner"]["services"][name] = {**service(s), "invokers": sorted(
+            m for b in policy.get("bindings", []) if b["role"] in ("roles/run.invoker", "roles/run.servicesInvoker") for m in b["members"])}
     queues = {q["name"].split("/")[-1]: {"rate": q.get("rateLimits"), "retry": q.get("retryConfig"), "state": q.get("state")}
               for q in gcloud("tasks", "queues", "list", f"--location={R}")}
-    for env in state:
+    for env in ("production", "staging"):
         state[env]["scheduler"] = {k: v for k, v in sorted(sched.items()) if ("staging" in k) == (env == "staging")}
         state[env]["queues"] = {k: v for k, v in sorted(queues.items()) if ("staging" in k) == (env == "staging")}
     return state

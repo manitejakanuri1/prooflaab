@@ -48,7 +48,8 @@ const AdminDashboardOverview = ({
           .eq('status', 'needs_review'),
         supabase.from('tasks').select('id', { count: 'exact', head: true }),
         supabase.from('tasks').select('id', { count: 'exact', head: true })
-          .in('status', ['Pending', 'In Progress']),
+          // Daily Lots are stored lowercase ('pending'); older rows use capitalised words.
+          .in('status', ['pending', 'Pending', 'In Progress']),
       ]);
 
       return {

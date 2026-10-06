@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, Download, TrendingUp, Users, Building2, FileText, Activity, Target } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Building2, FileText, Activity, Target } from "lucide-react";
 import { 
   BarChart, 
   Bar, 
@@ -26,6 +26,16 @@ const AdminAnalytics = () => {
   const [dateRange, setDateRange] = useState("weekly");
 
   // KPI Stats Queries
+  // Counts only (head requests): the old version downloaded every task row (one per student per day, so
+  // it grows forever) and every submission in the range just to count them in the browser.
+  const count = async (q: PromiseLike<{ count: number | null; error: unknown }>) => {
+    const { count: n, error } = await q;
+    if (error) throw error;
+    return n ?? 0;
+  };
+  // Daily Lots store lowercase 'completed' / 'pending'; a few older rows use capitalised words.
+  const COMPLETED = ['completed', 'Completed'];
+
   const { data: kpiStats } = useQuery({
     queryKey: ['kpi-stats', dateRange],
     queryFn: async () => {
@@ -40,64 +50,44 @@ const AdminAnalytics = () => {
         startDate.setFullYear(now.getFullYear() - 1);
       }
 
-      // Work submitted (task_submissions)
-      const { data: proofs } = await supabase
-        .from('task_submissions')
-        .select('id')
-        .gte('created_at', startDate.toISOString());
-
-      // Active Students
-      const { data: students } = await supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('status', 'active');
-
-      // Tasks Posted vs Filled
-      const { data: allTasks } = await supabase
-        .from('tasks')
-        .select('status');
-      
-      const totalTasks = allTasks?.length || 0;
-      const completedTasks = allTasks?.filter(t => t.status === 'Completed').length || 0;
+      const [totalProofs, activeStudents, totalTasks, completedTasks] = await Promise.all([
+        // Work submitted (task_submissions)
+        count(supabase.from('task_submissions').select('id', { count: 'exact', head: true }).gte('created_at', startDate.toISOString())),
+        count(supabase.from('student_profiles').select('id', { count: 'exact', head: true }).eq('status', 'active')),
+        // Tasks Posted vs Filled
+        count(supabase.from('tasks').select('id', { count: 'exact', head: true })),
+        count(supabase.from('tasks').select('id', { count: 'exact', head: true }).in('status', COMPLETED)),
+      ]);
       const fillRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-      return {
-        totalProofs: proofs?.length || 0,
-        activeStudents: students?.length || 0,
-        taskFillRate: fillRate
-      };
+      return { totalProofs, activeStudents, taskFillRate: fillRate };
     }
   });
 
   const { data: weeklyProofs } = useQuery({
     queryKey: ['weekly-proof-uploads', dateRange],
     queryFn: async () => {
-      const daysCount = dateRange === "weekly" ? 7 : dateRange === "monthly" ? 30 : 365;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - daysCount);
-
-      const { data } = await supabase
-        .from('task_submissions')
-        .select('submitted_at:created_at')
-        .gte('created_at', startDate.toISOString());
-
-      const days = Array.from({ length: daysCount }, (_, i) => {
+      // The chart shows the last 7 days whatever the range (as before), so only those 7 days are counted.
+      const days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
-        date.setDate(date.getDate() - (daysCount - 1 - i));
+        date.setDate(date.getDate() - (6 - i));
         return date.toISOString().split('T')[0];
       });
+      const counts = await Promise.all(days.map((day) => {
+        const next = new Date(`${day}T00:00:00Z`);
+        next.setUTCDate(next.getUTCDate() + 1);
+        return count(supabase.from('task_submissions').select('id', { count: 'exact', head: true })
+          .gte('created_at', `${day}T00:00:00Z`).lt('created_at', next.toISOString()));
+      }));
 
-      return days.map(day => {
-        const count = data?.filter(p => p.submitted_at?.startsWith(day)).length || 0;
-        return {
-          date: new Date(day).toLocaleDateString('en-US', { 
-            weekday: dateRange === "weekly" ? 'short' : undefined,
-            month: 'short',
-            day: 'numeric'
-          }),
-          uploads: count
-        };
-      }).slice(-7); // Show last 7 data points for cleaner display
+      return days.map((day, i) => ({
+        date: new Date(day).toLocaleDateString('en-US', { 
+          weekday: dateRange === "weekly" ? 'short' : undefined,
+          month: 'short',
+          day: 'numeric'
+        }),
+        uploads: counts[i]
+      }));
     }
   });
 
@@ -135,25 +125,17 @@ const AdminAnalytics = () => {
   const { data: startupActivity } = useQuery({
     queryKey: ['startup-activity-pie'],
     queryFn: async () => {
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select('status');
-
-      const statusCounts = tasks?.reduce((acc, task) => {
-        acc[task.status || 'Pending'] = (acc[task.status || 'Pending'] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      return Object.entries(statusCounts).map(([status, count]) => ({
-        name: status,
-        value: count
-      }));
+      const groups: [string, string[]][] = [
+        ['Pending', ['pending', 'Pending']],
+        ['Completed', COMPLETED],
+        ['In Progress', ['In Progress', 'Assigned']],
+        ['Flagged', ['Flagged']],
+      ];
+      const counts = await Promise.all(groups.map(([, statuses]) =>
+        count(supabase.from('tasks').select('id', { count: 'exact', head: true }).in('status', statuses))));
+      return groups.map(([name], i) => ({ name, value: counts[i] })).filter((g) => g.value > 0);
     }
   });
-
-  const exportData = (format: 'csv' | 'pdf') => {
-    console.log(`Exporting data as ${format}`);
-  };
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
@@ -183,16 +165,7 @@ const AdminAnalytics = () => {
             </SelectContent>
           </Select>
           
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
-              <Download className="h-4 w-4 mr-2" />
-              CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportData('pdf')}>
-              <Download className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
-          </div>
+          {/* CSV / PDF export buttons removed: they only wrote to the console. */}
         </div>
       </div>
 

@@ -6,6 +6,7 @@
 #   bash scripts/dev-tools/staging_release_gate.sh            # everything (about 15 minutes, a few paise of AI)
 #   bash scripts/dev-tools/staging_release_gate.sh quick      # no browser, no real-audio run
 #   bash scripts/dev-tools/staging_release_gate.sh noload     # everything except the two load steps
+#   bash scripts/dev-tools/staging_release_gate.sh nopaid     # everything except the load steps and the two paid-AI steps (crawler Lot writing, voice scoring)
 #
 # Prints PASS/FAIL per gate and exits non-zero if any gate fails.
 set -uo pipefail
@@ -59,10 +60,15 @@ fi
 
 if [ "$MODE" != "quick" ]; then
   echo "== staging end to end"
+  # nopaid: skips only the two steps that call the paid AI (Lot writing, voice scoring); every other gate runs.
+  if [ "$MODE" != "nopaid" ]; then
   gate "crawler: source to student-ready Lot"  python scripts/dev-tools/staging_crawler_e2e.py
+  fi
   gate "bug-finder job (plumbing run)"        python scripts/dev-tools/staging_bugfinder_check.py
+  if [ "$MODE" != "nopaid" ]; then
   gate "real audio through the voice pipeline" python scripts/dev-tools/staging_voice_e2e.py
-  if [ "$MODE" != "noload" ]; then
+  fi
+  if [ "$MODE" != "noload" ] && [ "$MODE" != "nopaid" ]; then
   gate "code runner under load (10, 20 students)" bash -c 'out=$(python scripts/dev-tools/staging_load_test.py runcode 10 20); echo "$out"; [ "$(echo "$out" | grep -c "errors=0 ")" = "2" ] && echo "2/2 checks passed"'
   gate "voice burst (10 recordings at once)"  bash -c 'out=$(python scripts/dev-tools/staging_load_test.py voice e2e-out/loadvoice.wav 10); echo "$out"; echo "$out" | grep -q "scored=10 failed=0" && echo "1/1 checks passed"'
   fi

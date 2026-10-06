@@ -15,7 +15,7 @@ Do it at a quiet hour (late evening IST; never 05:30–06:00 when nightly jobs r
 | 0.1 | Release target is 2,000 students on the current 20-vCPU quota; no quota request in this release. Read `CONCURRENCY-2000-REPORT.md` for the measured limit before choosing the rollout day | Owner |
 | 0.2 | Decide the monthly budget (`COST-CONTROL-PLAN.md`) | Owner |
 | 0.3 | Decide XP timing (report §12) — no change is needed to roll out | Owner |
-| 0.4 | Rehearse Stage 2 on a temporary copy of production (restore the latest backup into a throw-away Cloud SQL instance, run the whole sequence, delete it). **Done 6 Oct 2026 (backup 1791144000000): Option 2 passed; it found 82b, 84a, 86b, 86c.** Must be repeated with the exact final files of the release commit on the newest backup before Stage 1. | Owner yes, Claude runs |
+| 0.4 | Rehearse Stage 2 on a temporary copy of production (restore a production backup into a throw-away Cloud SQL instance, run the whole sequence, delete it). **Done twice, 6 Oct 2026.** (1) Backup 1791144000000: chose Option 2, found 82b, 84a, 86b, 86c. (2) Backup 1791230400000 with the exact files of release `e4e2922`: 43/43 migrations passed, 0 checksum mismatches, 0 of 98 release calls and 0 of 61 tables missing, all permission gates passed, 274 function bodies + 63 triggers + all grants saved for rollback, every temporary resource deleted and checked gone. Repeat only if a migration file or runtime release file changes. | Done |
 | 0.5 | `bash scripts/dev-tools/staging_release_gate.sh` → `FINAL STAGING RELEASE GATE: PASS` | Claude |
 
 ## Stage 1 — Freeze and back up
@@ -70,7 +70,7 @@ This is "Option 2", proved on a restored production copy (Stage 0.4, 6 Oct 2026)
 
 Effects while the OLD website and functions are still live (keep this gap to minutes: Stage 3 and 4 follow immediately): the company "sponsor a Lot" button fails (56, and `sponsor_lot` is removed by 74), "Explain" before "Submit" is refused with a message (61), "delete recording" in Privacy fails (61), the old verification screen's admin notification fails (82 locks `notify_all_admins`), a coding Submit that fails a test is no longer passed (91).
 
-Check after: API answers; `select count(*) from schema_migrations` = 42; `python scripts/migrations.py plan` checksums equal the ledger's.
+Check after: API answers; `select count(*) from schema_migrations` = 43 (the 43 files above); `python scripts/migrations.py plan` checksums equal the ledger's.
 
 ## Stage 3 — Services
 

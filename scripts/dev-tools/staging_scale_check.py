@@ -80,8 +80,15 @@ for name, who, verb, path, body, prefer in CASES:
     extra = (f" total={rng.split('/')[-1]}" if rng and prefer else "") + (f"  HTTP {status}: {raw[:120]!r}" if status >= 400 else "")
     print(("PASS " if ok else "FAIL ") + f"{name:47s} {med:7.0f}ms {max(times):7.0f}ms  {size:>7d} B{extra}", flush=True)
 
+def production_attempt_budget():
+    """How many tries production's Cloud Scheduler gives daily-lots: 1 + retryCount (read-only, live)."""
+    out = subprocess.run("gcloud scheduler jobs describe prooflab-daily-lots --location=asia-south1 --project=prooflab-508214 "
+                         "--format=value(retryConfig.retryCount)", shell=True, capture_output=True, text=True).stdout.strip()
+    return 1 + int(out) if out.isdigit() else 1
+
+
 if "--jobs" in sys.argv:
-    print("\nnightly jobs at 15,000 students (limit 240 s each - the function's request timeout is 300 s)")
+    print("\nnightly jobs at 15,000 students (limit 240 s per try - the function's request timeout is 300 s; daily-lots may use production's Scheduler retries)")
     for job in ("nightly-squads", "daily-lots", "weekly-seasons", "prune-events"):
         req = urllib.request.Request(f"{st.FUNCTIONS}/scheduled-job?job={job}", data=b"{}", method="POST",
                                      headers=st.scheduler_headers())
@@ -94,6 +101,23 @@ if "--jobs" in sys.argv:
         except Exception as e:  # timeout
             status, body = 0, str(e)[:160]
         secs = time.perf_counter() - t0
+        if job == "daily-lots":
+            # Since migration 76 a run that reaches its time limit stops cleanly and Scheduler's retry carries on
+            # where it stopped. So judge it the way production runs it: every try within 240 s, and the whole job
+            # finished within production's Scheduler budget (1 + retryCount, read live). More tries = FAIL.
+            budget, tries, total = production_attempt_budget(), 1, secs
+            while status == 500 and "the retry continues" in body and tries < budget and secs <= 240:
+                t0 = time.perf_counter()
+                try:
+                    with urllib.request.urlopen(req, timeout=320) as r:
+                        status, body = r.status, r.read().decode()[:160]
+                except urllib.error.HTTPError as e:
+                    status, body = e.code, e.read().decode()[:160]
+                secs = time.perf_counter() - t0; total += secs; tries += 1
+            ok = status == 200 and secs <= 240
+            results.append(ok)
+            print(("PASS " if ok else "FAIL ") + f"{job:20s} {total:6.1f}s in {tries} of {budget} allowed tries  HTTP {status}  {body}", flush=True)
+            continue
         ok = status == 200 and secs <= 240
         results.append(ok)
         print(("PASS " if ok else "FAIL ") + f"{job:20s} {secs:6.1f}s  HTTP {status}  {body}", flush=True)

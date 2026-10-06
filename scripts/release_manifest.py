@@ -53,9 +53,14 @@ rimage = sh(f'gcloud run services describe {RUNNER_SERVICE} --region={R} --proje
 rdigest = rd["status"]["imageDigest"].split("@")[-1]
 rtags = sh(f'gcloud artifacts docker images list {rimage.split("@")[0]} --include-tags --filter="version={rdigest}" --format="value(tags)"')
 rbuilt = (re.search(r"rc-([0-9a-f]{7})", rtags) or [None, ""])[1]
+# The build record that produced exactly this digest (regional Cloud Build in the runner project).
+builds = json.loads(sh(f"gcloud builds list --project={RUNNER_PROJECT} --region={R} --limit=50 --format=json") or "[]")
+rbuild = next((b for b in builds if any(i.get("digest") == rdigest for i in (b.get("results") or {}).get("images", []))), None)
+rprov = (f"Cloud Build `{rbuild['id']}` ({R}, {rbuild['status']}) produced this digest" if rbuild
+         else "NO Cloud Build record found for this digest")
 rows.append((f"code-runner ({RUNNER_PROJECT} / {RUNNER_SERVICE})", rrev, f"code-runner, tag {rtags or '-'}", rdigest,
              sorted(e["name"] for e in rd["spec"]["containers"][0].get("env", [])),
-             unchanged(rbuilt, "code-runner") + "; built from that commit per its tag (no Cloud Build record)"))
+             f"{rprov}; tag `{rtags}`; " + unchanged(rbuilt, "code-runner")))
 jobs = []
 for j in ("crawler", "bug-finder"):
     image = sh(f'gcloud run jobs describe prooflab-staging-{j} --region={R} --project={P} --format="value(spec.template.spec.template.spec.containers[0].image)"')
@@ -75,7 +80,7 @@ if run:
     log = sh(f"gh run view --repo manitejakanuri1/prooflaab {run[0]['databaseId']} --log")
     m = re.findall(r"([0-9a-f]{64})\s+dist\.sha256", log)
     artifact = m[-1] if m else ""
-snapshot_commit = sh("git log -1 --format=%h -- infra")
+snapshot_commit = sh("git log -1 --format=%h -- infra") + (" + UNCOMMITTED changes" if sh("git status --porcelain -- infra") else "")
 
 out = [f"""# Release manifest
 

@@ -36,13 +36,25 @@ def run_once():
         return e.code, json.loads(e.read())
 
 
+def production_attempt_budget():
+    """How many tries production's Cloud Scheduler gives daily-lots: 1 + retryCount (read-only, live)."""
+    out = subprocess.run("gcloud scheduler jobs describe prooflab-daily-lots --location=asia-south1 --project=prooflab-508214 "
+                         "--format=value(retryConfig.retryCount)", shell=True, capture_output=True, text=True).stdout.strip()
+    return 1 + int(out) if out.isdigit() else 1
+
+
+BUDGET = production_attempt_budget()
+TRIES = []
+
+
 def run_job():
     """As Cloud Scheduler does it: a run that stopped at its own time limit ("ran out of time
-    ... the retry continues") is retried, and the retry carries on where it stopped. The
-    staging database (db-f1-micro, memory at 100%) is sometimes slow enough to need one.
-    Lots created by the stopped run are added to the final answer."""
+    ... the retry continues") is retried, and the retry carries on where it stopped.
+    Lots created by the stopped runs are added to the final answer.
+    Correctness is judged on the FINISHED job, however many tries the 15,000-student data set needs (up to 10);
+    the number of tries is recorded and judged separately against production's Scheduler budget (scale)."""
     made = 0
-    for _ in range(4):
+    for n in range(1, 11):
         c, b = run_once()
         m = __import__("re").search(r"\((\d+) Lots created\); the retry continues", str(b.get("error") or ""))
         if c == 500 and m:
@@ -50,7 +62,9 @@ def run_job():
             continue
         if made and isinstance(b.get("result"), dict):
             b["result"]["lots_created"] = b["result"].get("lots_created", 0) + made
+        TRIES.append(n)
         return c, b
+    TRIES.append(99)
     return c, b
 
 
@@ -81,5 +95,7 @@ finally:
 c, b = run_job(); r = b.get("result") or {}
 check("after the data is repaired the retry completes: success", c == 200 and r.get("status") == "success" and r.get("lots_created") == 2000, (c, {k: r.get(k) for k in ("status", "failed", "lots_created")}))
 
+check(f"scale: every run finished within production's Scheduler budget ({BUDGET} tries)", max(TRIES or [99]) <= BUDGET,
+      f"tries per run: {TRIES} (15,000 synthetic students; release target 2,000)")
 print(f"\n{sum(results)}/{len(results)} checks passed")
 sys.exit(0 if all(results) else 1)

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,7 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle,
-  Eye, Download, MoreHorizontal, Trash2, UserX, UserCheck, Filter
+  Eye, Download, MoreHorizontal, Trash2, UserX, UserCheck, Filter, Plus
 } from "lucide-react";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 
@@ -80,6 +81,12 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [viewUserSheet, setViewUserSheet] = useState<UserData | null>(null);
   const [actionType, setActionType] = useState<'block' | 'unblock' | 'approve' | 'suspend' | 'reject' | 'delete'>('block');
+  const [isCreateCompanyOpen, setIsCreateCompanyOpen] = useState(false);
+  const [newCompany, setNewCompany] = useState({
+    name: "",
+    email: "",
+    domain_industry: "",
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -241,6 +248,52 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
       return data;
     },
     enabled: activeTab === 'students'
+  });
+
+  const createCompanyMutation = useMutation({
+    mutationFn: async (company: {
+      name: string;
+      email: string;
+      domain_industry: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke(
+        'create-company-user',
+        {
+          body: {
+            name: company.name.trim(),
+            email: company.email.trim().toLowerCase(),
+            domain_industry: company.domain_industry.trim(),
+          },
+        }
+      );
+
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['admin-users-startups'],
+      });
+      toast({
+        title: "Company created",
+        description: "Company account created and invitation sent.",
+      });
+      setIsCreateCompanyOpen(false);
+      setNewCompany({
+        name: "",
+        email: "",
+        domain_industry: "",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Could not create company",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const updateUserMutation = useMutation({
@@ -441,10 +494,18 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
             Manage {activeTab === 'students' ? 'students' : activeTab === 'startups' ? 'company' : 'colleges'} accounts and settings
           </p>
         </div>
-        <Button onClick={exportToCSV} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          {activeTab === 'startups' && (
+            <Button onClick={() => setIsCreateCompanyOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Company
+            </Button>
+          )}
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -771,6 +832,100 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Admin-created company account */}
+      <Dialog
+        open={isCreateCompanyOpen}
+        onOpenChange={setIsCreateCompanyOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Company Account</DialogTitle>
+            <DialogDescription>
+              Create an approved company login and send a secure
+              set-password invitation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="company-name">Company name</Label>
+              <Input
+                id="company-name"
+                value={newCompany.name}
+                onChange={(e) =>
+                  setNewCompany({
+                    ...newCompany,
+                    name: e.target.value,
+                  })
+                }
+                placeholder="Company name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company-email">Login email</Label>
+              <Input
+                id="company-email"
+                type="email"
+                value={newCompany.email}
+                onChange={(e) =>
+                  setNewCompany({
+                    ...newCompany,
+                    email: e.target.value,
+                  })
+                }
+                placeholder="company@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company-domain">
+                Domain / industry
+              </Label>
+              <Input
+                id="company-domain"
+                value={newCompany.domain_industry}
+                onChange={(e) =>
+                  setNewCompany({
+                    ...newCompany,
+                    domain_industry: e.target.value,
+                  })
+                }
+                placeholder="Software, FinTech, Manufacturing..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateCompanyOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!newCompany.name.trim() || !newCompany.email.trim()) {
+                  toast({
+                    title: "Missing details",
+                    description: "Company name and email are required.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                createCompanyMutation.mutate(newCompany);
+              }}
+              disabled={createCompanyMutation.isPending}
+            >
+              {createCompanyMutation.isPending
+                ? 'Creating...'
+                : 'Create Company'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* User Details Sheet */}
       <Sheet open={!!viewUserSheet} onOpenChange={() => setViewUserSheet(null)}>

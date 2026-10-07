@@ -56,20 +56,27 @@ const SystemSettings = () => {
   });
 
   const createAdminMutation = useMutation({
-    mutationFn: async (adminData: any) => {
-      // admin_users is a view over user_roles with INSTEAD OF triggers, so the
-      // type generator marks it read-only. The write is real; the cast is only
-      // to say so.
-      const { error } = await (supabase.from('admin_users') as any)
-        .insert([adminData]);
-      
+    mutationFn: async (adminData: { name: string; email: string; role: string }) => {
+      const { data, error } = await supabase.functions.invoke(
+        'create-admin-user',
+        {
+          body: {
+            name: adminData.name.trim(),
+            email: adminData.email.trim().toLowerCase(),
+          },
+        }
+      );
+
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast({
         title: "Success",
-        description: "Admin user created successfully.",
+        description: "Admin account created and invitation sent.",
       });
       setIsCreateAdminModalOpen(false);
       setNewAdminData({ name: "", email: "", role: "admin" });
@@ -280,8 +287,8 @@ const SystemSettings = () => {
                   offering tiers that grant identical access is worse than
                   offering none, because somebody will believe them. */}
               <p className="text-xs text-muted-foreground mt-1.5">
-                They must already have a ProofLab account — this grants admin access
-                to that email, it does not create the account.
+                A new login will be created for this email and the administrator
+                will receive a secure set-password invitation.
               </p>
             </div>
           </div>

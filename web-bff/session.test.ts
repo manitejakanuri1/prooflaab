@@ -1,6 +1,8 @@
 import {
   COOKIE_NAME,
   clearSessionCookie,
+  generateSessionId,
+  hashSessionId,
   makeSessionCookie,
   readSessionCookie,
   sealSession,
@@ -84,9 +86,20 @@ Deno.test("expired session is rejected", async () => {
   assert(opened === null, "expired cookie was accepted");
 });
 
-Deno.test("cookie is HttpOnly Secure and Strict", async () => {
-  const sealed = await sealSession(sample(), testKey());
-  const cookie = makeSessionCookie(sealed, 3600);
+Deno.test("browser cookie contains only opaque session id", async () => {
+  const sessionId = generateSessionId();
+
+  assert(sessionId.length === 43, "unexpected session id length");
+  assert(
+    !sessionId.includes("TEST_REFRESH_TOKEN_NOT_REAL"),
+    "refresh token leaked into browser id",
+  );
+  assert(
+    !sessionId.includes("TEST_APP_TOKEN_NOT_REAL"),
+    "app token leaked into browser id",
+  );
+
+  const cookie = makeSessionCookie(sessionId, 3600);
 
   assert(cookie.startsWith(`${COOKIE_NAME}=`), "wrong cookie name");
   assert(cookie.includes("HttpOnly"), "HttpOnly missing");
@@ -98,10 +111,43 @@ Deno.test("cookie is HttpOnly Secure and Strict", async () => {
     headers: { Cookie: cookie.split(";")[0] },
   });
 
-  assert(readSessionCookie(req) === sealed, "cookie could not be read server-side");
+  assert(
+    readSessionCookie(req) === sessionId,
+    "opaque session id could not be read server-side",
+  );
 
   const cleared = clearSessionCookie();
   assert(cleared.includes("Max-Age=0"), "clear cookie does not expire");
+});
+
+Deno.test("session id hash is deterministic and hides raw id", async () => {
+  const sessionId = generateSessionId();
+
+  const a = await hashSessionId(sessionId);
+  const b = await hashSessionId(sessionId);
+
+  assert(a === b, "same session id produced different hashes");
+  assert(a.length === 64, "SHA-256 hex digest should be 64 chars");
+  assert(a !== sessionId, "raw browser session id was stored as hash");
+});
+
+Deno.test("invalid browser session ids are rejected", async () => {
+  const req = new Request("https://prooflab.co.in/api/auth/session", {
+    headers: {
+      Cookie: `${COOKIE_NAME}=not-valid`,
+    },
+  });
+
+  assert(readSessionCookie(req) === null, "invalid cookie was accepted");
+
+  let refused = false;
+  try {
+    await hashSessionId("not-valid");
+  } catch {
+    refused = true;
+  }
+
+  assert(refused, "invalid session id was hashable");
 });
 
 Deno.test("bad session key is refused", async () => {

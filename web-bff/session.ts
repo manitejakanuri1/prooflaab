@@ -2,6 +2,9 @@ const COOKIE_NAME = "__Host-prooflab_session";
 const VERSION = 1;
 const AAD = new TextEncoder().encode("prooflab-session-v1");
 
+const SESSION_ID_BYTES = 32;
+const SESSION_ID_RE = /^[A-Za-z0-9_-]{43}$/;
+
 export interface SessionUser {
   id: string;
   email: string;
@@ -151,6 +154,30 @@ export async function unsealSession(
   }
 }
 
+export function generateSessionId(): string {
+  return b64urlEncode(
+    crypto.getRandomValues(new Uint8Array(new ArrayBuffer(SESSION_ID_BYTES))),
+  );
+}
+
+export async function hashSessionId(sessionId: string): Promise<string> {
+  if (!SESSION_ID_RE.test(sessionId)) {
+    throw new Error("invalid session id");
+  }
+
+  const encoded = new TextEncoder().encode(sessionId);
+  const input = new Uint8Array(new ArrayBuffer(encoded.length));
+  input.set(encoded);
+
+  const digest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", input),
+  );
+
+  return [...digest]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export function readSessionCookie(req: Request): string | null {
   const raw = req.headers.get("Cookie");
   if (!raw) return null;
@@ -160,7 +187,8 @@ export function readSessionCookie(req: Request): string | null {
     const prefix = `${COOKIE_NAME}=`;
 
     if (trimmed.startsWith(prefix)) {
-      return trimmed.slice(prefix.length);
+      const value = trimmed.slice(prefix.length);
+      return SESSION_ID_RE.test(value) ? value : null;
     }
   }
 
@@ -168,11 +196,15 @@ export function readSessionCookie(req: Request): string | null {
 }
 
 export function makeSessionCookie(
-  sealed: string,
+  sessionId: string,
   maxAgeSeconds: number,
 ): string {
+  if (!SESSION_ID_RE.test(sessionId)) {
+    throw new Error("invalid session id");
+  }
+
   return [
-    `${COOKIE_NAME}=${sealed}`,
+    `${COOKIE_NAME}=${sessionId}`,
     "Path=/",
     "HttpOnly",
     "Secure",

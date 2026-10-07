@@ -45,6 +45,9 @@ jobs:
       - name: Google API key configuration tests
         run: python3 scripts/test_google_api_key.py
 
+      - name: Code runner IAM configuration tests
+        run: python3 scripts/test_runner_configuration.py
+
       - name: Retired architecture has not come back
         run: python3 scripts/legacy_guard.py
 

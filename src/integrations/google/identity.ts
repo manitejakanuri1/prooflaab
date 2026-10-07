@@ -21,6 +21,11 @@
  * every account kept its original UUID during the migration.
  */
 
+import {
+  endBffSession,
+  startBffSession,
+} from './bffSession';
+
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string;
 const BRIDGE_URL = import.meta.env.VITE_AUTH_BRIDGE_URL as string;
 
@@ -390,6 +395,12 @@ export const googleAuth = {
         returnSecureToken: true,
       });
       const session = await sessionFrom(res);
+
+      // Establish the server-owned HttpOnly session before exposing this login
+      // to the rest of the app. Database/functions/files will move behind this
+      // cookie in the next cutover phase.
+      await startBffSession(email, password);
+
       setSessionInternal(session, 'SIGNED_IN');
       return ok({ user: session.user, session });
     } catch (err) {
@@ -432,6 +443,17 @@ export const googleAuth = {
       }).catch(() => undefined);
 
       const session = await sessionFrom(res);
+
+      // Keep the existing signup/verification behaviour for now, but also
+      // establish the server-owned HttpOnly session required by the BFF.
+      try {
+        await startBffSession(email, password);
+      } catch {
+        throw new Error(
+          'Account created, but the secure session could not start. Please sign in to continue',
+        );
+      }
+
       setSessionInternal(session, 'SIGNED_IN');
       return ok({ user: session.user, session });
     } catch (err) {
@@ -440,7 +462,30 @@ export const googleAuth = {
   },
 
   async signOut() {
+    let secureLogoutError: unknown = null;
+
+    try {
+      await endBffSession();
+    } catch (err) {
+      secureLogoutError = err;
+    }
+
+    // Browser-held compatibility state is cleared even if the server is
+    // temporarily unreachable. The caller still receives the server error so
+    // the failed revocation is not silently reported as success.
     setSessionInternal(null, 'SIGNED_OUT');
+
+    if (secureLogoutError) {
+      return {
+        error: {
+          message:
+            secureLogoutError instanceof Error
+              ? secureLogoutError.message
+              : 'Could not complete logout',
+        },
+      };
+    }
+
     return { error: null };
   },
 

@@ -1,0 +1,89 @@
+name: Web BFF security gate
+
+on:
+  push:
+    paths:
+      - "web-bff/**"
+      - ".github/workflows/web-bff-ci.yml"
+      - "scripts/secret_scan.py"
+  pull_request:
+    paths:
+      - "web-bff/**"
+      - ".github/workflows/web-bff-ci.yml"
+      - "scripts/secret_scan.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web-bff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: No secrets in tracked files
+        run: python3 scripts/secret_scan.py
+
+      - name: Type-check BFF
+        run: deno check --no-lock web-bff/main.ts
+
+      - name: BFF security tests
+        run: |
+          deno test --no-lock \
+            web-bff/session.test.ts \
+            web-bff/serviceToken.test.ts \
+            web-bff/sessionStore.test.ts \
+            web-bff/authRoutes.test.ts \
+            web-bff/proxyRoutes.test.ts \
+            web-bff/requestGuard.test.ts
+
+      - name: Build BFF container
+        run: docker build -t prooflab-web-bff-ci web-bff
+
+      - name: Start BFF container
+        run: |
+          docker run -d \
+            --name prooflab-web-bff-ci \
+            -p 18080:8080 \
+            prooflab-web-bff-ci
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18080/healthz >/tmp/healthz.json; then
+              cat /tmp/healthz.json
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "BFF health check failed"
+          docker logs prooflab-web-bff-ci
+          exit 1
+
+      - name: Ready endpoint must remain closed during migration
+        run: |
+          code="$(
+            curl -sS \
+              -o /tmp/ready.json \
+              -w '%{http_code}' \
+              http://127.0.0.1:18080/ready
+          )"
+
+          cat /tmp/ready.json
+
+          if [ "$code" != "503" ]; then
+            echo "Expected /ready to return 503 during migration, got $code"
+            exit 1
+          fi
+
+          echo "PASS: /ready remains fail-closed at 503"
+
+      - name: Container logs
+        if: always()
+        run: docker logs prooflab-web-bff-ci || true

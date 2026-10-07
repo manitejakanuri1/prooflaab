@@ -29,7 +29,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write        # required to request the OIDC token
 
 jobs:
   # Release gate. Must pass before anything is published.
@@ -178,6 +177,9 @@ jobs:
     # Publishing only ever happens from main (or a manual run of main), never from
     # another branch or a pull request.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      id-token: write        # required to request the OIDC token
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

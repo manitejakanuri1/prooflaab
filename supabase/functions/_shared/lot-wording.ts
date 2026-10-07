@@ -14,8 +14,6 @@
 
 export type LotMode = 'sandbox' | 'rubric';
 
-export const SECTION_LABELS = ['Your task', 'Input', 'Output', 'Constraints', 'Example', 'Why', 'What to write'] as const;
-
 function hasLabel(text: string, label: string): boolean {
   return new RegExp(`^\\s*(\\*\\*)?${label}(\\*\\*)?\\s*:`, 'im').test(text);
 }

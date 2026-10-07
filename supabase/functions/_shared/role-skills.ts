@@ -19,8 +19,6 @@ export const ROLE_REQUIRED_SKILLS: Record<string, string[]> = {
   "UI/UX Developer": ["Figma", "Wireframing", "User Research", "HTML", "CSS", "Design Systems", "Prototyping", "Accessibility"],
 };
 
-export const TARGET_ROLES = [...Object.keys(ROLE_REQUIRED_SKILLS), "Other"];
-
 interface SkillGap {
   verified: string[];
   needs_improvement: string[];

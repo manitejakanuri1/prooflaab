@@ -344,20 +344,6 @@ async function refreshSession(): Promise<GoogleSession | null> {
   }
 }
 
-/**
- * Google's own ID token, refreshed first if it is close to expiring. The file
- * service verifies this against Google directly, rather than trusting the
- * database token, so a bug in the bridge could never grant access to files.
- */
-export async function currentIdToken(): Promise<string | null> {
-  if (!current) return null;
-  if (current.expires_at * 1000 - Date.now() < REFRESH_MARGIN_MS) {
-    const fresh = await refreshSession();
-    return fresh?.provider_token ?? null;
-  }
-  return current.provider_token;
-}
-
 /** The current database token, refreshed first if it is about to expire. */
 export async function currentAccessToken(): Promise<string | null> {
   if (!current) return null;
@@ -613,15 +599,6 @@ export const googleAuth = {
     };
   },
 };
-
-/** Test seam: drop all state between cases. */
-export function __resetForTests(): void {
-  if (refreshTimer) clearTimeout(refreshTimer);
-  refreshTimer = null;
-  current = null;
-  listeners.clear();
-  persist(null);
-}
 
 /**
  * Test seam (Step 6 recording harness only, scripts/dev-tools/harness): replace

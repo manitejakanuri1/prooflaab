@@ -335,11 +335,29 @@ serve(async (req) => {
           _existing_profile_id: profileNeedsAuth && existingProfile ? existingProfile.id : null,
         })
         if (recordError) {
-          console.error('IMPORT RECORD FAILED (nothing was written for this student):', recordError)
+          console.error(
+            'IMPORT RECORD FAILED (nothing was written for this student):',
+            recordError,
+          )
+
+          const { error: rollbackError } =
+            await supabaseAdmin.auth.admin.deleteUser(
+              authData.user.id,
+            )
+
+          if (rollbackError) {
+            console.error(
+              'STUDENT LOGIN ROLLBACK FAILED:',
+              rollbackError,
+            )
+          }
+
           results.push({
             email,
             status: 'error',
-            message: `Could not save this student: ${recordError.message}. Nothing was saved for them; import the file again to retry.`
+            message: rollbackError
+              ? `Could not save this student: ${recordError.message}. Automatic login rollback also failed; administrator review is required.`
+              : `Could not save this student: ${recordError.message}. The login was rolled back; import the file again to retry.`
           })
           continue
         }

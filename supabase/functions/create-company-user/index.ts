@@ -177,10 +177,23 @@ serve(async (req) => {
         recordError,
       );
 
+      const { error: rollbackError } =
+        await admin.auth.admin.deleteUser(
+          authData.user.id,
+        );
+
+      if (rollbackError) {
+        console.error(
+          "company login rollback failed:",
+          rollbackError,
+        );
+      }
+
       return reply(
         {
-          error:
-            "Login was created but company records could not be provisioned. Administrator review is required.",
+          error: rollbackError
+            ? "Company provisioning failed and automatic login rollback also failed. Administrator review is required."
+            : "Company provisioning failed. The login was rolled back; please try again.",
         },
         500,
       );

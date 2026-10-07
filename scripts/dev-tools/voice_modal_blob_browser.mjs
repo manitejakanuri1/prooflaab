@@ -1,6 +1,8 @@
 // Step 6: real-browser STAGING check of local blob: URL ownership in
 // VoiceExplainModal. Creates, changes and deletes NO database rows:
-//   M1 failed save   - the upload is blocked in the browser (never reaches storage/DB)
+//   M1 failed save   - the upload is refused in the browser with a permanent 413 (never reaches
+//                      storage/DB). A network failure is NOT a failed save any more: since audit
+//                      R4-1/F5 it is "unconfirmed" and the recording is kept for resume.
 //   M2 close mid-save - the upload is held, the dialog closed, then the upload aborted
 //   M3 reopen         - an EXISTING finished recording is resumed from localStorage;
 //                       playback must use the authenticated storagePath download
@@ -51,9 +53,11 @@ async function newPage(browser, extraInit) {
 }
 const blobLog = (page) => page.evaluate(() => window.__blobLog);
 const audioBlobs = (log) => log.created.filter((c) => c.type.startsWith('audio/') || c.type === '' || c.type.includes('webm') || c.type.includes('ogg'));
-async function openExplain(page) {
+async function openExplain(page, taskTitle) {
   await page.goto(`${APP}/student/tasks/assigned`, { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Explain 60s/ }).first().click({ timeout: 60000 });
+  // Each task is a card with its title as a heading; open that task's own Explain button when one is named.
+  const scope = taskTitle ? page.locator('[class*="border-l-4"]').filter({ has: page.getByRole('heading', { name: taskTitle, exact: true }) }) : page;
+  await scope.getByRole('button', { name: /Explain 60s/ }).first().click({ timeout: 60000 });
   await page.getByRole('dialog').waitFor({ timeout: 15000 });
 }
 async function recordAndStop(page, ms) {
@@ -70,7 +74,11 @@ try {
   {
     const page = await newPage(browser);
     let putAttempts = 0;
-    await page.route(`${FILES}/**`, (r) => { if (r.request().method() === 'PUT') { putAttempts++; return r.abort('failed'); } return r.continue(); });
+    await page.route(`${FILES}/**`, (r) => {
+      if (r.request().method() !== 'PUT') return r.continue();
+      putAttempts++;
+      return r.fulfill({ status: 413, contentType: 'application/json', body: JSON.stringify({ error: 'File too large' }) });
+    });
     await openExplain(page);
     await recordAndStop(page, 3000);
     await page.getByRole('button', { name: /Try recording again/ }).waitFor({ timeout: 30000 });
@@ -99,21 +107,38 @@ try {
       `created=${made.length}`);
     if (held) await held.abort('failed');   // the upload never reaches storage
     await page.waitForTimeout(1500);
-    const marker = await page.evaluate((id) => Object.keys(localStorage).filter((k) => k.startsWith(`pl.voiceJob.${id}.`)).length, T07);
-    check('M2 nothing was sent: no recovery marker left (upload never completed)', marker === 0);
+    // The modal keeps one record per recording under pl.voiceJob.v3:<recordingId> (src/lib/voiceJob.ts),
+    // carrying studentId/taskId - not the older pl.voiceJob.<student>.<task> keys.
+    // Audit R4-3: a recording whose upload outcome is unknown is KEPT (aside), never deleted - the page
+    // may only be suspended and still able to send it. So the record stays; what must hold is that
+    // nothing was sent: no server job (no voiceId) and it is not marked as uploaded.
+    const kept = await page.evaluate((id) => Object.keys(localStorage).filter((k) => k.startsWith('pl.voiceJob.v3:'))
+      .map((k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } })
+      .filter((j) => j?.studentId === id), T07);
+    check('M2 nothing was sent: the record is kept (R4-3) with no server job and not marked uploaded',
+      kept.length === 1 && kept[0].voiceId == null && kept[0].stage !== 'uploaded',
+      `records=${kept.length} voiceId=${kept[0]?.voiceId ?? null} stage=${kept[0]?.stage}`);
     await page.context().close();
   }
 
   // ---------- M3: reopen an existing finished recording -> storagePath playback ----------
   {
-    const rows = await (await fetch(`${API}/voice_explanations?student_id=eq.${T07}&transcript_source=eq.server&status=eq.scored&transcription_status=eq.completed&select=id,storage_path,task_id&order=created_at.desc&limit=1`,
+    // A finished, server-transcribed recording of t07 for a task (the modal's context is student + task;
+    // staging has migration 71, so voice_explanations has no proof_id column to filter on).
+    const rows = await (await fetch(`${API}/voice_explanations?student_id=eq.${T07}&transcript_source=eq.server&status=eq.scored&transcription_status=eq.completed&task_id=not.is.null&select=id,storage_path,task_id,transcription_idempotency_key&order=created_at.desc&limit=1`,
       { headers: { Authorization: `Bearer ${SVC}` } })).json();
-    const tasks = await (await fetch(`${API}/tasks?student_id=eq.${T07}&select=id`, { headers: { Authorization: `Bearer ${SVC}` } })).json();
     const rec = rows[0];
+    if (!rec) throw new Error('no finished server recording of t07 to reopen');
+    const [task] = await (await fetch(`${API}/tasks?id=eq.${rec.task_id}&select=id,title`, { headers: { Authorization: `Bearer ${SVC}` } })).json();
     const page = await newPage(browser, {
-      // the existing job, as the modal itself would have stored it (for each of t07's tasks)
-      fn: ({ id, keys, job }) => { for (const k of keys) localStorage.setItem(`pl.voiceJob.${id}.${k}`, JSON.stringify(job)); },
-      arg: { id: T07, keys: tasks.map((t) => t.id), job: { voiceId: rec.id, idempotencyKey: `existing-${rec.id}`, storagePath: rec.storage_path, durationSeconds: 14 } },
+      // the finished job exactly as this build stores it: one per-recording record (pl.voiceJob.v3:<id>)
+      fn: ({ key, job }) => localStorage.setItem(key, JSON.stringify(job)),
+      arg: {
+        key: `pl.voiceJob.v3:m3-${rec.id}`,
+        job: { voiceId: rec.id, idempotencyKey: rec.transcription_idempotency_key ?? `existing-${rec.id}`, storagePath: rec.storage_path,
+               durationSeconds: 14, studentId: T07, taskId: rec.task_id, proofId: null, recordingId: `m3-${rec.id}`,
+               stage: 'uploaded', createdAt: Date.now() },
+      },
     });
     const auth = [];
     page.on('request', async (r) => {
@@ -121,7 +146,7 @@ try {
       const h = (await r.allHeaders())['authorization'] ?? '';
       auth.push(h === `Bearer ${t07Token}`);   // compared, never printed
     });
-    await openExplain(page);
+    await openExplain(page, task.title);
     await page.getByText('Saved. It will appear in your build-log.').waitFor({ timeout: 60000 });
     const before = await page.locator('[role=dialog] audio').count();
     check('M3 reopened finished recording: no local blob player (nothing to point at)', before === 0);

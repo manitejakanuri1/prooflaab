@@ -15,7 +15,6 @@ const [LONG_WAV, SHORT_WAV] = process.argv.slice(2);
 const APP = 'http://localhost:5173';
 const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
 const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
-const JOB_KEY_PREFIX = `pl.voiceJob.${T07}.`;
 
 const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const SVC = mint({ role: 'service_role', sub: 'voice-modal-browser-test' }, 3600);
@@ -64,9 +63,12 @@ async function withBrowser(wav, fn) {
   }
 }
 
-async function openModal(page) {
+async function openModal(page, taskTitle) {
   await page.goto(`${APP}/student/tasks/assigned`, { waitUntil: 'domcontentloaded' });
-  const btn = page.getByRole('button', { name: /Explain 60s/ }).first();
+  // Each task is a card with its title as a heading; reopen a named task's own button (list order
+  // changes once a task has a recording).
+  const scope = taskTitle ? page.locator('[class*="border-l-4"]').filter({ has: page.getByRole('heading', { name: taskTitle, exact: true }) }) : page;
+  const btn = scope.getByRole('button', { name: /Explain 60s/ }).first();
   await btn.waitFor({ timeout: 60000 });
   await btn.click();
   await page.getByRole('dialog').waitFor({ timeout: 15000 });
@@ -76,13 +78,19 @@ async function record(page, ms) {
   await page.waitForTimeout(ms);
   await page.getByRole('button', { name: /Stop and save/ }).click();
 }
-const storedJob = (page) => page.evaluate((prefix) => {
+// The modal keeps one record per recording under pl.voiceJob.v3:<recordingId> (src/lib/voiceJob.ts),
+// carrying studentId/taskId - not the older pl.voiceJob.<student>.<task> keys.
+const storedJob = (page) => page.evaluate((id) => {
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith(prefix)) return JSON.parse(localStorage.getItem(k));
+    if (!k?.startsWith('pl.voiceJob.v3:')) continue;
+    const j = JSON.parse(localStorage.getItem(k));
+    if (j?.studentId === id) return j;
   }
   return null;
-}, JOB_KEY_PREFIX);
+}, T07);
+const titleOf = async (taskId) =>
+  (await (await fetch(`${API}/tasks?id=eq.${taskId}&select=title`, { headers: { Authorization: `Bearer ${SVC}` } })).json())[0]?.title;
 const tryAgainVisible = (page) => page.getByRole('button', { name: /Try recording again/ }).isVisible();
 
 if (!process.env.ONLY || process.env.ONLY.includes('A')) /* section A */
@@ -94,8 +102,12 @@ await withBrowser(LONG_WAV, async (page) => {
   const job = await storedJob(page);
   check('A1 stored job has voiceId, key, path and duration', !!(job?.voiceId && job.idempotencyKey && job.storagePath && job.durationSeconds > 0),
     `duration=${job?.durationSeconds}`);
+  const title = await titleOf(job?.taskId);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await openModal(page);                                    // reopen after refresh -> resume
+  // Heartbeat contract (voiceLifecycle.ts): a heartbeat older than 15 s means its page is gone. Reopened
+  // sooner, the dialog says "still being sent from another open tab" until reopened (reported finding).
+  await page.waitForTimeout(16000);
+  await openModal(page, title);                             // reopen after refresh -> resume
   await page.getByText('Saved. It will appear in your build-log.').waitFor({ timeout: 120000 });
   const emptySrc = await page.locator('audio[src=""]').count();
   check('A2 no <audio> with an empty src after refresh', emptySrc === 0);

@@ -1,5 +1,5 @@
-// Step 6: real-browser STAGING check of recording playback after a refresh,
-// the Play button's failure handling, and cross-student audio isolation.
+// Step 6: real-browser STAGING check of recording playback after a refresh (in the recording
+// dialog), the Play button's failure handling, and cross-student audio isolation.
 //
 // Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
 // Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
@@ -18,7 +18,6 @@ const T16 = '67c7f711-6ca8-4b4d-a586-278857dcb0ab';
 
 const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const studentToken = (id, email) => mint({ role: 'authenticated', sub: id, email });
-const SVC = mint({ role: 'service_role', sub: 'voice-playback-test' }, 3600);
 const session = (id, email) => {
   const token = studentToken(id, email);
   return {
@@ -57,14 +56,30 @@ try {
   await page.waitForTimeout(14000);
   await page.getByRole('button', { name: /Stop and save/ }).click();
   await page.getByText(/Queued|Writing down what you said/).first().waitFor({ timeout: 60000 });
+  // The modal keeps one record per recording under pl.voiceJob.v3:<recordingId> (src/lib/voiceJob.ts),
+  // carrying studentId/taskId - not the older pl.voiceJob.<student>.<task> keys.
   job = await page.evaluate((id) => {
-    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith(`pl.voiceJob.${id}.`)) return JSON.parse(localStorage.getItem(k)); }
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k?.startsWith('pl.voiceJob.v3:')) continue;
+      const j = JSON.parse(localStorage.getItem(k));
+      if (j?.studentId === id) return j;
+    }
     return null;
   }, T07);
   check('1 recording saved and queued', !!job?.voiceId, `voice ${job?.voiceId?.slice(0, 8)}`);
 
+  // Reopen THE SAME task: the list order changes once a task has a recording.
+  const [task] = await (await fetch(`${API}/tasks?id=eq.${job.taskId}&select=title`,
+    { headers: { Authorization: `Bearer ${studentToken(T07, 'vidyuthsetu+t07@gmail.com')}` } })).json();
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Explain 60s/ }).first().click({ timeout: 60000 });
+  // Heartbeat contract (src/lib/voiceLifecycle.ts): a record's heartbeat older than HEARTBEAT_STALE_MS
+  // (15 s) means its page is gone. The queued record still carries the previous page's fresh heartbeat,
+  // and the dialog checks ownership once per opening - opened sooner, it shows "still being sent from
+  // another open tab" until reopened (reported in docs/DEAD-CODE-AND-DATABASE-CLEANUP-2026-10-07.md).
+  await page.waitForTimeout(16000);
+  await page.locator('[class*="border-l-4"]').filter({ has: page.getByRole('heading', { name: task.title, exact: true }) })
+    .getByRole('button', { name: /Explain 60s/ }).first().click({ timeout: 60000 });
   await page.getByText('Saved. It will appear in your build-log.').waitFor({ timeout: 150000 });
 
   // 2. Modal Play (RecordingPlayback) with the download failing: never stuck.
@@ -81,28 +96,9 @@ try {
   await page.getByText(/Communication score \d+\/100/).waitFor({ timeout: 150000 });
   await page.getByRole('dialog').getByRole('button', { name: /^Done$/ }).click();
 
-  // 3. Refresh, find the completed recording in Build-Log, play it.
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.goto(`${APP}/student/dashboard`, { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Build-Log/ }).first().click({ timeout: 60000 });
-  // The title also holds the count badge, so match the words, not the whole text.
-  await page.getByText(/Spoken Explanations/).first().waitFor({ timeout: 60000 });
-  const card = page.locator('main, body').first();
-  const db = (await (await fetch(`${API}/voice_explanations?id=eq.${job.voiceId}&select=transcript,status,communication_score`,
-    { headers: { Authorization: `Bearer ${SVC}` } })).json())[0];
-  const entry = card.getByRole('button', { name: new RegExp(db.transcript.slice(0, 25).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).first();
-  check('3a completed recording found in Build-Log after refresh', await entry.isVisible(), `status=${db.status} score=${db.communication_score}`);
-  await entry.click();
-  const detail = page.getByRole('dialog');
-  await blockFiles();
-  await detail.getByRole('button', { name: /Play recording/ }).click();
-  await detail.getByRole('button', { name: /Could not load - try again/ }).waitFor({ timeout: 15000 });
-  check('3b Build-Log Play with a failed download shows an error, button not stuck',
-    await detail.getByRole('button', { name: /Could not load - try again/ }).isEnabled());
-  await unblockFiles();
-  await detail.getByRole('button', { name: /Could not load - try again/ }).click();
-  const a2 = await audioState(detail.locator('audio').first());
-  check('3c Build-Log plays the completed recording after refresh', a2.scheme === 'blob' && a2.ready >= 1, JSON.stringify(a2));
+  // (Former step 3 - playing the recording from the Build-Log's "Spoken Explanations" list - was
+  // removed with that screen in 292358b: the Build-log shows marks only; playback lives in this
+  // dialog (step 2) and on the Privacy page.)
 
   // 4. A second student cannot download the first student's audio (from the browser origin).
   const cross = await page.evaluate(async ({ url, t16, t07 }) => {

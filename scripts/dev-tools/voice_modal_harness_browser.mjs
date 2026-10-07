@@ -35,6 +35,9 @@ const A = '7d71bff4-1ec2-4778-b26d-9567a416bfac';     // t07
 const B = '67c7f711-6ca8-4b4d-a586-278857dcb0ab';     // t16
 const TASK = 'harness-task';
 const P1 = 'harness-proof-1', P2 = 'harness-proof-2';
+// Since 862efe8 a recording's context is student + task (proof links are retired, the modal has no
+// proofId prop), so tests that need a second context switch the TASK.
+const T2 = 'harness-task-2';
 const HARNESS = `${APP}/scripts/dev-tools/harness/voice-modal-harness.html?student=${A}&task=${TASK}`;
 // records of the previous builds (read for migration only)
 const v2Key = (student, task, proof) => `pl.voiceJob.v2:${JSON.stringify([student, task ?? null, proof ?? null])}`;
@@ -486,28 +489,9 @@ async function previousTests(browser) {
     }
   });
 
-  await group('H19-H20 other proof', async () => {
-    const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}` });
-    state.autoComplete = false;
-    await recordAndStop(page);
-    await waitFor(() => state.enqueue.find((e) => e.id));
-    const j1 = state.enqueue.find((e) => e.id);
-    await H(page, 'setProof', P2);
-    await startBtn(page).waitFor({ timeout: 15000 });
-    const m1 = await marker(page, A, TASK, P1), m2 = await marker(page, A, TASK, P2);
-    check('H19 other proof, same task: P2 offers Start (P1\'s job not resumed there); P1 record kept with proof P1',
-      m1?.voiceId === j1.id && m1?.proofId === P1 && m2 === null && j1.body.proof_id === P1,
-      `P1=${JSON.stringify(m1 && { v: m1.voiceId, p: m1.proofId })} P2=${JSON.stringify(m2)}`);
-    state.rows.set(j1.id, row(j1.id));
-    await H(page, 'setProof', P1);
-    check('H20 back to P1: P1\'s own job resumed', await score77(page));
-    await ctx.close();
-  });
-
   await group('H21-H23 concurrent contexts', async () => {
     for (const [label, change, bCtx] of [
-      ['proof', (p) => H(p, 'setProof', P2), [A, TASK, P2]],
-      ['task', (p) => H(p, 'setTask', 'harness-task-2'), [A, 'harness-task-2', P1]],
+      ['task', (p) => H(p, 'setTask', T2), [A, T2, null]],
     ]) {
       const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}` });
       state.putHold = deferred();
@@ -520,17 +504,17 @@ async function previousTests(browser) {
       state.putHold.resolve();
       await waitFor(() => state.enqueue.filter((e) => e.id).length === 2, 20000);
       const keys = new Set(state.enqueue.map((e) => e.body.idempotency_key));
-      const bodyA = state.enqueue.find((e) => e.body.proof_id === P1 && e.body.task_id === TASK);
+      const bodyA = state.enqueue.find((e) => e.body.task_id === TASK);
       const bodyB = state.enqueue.find((e) => e !== bodyA);
-      const mA = await marker(page, A, TASK, P1);
+      const mA = await marker(page, A, TASK, null);
       const mB = await marker(page, ...bCtx);
       for (const e of state.enqueue) if (e.id) state.rows.set(e.id, row(e.id));
       await score77(page);
       check(`H21 ${label} change during A's upload: B could still record and save (2 uploads, 2 enqueues)`,
         bothUploading && state.puts.length === 2 && state.enqueue.length === 2, `puts=${state.puts.length} enqueues=${state.enqueue.length}`);
-      check(`H22 ${label}: unique idempotency keys; each enqueue carries its own task/proof`,
-        keys.size === 2 && !!bodyA && !!bodyB && bodyB.body.proof_id === bCtx[2] && bodyB.body.task_id === bCtx[1],
-        JSON.stringify(state.enqueue.map((e) => [e.body.task_id, e.body.proof_id])));
+      check(`H22 ${label}: unique idempotency keys; each enqueue carries its own task, no proof link`,
+        keys.size === 2 && !!bodyA && !!bodyB && bodyB.body.task_id === bCtx[1] && state.enqueue.every((e) => !('proof_id' in e.body)),
+        JSON.stringify(state.enqueue.map((e) => [e.body.task_id, 'proof_id' in e.body])));
       check(`H23 ${label}: A keeps its own recovery record (own key/path); B's record is B's`,
         mA?.idempotencyKey === bodyA?.body.idempotency_key && mA?.storagePath === bodyA?.body.storage_path && mA?.voiceId === bodyA?.id &&
         mB?.idempotencyKey === bodyB?.body.idempotency_key && mB?.voiceId === bodyB?.id,
@@ -618,8 +602,8 @@ async function previousTests(browser) {
         `lookups=${state.lookups.length}`);
       await page.getByRole('button', { name: /save it here/ }).click();
       const ok = await score77(page);
-      check('H30 "save it here" (explicit): one enqueue with the SAME key/path/duration and THIS proof; old key retired',
-        ok && state.enqueue.length === 1 && state.enqueue[0].body.idempotency_key === k && state.enqueue[0].body.proof_id === P2 && state.enqueue[0].body.duration_seconds === 20 &&
+      check('H30 "save it here" (explicit): one enqueue with the SAME key/path/duration and THIS task; old key retired',
+        ok && state.enqueue.length === 1 && state.enqueue[0].body.idempotency_key === k && state.enqueue[0].body.task_id === TASK && state.enqueue[0].body.duration_seconds === 20 &&
         (await readKey(page, legacyKey(A, TASK, P2))) === null, `enqueues=${state.enqueue.length}`);
       await ctx.close();
     }
@@ -640,10 +624,10 @@ async function previousTests(browser) {
     }
     {
       const k = crypto.randomUUID();
-      const mine = row('legacy-row-p2', { proof_id: P2, transcription_idempotency_key: k, storage_path: `${A}/1700000000000-explain.webm` });
+      const mine = row('legacy-row-mine', { transcription_idempotency_key: k, storage_path: `${A}/1700000000000-explain.webm` });
       const { page, state, ctx } = await setup(browser, { url: url2, seed: legacySeed(k), rows: [mine] });
       const ok = await score77(page);
-      check('H33 legacy record proven this proof\'s by the server: resumed without any new enqueue; old key retired',
+      check('H33 legacy record proven this task\'s by the server: resumed without any new enqueue; old key retired',
         ok && state.enqueue.length === 0 && (await readKey(page, legacyKey(A, TASK, P2))) === null);
       await ctx.close();
     }
@@ -811,7 +795,7 @@ async function round4Tests(browser) {
   await group('F3 delayed recorder events', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);                                  // A: 3.5 s; its data/stop events are held
-    await H(page, 'setProof', P2);                                    // context change ends A's session
+    await H(page, 'setTask', T2);                                    // context change ends A's session
     await startBtn(page).click({ timeout: 20000 });                   // B starts
     await stopBtn(page).waitFor({ timeout: 20000 });
     await page.waitForTimeout(700);
@@ -821,28 +805,28 @@ async function round4Tests(browser) {
     const tracks = await ev(page, () => window.__mic.streams.map((s) => s.getTracks().map((t) => t.readyState)[0]));
     await stopBtn(page).click();
     await waitFor(() => state.enqueue.filter((e) => e.id).length === 2, 20000);
-    const byProof = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, state.puts.find((p) => p.path === e.body.storage_path)?.size ?? 0]));
+    const byTask = Object.fromEntries(state.enqueue.map((e) => [e.body.task_id, state.puts.find((p) => p.path === e.body.storage_path)?.size ?? 0]));
     check('F3a A\'s late stop did not stop B: B\'s microphone still live and B still recording',
       bRecording && tracks[0] === 'ended' && tracks[1] === 'live', JSON.stringify(tracks));
-    check('F3b each recording uploaded only its own audio (A 3.5 s > B 1.5 s), once each, to its own proof',
-      byProof[P1] > 0 && byProof[P2] > 0 && byProof[P1] > byProof[P2] && state.puts.length === 2, JSON.stringify(byProof));
-    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, e.body.duration_seconds]));
+    check('F3b each recording uploaded only its own audio (A 3.5 s > B 1.5 s), once each, to its own task',
+      byTask[TASK] > 0 && byTask[T2] > 0 && byTask[TASK] > byTask[T2] && state.puts.length === 2, JSON.stringify(byTask));
+    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.task_id, e.body.duration_seconds]));
     check('R4-2a A\'s delayed onstop uses A\'s OWN stop time: A 3-4 s, B 1-3 s (not A measured to its late callback)',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('R4-2 delayed onstop after B stopped', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);                                  // A: 3.5 s, events held
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await recordAndStop(page, 1500);                                  // B records AND stops first
-    await waitFor(() => state.enqueue.some((e) => e.body.proof_id === P2), 20000);
+    await waitFor(() => state.enqueue.some((e) => e.body.task_id === T2), 20000);
     await page.waitForTimeout(2200);                                  // time passes before A's callback
     await ev(page, () => window.__releaseRecorder(1));                // A's onstop runs only now
-    await waitFor(() => state.enqueue.some((e) => e.body.proof_id === P1), 20000);
-    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, e.body.duration_seconds]));
+    await waitFor(() => state.enqueue.some((e) => e.body.task_id === TASK), 20000);
+    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.task_id, e.body.duration_seconds]));
     check('R4-2b A\'s onstop delayed until after B stopped: A still reports its own 3-4 s (B\'s stop time never used), B 1-3 s',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('F3 delayed events after unmount', async () => {
@@ -1072,12 +1056,12 @@ async function round4Tests(browser) {
   // F8: a stale or edited local record is never shown for work whose server row disagrees.
   await group('F8 tampered record', async () => {
     const k = crypto.randomUUID();
-    const rowP1 = row('row-of-p1', { proof_id: P1, storage_path: `${A}/p1-explain.webm`, transcription_idempotency_key: 'k-p1' });
-    const seed = { [v3Key('forged')]: { voiceId: 'row-of-p1', idempotencyKey: k, storagePath: `${A}/p2-explain.webm`, durationSeconds: 9,
-      studentId: A, taskId: TASK, proofId: P2, recordingId: 'forged', stage: 'uploaded', createdAt: 1 } };
-    const { page, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P2}`, seed, rows: [rowP1] });
+    const rowOther = row('row-of-other-task', { task_id: T2, storage_path: `${A}/t2-explain.webm`, transcription_idempotency_key: 'k-t2' });
+    const seed = { [v3Key('forged')]: { voiceId: 'row-of-other-task', idempotencyKey: k, storagePath: `${A}/mine-explain.webm`, durationSeconds: 9,
+      studentId: A, taskId: TASK, proofId: null, recordingId: 'forged', stage: 'uploaded', createdAt: 1 } };
+    const { page, ctx } = await setup(browser, { seed, rows: [rowOther] });
     await page.getByTestId('voice-legacy').waitFor({ timeout: 20000 });
-    check('F8a a record pointing at another proof\'s row: nothing shown here (no score), student asked; record not deleted',
+    check('F8a a record pointing at another task\'s row: nothing shown here (no score), student asked; record not deleted',
       (await page.getByText(/Communication score/).count()) === 0 && !!(await readKey(page, v3Key('forged'))));
     await ctx.close();
   });
@@ -1320,18 +1304,18 @@ async function syncTests(browser) {
     state.putHold = deferred();
     await recordAndStop(page);
     await waitFor(() => state.puts.length === 1);
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await recordAndStop(page, 1500);
     const both = await waitFor(() => state.puts.length === 2, 20000);
     state.putHold.resolve();
     await page.getByText(/Communication score 70\/100/).waitFor({ timeout: 30000 });
     await waitFor(() => state.inserts.length === 2, 10000);
     await page.waitForTimeout(1500);
-    const proofs = state.inserts.map((i) => i.body.proof_id).sort();
+    const tasks = state.inserts.map((i) => i.body.task_id).sort();
     check('S1 sync path: A\'s save in flight did not swallow B\'s (2 uploads, 2 inserts)', both && state.puts.length === 2 && state.inserts.length === 2,
       `puts=${state.puts.length} inserts=${state.inserts.length}`);
-    check('S2 sync path: each insert carries its own proof (P1, P2), same task and student',
-      JSON.stringify(proofs) === JSON.stringify([P1, P2]) && state.inserts.every((i) => i.body.task_id === TASK && i.body.student_id === A));
+    check('S2 sync path: each insert carries its own task (TASK, T2), same student',
+      JSON.stringify(tasks) === JSON.stringify([TASK, T2].sort()) && state.inserts.every((i) => i.body.student_id === A));
     check('S3 sync path: B\'s screen shows B\'s saved result', await page.getByText(/Saved\. It will appear/).isVisible());
     check('S4 sync path (F7): paths are <student>/<random id>-explain.webm, distinct',
       new Set(state.puts.map((p) => p.path)).size === 2 && state.puts.every((p) => /^[0-9a-f-]{36}\/[0-9a-f-]{36}-explain\.webm$/.test(p.path)));
@@ -1340,7 +1324,7 @@ async function syncTests(browser) {
   await group('S5 delayed recorder events', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await startBtn(page).click({ timeout: 20000 });
     await stopBtn(page).waitFor({ timeout: 20000 });
     await page.waitForTimeout(700);
@@ -1349,26 +1333,26 @@ async function syncTests(browser) {
     const bRecording = await stopBtn(page).isVisible();
     await stopBtn(page).click();
     await waitFor(() => state.inserts.length === 2, 25000);
-    const size = (proof) => state.puts.find((p) => p.path === state.inserts.find((i) => i.body.proof_id === proof)?.body.storage_path)?.size ?? 0;
+    const size = (task) => state.puts.find((p) => p.path === state.inserts.find((i) => i.body.task_id === task)?.body.storage_path)?.size ?? 0;
     check('S5 sync path (F3): A\'s late events did not stop B; each upload holds only its own audio',
-      bRecording && size(P1) > size(P2) && size(P2) > 0 && state.inserts.length === 2, `A=${size(P1)} B=${size(P2)}`);
-    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.proof_id, i.body.duration_seconds]));
+      bRecording && size(TASK) > size(T2) && size(T2) > 0 && state.inserts.length === 2, `A=${size(TASK)} B=${size(T2)}`);
+    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.task_id, i.body.duration_seconds]));
     check('S5b sync path (R4-2): each insert carries its own recording length (A 3-4 s, B 1-3 s)',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('S5c delayed onstop after B stopped', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);                                  // A: 3.5 s, events held
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await recordAndStop(page, 1500);                                  // B records AND stops first
-    await waitFor(() => state.inserts.some((i) => i.body.proof_id === P2), 20000);
+    await waitFor(() => state.inserts.some((i) => i.body.task_id === T2), 20000);
     await page.waitForTimeout(2200);
     await ev(page, () => window.__releaseRecorder(1));                // A's onstop runs only now
-    await waitFor(() => state.inserts.some((i) => i.body.proof_id === P1), 20000);
-    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.proof_id, i.body.duration_seconds]));
+    await waitFor(() => state.inserts.some((i) => i.body.task_id === TASK), 20000);
+    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.task_id, i.body.duration_seconds]));
     check('S5c sync path (R4-2): A\'s onstop delayed until after B stopped still inserts A\'s own 3-4 s; B 1-3 s',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('S6 account change mid-transcription', async () => {

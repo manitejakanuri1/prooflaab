@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthForm";
-import EmailVerificationPrompt from "@/components/auth/EmailVerificationPrompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/Logo";
 import { onboardingRoute } from "@/lib/onboardingRoute";
@@ -11,8 +10,6 @@ import { onboardingRoute } from "@/lib/onboardingRoute";
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 
 export default function Auth() {
-  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -134,27 +131,6 @@ export default function Auth() {
       navigate(role === 'student' ? '/student/start' : onboardingRoute(role), { replace: true });
     }
   };
-
-  if (showVerificationPrompt) {
-    return (
-      <div className="min-h-screen bg-background dark:bg-gray-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-5">
-          <Link to="/" className="inline-flex items-center justify-center space-x-2">
-            <Logo className="h-12 w-12" />
-            <span className="text-2xl font-bold text-foreground">ProofLabAI</span>
-          </Link>
-        </div>
-          
-          <EmailVerificationPrompt 
-            email={userEmail}
-            onVerified={() => setShowVerificationPrompt(false)}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background dark:bg-gray-950 flex items-center justify-center p-4">

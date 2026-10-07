@@ -1,5 +1,6 @@
 import { handleAuthRoute } from "./authRoutes.ts";
 import { handleProxyRoute } from "./proxyRoutes.ts";
+import { rejectCrossSiteBrowserWrite } from "./requestGuard.ts";
 
 const PORT = Number(Deno.env.get("PORT") ?? "8080");
 
@@ -35,6 +36,12 @@ export async function handler(req: Request): Promise<Response> {
     });
   }
 
+  const crossSiteRefusal = rejectCrossSiteBrowserWrite(req);
+
+  if (crossSiteRefusal) {
+    return crossSiteRefusal;
+  }
+
   const authResponse = await handleAuthRoute(req);
   if (authResponse) return authResponse;
 
@@ -44,9 +51,12 @@ export async function handler(req: Request): Promise<Response> {
   /*
    * Deliberately NOT ready yet.
    *
-   * Authentication, HttpOnly sessions and backend proxying are not implemented.
-   * Returning 503 prevents an unfinished BFF from being mistaken for a
-   * production-ready authentication gateway.
+   * Authentication, encrypted HttpOnly sessions and authenticated backend
+   * proxying now exist, but frontend cutover, deployment wiring and live
+   * integration validation are still incomplete.
+   *
+   * Returning 503 prevents a partially integrated BFF from being mistaken for
+   * the production-ready gateway.
    */
   if (req.method === "GET" && url.pathname === "/ready") {
     return json(

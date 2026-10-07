@@ -10,9 +10,13 @@ Run (secrets go straight from Secret Manager into this process's env):
   python scripts/dev-tools/g1_access_test.py
 Creates 5 labelled test rows on STAGING (idempotency key g1s-test-*). Makes 2 real DeepSeek calls.
 """
-import base64, hashlib, hmac, json, os, time, urllib.error, urllib.request
+import base64, hashlib, hmac, json, os, sys, time, urllib.error, urllib.request
+from pathlib import Path
 
-API_KEY = "AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw"  # public web key, from .env.staging
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from google_api_key import google_api_key
+
+API_KEY = google_api_key(".env.staging")
 BRIDGE = "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app"
 FN = "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app"

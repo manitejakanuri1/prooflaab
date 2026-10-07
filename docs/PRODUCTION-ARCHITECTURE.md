@@ -6,20 +6,21 @@ and Vercel are retired; any document that says otherwise is historical.
 
 Project `prooflab-508214`, region `asia-south1` (Mumbai). Site: https://prooflab.co.in
 
-## 0. Update - release 444b2f3 (verified live 7 Oct 2026, read-only `scripts/infra_snapshot.py`)
+## 0. Update - release 444b2f3 + closure (verified live 7 Oct 2026; main `d814d5d`)
 
-The sections below are from 1 Oct. What changed with the release (`main` = `444b2f3`):
+The sections below are from 1 Oct. What changed with the release and the 7 Oct production closure:
 
 | Area | Live now |
 |---|---|
 | Functions | image `prooflab-functions:prod-444b2f3`; `CODE_RUNNER_AUTH=iam`, `CODE_RUNNER_URL` = the dedicated runner below. `CODE_RUNNER_SECRET` is still set (unused with `iam`; removal is a later step). |
 | Code runner | own project `prooflab-runner-508214`, service `prooflab-code-runner-rc` (image `code-runner:prod-444b2f3`): Cloud Run IAM, callers = the functions robots only, no secret, no data. The old `prooflab-code-runner` in the main project still exists (public + `RUNNER_SECRET`) as the rollback; retire it later. |
 | Coding tasks | two kinds (migration 92, `task_sandbox_config.kind`): `stdio` (whole program, stdin/stdout - the old path, unchanged) and `function` (student implements one function; `function_spec` frozen with the tests; arguments are canonical JSON sent to the runner on stdin; a trusted per-language harness calls the function and returns the value in a result frame). Verdicts include `output_limit`. |
-| Hidden tests | Run uses visible tests only. Submit returns and stores visible rows plus ONE `hidden-summary` row (counts only: no hidden inputs, outputs, errors or ids). **Known issue:** the database pass rule (migration 91) still counts one row per test - fix is migration 93, see `docs/POST-RELEASE-REMAINING-WORK.md` P1-PASS. |
+| Scheduler | daily jobs at their normal times again: nightly-squads 05:35, extend-fixtures 05:37, daily-lots 05:40 IST. |
+| Hidden tests | Run uses visible tests only. Submit returns and stores visible rows plus ONE `hidden-summary` row (counts only: no hidden inputs, outputs, errors or ids). The pass rule counts that row as its `hidden_count` tests (migration 93, applied 7 Oct). |
 | API | `PGRST_DB_PRE_REQUEST=public.refuse_suspended`: a suspended account is refused at once. |
 | Images | every other service is deployed by digest (`docs/RELEASE-MANIFEST.md`). |
-| Secrets still shared | `WEBHOOK_SECRET` on functions + accounts (9 Scheduler jobs send it); `PGRST_JWT_SECRET` on api, auth-bridge, files, functions, transcriber, worker, accounts and the crawler/bug-finder jobs. Removal plan: `docs/POST-RELEASE-REMAINING-WORK.md` F7 and W7a. |
-| Migrations | ledger `schema_migrations`: 44 files (50-92) applied; 66, 71, 72 (permanent drops) deferred. |
+| Shared secrets | `WEBHOOK_SECRET` (secret version 2 since 7 Oct; version 1 disabled) on functions + accounts - the 9 Scheduler jobs send it; the Google-identity replacement (F7) is prepared on branch `work/post-release`, not on main and not switched on. `PGRST_JWT_SECRET` on api, auth-bridge, files, functions, transcriber, worker, accounts and the crawler/bug-finder jobs (single-signer F1 not yet in production). |
+| Migrations | ledger `schema_migrations`: 45 files (50-93) applied; 66, 71, 72 and 94 (permanent drops) prepared, not applied. |
 
 ## 1. Whole system
 

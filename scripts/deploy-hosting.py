@@ -113,18 +113,35 @@ version = call("POST", f"sites/{SITE}/versions", {
         "rewrites": [{"glob": "**", "path": "/index.html"}],
         "headers": [
             {
-                # Security headers on every response. Deliberately no full script CSP:
-                # the lesson editor loads Monaco from its CDN. frame-ancestors blocks
-                # other sites from framing ProofLab (clickjacking); the in-page
-                # sandboxed practice iframe is same-page srcdoc, unaffected.
-                # Microphone stays allowed for ProofLab itself (voice explanations).
+                # Security headers on every response.
+                # Monaco is bundled locally, so runtime JavaScript no longer needs a
+                # third-party editor CDN. connect-src remains HTTPS/WSS-compatible
+                # while the BFF migration removes direct browser backend calls.
+                # Blob workers are required by the locally bundled Monaco workers.
+                # Microphone stays available for ProofLab voice explanations.
                 "glob": "**",
                 "headers": {
                     "X-Content-Type-Options": "nosniff",
                     "Referrer-Policy": "strict-origin-when-cross-origin",
                     "Permissions-Policy": "microphone=(self), camera=(), geolocation=(), payment=(), usb=()",
                     "X-Frame-Options": "SAMEORIGIN",
-                    "Content-Security-Policy": "frame-ancestors 'self'",
+                    "Content-Security-Policy": (
+                        "default-src 'self'; "
+                        "script-src 'self'; "
+                        "style-src 'self' 'unsafe-inline'; "
+                        "img-src 'self' data: blob: https:; "
+                        "font-src 'self' data:; "
+                        "connect-src 'self' https: wss:; "
+                        "media-src 'self' data: blob: https:; "
+                        "worker-src 'self' blob:; "
+                        "child-src 'self' blob:; "
+                        "frame-src 'self' blob:; "
+                        "object-src 'none'; "
+                        "base-uri 'self'; "
+                        "form-action 'self'; "
+                        "frame-ancestors 'self'; "
+                        "upgrade-insecure-requests"
+                    ),
                 },
             },
             {

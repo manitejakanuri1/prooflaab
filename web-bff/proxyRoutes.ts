@@ -47,6 +47,7 @@ function copyRequestHeaders(req: Request): Headers {
     "range-unit",
     "x-request-id",
     "x-session-id",
+    "x-upsert",
   ];
 
   for (const name of allowed) {
@@ -66,6 +67,7 @@ function responseHeaders(upstream: Response): Headers {
       "content-range",
       "range-unit",
       "location",
+      "content-disposition",
     ]
   ) {
     const value = upstream.headers.get(name);
@@ -115,7 +117,9 @@ export async function handleProxyRoute(
 
   const isFunction = url.pathname.startsWith("/api/functions/");
 
-  if (!isDb && !isFunction) {
+  const isFile = url.pathname.startsWith("/api/files/");
+
+  if (!isDb && !isFunction && !isFile) {
     return null;
   }
 
@@ -126,12 +130,18 @@ export async function handleProxyRoute(
 
   const functions = (env.get("FUNCTIONS_URL") ?? "").replace(/\/+$/, "");
 
+  const files = (env.get("FILES_URL") ?? "").replace(/\/+$/, "");
+
   if (isDb && !postgrest) {
     return json({ error: "database proxy unavailable" }, 503);
   }
 
   if (isFunction && !functions) {
     return json({ error: "function proxy unavailable" }, 503);
+  }
+
+  if (isFile && !files) {
+    return json({ error: "file proxy unavailable" }, 503);
   }
 
   let resolved;
@@ -188,7 +198,7 @@ export async function handleProxyRoute(
     }
 
     target = `${postgrest}${path ? `/${path}` : ""}${url.search}`;
-  } else {
+  } else if (isFunction) {
     if (req.method !== "POST") {
       return json({ error: "method not allowed" }, 405, {
         Allow: "POST",
@@ -206,6 +216,26 @@ export async function handleProxyRoute(
     target = `${functions}/functions/v1/${
       encodeURIComponent(slug)
     }${url.search}`;
+  } else {
+    if (!["GET", "PUT", "DELETE"].includes(req.method)) {
+      return json({ error: "method not allowed" }, 405, {
+        Allow: "GET, PUT, DELETE",
+      });
+    }
+
+    const path = url.pathname
+      .replace(/^\/api\/files\/?/, "");
+
+    // Must contain both a bucket and an object path.
+    if (
+      !safePath(path) ||
+      !path.includes("/") ||
+      path.startsWith("/")
+    ) {
+      return json({ error: "invalid file path" }, 400);
+    }
+
+    target = `${files}/file/${path}${url.search}`;
   }
 
   let upstream: Response;

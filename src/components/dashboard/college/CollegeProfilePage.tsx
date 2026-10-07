@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Save, Building } from "lucide-react";
-import ProfilePhotoModalUniversal from "../ProfilePhotoModalUniversal";
+import ProfilePhotoModal from "../ProfilePhotoModal";
 import { getInitials } from "@/lib/utils";
 
 const CollegeProfilePage = () => {
@@ -245,7 +245,7 @@ const CollegeProfilePage = () => {
         </CardContent>
       </Card>
 
-      <ProfilePhotoModalUniversal
+      <ProfilePhotoModal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
         currentPhotoUrl={currentPhotoUrl}

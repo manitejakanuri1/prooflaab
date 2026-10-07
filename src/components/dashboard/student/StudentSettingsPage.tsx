@@ -681,6 +681,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
 
       {/* Profile Photo Modal */}
       <ProfilePhotoModal
+        userType="student"
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
         currentPhotoUrl={currentPhotoUrl}

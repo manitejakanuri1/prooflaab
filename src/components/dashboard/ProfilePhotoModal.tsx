@@ -13,6 +13,7 @@ interface ProfilePhotoModalProps {
   currentPhotoUrl?: string | null;
   userName: string;
   userId: string;
+  userType: 'student' | 'college';
   onPhotoUpdate: (newUrl: string | null) => void;
 }
 
@@ -22,6 +23,7 @@ const ProfilePhotoModal = ({
   currentPhotoUrl, 
   userName, 
   userId,
+  userType,
   onPhotoUpdate 
 }: ProfilePhotoModalProps) => {
   const [uploading, setUploading] = useState(false);
@@ -56,7 +58,6 @@ const ProfilePhotoModal = ({
 
     setUploading(true);
     try {
-      // Get current user to find student profile
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -64,7 +65,6 @@ const ProfilePhotoModal = ({
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Math.random()}.${fileExt}`;
 
-      // Upload file to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('profile-photos')
         .upload(fileName, file, {
@@ -79,13 +79,41 @@ const ProfilePhotoModal = ({
         .from('profile-photos')
         .getPublicUrl(fileName);
       
-      // Update the profile in the database using user_id to find the profile
-      const { error } = await supabase
-        .from('student_profiles')
-        .update({ profile_photo_url: publicUrl })
-        .eq('user_id', user.id);
+      // Update the appropriate profile table
+      if (userType === 'college') {
+        // For college profiles, we need to check if the profile exists first
+        const { data: existingProfile } = await supabase
+          .from('college_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (error) throw error;
+        if (existingProfile) {
+          // Update existing profile
+          const { error } = await supabase
+            .from('college_profiles')
+            .update({ profile_photo_url: publicUrl })
+            .eq('user_id', user.id);
+          if (error) throw error;
+        } else {
+          // Create new profile
+          const { error } = await supabase
+            .from('college_profiles')
+            .insert({ 
+              user_id: user.id, 
+              college_name: userName,
+              profile_photo_url: publicUrl 
+            });
+          if (error) throw error;
+        }
+      } else {
+        // For students, just update
+        const { error } = await supabase
+          .from('student_profiles')
+          .update({ profile_photo_url: publicUrl })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      }
 
       onPhotoUpdate(publicUrl);
       
@@ -108,16 +136,22 @@ const ProfilePhotoModal = ({
   const handleDeletePhoto = async () => {
     setDeleting(true);
     try {
-      // Get current user to find student profile
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('student_profiles')
-        .update({ profile_photo_url: null })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      if (userType === 'college') {
+        const { error } = await supabase
+          .from('college_profiles')
+          .update({ profile_photo_url: null })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('student_profiles')
+          .update({ profile_photo_url: null })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      }
 
       onPhotoUpdate(null);
       

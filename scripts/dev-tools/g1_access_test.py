@@ -1,16 +1,16 @@
 """Step 6 G1: live STAGING access-control test for voice-score.
 
-Never prints secrets or tokens. Reads, from the environment only:
-  STAGING_JWT       - staging PostgREST/functions signing secret (prooflab-staging-jwt-secret),
-                      used only to mint a 3-minute service_role token in memory, playing
-                      the role of transcription-worker.
-Run (secrets go straight from Secret Manager into this process's env):
-\
-  STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
+Never prints secrets or tokens. Tokens are minted in memory by st.py exactly like the
+staging auth-bridge's (RS256 since F1, key read from Secret Manager at run time): a
+3-minute service_role token playing transcription-worker, and t07's student ticket.
+Run:
   python scripts/dev-tools/g1_access_test.py
 Creates 5 labelled test rows on STAGING (idempotency key g1s-test-*). Makes 2 real DeepSeek calls.
 """
-import base64, hashlib, hmac, json, os, time, urllib.error, urllib.request
+import json, os, sys, time, urllib.error, urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import st  # noqa: E402  staging token helper (same folder)
 
 API_KEY = "AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw"  # public web key, from .env.staging
 BRIDGE = "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
@@ -40,35 +40,18 @@ def call(url, body=None, token=None, method="POST", headers=None):
             return e.code, raw[:200].decode(errors="replace")
 
 
-def b64(b):
-    return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
-
-
 def service_token():
-    secret = os.environ["STAGING_JWT"].encode()
-    now = int(time.time())
-    h = b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    p = b64(json.dumps({"role": "service_role", "sub": "g1-access-test", "iat": now, "exp": now + 180}).encode())
-    return f"{h}.{p}.{b64(hmac.new(secret, f'{h}.{p}'.encode(), hashlib.sha256).digest())}"
-
-
-def mint(claims):
-    secret = os.environ["STAGING_JWT"].encode()
-    now = int(time.time())
-    h = b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    p = b64(json.dumps({**claims, "iat": now, "exp": now + 180}).encode())
-    return f"{h}.{p}.{b64(hmac.new(secret, f'{h}.{p}'.encode(), hashlib.sha256).digest())}"
+    return st.token("svc", ttl=180)
 
 
 def student_token():
     """The t07 password in Secret Manager does not sign in (INVALID_LOGIN_CREDENTIALS,
-    tried once). So this mints the same HS256 token the staging auth-bridge issues
-    after a login (role authenticated, sub = the account's database uuid), signed
-    with the same key voice-score verifies. Equivalent for voice-score's checks;
-    it does not exercise Identity Platform."""
+    tried once). So this mints the ticket the staging auth-bridge issues after a login
+    (role authenticated, sub = the account's database uuid) with st.py. Equivalent for
+    voice-score's checks; it does not exercise Identity Platform."""
     s, body = call(f"{API}/student_profiles?id=eq.{T07}&select=user_id", None, SVC, method="GET")
     assert s == 200 and body, f"t07 lookup failed: {s}"
-    return mint({"role": "authenticated", "sub": body[0]["user_id"], "email": "vidyuthsetu+t07@gmail.com"})
+    return st.token("user:" + body[0]["user_id"], ttl=180)
 
 
 SVC = service_token()

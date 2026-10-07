@@ -181,12 +181,16 @@ const CollegeOversight = () => {
       });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
       toast({
-        title: "Success",
-        description: "College added and invited.",
+        title: "College account created",
+        description: result?.invited
+          ? "Set-password invitation sent."
+          : "Account created, but invitation delivery was not confirmed. Ask the college administrator to use Forgot password on the sign-in page.",
+        variant: result?.invited ? undefined : "destructive",
       });
       closeModal();
     },

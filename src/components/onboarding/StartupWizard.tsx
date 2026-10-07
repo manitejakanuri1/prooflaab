@@ -18,11 +18,6 @@ interface StartupWizardData {
   talentNeeds: string[];
 }
 
-const DOMAINS = [
-  "FinTech", "EdTech", "HealthTech", "E-commerce", "SaaS", "AI/ML", 
-  "Blockchain", "Gaming", "IoT", "Cybersecurity", "Media & Entertainment", "Other"
-];
-
 const TALENT_SKILLS = [
   "Frontend Development", "Backend Development", "Full Stack Development", 
   "Mobile Development", "Data Science", "Machine Learning", "DevOps", 

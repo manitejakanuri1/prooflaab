@@ -23,8 +23,6 @@ const Portfolio = () => {
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [followModalOpen, setFollowModalOpen] = useState(false);
-  const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
   
   const { portfolio, loading, error } = usePortfolio(slug);
   const { data: provenWork = [] } = useProvenWork(portfolio?.student_id);

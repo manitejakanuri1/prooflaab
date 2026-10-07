@@ -28,7 +28,7 @@ import AdminOpsHealth from "@/components/dashboard/admin/AdminOpsHealth";
 import { useUrlTab } from "@/hooks/useUrlTab";
 
 const AdminDashboard = () => {
-  const { userType, packId } = useParams();
+  const { userType } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);

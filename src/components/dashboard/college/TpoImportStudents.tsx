@@ -71,23 +71,6 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
 
   const effectiveBranch = (branch === "__other__" ? otherBranch : branch).trim();
 
-  /** Splits one CSV line, honouring quoted fields that contain commas. */
-  const splitLine = (line: string): string[] => {
-    const out: string[] = [];
-    let cur = "";
-    let quoted = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (quoted && line[i + 1] === '"') { cur += '"'; i++; }
-        else quoted = !quoted;
-      } else if (ch === "," && !quoted) { out.push(cur); cur = ""; }
-      else cur += ch;
-    }
-    out.push(cur);
-    return out.map((s) => s.trim());
-  };
-
   const parse = async (file: File) => {
     setBusy(true);
     setFileName(file.name);
@@ -311,7 +294,6 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     const linked = count("linked");
     const mine = count("already_yours");
     const elsewhere = count("other_college");
-    const failed = count("error");
 
     await supabase.from("student_imports")
       .update({ status: "completed", completed_at: new Date().toISOString() })

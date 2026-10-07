@@ -85,7 +85,6 @@ const AdminDashboardOverview = ({
         periodStart.setDate(periodStart.getDate() - (periods - i) * groupSize);
         const periodEnd = new Date();
         periodEnd.setDate(periodEnd.getDate() - (periods - i - 1) * groupSize);
-        const periodKey = periodStart.toISOString().split('T')[0];
         const studentSignups = signupsRes.data?.filter(s => {
           const date = new Date(s.created_at);
           return date >= periodStart && date < periodEnd;

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseStages, type RoadmapStage } from "./RoadmapStages";
@@ -13,30 +12,18 @@ interface StageTask {
   status: "Pending" | "In Progress" | "Under Review" | "Completed";
 }
 
-const statusMeta: Record<StageTask["status"], { label: string; className: string; icon: typeof Clock }> = {
-  Pending: { label: "Not started", className: "border-muted-foreground/30 text-muted-foreground", icon: Clock },
-  "In Progress": { label: "In progress", className: "border-amber-400 text-amber-600", icon: PlayCircle },
-  "Under Review": { label: "Under review", className: "border-blue-400 text-blue-600", icon: Clock },
-  Completed: { label: "Done", className: "border-emerald-500 text-emerald-600", icon: CheckCircle2 },
-};
-
 const StudentRoadmapPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [stages, setStages] = useState<RoadmapStage[] | null>(null);
   const [taskStatusByStage, setTaskStatusByStage] = useState<Record<number, StageTask["status"]>>({});
   const [taskIdByStage, setTaskIdByStage] = useState<Record<number, string>>({});
-  const [hasScorecard, setHasScorecard] = useState(false);
 
   useEffect(() => {
     (async () => {
       if (!user) return;
       const { data: profile } = await supabase.from("student_profiles").select("id").eq("user_id", user.id).single();
-      if (!profile) {
-        setLoading(false);
-        return;
-      }
+      if (!profile) return;
       const { data: scorecard } = await supabase
         .from("resume_scorecards")
         .select("id, roadmap")
@@ -45,11 +32,7 @@ const StudentRoadmapPage = () => {
         .limit(1)
         .maybeSingle();
 
-      if (!scorecard) {
-        setLoading(false);
-        return;
-      }
-      setHasScorecard(true);
+      if (!scorecard) return;
       setStages(parseStages(scorecard.roadmap));
 
       const { data: tasks } = await supabase
@@ -75,7 +58,6 @@ const StudentRoadmapPage = () => {
       });
       setTaskStatusByStage(statusMap);
       setTaskIdByStage(idMap);
-      setLoading(false);
     })();
   }, [user]);
 

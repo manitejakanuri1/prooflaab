@@ -31,12 +31,11 @@ import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Code2, PenLine } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 const StudentAssignedTasksPage = () => {
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
-  const navigate = useNavigate();
   const [codingTaskId, setCodingTaskId] = useState<string | null>(null);
   const [writingTaskId, setWritingTaskId] = useState<string | null>(null);
   const [explainTask, setExplainTask] = useState<{ id: string; title: string } | null>(null);

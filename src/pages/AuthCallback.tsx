@@ -9,7 +9,6 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -97,7 +96,6 @@ export default function AuthCallback() {
         } else {
           setError(error.message || 'Authentication failed. Please try again.');
         }
-        setLoading(false);
       }
     };
 

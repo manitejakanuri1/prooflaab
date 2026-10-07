@@ -10,7 +10,7 @@ const CollegeDashboard = () => {
   const [activeTab, setActiveTab] = useUrlTab("tab", "home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { profile, loading } = useCollegeProfile();
+  const { profile } = useCollegeProfile();
 
   // Show loading state or use fallback data
   const collegeData = {

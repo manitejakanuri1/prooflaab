@@ -127,7 +127,6 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
 
   const [improving, setImproving] = useState(false);
   const [improvedResume, setImprovedResume] = useState<string | null>(null);
-  const [acknowledging, setAcknowledging] = useState(false);
 
   const [generatingAssessment, setGeneratingAssessment] = useState(false);
   const [retesting, setRetesting] = useState(false);
@@ -389,24 +388,6 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
   const handleDownloadImproved = () => {
     if (!improvedResume) return;
     downloadResumeAsPdf(improvedResume, "improved-resume.pdf");
-  };
-
-  const handleAcknowledge = async () => {
-    if (!claim) return;
-    setAcknowledging(true);
-    try {
-      const { error } = await supabase
-        .from("resume_claims")
-        .update({ feedback_acknowledged: true })
-        .eq("id", claim.id);
-      if (error) throw error;
-      setClaim({ ...claim, feedback_acknowledged: true });
-    } catch (err: any) {
-      console.error("Error acknowledging feedback:", err);
-      toast({ title: "Couldn't continue", description: err.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setAcknowledging(false);
-    }
   };
 
   const handleStartAssessment = async () => {

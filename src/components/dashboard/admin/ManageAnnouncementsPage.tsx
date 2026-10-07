@@ -47,15 +47,11 @@ const initialFormData: AnnouncementFormData = {
 
 const ManageAnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [formData, setFormData] = useState<AnnouncementFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
-  const [filters, setFilters] = useState({
-    status: "all"
-  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -77,7 +73,6 @@ const ManageAnnouncementsPage = () => {
       }));
       
       setAnnouncements(announcementsWithStatus);
-      setFilteredAnnouncements(announcementsWithStatus);
     } catch (error) {
       console.error("Error fetching announcements:", error);
       toast({
@@ -170,14 +165,6 @@ const ManageAnnouncementsPage = () => {
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    // Since announcements table doesn't have status column, we'll just show a message
-    toast({
-      title: "Info",
-      description: "Status management not available for announcements",
-    });
-  };
-
   const openEditDialog = (announcement: Announcement) => {
     setEditingAnnouncement(announcement);
     setFormData({
@@ -210,25 +197,6 @@ const ManageAnnouncementsPage = () => {
          status === 'scheduled' ? '⚠️ Scheduled' : status}
       </Badge>
     );
-  };
-
-  const applyFilters = () => {
-    let filtered = announcements;
-
-    if (filters.status && filters.status !== "all") {
-      filtered = filtered.filter(announcement => announcement.status === filters.status);
-    }
-
-    setFilteredAnnouncements(filtered);
-  };
-
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, announcements]);
-
-  const clearFilters = () => {
-    setFilters({ status: "all" });
   };
 
   if (loading) {
@@ -269,7 +237,7 @@ const ManageAnnouncementsPage = () => {
           </div>
 
           {/* Table */}
-          {filteredAnnouncements.length === 0 ? (
+          {announcements.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="text-6xl mb-4">📢</div>
               <p className="text-muted-foreground text-lg">No announcements yet. Keep your community updated!</p>
@@ -285,7 +253,7 @@ const ManageAnnouncementsPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAnnouncements.map((announcement) => (
+                {announcements.map((announcement) => (
                   <TableRow key={announcement.id} className="hover:bg-muted/30 border-muted-foreground/10">
                     <TableCell>
                       <div>

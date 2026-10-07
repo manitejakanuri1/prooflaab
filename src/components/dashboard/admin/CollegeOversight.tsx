@@ -69,7 +69,6 @@ const CollegeOversight = () => {
   const { data: colleges, isLoading, error: queryError } = useQuery({
     queryKey: ['college-oversight', searchTerm, statusFilter, sortBy, sortOrder],
     queryFn: async () => {
-      console.log('Fetching college data...');
       
       try {
         // First, get basic college data
@@ -91,7 +90,6 @@ const CollegeOversight = () => {
           throw collegeError;
         }
         
-        console.log('College data:', collegeData);
 
         if (!collegeData || collegeData.length === 0) {
           return [];
@@ -108,7 +106,6 @@ const CollegeOversight = () => {
           console.error('Student count error:', studentError);
         }
         
-        console.log('Student counts data:', studentCounts);
 
         // Get task counts assigned by colleges
         const { data: taskCounts, error: taskError } = await supabase
@@ -120,7 +117,6 @@ const CollegeOversight = () => {
           console.error('Task count error:', taskError);
         }
         
-        console.log('Task counts data:', taskCounts);
 
         // Process and combine data
         const processedColleges = collegeData.map(college => {
@@ -133,11 +129,6 @@ const CollegeOversight = () => {
             tasks_assigned: tasksCount
           };
           
-          console.log(`College ${college.name}:`, {
-            studentsCount,
-            tasksCount,
-            last_active: college.last_active
-          });
           
           return result;
         });
@@ -163,7 +154,6 @@ const CollegeOversight = () => {
           return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
         });
 
-        console.log('Final processed colleges:', processedColleges);
         return processedColleges;
         
       } catch (error) {

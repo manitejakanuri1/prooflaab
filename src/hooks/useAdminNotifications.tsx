@@ -73,7 +73,6 @@ export function useAdminNotifications() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('New notification received:', payload);
           const newNotification = payload.new as AdminNotification & { audience?: string };
 
           // One table now carries every audience, so an admin who is also a

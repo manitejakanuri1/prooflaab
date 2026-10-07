@@ -73,7 +73,6 @@ export default function Auth() {
         ]);
       } catch (error) {
         // If session check fails or times out, clear it
-        console.log('Session check failed or timed out');
         await supabase.auth.signOut().catch(() => {});
       }
     };

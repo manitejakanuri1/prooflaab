@@ -12,9 +12,6 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      console.log('AuthCallback: Starting auth callback handling');
-      console.log('AuthCallback: Current URL:', window.location.href);
-      console.log('AuthCallback: Search params:', Object.fromEntries(searchParams.entries()));
       
       try {
         // Handle the auth callback from email confirmation
@@ -25,24 +22,20 @@ export default function AuthCallback() {
           throw authError;
         }
 
-        console.log('AuthCallback: Initial session check:', authData);
 
         // If we already have a session, process it
         if (authData.session?.user) {
-          console.log('AuthCallback: User session found, processing...');
           await handleSuccessfulAuth(authData.session);
           return;
         }
 
         // Check if this is an email confirmation callback by looking for hash params
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        console.log('AuthCallback: Hash params:', Object.fromEntries(hashParams.entries()));
 
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
         if (accessToken && refreshToken) {
-          console.log('AuthCallback: Setting session with tokens from hash');
           
           // Set the session using access token and refresh token
           const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
@@ -56,12 +49,10 @@ export default function AuthCallback() {
           }
 
           if (sessionData.session?.user) {
-            console.log('AuthCallback: Session successfully restored');
             await handleSuccessfulAuth(sessionData.session);
             return;
           }
         } else if (hashParams.get('access_token')) {
-          console.log('AuthCallback: Access token found but no refresh token, trying alternative approach...');
           // Wait a bit for Supabase to process the hash params automatically
           await new Promise(resolve => setTimeout(resolve, 2000));
           
@@ -74,14 +65,12 @@ export default function AuthCallback() {
           }
 
           if (sessionData.session?.user) {
-            console.log('AuthCallback: User session found after processing hash');
             await handleSuccessfulAuth(sessionData.session);
             return;
           }
         }
 
         // If no session and no hash params, this might be a stale callback
-        console.log('AuthCallback: No session or hash params found, redirecting to auth');
         navigate('/auth?message=Please sign in to continue.', { replace: true });
 
       } catch (error: any) {
@@ -103,13 +92,9 @@ export default function AuthCallback() {
       const user = session.user;
       const accountType = searchParams.get('type') || user.user_metadata?.account_type;
       
-      console.log('AuthCallback: User:', user);
-      console.log('AuthCallback: Account type:', accountType);
-      console.log('AuthCallback: Email confirmed:', user.email_confirmed_at);
 
       // Email should be confirmed at this point since we're in the callback
       if (!user.email_confirmed_at) {
-        console.log('Email not confirmed after callback, this is unusual');
         navigate('/auth?message=Please confirm your email address to continue', { replace: true });
         return;
       }
@@ -130,8 +115,6 @@ export default function AuthCallback() {
 
       // If role exists, check wizard completion first
       if (currentRole) {
-        console.log('Existing role found:', currentRole);
-        console.log('Wizard completed:', hasCompletedWizard);
 
         // Students go straight to their own intake flow: the blocking welcome
         // screen, then "upload resume vs skip". /student/start forwards to the
@@ -191,7 +174,6 @@ export default function AuthCallback() {
       }
 
       // No existing role - create one based on account type from user metadata
-      console.log('No existing role found, creating role based on account type:', accountType);
       
       const roleToCreate = accountType || 'student';
       

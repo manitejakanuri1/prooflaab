@@ -52,11 +52,6 @@ const Portfolio = () => {
   const isStudent = !!currentUserId;
   const isRecruiterMode = !isStudent && !isAuthLoading;
 
-  // Debug logging for API responses
-  useEffect(() => {
-    console.log('Portfolio API Response:', { portfolio, loading, error });
-  }, [portfolio, loading, error]);
-
   // SEO Meta Tags
   useEffect(() => {
     if (!portfolio || !portfolio.student_profiles) return;

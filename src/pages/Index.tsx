@@ -24,20 +24,14 @@ const Index = () => {
     const refreshToken = hashParams.get('refresh_token');
     
     if (accessToken && refreshToken) {
-      console.log('Index: Auth tokens found in hash, redirecting to callback handler');
       navigate(`/auth/callback${window.location.hash}`, { replace: true });
       return;
     }
 
-    // Only redirect authenticated users with a timeout to prevent hanging
+    // Only redirect authenticated users.
     const checkUser = async () => {
-      const timeoutId = setTimeout(() => {
-        console.log('Auth check timed out, showing landing page');
-      }, 3000); // 3 second timeout
-
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        clearTimeout(timeoutId);
         
         if (error) {
           console.error('Error getting session:', error);
@@ -84,7 +78,6 @@ const Index = () => {
           }
         }
       } catch (error) {
-        clearTimeout(timeoutId);
         console.error('Error checking user session:', error);
       }
     };

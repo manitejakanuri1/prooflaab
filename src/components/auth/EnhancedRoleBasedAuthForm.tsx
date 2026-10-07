@@ -74,10 +74,9 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
   /**
    * Wipe any half-finished session before starting a new one.
    *
-   * prooflab.auth.google is where the Google session lives. It was missing from
-   * this list, so after the move a stuck session survived every attempt to log
-   * in again - the one failure the removed "clear session" buttons existed to
-   * rescue people from.
+   * Remove stale authentication keys left by pre-BFF deployments before
+   * beginning a fresh login. The current BFF session itself is HttpOnly and
+   * cannot be read or deleted through JavaScript storage.
    */
   const cleanupAuthState = () => {
     Object.keys(localStorage).forEach((key) => {

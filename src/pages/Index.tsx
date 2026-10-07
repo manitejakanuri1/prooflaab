@@ -18,16 +18,6 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if this is an auth callback with tokens in the hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    
-    if (accessToken && refreshToken) {
-      navigate(`/auth/callback${window.location.hash}`, { replace: true });
-      return;
-    }
-
     // Only redirect authenticated users.
     const checkUser = async () => {
       try {

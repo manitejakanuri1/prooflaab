@@ -159,3 +159,283 @@ test("BFF login surfaces the server's safe error", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("BFF signup uses same-origin cookie auth and returns only safe session data", async () => {
+  const originalFetch =
+    globalThis.fetch;
+
+  try {
+    let seenInput = "";
+    let seenInit:
+      RequestInit | undefined;
+
+    globalThis.fetch =
+      async (
+        input,
+        init,
+      ) => {
+        seenInput =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url;
+
+        seenInit = init;
+
+        return Response.json({
+          session: {
+            user: {
+              id:
+                "00000000-0000-0000-0000-000000000003",
+              email:
+                "new@example.test",
+              email_confirmed_at:
+                null,
+              role:
+                "authenticated",
+              user_metadata: {
+                full_name:
+                  "New Student",
+                account_type:
+                  "student",
+              },
+            },
+            expires_at:
+              123456,
+          },
+        });
+      };
+
+    const {
+      signupBffSession,
+    } =
+      await import(
+        "../integrations/google/bffSession.ts"
+      );
+
+    const session =
+      await signupBffSession({
+        email:
+          "new@example.test",
+        password:
+          "Password123!",
+        full_name:
+          "New Student",
+        account_type:
+          "student",
+      });
+
+    assert.equal(
+      seenInput,
+      "/api/auth/signup",
+    );
+
+    assert.equal(
+      seenInit?.credentials,
+      "same-origin",
+    );
+
+    assert.equal(
+      new Headers(
+        seenInit?.headers,
+      ).get("authorization"),
+      null,
+    );
+
+    assert.equal(
+      session.user.email,
+      "new@example.test",
+    );
+  } finally {
+    globalThis.fetch =
+      originalFetch;
+  }
+});
+
+test("BFF account update uses cookie session without Authorization", async () => {
+  const originalFetch =
+    globalThis.fetch;
+
+  try {
+    let seenInput = "";
+    let seenInit:
+      RequestInit | undefined;
+
+    globalThis.fetch =
+      async (
+        input,
+        init,
+      ) => {
+        seenInput =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url;
+
+        seenInit = init;
+
+        return Response.json({
+          user: {
+            id:
+              "00000000-0000-0000-0000-000000000004",
+            email:
+              "user@example.test",
+            email_confirmed_at:
+              "2026-10-07T00:00:00.000Z",
+            role:
+              "authenticated",
+            user_metadata: {},
+          },
+        });
+      };
+
+    const {
+      updateBffUser,
+    } =
+      await import(
+        "../integrations/google/bffSession.ts"
+      );
+
+    await updateBffUser({
+      password:
+        "NewPassword123!",
+    });
+
+    assert.equal(
+      seenInput,
+      "/api/auth/update",
+    );
+
+    assert.equal(
+      seenInit?.credentials,
+      "same-origin",
+    );
+
+    assert.equal(
+      new Headers(
+        seenInit?.headers,
+      ).get("authorization"),
+      null,
+    );
+  } finally {
+    globalThis.fetch =
+      originalFetch;
+  }
+});
+
+test("password reset helpers use BFF action routes", async () => {
+  const originalFetch =
+    globalThis.fetch;
+
+  try {
+    const seen:
+      string[] = [];
+
+    globalThis.fetch =
+      async (
+        input,
+      ) => {
+        seen.push(
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url,
+        );
+
+        return Response.json({
+          ok: true,
+        });
+      };
+
+    const {
+      requestBffPasswordReset,
+      verifyBffPasswordReset,
+      completeBffPasswordReset,
+    } =
+      await import(
+        "../integrations/google/bffSession.ts"
+      );
+
+    await requestBffPasswordReset(
+      "user@example.test",
+    );
+
+    await verifyBffPasswordReset(
+      "CODE",
+    );
+
+    await completeBffPasswordReset(
+      "CODE",
+      "Password123!",
+    );
+
+    assert.deepEqual(
+      seen,
+      [
+        "/api/auth/password-reset/request",
+        "/api/auth/password-reset/verify",
+        "/api/auth/password-reset/complete",
+      ],
+    );
+  } finally {
+    globalThis.fetch =
+      originalFetch;
+  }
+});
+
+test("email verification and resend stay behind BFF", async () => {
+  const originalFetch =
+    globalThis.fetch;
+
+  try {
+    const seen:
+      string[] = [];
+
+    globalThis.fetch =
+      async (
+        input,
+      ) => {
+        seen.push(
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url,
+        );
+
+        return Response.json({
+          ok: true,
+        });
+      };
+
+    const {
+      resendBffVerification,
+      verifyBffEmail,
+    } =
+      await import(
+        "../integrations/google/bffSession.ts"
+      );
+
+    await verifyBffEmail(
+      "VERIFY",
+    );
+
+    await resendBffVerification(
+      "student",
+    );
+
+    assert.deepEqual(
+      seen,
+      [
+        "/api/auth/verify-email",
+        "/api/auth/resend-verification",
+      ],
+    );
+  } finally {
+    globalThis.fetch =
+      originalFetch;
+  }
+});

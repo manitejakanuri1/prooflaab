@@ -200,7 +200,7 @@ if (!process.env.ONLY || process.env.ONLY.includes('E')) /* section E */
 await withBrowser(LONG_WAV, async (page) => {
   let failing = false;
   await page.route(/voice_explanations\?.*id=eq\./, (route) =>
-    failing && !route.request().url().includes('transcription_idempotency_key')
+    failing && !route.request().url().includes('transcription_idempotency_key=eq.')  // the key LOOKUP, not the poll (whose select list names the column)
       ? route.fulfill({ status: 503, body: '{"message":"test outage"}' }) : route.continue());
   await openModal(page);
   failing = true;

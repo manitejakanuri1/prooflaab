@@ -1,6 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { cors } from "../_shared/cors.ts";
+import { deliverManagedInvite } from "../_shared/managedInvite.ts";
 
 /**
  * Admin -> Colleges -> Add College. Same shape as create-student-users: a
@@ -132,24 +133,53 @@ serve(async (req) => {
       )
     }
 
-    // Never allowed to fail the creation — a college whose invite email
-    // bounced is recoverable, a half-created account is not.
-    try {
-      const { data: link } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email.toLowerCase(),
-      })
-      await supabaseAdmin.functions.invoke('send-onboarding-email', {
-        headers: { 'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '' },
-        body: { email, name, userType: 'college', actionLink: link?.properties?.action_link ?? null },
-      })
-    } catch (inviteError) {
-      console.error('Invitation email failed (college was still created):', inviteError)
+    // Invitation delivery is separate from account creation: creation stays
+    // successful, but the response must tell the UI the truth about delivery.
+    const invite = await deliverManagedInvite(
+      () =>
+        supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: email.toLowerCase(),
+        }),
+      (actionLink) =>
+        supabaseAdmin.functions.invoke(
+          'send-onboarding-email',
+          {
+            headers: {
+              'x-webhook-secret':
+                Deno.env.get('WEBHOOK_SECRET') ?? '',
+            },
+            body: {
+              email,
+              name,
+              userType: 'college',
+              actionLink,
+            },
+          },
+        ),
+      Deno.env.get('BACKEND') === 'google',
+    )
+
+    if (!invite.invited) {
+      console.error(
+        'college account created but invitation delivery was not confirmed',
+      )
     }
 
     return new Response(
-      JSON.stringify({ id: collegeId, userId: authData.user.id, status: 'success' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        id: collegeId,
+        userId: authData.user.id,
+        status: 'success',
+        invited: invite.invited,
+        inviteDelivery: invite.delivery,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      },
     )
   } catch (error) {
     console.error('create-college-user error:', error)

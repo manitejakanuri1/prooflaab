@@ -118,12 +118,16 @@ const StudentOversight = () => {
       if (error) throw error;
       const row = result?.results?.[0];
       if (row?.status === 'error') throw new Error(row.message ?? 'Could not create the student.');
+      return row;
     },
-    onSuccess: () => {
+    onSuccess: (row: any) => {
       queryClient.invalidateQueries({ queryKey: ['student-oversight'] });
       toast({
-        title: "Success",
-        description: "Student added and invited.",
+        title: "Student account created",
+        description: row?.invited
+          ? "Set-password invitation sent."
+          : "Account created, but invitation delivery was not confirmed. Ask the student to use Forgot password on the sign-in page.",
+        variant: row?.invited ? undefined : "destructive",
       });
       closeModal();
     },

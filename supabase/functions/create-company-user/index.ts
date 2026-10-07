@@ -1,6 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient, findAccountByEmail } from "../_shared/backend.ts";
 import { cors } from "../_shared/cors.ts";
+import { deliverManagedInvite } from "../_shared/managedInvite.ts";
 
 serve(async (req) => {
   const corsHeaders = cors(req);
@@ -199,44 +200,42 @@ serve(async (req) => {
       );
     }
 
-    let invited = false;
-
-    try {
-      const { data: link } = await admin.auth.admin.generateLink({
-        type: "recovery",
-        email,
-      });
-
-      const { error: inviteError } = await admin.functions.invoke(
-        "send-onboarding-email",
-        {
-          headers: {
-            "x-webhook-secret": Deno.env.get(
-              "WEBHOOK_SECRET",
-            ) ?? "",
+    const invite = await deliverManagedInvite(
+      () =>
+        admin.auth.admin.generateLink({
+          type: "recovery",
+          email,
+        }),
+      (actionLink) =>
+        admin.functions.invoke(
+          "send-onboarding-email",
+          {
+            headers: {
+              "x-webhook-secret":
+                Deno.env.get("WEBHOOK_SECRET") ?? "",
+            },
+            body: {
+              email,
+              name,
+              userType: "startup",
+              actionLink,
+            },
           },
-          body: {
-            email,
-            name,
-            userType: "startup",
-            actionLink: link?.properties
-              ?.action_link ?? null,
-          },
-        },
-      );
+        ),
+      Deno.env.get("BACKEND") === "google",
+    );
 
-      invited = inviteError === null;
-    } catch (error) {
+    if (!invite.invited) {
       console.error(
-        "company invite failed:",
-        error,
+        "company account created but invitation delivery was not confirmed",
       );
     }
 
     return reply({
       status: "success",
       userId: authData.user.id,
-      invited,
+      invited: invite.invited,
+      inviteDelivery: invite.delivery,
     });
   } catch (error) {
     console.error(

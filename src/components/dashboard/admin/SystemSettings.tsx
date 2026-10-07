@@ -72,11 +72,14 @@ const SystemSettings = () => {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast({
-        title: "Success",
-        description: "Admin account created and invitation sent.",
+        title: "Admin account created",
+        description: result?.invited
+          ? "Set-password invitation sent."
+          : "Account created, but invitation delivery was not confirmed. Ask the administrator to use Forgot password on the sign-in page.",
+        variant: result?.invited ? undefined : "destructive",
       });
       setIsCreateAdminModalOpen(false);
       setNewAdminData({ name: "", email: "", role: "admin" });

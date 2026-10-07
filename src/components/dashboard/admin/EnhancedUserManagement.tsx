@@ -272,13 +272,16 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({
         queryKey: ['admin-users-startups'],
       });
       toast({
-        title: "Company created",
-        description: "Company account created and invitation sent.",
+        title: "Company account created",
+        description: result?.invited
+          ? "Set-password invitation sent."
+          : "Account created, but invitation delivery was not confirmed. Ask the company user to use Forgot password on the sign-in page.",
+        variant: result?.invited ? undefined : "destructive",
       });
       setIsCreateCompanyOpen(false);
       setNewCompany({

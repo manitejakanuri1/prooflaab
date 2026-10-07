@@ -373,9 +373,9 @@ async function main() {
     await step("admin: sign in", () => signIn(page, ADMIN_EMAIL, ADMIN_PW));
     await step("admin: content library loads", async () => {
       await page.goto(`${SITE}/admin/dashboard`, { waitUntil: "networkidle" });
-      await page.getByText("Platform", { exact: true }).first().click().catch(() => {});
+      await page.getByText("Work", { exact: true }).first().click();
       await page.waitForTimeout(1000);
-      await page.getByText("Content Library", { exact: true }).first().click().catch(() => {});
+      await page.getByText("Content library", { exact: true }).first().click();
       await page.waitForTimeout(2500);
       const t = await page.innerText("body");
       if (!/Content Library/i.test(t)) throw new Error("content library did not open");

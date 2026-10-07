@@ -114,10 +114,17 @@ version = call("POST", f"sites/{SITE}/versions", {
         "headers": [
             {
                 # Security headers on every response.
-                # Monaco is bundled locally, so runtime JavaScript no longer needs a
-                # third-party editor CDN. connect-src remains HTTPS/WSS-compatible
-                # while the BFF migration removes direct browser backend calls.
-                # Blob workers are required by the locally bundled Monaco workers.
+                # Monaco itself is bundled locally.
+                #
+                # The lesson PracticeBox intentionally executes student/lesson HTML
+                # and JavaScript inside sandbox="allow-scripts" srcdoc frames.
+                # srcdoc inherits the parent CSP, so inline scripts must remain
+                # available until that runner is isolated on its own origin.
+                # Only the legacy lesson CDNs still required by existing practice
+                # content are allowed here.
+                #
+                # YouTube is permitted only as an iframe source for resource previews.
+                # Blob workers are required by Monaco.
                 # Microphone stays available for ProofLab voice explanations.
                 "glob": "**",
                 "headers": {
@@ -127,15 +134,15 @@ version = call("POST", f"sites/{SITE}/versions", {
                     "X-Frame-Options": "SAMEORIGIN",
                     "Content-Security-Policy": (
                         "default-src 'self'; "
-                        "script-src 'self'; "
-                        "style-src 'self' 'unsafe-inline'; "
+                        "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; "
+                        "style-src 'self' 'unsafe-inline' https:; "
                         "img-src 'self' data: blob: https:; "
-                        "font-src 'self' data:; "
+                        "font-src 'self' data: https:; "
                         "connect-src 'self' https: wss:; "
                         "media-src 'self' data: blob: https:; "
                         "worker-src 'self' blob:; "
                         "child-src 'self' blob:; "
-                        "frame-src 'self' blob:; "
+                        "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; "
                         "object-src 'none'; "
                         "base-uri 'self'; "
                         "form-action 'self'; "

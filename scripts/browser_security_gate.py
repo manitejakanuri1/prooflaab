@@ -36,6 +36,7 @@ if hosting.is_file():
         "object-src 'none'",
         "base-uri 'self'",
         "frame-ancestors 'self'",
+        "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com",
     )
 
     for directive in required_csp:

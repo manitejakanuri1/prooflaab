@@ -13,42 +13,45 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Utility function to extract YouTube video ID and convert to embed URL
-const getYouTubeEmbedUrl = (url: string): string | null => {
+// Convert only real YouTube URLs into privacy-enhanced embed URLs.
+// Database/user supplied URLs must never be able to choose an arbitrary iframe host.
+const getYouTubeEmbedUrl = (value: string): string | null => {
   try {
-    const urlObj = new URL(url);
-    
-    // Handle youtube.com/watch?v=VIDEO_ID format
-    if (urlObj.hostname.includes('youtube.com') && urlObj.searchParams.has('v')) {
-      const videoId = urlObj.searchParams.get('v');
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+
+    let videoId: string | null = null;
+
+    if (
+      host === "youtube.com" ||
+      host === "www.youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "youtube-nocookie.com" ||
+      host === "www.youtube-nocookie.com"
+    ) {
+      if (url.pathname === "/watch") {
+        videoId = url.searchParams.get("v");
+      } else if (url.pathname.startsWith("/embed/")) {
+        videoId = url.pathname.split("/")[2] ?? null;
+      } else if (url.pathname.startsWith("/shorts/")) {
+        videoId = url.pathname.split("/")[2] ?? null;
+      }
+    } else if (host === "youtu.be") {
+      videoId = url.pathname.slice(1).split("/")[0] || null;
     }
-    
-    // Handle youtu.be/VIDEO_ID format
-    if (urlObj.hostname === 'youtu.be') {
-      const videoId = urlObj.pathname.slice(1);
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+
+    if (!videoId || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+      return null;
     }
-    
-    // Already in embed format
-    if (urlObj.pathname.includes('/embed/')) {
-      return url;
-    }
-    
-    return null;
+
+    return `https://www.youtube-nocookie.com/embed/${videoId}`;
   } catch {
     return null;
   }
 };
 
-const isYouTubeUrl = (url: string): boolean => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.includes('youtube.com') || urlObj.hostname === 'youtu.be';
-  } catch {
-    return false;
-  }
-};
+const isYouTubeUrl = (url: string): boolean =>
+  getYouTubeEmbedUrl(url) !== null;
 
 interface LearningResource {
   id: string;

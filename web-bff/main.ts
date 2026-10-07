@@ -1,4 +1,5 @@
 import { handleAuthRoute } from "./authRoutes.ts";
+import { handleProxyRoute } from "./proxyRoutes.ts";
 
 const PORT = Number(Deno.env.get("PORT") ?? "8080");
 
@@ -36,6 +37,9 @@ export async function handler(req: Request): Promise<Response> {
 
   const authResponse = await handleAuthRoute(req);
   if (authResponse) return authResponse;
+
+  const proxyResponse = await handleProxyRoute(req);
+  if (proxyResponse) return proxyResponse;
 
   /*
    * Deliberately NOT ready yet.

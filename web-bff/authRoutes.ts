@@ -358,31 +358,18 @@ async function refreshStoredSession(
   return next;
 }
 
-async function currentSession(
+export async function resolveAuthenticatedSession(
   req: Request,
-  cfg: ReturnType<typeof config>,
-): Promise<Response> {
+  deps: AuthRouteDeps = {},
+): Promise<{ sessionId: string; session: PrivateSession } | null> {
+  const cfg = config(deps);
   const sessionId = readSessionCookie(req);
 
-  if (!sessionId) {
-    return json({ session: null });
-  }
+  if (!sessionId) return null;
 
-  let session: PrivateSession | null;
+  let session = await cfg.loadSession(sessionId);
 
-  try {
-    session = await cfg.loadSession(sessionId);
-  } catch {
-    return json({ error: "session service unavailable" }, 503);
-  }
-
-  if (!session) {
-    return json(
-      { session: null },
-      200,
-      { "Set-Cookie": clearSessionCookie() },
-    );
-  }
+  if (!session) return null;
 
   if (
     session.appAccessExpiresAt - cfg.now() <
@@ -398,19 +385,44 @@ async function currentSession(
       try {
         await cfg.revokeSession(sessionId);
       } catch {
-        // Best effort: browser cookie is still removed below.
+        // Best effort. Caller treats the session as signed out.
       }
 
-      return json(
-        { session: null },
-        200,
-        { "Set-Cookie": clearSessionCookie() },
-      );
+      return null;
     }
   }
 
+  return {
+    sessionId,
+    session,
+  };
+}
+
+async function currentSession(
+  req: Request,
+  deps: AuthRouteDeps,
+): Promise<Response> {
+  let resolved: {
+    sessionId: string;
+    session: PrivateSession;
+  } | null;
+
+  try {
+    resolved = await resolveAuthenticatedSession(req, deps);
+  } catch {
+    return json({ error: "session service unavailable" }, 503);
+  }
+
+  if (!resolved) {
+    return json(
+      { session: null },
+      200,
+      { "Set-Cookie": clearSessionCookie() },
+    );
+  }
+
   return json({
-    session: safeSession(session),
+    session: safeSession(resolved.session),
   });
 }
 
@@ -457,7 +469,7 @@ export async function handleAuthRoute(
     req.method === "GET" &&
     url.pathname === "/api/auth/session"
   ) {
-    return await currentSession(req, cfg);
+    return await currentSession(req, deps);
   }
 
   if (

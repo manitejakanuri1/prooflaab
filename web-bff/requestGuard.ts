@@ -6,12 +6,33 @@ const SAFE_METHODS = new Set([
 
 export function rejectCrossSiteBrowserWrite(
   req: Request,
+  trustedOrigins: readonly string[] = [],
 ): Response | null {
   if (SAFE_METHODS.has(req.method)) {
     return null;
   }
 
   const url = new URL(req.url);
+
+  /*
+   * When Firebase Hosting rewrites /api/** to Cloud Run, req.url belongs to
+   * the Cloud Run service while the browser Origin remains the public Hosting
+   * origin. Keep the direct service origin trusted and add only explicitly
+   * configured browser origins.
+   */
+  const allowedOrigins = new Set<string>([
+    url.origin,
+  ]);
+
+  for (const candidate of trustedOrigins) {
+    try {
+      allowedOrigins.add(
+        new URL(candidate).origin,
+      );
+    } catch {
+      // Invalid configured origins are ignored rather than trusted.
+    }
+  }
 
   /*
    * Sec-Fetch-Site is set by modern browsers and cannot be set freely by
@@ -47,7 +68,7 @@ export function rejectCrossSiteBrowserWrite(
       return denied();
     }
 
-    if (parsed.origin !== url.origin) {
+    if (!allowedOrigins.has(parsed.origin)) {
       return denied();
     }
   }

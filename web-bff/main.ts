@@ -4,6 +4,11 @@ import { rejectCrossSiteBrowserWrite } from "./requestGuard.ts";
 
 const PORT = Number(Deno.env.get("PORT") ?? "8080");
 
+const BROWSER_ORIGINS = (Deno.env.get("BROWSER_ORIGINS") ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const SECURITY_HEADERS: Record<string, string> = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
@@ -36,7 +41,10 @@ export async function handler(req: Request): Promise<Response> {
     });
   }
 
-  const crossSiteRefusal = rejectCrossSiteBrowserWrite(req);
+  const crossSiteRefusal = rejectCrossSiteBrowserWrite(
+    req,
+    BROWSER_ORIGINS,
+  );
 
   if (crossSiteRefusal) {
     return crossSiteRefusal;

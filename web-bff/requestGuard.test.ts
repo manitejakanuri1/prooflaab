@@ -119,3 +119,47 @@ Deno.test("non-browser tooling without Origin remains supported", () => {
     "non-browser request was rejected",
   );
 });
+
+Deno.test("Firebase Hosting origin is allowed when explicitly trusted", () => {
+  const req = new Request(
+    "https://prooflab-staging-web-bff-xyz.a.run.app/api/auth/login",
+    {
+      method: "POST",
+      headers: {
+        Origin: "https://prooflab-staging.web.app",
+        "Sec-Fetch-Site": "same-origin",
+      },
+    },
+  );
+
+  assert(
+    rejectCrossSiteBrowserWrite(
+      req,
+      ["https://prooflab-staging.web.app"],
+    ) === null,
+    "trusted Hosting origin was rejected",
+  );
+});
+
+Deno.test("unconfigured origin stays refused behind a rewrite", () => {
+  const req = new Request(
+    "https://prooflab-staging-web-bff-xyz.a.run.app/api/auth/login",
+    {
+      method: "POST",
+      headers: {
+        Origin: "https://attacker.example",
+        "Sec-Fetch-Site": "same-origin",
+      },
+    },
+  );
+
+  const res = rejectCrossSiteBrowserWrite(
+    req,
+    ["https://prooflab-staging.web.app"],
+  );
+
+  assert(
+    res?.status === 403,
+    "unconfigured browser origin was accepted",
+  );
+});

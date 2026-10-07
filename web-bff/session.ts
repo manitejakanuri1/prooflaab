@@ -1,4 +1,4 @@
-const COOKIE_NAME = "__Host-prooflab_session";
+const COOKIE_NAME = "__session";
 const VERSION = 1;
 const AAD = new TextEncoder().encode("prooflab-session-v1");
 

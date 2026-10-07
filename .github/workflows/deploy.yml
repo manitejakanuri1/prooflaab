@@ -42,6 +42,9 @@ jobs:
       - name: No secrets in tracked files
         run: python3 scripts/secret_scan.py
 
+      - name: Google API key configuration tests
+        run: python3 scripts/test_google_api_key.py
+
       - name: Retired architecture has not come back
         run: python3 scripts/legacy_guard.py
 

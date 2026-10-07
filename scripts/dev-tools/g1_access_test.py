@@ -9,10 +9,20 @@ Creates 5 labelled test rows on STAGING (idempotency key g1s-test-*). Makes 2 re
 """
 import json, os, sys, time, urllib.error, urllib.request
 
+# Keep the current st.py staging-token architecture.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import st  # noqa: E402  staging token helper (same folder)
 
-API_KEY = "AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw"  # public web key, from .env.staging
+# Reuse the configured public browser API key instead of duplicating it here.
+sys.path.insert(
+    0,
+    os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    ),
+)
+from google_api_key import google_api_key  # noqa: E402
+
+API_KEY = google_api_key(".env.staging")
 BRIDGE = "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app"
 FN = "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app"

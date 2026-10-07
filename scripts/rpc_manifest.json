@@ -272,6 +272,8 @@
  ],
  "public_pure": [
   "check_answer(text,jsonb,jsonb)",
+  "function_mode_reserved_names()",
+  "function_spec_ok(jsonb)",
   "template_key(text,text,text[],text)"
  ],
  "d4_class": {
@@ -312,6 +314,8 @@
   "gen_random_bytes(integer)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "gen_salt(text)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "gen_salt(text,integer)": "I PUBLIC_READ_ONLY_INTENTIONAL",
+  "function_mode_reserved_names()": "I PUBLIC_READ_ONLY_INTENTIONAL",
+  "function_spec_ok(jsonb)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "get_leaderboard(integer)": "J LEGACY_UNUSED (kept: own-data only, documented API)",
   "gin_extract_query_trgm(text,internal,smallint,internal,internal,internal,internal)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "gin_extract_value_trgm(text,internal)": "I PUBLIC_READ_ONLY_INTENTIONAL",

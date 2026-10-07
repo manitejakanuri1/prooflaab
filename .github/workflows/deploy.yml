@@ -94,6 +94,9 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Browser security regression gate
+        run: python3 scripts/browser_security_gate.py dist
+
       # Build once: this exact folder is what the deploy job publishes. The deploy
       # job never builds, so what was tested is what ships.
       - name: Record the build

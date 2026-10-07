@@ -113,18 +113,42 @@ version = call("POST", f"sites/{SITE}/versions", {
         "rewrites": [{"glob": "**", "path": "/index.html"}],
         "headers": [
             {
-                # Security headers on every response. Deliberately no full script CSP:
-                # the lesson editor loads Monaco from its CDN. frame-ancestors blocks
-                # other sites from framing ProofLab (clickjacking); the in-page
-                # sandboxed practice iframe is same-page srcdoc, unaffected.
-                # Microphone stays allowed for ProofLab itself (voice explanations).
+                # Security headers on every response.
+                # Monaco itself is bundled locally.
+                #
+                # The lesson PracticeBox intentionally executes student/lesson HTML
+                # and JavaScript inside sandbox="allow-scripts" srcdoc frames.
+                # srcdoc inherits the parent CSP, so inline scripts must remain
+                # available until that runner is isolated on its own origin.
+                # Only the legacy lesson CDNs still required by existing practice
+                # content are allowed here.
+                #
+                # YouTube is permitted only as an iframe source for resource previews.
+                # Blob workers are required by Monaco.
+                # Microphone stays available for ProofLab voice explanations.
                 "glob": "**",
                 "headers": {
                     "X-Content-Type-Options": "nosniff",
                     "Referrer-Policy": "strict-origin-when-cross-origin",
                     "Permissions-Policy": "microphone=(self), camera=(), geolocation=(), payment=(), usb=()",
                     "X-Frame-Options": "SAMEORIGIN",
-                    "Content-Security-Policy": "frame-ancestors 'self'",
+                    "Content-Security-Policy": (
+                        "default-src 'self'; "
+                        "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; "
+                        "style-src 'self' 'unsafe-inline' https:; "
+                        "img-src 'self' data: blob: https:; "
+                        "font-src 'self' data: https:; "
+                        "connect-src 'self' https: wss:; "
+                        "media-src 'self' data: blob: https:; "
+                        "worker-src 'self' blob:; "
+                        "child-src 'self' blob:; "
+                        "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; "
+                        "object-src 'none'; "
+                        "base-uri 'self'; "
+                        "form-action 'self'; "
+                        "frame-ancestors 'self'; "
+                        "upgrade-insecure-requests"
+                    ),
                 },
             },
             {

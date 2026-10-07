@@ -4,13 +4,13 @@
  * Three things are pointed somewhere new, and one deliberately is not:
  *
  *   auth      -> Google Identity Platform, via the shim in ./identity
- *   from/rpc  -> PostgREST on Cloud Run, talking to Cloud SQL
+ *   from/rpc  -> same-origin web BFF -> PostgREST -> Cloud SQL
  *   realtime  -> stubbed. Six screens subscribe to live database changes, which
  *                PostgREST cannot serve. Left alone, supabase-js retried the
  *                websocket forever - a console full of failures and a socket
  *                reconnecting on a loop behind every dashboard.
  *   storage   -> Cloud Storage, through the file service (phase 5)
- *   functions -> the 41 functions on Cloud Run (phase 6)
+ *   functions -> same-origin web BFF -> the Cloud Run function router
  *
  * Nothing is left behind now. The flag stays because it is the way back: one
  * variable returns the whole app to Supabase, which is worth keeping until the
@@ -19,11 +19,21 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
-import { googleAuth, currentAccessToken } from './identity';
+import { googleAuth } from './identity';
 import { googleStorage } from './storage';
+import {
+  rewriteBffUrl,
+  sanitizeBffHeaders,
+} from './bffTransport';
 
-const POSTGREST_URL = import.meta.env.VITE_POSTGREST_URL as string;
-const FUNCTIONS_URL = import.meta.env.VITE_FUNCTIONS_URL as string;
+const APP_ORIGIN = window.location.origin;
+
+/**
+ * Keeps supabase-js in external-token mode so its own GoTrue client never owns
+ * browser auth state. The value never leaves the browser: the BFF fetch wrappers
+ * remove Authorization and apikey before every network request.
+ */
+const BFF_PLACEHOLDER_TOKEN = 'bff-cookie-session';
 
 /**
  * supabase-js addresses tables at `<url>/rest/v1/<table>`, because that is where
@@ -32,18 +42,64 @@ const FUNCTIONS_URL = import.meta.env.VITE_FUNCTIONS_URL as string;
  * path here is smaller and safer than teaching 133 call sites a new client.
  */
 const restFetch: typeof fetch = (input, init) => {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-  const fixed = url.replace(`${POSTGREST_URL}/rest/v1`, POSTGREST_URL);
+  const url =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url;
+
+  const fixed = rewriteBffUrl(url, 'db', APP_ORIGIN);
+
+  const headers = sanitizeBffHeaders(
+    input instanceof Request ? input.headers : undefined,
+    init?.headers,
+  );
 
   const started = performance.now();
-  const path = new URL(fixed, "http://x").pathname.replace(/^\//, "");
-  const target = path.startsWith("rpc/") ? path : path.split("/")[0];
-  const done = (status: "ok" | "error", http?: number) =>
-    observe({ lane: "rest", target, status, http, duration_ms: Math.round(performance.now() - started) });
-  const call = typeof input === 'string' || input instanceof URL ? fetch(fixed, init) : fetch(new Request(fixed, input), init);
+
+  const path = new URL(fixed).pathname
+    .replace(/^\/api\/db\/?/, '');
+
+  const target = path.startsWith('rpc/')
+    ? path
+    : path.split('/')[0];
+
+  const done = (
+    status: 'ok' | 'error',
+    http?: number,
+  ) =>
+    observe({
+      lane: 'rest',
+      target,
+      status,
+      http,
+      duration_ms: Math.round(performance.now() - started),
+    });
+
+  const requestInit: RequestInit = {
+    ...init,
+    headers,
+    credentials: 'same-origin',
+  };
+
+  const call =
+    typeof input === 'string' || input instanceof URL
+      ? fetch(fixed, requestInit)
+      : fetch(
+          new Request(fixed, input),
+          requestInit,
+        );
+
   return call.then(
-    (res) => { done(res.ok ? "ok" : "error", res.status); return res; },
-    (err) => { done("error"); throw err; },
+    (res) => {
+      done(res.ok ? 'ok' : 'error', res.status);
+      return res;
+    },
+    (err) => {
+      done('error');
+      throw err;
+    },
   );
 };
 
@@ -70,28 +126,94 @@ const observe = (c: CallInfo) => { try { callObserver?.(c); } catch { /* never a
 
 /** fetch that adds x-request-id and x-session-id, and reports how the call ended. Adds no body, no personal data. */
 const tracedFetch: typeof fetch = (input, init) => {
-  const headers = new Headers(init?.headers);
-  const requestId = headers.get("x-request-id") ?? crypto.randomUUID();
-  headers.set("x-request-id", requestId);
-  headers.set("x-session-id", SESSION_ID);
-  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-  const target = new URL(url, "http://x").pathname.replace(/^\/functions\/v1\//, "").replace(/^\//, "").split("/")[0];
+  const url =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url;
+
+  const fixed = rewriteBffUrl(
+    url,
+    'function',
+    APP_ORIGIN,
+  );
+
+  const headers = sanitizeBffHeaders(
+    input instanceof Request ? input.headers : undefined,
+    init?.headers,
+  );
+
+  const requestId =
+    headers.get('x-request-id') ??
+    crypto.randomUUID();
+
+  headers.set('x-request-id', requestId);
+  headers.set('x-session-id', SESSION_ID);
+
+  const target = new URL(fixed).pathname
+    .replace(/^\/api\/functions\//, '')
+    .split('/')[0];
+
   const started = performance.now();
-  return fetch(input, { ...init, headers }).then(
-    (res) => { observe({ lane: "function", target, status: res.ok ? "ok" : "error", http: res.status, duration_ms: Math.round(performance.now() - started), request_id: requestId }); return res; },
-    (err) => { observe({ lane: "function", target, status: "error", duration_ms: Math.round(performance.now() - started), request_id: requestId }); throw err; },
+
+  const requestInit: RequestInit = {
+    ...init,
+    headers,
+    credentials: 'same-origin',
+  };
+
+  const call =
+    typeof input === 'string' || input instanceof URL
+      ? fetch(fixed, requestInit)
+      : fetch(
+          new Request(fixed, input),
+          requestInit,
+        );
+
+  return call.then(
+    (res) => {
+      observe({
+        lane: 'function',
+        target,
+        status: res.ok ? 'ok' : 'error',
+        http: res.status,
+        duration_ms: Math.round(
+          performance.now() - started,
+        ),
+        request_id: requestId,
+      });
+
+      return res;
+    },
+    (err) => {
+      observe({
+        lane: 'function',
+        target,
+        status: 'error',
+        duration_ms: Math.round(
+          performance.now() - started,
+        ),
+        request_id: requestId,
+      });
+
+      throw err;
+    },
   );
 };
 
 export function createGoogleClient() {
-  const base = createClient<Database>(POSTGREST_URL, 'postgrest-needs-no-api-key', {
-    // Supplying accessToken tells supabase-js that something else owns the
-    // session. It then refuses every supabase.auth call - which is correct, and
-    // is why the proxy below hands those to the shim instead.
-    accessToken: async () => (await currentAccessToken()) ?? '',
-    global: { fetch: restFetch },
-    db: { schema: 'public' },
-  });
+  const base = createClient<Database>(
+    APP_ORIGIN,
+    'bff-no-browser-api-key',
+    {
+      // Keep supabase-js out of the auth business. This fixed placeholder is
+      // stripped by restFetch and never crosses the network.
+      accessToken: async () => BFF_PLACEHOLDER_TOKEN,
+      global: { fetch: restFetch },
+      db: { schema: 'public' },
+    },
+  );
 
   // The 41 functions, now on Cloud Run. supabase-js calls them at
   // <url>/functions/v1/<name>, and the router accepts that path as well as the
@@ -100,10 +222,17 @@ export function createGoogleClient() {
   // Every call to a function carries a request id (one per call) and a session id (one per
   // browser tab), so one student action can be found in the server logs by searching that id.
   // The functions accept both headers (CORS) and write them into every log line.
-  const functionsClient = createClient<Database>(FUNCTIONS_URL, 'functions-need-no-api-key', {
-    accessToken: async () => (await currentAccessToken()) ?? '',
-    global: { fetch: tracedFetch },
-  });
+  const functionsClient = createClient<Database>(
+    APP_ORIGIN,
+    'bff-no-browser-api-key',
+    {
+      // Same rule as database calls: supabase-js may construct an Authorization
+      // header internally, but tracedFetch removes it before the request leaves
+      // the page. The HttpOnly BFF cookie is the credential.
+      accessToken: async () => BFF_PLACEHOLDER_TOKEN,
+      global: { fetch: tracedFetch },
+    },
+  );
 
   return new Proxy(base, {
     get(target, prop, receiver) {

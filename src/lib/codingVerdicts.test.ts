@@ -48,3 +48,15 @@ test("a results list with output_limit and a hidden summary renders as before", 
   assert.ok(isHiddenSummary(second));
   if (isHiddenSummary(second)) assert.equal(hiddenSummaryText(second), "1 of 3 hidden tests passed");
 });
+
+import { submitScoreLine } from "./codingVerdicts.ts";
+
+test("score line: a pass says Passed; a fail names the failing tests, never a percentage that would not be enough", () => {
+  assert.equal(submitScoreLine({ score: 100, passed: true, pass_threshold: 80, failed_tests: 0 }), "Score 100% · Passed");
+  assert.equal(submitScoreLine({ score: 80, passed: false, pass_threshold: 80, failed_tests: 1 }), "Score 80% · 1 test failed - every test must pass");
+  assert.equal(submitScoreLine({ score: 40, passed: false, pass_threshold: 80, failed_tests: 3 }), "Score 40% · 3 tests failed - every test must pass");
+  // All tests passed but not recorded as passed: never "Needs 80%" next to a full score.
+  assert.equal(submitScoreLine({ score: 100, passed: false, pass_threshold: 80, failed_tests: 0 }), "Score 100% · Not recorded as passed - submit again");
+  // An older server that sends no failed_tests keeps the old wording.
+  assert.equal(submitScoreLine({ score: 50, passed: false, pass_threshold: 80 }), "Score 50% · Needs 80%");
+});

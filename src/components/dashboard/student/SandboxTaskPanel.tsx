@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SimpleQuestion } from "./SimpleQuestion";
 import { FunctionSignature, GivenMaterial, SampleExamples } from "./GivenMaterial";
-import { verdictText, type Verdict } from "@/lib/codingVerdicts";
+import { submitScoreLine, verdictText, type Verdict } from "@/lib/codingVerdicts";
 import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, type HiddenSummary,
 } from "@/lib/functionSignature";
@@ -191,11 +191,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
       {result && (
         <div className={`rounded-lg border p-3 ${result.passed ? "border-emerald-500/50" : "border-amber-500/50"}`}>
           <p className="font-semibold">
-            Score {result.score}% {result.passed
-              ? "· Passed"
-              : result.score >= result.pass_threshold && result.failed_tests
-                ? `· ${result.failed_tests} test${result.failed_tests === 1 ? "" : "s"} failed - every test must pass`
-                : `· Needs ${result.pass_threshold}%`}
+            {submitScoreLine(result)}
             {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
           </p>
           {result.already_completed && !result.passed && (

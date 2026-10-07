@@ -40,3 +40,17 @@ export function verdictLabel(verdict: string): { title: string; hint: string } {
 export function verdictText(verdict: string): string {
   return VERDICT_TEXT[verdict as Verdict] ?? "Failed";
 }
+
+/**
+ * The score line after Submit, e.g. "Score 80% · 1 test failed - every test must pass".
+ * Since migration 91 a coding task passes only when EVERY test passes, so a failed submission
+ * names the failing tests rather than a percentage that would not be enough on its own.
+ */
+export function submitScoreLine(r: { score: number; passed: boolean; pass_threshold: number; failed_tests?: number }): string {
+  if (r.passed) return `Score ${r.score}% · Passed`;
+  if (r.failed_tests && r.failed_tests > 0) {
+    return `Score ${r.score}% · ${r.failed_tests} test${r.failed_tests === 1 ? "" : "s"} failed - every test must pass`;
+  }
+  if (r.failed_tests === 0) return `Score ${r.score}% · Not recorded as passed - submit again`;
+  return `Score ${r.score}% · Needs ${r.pass_threshold}%`;
+}

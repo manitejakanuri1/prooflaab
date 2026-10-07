@@ -17,14 +17,14 @@ interface ProfilePhotoModalProps {
   onPhotoUpdate: (newUrl: string | null) => void;
 }
 
-const ProfilePhotoModal = ({ 
-  isOpen, 
-  onClose, 
-  currentPhotoUrl, 
-  userName, 
+const ProfilePhotoModal = ({
+  isOpen,
+  onClose,
+  currentPhotoUrl,
+  userName,
   userId,
   userType,
-  onPhotoUpdate 
+  onPhotoUpdate
 }: ProfilePhotoModalProps) => {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -78,7 +78,7 @@ const ProfilePhotoModal = ({
       const { data: { publicUrl } } = supabase.storage
         .from('profile-photos')
         .getPublicUrl(fileName);
-      
+
       // Update the appropriate profile table
       if (userType === 'college') {
         // For college profiles, we need to check if the profile exists first
@@ -99,10 +99,10 @@ const ProfilePhotoModal = ({
           // Create new profile
           const { error } = await supabase
             .from('college_profiles')
-            .insert({ 
-              user_id: user.id, 
+            .insert({
+              user_id: user.id,
               college_name: userName,
-              profile_photo_url: publicUrl 
+              profile_photo_url: publicUrl
             });
           if (error) throw error;
         }
@@ -116,7 +116,7 @@ const ProfilePhotoModal = ({
       }
 
       onPhotoUpdate(publicUrl);
-      
+
       toast({
         title: "Photo updated successfully",
         description: "Your profile photo has been changed.",
@@ -154,7 +154,7 @@ const ProfilePhotoModal = ({
       }
 
       onPhotoUpdate(null);
-      
+
       toast({
         title: "Photo removed successfully",
         description: "Your profile photo has been removed.",
@@ -196,8 +196,8 @@ const ProfilePhotoModal = ({
             {/* Main photo display */}
             <div className="flex justify-center items-center py-8 px-4 bg-muted/20">
               <Avatar className="h-48 w-48 border-4 border-background shadow-lg">
-                <AvatarImage 
-                  src={currentPhotoUrl || undefined} 
+                <AvatarImage
+                  src={currentPhotoUrl || undefined}
                   alt={userName}
                   className="object-cover"
                 />

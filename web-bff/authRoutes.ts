@@ -451,7 +451,6 @@ async function logout(
   );
 }
 
-
 async function googleIdentityAction(
   path: string,
   body: Record<string, unknown>,
@@ -462,9 +461,7 @@ async function googleIdentityAction(
   }
 
   return await cfg.fetcher(
-    `${IDENTITY}/accounts:${path}?key=${
-      encodeURIComponent(cfg.googleApiKey)
-    }`,
+    `${IDENTITY}/accounts:${path}?key=${encodeURIComponent(cfg.googleApiKey)}`,
     {
       method: "POST",
       headers: {
@@ -582,10 +579,7 @@ async function verifyPasswordReset(
 
   return json({
     ok: true,
-    email:
-      typeof body.email === "string"
-        ? body.email
-        : null,
+    email: typeof body.email === "string" ? body.email : null,
   });
 }
 
@@ -691,8 +685,7 @@ async function confirmEmail(
   if (!response.ok) {
     return json(
       {
-        error:
-          "That verification link is invalid or has expired",
+        error: "That verification link is invalid or has expired",
       },
       400,
     );
@@ -700,7 +693,6 @@ async function confirmEmail(
 
   return json({ ok: true });
 }
-
 
 async function refreshGoogleForAction(
   sessionId: string,
@@ -715,19 +707,15 @@ async function refreshGoogleForAction(
   }
 
   const response = await cfg.fetcher(
-    `${SECURETOKEN}?key=${
-      encodeURIComponent(cfg.googleApiKey)
-    }`,
+    `${SECURETOKEN}?key=${encodeURIComponent(cfg.googleApiKey)}`,
     {
       method: "POST",
       headers: {
-        "Content-Type":
-          "application/x-www-form-urlencoded",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
         grant_type: "refresh_token",
-        refresh_token:
-          session.googleRefreshToken,
+        refresh_token: session.googleRefreshToken,
       }),
     },
   );
@@ -763,11 +751,9 @@ async function refreshGoogleForAction(
 
   const next: PrivateSession = {
     ...session,
-    googleRefreshToken:
-      refreshed.refresh_token,
+    googleRefreshToken: refreshed.refresh_token,
     appAccessToken: exchanged.token,
-    appAccessExpiresAt:
-      cfg.now() +
+    appAccessExpiresAt: cfg.now() +
       exchanged.expiresIn * 1000,
   };
 
@@ -802,25 +788,17 @@ async function signup(
     );
   }
 
-  const email =
-    typeof input.email === "string"
-      ? input.email.trim()
-      : "";
+  const email = typeof input.email === "string" ? input.email.trim() : "";
 
-  const password =
-    typeof input.password === "string"
-      ? input.password
-      : "";
+  const password = typeof input.password === "string" ? input.password : "";
 
-  const fullName =
-    typeof input.full_name === "string"
-      ? input.full_name.trim()
-      : "";
+  const fullName = typeof input.full_name === "string"
+    ? input.full_name.trim()
+    : "";
 
-  const accountType =
-    typeof input.account_type === "string"
-      ? input.account_type
-      : "";
+  const accountType = typeof input.account_type === "string"
+    ? input.account_type
+    : "";
 
   const allowedRoles = new Set([
     "student",
@@ -869,23 +847,20 @@ async function signup(
   }
 
   if (!response.ok) {
-    const provider =
-      await response.json().catch(() => ({})) as {
-        error?: {
-          message?: unknown;
-        };
+    const provider = await response.json().catch(() => ({})) as {
+      error?: {
+        message?: unknown;
       };
+    };
 
-    const code =
-      typeof provider.error?.message === "string"
-        ? provider.error.message
-        : "";
+    const code = typeof provider.error?.message === "string"
+      ? provider.error.message
+      : "";
 
     if (code.startsWith("EMAIL_EXISTS")) {
       return json(
         {
-          error:
-            "An account with this email already exists",
+          error: "An account with this email already exists",
         },
         409,
       );
@@ -894,8 +869,7 @@ async function signup(
     if (code.startsWith("WEAK_PASSWORD")) {
       return json(
         {
-          error:
-            "Password should be at least 6 characters",
+          error: "Password should be at least 6 characters",
         },
         400,
       );
@@ -904,8 +878,7 @@ async function signup(
     if (code.startsWith("TOO_MANY_ATTEMPTS")) {
       return json(
         {
-          error:
-            "Too many attempts. Please wait and try again",
+          error: "Too many attempts. Please wait and try again",
         },
         429,
       );
@@ -939,23 +912,21 @@ async function signup(
 
   // Store the display name with Google when possible.
   try {
-    const updated =
-      await googleIdentityAction(
-        "update",
-        {
-          idToken,
-          displayName: fullName,
-          returnSecureToken: true,
-        },
-        cfg,
-      );
+    const updated = await googleIdentityAction(
+      "update",
+      {
+        idToken,
+        displayName: fullName,
+        returnSecureToken: true,
+      },
+      cfg,
+    );
 
     if (updated.ok) {
-      const body =
-        await updated.json() as {
-          idToken?: unknown;
-          refreshToken?: unknown;
-        };
+      const body = await updated.json() as {
+        idToken?: unknown;
+        refreshToken?: unknown;
+      };
 
       if (typeof body.idToken === "string") {
         idToken = body.idToken;
@@ -964,8 +935,7 @@ async function signup(
       if (
         typeof body.refreshToken === "string"
       ) {
-        refreshToken =
-          body.refreshToken;
+        refreshToken = body.refreshToken;
       }
     }
   } catch {
@@ -983,10 +953,9 @@ async function signup(
       {
         requestType: "VERIFY_EMAIL",
         idToken,
-        continueUrl:
-          `${origin}/auth/callback?type=${
-            encodeURIComponent(accountType)
-          }`,
+        continueUrl: `${origin}/auth/callback?type=${
+          encodeURIComponent(accountType)
+        }`,
       },
       cfg,
     );
@@ -997,11 +966,10 @@ async function signup(
   let exchanged;
 
   try {
-    exchanged =
-      await exchangeAppToken(
-        idToken,
-        cfg,
-      );
+    exchanged = await exchangeAppToken(
+      idToken,
+      cfg,
+    );
   } catch {
     return json(
       {
@@ -1017,10 +985,9 @@ async function signup(
   const user: SessionUser = {
     id: exchanged.subject,
     email: created.email,
-    email_confirmed_at:
-      exchanged.confirmed
-        ? new Date(now).toISOString()
-        : null,
+    email_confirmed_at: exchanged.confirmed
+      ? new Date(now).toISOString()
+      : null,
     role: "authenticated",
     user_metadata: {
       email: created.email,
@@ -1031,21 +998,16 @@ async function signup(
 
   const session: PrivateSession = {
     v: 1,
-    googleRefreshToken:
-      refreshToken,
-    appAccessToken:
-      exchanged.token,
-    appAccessExpiresAt:
-      now +
+    googleRefreshToken: refreshToken,
+    appAccessToken: exchanged.token,
+    appAccessExpiresAt: now +
       exchanged.expiresIn * 1000,
     user,
-    expiresAt:
-      now +
+    expiresAt: now +
       ABSOLUTE_SESSION_MS,
   };
 
-  const sessionId =
-    cfg.newSessionId();
+  const sessionId = cfg.newSessionId();
 
   try {
     await cfg.createSession(
@@ -1064,19 +1026,17 @@ async function signup(
 
   return json(
     {
-      session:
-        safeSession(session),
+      session: safeSession(session),
     },
     200,
     {
-      "Set-Cookie":
-        makeSessionCookie(
-          sessionId,
-          Math.floor(
-            ABSOLUTE_SESSION_MS /
-              1000,
-          ),
+      "Set-Cookie": makeSessionCookie(
+        sessionId,
+        Math.floor(
+          ABSOLUTE_SESSION_MS /
+            1000,
         ),
+      ),
     },
   );
 }
@@ -1090,16 +1050,14 @@ async function updateCurrentUser(
   let resolved;
 
   try {
-    resolved =
-      await resolveAuthenticatedSession(
-        req,
-        deps,
-      );
+    resolved = await resolveAuthenticatedSession(
+      req,
+      deps,
+    );
   } catch {
     return json(
       {
-        error:
-          "session service unavailable",
+        error: "session service unavailable",
       },
       503,
     );
@@ -1110,8 +1068,7 @@ async function updateCurrentUser(
       { error: "not authenticated" },
       401,
       {
-        "Set-Cookie":
-          clearSessionCookie(),
+        "Set-Cookie": clearSessionCookie(),
       },
     );
   }
@@ -1131,25 +1088,22 @@ async function updateCurrentUser(
     );
   }
 
-  const password =
-    typeof input.password === "string"
-      ? input.password
-      : undefined;
+  const password = typeof input.password === "string"
+    ? input.password
+    : undefined;
 
-  const email =
-    typeof input.email === "string"
-      ? input.email.trim()
-      : undefined;
+  const email = typeof input.email === "string"
+    ? input.email.trim()
+    : undefined;
 
-  const rawData =
-    input.data &&
+  const rawData = input.data &&
       typeof input.data === "object" &&
       !Array.isArray(input.data)
-      ? input.data as Record<
-          string,
-          unknown
-        >
-      : {};
+    ? input.data as Record<
+      string,
+      unknown
+    >
+    : {};
 
   if (
     password === undefined &&
@@ -1168,8 +1122,7 @@ async function updateCurrentUser(
   ) {
     return json(
       {
-        error:
-          "Password should be at least 6 characters",
+        error: "Password should be at least 6 characters",
       },
       400,
     );
@@ -1181,21 +1134,18 @@ async function updateCurrentUser(
   ) {
     return json(
       {
-        error:
-          "That email address is not valid",
+        error: "That email address is not valid",
       },
       400,
     );
   }
 
-  const safeData:
-    Record<string, unknown> = {};
+  const safeData: Record<string, unknown> = {};
 
   if (
     typeof rawData.full_name === "string"
   ) {
-    const name =
-      rawData.full_name.trim();
+    const name = rawData.full_name.trim();
 
     if (
       name &&
@@ -1208,55 +1158,47 @@ async function updateCurrentUser(
   if (
     typeof rawData.onboarded === "boolean"
   ) {
-    safeData.onboarded =
-      rawData.onboarded;
+    safeData.onboarded = rawData.onboarded;
   }
 
   let action;
 
   try {
-    action =
-      await refreshGoogleForAction(
-        resolved.sessionId,
-        resolved.session,
-        cfg,
-      );
+    action = await refreshGoogleForAction(
+      resolved.sessionId,
+      resolved.session,
+      cfg,
+    );
   } catch {
     return json(
       { error: "not authenticated" },
       401,
       {
-        "Set-Cookie":
-          clearSessionCookie(),
+        "Set-Cookie": clearSessionCookie(),
       },
     );
   }
 
-  const providerBody:
-    Record<string, unknown> = {
-      idToken: action.idToken,
-      returnSecureToken: true,
+  const providerBody: Record<string, unknown> = {
+    idToken: action.idToken,
+    returnSecureToken: true,
   };
 
   if (password !== undefined) {
-    providerBody.password =
-      password;
+    providerBody.password = password;
   }
 
   if (email !== undefined) {
-    providerBody.email =
-      email;
+    providerBody.email = email;
   }
 
   if (
     typeof safeData.full_name === "string"
   ) {
-    providerBody.displayName =
-      safeData.full_name;
+    providerBody.displayName = safeData.full_name;
   }
 
-  let providerResponse:
-    Response | null = null;
+  let providerResponse: Response | null = null;
 
   // Metadata-only updates do not need a Google
   // account mutation unless displayName changes.
@@ -1266,17 +1208,15 @@ async function updateCurrentUser(
     typeof safeData.full_name === "string"
   ) {
     try {
-      providerResponse =
-        await googleIdentityAction(
-          "update",
-          providerBody,
-          cfg,
-        );
+      providerResponse = await googleIdentityAction(
+        "update",
+        providerBody,
+        cfg,
+      );
     } catch {
       return json(
         {
-          error:
-            "Could not update your account",
+          error: "Could not update your account",
         },
         503,
       );
@@ -1285,36 +1225,31 @@ async function updateCurrentUser(
     if (!providerResponse.ok) {
       return json(
         {
-          error:
-            "Could not update your account",
+          error: "Could not update your account",
         },
         400,
       );
     }
   }
 
-  let next =
-    action.session;
+  let next = action.session;
 
-  let nextIdToken:
-    string | null = null;
+  let nextIdToken: string | null = null;
 
   if (providerResponse) {
-    const provider =
-      await providerResponse
-        .json()
-        .catch(() => ({})) as {
-          idToken?: unknown;
-          refreshToken?: unknown;
-          email?: unknown;
-        };
+    const provider = await providerResponse
+      .json()
+      .catch(() => ({})) as {
+        idToken?: unknown;
+        refreshToken?: unknown;
+        email?: unknown;
+      };
 
     if (
       typeof provider.idToken ===
         "string"
     ) {
-      nextIdToken =
-        provider.idToken;
+      nextIdToken = provider.idToken;
     }
 
     if (
@@ -1323,19 +1258,17 @@ async function updateCurrentUser(
     ) {
       next = {
         ...next,
-        googleRefreshToken:
-          provider.refreshToken,
+        googleRefreshToken: provider.refreshToken,
       };
     }
   }
 
   if (nextIdToken) {
     try {
-      const exchanged =
-        await exchangeAppToken(
-          nextIdToken,
-          cfg,
-        );
+      const exchanged = await exchangeAppToken(
+        nextIdToken,
+        cfg,
+      );
 
       if (
         exchanged.subject !==
@@ -1348,18 +1281,15 @@ async function updateCurrentUser(
 
       next = {
         ...next,
-        appAccessToken:
-          exchanged.token,
-        appAccessExpiresAt:
-          cfg.now() +
+        appAccessToken: exchanged.token,
+        appAccessExpiresAt: cfg.now() +
           exchanged.expiresIn *
             1000,
       };
     } catch {
       return json(
         {
-          error:
-            "Could not refresh your secure session",
+          error: "Could not refresh your secure session",
         },
         503,
       );
@@ -1372,17 +1302,14 @@ async function updateCurrentUser(
       ...next.user,
       ...(email !== undefined
         ? {
-            email,
-            email_confirmed_at:
-              null,
-          }
+          email,
+          email_confirmed_at: null,
+        }
         : {}),
       user_metadata: {
         ...next.user.user_metadata,
         ...safeData,
-        ...(email !== undefined
-          ? { email }
-          : {}),
+        ...(email !== undefined ? { email } : {}),
       },
     },
   };
@@ -1395,8 +1322,7 @@ async function updateCurrentUser(
   } catch {
     return json(
       {
-        error:
-          "Could not save your secure session",
+        error: "Could not save your secure session",
       },
       503,
     );
@@ -1416,16 +1342,14 @@ async function resendVerification(
   let resolved;
 
   try {
-    resolved =
-      await resolveAuthenticatedSession(
-        req,
-        deps,
-      );
+    resolved = await resolveAuthenticatedSession(
+      req,
+      deps,
+    );
   } catch {
     return json(
       {
-        error:
-          "session service unavailable",
+        error: "session service unavailable",
       },
       503,
     );
@@ -1436,8 +1360,7 @@ async function resendVerification(
       { error: "not authenticated" },
       401,
       {
-        "Set-Cookie":
-          clearSessionCookie(),
+        "Set-Cookie": clearSessionCookie(),
       },
     );
   }
@@ -1452,11 +1375,10 @@ async function resendVerification(
     // account_type is optional.
   }
 
-  const requested =
-    typeof input.account_type ===
+  const requested = typeof input.account_type ===
       "string"
-      ? input.account_type
-      : "";
+    ? input.account_type
+    : "";
 
   const allowedRoles = new Set([
     "student",
@@ -1464,59 +1386,48 @@ async function resendVerification(
     "startup",
   ]);
 
-  const accountType =
-    allowedRoles.has(requested)
-      ? requested
-      : "student";
+  const accountType = allowedRoles.has(requested) ? requested : "student";
 
   let action;
 
   try {
-    action =
-      await refreshGoogleForAction(
-        resolved.sessionId,
-        resolved.session,
-        cfg,
-      );
+    action = await refreshGoogleForAction(
+      resolved.sessionId,
+      resolved.session,
+      cfg,
+    );
   } catch {
     return json(
       { error: "not authenticated" },
       401,
       {
-        "Set-Cookie":
-          clearSessionCookie(),
+        "Set-Cookie": clearSessionCookie(),
       },
     );
   }
 
-  const origin =
-    new URL(req.url).origin;
+  const origin = new URL(req.url).origin;
 
   let response: Response;
 
   try {
-    response =
-      await googleIdentityAction(
-        "sendOobCode",
-        {
-          requestType:
-            "VERIFY_EMAIL",
-          idToken:
-            action.idToken,
-          continueUrl:
-            `${origin}/auth/callback?type=${
-              encodeURIComponent(
-                accountType,
-              )
-            }`,
-        },
-        cfg,
-      );
+    response = await googleIdentityAction(
+      "sendOobCode",
+      {
+        requestType: "VERIFY_EMAIL",
+        idToken: action.idToken,
+        continueUrl: `${origin}/auth/callback?type=${
+          encodeURIComponent(
+            accountType,
+          )
+        }`,
+      },
+      cfg,
+    );
   } catch {
     return json(
       {
-        error:
-          "Could not resend verification email",
+        error: "Could not resend verification email",
       },
       503,
     );
@@ -1525,8 +1436,7 @@ async function resendVerification(
   if (!response.ok) {
     return json(
       {
-        error:
-          "Could not resend verification email",
+        error: "Could not resend verification email",
       },
       400,
     );
@@ -1595,7 +1505,13 @@ export async function handleAuthRoute(
     req.method === "POST" &&
     url.pathname === "/api/auth/signup"
   ) {
-    return await signup(req, cfg);
+    return json(
+      {
+        error:
+          "Account creation is managed by your college or platform administrator",
+      },
+      403,
+    );
   }
 
   if (

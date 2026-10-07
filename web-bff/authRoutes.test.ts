@@ -512,148 +512,34 @@ Deno.test("email verification code is confirmed server-side", async () => {
   assert(body.ok === true, "verification success missing");
 });
 
-Deno.test("signup creates an HttpOnly server session without returning tokens", async () => {
-  const createdState: {
-    value: PrivateSession | null;
-  } = {
-    value: null,
-  };
-
-  const fetcher: typeof fetch =
-    async (input, init) => {
-      const url = String(input);
-
-      if (
-        url.includes(
-          "accounts:signUp",
-        )
-      ) {
-        return Response.json({
-          email:
-            "new@example.test",
-          idToken:
-            "SIGNUP_ID_TOKEN",
-          refreshToken:
-            "SIGNUP_REFRESH_TOKEN",
-        });
-      }
-
-      if (
-        url.includes(
-          "accounts:update",
-        )
-      ) {
-        const sent =
-          JSON.parse(
-            String(
-              init?.body ?? "{}",
-            ),
-          );
-
-        assert(
-          sent.displayName ===
-            "New Student",
-          "display name lost",
-        );
-
-        return Response.json({
-          idToken:
-            "UPDATED_ID_TOKEN",
-          refreshToken:
-            "UPDATED_REFRESH_TOKEN",
-        });
-      }
-
-      if (
-        url.includes(
-          "accounts:sendOobCode",
-        )
-      ) {
-        const sent =
-          JSON.parse(
-            String(
-              init?.body ?? "{}",
-            ),
-          );
-
-        assert(
-          sent.requestType ===
-            "VERIFY_EMAIL",
-          "verification mail not requested",
-        );
-
-        assert(
-          String(
-            sent.continueUrl,
-          ).includes(
-            "type=student",
-          ),
-          "signup role redirect lost",
-        );
-
-        return Response.json({
-          email:
-            "new@example.test",
-        });
-      }
-
-      if (
-        url ===
-          "https://bridge.example.test/token"
-      ) {
-        return Response.json({
-          access_token: jwt({
-            sub: USER_ID,
-            role:
-              "authenticated",
-            email_confirmed:
-              false,
-          }),
-          expires_in: 3600,
-        });
-      }
-
-      throw new Error(
-        `unexpected URL: ${url}`,
-      );
-    };
+Deno.test("public signup is disabled", async () => {
+  let providerCalled = false;
 
   const req = new Request(
     "https://prooflab.co.in/api/auth/signup",
     {
       method: "POST",
       headers: {
-        "Content-Type":
-          "application/json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email:
-          "new@example.test",
-        password:
-          "StrongPassword123!",
-        full_name:
-          "New Student",
-        account_type:
-          "student",
+        email: "new@example.test",
+        password: "StrongPassword123!",
+        full_name: "New Student",
+        account_type: "student",
       }),
     },
   );
 
-  const res =
-    await handleAuthRoute(
-      req,
-      {
-        env: env(),
-        fetcher,
-        now: () => NOW,
-        newSessionId:
-          () => SESSION_ID,
-        createSession:
-          async (_id, session) => {
-            createdState.value = session;
-          },
-      },
-    );
+  const res = await handleAuthRoute(req, {
+    env: env(),
+    fetcher: async () => {
+      providerCalled = true;
+      throw new Error(
+        "disabled public signup reached identity provider",
+      );
+    },
+  });
 
   assert(
     res !== null,
@@ -661,59 +547,22 @@ Deno.test("signup creates an HttpOnly server session without returning tokens", 
   );
 
   assert(
-    res.status === 200,
-    "signup failed",
+    res.status === 403,
+    "public signup was not refused",
   );
 
   assert(
-    createdState.value !== null,
-    "secure signup session not stored",
+    providerCalled === false,
+    "disabled signup contacted identity provider",
   );
 
-  const createdSession =
-    createdState.value;
+  const body = await res.json();
 
   assert(
-    createdSession.user.user_metadata
-      .full_name ===
-      "New Student",
-    "safe signup metadata lost",
-  );
-
-  const text =
-    JSON.stringify(
-      await res.json(),
-    );
-
-  assert(
-    !text.includes(
-      "SIGNUP_REFRESH_TOKEN",
+    String(body.error).includes(
+      "managed by your college or platform administrator",
     ),
-    "refresh token leaked",
-  );
-
-  assert(
-    !text.includes(
-      "UPDATED_ID_TOKEN",
-    ),
-    "provider token leaked",
-  );
-
-  assert(
-    !text.includes(
-      "access_token",
-    ),
-    "application token field leaked",
-  );
-
-  const cookie =
-    res.headers.get(
-      "Set-Cookie",
-    ) ?? "";
-
-  assert(
-    cookie.includes("HttpOnly"),
-    "signup cookie not HttpOnly",
+    "managed-account message missing",
   );
 });
 
@@ -726,110 +575,94 @@ Deno.test("authenticated password update stays server-side", async () => {
 
   let sawPassword = false;
 
-  const fetcher: typeof fetch =
-    async (input, init) => {
-      const url = String(input);
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = String(input);
 
-      if (
-        url.includes(
-          "securetoken.googleapis.com",
-        )
-      ) {
-        return Response.json({
-          id_token:
-            "ACTION_ID_TOKEN",
-          refresh_token:
-            "ACTION_REFRESH_TOKEN",
-        });
-      }
+    if (
+      url.includes(
+        "securetoken.googleapis.com",
+      )
+    ) {
+      return Response.json({
+        id_token: "ACTION_ID_TOKEN",
+        refresh_token: "ACTION_REFRESH_TOKEN",
+      });
+    }
 
-      if (
-        url.includes(
-          "accounts:update",
-        )
-      ) {
-        const sent =
-          JSON.parse(
-            String(
-              init?.body ?? "{}",
-            ),
-          );
-
-        sawPassword =
-          sent.password ===
-          "NewPassword123!";
-
-        assert(
-          sent.idToken ===
-            "ACTION_ID_TOKEN",
-          "browser did not stay out of provider token flow",
-        );
-
-        return Response.json({
-          idToken:
-            "UPDATED_ID_TOKEN",
-          refreshToken:
-            "UPDATED_REFRESH_TOKEN",
-        });
-      }
-
-      if (
-        url ===
-          "https://bridge.example.test/token"
-      ) {
-        return Response.json({
-          access_token: jwt({
-            sub: USER_ID,
-            role:
-              "authenticated",
-            email_confirmed:
-              true,
-          }),
-          expires_in: 3600,
-        });
-      }
-
-      throw new Error(
-        `unexpected URL: ${url}`,
+    if (
+      url.includes(
+        "accounts:update",
+      )
+    ) {
+      const sent = JSON.parse(
+        String(
+          init?.body ?? "{}",
+        ),
       );
-    };
+
+      sawPassword = sent.password ===
+        "NewPassword123!";
+
+      assert(
+        sent.idToken ===
+          "ACTION_ID_TOKEN",
+        "browser did not stay out of provider token flow",
+      );
+
+      return Response.json({
+        idToken: "UPDATED_ID_TOKEN",
+        refreshToken: "UPDATED_REFRESH_TOKEN",
+      });
+    }
+
+    if (
+      url ===
+        "https://bridge.example.test/token"
+    ) {
+      return Response.json({
+        access_token: jwt({
+          sub: USER_ID,
+          role: "authenticated",
+          email_confirmed: true,
+        }),
+        expires_in: 3600,
+      });
+    }
+
+    throw new Error(
+      `unexpected URL: ${url}`,
+    );
+  };
 
   const req = new Request(
     "https://prooflab.co.in/api/auth/update",
     {
       method: "POST",
       headers: {
-        Cookie:
-          makeSessionCookie(
-            SESSION_ID,
-            3600,
-          ).split(";")[0],
-        "Content-Type":
-          "application/json",
+        Cookie: makeSessionCookie(
+          SESSION_ID,
+          3600,
+        ).split(";")[0],
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        password:
-          "NewPassword123!",
+        password: "NewPassword123!",
       }),
     },
   );
 
-  const res =
-    await handleAuthRoute(
-      req,
-      {
-        env: env(),
-        fetcher,
-        now: () => NOW,
-        loadSession:
-          async () => stored(),
-        updateSession:
-          async (_id, session) => {
-            finalState.value =
-              session;
-          },
+  const res = await handleAuthRoute(
+    req,
+    {
+      env: env(),
+      fetcher,
+      now: () => NOW,
+      loadSession: async () => stored(),
+      updateSession: async (_id, session) => {
+        finalState.value = session;
       },
-    );
+    },
+  );
 
   assert(
     res !== null,
@@ -851,8 +684,7 @@ Deno.test("authenticated password update stays server-side", async () => {
     "updated secure session not stored",
   );
 
-  const finalSession =
-    finalState.value;
+  const finalSession = finalState.value;
 
   assert(
     finalSession.googleRefreshToken ===
@@ -860,10 +692,9 @@ Deno.test("authenticated password update stays server-side", async () => {
     "rotated refresh token not stored server-side",
   );
 
-  const text =
-    JSON.stringify(
-      await res.json(),
-    );
+  const text = JSON.stringify(
+    await res.json(),
+  );
 
   assert(
     !text.includes(
@@ -883,101 +714,87 @@ Deno.test("authenticated password update stays server-side", async () => {
 Deno.test("verification resend uses the server session and returns no token", async () => {
   let sawVerification = false;
 
-  const fetcher: typeof fetch =
-    async (input, init) => {
-      const url = String(input);
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = String(input);
 
-      if (
-        url.includes(
-          "securetoken.googleapis.com",
-        )
-      ) {
-        return Response.json({
-          id_token:
-            "ACTION_ID_TOKEN",
-          refresh_token:
-            "ACTION_REFRESH_TOKEN",
-        });
-      }
+    if (
+      url.includes(
+        "securetoken.googleapis.com",
+      )
+    ) {
+      return Response.json({
+        id_token: "ACTION_ID_TOKEN",
+        refresh_token: "ACTION_REFRESH_TOKEN",
+      });
+    }
 
-      if (
-        url ===
-          "https://bridge.example.test/token"
-      ) {
-        return Response.json({
-          access_token: jwt({
-            sub: USER_ID,
-            role:
-              "authenticated",
-            email_confirmed:
-              false,
-          }),
-          expires_in: 3600,
-        });
-      }
+    if (
+      url ===
+        "https://bridge.example.test/token"
+    ) {
+      return Response.json({
+        access_token: jwt({
+          sub: USER_ID,
+          role: "authenticated",
+          email_confirmed: false,
+        }),
+        expires_in: 3600,
+      });
+    }
 
-      if (
-        url.includes(
-          "accounts:sendOobCode",
-        )
-      ) {
-        const sent =
-          JSON.parse(
-            String(
-              init?.body ?? "{}",
-            ),
-          );
-
-        sawVerification =
-          sent.requestType ===
-            "VERIFY_EMAIL" &&
-          sent.idToken ===
-            "ACTION_ID_TOKEN";
-
-        return Response.json({
-          email:
-            "student@example.test",
-        });
-      }
-
-      throw new Error(
-        `unexpected URL: ${url}`,
+    if (
+      url.includes(
+        "accounts:sendOobCode",
+      )
+    ) {
+      const sent = JSON.parse(
+        String(
+          init?.body ?? "{}",
+        ),
       );
-    };
+
+      sawVerification = sent.requestType ===
+          "VERIFY_EMAIL" &&
+        sent.idToken ===
+          "ACTION_ID_TOKEN";
+
+      return Response.json({
+        email: "student@example.test",
+      });
+    }
+
+    throw new Error(
+      `unexpected URL: ${url}`,
+    );
+  };
 
   const req = new Request(
     "https://prooflab.co.in/api/auth/resend-verification",
     {
       method: "POST",
       headers: {
-        Cookie:
-          makeSessionCookie(
-            SESSION_ID,
-            3600,
-          ).split(";")[0],
-        "Content-Type":
-          "application/json",
+        Cookie: makeSessionCookie(
+          SESSION_ID,
+          3600,
+        ).split(";")[0],
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        account_type:
-          "student",
+        account_type: "student",
       }),
     },
   );
 
-  const res =
-    await handleAuthRoute(
-      req,
-      {
-        env: env(),
-        fetcher,
-        now: () => NOW,
-        loadSession:
-          async () => stored(),
-        updateSession:
-          async () => {},
-      },
-    );
+  const res = await handleAuthRoute(
+    req,
+    {
+      env: env(),
+      fetcher,
+      now: () => NOW,
+      loadSession: async () => stored(),
+      updateSession: async () => {},
+    },
+  );
 
   assert(
     res !== null,
@@ -994,10 +811,9 @@ Deno.test("verification resend uses the server session and returns no token", as
     "verification request was not server-side",
   );
 
-  const text =
-    JSON.stringify(
-      await res.json(),
-    );
+  const text = JSON.stringify(
+    await res.json(),
+  );
 
   assert(
     !text.includes(

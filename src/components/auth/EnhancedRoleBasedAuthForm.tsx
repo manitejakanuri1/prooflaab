@@ -348,9 +348,8 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       <CardContent className="space-y-6">
         {/* Auth Mode Tabs */}
         <Tabs value={mode} onValueChange={(value) => setMode(value as AuthMode)}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-1">
             <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login" className="space-y-4">
@@ -384,59 +383,7 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             </div>
           </TabsContent>
 
-          <TabsContent value="signup" className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Account Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="college_admin">College Admin</SelectItem>
-                  <SelectItem value="startup">Company</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Input
-                type="text"
-                placeholder={
-                  role === 'student' ? 'Full Name' : 
-                  role === 'college_admin' ? 'College Name' : 
-                  'Company Name'
-                }
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <PasswordInput
-                value={password}
-                onChange={setPassword}
-                placeholder="Password"
-                required
-                showStrengthMeter
-              />
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={loading || !isPasswordValid(password)}
-              >
-                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                Create Account
-              </Button>
-              {password && !isPasswordValid(password) && (
-                <p className="text-sm text-destructive text-center">
-                  Password too weak
-                </p>
-              )}
-            </form>
-          </TabsContent>
+          {/* Public self-sign-up is disabled. Accounts are provisioned by a college or platform administrator. */}
 
           <TabsContent value="forgot-password" className="space-y-4">
             <div className="text-center mb-4">

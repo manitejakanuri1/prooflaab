@@ -133,7 +133,8 @@ def main():
 
     def lesson():
         st, out = call(f"{FN}/level-open", {"track_slug": "web-development", "level_number": 1,
-                                            "advance_step": False, "skip_to_checkpoint": False}, stu)
+                                            "advance_step": False, "skip_to_checkpoint": False,
+                                            "course_choice": "short"}, stu)
         out = ok(st, out, "level-open")
         assert out.get("explanation"), "empty lesson"
         return f"step {out.get('step_index')}/{out.get('total_steps')}, go deeper: {'yes' if out.get('go_deeper') else 'no'}, read more: {len(out.get('read_more') or [])}"
@@ -141,7 +142,8 @@ def main():
 
     def quiz():
         st, out = call(f"{FN}/level-open", {"track_slug": "web-development", "level_number": 1,
-                                            "advance_step": False, "skip_to_checkpoint": True}, stu)
+                                            "advance_step": False, "skip_to_checkpoint": True,
+                                            "course_choice": "short"}, stu)
         out = ok(st, out, "level-open")
         qs = out.get("quiz") or []
         assert qs, "checkpoint has no quiz"

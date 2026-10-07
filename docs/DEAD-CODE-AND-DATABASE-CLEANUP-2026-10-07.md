@@ -2,7 +2,9 @@
 
 Branch `work/dead-code-cleanup-final`, cut from `prooflaab/main` = `d814d5d` (production baseline:
 migration 93 applied, webhook secret v2, schedules restored). Nothing deployed, nothing pushed, no
-production change. Staging used only for read-only queries and transactions that ended in `rollback`.
+production change. Staging used for read-only queries, transactions that ended in `rollback`, and -
+in the correction pass, because the owner asked for the browser tests to be run for real - the test
+recordings and rows listed in section 3.4.
 
 Rule: prove dead from several angles, then delete. Cannot prove it: keep and say why. Git history is
 the archive.
@@ -11,21 +13,20 @@ the archive.
 
 | Measure | Before (`d814d5d`) | After | Change |
 |---|---|---|---|
-| Tracked files | 1,045 | 1,026 (+ this report) | -19 net (24 deleted, 5 added) |
-| `src/` files | 258 | 244 | -14 |
-| `src/` lines | 54,208 | 51,526 | -2,682 |
-| All code lines (`.ts/.tsx/.mjs/.js/.py/.sql/.sh`) | 133,820 | 130,817 | -3,003 |
-| JS + CSS bundle | 3,529,161 B | 3,521,796 B | -7,365 B (-0.21 %) |
-| gzip | 1,013,377 B | 1,012,261 B | -1,116 B |
+| Tracked files | 1,045 | 1,026 | -19 net (25 deleted, 6 added) |
+| `src/` files | 258 | 243 | -15 |
+| `src/` lines | 54,208 | 51,406 | -2,802 |
+| All code lines (`.ts/.tsx/.mjs/.js/.py/.sql/.sh`) | 133,820 | 130,714 | -3,106 |
+| JS + CSS bundle (76 files) | 3,529,161 B | 3,519,364 B | -9,797 B (-0.28 %) |
 | npm packages (dep + dev) | 42 + 17 = 59 | 38 + 16 = 54 | -5 |
 | npm audit findings | 9 (3 moderate, 6 high) | 7 (2 moderate, 5 high) | -2 |
 | Frontend routes (`<Route>` in App.tsx) | 19 | 19 | 0 |
-| Active function slugs (`SLUGS`) | 32 | 32 | 0 |
+| Function slugs (`SLUGS` in functions-service/main.ts) | 31 | 31 | 0 |
 | Website unit tests | 111 | 97 | -14 (exactly the tests of deleted `voiceStatus.ts`) |
 | Deno tests (`_shared` + reap) | 173 | 173 | 0 |
 | TODO / FIXME / HACK / XXX | 3 | 2 | the 2 left are a regex constant named `TODO` |
-| `tsc --noUnusedLocals` findings | 105 | 1 | the 1 left is a kept, reported bug |
-| `git diff --shortstat d814d5d HEAD` | - | 96 files, +707 / -4,642 lines | added = migration 94, this report, docs, `staging_token.mjs` |
+| `tsc --noUnusedLocals` findings | 105 | 0 | |
+| `git diff --shortstat d814d5d HEAD` | - | 97 files, +830 / -4,869 lines | added = migration 94, this report, docs, `staging_token.mjs`, test repairs |
 
 No speed claim is made: the bundle was already tree-shaken, so the size gain is small.
 
@@ -50,13 +51,18 @@ No speed claim is made: the bundle was already tree-shaken, so the size gain is 
 | `35905b6` | DB | migration 94 prepared - **NOT APPLIED** |
 | `5e6209a` | E | whitespace in the consolidated modal |
 | `f6f9178` | C | `source-map-js` patch (cherry-pick of `e0fb9e9`; dist byte-identical) |
-| this commit | G | this report |
+| `82084c7` | G | this report (first version) |
+| `fdc3e8c` | B | unreachable verification branch in `Auth.tsx` + `EmailVerificationPrompt.tsx` removed |
+| `9f6154a` | D | browser voice tests updated to the current recorder and run against staging |
+| `b5d7af9` | D | `voice_modal_browser` section E: fail only the polls |
+| `f43627e` | D | comment the legacy guard flagged |
+| this commit | G | report corrected after the correction pass |
 
 ## 3. Every candidate
 
 Classes: SAFE_DELETE, KEEP_CURRENT, KEEP_ROLLBACK, KEEP_HISTORY, REPAIR, DEFER_DB_DELETE, UNKNOWN (= keep).
 
-### 3.1 Files deleted (24)
+### 3.1 Files deleted (25)
 
 | File | Evidence | Commit |
 |---|---|---|
@@ -69,6 +75,7 @@ Classes: SAFE_DELETE, KEEP_CURRENT, KEEP_ROLLBACK, KEEP_HISTORY, REPAIR, DEFER_D
 | `bun.lock` | nothing uses Bun; all builds `npm ci` | `9373976` |
 | `auth/EmailVerificationScreen.tsx` | only importer never rendered it | `222a12c` |
 | `student/StudentNotificationsPage.tsx` | only importer never rendered it; `notifications` view redirects to `profile` | `222a12c` |
+| `auth/EmailVerificationPrompt.tsx` | only importer was the unreachable branch in `Auth.tsx` (see 3.3) | `fdc3e8c` |
 | `ProfilePhotoModalUniversal.tsx` (+ old `ProfilePhotoModal.tsx` content) | merged: identical student path; one file `ProfilePhotoModal.tsx` remains | `7ca00fd` |
 | `scripts/dev-tools/voice_buildlog_browser.mjs` | tests the Build-Log recordings card removed in `292358b` | `fdcdaa0` |
 | `interview-scraper/` (8 files) | never deployed (live infra), no caller/CI/DB; 3 audits "unused"; crawler does this job | `67089d5` |
@@ -79,12 +86,32 @@ Classes: SAFE_DELETE, KEEP_CURRENT, KEEP_ROLLBACK, KEEP_HISTORY, REPAIR, DEFER_D
 `react-icons` (never imported), `@tailwindcss/typography` (not in Tailwind plugins). Remaining zero-import
 packages are tooling: `@types/*`, `typescript`, `eslint`, `postcss`, `autoprefixer` (via `postcss.config.js`).
 
+### 3.2a npm audit - the 7 remaining findings
+
+| Package | Severity | Direct? | Runtime or build | Path | Fixed in | Semver-major? | In shipped bundle? | Action |
+|---|---|---|---|---|---|---|---|---|
+| tailwindcss 3.4.19 | high (via its deps) | direct (dev) | build only (CSS compiler) | - | 4.x | yes (Tailwind 4 rewrite) | no | keep; Tailwind 4 is a separate project |
+| braces 3.0.3 | high (GHSA-vfj7-8cjw-p6xm, stack exhaustion) | transitive | build only | tailwindcss > micromatch/chokidar > braces | no 3.x fix; only via tailwind 4 | yes | no | keep |
+| micromatch 4.0.8 | high (via braces) | transitive | build only | tailwindcss > micromatch | via tailwind 4 | yes | no | keep |
+| fast-glob 3.3.3 | high (via micromatch) | transitive | build only | tailwindcss > fast-glob | via tailwind 4 | yes | no | keep |
+| chokidar 3.6.0 | high (via braces) | transitive | build only (file watcher) | tailwindcss > chokidar | via tailwind 4 | yes | no | keep |
+| postcss-selector-parser 6.1.4 | moderate (GHSA-rj75-hqrm-r3gf, quadratic parsing) | transitive | build only | tailwindcss, postcss-nested | 7.1.6 | yes (6 -> 7, outside the parents' ranges) | no | keep |
+| postcss-nested 6.2.0 | moderate (via selector-parser) | transitive | build only | tailwindcss > postcss-nested | 8.x | yes | no | keep |
+
+Evidence: none of the 7 package names occurs in any of the 76 built `dist/assets` files; no `src/` file
+imports them. `npm audit fix --dry-run` (no `--force`) would only de-duplicate the same
+postcss-selector-parser 6.1.4 - it fixes nothing, so no dependency was changed. The inputs these tools
+parse are our own source files at build time, not user data.
+
 ### 3.3 Imports / exports / locals
 
 - 77 unused imports (TypeScript "remove unused" action; compiler-proven).
+- Unused-export rescan after the correction pass: 0 names with no use anywhere, except the generated
+  `types.ts` helpers (`TablesInsert`, `TablesUpdate`, `Constants` - generated, kept). 32 more names are used
+  inside their own file (only the `export` word is spare - not dead code, left as is).
 - 7 unused exports: `currentIdToken`, `__resetForTests` (identity.ts), `TaskTab`, server `SECTION_LABELS`,
   `TARGET_ROLES`, `TestCase`, `NON_CODING_INTERESTS`. Kept: `__setSessionForTests` (voice harness uses it).
-- 28 unused locals reviewed one by one (`a50a8fd`):
+- 28 unused locals reviewed one by one (`a50a8fd`; the last one in `fdc3e8c`):
 
 | Local | Verdict | Why |
 |---|---|---|
@@ -96,7 +123,7 @@ packages are tooling: `@types/*`, `typescript`, `eslint`, `postcss`, `autoprefix
 | StudentRoadmapPage `statusMeta` (+3 icons), `loading`, `hasScorecard` | A dead | write-only / never read |
 | AuthCallback `loading`; AssignTasksScreen `uploading`; StartupWizard `DOMAINS` | A dead | write-only / never offered |
 | `periodKey`, `packId`, CollegeDashboard `loading`, `uploadData` (x2), `navigate`, 4 hook names | D accidental | unused bindings |
-| `src/pages/Auth.tsx` `setUserEmail` | **E - KEPT** | latent BUG: verification prompt always gets an empty email. Report, fix separately - not dead code |
+| `src/pages/Auth.tsx` `setUserEmail` (+ `showVerificationPrompt`, render block) | A dead (`fdc3e8c`) | corrected: not a bug. `showVerificationPrompt` starts false and is only ever set to false (inside the branch it guards); `setUserEmail` has no caller; `git log -S` over the file's history finds no version that ever set either. Sign-up verification is `EnhancedRoleBasedAuthForm` -> `authStep = 'email-verification'` -> `EmailConfirmationRequired` with the real email (unchanged) |
 
 ### 3.4 Scripts (section 6 of the request)
 
@@ -114,9 +141,26 @@ packages are tooling: `@types/*`, `typescript`, `eslint`, `postcss`, `autoprefix
 | staging_jwks_secret.py | F1 setup tool | - | - | reads legacy secret | KEEP_HISTORY |
 | step6dd/step6ee builders | produced applied migration files | - | - | - | KEEP_HISTORY |
 
-Repair = sign with the staging bridge's RS256 key (`staging_token.mjs` / `st.py`); proven by read-only staging
-GETs (t07 -> own row, service_role -> rows, no token -> `[]`). Full browser runs need a local
-`vite --mode staging` server and were not run.
+Repair = sign with the staging bridge's RS256 key (`staging_token.mjs` / `st.py`). In the correction pass
+every repaired script was RUN end to end against a local `npx vite --mode staging --port 5173 --strictPort`
+server (fake microphone fed synthetic speech made by Windows' speech synthesiser - no real voice):
+
+| Command (`node scripts/dev-tools/...`) | Exit | Result | Writes to staging | Notes |
+|---|---|---|---|---|
+| `voice_modal_lifecycle_browser.mjs long.wav` | 0 | 13/13 | none (all faked/blocked in the browser) | no change needed |
+| `voice_modal_harness_browser.mjs long.wav` | 0 | 98/98 | none | was 88/95: proof switches -> task switches (since 862efe8 a recording's context is student + task); H19-H20 (proof only) removed |
+| `voice_modal_blob_browser.mjs long.wav` | 0 | 7/7 | none (reads one existing recording) | was 0/1: M1 uses a permanent 413 refusal (network failure is "unconfirmed" since R4-1/F5); M2 checks R4-3 (record kept, nothing sent); M3 seeds a v3 record |
+| `voice_playback_browser.mjs long.wav` | 0 | 6/6 | yes: 1 t07 recording per run (+1 DeepSeek call) | was 0/2: v3 records; reopen the same task; former step 3 (Build-Log player, removed 292358b) dropped |
+| `voice_modal_browser.mjs long.wav short.wav` | A-D 18/18, `ONLY=E` 0 | 21/21 over two runs | yes: t07 recordings (+DeepSeek calls) | section E route let the polls through (their select names the key column); fixed in `b5d7af9` |
+| `scratchpad_browser.mjs staging 4f27d6e2-... none` | 0 | 1/1 | none | staging has no task with a scratch language (0 rows in `task_rubric_config`), so only the "no scratchpad" mode can run without creating test data; the Python-mode logic is covered by `scratchpad.test.ts` |
+| `python scripts/dev-tools/g1_access_test.py` | 0 | 8/8 | yes: 5 labelled rows (`g1s-test-*`), 2 DeepSeek calls | the script has no cleanup step; rows left in place (deleting needs the owner's yes) |
+
+Recordings from earlier failed attempts of the playback script also stayed on staging (t07). No page error
+was logged by any run; the only network errors were the ones the tests inject on purpose.
+
+Finding (reported, not fixed - product code): within 15 s of a page refresh, the recording dialog says "a
+recording for this work is still being sent from another open tab" for the refreshed page's own record,
+until it is reopened (the heartbeat is checked once per opening). The scripts wait 16 s.
 
 ### 3.5 Duplication
 
@@ -176,6 +220,12 @@ none other. Deliberate per-image copies kept: `appToken.ts` (functions / files-s
 | 72 | `task_applications` | prepared, not applied | no reference |
 | 94 | `verification_settings`, `manual_adjustment_log` | prepared, not applied (`35905b6`) | staging: 0 functions, 0 views, 0 other policies, 0 FKs in, 0 rows; rolled-back rehearsal re-run on this branch: guards pass, both dropped inside, both back after rollback |
 
+**Decision for 94 (option A):** keep it in source as its own commit `35905b6`, prepared and NOT APPLIED,
+and include it in the main-ready set. Migrations 66, 71 and 72 are already on `main` in exactly this
+state; CI only checks migration files (`scripts/migrations.py check`), it never applies them, and the
+file's header says it needs the owner's written yes and a same-hour backup. So this report never
+refers to a file that is missing on `main`.
+
 Order 66 -> 71 -> 72 -> 94 (71/72/94 need `legacy_archive` from 66). Each archives rows first and
 refuses on any dependency. After 66: drop `_legacy_until_66` from `scripts/rpc_manifest.json`; after 71:
 the `proof_id` comparison in `src/lib/voiceJob.ts` (and its test fixtures) can go; regenerate `types.ts`.
@@ -204,3 +254,26 @@ Migration files, checksums, rollback notes, ledger tools (history must stay repr
 auth (live Scheduler path); runner-secret path and old runner (rollback window); backup/restore tools,
 security, attack-surface, authorization and identity checks; healthcheck; Bug Finder; step trail logging;
 `st.py`'s HS256 mode (proves refusal); evidence files under `docs/` and `migration/`.
+
+## 6. Final gate (after the correction pass, at `f43627e` + this report)
+
+| Check | Exit | Result |
+|---|---|---|
+| `npm ci` | 0 | |
+| `python scripts/secret_scan.py` | 0 | 1,027 files, 0 findings |
+| `python scripts/legacy_guard.py` | 0 | 0 active occurrences (first run: exit 1 on a new comment - fixed in `f43627e`) |
+| `python scripts/migrations.py check` | 0 | 97 migrations, 0 problems |
+| `node --experimental-strip-types --test src/lib/*.test.ts` | 0 | 97/97 |
+| `npm run typecheck` | 0 | |
+| `deno test` `_shared/` + `transcription-reap/` | 0 | 173 passed |
+| `deno test auth-bridge/` | 0 | 15 passed |
+| `deno test files-service/` | 0 | 16 passed |
+| `deno check functions-service/main.ts supabase/functions/*/index.ts` | 0 | |
+| `accounts/test_sync_plan.py`, `test_apptoken.py` | 0, 0 | all checks passed |
+| `transcription-worker` `unittest test_server` | 0 | 33 OK |
+| `transcriber/test_language_gate.py` | 0 | all checks passed |
+| `npm run build` | 0 | |
+| `git diff --check d814d5d HEAD` | 0 | |
+| Import graph from `src/main.tsx` + tests | - | unreached: only `src/vite-env.d.ts`; unresolved: none |
+| `tsc --noUnusedLocals` | - | 0 |
+| Routes / function slugs | - | 19 / 31 (unchanged) |

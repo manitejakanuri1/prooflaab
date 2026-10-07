@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { safeExternalUrl } from "@/lib/safeNavigation";
 
 // Convert only real YouTube URLs into privacy-enhanced embed URLs.
 // Database/user supplied URLs must never be able to choose an arbitrary iframe host.
@@ -103,7 +104,7 @@ const ManageResourcesPage = () => {
   const fetchResources = async () => {
     try {
       const { data, error } = await supabase
-        .from("learning_resources")  
+        .from("learning_resources")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -186,12 +187,12 @@ const ManageResourcesPage = () => {
         .eq("id", id);
 
       if (error) throw error;
-      
+
       toast({
         title: "Success",
         description: "Resource deleted successfully",
       });
-      
+
       fetchResources();
     } catch (error) {
       console.error("Error deleting resource:", error);
@@ -228,16 +229,16 @@ const ManageResourcesPage = () => {
 
   const getStatusBadge = (status: string) => {
     return (
-      <Badge 
+      <Badge
         className={
           status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
           status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
-          status === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-100' : 
+          status === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-100' :
           'bg-gray-100 text-gray-800 hover:bg-gray-100'
         }
       >
-        {status === 'approved' ? '✅ Approved' : 
-         status === 'pending' ? '⚠️ Pending' : 
+        {status === 'approved' ? '✅ Approved' :
+         status === 'pending' ? '⚠️ Pending' :
          status === 'rejected' ? '🔴 Rejected' : status}
       </Badge>
     );
@@ -262,7 +263,7 @@ const ManageResourcesPage = () => {
           <h1 className="text-2xl font-bold text-foreground">📚 Resources Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Curate learning resources for students.</p>
         </div>
-        <Button 
+        <Button
           onClick={openAddDialog}
           className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 rounded-lg shadow-sm"
         >
@@ -328,7 +329,7 @@ const ManageResourcesPage = () => {
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleDelete(resource.id)}
                             className="text-destructive focus:text-destructive"
                           >
@@ -355,7 +356,7 @@ const ManageResourcesPage = () => {
               {previewResource?.description || "No description available"}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 mt-4">
             {/* Resource Metadata */}
             <div className="flex flex-wrap gap-2">
@@ -382,9 +383,9 @@ const ManageResourcesPage = () => {
                 ) : (
                   <div className="p-8 bg-muted rounded-lg text-center">
                     <p className="text-destructive">Invalid YouTube Link</p>
-                    <a 
-                      href={previewResource.url} 
-                      target="_blank" 
+                    <a
+                      href={safeExternalUrl(previewResource.url) ?? undefined}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline mt-2 inline-block"
                     >
@@ -398,9 +399,9 @@ const ManageResourcesPage = () => {
                 <ExternalLink className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mb-4">This resource links to an external website</p>
                 <Button asChild>
-                  <a 
-                    href={previewResource?.url} 
-                    target="_blank" 
+                  <a
+                    href={safeExternalUrl(previewResource?.url) ?? undefined}
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
@@ -433,7 +434,7 @@ const ManageResourcesPage = () => {
                 required
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category" className="text-sm font-medium text-foreground">Category</Label>
@@ -450,7 +451,7 @@ const ManageResourcesPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="platform" className="text-sm font-medium text-foreground">Platform</Label>
                 <Input
@@ -463,7 +464,7 @@ const ManageResourcesPage = () => {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="url" className="text-sm font-medium text-foreground">Link</Label>
               <Input
@@ -476,7 +477,7 @@ const ManageResourcesPage = () => {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
               <Textarea
@@ -488,18 +489,18 @@ const ManageResourcesPage = () => {
                 rows={4}
               />
             </div>
-            
+
             <div className="flex justify-end space-x-3 pt-4 border-t border-border/50">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setIsDialogOpen(false)}
                 className="rounded-lg px-6"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={submitting}
                 className="rounded-lg px-6 bg-primary hover:bg-primary/90 transition-colors"
               >

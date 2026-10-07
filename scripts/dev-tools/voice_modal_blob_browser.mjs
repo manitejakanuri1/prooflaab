@@ -124,7 +124,7 @@ try {
   // ---------- M3: reopen an existing finished recording -> storagePath playback ----------
   {
     // A finished, server-transcribed recording of t07 for a task (the modal's context is student + task;
-    // staging has migration 71, so voice_explanations has no proof_id column to filter on).
+    // staging already has migration 71, so the retired proof column cannot be filtered on).
     const rows = await (await fetch(`${API}/voice_explanations?student_id=eq.${T07}&transcript_source=eq.server&status=eq.scored&transcription_status=eq.completed&task_id=not.is.null&select=id,storage_path,task_id,transcription_idempotency_key&order=created_at.desc&limit=1`,
       { headers: { Authorization: `Bearer ${SVC}` } })).json();
     const rec = rows[0];

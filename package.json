@@ -75,6 +75,7 @@
     "vite": "^7.3.6"
   },
   "overrides": {
-    "dompurify": "^3.4.13"
+    "dompurify": "^3.4.13",
+    "source-map-js": "^1.2.2"
   }
 }

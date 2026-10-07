@@ -87,27 +87,49 @@ serve(async (req) => {
       )
     }
 
-    // has_completed_wizard: true — an admin filling in name/email here has
-    // already done what the onboarding wizard would otherwise ask for.
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({ user_id: authData.user.id, role: 'college_admin', has_completed_wizard: true })
-    if (roleError) console.error('Role error:', roleError)
+    // Role + college row are one database transaction. If either cannot be
+    // written, nothing is kept and the fresh Identity login is rolled back.
+    const { data: collegeId, error: provisionError } =
+      await supabaseAdmin.rpc('provision_college_account', {
+        _user_id: authData.user.id,
+        _created_by: userData.user.id,
+        _name: name,
+        _email: email.toLowerCase(),
+        _status: status || 'active',
+      })
 
-    const { data: college, error: collegeError } = await supabaseAdmin
-      .from('colleges')
-      .insert({
-        user_id: authData.user.id,
-        name,
-        email: email.toLowerCase(),
-        status: status || 'active',
-      })
-      .select('id')
-      .single()
-    if (collegeError) {
-      return new Response(JSON.stringify({ error: `Account created but college record failed: ${collegeError.message}` }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+    if (provisionError || !collegeId) {
+      console.error(
+        'College provisioning failed:',
+        provisionError,
+      )
+
+      const { error: rollbackError } =
+        await supabaseAdmin.auth.admin.deleteUser(
+          authData.user.id,
+        )
+
+      if (rollbackError) {
+        console.error(
+          'College login rollback failed:',
+          rollbackError,
+        )
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: rollbackError
+            ? 'College provisioning failed and automatic login rollback also failed. Administrator review is required.'
+            : 'College provisioning failed. The login was rolled back; please try again.'
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
     }
 
     // Never allowed to fail the creation — a college whose invite email
@@ -126,7 +148,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ id: college.id, userId: authData.user.id, status: 'success' }),
+      JSON.stringify({ id: collegeId, userId: authData.user.id, status: 'success' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

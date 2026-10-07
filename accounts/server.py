@@ -23,6 +23,7 @@ import hmac
 import json
 import os
 import time
+import uuid
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -185,6 +186,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.password_link()
             if self.path == "/create-user":
                 return self.create_user()
+            if self.path == "/delete-user":
+                return self.delete_user()
             return self.reply(404, {"error": "not found"})
         except Exception as e:
             print("error:", e, flush=True)
@@ -310,6 +313,124 @@ class Handler(BaseHTTPRequestHandler):
                     "id": account_id,
                     "email": created_email,
                 }
+            },
+        )
+
+
+    def delete_user(self):
+        """Rollback a newly-created managed login safely.
+
+        Internal callers only. The database account must still be empty:
+        no role, student, college, company or recruiter record may exist.
+
+        We capture the Identity record first, delete the empty DB shell,
+        then delete the Identity login. If the Identity deletion fails,
+        record_account restores the DB shell so we do not silently leave
+        an Identity-only orphan.
+        """
+        if not WEBHOOK or not hmac.compare_digest(
+            self.headers.get("x-webhook-secret", ""),
+            WEBHOOK,
+        ):
+            return self.reply(401, {"error": "unauthorized"})
+
+        user_id = str(self.body().get("user_id") or "").strip()
+
+        try:
+            uuid.UUID(user_id)
+        except Exception:
+            return self.reply(400, {"error": "valid user_id required"})
+
+        st, mappings = db(
+            f"account_identities?select=provider_uid&user_id=eq.{user_id}",
+            method="GET",
+        )
+
+        if (
+            st != 200
+            or not isinstance(mappings, list)
+            or len(mappings) != 1
+            or not mappings[0].get("provider_uid")
+        ):
+            return self.reply(
+                404,
+                {"error": "managed account mapping not found"},
+            )
+
+        provider_uid = str(mappings[0]["provider_uid"])
+
+        # Capture enough information to restore the DB shell if Google's
+        # delete fails after drop_empty_account has removed it.
+        lst, lookup = identity(
+            "accounts:lookup",
+            {"localId": [provider_uid]},
+        )
+
+        users = (lookup or {}).get("users") or [] if lst == 200 else []
+
+        if len(users) != 1:
+            return self.reply(
+                502,
+                {"error": "could not verify managed Identity login"},
+            )
+
+        snap = users[0]
+        email = str(snap.get("email") or "").strip().lower()
+        full_name = str(snap.get("displayName") or "").strip()
+        vouched = snap.get("emailVerified") is True
+
+        if not email:
+            return self.reply(
+                502,
+                {"error": "managed Identity login has no email"},
+            )
+
+        dst, dropped = db(
+            "rpc/drop_empty_account",
+            {"_id": user_id},
+        )
+
+        if dst != 200 or dropped is not True:
+            return self.reply(
+                409,
+                {
+                    "error":
+                        "account is no longer empty; refusing login rollback"
+                },
+            )
+
+        ist, iout = identity(
+            "accounts:delete",
+            {"localId": provider_uid},
+        )
+
+        if ist == 200 or "USER_NOT_FOUND" in json.dumps(iout or {}):
+            return self.reply(200, {"deleted": True})
+
+        # Restore the DB shell because the Identity login still exists.
+        rst, restored = db(
+            "rpc/record_account",
+            {
+                "_provider_uid": provider_uid,
+                "_email": email,
+                "_full_name": full_name or None,
+                "_vouched": vouched,
+            },
+        )
+
+        if rst != 200 or not restored:
+            print(
+                "CRITICAL: managed Identity delete failed and "
+                "database-shell restore also failed: "
+                f"identity={ist} db={rst}",
+                flush=True,
+            )
+
+        return self.reply(
+            502,
+            {
+                "error":
+                    "Identity login rollback failed; database shell restored"
             },
         )
 

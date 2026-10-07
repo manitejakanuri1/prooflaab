@@ -167,10 +167,23 @@ serve(async (req) => {
         roleError,
       );
 
+      const { error: rollbackError } =
+        await admin.auth.admin.deleteUser(
+          authData.user.id,
+        );
+
+      if (rollbackError) {
+        console.error(
+          "admin login rollback failed:",
+          rollbackError,
+        );
+      }
+
       return reply(
         {
-          error:
-            "Login was created but admin access could not be provisioned. Administrator review is required.",
+          error: rollbackError
+            ? "Admin provisioning failed and automatic login rollback also failed. Administrator review is required."
+            : "Admin provisioning failed. The login was rolled back; please try again.",
         },
         500,
       );

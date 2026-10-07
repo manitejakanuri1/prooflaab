@@ -473,6 +473,67 @@ const authShim = {
       };
     },
 
+
+    /**
+     * Roll back a managed account whose application provisioning failed.
+     *
+     * The Accounts service refuses to delete a user once any application
+     * role/org/profile exists, so this cannot be used as a general browser
+     * account-deletion shortcut.
+     */
+    async deleteUser(userId: string) {
+      const accountsUrl = Deno.env.get("ACCOUNTS_URL");
+
+      if (!accountsUrl) {
+        return {
+          data: null,
+          error: { message: "ACCOUNTS_URL is not set" },
+        };
+      }
+
+      let res: Response;
+
+      try {
+        res = await fetch(`${accountsUrl}/delete-user`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-webhook-secret": Deno.env.get("WEBHOOK_SECRET") ?? "",
+          },
+          body: JSON.stringify({
+            user_id: userId,
+          }),
+        });
+      } catch (err) {
+        return {
+          data: null,
+          error: {
+            message: `Account rollback service could not be reached: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          },
+        };
+      }
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        return {
+          data: null,
+          error: {
+            message: typeof body?.error === "string"
+              ? body.error
+              : "Could not roll back the managed account",
+          },
+        };
+      }
+
+      return {
+        data: { user: null },
+        error: null,
+      };
+    },
+
     /**
      * Send the person a way in.
      *

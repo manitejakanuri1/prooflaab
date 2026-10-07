@@ -8,10 +8,10 @@
 // Genuine Google sign-in is NOT exercised (session minted like the staging auth-bridge).
 //
 // Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
-//   STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
+// Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
 //     node scripts/dev-tools/voice_modal_blob_browser.mjs <speech.wav>
 import { chromium } from 'playwright';
-import crypto from 'node:crypto';
+import { mintStaging } from "./staging_token.mjs";
 
 const WAV = process.argv[2];
 const APP = 'http://localhost:5173';
@@ -19,13 +19,7 @@ const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
 const FILES = 'https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app/file/voice-explanations';
 const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
 
-const b64 = (b) => Buffer.from(b).toString('base64url');
-function mint(claims, ttl = 7200) {
-  const now = Math.floor(Date.now() / 1000);
-  const h = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const p = b64(JSON.stringify({ ...claims, iat: now, exp: now + ttl }));
-  return `${h}.${p}.${crypto.createHmac('sha256', process.env.STAGING_JWT).update(`${h}.${p}`).digest('base64url')}`;
-}
+const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const SVC = mint({ role: 'service_role', sub: 'voice-modal-blob-test' }, 3600);
 const t07Token = mint({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com' });
 const session = {

@@ -11,16 +11,17 @@
 // and reported. Every faked request records which account's token it carried.
 //
 // Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
-//   STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
+// Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
 //     node scripts/dev-tools/voice_modal_harness_browser.mjs <speech.wav>
 // The synchronous (legacy) save path is tested by a second run against a dev
 // server started with VITE_ASYNC_TRANSCRIPTION=false and MODE=sync:
 //   VITE_ASYNC_TRANSCRIPTION=false npx vite --mode staging --port 5173 --strictPort
-//   MODE=sync STAGING_JWT=... node scripts/dev-tools/voice_modal_harness_browser.mjs <speech.wav>
+//   MODE=sync node scripts/dev-tools/voice_modal_harness_browser.mjs <speech.wav>
 // ONLY=<regex> runs just the matching groups. Genuine Google sign-in is NOT
 // exercised (sessions are minted like the staging auth-bridge issues them).
 import { chromium } from 'playwright';
 import crypto from 'node:crypto';
+import { mintStaging } from "./staging_token.mjs";
 
 const WAV = process.argv[2];
 const APP = 'http://localhost:5173';
@@ -40,13 +41,7 @@ const v2Key = (student, task, proof) => `pl.voiceJob.v2:${JSON.stringify([studen
 const legacyKey = (student, task, proof) => `pl.voiceJob.${student}.${task ?? proof ?? 'general'}`;
 const v3Key = (id) => `pl.voiceJob.v3:${id}`;
 
-const b64 = (b) => Buffer.from(b).toString('base64url');
-function mint(claims, ttl = 7200) {
-  const now = Math.floor(Date.now() / 1000);
-  const h = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const p = b64(JSON.stringify({ ...claims, iat: now, exp: now + ttl }));
-  return `${h}.${p}.${crypto.createHmac('sha256', process.env.STAGING_JWT).update(`${h}.${p}`).digest('base64url')}`;
-}
+const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const sessionFor = (id, email) => {
   const tok = mint({ role: 'authenticated', sub: id, email });
   return {

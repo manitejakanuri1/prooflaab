@@ -2,7 +2,7 @@
 //
 // STAGING (session minted in memory from the staging JWT secret, never printed):
 //   npx vite --mode staging --port 5173 --strictPort   (in another terminal)
-//   STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
+// Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
 //     node scripts/dev-tools/scratchpad_browser.mjs staging <task id> <expect: none|python|...> [submit]
 // PREVIEW (real sign-in of a test student; password read from Secret Manager into memory only):
 //   STUDENT_EMAIL=... STUDENT_PASSWORD=... node scripts/dev-tools/scratchpad_browser.mjs <preview url> <task id> <expect> [submit]
@@ -10,7 +10,7 @@
 // Checks: scratchpad shown only for the expected language; Run prints the runner output;
 // no task_submissions row / answer is created by Run; Submit sends only the written answer.
 import { chromium } from 'playwright';
-import crypto from 'node:crypto';
+import { mintStaging } from "./staging_token.mjs";
 
 const [target, TASK, EXPECT, SUBMIT] = process.argv.slice(2);
 const STAGING = target === 'staging';
@@ -22,11 +22,8 @@ const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
 
 function stagingSession() {
-  const b64 = (b) => Buffer.from(b).toString('base64url');
   const now = Math.floor(Date.now() / 1000);
-  const h = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const p = b64(JSON.stringify({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com', iat: now, exp: now + 3600 }));
-  const token = `${h}.${p}.${crypto.createHmac('sha256', process.env.STAGING_JWT).update(`${h}.${p}`).digest('base64url')}`;
+  const token = mintStaging({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com' }, 3600);
   return {
     access_token: token, provider_token: token, refresh_token: 'browser-test-no-refresh', expires_in: 3600,
     expires_at: now + 3600, token_type: 'bearer',

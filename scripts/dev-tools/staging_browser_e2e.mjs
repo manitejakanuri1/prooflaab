@@ -11,8 +11,7 @@
 // Every step records: what was checked, console errors, failed requests (>=400),
 // and a screenshot under E2E_OUT (default ./e2e-out). Exit code = number of failures.
 import { chromium } from "playwright";
-import { createHash, createPublicKey, createSign } from "node:crypto";
-import { execSync } from "node:child_process";
+import { stagingSession } from "./staging_token.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:5173";
@@ -27,26 +26,9 @@ const FIX = {
   established: { id: "99999999-0001-0000-0000-000000000001", email: "student1@staging.prooflab.invalid" },
 };
 
-// Signed with the staging signing key (F1: the bridge signs RS256), read at run time.
-const pem = execSync("gcloud secrets versions access latest --secret=prooflab-staging-app-signing-key", { encoding: "utf8" });
-const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-const kid = createHash("sha256").update(createPublicKey(pem).export({ format: "jwk" }).n).digest("hex").slice(0, 16);
-function ticket(sub, email) {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  const h = b64({ alg: "RS256", typ: "JWT", kid });
-  const p = b64({ sub, role: "authenticated", email, email_confirmed: true, exp });
-  return { token: `${h}.${p}.${createSign("RSA-SHA256").update(`${h}.${p}`).sign(pem).toString("base64url")}`, exp };
-}
 function session(who) {
   const { id, email } = FIX[who];
-  const { token, exp } = ticket(id, email);
-  const now = new Date().toISOString();
-  return {
-    access_token: token, refresh_token: "staging-e2e-no-refresh", expires_in: 3600, expires_at: exp,
-    token_type: "bearer", provider_token: "",
-    user: { id, aud: "authenticated", role: "authenticated", email, email_confirmed_at: now, phone: "",
-            created_at: now, updated_at: now, last_sign_in_at: now, app_metadata: {}, user_metadata: {}, identities: [] },
-  };
+  return stagingSession(id, email);
 }
 
 const results = [];

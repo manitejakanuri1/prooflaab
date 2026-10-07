@@ -1,15 +1,15 @@
 // Step 6 browser corrections: real-browser STAGING checks of VoiceExplainModal.
 //
 // Needs: `npx vite --mode staging --port 5173 --strictPort` running (staging
-// services allow http://localhost:5173), and STAGING_JWT in the environment:
-//   STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
+// services allow http://localhost:5173), and gcloud access to the staging signing key:
+// Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
 //     node scripts/dev-tools/voice_modal_browser.mjs <long.wav> <short.wav>
 // The secret only mints short-lived tokens in memory (a t07 session like the
 // staging auth-bridge issues, and a service token for read-only checks); it and
 // the tokens are never printed. Real Chromium with a fake microphone playing
 // the given WAV. Makes real staging recordings and a few real DeepSeek calls.
 import { chromium } from 'playwright';
-import crypto from 'node:crypto';
+import { mintStaging } from "./staging_token.mjs";
 
 const [LONG_WAV, SHORT_WAV] = process.argv.slice(2);
 const APP = 'http://localhost:5173';
@@ -17,14 +17,7 @@ const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
 const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
 const JOB_KEY_PREFIX = `pl.voiceJob.${T07}.`;
 
-const b64 = (b) => Buffer.from(b).toString('base64url');
-function mint(claims, ttl) {
-  const now = Math.floor(Date.now() / 1000);
-  const h = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const p = b64(JSON.stringify({ ...claims, iat: now, exp: now + ttl }));
-  const s = crypto.createHmac('sha256', process.env.STAGING_JWT).update(`${h}.${p}`).digest('base64url');
-  return `${h}.${p}.${s}`;
-}
+const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const SVC = mint({ role: 'service_role', sub: 'voice-modal-browser-test' }, 3600);
 async function rows(query) {
   const r = await fetch(`${API}/voice_explanations?${query}`, { headers: { Authorization: `Bearer ${SVC}` } });

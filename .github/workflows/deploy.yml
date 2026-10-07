@@ -131,7 +131,10 @@ jobs:
             --cap-add SYS_ADMIN --security-opt seccomp=unconfined --memory 2g prooflab-runner
           for i in $(seq 1 30); do curl -sf http://localhost:8080/ready && break; sleep 1; done
       - name: Runner tests
-        run: RUNNER_URL=http://localhost:8080 RUNNER_SECRET=ci-secret REQUIRE_NET_ISOLATION=1 python3 code-runner/test_runner.py
+        run: |
+          docker cp code-runner/test_isolation.py runner:/tmp/test_isolation.py
+          docker exec -e PYTHONPATH=/app runner python3 /tmp/test_isolation.py
+          RUNNER_URL=http://localhost:8080 RUNNER_SECRET=ci-secret python3 code-runner/test_runner.py
       - name: Runner logs on failure
         if: failure()
         run: docker logs runner | tail -50

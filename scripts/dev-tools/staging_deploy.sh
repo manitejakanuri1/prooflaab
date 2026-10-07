@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build and deploy ONE service to STAGING from the working tree. Never production.
-#   scripts/dev-tools/staging_deploy.sh functions|files|auth-bridge|accounts|transcription-worker|transcriber [extra gcloud run deploy flags]
+#   scripts/dev-tools/staging_deploy.sh functions|files|auth-bridge|accounts|transcription-worker|transcriber|web-bff [extra gcloud run deploy flags]
 # The image tag is stab-<short sha>[-dirty]; the same image is what production would get.
 set -euo pipefail
 P=prooflab-508214; R=asia-south1; REPO=$R-docker.pkg.dev/$P/cloud-run-source-deploy
@@ -18,6 +18,8 @@ case "$1" in
              gcloud builds submit --project=$P --tag=$IMG $1 >/dev/null ;;
   auth-bridge) IMG=$REPO/prooflab-auth-bridge:$TAG
              gcloud builds submit --project=$P --tag=$IMG auth-bridge >/dev/null ;;
+  web-bff)   IMG=$REPO/prooflab-web-bff:$TAG
+             gcloud builds submit --project=$P --tag=$IMG web-bff >/dev/null ;;
   *) echo "unknown service $1"; exit 2 ;;
 esac
 gcloud run deploy prooflab-staging-$1 --project=$P --region=$R --image=$IMG --quiet "${@:2}" 2>&1 | tail -2

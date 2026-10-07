@@ -30,6 +30,11 @@ SITE = os.environ.get("HOSTING_SITE", "prooflab-508214")   # default: the produc
 API = "https://firebasehosting.googleapis.com/v1beta1"
 DIST = sys.argv[1] if len(sys.argv) > 1 else "dist"
 
+# Optional same-origin API gateway.
+# When unset, Hosting behaviour stays exactly as before.
+BFF_SERVICE = os.environ.get("BFF_SERVICE", "").strip()
+BFF_REGION = os.environ.get("BFF_REGION", "asia-south1").strip()
+
 def find_gcloud() -> str:
     """Wherever gcloud happens to live.
 
@@ -106,11 +111,25 @@ print(f"  {len(files)} files prepared")
 # 2. create a version
 # ---------------------------------------------------------------------------
 
+rewrites = []
+
+if BFF_SERVICE:
+    rewrites.append({
+        "glob": "/api/**",
+        "run": {
+            "serviceId": BFF_SERVICE,
+            "region": BFF_REGION,
+        },
+    })
+
+# Keep the SPA catch-all last. Firebase Hosting uses the first matching rewrite.
+rewrites.append({"glob": "**", "path": "/index.html"})
+
 version = call("POST", f"sites/{SITE}/versions", {
     "config": {
-        # A single-page app: every unknown path must return index.html, or a
-        # visitor refreshing /dashboard gets a 404 instead of the dashboard.
-        "rewrites": [{"glob": "**", "path": "/index.html"}],
+        # /api/** goes to the BFF when configured; every other unknown path
+        # falls through to the SPA entrypoint.
+        "rewrites": rewrites,
         "headers": [
             {
                 # Security headers on every response.

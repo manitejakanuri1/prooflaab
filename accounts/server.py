@@ -183,6 +183,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.sync()
             if self.path == "/password-link":
                 return self.password_link()
+            if self.path == "/create-user":
+                return self.create_user()
             return self.reply(404, {"error": "not found"})
         except Exception as e:
             print("error:", e, flush=True)
@@ -207,6 +209,109 @@ class Handler(BaseHTTPRequestHandler):
         failed = delete_logins(rows)
         print(f"remove by {who} ({reason}): {len(rows)} students, {len(failed)} login deletes failed", flush=True)
         return self.reply(200, {"removed": len(rows), "login_failures": failed})
+
+    def create_user(self):
+        """Create a managed Identity Platform account.
+
+        Only trusted server code holding WEBHOOK_SECRET may call this.
+        Identity creation uses this service account's Google OAuth credential,
+        not the browser API-key signup path. The database account record is
+        written before success is returned. If that write fails, the fresh
+        Identity login is deleted again so no orphan login is left behind.
+        """
+        if not WEBHOOK or not hmac.compare_digest(
+            self.headers.get("x-webhook-secret", ""),
+            WEBHOOK,
+        ):
+            return self.reply(401, {"error": "unauthorized"})
+
+        body = self.body()
+        email = str(body.get("email") or "").strip().lower()
+        password = str(body.get("password") or "")
+        full_name = str(body.get("full_name") or "").strip()
+        vouched = body.get("email_confirm") is True
+
+        if (
+            "@" not in email
+            or len(email) > 255
+            or len(password) < 6
+            or len(password) > 4096
+            or len(full_name) > 200
+        ):
+            return self.reply(400, {"error": "invalid managed account details"})
+
+        # Admin-authenticated project endpoint. Unlike /v1/accounts:signUp
+        # with only a browser API key, this call requires this Cloud Run
+        # service account's Identity Platform IAM permission.
+        st, created = identity("accounts", {
+            "email": email,
+            "password": password,
+            "displayName": full_name,
+            "emailVerified": vouched,
+            "disabled": False,
+        })
+
+        if st != 200:
+            raw = json.dumps(created or {})
+            if "EMAIL_EXISTS" in raw:
+                return self.reply(
+                    409,
+                    {"error": "An account with this email already exists"},
+                )
+            print(
+                f"managed Identity create failed: HTTP {st} {raw[:200]}",
+                flush=True,
+            )
+            return self.reply(
+                502,
+                {"error": "Identity Platform account creation failed"},
+            )
+
+        provider_uid = str((created or {}).get("localId") or "")
+        created_email = str((created or {}).get("email") or email)
+
+        if not provider_uid:
+            return self.reply(
+                502,
+                {"error": "Identity Platform returned no user id"},
+            )
+
+        st, account_id = db(
+            "rpc/record_account",
+            {
+                "_provider_uid": provider_uid,
+                "_email": created_email,
+                "_full_name": full_name or None,
+                "_vouched": vouched,
+            },
+        )
+
+        if st != 200 or not account_id:
+            # Compensating rollback: never leave an Identity-only login behind.
+            dst, dout = identity(
+                "accounts:delete",
+                {"localId": provider_uid},
+            )
+            if dst != 200:
+                print(
+                    "CRITICAL: managed account DB record failed and "
+                    f"Identity cleanup failed: {dst} {str(dout)[:200]}",
+                    flush=True,
+                )
+            return self.reply(
+                502,
+                {"error": "Account database record failed; login rolled back"},
+            )
+
+        return self.reply(
+            200,
+            {
+                "user": {
+                    "id": account_id,
+                    "email": created_email,
+                }
+            },
+        )
 
     def password_link(self):
         if not WEBHOOK or not hmac.compare_digest(self.headers.get("x-webhook-secret", ""), WEBHOOK):

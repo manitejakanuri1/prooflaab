@@ -20,31 +20,31 @@
 // module is only ever imported by server-side function code and never by
 // anything a browser can reach.
 
-import { bridgeServiceToken, verifyAppToken } from './appToken.ts';
-import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
+import { bridgeServiceToken, verifyAppToken } from "./appToken.ts";
+import { createClient as createSupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 
-const BACKEND = Deno.env.get('BACKEND') ?? '';
-export const USING_GOOGLE = BACKEND === 'google';
+const BACKEND = Deno.env.get("BACKEND") ?? "";
+export const USING_GOOGLE = BACKEND === "google";
 
-const POSTGREST_URL = Deno.env.get('POSTGREST_URL') ?? '';
-const JWT_SECRET = Deno.env.get('PGRST_JWT_SECRET') ?? '';
+const POSTGREST_URL = Deno.env.get("POSTGREST_URL") ?? "";
+const JWT_SECRET = Deno.env.get("PGRST_JWT_SECRET") ?? "";
 /** Signs file grants (read one object for a few minutes). Its own secret once the database no longer trusts HS256. */
-const GRANT_SECRET = Deno.env.get('FILE_GRANT_SECRET') ?? JWT_SECRET;
+const GRANT_SECRET = Deno.env.get("FILE_GRANT_SECRET") ?? JWT_SECRET;
 /** Can this process get a service token at all - from the signer (F1) or the legacy secret? */
-const CAN_REACH_DB = Boolean(JWT_SECRET || Deno.env.get('SIGNER_URL'));
+const CAN_REACH_DB = Boolean(JWT_SECRET || Deno.env.get("SIGNER_URL"));
 
 /** Where Cloud Run mounts the buckets. Empty when running on Supabase. */
-const PRIVATE_MOUNT = Deno.env.get('PRIVATE_MOUNT') ?? '/mnt/private';
-const PUBLIC_MOUNT = Deno.env.get('PUBLIC_MOUNT') ?? '/mnt/public';
+const PRIVATE_MOUNT = Deno.env.get("PRIVATE_MOUNT") ?? "/mnt/private";
+const PUBLIC_MOUNT = Deno.env.get("PUBLIC_MOUNT") ?? "/mnt/public";
 
-const PUBLIC_BUCKETS = new Set(['profile-photos']);
+const PUBLIC_BUCKETS = new Set(["profile-photos"]);
 
 /** Identity Platform, for the two functions that create accounts. */
-const IDENTITY_API = 'https://identitytoolkit.googleapis.com/v1';
-const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY') ?? '';
+const IDENTITY_API = "https://identitytoolkit.googleapis.com/v1";
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY") ?? "";
 
 /** The file service, which serves a private file against a grant. */
-const FILES_URL = Deno.env.get('FILES_URL') ?? '';
+const FILES_URL = Deno.env.get("FILES_URL") ?? "";
 
 // ---------------------------------------------------------------------------
 // the service-role token
@@ -53,7 +53,8 @@ const FILES_URL = Deno.env.get('FILES_URL') ?? '';
 let cached: { token: string; expires: number } | null = null;
 
 const b64url = (bytes: Uint8Array) =>
-  btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_")
+    .replace(/=+$/, "");
 const b64urlText = (text: string) => b64url(new TextEncoder().encode(text));
 
 /**
@@ -72,23 +73,29 @@ async function serviceToken(): Promise<string> {
 
   const now = Date.now();
   if (cached && cached.expires > now + 30_000) return cached.token;
-  if (!JWT_SECRET) throw new Error('PGRST_JWT_SECRET is not set; cannot reach the database');
+  if (!JWT_SECRET) {
+    throw new Error("PGRST_JWT_SECRET is not set; cannot reach the database");
+  }
 
   const issued = Math.floor(now / 1000);
   const expires = issued + 600;
 
-  const header = b64urlText(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = b64urlText(JSON.stringify({ role: 'service_role', iat: issued, exp: expires }));
+  const header = b64urlText(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = b64urlText(
+    JSON.stringify({ role: "service_role", iat: issued, exp: expires }),
+  );
 
   const key = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     new TextEncoder().encode(JWT_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
+    { name: "HMAC", hash: "SHA-256" },
     false,
-    ['sign'],
+    ["sign"],
   );
   const signature = await crypto.subtle.sign(
-    'HMAC', key, new TextEncoder().encode(`${header}.${payload}`),
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${header}.${payload}`),
   );
 
   const token = `${header}.${payload}.${b64url(new Uint8Array(signature))}`;
@@ -112,15 +119,20 @@ function mountedPath(bucket: string, path: string): string {
  */
 function storageFor(bucket: string) {
   return {
-    async download(path: string): Promise<{ data: Blob | null; error: Error | null }> {
+    async download(
+      path: string,
+    ): Promise<{ data: Blob | null; error: Error | null }> {
       try {
         const bytes = await Deno.readFile(mountedPath(bucket, path));
         return { data: new Blob([bytes]), error: null };
       } catch (err) {
         if (err instanceof Deno.errors.NotFound) {
-          return { data: null, error: new Error('Object not found') };
+          return { data: null, error: new Error("Object not found") };
         }
-        return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+        return {
+          data: null,
+          error: err instanceof Error ? err : new Error(String(err)),
+        };
       }
     },
 
@@ -136,34 +148,46 @@ function storageFor(bucket: string) {
       // key that can sign any object in the bucket would be a far bigger thing
       // to hold than a token that names one file and expires in minutes.
       if (!FILES_URL) {
-        return { data: null, error: new Error('FILES_URL is not set') };
+        return { data: null, error: new Error("FILES_URL is not set") };
       }
       if (!GRANT_SECRET) {
-        return { data: null, error: new Error('FILE_GRANT_SECRET is not set') };
+        return { data: null, error: new Error("FILE_GRANT_SECRET is not set") };
       }
 
-      const expires = Math.floor(Date.now() / 1000) + Math.max(60, Math.min(expiresIn, 3600));
-      const header = b64urlText(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = b64urlText(JSON.stringify({ obj: `${bucket}/${path}`, exp: expires }));
+      const expires = Math.floor(Date.now() / 1000) +
+        Math.max(60, Math.min(expiresIn, 3600));
+      const header = b64urlText(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const payload = b64urlText(
+        JSON.stringify({ obj: `${bucket}/${path}`, exp: expires }),
+      );
 
       const key = await crypto.subtle.importKey(
-        'raw', new TextEncoder().encode(GRANT_SECRET),
-        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+        "raw",
+        new TextEncoder().encode(GRANT_SECRET),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
       );
       const signature = await crypto.subtle.sign(
-        'HMAC', key, new TextEncoder().encode(`${header}.${payload}`),
+        "HMAC",
+        key,
+        new TextEncoder().encode(`${header}.${payload}`),
       );
       const grant = `${header}.${payload}.${b64url(new Uint8Array(signature))}`;
 
       return {
         data: {
-          signedUrl: `${FILES_URL}/file/${bucket}/${path}?grant=${encodeURIComponent(grant)}`,
+          signedUrl: `${FILES_URL}/file/${bucket}/${path}?grant=${
+            encodeURIComponent(grant)
+          }`,
         },
         error: null,
       };
     },
 
-    async remove(paths: string[]): Promise<{ data: null; error: Error | null }> {
+    async remove(
+      paths: string[],
+    ): Promise<{ data: null; error: Error | null }> {
       try {
         for (const path of paths) {
           await Deno.remove(mountedPath(bucket, path)).catch((err) => {
@@ -172,7 +196,10 @@ function storageFor(bucket: string) {
         }
         return { data: null, error: null };
       } catch (err) {
-        return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+        return {
+          data: null,
+          error: err instanceof Error ? err : new Error(String(err)),
+        };
       }
     },
 
@@ -183,7 +210,9 @@ function storageFor(bucket: string) {
     ): Promise<{ data: { path: string } | null; error: Error | null }> {
       try {
         const full = mountedPath(bucket, path);
-        await Deno.mkdir(full.slice(0, full.lastIndexOf('/')), { recursive: true });
+        await Deno.mkdir(full.slice(0, full.lastIndexOf("/")), {
+          recursive: true,
+        });
         const bytes = body instanceof Blob
           ? new Uint8Array(await body.arrayBuffer())
           : body instanceof Uint8Array
@@ -192,12 +221,14 @@ function storageFor(bucket: string) {
         await Deno.writeFile(full, bytes);
         return { data: { path }, error: null };
       } catch (err) {
-        return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+        return {
+          data: null,
+          error: err instanceof Error ? err : new Error(String(err)),
+        };
       }
     },
   };
 }
-
 
 // ---------------------------------------------------------------------------
 // identifying the caller
@@ -220,15 +251,20 @@ async function verifyCallerToken(
   // bridge's public key; HS256 only while the legacy secret is still configured).
   const payload = await verifyAppToken(token);
   if (!payload) return null;
-  const role = typeof payload.role === 'string' ? payload.role : undefined;
+  const role = typeof payload.role === "string" ? payload.role : undefined;
   // A person always has a subject. A service token names its service instead.
-  const sub = typeof payload.sub === 'string' && payload.sub !== ''
+  const sub = typeof payload.sub === "string" && payload.sub !== ""
     ? payload.sub
-    : role === 'service_role' && typeof payload.svc === 'string' ? `service:${payload.svc}` : '';
+    : role === "service_role" && typeof payload.svc === "string"
+    ? `service:${payload.svc}`
+    : "";
   if (!sub) return null;
-  return { sub, role, email: typeof payload.email === 'string' ? payload.email : undefined };
+  return {
+    sub,
+    role,
+    email: typeof payload.email === "string" ? payload.email : undefined,
+  };
 }
-
 
 /**
  * Is this signed-in person's account suspended? (G1, migration 73)
@@ -241,17 +277,29 @@ async function verifyCallerToken(
  * student out; the database's own check still stands behind it.
  */
 const suspendedCache = new Map<string, { value: boolean; until: number }>();
-async function suspended(claims: { sub: string; role?: string }): Promise<boolean> {
-  if (claims.role !== 'authenticated') return false;
+async function suspended(
+  claims: { sub: string; role?: string },
+): Promise<boolean> {
+  if (claims.role !== "authenticated") return false;
   const hit = suspendedCache.get(claims.sub);
   if (hit && hit.until > Date.now()) return hit.value;
   let value = false;
   try {
-    const res = await serviceRest('rpc/account_is_suspended', { method: 'POST', body: JSON.stringify({ _user: claims.sub }) });
+    const res = await serviceRest("rpc/account_is_suspended", {
+      method: "POST",
+      body: JSON.stringify({ _user: claims.sub }),
+    });
     if (res?.ok) value = (await res.json()) === true;
-    else if (res) console.error(`SUSPENSION CHECK PROBLEM: account_is_suspended answered ${res.status}`);
+    else if (res) {
+      console.error(
+        `SUSPENSION CHECK PROBLEM: account_is_suspended answered ${res.status}`,
+      );
+    }
   } catch (err) {
-    console.error('SUSPENSION CHECK PROBLEM:', err instanceof Error ? err.message : err);
+    console.error(
+      "SUSPENSION CHECK PROBLEM:",
+      err instanceof Error ? err.message : err,
+    );
   }
   if (suspendedCache.size > 5000) suspendedCache.clear();
   suspendedCache.set(claims.sub, { value, until: Date.now() + 30_000 });
@@ -276,11 +324,11 @@ async function recordAccount(
 
   try {
     const res = await fetch(`${POSTGREST_URL}/rpc/record_account`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Bearer ${await serviceToken()}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/vnd.pgrst.object+json',
+        "Content-Type": "application/json",
+        Accept: "application/vnd.pgrst.object+json",
       },
       body: JSON.stringify({
         _provider_uid: providerUid,
@@ -290,13 +338,17 @@ async function recordAccount(
       }),
     });
     if (!res.ok) {
-      console.error('record_account returned', res.status, (await res.text()).slice(0, 200));
+      console.error(
+        "record_account returned",
+        res.status,
+        (await res.text()).slice(0, 200),
+      );
       return null;
     }
     const body = await res.json();
-    return typeof body === 'string' ? body : (body?.record_account ?? null);
+    return typeof body === "string" ? body : (body?.record_account ?? null);
   } catch (err) {
-    console.error('record_account failed:', err);
+    console.error("record_account failed:", err);
     return null;
   }
 }
@@ -305,34 +357,50 @@ async function recordAccount(
 const authShim = {
   async getClaims(token: string) {
     const claims = await verifyCallerToken(token);
-    if (claims && await suspended(claims)) return { data: null, error: { message: 'account suspended', status: 403 } };
+    if (claims && await suspended(claims)) {
+      return {
+        data: null,
+        error: { message: "account suspended", status: 403 },
+      };
+    }
     return claims
       ? { data: { claims }, error: null }
-      : { data: null, error: { message: 'invalid token', status: 401 } };
+      : { data: null, error: { message: "invalid token", status: 401 } };
   },
 
   async getUser(token: string) {
     const claims = await verifyCallerToken(token);
-    if (claims && await suspended(claims)) return { data: { user: null }, error: { message: 'account suspended', status: 403 } };
+    if (claims && await suspended(claims)) {
+      return {
+        data: { user: null },
+        error: { message: "account suspended", status: 403 },
+      };
+    }
     return claims
-      ? { data: { user: { id: claims.sub, email: claims.email ?? '', role: claims.role } }, error: null }
-      : { data: { user: null }, error: { message: 'invalid token', status: 401 } };
+      ? {
+        data: {
+          user: {
+            id: claims.sub,
+            email: claims.email ?? "",
+            role: claims.role,
+          },
+        },
+        error: null,
+      }
+      : {
+        data: { user: null },
+        error: { message: "invalid token", status: 401 },
+      };
   },
 
   admin: {
     /**
-     * Create an account in Identity Platform.
+     * Create a managed account through the Accounts service.
      *
-     * Uses accounts:signUp with the project's browser key, not the
-     * administrator API. That is deliberate: the administrator API needs an
-     * OAuth token from the metadata server, and on this runtime the metadata
-     * server answers 404 for every service-account path - see the note in
-     * files-service. signUp does the same job with a key that is public by
-     * design, and the account it creates is identical.
-     *
-     * The cost is that the id is Identity Platform's choice rather than ours.
-     * It is returned to the caller, which writes it into the database, so the
-     * two stay in step exactly as before.
+     * IMPORTANT: this must NOT use the browser accounts:signUp endpoint.
+     * End-user signup is being disabled at the Identity Platform project level.
+     * The Accounts service owns the Identity Platform administrator credential
+     * and records the database UUID before returning success.
      */
     async createUser(attrs: {
       email: string;
@@ -340,83 +408,55 @@ const authShim = {
       email_confirm?: boolean;
       user_metadata?: Record<string, unknown>;
     }) {
-      if (!GOOGLE_API_KEY) {
-        return { data: { user: null }, error: { message: 'GOOGLE_API_KEY is not set' } };
+      const accountsUrl = Deno.env.get("ACCOUNTS_URL");
+
+      if (!accountsUrl) {
+        return {
+          data: { user: null },
+          error: { message: "ACCOUNTS_URL is not set" },
+        };
       }
 
-      const signUp = await fetch(
-        `${IDENTITY_API}/accounts:signUp?key=${GOOGLE_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      const fullName = typeof attrs.user_metadata?.full_name === "string"
+        ? attrs.user_metadata.full_name
+        : "";
+
+      let res: Response;
+
+      try {
+        res = await fetch(`${accountsUrl}/create-user`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-webhook-secret": Deno.env.get("WEBHOOK_SECRET") ?? "",
+          },
           body: JSON.stringify({
             email: attrs.email,
             password: attrs.password,
-            returnSecureToken: true,
+            full_name: fullName,
+            email_confirm: attrs.email_confirm === true,
           }),
-        },
-      );
-      const created = await signUp.json().catch(() => ({}));
-      if (!signUp.ok) {
-        const code = created?.error?.message ?? 'SIGNUP_FAILED';
+        });
+      } catch (err) {
         return {
           data: { user: null },
           error: {
-            message: code === 'EMAIL_EXISTS'
-              // Said plainly, because it has one cause that is not the obvious
-              // one: a login can exist in Identity Platform with no row behind
-              // it, if an earlier import created the account and then failed.
-              // The address cannot be reused until that login is removed, and
-              // this service cannot remove it - that needs an administrator.
-              ? 'A login already exists for this email address. If the student ' +
-                'does not appear in the dashboard, the login is orphaned and an ' +
-                'administrator must remove it before the import can recreate them.'
-              : `Could not create the account (${code})`,
+            message: `Account service could not be reached: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
           },
         };
       }
 
-      // Carry the name across, so the screens that read user_metadata behave as
-      // they did. Best effort: a display name that fails to save must not undo
-      // an account that was created.
-      const fullName = attrs.user_metadata?.full_name;
-      if (attrs.user_metadata && Object.keys(attrs.user_metadata).length > 0) {
-        await fetch(`${IDENTITY_API}/accounts:update?key=${GOOGLE_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            idToken: created.idToken,
-            customAttributes: JSON.stringify(attrs.user_metadata),
-            ...(typeof fullName === 'string' ? { displayName: fullName } : {}),
-          }),
-        }).catch(() => undefined);
-      }
+      const body = await res.json().catch(() => ({}));
 
-      // Write the account into the database and take the uuid it assigns.
-      //
-      // Identity Platform holds the password; this database holds the record of
-      // the account, and every user column in it is uuid. Returning Google's id
-      // instead - which is what this did at first - created 29 logins with no
-      // rows behind them: every follow-up insert referenced an account the
-      // database had never heard of, and failed on the foreign key. The logins
-      // worked and the students did not exist.
-      //
-      // email_confirm is what a college asserting "this address is real" looks
-      // like, and it is carried through so an enrolled student can sign in at
-      // once rather than waiting for a link they never asked for.
-      const recorded = await recordAccount(
-        created.localId as string,
-        created.email as string,
-        typeof fullName === 'string' ? fullName : null,
-        attrs.email_confirm === true,
-      );
-      if (!recorded) {
+      if (!res.ok || !body?.user?.id) {
         return {
           data: { user: null },
           error: {
-            message:
-              'The login was created but could not be recorded in the database. ' +
-              'Nothing else was written, so it is safe to run the import again.',
+            message: typeof body?.error === "string"
+              ? body.error
+              : "Could not create the managed account",
           },
         };
       }
@@ -424,8 +464,8 @@ const authShim = {
       return {
         data: {
           user: {
-            id: recorded,
-            email: created.email as string,
+            id: body.user.id as string,
+            email: (body.user.email ?? attrs.email) as string,
             user_metadata: attrs.user_metadata ?? {},
           },
         },
@@ -449,37 +489,49 @@ const authShim = {
       // for prooflab-508214" email. The caller puts the link in the one
       // ProofLab welcome email. If that fails, fall back to Google's email so
       // the student still gets a way in (two emails, but never zero).
-      const accountsUrl = Deno.env.get('ACCOUNTS_URL');
+      const accountsUrl = Deno.env.get("ACCOUNTS_URL");
       if (accountsUrl) {
         try {
           const res = await fetch(`${accountsUrl}/password-link`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '',
+              "Content-Type": "application/json",
+              "x-webhook-secret": Deno.env.get("WEBHOOK_SECRET") ?? "",
             },
             body: JSON.stringify({ email: args.email }),
           });
           const json = await res.json().catch(() => ({}));
           if (res.ok && json.link) {
-            return { data: { properties: { action_link: json.link as string } }, error: null };
+            return {
+              data: { properties: { action_link: json.link as string } },
+              error: null,
+            };
           }
-          console.error('password-link failed:', res.status, json?.error);
+          console.error("password-link failed:", res.status, json?.error);
         } catch (e) {
-          console.error('password-link unreachable:', e);
+          console.error("password-link unreachable:", e);
         }
       }
 
       if (!GOOGLE_API_KEY) {
-        return { data: null, error: { message: 'GOOGLE_API_KEY is not set' } };
+        return { data: null, error: { message: "GOOGLE_API_KEY is not set" } };
       }
-      const res = await fetch(`${IDENTITY_API}/accounts:sendOobCode?key=${GOOGLE_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: args.email }),
-      });
+      const res = await fetch(
+        `${IDENTITY_API}/accounts:sendOobCode?key=${GOOGLE_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requestType: "PASSWORD_RESET",
+            email: args.email,
+          }),
+        },
+      );
       if (!res.ok) {
-        return { data: null, error: { message: 'Could not send the password email' } };
+        return {
+          data: null,
+          error: { message: "Could not send the password email" },
+        };
       }
       return { data: { properties: { action_link: null } }, error: null };
     },
@@ -501,9 +553,8 @@ const authShim = {
       return {
         data: { users: [] },
         error: {
-          message:
-            'listUsers is not available on this backend. ' +
-            'Look the address up with the account_id_for_email database function instead.',
+          message: "listUsers is not available on this backend. " +
+            "Look the address up with the account_id_for_email database function instead.",
         },
       };
     },
@@ -519,9 +570,15 @@ const authShim = {
  * from the root. Same rewrite as the browser client, for the same reason.
  */
 const restFetch: typeof fetch = (input, init) => {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  const url = typeof input === "string"
+    ? input
+    : input instanceof URL
+    ? input.href
+    : input.url;
   const fixed = url.replace(`${POSTGREST_URL}/rest/v1`, POSTGREST_URL);
-  if (typeof input === 'string' || input instanceof URL) return fetch(fixed, init);
+  if (typeof input === "string" || input instanceof URL) {
+    return fetch(fixed, init);
+  }
   return fetch(new Request(fixed, input), init);
 };
 
@@ -540,21 +597,27 @@ export function createClient(url: string, key: string, options?: unknown) {
     return createSupabaseClient(url, key, options as any);
   }
 
-  if (!POSTGREST_URL) throw new Error('BACKEND=google but POSTGREST_URL is not set');
+  if (!POSTGREST_URL) {
+    throw new Error("BACKEND=google but POSTGREST_URL is not set");
+  }
 
-  const base = createSupabaseClient(POSTGREST_URL, 'postgrest-needs-no-api-key', {
-    accessToken: () => serviceToken(),
-    global: { fetch: restFetch },
-    db: { schema: 'public' },
-  });
+  const base = createSupabaseClient(
+    POSTGREST_URL,
+    "postgrest-needs-no-api-key",
+    {
+      accessToken: () => serviceToken(),
+      global: { fetch: restFetch },
+      db: { schema: "public" },
+    },
+  );
 
   return new Proxy(base, {
     get(target, prop, receiver) {
-      if (prop === 'storage') return { from: storageFor };
-      if (prop === 'auth') return authShim;
-      if (prop === 'functions') return functionsShim;
+      if (prop === "storage") return { from: storageFor };
+      if (prop === "auth") return authShim;
+      if (prop === "functions") return functionsShim;
       const value = Reflect.get(target, prop, receiver);
-      return typeof value === 'function' ? value.bind(target) : value;
+      return typeof value === "function" ? value.bind(target) : value;
     },
   }) as typeof base;
 }
@@ -576,27 +639,46 @@ const functionsShim = {
   async invoke(
     name: string,
     options: { body?: unknown; headers?: Record<string, string> } = {},
-  ): Promise<{ data: unknown; error: null | { message: string; status?: number } }> {
-    const port = Deno.env.get('PORT') ?? '8080';
+  ): Promise<
+    { data: unknown; error: null | { message: string; status?: number } }
+  > {
+    const port = Deno.env.get("PORT") ?? "8080";
     try {
       const res = await fetch(`http://127.0.0.1:${port}/${name}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${await serviceToken()}`,
           ...(options.headers ?? {}),
         },
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        body: options.body === undefined
+          ? undefined
+          : JSON.stringify(options.body),
       });
       const text = await res.text();
       let data: unknown = text;
-      try { data = text ? JSON.parse(text) : null; } catch { /* not JSON; keep the text */ }
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch { /* not JSON; keep the text */ }
       if (!res.ok) {
-        return { data: null, error: { message: `${name} answered ${res.status}: ${text.slice(0, 200)}`, status: res.status } };
+        return {
+          data: null,
+          error: {
+            message: `${name} answered ${res.status}: ${text.slice(0, 200)}`,
+            status: res.status,
+          },
+        };
       }
       return { data, error: null };
     } catch (err) {
-      return { data: null, error: { message: `${name} could not be reached: ${err instanceof Error ? err.message : err}` } };
+      return {
+        data: null,
+        error: {
+          message: `${name} could not be reached: ${
+            err instanceof Error ? err.message : err
+          }`,
+        },
+      };
     }
   },
 };
@@ -618,31 +700,42 @@ export { serviceToken };
  * Returns null when no database is configured; callers report that through
  * telemetryProblem() instead of carrying on silently.
  */
-export async function serviceRest(path: string, init: RequestInit = {}): Promise<Response | null> {
+export async function serviceRest(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response | null> {
   if (USING_GOOGLE) {
     if (!POSTGREST_URL || !CAN_REACH_DB) return null;
     return await fetch(`${POSTGREST_URL}/${path}`, {
       ...init,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${await serviceToken()}`,
         ...(init.headers ?? {}),
       },
     });
   }
-  const url = Deno.env.get('SUPABASE_URL');
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) return null;
   return await fetch(`${url}/rest/v1/${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${key}`, ...(init.headers ?? {}) },
+    headers: {
+      "Content-Type": "application/json",
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      ...(init.headers ?? {}),
+    },
   });
 }
 
 /** Which database the telemetry helpers reach, for /ready. 'none' means they cannot work. */
-export function telemetryTarget(): 'postgrest' | 'supabase' | 'none' {
-  if (USING_GOOGLE) return POSTGREST_URL && CAN_REACH_DB ? 'postgrest' : 'none';
-  return Deno.env.get('SUPABASE_URL') && Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ? 'supabase' : 'none';
+export function telemetryTarget(): "postgrest" | "supabase" | "none" {
+  if (USING_GOOGLE) return POSTGREST_URL && CAN_REACH_DB ? "postgrest" : "none";
+  return Deno.env.get("SUPABASE_URL") &&
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    ? "supabase"
+    : "none";
 }
 
 const lastProblem = new Map<string, number>();
@@ -675,13 +768,23 @@ export async function findAccountByEmail(
   const wanted = email.trim().toLowerCase();
 
   if (USING_GOOGLE) {
-    const { data, error } = await db.rpc('account_id_for_email', { _email: wanted });
-    if (error) throw new Error(`could not check for an existing account: ${error.message}`);
+    const { data, error } = await db.rpc("account_id_for_email", {
+      _email: wanted,
+    });
+    if (error) {
+      throw new Error(
+        `could not check for an existing account: ${error.message}`,
+      );
+    }
     return data ? { id: data as string } : null;
   }
 
   const { data, error } = await db.auth.admin.listUsers();
-  if (error) throw new Error(`could not check for an existing account: ${error.message}`);
+  if (error) {
+    throw new Error(
+      `could not check for an existing account: ${error.message}`,
+    );
+  }
   const found = data?.users?.find(
     (u: { email?: string }) => u.email?.toLowerCase() === wanted,
   );

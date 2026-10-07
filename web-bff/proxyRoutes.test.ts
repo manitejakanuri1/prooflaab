@@ -439,3 +439,120 @@ Deno.test("file proxy rejects unsupported methods", async () => {
     "unsupported file method accepted",
   );
 });
+
+Deno.test("file proxy rejects upload larger than 10 MiB before backend", async () => {
+  let backendCalled = false;
+
+  const body = new Uint8Array(
+    10 * 1024 * 1024 + 1,
+  );
+
+  const req = new Request(
+    "https://prooflab.co.in/api/files/resumes/user-1/huge.pdf",
+    {
+      method: "PUT",
+      headers: {
+        Cookie: cookie(),
+        "Content-Type": "application/pdf",
+      },
+      body,
+    },
+  );
+
+  const res = await handleProxyRoute(req, {
+    env: {
+      get(name: string) {
+        return name === "FILES_URL" ? "https://files.example.test" : undefined;
+      },
+    },
+    fetcher: async () => {
+      backendCalled = true;
+      return new Response();
+    },
+    auth: authDeps(),
+  });
+
+  assert(
+    res !== null,
+    "file route not handled",
+  );
+
+  assert(
+    res.status === 413,
+    "oversized upload was accepted",
+  );
+
+  assert(
+    !backendCalled,
+    "oversized upload reached backend",
+  );
+
+  const result = await res.json();
+
+  assert(
+    result.error === "file is too large",
+    "wrong oversized response",
+  );
+});
+
+Deno.test("file proxy accepts upload exactly at 10 MiB boundary", async () => {
+  let backendCalled = false;
+  let receivedBytes = 0;
+
+  const body = new Uint8Array(
+    10 * 1024 * 1024,
+  );
+
+  const req = new Request(
+    "https://prooflab.co.in/api/files/resumes/user-1/boundary.pdf",
+    {
+      method: "PUT",
+      headers: {
+        Cookie: cookie(),
+        "Content-Type": "application/pdf",
+      },
+      body,
+    },
+  );
+
+  const res = await handleProxyRoute(req, {
+    env: {
+      get(name: string) {
+        return name === "FILES_URL" ? "https://files.example.test" : undefined;
+      },
+    },
+    fetcher: async (_input, init) => {
+      backendCalled = true;
+
+      const sent = init?.body as ArrayBuffer | undefined;
+
+      receivedBytes = sent?.byteLength ?? 0;
+
+      return Response.json({
+        path: "user-1/boundary.pdf",
+      });
+    },
+    auth: authDeps(),
+  });
+
+  assert(
+    res !== null,
+    "file route not handled",
+  );
+
+  assert(
+    res.status === 200,
+    "boundary upload was refused",
+  );
+
+  assert(
+    backendCalled,
+    "valid upload never reached backend",
+  );
+
+  assert(
+    receivedBytes ===
+      10 * 1024 * 1024,
+    "upload body size changed",
+  );
+});

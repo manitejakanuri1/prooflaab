@@ -14,6 +14,15 @@ export interface ProxyRouteDeps {
   auth?: AuthRouteDeps;
 }
 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+class PayloadTooLargeError extends Error {
+  constructor() {
+    super("payload too large");
+    this.name = "PayloadTooLargeError";
+  }
+}
+
 const SECURITY_HEADERS: Record<string, string> = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
@@ -96,14 +105,76 @@ function safePath(value: string): boolean {
   );
 }
 
-async function bodyFor(req: Request): Promise<ArrayBuffer | undefined> {
-  if (req.method === "GET" || req.method === "HEAD") {
+async function bodyFor(
+  req: Request,
+  maxBytes?: number,
+): Promise<ArrayBuffer | undefined> {
+  if (
+    req.method === "GET" ||
+    req.method === "HEAD" ||
+    !req.body
+  ) {
     return undefined;
   }
 
-  const body = await req.arrayBuffer();
+  if (maxBytes === undefined) {
+    const body = await req.arrayBuffer();
 
-  return body.byteLength > 0 ? body : undefined;
+    return body.byteLength > 0 ? body : undefined;
+  }
+
+  const declaredRaw = req.headers.get("content-length");
+
+  if (declaredRaw !== null) {
+    const declared = Number(declaredRaw);
+
+    if (
+      Number.isFinite(declared) &&
+      declared > maxBytes
+    ) {
+      throw new PayloadTooLargeError();
+    }
+  }
+
+  const reader = req.body.getReader();
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+      if (!value) continue;
+
+      total += value.byteLength;
+
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new PayloadTooLargeError();
+      }
+
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (total === 0) {
+    return undefined;
+  }
+
+  const combined = new Uint8Array(total);
+
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return combined.buffer;
 }
 
 export async function handleProxyRoute(
@@ -238,13 +309,34 @@ export async function handleProxyRoute(
     target = `${files}/file/${path}${url.search}`;
   }
 
+  let requestBody: ArrayBuffer | undefined;
+
+  try {
+    requestBody = await bodyFor(
+      req,
+      isFile ? MAX_FILE_BYTES : undefined,
+    );
+  } catch (err) {
+    if (err instanceof PayloadTooLargeError) {
+      return json(
+        { error: "file is too large" },
+        413,
+      );
+    }
+
+    return json(
+      { error: "invalid request body" },
+      400,
+    );
+  }
+
   let upstream: Response;
 
   try {
     upstream = await fetcher(target, {
       method: req.method,
       headers,
-      body: await bodyFor(req),
+      body: requestBody,
       redirect: "manual",
     });
   } catch {

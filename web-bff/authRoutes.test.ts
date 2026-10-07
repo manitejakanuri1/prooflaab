@@ -99,6 +99,15 @@ Deno.test("login creates server session and returns only opaque cookie", async (
     fetcher,
     now: () => NOW,
     newSessionId: () => SESSION_ID,
+    loadLoginIdentity: async () => ({
+      allowed: true,
+      role: "student",
+      full_name: "Managed Student",
+      account_type: "student",
+      has_completed_wizard: true,
+      college_id: "00000000-0000-0000-0000-000000000099",
+      onboarding_status: "completed",
+    }),
     createSession: async (id, session) => {
       createdId = id;
       created = session;
@@ -124,6 +133,83 @@ Deno.test("login creates server session and returns only opaque cookie", async (
   assert(cookie.includes("HttpOnly"), "HttpOnly missing");
   assert(cookie.includes("Secure"), "Secure missing");
   assert(cookie.includes("SameSite=Strict"), "SameSite missing");
+});
+
+Deno.test("login refuses an account not provisioned by the platform", async () => {
+  const fetcher: typeof fetch = async (input) => {
+    const url = String(input);
+
+    if (
+      url.includes(
+        "signInWithPassword",
+      )
+    ) {
+      return Response.json({
+        email: "orphan@example.test",
+        idToken: "GOOGLE_ID_TOKEN",
+        refreshToken: "GOOGLE_REFRESH_TOKEN",
+      });
+    }
+
+    if (
+      url ===
+        "https://bridge.example.test/token"
+    ) {
+      return Response.json({
+        access_token: jwt({
+          sub: USER_ID,
+          role: "authenticated",
+          email_confirmed: true,
+        }),
+        expires_in: 3600,
+      });
+    }
+
+    throw new Error(
+      `unexpected URL: ${url}`,
+    );
+  };
+
+  const req = new Request(
+    "https://prooflab.co.in/api/auth/login",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: "orphan@example.test",
+        password: "password",
+      }),
+    },
+  );
+
+  const res = await handleAuthRoute(
+    req,
+    {
+      env: env(),
+      fetcher,
+      loadLoginIdentity: async () => ({
+        allowed: false,
+        reason: "account_not_provisioned",
+      }),
+      createSession: async () => {
+        throw new Error(
+          "refused login must not create session",
+        );
+      },
+    },
+  );
+
+  assert(
+    res !== null,
+    "login route not handled",
+  );
+
+  assert(
+    res.status === 403,
+    "unmanaged account was allowed",
+  );
 });
 
 Deno.test("invalid credentials return generic error", async () => {

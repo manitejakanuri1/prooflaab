@@ -1,5 +1,6 @@
 import {
   createSessionRecord,
+  loadManagedLoginIdentity,
   loadSessionRecord,
   revokeSessionRecord,
   updateSessionRecord,
@@ -80,7 +81,7 @@ Deno.test("create stores only hash plus encrypted credentials", async () => {
     now: () => NOW,
   });
 
-  assert(capturedUrl.endsWith("/web_sessions"), "wrong create URL");
+  assert(capturedUrl.endsWith("/rpc/web_replace_session"), "wrong create URL");
   assert(
     !capturedBody.includes(rawSessionId),
     "raw browser session id leaked into database body",
@@ -97,14 +98,14 @@ Deno.test("create stores only hash plus encrypted credentials", async () => {
   const body = JSON.parse(capturedBody);
 
   assert(
-    typeof body.session_hash === "string" &&
-      /^[0-9a-f]{64}$/.test(body.session_hash),
+    typeof body._session_hash === "string" &&
+      /^[0-9a-f]{64}$/.test(body._session_hash),
     "session hash is not SHA-256 hex",
   );
 
   assert(
-    typeof body.encrypted_payload === "string" &&
-      body.encrypted_payload.startsWith("v1."),
+    typeof body._encrypted_payload === "string" &&
+      body._encrypted_payload.startsWith("v1."),
     "encrypted session payload missing",
   );
 });
@@ -232,6 +233,55 @@ Deno.test("logout revokes stored session", async () => {
   assert(
     typeof body.revoked_at === "string" && body.revoked_at.length > 0,
     "logout did not set revoked_at",
+  );
+});
+
+Deno.test("managed login identity is read server-side", async () => {
+  let capturedUrl = "";
+  let capturedBody = "";
+
+  const fetcher: typeof fetch = async (input, init) => {
+    capturedUrl = String(input);
+    capturedBody = String(init?.body ?? "");
+
+    return Response.json({
+      allowed: true,
+      role: "student",
+      full_name: "Managed Student",
+      account_type: "student",
+      has_completed_wizard: true,
+      college_id: "00000000-0000-0000-0000-000000000099",
+      onboarding_status: "completed",
+    });
+  };
+
+  const identity = await loadManagedLoginIdentity(
+    sample().user.id,
+    {
+      env: env(),
+      fetcher,
+      serviceToken: async () => "SERVICE_TOKEN",
+    },
+  );
+
+  assert(
+    capturedUrl.endsWith(
+      "/rpc/web_login_identity",
+    ),
+    "wrong managed identity RPC",
+  );
+
+  const sent = JSON.parse(capturedBody);
+
+  assert(
+    sent._user_id === sample().user.id,
+    "wrong managed identity user",
+  );
+
+  assert(
+    identity.allowed === true &&
+      identity.role === "student",
+    "managed identity was not returned",
   );
 });
 

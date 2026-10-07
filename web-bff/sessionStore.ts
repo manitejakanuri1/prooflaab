@@ -23,6 +23,17 @@ interface StoredSessionRow {
   revoked_at?: string | null;
 }
 
+export interface ManagedLoginIdentity {
+  allowed: boolean;
+  reason?: string;
+  role?: string;
+  full_name?: string | null;
+  account_type?: string;
+  has_completed_wizard?: boolean;
+  college_id?: string | null;
+  onboarding_status?: string | null;
+}
+
 function config(deps: SessionStoreDeps) {
   const env = deps.env ?? Deno.env;
   const fetcher = deps.fetcher ?? fetch;
@@ -74,6 +85,57 @@ function rowUrl(base: string, sessionHash: string): string {
   return `${base}/web_sessions?${q.toString()}`;
 }
 
+export async function loadManagedLoginIdentity(
+  userId: string,
+  depsInput: SessionStoreDeps = {},
+): Promise<ManagedLoginIdentity> {
+  const deps = config(depsInput);
+
+  const response = await deps.fetcher(
+    `${deps.postgrest}/rpc/web_login_identity`,
+    {
+      method: "POST",
+      headers: await headers(deps),
+      body: JSON.stringify({
+        _user_id: userId,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `could not resolve managed login identity: ${response.status}`,
+    );
+  }
+
+  const body = await response.json();
+
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body)
+  ) {
+    throw new Error("invalid managed login identity");
+  }
+
+  const value = body as Record<string, unknown>;
+
+  return {
+    allowed: value.allowed === true,
+    reason: typeof value.reason === "string" ? value.reason : undefined,
+    role: typeof value.role === "string" ? value.role : undefined,
+    full_name: typeof value.full_name === "string" ? value.full_name : null,
+    account_type: typeof value.account_type === "string"
+      ? value.account_type
+      : undefined,
+    has_completed_wizard: value.has_completed_wizard === true,
+    college_id: typeof value.college_id === "string" ? value.college_id : null,
+    onboarding_status: typeof value.onboarding_status === "string"
+      ? value.onboarding_status
+      : null,
+  };
+}
+
 /**
  * Persist a new browser session.
  *
@@ -90,24 +152,27 @@ export async function createSessionRecord(
   const encryptedPayload = await sealSession(session, deps.sessionKey);
   const nowIso = new Date(deps.now()).toISOString();
 
-  const response = await deps.fetcher(`${deps.postgrest}/web_sessions`, {
-    method: "POST",
-    headers: await headers(deps, {
-      Prefer: "return=minimal",
-    }),
-    body: JSON.stringify({
-      session_hash: sessionHash,
-      user_id: session.user.id,
-      encrypted_payload: encryptedPayload,
-      created_at: nowIso,
-      last_seen_at: nowIso,
-      expires_at: new Date(session.expiresAt).toISOString(),
-      revoked_at: null,
-    }),
-  });
+  const response = await deps.fetcher(
+    `${deps.postgrest}/rpc/web_replace_session`,
+    {
+      method: "POST",
+      headers: await headers(deps, {
+        Prefer: "return=minimal",
+      }),
+      body: JSON.stringify({
+        _session_hash: sessionHash,
+        _user_id: session.user.id,
+        _encrypted_payload: encryptedPayload,
+        _created_at: nowIso,
+        _expires_at: new Date(session.expiresAt).toISOString(),
+      }),
+    },
+  );
 
   if (!response.ok) {
-    throw new Error(`could not create browser session: ${response.status}`);
+    throw new Error(
+      `could not replace browser session: ${response.status}`,
+    );
   }
 }
 

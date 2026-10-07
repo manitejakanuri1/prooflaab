@@ -9,7 +9,9 @@ import {
 
 import {
   createSessionRecord,
+  loadManagedLoginIdentity,
   loadSessionRecord,
+  type ManagedLoginIdentity,
   revokeSessionRecord,
   updateSessionRecord,
 } from "./sessionStore.ts";
@@ -44,6 +46,10 @@ type RevokeSession = (
   id: string,
 ) => Promise<void>;
 
+type LoadLoginIdentity = (
+  userId: string,
+) => Promise<ManagedLoginIdentity>;
+
 export interface AuthRouteDeps {
   env?: Env;
   fetcher?: typeof fetch;
@@ -54,6 +60,7 @@ export interface AuthRouteDeps {
   loadSession?: LoadSession;
   updateSession?: UpdateSession;
   revokeSession?: RevokeSession;
+  loadLoginIdentity?: LoadLoginIdentity;
 }
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -135,6 +142,9 @@ function config(input: AuthRouteDeps) {
 
     revokeSession: input.revokeSession ??
       ((id: string) => revokeSessionRecord(id, storeDeps)),
+
+    loadLoginIdentity: input.loadLoginIdentity ??
+      ((userId: string) => loadManagedLoginIdentity(userId, storeDeps)),
   };
 }
 
@@ -256,7 +266,51 @@ async function login(
     return json({ error: "Could not start your session" }, 503);
   }
 
+  let managedIdentity: ManagedLoginIdentity;
+
+  try {
+    managedIdentity = await cfg.loadLoginIdentity(
+      exchanged.subject,
+    );
+  } catch {
+    return json(
+      { error: "Could not verify account access" },
+      503,
+    );
+  }
+
+  if (
+    managedIdentity.allowed !== true ||
+    !managedIdentity.role
+  ) {
+    return json(
+      {
+        error:
+          "Account access is managed by your college or platform administrator",
+      },
+      403,
+    );
+  }
+
   const now = cfg.now();
+
+  const userMetadata: Record<string, unknown> = {
+    email: identity.email,
+    account_type: managedIdentity.role,
+    has_completed_wizard: managedIdentity.has_completed_wizard === true,
+  };
+
+  if (managedIdentity.full_name) {
+    userMetadata.full_name = managedIdentity.full_name;
+  }
+
+  if (managedIdentity.college_id) {
+    userMetadata.college_id = managedIdentity.college_id;
+  }
+
+  if (managedIdentity.onboarding_status) {
+    userMetadata.onboarding_status = managedIdentity.onboarding_status;
+  }
 
   const user: SessionUser = {
     id: exchanged.subject,
@@ -265,9 +319,7 @@ async function login(
       ? new Date(now).toISOString()
       : null,
     role: "authenticated",
-    user_metadata: {
-      email: identity.email,
-    },
+    user_metadata: userMetadata,
   };
 
   const session: PrivateSession = {

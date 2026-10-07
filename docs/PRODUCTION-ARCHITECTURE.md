@@ -6,6 +6,21 @@ and Vercel are retired; any document that says otherwise is historical.
 
 Project `prooflab-508214`, region `asia-south1` (Mumbai). Site: https://prooflab.co.in
 
+## 0. Update - release 444b2f3 (verified live 7 Oct 2026, read-only `scripts/infra_snapshot.py`)
+
+The sections below are from 1 Oct. What changed with the release (`main` = `444b2f3`):
+
+| Area | Live now |
+|---|---|
+| Functions | image `prooflab-functions:prod-444b2f3`; `CODE_RUNNER_AUTH=iam`, `CODE_RUNNER_URL` = the dedicated runner below. `CODE_RUNNER_SECRET` is still set (unused with `iam`; removal is a later step). |
+| Code runner | own project `prooflab-runner-508214`, service `prooflab-code-runner-rc` (image `code-runner:prod-444b2f3`): Cloud Run IAM, callers = the functions robots only, no secret, no data. The old `prooflab-code-runner` in the main project still exists (public + `RUNNER_SECRET`) as the rollback; retire it later. |
+| Coding tasks | two kinds (migration 92, `task_sandbox_config.kind`): `stdio` (whole program, stdin/stdout - the old path, unchanged) and `function` (student implements one function; `function_spec` frozen with the tests; arguments are canonical JSON sent to the runner on stdin; a trusted per-language harness calls the function and returns the value in a result frame). Verdicts include `output_limit`. |
+| Hidden tests | Run uses visible tests only. Submit returns and stores visible rows plus ONE `hidden-summary` row (counts only: no hidden inputs, outputs, errors or ids). **Known issue:** the database pass rule (migration 91) still counts one row per test - fix is migration 93, see `docs/POST-RELEASE-REMAINING-WORK.md` P1-PASS. |
+| API | `PGRST_DB_PRE_REQUEST=public.refuse_suspended`: a suspended account is refused at once. |
+| Images | every other service is deployed by digest (`docs/RELEASE-MANIFEST.md`). |
+| Secrets still shared | `WEBHOOK_SECRET` on functions + accounts (9 Scheduler jobs send it); `PGRST_JWT_SECRET` on api, auth-bridge, files, functions, transcriber, worker, accounts and the crawler/bug-finder jobs. Removal plan: `docs/POST-RELEASE-REMAINING-WORK.md` F7 and W7a. |
+| Migrations | ledger `schema_migrations`: 44 files (50-92) applied; 66, 71, 72 (permanent drops) deferred. |
+
 ## 1. Whole system
 
 ```
@@ -72,7 +87,8 @@ PostgREST switches to role "authenticated"; row-level security + security-define
 ```
 Daily card -> task page -> (optional scratchpad Run: functions run-code -> code-runner, nothing saved)
           -> Submit: functions submit-written-task / submit-sandbox-task
-             -> DeepSeek grading (written) or hidden tests on code-runner (sandbox)
+             -> DeepSeek grading (written) or every test on the dedicated runner
+                (sandbox: stdio program or function harness; Cloud Run IAM, no secret)
              -> record_task_submission (server-only RPC) -> task_submissions row -> Build-Log
 DeepSeek down: written grading answers "busy" (503), student retries; nothing is lost.
 ```

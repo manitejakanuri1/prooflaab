@@ -6,6 +6,11 @@ document and each get what they need.*
 
 Written 8 September 2026, from the code at commit `077fe5a`.
 
+> **Historical (checked 7 Oct 2026).** The hosting, database and deploy parts of this book
+> (Vercel, Supabase, `vercel.json`, `prooflaab.vercel.app`) describe the setup that was retired.
+> Everything now runs on Google Cloud: see [DEPLOYING.md](DEPLOYING.md) and
+> [docs/PRODUCTION-ARCHITECTURE.md](docs/PRODUCTION-ARCHITECTURE.md). The product explanations still hold.
+
 ---
 
 ## How to read this book

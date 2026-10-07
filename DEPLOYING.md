@@ -1,100 +1,67 @@
-# Deploying
+# Deploying ProofLab
 
-`git push` alone does **not** deploy this project. It never has. This explains why,
-and what to do instead.
+Everything runs on Google Cloud, project `prooflab-508214`, region `asia-south1`.
+**Vercel and Supabase are retired**: there is no Vercel project, no `vercel.json` deploy, no
+`supabase db push`, no `supabase functions deploy`. (This file used to describe Vercel; it was
+rewritten on 7 Oct 2026 from `.github/workflows/deploy.yml` and `docs/PRODUCTION-ROLLOUT-CHECKLIST.md`.)
 
-## Why pushing is not enough
+There are three separate things to deploy. Each has its own path and its own approval.
 
-The Vercel team is on the **Hobby** plan. Hobby only builds a *production*
-deployment when the git commit author is the Hobby team owner
-(`prooflaab@gmail.com` / `manitejakanuri1`). A commit authored by anyone else
-comes back `state: BLOCKED` and never builds — no error in GitHub, no failed
-check to click, just a deployment that quietly never happens.
+| What | How it goes live | Who/what can do it |
+|---|---|---|
+| Website | push to `main` on `prooflaab` -> GitHub Actions -> Firebase Hosting | CI, after the gate passes |
+| Server services (functions, auth-bridge, files, accounts, transcriber, worker, runner, jobs) | build an image, `gcloud run deploy` / `gcloud run jobs update` | an operator, with the owner's yes |
+| Database | `migration/NN-*.sql` applied through the ledger wrapper | an operator, with the owner's yes |
 
-Vercel's own wording, from *Troubleshoot project collaboration*:
+A push to `main` deploys **only the website**. It never deploys functions or touches the database.
 
-> To deploy commits under a Hobby team, the commit author must be the owner of
-> the Hobby team containing the Vercel project connected to the Git repository.
+## 1. Website (automatic from `main`)
 
-There is no setting that turns this off. The only true fixes are the Pro plan or
-making the repository public, and neither is available here.
+1. Work on a branch. Every push and pull request runs the `test` job:
+   secret scan, legacy guard, migration consistency, website unit tests, typecheck,
+   Deno tests and type-check of every function, auth-bridge / files / accounts tests,
+   production build. The `code-runner` job builds and tests the runner image.
+   The `artifact-handoff` job re-checks the uploaded build (checksums) and smoke-tests it.
+2. Merge to `main` only when tested **and the owner has said yes**.
+   Push to `prooflaab` only - never `origin`.
+3. On `main` the `deploy` job (Google identity through Workload Identity, account
+   `github-deploy@`, which may only publish to Hosting) downloads **the exact build the gate
+   tested**, verifies `dist.sha256`, runs `python scripts/deploy-hosting.py`, and checks that
+   `prooflab.co.in` serves the new entry script. About 5 minutes.
+4. After: `python scripts/healthcheck.py` (all PASS) and the page walk
+   (`scripts/dev-tools/walk.mjs`).
 
-## What was actually tested
+Rollback: re-run the deploy workflow on the previous good `main` commit
+(Actions -> Deploy to production -> Run workflow), or revert the commit and push.
 
-Guessing here wastes hours, so these were all tried against the real project:
+## 2. Server services (manual, approval needed)
 
-| Trigger | Target | Result |
-| --- | --- | --- |
-| `git push` (GitHub webhook) | production | **BLOCKED** |
-| Deploy Hook (`POST` to hook URL) | production | **BLOCKED** — author is still resolved from branch HEAD |
-| Vercel API, `target: preview` | preview | **READY** |
-| Promote that preview → production | production | **READY** |
+- Functions: all handlers run in one service, `prooflab-functions` (`functions-service/main.ts`).
+  A new function must be added to `SLUGS` there. After deploy, `/ready` must show
+  loaded == expected.
+- Images are recorded by digest in `docs/RELEASE-MANIFEST.md`. Deploy by digest, change one
+  service at a time, and note the previous revision for rollback
+  (`gcloud run services update-traffic <svc> --to-revisions=<previous>=100`).
+- The code runner lives in its own project, `prooflab-runner-508214` (service
+  `prooflab-code-runner-rc`, Cloud Run IAM, no secret). Functions reach it with
+  `CODE_RUNNER_AUTH=iam`.
+- Settings that are running now are recorded (read-only) by `python scripts/infra_snapshot.py`
+  into `infra/<env>/*.json`.
+- Every service has its own least-privilege robot account; nobody has Editor. A new secret or
+  bucket a service needs must be granted to that service's robot.
 
-Two useful conclusions:
+## 3. Database (manual, approval needed)
 
-- The check applies to **production** deployments, not previews.
-- **Promoting** an already-built preview does not re-run the check.
+1. Write `migration/NN-name.sql` with a `do $$` self-check (end with
+   `notify pgrst, 'reload schema';` when adding functions or columns), its rollback file, and
+   the identical copy in `supabase/migrations/`. `python scripts/migrations.py check` must pass.
+2. Rehearse on **staging** first (`scripts/dev-tools/staging_sql.sh`, staging only).
+3. Production: through the ledger wrapper (`python scripts/migrations.py wrap <file>`), one file at
+   a time, after a same-hour Cloud SQL backup for anything that drops or rewrites data.
+   Direct `psql` to production is blocked.
 
-Deploy hooks look like the obvious answer and are not. They were tried and
-revoked again.
+## Where the details are
 
-## How to deploy
-
-### Option A — the script (recommended)
-
-```bash
-git push                       # get your commits onto main first
-export VERCEL_TOKEN=...        # https://vercel.com/account/settings/tokens
-./scripts/deploy.sh
-```
-
-It builds `main` as a preview, waits for the build, then promotes it to
-production. A Vercel API token is free on Hobby and belongs to whoever creates
-it — the owner's token is not required.
-
-### Option B — by hand, in the dashboard
-
-1. Push to `main`.
-2. Open the project on Vercel → **Deployments**.
-3. Find the latest `main` deployment. If it says **BLOCKED**, that is the author
-   check — ignore it, it will never build.
-4. Trigger a fresh **preview** build of `main` (any API/tool route that creates a
-   preview works; the blocked one cannot be revived).
-5. On the preview that reaches **Ready**: `⋯` → **Promote to Production** →
-   confirm.
-
-### Option C — have the owner author the commit
-
-If `manitejakanuri1` makes the commit themselves, the normal `git push` flow
-works with no extra steps. An empty commit is enough to carry someone else's
-already-pushed work:
-
-```bash
-git pull
-git commit --allow-empty -m "Trigger deploy"
-git push
-```
-
-## Always confirm it actually shipped
-
-A promote can succeed while the browser still serves the old bundle from cache.
-Check the hash actually changed:
-
-```bash
-curl -s https://prooflaab.vercel.app/ | grep -oE 'assets/index-[^"]+\.js'
-```
-
-Compare it with your local `npm run build` output — if the hashes match, the
-deployed code is exactly what you built.
-
-## Database changes
-
-Schema and data changes are **not** deployed by Vercel. They go to Supabase
-separately, as migrations in `supabase/migrations/`.
-
-One caveat worth knowing: the repo's migration filenames and Supabase's applied
--migration ledger use different version numbers (the folder was renamed and
-reorganised at some point). Every repo migration has been registered in the
-ledger so the two agree, but if you add migrations, apply them as migrations
-rather than pasting SQL into the dashboard — otherwise the ledger drifts again
-and a future `supabase db push` tries to re-run work that is already applied.
+- `docs/PRODUCTION-ROLLOUT-CHECKLIST.md` and `docs/PRODUCTION-ROLLBACK-CHECKLIST.md` - step by step.
+- `docs/RELEASE-MANIFEST.md` - which commit, images and migration checksums are released.
+- `docs/POST-RELEASE-REMAINING-WORK.md` - what is still open.

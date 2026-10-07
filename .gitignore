@@ -52,3 +52,10 @@ scripts/dev-tools/matches.json
 scripts/dev-tools/__pycache__/
 __pycache__/
 *.pyc
+
+# Output of local check tools (never committed): browser E2E screenshots and
+# inventories (E2E_OUT, default e2e-out/), authz_matrix_check.py results, and the
+# failure screenshot voice_playback_browser.mjs writes.
+e2e-out/
+authz_matrix_results.json
+voice-playback-fail.png

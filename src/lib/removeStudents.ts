@@ -1,7 +1,3 @@
-import { currentAccessToken } from "@/integrations/google/identity";
-
-const ACCOUNTS_URL = import.meta.env.VITE_ACCOUNTS_URL as string;
-
 /**
  * Removal cannot be undone: the Google login is deleted and the database cascades
  * the student's work away. remove_students() keeps a record (profile, contact,
@@ -24,11 +20,15 @@ export function confirmRemoval(label: string): boolean {
  * database). A college can remove only its own students; an admin any.
  */
 export async function removeStudents(studentIds: string[]): Promise<{ removed: number; loginFailures: number }> {
-  const token = await currentAccessToken();
-  const res = await fetch(`${ACCOUNTS_URL}/remove`, {
+  const res = await fetch("/api/accounts/remove", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ student_ids: studentIds }),
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      student_ids: studentIds,
+    }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? "Could not remove the student.");

@@ -15,6 +15,8 @@ export interface ProxyRouteDeps {
 }
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_TRANSCRIBE_BYTES = 15 * 1024 * 1024;
+const MAX_ACCOUNTS_BYTES = 100_000;
 
 class PayloadTooLargeError extends Error {
   constructor() {
@@ -190,7 +192,19 @@ export async function handleProxyRoute(
 
   const isFile = url.pathname.startsWith("/api/files/");
 
-  if (!isDb && !isFunction && !isFile) {
+  const isAccounts =
+    url.pathname === "/api/accounts/remove";
+
+  const isTranscriber =
+    url.pathname === "/api/transcriber/transcribe";
+
+  if (
+    !isDb &&
+    !isFunction &&
+    !isFile &&
+    !isAccounts &&
+    !isTranscriber
+  ) {
     return null;
   }
 
@@ -203,6 +217,12 @@ export async function handleProxyRoute(
 
   const files = (env.get("FILES_URL") ?? "").replace(/\/+$/, "");
 
+  const accounts =
+    (env.get("ACCOUNTS_URL") ?? "").replace(/\/+$/, "");
+
+  const transcriber =
+    (env.get("TRANSCRIBER_URL") ?? "").replace(/\/+$/, "");
+
   if (isDb && !postgrest) {
     return json({ error: "database proxy unavailable" }, 503);
   }
@@ -213,6 +233,14 @@ export async function handleProxyRoute(
 
   if (isFile && !files) {
     return json({ error: "file proxy unavailable" }, 503);
+  }
+
+  if (isAccounts && !accounts) {
+    return json({ error: "accounts proxy unavailable" }, 503);
+  }
+
+  if (isTranscriber && !transcriber) {
+    return json({ error: "transcriber proxy unavailable" }, 503);
   }
 
   let resolved;
@@ -287,7 +315,7 @@ export async function handleProxyRoute(
     target = `${functions}/functions/v1/${
       encodeURIComponent(slug)
     }${url.search}`;
-  } else {
+  } else if (isFile) {
     if (!["GET", "PUT", "DELETE"].includes(req.method)) {
       return json({ error: "method not allowed" }, 405, {
         Allow: "GET, PUT, DELETE",
@@ -307,19 +335,51 @@ export async function handleProxyRoute(
     }
 
     target = `${files}/file/${path}${url.search}`;
+  } else if (isAccounts) {
+    if (req.method !== "POST") {
+      return json({ error: "method not allowed" }, 405, {
+        Allow: "POST",
+      });
+    }
+
+    target = `${accounts}/remove`;
+  } else {
+    if (req.method !== "POST") {
+      return json({ error: "method not allowed" }, 405, {
+        Allow: "POST",
+      });
+    }
+
+    target = `${transcriber}/transcribe`;
   }
 
   let requestBody: ArrayBuffer | undefined;
 
   try {
+    const bodyLimit =
+      isFile
+        ? MAX_FILE_BYTES
+        : isTranscriber
+          ? MAX_TRANSCRIBE_BYTES
+          : isAccounts
+            ? MAX_ACCOUNTS_BYTES
+            : undefined;
+
     requestBody = await bodyFor(
       req,
-      isFile ? MAX_FILE_BYTES : undefined,
+      bodyLimit,
     );
   } catch (err) {
     if (err instanceof PayloadTooLargeError) {
+      const message =
+        isFile
+          ? "file is too large"
+          : isTranscriber
+            ? "recording is too large"
+            : "request is too large";
+
       return json(
-        { error: "file is too large" },
+        { error: message },
         413,
       );
     }

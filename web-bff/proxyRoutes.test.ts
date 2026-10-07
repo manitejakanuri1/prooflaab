@@ -556,3 +556,259 @@ Deno.test("file proxy accepts upload exactly at 10 MiB boundary", async () => {
     "upload body size changed",
   );
 });
+
+Deno.test("accounts removal proxy injects server token and does not leak browser credentials", async () => {
+  let target = "";
+  let authorization = "";
+  let cookieHeader = "";
+  let body = "";
+
+  const fetcher: typeof fetch = async (input, init) => {
+    target = String(input);
+
+    const headers =
+      new Headers(init?.headers);
+
+    authorization =
+      headers.get("authorization") ?? "";
+
+    cookieHeader =
+      headers.get("cookie") ?? "";
+
+    body = new TextDecoder().decode(
+      init?.body as ArrayBuffer,
+    );
+
+    return Response.json({
+      removed: 1,
+      login_failures: [],
+    });
+  };
+
+  const req = new Request(
+    "https://prooflab.co.in/api/accounts/remove",
+    {
+      method: "POST",
+      headers: {
+        Cookie: cookie(),
+        Authorization:
+          "Bearer BROWSER_FAKE_TOKEN",
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        student_ids: [
+          "00000000-0000-0000-0000-000000000002",
+        ],
+      }),
+    },
+  );
+
+  const res = await handleProxyRoute(req, {
+    env: {
+      get(name: string) {
+        return name === "ACCOUNTS_URL"
+          ? "https://accounts.example.test"
+          : undefined;
+      },
+    },
+    fetcher,
+    auth: authDeps(),
+  });
+
+  assert(res !== null, "accounts route not handled");
+  assert(res.status === 200, "accounts proxy failed");
+
+  assert(
+    target === "https://accounts.example.test/remove",
+    `wrong accounts target: ${target}`,
+  );
+
+  assert(
+    authorization === "Bearer SERVER_APP_ACCESS",
+    "server token missing",
+  );
+
+  assert(
+    cookieHeader === "",
+    "browser cookie leaked upstream",
+  );
+
+  assert(
+    body.includes("student_ids"),
+    "accounts body was lost",
+  );
+});
+
+Deno.test("internal accounts endpoints are not exposed through browser BFF", async () => {
+  const req = new Request(
+    "https://prooflab.co.in/api/accounts/sync",
+    {
+      method: "POST",
+      headers: {
+        Cookie: cookie(),
+      },
+    },
+  );
+
+  const res = await handleProxyRoute(req, {
+    env: {
+      get(name: string) {
+        return name === "ACCOUNTS_URL"
+          ? "https://accounts.example.test"
+          : undefined;
+      },
+    },
+    auth: authDeps(),
+  });
+
+  assert(
+    res === null,
+    "internal accounts route became browser accessible",
+  );
+});
+
+Deno.test("transcriber proxy injects server token and preserves audio", async () => {
+  let target = "";
+  let authorization = "";
+  let cookieHeader = "";
+  let contentType = "";
+  let receivedBody = "";
+
+  const fetcher: typeof fetch = async (input, init) => {
+    target = String(input);
+
+    const headers =
+      new Headers(init?.headers);
+
+    authorization =
+      headers.get("authorization") ?? "";
+
+    cookieHeader =
+      headers.get("cookie") ?? "";
+
+    contentType =
+      headers.get("content-type") ?? "";
+
+    receivedBody =
+      new TextDecoder().decode(
+        init?.body as ArrayBuffer,
+      );
+
+    return Response.json({
+      text: "hello",
+      segments: [],
+    });
+  };
+
+  const req = new Request(
+    "https://prooflab.co.in/api/transcriber/transcribe",
+    {
+      method: "POST",
+      headers: {
+        Cookie: cookie(),
+        Authorization:
+          "Bearer BROWSER_FAKE_TOKEN",
+        "Content-Type":
+          "audio/webm",
+      },
+      body: "AUDIO_BYTES",
+    },
+  );
+
+  const res = await handleProxyRoute(req, {
+    env: {
+      get(name: string) {
+        return name === "TRANSCRIBER_URL"
+          ? "https://transcriber.example.test"
+          : undefined;
+      },
+    },
+    fetcher,
+    auth: authDeps(),
+  });
+
+  assert(res !== null, "transcriber route not handled");
+  assert(res.status === 200, "transcriber proxy failed");
+
+  assert(
+    target ===
+      "https://transcriber.example.test/transcribe",
+    `wrong transcriber target: ${target}`,
+  );
+
+  assert(
+    authorization === "Bearer SERVER_APP_ACCESS",
+    "server token missing",
+  );
+
+  assert(
+    cookieHeader === "",
+    "browser cookie leaked upstream",
+  );
+
+  assert(
+    contentType === "audio/webm",
+    "audio content type lost",
+  );
+
+  assert(
+    receivedBody === "AUDIO_BYTES",
+    "audio body changed",
+  );
+});
+
+Deno.test("transcriber proxy rejects recordings larger than 15 MiB", async () => {
+  let backendCalled = false;
+
+  const body = new Uint8Array(
+    15 * 1024 * 1024 + 1,
+  );
+
+  const req = new Request(
+    "https://prooflab.co.in/api/transcriber/transcribe",
+    {
+      method: "POST",
+      headers: {
+        Cookie: cookie(),
+        "Content-Type":
+          "audio/webm",
+      },
+      body,
+    },
+  );
+
+  const res = await handleProxyRoute(req, {
+    env: {
+      get(name: string) {
+        return name === "TRANSCRIBER_URL"
+          ? "https://transcriber.example.test"
+          : undefined;
+      },
+    },
+    fetcher: async () => {
+      backendCalled = true;
+      return new Response();
+    },
+    auth: authDeps(),
+  });
+
+  assert(res !== null, "transcriber route not handled");
+
+  assert(
+    res.status === 413,
+    "oversized recording accepted",
+  );
+
+  assert(
+    !backendCalled,
+    "oversized recording reached backend",
+  );
+
+  const result = await res.json();
+
+  assert(
+    result.error === "recording is too large",
+    "wrong oversized response",
+  );
+});

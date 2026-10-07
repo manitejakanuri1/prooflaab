@@ -13,10 +13,7 @@
  * never touches "um"/"uh"/"hmm". Those stay in on purpose: the grading prompt
  * reads hesitation as a sign of an authentic answer, not noise to strip.
  */
-import { cleanTranscript } from "./cleanTranscript";
-import { currentAccessToken } from "@/integrations/google/identity";
-
-const TRANSCRIBER_URL = import.meta.env.VITE_TRANSCRIBER_URL as string;
+import { cleanTranscript } from "./cleanTranscript.ts";
 
 /** One spoken stretch and where it sits in the recording, in seconds. */
 export interface TranscriptSegment {
@@ -35,16 +32,19 @@ export async function transcribeWithTimestamps(
   onProgress?: (p: TranscribeProgress) => void,
 ): Promise<{ text: string; segments: TranscriptSegment[] }> {
   onProgress?.({ stage: "transcribing" });
-  const token = await currentAccessToken();
   // The transcriber handles three recordings at a time and answers "busy" (429/503,
   // or Google's own HTML 500 page) to the rest instead of queueing them. With eleven
   // students recording together, nine used to see an error. Wait a moment and try
   // again: the recording is still in memory, and the free slots come back in seconds.
   let res: Response;
   for (let attempt = 0; ; attempt++) {
-    res = await fetch(`${TRANSCRIBER_URL}/transcribe`, {
+    res = await fetch("/api/transcriber/transcribe", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": blob.type || "audio/webm" },
+      credentials: "same-origin",
+      headers: {
+        "Content-Type":
+          blob.type || "audio/webm",
+      },
       body: blob,
     });
     const busy = [429, 502, 503, 504].includes(res.status)

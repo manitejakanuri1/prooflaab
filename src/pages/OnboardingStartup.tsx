@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import StartupMultiStepWizard from '@/components/onboarding/StartupMultiStepWizard';
 import { useAuth } from '@/contexts/AuthContext';

@@ -38,9 +38,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle, 
-  Eye, Download, MoreHorizontal, Shield, Trash2, UserX, UserCheck, Filter
+import {
+  Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle,
+  Eye, Download, MoreHorizontal, Trash2, UserX, UserCheck, Filter
 } from "lucide-react";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 

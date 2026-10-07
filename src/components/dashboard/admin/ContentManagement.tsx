@@ -1,4 +1,3 @@
-import React from "react";
 import ManageJobsPage from "./ManageJobsPage";
 import ManageResourcesPage from "./ManageResourcesPage";
 import ManageAnnouncementsPage from "./ManageAnnouncementsPage";

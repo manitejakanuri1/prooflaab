@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ExternalLink, Filter, MoreVertical, Eye, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, MoreVertical, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

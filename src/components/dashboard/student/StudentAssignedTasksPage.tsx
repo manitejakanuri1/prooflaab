@@ -4,30 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { 
-  Calendar, 
-  Award, 
-  Play, 
-  Upload, 
-  Search, 
-  Eye, 
+import {
+  Calendar,
+  Award,
+  Play, Search,
+  Eye,
   CheckCircle,
-  Mic, 
+  Mic,
   ClipboardList,
   MoreVertical,
-  Target,
-  Clock,
-  Brain
+  Target
 } from "lucide-react";
 import {
   DropdownMenu,

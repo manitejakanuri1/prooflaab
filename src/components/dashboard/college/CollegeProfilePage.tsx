@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Save, Building } from "lucide-react";
+import { Save, Building } from "lucide-react";
 import ProfilePhotoModalUniversal from "../ProfilePhotoModalUniversal";
 import { getInitials } from "@/lib/utils";
 

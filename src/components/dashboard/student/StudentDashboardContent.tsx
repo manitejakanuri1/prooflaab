@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,7 +6,6 @@ import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
 import BuildLogEntries from "./BuildLogEntries";
 import StudentPortfolioPage from "./StudentPortfolioPage";
 import StudentProgressPage from "./StudentProgressPage";
-import StudentNotificationsPage from "./StudentNotificationsPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 import StudentResumeCheckPage from "./StudentResumeCheckPage";
 import StudentResumeHistoryPage from "./StudentResumeHistoryPage";

@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import AdminSidebar from "@/components/dashboard/admin/AdminSidebar";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, FileCheck, ListTodo, Users, AlertCircle, Trash2, CheckCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";

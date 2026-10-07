@@ -13,11 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import {
   Mail,
-  Trophy,
-  XCircle,
-  Star,
-  Briefcase,
-  Users
+  Trophy, Star,
+  Briefcase
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 

@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 import PasswordInput, { isPasswordValid } from './PasswordInput';
-import EmailVerificationScreen from './EmailVerificationScreen';
 import EmailConfirmationRequired from './EmailConfirmationRequired';
 
 const signupSchema = z.object({

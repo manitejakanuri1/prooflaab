@@ -451,6 +451,256 @@ async function logout(
   );
 }
 
+
+async function googleIdentityAction(
+  path: string,
+  body: Record<string, unknown>,
+  cfg: ReturnType<typeof config>,
+): Promise<Response> {
+  if (!cfg.googleApiKey) {
+    throw new Error("GOOGLE_API_KEY is missing");
+  }
+
+  return await cfg.fetcher(
+    `${IDENTITY}/accounts:${path}?key=${
+      encodeURIComponent(cfg.googleApiKey)
+    }`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+async function requestPasswordReset(
+  req: Request,
+  cfg: ReturnType<typeof config>,
+): Promise<Response> {
+  let input: { email?: unknown };
+
+  try {
+    input = await req.json();
+  } catch {
+    return json({ error: "invalid request" }, 400);
+  }
+
+  if (
+    typeof input.email !== "string" ||
+    !input.email.trim()
+  ) {
+    return json({ error: "email is required" }, 400);
+  }
+
+  if (!cfg.googleApiKey) {
+    return json(
+      { error: "authentication unavailable" },
+      503,
+    );
+  }
+
+  const origin = new URL(req.url).origin;
+
+  try {
+    await googleIdentityAction(
+      "sendOobCode",
+      {
+        requestType: "PASSWORD_RESET",
+        email: input.email.trim(),
+        continueUrl: `${origin}/reset-password`,
+      },
+      cfg,
+    );
+  } catch {
+    return json(
+      { error: "password reset service unavailable" },
+      503,
+    );
+  }
+
+  // Deliberately return the same response whether the address exists or not.
+  // This prevents account enumeration.
+  return json({ ok: true });
+}
+
+async function verifyPasswordReset(
+  req: Request,
+  cfg: ReturnType<typeof config>,
+): Promise<Response> {
+  let input: { oob_code?: unknown };
+
+  try {
+    input = await req.json();
+  } catch {
+    return json({ error: "invalid request" }, 400);
+  }
+
+  if (
+    typeof input.oob_code !== "string" ||
+    !input.oob_code.trim()
+  ) {
+    return json({ error: "reset code is required" }, 400);
+  }
+
+  let response: Response;
+
+  try {
+    response = await googleIdentityAction(
+      "resetPassword",
+      {
+        oobCode: input.oob_code.trim(),
+      },
+      cfg,
+    );
+  } catch {
+    return json(
+      { error: "password reset service unavailable" },
+      503,
+    );
+  }
+
+  if (!response.ok) {
+    return json(
+      { error: "That reset link is invalid or has expired" },
+      400,
+    );
+  }
+
+  const body = await response.json().catch(() => ({})) as {
+    email?: unknown;
+    requestType?: unknown;
+  };
+
+  if (body.requestType !== "PASSWORD_RESET") {
+    return json(
+      { error: "That reset link is invalid or has expired" },
+      400,
+    );
+  }
+
+  return json({
+    ok: true,
+    email:
+      typeof body.email === "string"
+        ? body.email
+        : null,
+  });
+}
+
+async function completePasswordReset(
+  req: Request,
+  cfg: ReturnType<typeof config>,
+): Promise<Response> {
+  let input: {
+    oob_code?: unknown;
+    new_password?: unknown;
+  };
+
+  try {
+    input = await req.json();
+  } catch {
+    return json({ error: "invalid request" }, 400);
+  }
+
+  if (
+    typeof input.oob_code !== "string" ||
+    !input.oob_code.trim()
+  ) {
+    return json({ error: "reset code is required" }, 400);
+  }
+
+  if (
+    typeof input.new_password !== "string" ||
+    input.new_password.length < 6
+  ) {
+    return json(
+      { error: "Password should be at least 6 characters" },
+      400,
+    );
+  }
+
+  let response: Response;
+
+  try {
+    response = await googleIdentityAction(
+      "resetPassword",
+      {
+        oobCode: input.oob_code.trim(),
+        newPassword: input.new_password,
+      },
+      cfg,
+    );
+  } catch {
+    return json(
+      { error: "password reset service unavailable" },
+      503,
+    );
+  }
+
+  if (!response.ok) {
+    return json(
+      { error: "That reset link is invalid or has expired" },
+      400,
+    );
+  }
+
+  return json({ ok: true });
+}
+
+async function confirmEmail(
+  req: Request,
+  cfg: ReturnType<typeof config>,
+): Promise<Response> {
+  let input: { oob_code?: unknown };
+
+  try {
+    input = await req.json();
+  } catch {
+    return json({ error: "invalid request" }, 400);
+  }
+
+  if (
+    typeof input.oob_code !== "string" ||
+    !input.oob_code.trim()
+  ) {
+    return json(
+      { error: "verification code is required" },
+      400,
+    );
+  }
+
+  let response: Response;
+
+  try {
+    response = await googleIdentityAction(
+      "update",
+      {
+        oobCode: input.oob_code.trim(),
+      },
+      cfg,
+    );
+  } catch {
+    return json(
+      { error: "email verification service unavailable" },
+      503,
+    );
+  }
+
+  if (!response.ok) {
+    return json(
+      {
+        error:
+          "That verification link is invalid or has expired",
+      },
+      400,
+    );
+  }
+
+  return json({ ok: true });
+}
+
 export async function handleAuthRoute(
   req: Request,
   deps: AuthRouteDeps = {},
@@ -477,6 +727,34 @@ export async function handleAuthRoute(
     url.pathname === "/api/auth/logout"
   ) {
     return await logout(req, cfg);
+  }
+
+  if (
+    req.method === "POST" &&
+    url.pathname === "/api/auth/password-reset/request"
+  ) {
+    return await requestPasswordReset(req, cfg);
+  }
+
+  if (
+    req.method === "POST" &&
+    url.pathname === "/api/auth/password-reset/verify"
+  ) {
+    return await verifyPasswordReset(req, cfg);
+  }
+
+  if (
+    req.method === "POST" &&
+    url.pathname === "/api/auth/password-reset/complete"
+  ) {
+    return await completePasswordReset(req, cfg);
+  }
+
+  if (
+    req.method === "POST" &&
+    url.pathname === "/api/auth/verify-email"
+  ) {
+    return await confirmEmail(req, cfg);
   }
 
   return null;

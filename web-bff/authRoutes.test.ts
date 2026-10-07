@@ -295,3 +295,219 @@ Deno.test("logout revokes server session and clears browser cookie", async () =>
   const cookie = res.headers.get("Set-Cookie") ?? "";
   assert(cookie.includes("Max-Age=0"), "browser cookie not cleared");
 });
+
+Deno.test("password reset request hides whether the email exists", async () => {
+  let target = "";
+  let sent: Record<string, unknown> = {};
+
+  const fetcher: typeof fetch = async (input, init) => {
+    target = String(input);
+    sent = JSON.parse(String(init?.body ?? "{}"));
+
+    // Simulate EMAIL_NOT_FOUND. Browser must still receive success.
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: "EMAIL_NOT_FOUND",
+        },
+      }),
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  };
+
+  const req = new Request(
+    "https://prooflab.co.in/api/auth/password-reset/request",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: "student@example.test",
+      }),
+    },
+  );
+
+  const res = await handleAuthRoute(req, {
+    env: env(),
+    fetcher,
+  });
+
+  assert(res !== null, "reset request route not handled");
+  assert(res.status === 200, "reset request leaked account existence");
+
+  const body = await res.json();
+
+  assert(body.ok === true, "generic reset success missing");
+
+  assert(
+    target.includes("accounts:sendOobCode"),
+    "wrong Google reset endpoint",
+  );
+
+  assert(
+    sent.requestType === "PASSWORD_RESET",
+    "wrong OOB request type",
+  );
+
+  assert(
+    sent.continueUrl ===
+      "https://prooflab.co.in/reset-password",
+    "reset redirect escaped app origin",
+  );
+});
+
+Deno.test("password reset code can be verified without exposing credentials", async () => {
+  let sent: Record<string, unknown> = {};
+
+  const fetcher: typeof fetch = async (_input, init) => {
+    sent = JSON.parse(String(init?.body ?? "{}"));
+
+    return Response.json({
+      email: "student@example.test",
+      requestType: "PASSWORD_RESET",
+    });
+  };
+
+  const req = new Request(
+    "https://prooflab.co.in/api/auth/password-reset/verify",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        oob_code: "RESET_CODE",
+      }),
+    },
+  );
+
+  const res = await handleAuthRoute(req, {
+    env: env(),
+    fetcher,
+  });
+
+  assert(res !== null, "reset verify route not handled");
+  assert(res.status === 200, "valid reset code rejected");
+
+  assert(
+    sent.oobCode === "RESET_CODE",
+    "reset code was not sent server-side",
+  );
+
+  const text = JSON.stringify(await res.json());
+
+  assert(
+    !text.includes("access_token"),
+    "access token leaked",
+  );
+
+  assert(
+    !text.includes("refresh_token"),
+    "refresh token leaked",
+  );
+});
+
+Deno.test("password reset completion sends new password only to Google server-side", async () => {
+  let sent: Record<string, unknown> = {};
+
+  const fetcher: typeof fetch = async (_input, init) => {
+    sent = JSON.parse(String(init?.body ?? "{}"));
+
+    return Response.json({
+      email: "student@example.test",
+      requestType: "PASSWORD_RESET",
+    });
+  };
+
+  const req = new Request(
+    "https://prooflab.co.in/api/auth/password-reset/complete",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        oob_code: "RESET_CODE",
+        new_password: "NewPassword123!",
+      }),
+    },
+  );
+
+  const res = await handleAuthRoute(req, {
+    env: env(),
+    fetcher,
+  });
+
+  assert(res !== null, "reset completion route not handled");
+  assert(res.status === 200, "password reset failed");
+
+  assert(
+    sent.oobCode === "RESET_CODE",
+    "reset code lost",
+  );
+
+  assert(
+    sent.newPassword === "NewPassword123!",
+    "new password lost",
+  );
+
+  const body = await res.json();
+
+  assert(body.ok === true, "reset completion missing success");
+});
+
+Deno.test("email verification code is confirmed server-side", async () => {
+  let target = "";
+  let sent: Record<string, unknown> = {};
+
+  const fetcher: typeof fetch = async (input, init) => {
+    target = String(input);
+    sent = JSON.parse(String(init?.body ?? "{}"));
+
+    return Response.json({
+      email: "student@example.test",
+      emailVerified: true,
+    });
+  };
+
+  const req = new Request(
+    "https://prooflab.co.in/api/auth/verify-email",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        oob_code: "VERIFY_CODE",
+      }),
+    },
+  );
+
+  const res = await handleAuthRoute(req, {
+    env: env(),
+    fetcher,
+  });
+
+  assert(res !== null, "verify-email route not handled");
+  assert(res.status === 200, "verification failed");
+
+  assert(
+    target.includes("accounts:update"),
+    "wrong Google verification endpoint",
+  );
+
+  assert(
+    sent.oobCode === "VERIFY_CODE",
+    "verification code lost",
+  );
+
+  const body = await res.json();
+
+  assert(body.ok === true, "verification success missing");
+});

@@ -1,3 +1,5 @@
+import { handleAuthRoute } from "./authRoutes.ts";
+
 const PORT = Number(Deno.env.get("PORT") ?? "8080");
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -31,6 +33,9 @@ export async function handler(req: Request): Promise<Response> {
       service: "prooflab-web-bff",
     });
   }
+
+  const authResponse = await handleAuthRoute(req);
+  if (authResponse) return authResponse;
 
   /*
    * Deliberately NOT ready yet.

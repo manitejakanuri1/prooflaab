@@ -701,6 +701,840 @@ async function confirmEmail(
   return json({ ok: true });
 }
 
+
+async function refreshGoogleForAction(
+  sessionId: string,
+  session: PrivateSession,
+  cfg: ReturnType<typeof config>,
+): Promise<{
+  idToken: string;
+  session: PrivateSession;
+}> {
+  if (!cfg.googleApiKey) {
+    throw new Error("GOOGLE_API_KEY is missing");
+  }
+
+  const response = await cfg.fetcher(
+    `${SECURETOKEN}?key=${
+      encodeURIComponent(cfg.googleApiKey)
+    }`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token:
+          session.googleRefreshToken,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Google refresh rejected");
+  }
+
+  const refreshed = await response.json() as {
+    id_token?: unknown;
+    refresh_token?: unknown;
+  };
+
+  if (
+    typeof refreshed.id_token !== "string" ||
+    typeof refreshed.refresh_token !== "string"
+  ) {
+    throw new Error(
+      "Google returned invalid refresh response",
+    );
+  }
+
+  const exchanged = await exchangeAppToken(
+    refreshed.id_token,
+    cfg,
+  );
+
+  if (exchanged.subject !== session.user.id) {
+    throw new Error(
+      "refreshed identity changed subject",
+    );
+  }
+
+  const next: PrivateSession = {
+    ...session,
+    googleRefreshToken:
+      refreshed.refresh_token,
+    appAccessToken: exchanged.token,
+    appAccessExpiresAt:
+      cfg.now() +
+      exchanged.expiresIn * 1000,
+  };
+
+  await cfg.updateSession(
+    sessionId,
+    next,
+  );
+
+  return {
+    idToken: refreshed.id_token,
+    session: next,
+  };
+}
+
+async function signup(
+  req: Request,
+  cfg: ReturnType<typeof config>,
+): Promise<Response> {
+  let input: {
+    email?: unknown;
+    password?: unknown;
+    full_name?: unknown;
+    account_type?: unknown;
+  };
+
+  try {
+    input = await req.json();
+  } catch {
+    return json(
+      { error: "invalid request" },
+      400,
+    );
+  }
+
+  const email =
+    typeof input.email === "string"
+      ? input.email.trim()
+      : "";
+
+  const password =
+    typeof input.password === "string"
+      ? input.password
+      : "";
+
+  const fullName =
+    typeof input.full_name === "string"
+      ? input.full_name.trim()
+      : "";
+
+  const accountType =
+    typeof input.account_type === "string"
+      ? input.account_type
+      : "";
+
+  const allowedRoles = new Set([
+    "student",
+    "college_admin",
+    "startup",
+  ]);
+
+  if (
+    !email ||
+    !email.includes("@") ||
+    password.length < 6 ||
+    !fullName ||
+    fullName.length > 120 ||
+    !allowedRoles.has(accountType)
+  ) {
+    return json(
+      { error: "invalid signup details" },
+      400,
+    );
+  }
+
+  if (!cfg.googleApiKey) {
+    return json(
+      { error: "authentication unavailable" },
+      503,
+    );
+  }
+
+  let response: Response;
+
+  try {
+    response = await googleIdentityAction(
+      "signUp",
+      {
+        email,
+        password,
+        returnSecureToken: true,
+      },
+      cfg,
+    );
+  } catch {
+    return json(
+      { error: "authentication unavailable" },
+      503,
+    );
+  }
+
+  if (!response.ok) {
+    const provider =
+      await response.json().catch(() => ({})) as {
+        error?: {
+          message?: unknown;
+        };
+      };
+
+    const code =
+      typeof provider.error?.message === "string"
+        ? provider.error.message
+        : "";
+
+    if (code.startsWith("EMAIL_EXISTS")) {
+      return json(
+        {
+          error:
+            "An account with this email already exists",
+        },
+        409,
+      );
+    }
+
+    if (code.startsWith("WEAK_PASSWORD")) {
+      return json(
+        {
+          error:
+            "Password should be at least 6 characters",
+        },
+        400,
+      );
+    }
+
+    if (code.startsWith("TOO_MANY_ATTEMPTS")) {
+      return json(
+        {
+          error:
+            "Too many attempts. Please wait and try again",
+        },
+        429,
+      );
+    }
+
+    return json(
+      { error: "Could not create account" },
+      400,
+    );
+  }
+
+  const created = await response.json() as {
+    email?: unknown;
+    idToken?: unknown;
+    refreshToken?: unknown;
+  };
+
+  if (
+    typeof created.idToken !== "string" ||
+    typeof created.refreshToken !== "string" ||
+    typeof created.email !== "string"
+  ) {
+    return json(
+      { error: "authentication unavailable" },
+      503,
+    );
+  }
+
+  let idToken = created.idToken;
+  let refreshToken = created.refreshToken;
+
+  // Store the display name with Google when possible.
+  try {
+    const updated =
+      await googleIdentityAction(
+        "update",
+        {
+          idToken,
+          displayName: fullName,
+          returnSecureToken: true,
+        },
+        cfg,
+      );
+
+    if (updated.ok) {
+      const body =
+        await updated.json() as {
+          idToken?: unknown;
+          refreshToken?: unknown;
+        };
+
+      if (typeof body.idToken === "string") {
+        idToken = body.idToken;
+      }
+
+      if (
+        typeof body.refreshToken === "string"
+      ) {
+        refreshToken =
+          body.refreshToken;
+      }
+    }
+  } catch {
+    // Display name is helpful metadata,
+    // not a reason to destroy a valid signup.
+  }
+
+  const origin = new URL(req.url).origin;
+
+  // Verification mail is best effort, matching
+  // the application's existing signup behaviour.
+  try {
+    await googleIdentityAction(
+      "sendOobCode",
+      {
+        requestType: "VERIFY_EMAIL",
+        idToken,
+        continueUrl:
+          `${origin}/auth/callback?type=${
+            encodeURIComponent(accountType)
+          }`,
+      },
+      cfg,
+    );
+  } catch {
+    // Resend is available after signup.
+  }
+
+  let exchanged;
+
+  try {
+    exchanged =
+      await exchangeAppToken(
+        idToken,
+        cfg,
+      );
+  } catch {
+    return json(
+      {
+        error:
+          "Account created, but the secure session could not start. Please sign in to continue",
+      },
+      503,
+    );
+  }
+
+  const now = cfg.now();
+
+  const user: SessionUser = {
+    id: exchanged.subject,
+    email: created.email,
+    email_confirmed_at:
+      exchanged.confirmed
+        ? new Date(now).toISOString()
+        : null,
+    role: "authenticated",
+    user_metadata: {
+      email: created.email,
+      full_name: fullName,
+      account_type: accountType,
+    },
+  };
+
+  const session: PrivateSession = {
+    v: 1,
+    googleRefreshToken:
+      refreshToken,
+    appAccessToken:
+      exchanged.token,
+    appAccessExpiresAt:
+      now +
+      exchanged.expiresIn * 1000,
+    user,
+    expiresAt:
+      now +
+      ABSOLUTE_SESSION_MS,
+  };
+
+  const sessionId =
+    cfg.newSessionId();
+
+  try {
+    await cfg.createSession(
+      sessionId,
+      session,
+    );
+  } catch {
+    return json(
+      {
+        error:
+          "Account created, but the secure session could not start. Please sign in to continue",
+      },
+      503,
+    );
+  }
+
+  return json(
+    {
+      session:
+        safeSession(session),
+    },
+    200,
+    {
+      "Set-Cookie":
+        makeSessionCookie(
+          sessionId,
+          Math.floor(
+            ABSOLUTE_SESSION_MS /
+              1000,
+          ),
+        ),
+    },
+  );
+}
+
+async function updateCurrentUser(
+  req: Request,
+  deps: AuthRouteDeps,
+): Promise<Response> {
+  const cfg = config(deps);
+
+  let resolved;
+
+  try {
+    resolved =
+      await resolveAuthenticatedSession(
+        req,
+        deps,
+      );
+  } catch {
+    return json(
+      {
+        error:
+          "session service unavailable",
+      },
+      503,
+    );
+  }
+
+  if (!resolved) {
+    return json(
+      { error: "not authenticated" },
+      401,
+      {
+        "Set-Cookie":
+          clearSessionCookie(),
+      },
+    );
+  }
+
+  let input: {
+    password?: unknown;
+    email?: unknown;
+    data?: unknown;
+  };
+
+  try {
+    input = await req.json();
+  } catch {
+    return json(
+      { error: "invalid request" },
+      400,
+    );
+  }
+
+  const password =
+    typeof input.password === "string"
+      ? input.password
+      : undefined;
+
+  const email =
+    typeof input.email === "string"
+      ? input.email.trim()
+      : undefined;
+
+  const rawData =
+    input.data &&
+      typeof input.data === "object" &&
+      !Array.isArray(input.data)
+      ? input.data as Record<
+          string,
+          unknown
+        >
+      : {};
+
+  if (
+    password === undefined &&
+    email === undefined &&
+    Object.keys(rawData).length === 0
+  ) {
+    return json(
+      { error: "nothing to update" },
+      400,
+    );
+  }
+
+  if (
+    password !== undefined &&
+    password.length < 6
+  ) {
+    return json(
+      {
+        error:
+          "Password should be at least 6 characters",
+      },
+      400,
+    );
+  }
+
+  if (
+    email !== undefined &&
+    (!email || !email.includes("@"))
+  ) {
+    return json(
+      {
+        error:
+          "That email address is not valid",
+      },
+      400,
+    );
+  }
+
+  const safeData:
+    Record<string, unknown> = {};
+
+  if (
+    typeof rawData.full_name === "string"
+  ) {
+    const name =
+      rawData.full_name.trim();
+
+    if (
+      name &&
+      name.length <= 120
+    ) {
+      safeData.full_name = name;
+    }
+  }
+
+  if (
+    typeof rawData.onboarded === "boolean"
+  ) {
+    safeData.onboarded =
+      rawData.onboarded;
+  }
+
+  let action;
+
+  try {
+    action =
+      await refreshGoogleForAction(
+        resolved.sessionId,
+        resolved.session,
+        cfg,
+      );
+  } catch {
+    return json(
+      { error: "not authenticated" },
+      401,
+      {
+        "Set-Cookie":
+          clearSessionCookie(),
+      },
+    );
+  }
+
+  const providerBody:
+    Record<string, unknown> = {
+      idToken: action.idToken,
+      returnSecureToken: true,
+  };
+
+  if (password !== undefined) {
+    providerBody.password =
+      password;
+  }
+
+  if (email !== undefined) {
+    providerBody.email =
+      email;
+  }
+
+  if (
+    typeof safeData.full_name === "string"
+  ) {
+    providerBody.displayName =
+      safeData.full_name;
+  }
+
+  let providerResponse:
+    Response | null = null;
+
+  // Metadata-only updates do not need a Google
+  // account mutation unless displayName changes.
+  if (
+    password !== undefined ||
+    email !== undefined ||
+    typeof safeData.full_name === "string"
+  ) {
+    try {
+      providerResponse =
+        await googleIdentityAction(
+          "update",
+          providerBody,
+          cfg,
+        );
+    } catch {
+      return json(
+        {
+          error:
+            "Could not update your account",
+        },
+        503,
+      );
+    }
+
+    if (!providerResponse.ok) {
+      return json(
+        {
+          error:
+            "Could not update your account",
+        },
+        400,
+      );
+    }
+  }
+
+  let next =
+    action.session;
+
+  let nextIdToken:
+    string | null = null;
+
+  if (providerResponse) {
+    const provider =
+      await providerResponse
+        .json()
+        .catch(() => ({})) as {
+          idToken?: unknown;
+          refreshToken?: unknown;
+          email?: unknown;
+        };
+
+    if (
+      typeof provider.idToken ===
+        "string"
+    ) {
+      nextIdToken =
+        provider.idToken;
+    }
+
+    if (
+      typeof provider.refreshToken ===
+        "string"
+    ) {
+      next = {
+        ...next,
+        googleRefreshToken:
+          provider.refreshToken,
+      };
+    }
+  }
+
+  if (nextIdToken) {
+    try {
+      const exchanged =
+        await exchangeAppToken(
+          nextIdToken,
+          cfg,
+        );
+
+      if (
+        exchanged.subject !==
+          next.user.id
+      ) {
+        throw new Error(
+          "updated identity changed subject",
+        );
+      }
+
+      next = {
+        ...next,
+        appAccessToken:
+          exchanged.token,
+        appAccessExpiresAt:
+          cfg.now() +
+          exchanged.expiresIn *
+            1000,
+      };
+    } catch {
+      return json(
+        {
+          error:
+            "Could not refresh your secure session",
+        },
+        503,
+      );
+    }
+  }
+
+  next = {
+    ...next,
+    user: {
+      ...next.user,
+      ...(email !== undefined
+        ? {
+            email,
+            email_confirmed_at:
+              null,
+          }
+        : {}),
+      user_metadata: {
+        ...next.user.user_metadata,
+        ...safeData,
+        ...(email !== undefined
+          ? { email }
+          : {}),
+      },
+    },
+  };
+
+  try {
+    await cfg.updateSession(
+      resolved.sessionId,
+      next,
+    );
+  } catch {
+    return json(
+      {
+        error:
+          "Could not save your secure session",
+      },
+      503,
+    );
+  }
+
+  return json({
+    user: next.user,
+  });
+}
+
+async function resendVerification(
+  req: Request,
+  deps: AuthRouteDeps,
+): Promise<Response> {
+  const cfg = config(deps);
+
+  let resolved;
+
+  try {
+    resolved =
+      await resolveAuthenticatedSession(
+        req,
+        deps,
+      );
+  } catch {
+    return json(
+      {
+        error:
+          "session service unavailable",
+      },
+      503,
+    );
+  }
+
+  if (!resolved) {
+    return json(
+      { error: "not authenticated" },
+      401,
+      {
+        "Set-Cookie":
+          clearSessionCookie(),
+      },
+    );
+  }
+
+  let input: {
+    account_type?: unknown;
+  } = {};
+
+  try {
+    input = await req.json();
+  } catch {
+    // account_type is optional.
+  }
+
+  const requested =
+    typeof input.account_type ===
+      "string"
+      ? input.account_type
+      : "";
+
+  const allowedRoles = new Set([
+    "student",
+    "college_admin",
+    "startup",
+  ]);
+
+  const accountType =
+    allowedRoles.has(requested)
+      ? requested
+      : "student";
+
+  let action;
+
+  try {
+    action =
+      await refreshGoogleForAction(
+        resolved.sessionId,
+        resolved.session,
+        cfg,
+      );
+  } catch {
+    return json(
+      { error: "not authenticated" },
+      401,
+      {
+        "Set-Cookie":
+          clearSessionCookie(),
+      },
+    );
+  }
+
+  const origin =
+    new URL(req.url).origin;
+
+  let response: Response;
+
+  try {
+    response =
+      await googleIdentityAction(
+        "sendOobCode",
+        {
+          requestType:
+            "VERIFY_EMAIL",
+          idToken:
+            action.idToken,
+          continueUrl:
+            `${origin}/auth/callback?type=${
+              encodeURIComponent(
+                accountType,
+              )
+            }`,
+        },
+        cfg,
+      );
+  } catch {
+    return json(
+      {
+        error:
+          "Could not resend verification email",
+      },
+      503,
+    );
+  }
+
+  if (!response.ok) {
+    return json(
+      {
+        error:
+          "Could not resend verification email",
+      },
+      400,
+    );
+  }
+
+  return json({ ok: true });
+}
+
 export async function handleAuthRoute(
   req: Request,
   deps: AuthRouteDeps = {},
@@ -755,6 +1589,27 @@ export async function handleAuthRoute(
     url.pathname === "/api/auth/verify-email"
   ) {
     return await confirmEmail(req, cfg);
+  }
+
+  if (
+    req.method === "POST" &&
+    url.pathname === "/api/auth/signup"
+  ) {
+    return await signup(req, cfg);
+  }
+
+  if (
+    req.method === "POST" &&
+    url.pathname === "/api/auth/update"
+  ) {
+    return await updateCurrentUser(req, deps);
+  }
+
+  if (
+    req.method === "POST" &&
+    url.pathname === "/api/auth/resend-verification"
+  ) {
+    return await resendVerification(req, deps);
   }
 
   return null;

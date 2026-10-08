@@ -366,7 +366,6 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
       // verification_status only allows pending/approved/rejected, so writing
       // 'suspended' there was refused every time. Suspension is a status.
       if (actionType === 'suspend') updates.status = 'suspended';
-      if (actionType === 'delete') updates.verification_status = 'deleted';
     }
 
     updateUserMutation.mutate({
@@ -387,7 +386,10 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
         </Badge>
       );
     } else {
-      const status = user.verification_status || 'pending';
+      const status =
+        user.status === 'suspended'
+          ? 'suspended'
+          : (user.verification_status || 'pending');
       return (
         <Badge variant={
           status === 'approved' ? 'default' : 
@@ -787,11 +789,11 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
-                                      onClick={() => handleUserAction(user, 'delete')}
-                                      className="text-red-600"
+                                      onClick={() => handleUserAction(user, 'suspend')}
+                                      className="text-yellow-600"
                                     >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Remove
+                                      <AlertTriangle className="h-4 w-4 mr-2" />
+                                      Suspend
                                     </DropdownMenuItem>
                                   </>
                                 ) : (
@@ -805,7 +807,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                        Approve
                                      </DropdownMenuItem>
                                    )}
-                                   {user.verification_status !== 'suspended' && (
+                                   {user.status !== 'suspended' && (
                                      <DropdownMenuItem
                                        onClick={() => handleUserAction(user, 'suspend')}
                                        className="text-yellow-600"
@@ -814,13 +816,6 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                        Suspend
                                      </DropdownMenuItem>
                                    )}
-                                   <DropdownMenuItem
-                                     onClick={() => handleUserAction(user, 'delete')}
-                                     className="text-red-600"
-                                   >
-                                     <Trash2 className="h-4 w-4 mr-2" />
-                                     Delete
-                                   </DropdownMenuItem>
                                  </>
                                )}
                             </DropdownMenuContent>

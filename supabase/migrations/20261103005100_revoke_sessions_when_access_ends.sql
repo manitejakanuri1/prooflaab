@@ -94,6 +94,14 @@ begin
   if tg_op = 'DELETE' then
     return old;
   end if;
+  -- Revoke the new owner as well when a role row changes owners.
+  if new.user_id is distinct from old.user_id then
+    update public.web_sessions
+       set revoked_at = now(),
+           last_seen_at = now()
+     where user_id = new.user_id
+       and revoked_at is null;
+  end if;
   return new;
 end;
 $$;

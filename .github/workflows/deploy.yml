@@ -77,6 +77,9 @@ jobs:
       - name: Server function tests (Deno)
         run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/
 
+      - name: Web BFF authentication and proxy security regression
+        run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/
+
       - name: Auth bridge tests (signer, service callers, refusals)
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret-0123456789 deno test --no-lock --allow-env --allow-net auth-bridge/
 

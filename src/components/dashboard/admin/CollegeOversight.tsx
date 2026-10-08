@@ -256,7 +256,10 @@ const CollegeOversight = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('colleges')
-        .update({ status: 'active' })
+        .update({
+          status: 'active',
+          verification_status: 'approved'
+        })
         .eq('id', id);
       if (error) throw error;
     },
@@ -280,7 +283,7 @@ const CollegeOversight = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('colleges')
-        .delete()
+        .update({ status: 'suspended' })
         .eq('id', id);
       if (error) throw error;
     },
@@ -288,13 +291,13 @@ const CollegeOversight = () => {
       queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
       toast({
         title: "Success",
-        description: "College deleted successfully.",
+        description: "College suspended successfully.",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to delete college: ${error.message}`,
+        description: `Failed to suspend college: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -549,7 +552,7 @@ const CollegeOversight = () => {
                             className="text-destructive"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            Suspend
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

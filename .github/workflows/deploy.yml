@@ -56,6 +56,9 @@ jobs:
       - name: Migrations are consistent (numbering, self-check, mirror copy, rollback)
         run: python3 scripts/migrations.py check
 
+      - name: Atomic migration wrapper regression
+        run: python3 scripts/test_atomic_migration_guard.py
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'     # the unit tests are .ts files run by node --test

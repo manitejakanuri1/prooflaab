@@ -7,7 +7,7 @@ create or replace function public.web_login_identity(
 returns jsonb
 language plpgsql
 security definer
-stable
+volatile
 set search_path = public, pg_temp
 as $$
 declare
@@ -161,7 +161,7 @@ $$;
 
 revoke all on function public.web_login_identity(uuid) from public,anon,authenticated;
 grant execute on function public.web_login_identity(uuid) to service_role;
-create or replace function public.revoke_college_student_sessions() returns trigger language plpgsql security definer set search_path=public,pg_temp as $$ begin if new.status is distinct from old.status or new.verification_status is distinct from old.verification_status then update public.web_sessions ws set revoked_at=now(),last_seen_at=now() where ws.revoked_at is null and exists(select 1 from public.student_profiles sp where sp.college_id=new.id and sp.user_id=ws.user_id) and not coalesce((public.web_login_identity(ws.user_id)->>'allowed')::boolean,false); end if; return new; end; $$;
+create or replace function public.revoke_college_student_sessions() returns trigger language plpgsql security definer set search_path=public,pg_temp as $$ begin if new.status is distinct from old.status or new.verification_status is distinct from old.verification_status then update public.web_sessions ws set revoked_at=now(),last_seen_at=now() where ws.revoked_at is null and exists(select 1 from public.student_profiles sp where sp.college_id=new.id and sp.user_id=ws.user_id) and (new.status is distinct from 'active' or new.verification_status is distinct from 'approved'); end if; return new; end; $$;
 revoke all on function public.revoke_college_student_sessions() from public,anon,authenticated;
 drop trigger if exists revoke_college_student_sessions on public.colleges;
 create trigger revoke_college_student_sessions after update of status, verification_status on public.colleges for each row execute function public.revoke_college_student_sessions();

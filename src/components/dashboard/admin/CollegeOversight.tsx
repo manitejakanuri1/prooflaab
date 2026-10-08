@@ -44,7 +44,6 @@ import {
   Pause, 
   MoreHorizontal, 
   CheckCircle, 
-  Trash2, 
   ArrowUpDown 
 } from "lucide-react";
 
@@ -279,30 +278,6 @@ const CollegeOversight = () => {
     }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('colleges')
-        .update({ status: 'suspended' })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
-      toast({
-        title: "Success",
-        description: "College suspended successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to suspend college: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  });
-
   const openModal = (mode: 'view' | 'edit' | 'add', college?: any) => {
     setViewMode(mode);
     setSelectedCollege(college);
@@ -340,12 +315,6 @@ const CollegeOversight = () => {
   const handleApprove = (college: any) => {
     if (confirm(`Approve ${college.name}? This will activate their account.`)) {
       approveMutation.mutate(college.id);
-    }
-  };
-
-  const handleDelete = (college: any) => {
-    if (confirm(`Delete ${college.name}? This action cannot be undone.`)) {
-      deleteMutation.mutate(college.id);
     }
   };
 
@@ -547,13 +516,6 @@ const CollegeOversight = () => {
                               Suspend
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(college)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Suspend
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

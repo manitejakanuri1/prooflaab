@@ -410,6 +410,30 @@ async function refreshStoredSession(
   return next;
 }
 
+/*
+ * How long one successful "is this account still allowed" answer is trusted for a session.
+ * Short on purpose: it is the upper bound on how long a suspended account could keep working
+ * if the database triggers of migration 101 were missing.
+ */
+export const ACCOUNT_RECHECK_MS = 30_000;
+const ACCOUNT_CHECK_ENTRIES = 5_000;
+const accountCheckedAt = new Map<string, number>();
+
+function rememberAccountCheck(sessionId: string, at: number): void {
+  // Bounded: the oldest entry goes first. Losing one only costs an extra check.
+  if (accountCheckedAt.size >= ACCOUNT_CHECK_ENTRIES) {
+    const oldest = accountCheckedAt.keys().next().value;
+    if (oldest !== undefined) accountCheckedAt.delete(oldest);
+  }
+  accountCheckedAt.delete(sessionId);
+  accountCheckedAt.set(sessionId, at);
+}
+
+/** Tests only: forget every remembered account check. */
+export function resetAccountRecheckCache(): void {
+  accountCheckedAt.clear();
+}
+
 export async function resolveAuthenticatedSession(
   req: Request,
   deps: AuthRouteDeps = {},
@@ -422,6 +446,47 @@ export async function resolveAuthenticatedSession(
   let session = await cfg.loadSession(sessionId);
 
   if (!session) return null;
+
+  /*
+   * A session is only as good as the account behind it NOW. An administrator may have suspended
+   * the college or company, removed the student or changed the role since the cookie was issued,
+   * so the rule that gates sign-in (web_login_identity) also gates the use of a session.
+   *
+   * Two layers. The database revokes the session row itself the moment the account stops being
+   * allowed (migration 101), and that row is read just above on every request, so suspension is
+   * immediate at no extra cost. This re-check is the safety net for anything the triggers do not
+   * cover and for a database where 101 is not applied yet. It asks at most once per
+   * ACCOUNT_RECHECK_MS for each session, so the worst case without the triggers is that long.
+   *
+   * If the rule cannot be asked this throws and every caller answers 503: fail closed, never
+   * "allowed because we could not check". A failed check is not remembered.
+   */
+  const checkedAt = accountCheckedAt.get(sessionId);
+
+  if (
+    checkedAt === undefined ||
+    cfg.now() - checkedAt >= ACCOUNT_RECHECK_MS ||
+    cfg.now() < checkedAt
+  ) {
+    const identity = await cfg.loadLoginIdentity(session.user.id);
+
+    if (
+      identity.allowed !== true ||
+      identity.role !== session.user.user_metadata?.account_type
+    ) {
+      accountCheckedAt.delete(sessionId);
+
+      try {
+        await cfg.revokeSession(sessionId);
+      } catch {
+        // Best effort. The session is refused either way.
+      }
+
+      return null;
+    }
+
+    rememberAccountCheck(sessionId, cfg.now());
+  }
 
   if (
     session.appAccessExpiresAt - cfg.now() <

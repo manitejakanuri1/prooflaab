@@ -10,30 +10,25 @@
 // the given WAV. Makes real staging recordings and a few real DeepSeek calls.
 import { chromium } from 'playwright';
 import { mintStaging } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor, signedInUserId } from "./bff_login.mjs";
 
 const [LONG_WAV, SHORT_WAV] = process.argv.slice(2);
-const APP = 'http://localhost:5173';
+// SIGN-IN (changed 8 Oct 2026): the site keeps its session in the web BFF's HttpOnly cookie and ignores
+// browser storage, so this signs in for real through the form (./bff_login.mjs). It needs a site served
+// WITH the BFF (E2E_BASE, e.g. the staging site - a bare `vite` server has no /api) and a dedicated test
+// login in the environment: E2E_STUDENT_EMAIL / _PASSWORD / _ID. The browser now calls same-origin /api/db, /api/functions and
+// /api/files, so those are the addresses intercepted below. NOT RUN since this change.
+const APP = (process.env.E2E_BASE ?? '').replace(/\/$/, '');
+if (!APP) throw new Error('set E2E_BASE to a site served with the web BFF (for example the staging site)');
 const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
-const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
+const T07 = process.env.E2E_STUDENT_ID;   // account id of the E2E_STUDENT_* test login (checked after sign-in)
+if (!T07) throw new Error('set E2E_STUDENT_ID to the account id of the E2E_STUDENT_* test login');
 
 const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const SVC = mint({ role: 'service_role', sub: 'voice-modal-browser-test' }, 3600);
 async function rows(query) {
   const r = await fetch(`${API}/voice_explanations?${query}`, { headers: { Authorization: `Bearer ${SVC}` } });
   return r.json();
-}
-
-function session() {
-  const token = mint({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com' }, 7200);
-  return {
-    access_token: token, provider_token: token, refresh_token: 'browser-test-no-refresh',
-    expires_in: 7200, expires_at: Math.floor(Date.now() / 1000) + 7200, token_type: 'bearer',
-    user: {
-      id: T07, email: 'vidyuthsetu+t07@gmail.com', aud: 'authenticated', role: 'authenticated',
-      created_at: new Date().toISOString(), last_sign_in_at: new Date().toISOString(),
-      app_metadata: {}, user_metadata: {}, identities: [],
-    },
-  };
 }
 
 const results = [];
@@ -47,10 +42,8 @@ async function withBrowser(wav, fn) {
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${wav}`],
   });
   const ctx = await browser.newContext({ permissions: ['microphone'] });
-  const s = session();
-  await ctx.addInitScript((sess) => {
-    if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(sess));
-  }, s);
+  await cookieSignIn(ctx, APP, credentialsFor('student'));
+  if ((await signedInUserId(ctx, APP)) !== T07) throw new Error('E2E_STUDENT_ID is not the signed-in test student');
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
   try {

@@ -10,29 +10,46 @@
 // browser; every other write (function, RPC, insert/update/delete) is blocked
 // and reported. Every faked request records which account's token it carried.
 //
-// Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
-// Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
-//     node scripts/dev-tools/voice_modal_harness_browser.mjs <speech.wav>
-// The synchronous (legacy) save path is tested by a second run against a dev
-// server started with VITE_ASYNC_TRANSCRIPTION=false and MODE=sync:
-//   VITE_ASYNC_TRANSCRIPTION=false npx vite --mode staging --port 5173 --strictPort
-//   MODE=sync node scripts/dev-tools/voice_modal_harness_browser.mjs <speech.wav>
-// ONLY=<regex> runs just the matching groups. Genuine Google sign-in is NOT
-// exercised (sessions are minted like the staging auth-bridge issues them).
+// SIGN-IN (redesigned 8 Oct 2026). The site keeps its session in the web BFF's HttpOnly cookie and
+// ignores browser storage, so nothing is minted or planted any more:
+//   * every test browser (context) signs in for real through the form  -> /api/auth/login -> cookie
+//   * "the account changes" (setAccount / setAuth) is a real second sign-in in the same browser,
+//     done by the harness page itself, exactly as when another person signs in on that computer
+//   * a faked request is attributed to an account by the session COOKIE it carried (the browser
+//     holds no token to read), learned from each /api/auth/login answer as it passes through
+// It needs a site served WITH the BFF and the dev-only harness page:
+//   LOCAL (no real account, nothing leaves this machine) - three terminals:
+//     npm run build
+//     deno run --no-lock --allow-net=127.0.0.1,localhost --allow-read=dist scripts/dev-tools/harness/bff_local_stack.ts 5197 http://localhost:5199
+//     npx vite --mode staging --config scripts/dev-tools/harness/vite.local-bff.config.ts --port 5199 --strictPort   (staging mode = async voice path)
+//     E2E_BASE=http://localhost:5199 E2E_LOCAL_STACK=1 node scripts/dev-tools/voice_modal_harness_browser.mjs <any.wav>
+//   STAGING: E2E_BASE=<a dev server proxied to the staging BFF>, plus two dedicated test students:
+//     E2E_STUDENT_EMAIL / _PASSWORD / _ID  and  E2E_STUDENT2_EMAIL / _PASSWORD / _ID   (NOT RUN on staging)
+// The synchronous (legacy) save path is tested by a second run against a dev server started with
+// VITE_ASYNC_TRANSCRIPTION=false, with MODE=sync. ONLY=<regex> runs just the matching groups.
 import { chromium } from 'playwright';
 import crypto from 'node:crypto';
-import { mintStaging } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor } from "./bff_login.mjs";
 
 const WAV = process.argv[2];
-const APP = 'http://localhost:5173';
-const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
-const FN = 'https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app';
-const FILES = 'https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app/file/voice-explanations';
-const TRANSCRIBER = 'https://prooflab-staging-transcriber-ysn2mpe6sa-el.a.run.app';
+const APP = (process.env.E2E_BASE ?? '').replace(/\/$/, '');
+if (!APP) throw new Error('set E2E_BASE to a dev server whose /api reaches the web BFF (see the top of this file)');
+if (process.env.E2E_LOCAL_STACK) {   // the made-up accounts of harness/bff_local_stack.ts; they exist nowhere else
+  Object.assign(process.env, {
+    E2E_STUDENT_EMAIL: 'student@local.test', E2E_STUDENT_PASSWORD: 'local-student-pw', E2E_STUDENT_ID: 'aaaaaaaa-0000-4000-8000-000000000003',
+    E2E_STUDENT2_EMAIL: 'student2@local.test', E2E_STUDENT2_PASSWORD: 'local-student2-pw', E2E_STUDENT2_ID: 'aaaaaaaa-0000-4000-8000-000000000007',
+  });
+}
+const API = `${APP}/api/db`;
+const FN = `${APP}/api/functions`;
+const FILES = `${APP}/api/files/voice-explanations`;
+const TRANSCRIBER = `${APP}/api/transcriber`;
 const MODE = process.env.MODE === 'sync' ? 'sync' : 'async';
 const ONLY = process.env.ONLY ? new RegExp(process.env.ONLY) : null;
-const A = '7d71bff4-1ec2-4778-b26d-9567a416bfac';     // t07
-const B = '67c7f711-6ca8-4b4d-a586-278857dcb0ab';     // t16
+const A = process.env.E2E_STUDENT_ID;      // first test student
+const B = process.env.E2E_STUDENT2_ID;     // second test student
+if (!A || !B) throw new Error('set E2E_STUDENT_ID and E2E_STUDENT2_ID (or E2E_LOCAL_STACK=1)');
+const LOGINS = { [A]: credentialsFor('student'), [B]: credentialsFor('student2') };   // never printed
 const TASK = 'harness-task';
 const P1 = 'harness-proof-1', P2 = 'harness-proof-2';
 // Since 862efe8 a recording's context is student + task (proof links are retired, the modal has no
@@ -44,20 +61,22 @@ const v2Key = (student, task, proof) => `pl.voiceJob.v2:${JSON.stringify([studen
 const legacyKey = (student, task, proof) => `pl.voiceJob.${student}.${task ?? proof ?? 'general'}`;
 const v3Key = (id) => `pl.voiceJob.v3:${id}`;
 
-const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
-const sessionFor = (id, email) => {
-  const tok = mint({ role: 'authenticated', sub: id, email });
-  return {
-    access_token: tok, provider_token: tok, refresh_token: 'browser-test-no-refresh', expires_in: 7200,
-    expires_at: Math.floor(Date.now() / 1000) + 7200, token_type: 'bearer',
-    user: { id, email, aud: 'authenticated', role: 'authenticated', created_at: new Date().toISOString(),
-            last_sign_in_at: new Date().toISOString(), app_metadata: {}, user_metadata: {}, identities: [] },
-  };
-};
-const SESSIONS = { [A]: sessionFor(A, 'vidyuthsetu+t07@gmail.com'), [B]: sessionFor(B, 'vidyuthsetu+t16@gmail.com') };
-const subOf = (auth) => {
-  try { return JSON.parse(Buffer.from((auth ?? '').replace(/^Bearer /, '').split('.')[1], 'base64url').toString()).sub ?? null; } catch { return null; }
-};
+// Which account does a request belong to? The one whose session cookie it carried.
+const cookieOwner = new Map();   // __session cookie value -> account id
+const sessionCookie = (text) => /(?:^|[;,\s])__session=([^;,\s]+)/.exec(text ?? '')?.[1] ?? null;
+/** Every sign-in of this browser passes through here, so the owner of a new cookie is known before the page uses it. */
+async function trackLogins(ctx) {
+  await ctx.route('**/api/auth/login', async (route) => {
+    const res = await route.fetch();
+    try {
+      const id = (await res.json())?.session?.user?.id;
+      const value = sessionCookie(res.headers()['set-cookie']);
+      if (id && value) cookieOwner.set(value, id);
+    } catch { /* a refused sign-in sets no cookie */ }
+    await route.fulfill({ response: res });
+  });
+}
+const whoSent = async (req) => cookieOwner.get(sessionCookie((await req.allHeaders()).cookie)) ?? null;
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
@@ -87,10 +106,11 @@ const rowOf = (state, id) => ({ ...state.rows.get(id), ...(state.owner.get(id) ?
 
 async function setup(browser, opts = {}) {
   const ctx = await browser.newContext({ permissions: ['microphone'], acceptDownloads: true });
-  await ctx.addInitScript(({ s, sessions, opts }) => {
+  await trackLogins(ctx);
+  await cookieSignIn(ctx, APP, LOGINS[A]);                // real sign-in: form -> /api/auth/login -> HttpOnly cookie
+  await ctx.addInitScript(({ logins, opts }) => {
     if (location.protocol === 'about:') return;          // a blank page left to (F9): nothing to set up
-    localStorage.setItem('prooflab.auth.google', JSON.stringify(s));
-    window.__sessions = sessions;
+    window.__logins = logins;                              // for the harness page's own re-sign-in (setAccount / setAuth)
     const log = { created: [], revoked: [] };
     window.__blobLog = log;
     const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
@@ -154,7 +174,7 @@ async function setup(browser, opts = {}) {
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
       document.dispatchEvent(new Event('visibilitychange'));
     };
-  }, { s: SESSIONS[A], sessions: SESSIONS, opts });
+  }, { logins: LOGINS, opts });
   const state = newState(opts);
   const page = await addPage(ctx, state, opts);
   return { page, state, ctx };
@@ -165,13 +185,18 @@ async function addPage(ctx, state, opts = {}) {
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
   page.on('dialog', (d) => { state.dialogs = [...(state.dialogs ?? []), d.type()]; void d.accept(); });
-  const note = (req, extra = {}) => state.requests.push({ sub: subOf(req.headers().authorization), method: req.method(), url: req.url(), ...extra });
+  // Recorded at once (order matters to the tests); the account is filled in a moment later.
+  const note = async (req, extra = {}) => {
+    const entry = { sub: null, method: req.method(), url: req.url(), ...extra };
+    state.requests.push(entry);
+    entry.sub = await whoSent(req);
+  };
 
   await page.route(`${FILES}/**`, async (route) => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    const path = decodeURIComponent(new URL(req.url()).pathname.replace(/^\/file\/voice-explanations\//, ''));
-    note(req, { path });
+    const path = decodeURIComponent(new URL(req.url()).pathname.replace(/^\/api\/files\/voice-explanations\//, ''));
+    await note(req, { path });
     if (req.method() === 'GET') {                      // FAKED download (existence check / playback)
       state.gets.push(path);
       if (state.uploaded.has(path)) return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'audio/webm' }, body: Buffer.from([26, 69, 223, 163]) });
@@ -179,7 +204,7 @@ async function addPage(ctx, state, opts = {}) {
     }
     if (req.method() !== 'PUT') { blocked.push(`files ${req.method()}`); return route.abort('blockedbyclient'); }
     const size = req.postDataBuffer()?.length ?? 0;
-    state.puts.push({ path, size, sub: subOf(req.headers().authorization) });
+    state.puts.push({ path, size, sub: (await whoSent(req)) });
     if (state.putHold) await state.putHold.promise;
     const mode = state.putMode;
     if (mode && typeof mode === 'object') {                            // one answer with this status (R4-1)
@@ -200,10 +225,10 @@ async function addPage(ctx, state, opts = {}) {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
     const name = new URL(req.url()).pathname.split('/').pop();
-    note(req, { fn: name, body: req.postData() });
+    await note(req, { fn: name, body: req.postData() });
     if (name === 'transcription-enqueue') {
       const body = JSON.parse(req.postData() || '{}');
-      const sub = subOf(req.headers().authorization);
+      const sub = (await whoSent(req));
       if (state.enqueueLost > 0) { state.enqueueLost--; state.enqueue.push({ id: null, body, sub, lost: true }); return route.abort('failed'); }
       // like the real function: a retry with the same key returns the existing row (Step 6B)
       const existing = [...state.rows.keys()].find((rid) => rowOf(state, rid).transcription_idempotency_key === body.idempotency_key);
@@ -223,18 +248,19 @@ async function addPage(ctx, state, opts = {}) {
   await page.route(`${API}/**`, async (route) => {
     const req = route.request();
     const url = new URL(req.url());
+    url.pathname = url.pathname.replace(/^\/api\/db/, '');   // same table / rpc paths as before, now behind the BFF
     if (req.method() === 'OPTIONS') return route.continue();
-    note(req, { body: req.postData() });
+    await note(req, { body: req.postData() });
     if (url.pathname === '/rpc/accept_voice_consent') {        // FAKED: nothing reaches staging
       state.consentCalls++;
       if (state.consentHold) await state.consentHold.promise;
-      state.consent[subOf(req.headers().authorization)] = true;   // recorded for the account that sent it
+      state.consent[(await whoSent(req))] = true;   // recorded for the account that sent it
       return route.fulfill({ status: 204, headers: CORS });
     }
     if (url.pathname === '/voice_explanations' && req.method() === 'POST' && MODE === 'sync') {   // FAKED sync insert
       const body = JSON.parse(req.postData() || '{}');
       const id = crypto.randomUUID();
-      state.inserts.push({ id, body, sub: subOf(req.headers().authorization) });
+      state.inserts.push({ id, body, sub: (await whoSent(req)) });
       return json(route, 201, { id });
     }
     if (url.pathname.startsWith('/rpc/') || (req.method() !== 'GET' && req.method() !== 'HEAD')) {
@@ -248,7 +274,7 @@ async function addPage(ctx, state, opts = {}) {
     if (url.pathname === '/voice_explanations') {
       const byKey = url.searchParams.get('transcription_idempotency_key')?.replace('eq.', '');
       const byPath = url.searchParams.get('storage_path')?.replace('eq.', '');
-      const sub = subOf(req.headers().authorization);
+      const sub = (await whoSent(req));
       if (byKey || byPath) {
         state.lookups.push(byKey ? `key:${byKey}` : `path:${byPath}`);
         if (state.lookup === 'hang') return;                   // never answers (route left pending)
@@ -271,7 +297,7 @@ async function addPage(ctx, state, opts = {}) {
   await page.route(`${TRANSCRIBER}/**`, async (route) => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    note(req);
+    await note(req);
     if (state.transcribeHold) await state.transcribeHold.promise;
     return json(route, 200, { text: 'I built a queue, changed polling to a lease token and tested every step twice today.', segments: [] });
   });

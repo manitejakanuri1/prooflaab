@@ -6,6 +6,10 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const NOW = 1_800_000_000_000;
+
+// Every use of a session re-checks the account behind it. These tests are about other
+// behaviour, so the account is still what it was at login.
+const stillAllowed = async () => ({ allowed: true, role: "student" });
 const SESSION_ID = "A".repeat(43);
 const USER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -46,7 +50,7 @@ function stored(
       email: "student@example.test",
       email_confirmed_at: "2026-10-07T00:00:00.000Z",
       role: "authenticated",
-      user_metadata: {},
+      user_metadata: { account_type: "student" },
     },
   };
 }
@@ -264,6 +268,7 @@ Deno.test("session endpoint exposes identity but never credentials", async () =>
     env: env(),
     now: () => NOW,
     loadSession: async () => stored(),
+    loadLoginIdentity: stillAllowed,
   });
 
   assert(res !== null, "session route not handled");
@@ -320,6 +325,7 @@ Deno.test("session endpoint refreshes expiring credentials server-side", async (
     fetcher,
     now: () => NOW,
     loadSession: async () => stored(NOW + 1000),
+    loadLoginIdentity: stillAllowed,
     updateSession: async (_id, session) => {
       state.updated = session;
     },
@@ -744,6 +750,7 @@ Deno.test("authenticated password update stays server-side", async () => {
       fetcher,
       now: () => NOW,
       loadSession: async () => stored(),
+      loadLoginIdentity: stillAllowed,
       updateSession: async (_id, session) => {
         finalState.value = session;
       },
@@ -878,6 +885,7 @@ Deno.test("verification resend uses the server session and returns no token", as
       fetcher,
       now: () => NOW,
       loadSession: async () => stored(),
+      loadLoginIdentity: stillAllowed,
       updateSession: async () => {},
     },
   );

@@ -44,21 +44,15 @@ export default function OnboardingWizard() {
           }
           setUserRole(roleData.role);
         } else {
-          // No role found, default to student
-          const { error } = await supabase.from('user_roles').insert({
-            user_id: user.id,
-            role: 'student'
-          });
-
-          if (error) {
-            console.error('Error creating default role:', error);
-          }
-          navigate('/student/start', { replace: true });
+          // No role: the account was not set up by an administrator or a college.
+          // The browser must not give itself one.
+          navigate('/auth', { replace: true });
           return;
         }
       } catch (error) {
         console.error('Error fetching user role:', error);
-        setUserRole('student');
+        navigate('/auth', { replace: true });
+        return;
       } finally {
         setRoleLoading(false);
       }

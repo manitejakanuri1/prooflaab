@@ -9,6 +9,10 @@ function assert(
 }
 
 const NOW = 1_800_000_000_000;
+
+// Every use of a session re-checks the account behind it. These tests are about other
+// behaviour, so the account is still what it was at login.
+const stillAllowed = async () => ({ allowed: true, role: "student" });
 const SESSION_ID = "B".repeat(43);
 
 function session(): PrivateSession {
@@ -23,7 +27,7 @@ function session(): PrivateSession {
       email: "student@example.test",
       email_confirmed_at: null,
       role: "authenticated",
-      user_metadata: {},
+      user_metadata: { account_type: "student" },
     },
   };
 }
@@ -46,6 +50,7 @@ function authDeps() {
     env: env(),
     now: () => NOW,
     loadSession: async () => session(),
+    loadLoginIdentity: stillAllowed,
   };
 }
 

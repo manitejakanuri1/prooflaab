@@ -3,15 +3,15 @@
 //   npx vite --mode staging --port 5173            (separate terminal)
 //   node scripts/dev-tools/staging_browser_e2e.mjs [student|established|tpo|company|admin ...]
 //
-// Signs in as the protected staging fixtures (docs/STAGING-TEST-FIXTURES.md) by
-// placing a staging ticket in the browser session, minted from Secret Manager at
-// run time - shaped exactly like the staging auth-bridge's. Real Google sign-in is
-// not exercised here (staging shares production's Identity pool; see fixtures doc).
+// Signs in for real through the site's form (bff_login.mjs): /api/auth/login -> HttpOnly cookie.
+// Set E2E_<ROLE>_EMAIL / E2E_<ROLE>_PASSWORD for ADMIN, TPO, COMPANY, STUDENT, ESTABLISHED: dedicated
+// staging test logins that already exist and own the fixture data (docs/STAGING-TEST-FIXTURES.md).
+// The old way (a minted token in localStorage) no longer signs anyone in. NOT RUN since this change.
 //
 // Every step records: what was checked, console errors, failed requests (>=400),
 // and a screenshot under E2E_OUT (default ./e2e-out). Exit code = number of failures.
 import { chromium } from "playwright";
-import { stagingSession } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor } from "./bff_login.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:5173";
@@ -26,17 +26,12 @@ const FIX = {
   established: { id: "99999999-0001-0000-0000-000000000001", email: "student1@staging.prooflab.invalid" },
 };
 
-function session(who) {
-  const { id, email } = FIX[who];
-  return stagingSession(id, email);
-}
-
 const results = [];
 async function journey(who, steps) {
   const browser = await chromium.launch();
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
-  await context.addInitScript(([key, value]) => localStorage.setItem(key, value),
-    ["prooflab.auth.google", JSON.stringify(session(who))]);
+  // Real sign-in: the site's form -> /api/auth/login -> HttpOnly cookie (the site ignores browser storage).
+  await cookieSignIn(context, BASE, credentialsFor(who));
   const page = await context.newPage();
   const problems = [];
   page.on("console", (m) => { if (m.type() === "error") problems.push(`console: ${m.text().slice(0, 200)}`); });

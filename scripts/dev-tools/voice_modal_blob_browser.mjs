@@ -7,45 +7,46 @@
 //   M3 reopen         - an EXISTING finished recording is resumed from localStorage;
 //                       playback must use the authenticated storagePath download
 // Every blob: URL the page creates/revokes is recorded by an init script.
-// Genuine Google sign-in is NOT exercised (session minted like the staging auth-bridge).
+// Signs in for real through the web BFF (see SIGN-IN below).
 //
 // Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
 // Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
 //     node scripts/dev-tools/voice_modal_blob_browser.mjs <speech.wav>
 import { chromium } from 'playwright';
 import { mintStaging } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor, signedInUserId } from "./bff_login.mjs";
 
 const WAV = process.argv[2];
-const APP = 'http://localhost:5173';
-const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
-const FILES = 'https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app/file/voice-explanations';
-const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
+// SIGN-IN (changed 8 Oct 2026): the site keeps its session in the web BFF's HttpOnly cookie and ignores
+// browser storage, so this signs in for real through the form (./bff_login.mjs). It needs a site served
+// WITH the BFF (E2E_BASE, e.g. the staging site - a bare `vite` server has no /api) and a dedicated test
+// login in the environment: E2E_STUDENT_EMAIL / _PASSWORD / _ID. The browser now calls same-origin /api/db, /api/functions and
+// /api/files, so those are the addresses intercepted below. NOT RUN since this change.
+const APP = (process.env.E2E_BASE ?? '').replace(/\/$/, '');
+if (!APP) throw new Error('set E2E_BASE to a site served with the web BFF (for example the staging site)');
+const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';   // this script's own read-only checks (service token), not the browser
+const FILES = `${APP}/api/files/voice-explanations`;
+const T07 = process.env.E2E_STUDENT_ID;   // account id of the E2E_STUDENT_* test login (checked after sign-in)
+if (!T07) throw new Error('set E2E_STUDENT_ID to the account id of the E2E_STUDENT_* test login');
 
 const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const SVC = mint({ role: 'service_role', sub: 'voice-modal-blob-test' }, 3600);
-const t07Token = mint({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com' });
-const session = {
-  access_token: t07Token, provider_token: t07Token, refresh_token: 'browser-test-no-refresh', expires_in: 7200,
-  expires_at: Math.floor(Date.now() / 1000) + 7200, token_type: 'bearer',
-  user: { id: T07, email: 'vidyuthsetu+t07@gmail.com', aud: 'authenticated', role: 'authenticated',
-          created_at: new Date().toISOString(), last_sign_in_at: new Date().toISOString(),
-          app_metadata: {}, user_metadata: {}, identities: [] },
-};
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
 
 async function newPage(browser, extraInit) {
   const ctx = await browser.newContext({ permissions: ['microphone'] });
-  await ctx.addInitScript((s) => {
-    if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(s));
+  await ctx.addInitScript(() => {
     const log = { created: [], revoked: [] };
     window.__blobLog = log;
     const create = URL.createObjectURL.bind(URL);
     const revoke = URL.revokeObjectURL.bind(URL);
     URL.createObjectURL = (obj) => { const u = create(obj); log.created.push({ url: u, type: obj?.type ?? '' }); return u; };
     URL.revokeObjectURL = (u) => { log.revoked.push(u); return revoke(u); };
-  }, session);
+  });
+  await cookieSignIn(ctx, APP, credentialsFor('student'));
+  if ((await signedInUserId(ctx, APP)) !== T07) throw new Error('E2E_STUDENT_ID is not the signed-in test student');
   if (extraInit) await ctx.addInitScript(extraInit.fn, extraInit.arg);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
@@ -144,7 +145,7 @@ try {
     page.on('request', async (r) => {
       if (!r.url().startsWith(FILES) || r.method() !== 'GET') return;
       const h = (await r.allHeaders())['authorization'] ?? '';
-      auth.push(h === `Bearer ${t07Token}`);   // compared, never printed
+      auth.push(h === '');   // the BFF adds the student's token; the browser must hold and send none
     });
     await openExplain(page, task.title);
     await page.getByText('Saved. It will appear in your build-log.').waitFor({ timeout: 60000 });
@@ -158,7 +159,7 @@ try {
       if (a.readyState >= 1) done(); else { a.onloadedmetadata = done; a.onerror = () => res({ scheme: 'error', ready: -1, src: a.src }); setTimeout(done, 15000); }
     }));
     check('M3 playback falls back to the authenticated storagePath download', st.scheme === 'blob' && st.ready >= 1 && auth.length >= 1 && auth.every(Boolean),
-      `ready=${st.ready}, ${auth.length} download(s) with the student's own Authorization header`);
+      `ready=${st.ready}, ${auth.length} download(s) through the BFF with no token in the browser`);
     await page.getByRole('dialog').getByRole('button', { name: /^Done$/ }).click();
     await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 10000 });
     const log = await blobLog(page);

@@ -7,26 +7,19 @@
 // Tokens are minted in memory (like the staging auth-bridge issues them) and
 // never printed. Makes one real staging recording and one DeepSeek call.
 import { chromium } from 'playwright';
-import { mintStaging } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor, signedInUserId } from "./bff_login.mjs";
 
 const WAV = process.argv[2];
-const APP = 'http://localhost:5173';
-const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
-const FILES = 'https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app/file/voice-explanations';
-const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
-const T16 = '67c7f711-6ca8-4b4d-a586-278857dcb0ab';
-
-const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
-const studentToken = (id, email) => mint({ role: 'authenticated', sub: id, email });
-const session = (id, email) => {
-  const token = studentToken(id, email);
-  return {
-    access_token: token, provider_token: token, refresh_token: 'browser-test-no-refresh',
-    expires_in: 7200, expires_at: Math.floor(Date.now() / 1000) + 7200, token_type: 'bearer',
-    user: { id, email, aud: 'authenticated', role: 'authenticated', created_at: new Date().toISOString(),
-            last_sign_in_at: new Date().toISOString(), app_metadata: {}, user_metadata: {}, identities: [] },
-  };
-};
+// SIGN-IN (changed 8 Oct 2026): the site keeps its session in the web BFF's HttpOnly cookie and ignores
+// browser storage, so this signs in for real through the form (./bff_login.mjs). It needs a site served
+// WITH the BFF (E2E_BASE, e.g. the staging site - a bare `vite` server has no /api) and a dedicated test
+// login in the environment: E2E_STUDENT_EMAIL / _PASSWORD / _ID, and a SECOND student E2E_STUDENT2_EMAIL / _PASSWORD for step 4. The browser now calls same-origin /api/db, /api/functions and
+// /api/files, so those are the addresses intercepted below. NOT RUN since this change.
+const APP = (process.env.E2E_BASE ?? '').replace(/\/$/, '');
+if (!APP) throw new Error('set E2E_BASE to a site served with the web BFF (for example the staging site)');
+const FILES = `${APP}/api/files/voice-explanations`;
+const T07 = process.env.E2E_STUDENT_ID;   // account id of the E2E_STUDENT_* test login (checked after sign-in)
+if (!T07) throw new Error('set E2E_STUDENT_ID to the account id of the E2E_STUDENT_* test login');
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
@@ -35,8 +28,8 @@ const browser = await chromium.launch({
   args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${WAV}`],
 });
 const ctx = await browser.newContext({ permissions: ['microphone'] });
-await ctx.addInitScript((s) => { if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(s)); },
-  session(T07, 'vidyuthsetu+t07@gmail.com'));
+await cookieSignIn(ctx, APP, credentialsFor('student'));
+if ((await signedInUserId(ctx, APP)) !== T07) throw new Error('E2E_STUDENT_ID is not the signed-in test student');
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
 
@@ -70,8 +63,7 @@ try {
   check('1 recording saved and queued', !!job?.voiceId, `voice ${job?.voiceId?.slice(0, 8)}`);
 
   // Reopen THE SAME task: the list order changes once a task has a recording.
-  const [task] = await (await fetch(`${API}/tasks?id=eq.${job.taskId}&select=title`,
-    { headers: { Authorization: `Bearer ${studentToken(T07, 'vidyuthsetu+t07@gmail.com')}` } })).json();
+  const [task] = await page.evaluate(async (id) => await (await fetch(`/api/db/tasks?id=eq.${id}&select=title`, { credentials: 'same-origin' })).json(), job.taskId);
   await page.reload({ waitUntil: 'domcontentloaded' });
   // Heartbeat contract (src/lib/voiceLifecycle.ts): a record's heartbeat older than HEARTBEAT_STALE_MS
   // (15 s) means its page is gone. The queued record still carries the previous page's fresh heartbeat,
@@ -101,16 +93,27 @@ try {
   // dialog (step 2) and on the Privacy page.)
 
   // 4. A second student cannot download the first student's audio (from the browser origin).
-  const cross = await page.evaluate(async ({ url, t16, t07 }) => {
-    const other = await fetch(url, { headers: { Authorization: `Bearer ${t16}` } });
-    const own = await fetch(url, { headers: { Authorization: `Bearer ${t07}` } });
-    return { other: other.status, otherBytes: (await other.arrayBuffer()).byteLength, own: own.status,
-             ownType: own.headers.get('content-type'), ownBytes: (await own.arrayBuffer()).byteLength };
-  }, { url: `${FILES}/${job.storagePath}`, t16: studentToken(T16, 'vidyuthsetu+t16@gmail.com'), t07: studentToken(T07, 'vidyuthsetu+t07@gmail.com') });
-  check('4a second student (t16) is refused t07\'s audio', cross.other === 404 && cross.otherBytes < 100, `HTTP ${cross.other}`);
-  check('4b owner (t07) control: same URL downloads', cross.own === 200 && cross.ownBytes > 1000, `HTTP ${cross.own} ${cross.ownType} ${cross.ownBytes} bytes`);
-  const anon = await page.evaluate(async (url) => (await fetch(url)).status, `${FILES}/${job.storagePath}`);
-  check('4c no token at all is refused', anon === 401, `HTTP ${anon}`);
+  // Each student is its own browser with its own cookie; nobody holds a token to pass around.
+  const probe = async (target, url) => await target.evaluate(async (u) => {
+    const r = await fetch(u, { credentials: 'same-origin' });
+    return { status: r.status, type: r.headers.get('content-type'), bytes: (await r.arrayBuffer()).byteLength };
+  }, url);
+  const otherCtx = await browser.newContext();
+  await cookieSignIn(otherCtx, APP, credentialsFor('student2'));
+  const otherPage = await otherCtx.newPage();
+  await otherPage.goto(`${APP}/auth`, { waitUntil: 'domcontentloaded' });
+  const theirs = await probe(otherPage, `${FILES}/${job.storagePath}`);
+  const mine = await probe(page, `${FILES}/${job.storagePath}`);
+  await otherCtx.close();
+  const cross = { other: theirs.status, otherBytes: theirs.bytes, own: mine.status, ownType: mine.type, ownBytes: mine.bytes };
+  check('4a second student is refused the first student\'s audio', cross.other === 404 && cross.otherBytes < 100, `HTTP ${cross.other}`);
+  check('4b owner control: same URL downloads', cross.own === 200 && cross.ownBytes > 1000, `HTTP ${cross.own} ${cross.ownType} ${cross.ownBytes} bytes`);
+  const anonCtx = await browser.newContext();
+  const anonPage = await anonCtx.newPage();
+  await anonPage.goto(`${APP}/auth`, { waitUntil: 'domcontentloaded' });
+  const anon = (await probe(anonPage, `${FILES}/${job.storagePath}`)).status;
+  await anonCtx.close();
+  check('4c no session at all is refused', anon === 401, `HTTP ${anon}`);
 } catch (e) {
   check(`(unexpected) ${e.message.slice(0, 200)}`, false);
   await page.screenshot({ path: 'voice-playback-fail.png' }).catch(() => {});

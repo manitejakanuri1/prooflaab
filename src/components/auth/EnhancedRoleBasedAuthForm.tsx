@@ -29,6 +29,10 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+/** The text of a thrown value, whatever it is. */
+const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String((error as { message?: unknown } | null)?.message ?? '');
+
 type AuthMode = 'login' | 'signup' | 'forgot-password';
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 type AuthStep = 'form' | 'email-verification';
@@ -67,10 +71,6 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
     setAuthStep('form'); // Reset auth step when switching modes
   }, [mode]);
 
-  // Wherever the app is being served from — localhost, a preview build, the
-  // live site — send the user back to the same place after signing in.
-  const getRedirectUrl = () => `${window.location.origin}/auth/callback`;
-
   /**
    * Wipe any half-finished session before starting a new one.
    *
@@ -106,9 +106,9 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
       // but one that succeeded means a reset link is now in somebody's inbox.
       logAuthEvent('password_reset_requested', email);
       setMessage('Password reset email sent! Check your inbox for the reset link.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Forgot password error:', error);
-      setError(error.message);
+      setError(messageOf(error));
     } finally {
       setLoading(false);
     }
@@ -153,136 +153,35 @@ export default function EnhancedRoleBasedAuthForm({ onSuccess }: EnhancedRoleBas
             .eq('user_id', data.user.id)
             .maybeSingle();
 
-          const currentRole = userRole?.role || 'student';
+          // No role means the account was never set up here. Guessing "student"
+          // sent colleges and admins to the student pages.
+          if (!userRole?.role) {
+            await supabase.auth.signOut();
+            setError('Account access is managed by your college or platform administrator.');
+            return;
+          }
           
           if (onSuccess) {
-            onSuccess(currentRole);
-          }
-        }
-      } else {
-        // Signup - create account with proper email confirmation
-        const redirectUrl = `${getRedirectUrl()}?type=${role}`;
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: redirectUrl,
-            data: {
-              full_name: fullName,
-              account_type: role
-            }
-          }
-        });
-        
-        if (error) {
-          logAuthEvent('signup_failed', email, classifyAuthError(error.message));
-          // Handle specific signup errors
-          if (error.message?.includes('User already registered')) {
-            throw new Error('Email already registered. Please login instead.');
-          } else if (error.message?.includes('already exists')) {
-            throw new Error('An account with this email already exists. Please login.');
-          } else if (error.message?.includes('email not confirmed')) {
-            throw new Error('Please check your email and confirm your account first.');
-          }
-          throw error;
-        }
-        
-        // Handle successful signup
-        if (data.user) {
-          
-          try {
-            // Create user role record immediately
-            const { error: roleError } = await supabase
-              .from('user_roles')
-              .insert({ 
-                user_id: data.user.id, 
-                role: role
-              });
-            
-            if (roleError) {
-              console.error('Role assignment error:', roleError);
-              if (!roleError.message.includes('duplicate')) {
-                throw new Error('Failed to assign user role. Please try again.');
-              }
-            }
-
-            // Create role-specific records based on user type
-            try {
-              if (role === 'student') {
-                // Nothing to write here. The student's row in student_profiles
-                // is created by ensureStudentProfile() as soon as the session
-                // lands, which is the one place that owns it. This used to also
-                // insert into `students`, a second table nothing reads.
-              } else if (role === 'college_admin') {
-                // Create college record with pending status
-                const { error: collegeError } = await supabase.from('colleges').insert({
-                  user_id: data.user.id,
-                  name: fullName,
-                  email: email,
-                  status: 'pending'
-                });
-                if (collegeError) throw collegeError;
-              } else if (role === 'startup') {
-                // Create startup record with pending status
-                const { error: startupError } = await supabase.from('startups').insert({
-                  user_id: data.user.id,
-                  name: fullName,
-                  email: email,
-                  status: 'pending'
-                });
-                if (startupError) throw startupError;
-              }
-            } catch (recordError: any) {
-              console.error('Failed to create user record:', recordError);
-              // Don't throw here - the user account is created, just log the error
-            }
-
-            // Send onboarding email (don't let this fail the signup)
-            try {
-              await supabase.functions.invoke('send-onboarding-email', {
-                body: {
-                  email: email,
-                  name: fullName,
-                  userType: role === 'college_admin' ? 'college' : role,
-                  origin: window.location.origin
-                }
-              });
-            } catch (emailError) {
-              console.error('Failed to send onboarding email:', emailError);
-            }
-
-            // For roles that need onboarding, redirect directly to onboarding
-            if (role === 'college_admin' || role === 'startup' || role === 'student') {
-              if (onSuccess) {
-                onSuccess(role);
-              }
-            } else {
-              // For other roles, show email verification
-              setMessage('Account created successfully! Please check your email to confirm your account before you can log in.');
-              setAuthStep('email-verification');
-            }
-
-          } catch (setupError: any) {
-            console.error('User setup error:', setupError);
-            // If role assignment fails, still show verification but with a warning
-            setMessage('Account created! Please check your email to confirm. Some account setup may need to be completed after login.');
-            setAuthStep('email-verification');
+            onSuccess(userRole.role);
           }
         }
       }
-    } catch (error: any) {
+      // No other branch: accounts are created by an administrator or a college,
+      // never from this form (the server refuses /api/auth/signup as well).
+    } catch (error: unknown) {
       console.error('Auth error:', error);
+      const reason = messageOf(error);
       
       // Provide better error messages for common issues
-      if (error.message?.includes('Email already registered') || 
-          error.message?.includes('already exists')) {
+      if (reason.includes('Email already registered') ||
+          reason.includes('already exists')) {
         setError('This email is already registered. Please login instead or use a different email.');
-      } else if (error.message?.includes('Invalid login credentials')) {
+      } else if (reason.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (error.message?.includes('email not confirmed')) {
+      } else if (reason.includes('email not confirmed')) {
         setError('Please confirm your email address before logging in. Check your inbox for the confirmation email.');
       } else {
-        setError(error.message);
+        setError(reason);
       }
     } finally {
       setLoading(false);

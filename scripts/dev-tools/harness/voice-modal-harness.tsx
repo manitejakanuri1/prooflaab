@@ -1,13 +1,13 @@
 // TEST-ONLY harness (Step 6): mounts the real VoiceExplainModal with props a
 // test can change - open (as the parent), studentId, taskId, proofId and
-// mounted (unmount) - and the real in-page signed-in session (setAccount swaps
-// the credentials AND the student, as a real account change does).
+// mounted (unmount) - and the real signed-in account (setAccount signs in again through the web BFF
+// AND switches the student, as a real account change does).
 // Not imported by the app; see voice-modal-harness.html.
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import "@/index.css";
 import VoiceExplainModal from "@/components/dashboard/student/VoiceExplainModal";
-import { __setSessionForTests, type GoogleSession } from "@/integrations/google/identity";
+import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -17,12 +17,12 @@ declare global {
       setTask: (id: string | null) => void;
       setProof: (id: string | null) => void;
       setMounted: (mounted: boolean) => void;
-      setAuth: (id: string | null) => void;
-      setAccount: (id: string) => void;
+      setAuth: (id: string | null) => Promise<void>;
+      setAccount: (id: string) => Promise<void>;
       onSavedCount: number;
     };
-    /** Sessions minted by the test, by student id (never real credentials). */
-    __sessions?: Record<string, GoogleSession>;
+    /** Test logins by student id, given by the test for the page's own re-sign-in. Never shown or stored. */
+    __logins?: Record<string, { email: string; password: string }>;
   }
 }
 
@@ -43,8 +43,16 @@ function App() {
   window.__harness.setTask = setTask;
   window.__harness.setProof = setProof;
   window.__harness.setMounted = setMounted;
-  window.__harness.setAuth = (id) => __setSessionForTests(id ? window.__sessions?.[id] ?? null : null);
-  window.__harness.setAccount = (id) => { window.__harness.setAuth(id); setStudent(id); };
+  // A REAL account change: the BFF replaces the HttpOnly session cookie and the page adopts the new
+  // session, exactly as when another person signs in on this computer. Nothing is minted in the page.
+  window.__harness.setAuth = async (id) => {
+    if (!id) { await supabase.auth.signOut(); return; }
+    const login = window.__logins?.[id];
+    if (!login) throw new Error(`no test login for ${id}`);
+    const { error } = await supabase.auth.signInWithPassword(login);
+    if (error) throw error;
+  };
+  window.__harness.setAccount = async (id) => { await window.__harness.setAuth(id); setStudent(id); };
   return (
     <div>
       <p data-testid="harness-state">open={String(open)} student={student} task={String(task)} proof={String(proof)} mounted={String(mounted)}</p>

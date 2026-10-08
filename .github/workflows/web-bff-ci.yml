@@ -42,7 +42,8 @@ jobs:
             web-bff/sessionStore.test.ts \
             web-bff/authRoutes.test.ts \
             web-bff/proxyRoutes.test.ts \
-            web-bff/requestGuard.test.ts
+            web-bff/requestGuard.test.ts \
+            web-bff/accountRecheck.test.ts
 
       - name: Build BFF container
         run: docker build -t prooflab-web-bff-ci web-bff

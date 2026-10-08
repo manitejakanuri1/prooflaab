@@ -9,9 +9,9 @@ The upload is content-addressed. Each file is gzipped, hashed, and the hashes
 are offered to Google, which replies with only the ones it does not already
 have. A redeploy that changes one file therefore uploads one file.
 
-Usage:
-    python scripts/deploy-hosting.py [dist-dir]
-    HOSTING_SITE=prooflab-staging python scripts/deploy-hosting.py dist-staging   # staging-only site
+Usage (the release guard in scripts/release_guard.py must pass first, or nothing is uploaded):
+    BFF_SERVICE=prooflab-web-bff BFF_HEALTH_URL=https://...run.app PRODUCTION_RELEASE_APPROVED_SHA=<commit>         python scripts/deploy-hosting.py [dist-dir]
+    HOSTING_SITE=prooflab-staging BFF_SERVICE=prooflab-staging-web-bff python scripts/deploy-hosting.py dist-staging
 """
 
 import gzip
@@ -30,10 +30,16 @@ SITE = os.environ.get("HOSTING_SITE", "prooflab-508214")   # default: the produc
 API = "https://firebasehosting.googleapis.com/v1beta1"
 DIST = sys.argv[1] if len(sys.argv) > 1 else "dist"
 
-# Optional same-origin API gateway.
-# When unset, Hosting behaviour stays exactly as before.
+# Same-origin API gateway. NOT optional any more: the site signs in and reads data only through
+# /api/**, so a publish without this rewrite is a site nobody can use.
 BFF_SERVICE = os.environ.get("BFF_SERVICE", "").strip()
 BFF_REGION = os.environ.get("BFF_REGION", "asia-south1").strip()
+
+# Fail closed before anything is uploaded (rules and reasons: scripts/release_guard.py).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import release_guard  # noqa: E402
+
+release_guard.enforce(SITE, os.environ, DIST)
 
 def find_gcloud() -> str:
     """Wherever gcloud happens to live.

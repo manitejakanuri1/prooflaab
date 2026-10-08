@@ -1,36 +1,23 @@
 // Written-task scratchpad (migration 48): real-browser check against STAGING or the PREVIEW.
 //
-// STAGING (session minted in memory from the staging JWT secret, never printed):
-//   npx vite --mode staging --port 5173 --strictPort   (in another terminal)
-// Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
+// STAGING (real sign-in through the BFF; set E2E_STUDENT_EMAIL / E2E_STUDENT_PASSWORD, optional E2E_BASE):
 //     node scripts/dev-tools/scratchpad_browser.mjs staging <task id> <expect: none|python|...> [submit]
+// The old way (a minted token in localStorage) no longer signs anyone in. NOT RUN since this change.
 // PREVIEW (real sign-in of a test student; password read from Secret Manager into memory only):
 //   STUDENT_EMAIL=... STUDENT_PASSWORD=... node scripts/dev-tools/scratchpad_browser.mjs <preview url> <task id> <expect> [submit]
 //
 // Checks: scratchpad shown only for the expected language; Run prints the runner output;
 // no task_submissions row / answer is created by Run; Submit sends only the written answer.
 import { chromium } from 'playwright';
-import { mintStaging } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor } from "./bff_login.mjs";
 
 const [target, TASK, EXPECT, SUBMIT] = process.argv.slice(2);
 const STAGING = target === 'staging';
-const APP = STAGING ? 'http://localhost:5173' : target.replace(/\/$/, '');
-const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
+const APP = STAGING ? (process.env.E2E_BASE ?? 'https://prooflab-staging.web.app').replace(/\/$/, '') : target.replace(/\/$/, '');
 const LABEL = { python: 'Python', javascript: 'JavaScript', java: 'Java', c: 'C', cpp: 'C++', go: 'Go', ruby: 'Ruby', php: 'PHP' };
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
-
-function stagingSession() {
-  const now = Math.floor(Date.now() / 1000);
-  const token = mintStaging({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com' }, 3600);
-  return {
-    access_token: token, provider_token: token, refresh_token: 'browser-test-no-refresh', expires_in: 3600,
-    expires_at: now + 3600, token_type: 'bearer',
-    user: { id: T07, email: 'vidyuthsetu+t07@gmail.com', aud: 'authenticated', role: 'authenticated', created_at: new Date().toISOString(),
-            last_sign_in_at: new Date().toISOString(), app_metadata: {}, user_metadata: {}, identities: [] },
-  };
-}
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext();
@@ -39,19 +26,12 @@ page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}
 const calls = [];
 page.on('request', (r) => {
   const u = r.url();
-  if (r.method() === 'POST' && /functions\/v1\/(run-code|submit-written-task)|\/task_submissions/.test(u)) calls.push({ url: u, body: r.postData() || '' });
+  if (r.method() === 'POST' && /(functions\/v1|api\/functions)\/(run-code|submit-written-task)|\/task_submissions/.test(u)) calls.push({ url: u, body: r.postData() || '' });
 });
 
 try {
-  if (STAGING) {
-    await ctx.addInitScript((s) => { if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(s)); }, stagingSession());
-  } else {
-    await page.goto(`${APP}/auth`, { waitUntil: 'networkidle' });
-    await page.fill('input[type="email"]', process.env.STUDENT_EMAIL);
-    await page.fill('input[type="password"]', process.env.STUDENT_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/student\//, { timeout: 60000 });
-  }
+  // Real sign-in in both modes: the form -> /api/auth/login -> HttpOnly cookie.
+  await cookieSignIn(ctx, APP, STAGING ? credentialsFor('student') : { email: process.env.STUDENT_EMAIL, password: process.env.STUDENT_PASSWORD });
 
   await page.goto(`${APP}/student/tasks/assigned?open=${TASK}`, { waitUntil: 'domcontentloaded' });
   const dialog = page.getByRole('dialog');

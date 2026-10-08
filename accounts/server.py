@@ -452,7 +452,8 @@ class Handler(BaseHTTPRequestHandler):
         # returnOobLink: Google hands the link back instead of mailing it.
         st, out = identity("accounts:sendOobCode", {
             "requestType": "PASSWORD_RESET", "email": email, "returnOobLink": True,
-            "continueUrl": "https://prooflab.co.in/auth",
+            # Staging must land on staging: a college invited there has no account in production.
+            "continueUrl": os.environ.get("SITE_URL", "https://prooflab.co.in").rstrip("/") + "/auth",
         })
         if st != 200 or not out.get("oobLink"):
             return self.reply(502, {"error": str(out)[:200]})

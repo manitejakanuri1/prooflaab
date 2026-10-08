@@ -47,6 +47,9 @@ jobs:
       - name: Code runner IAM configuration tests
         run: python3 scripts/test_runner_configuration.py
 
+      - name: Release guard tests (publish refuses without routing and approval)
+        run: python3 scripts/test_release_guard.py
+
       - name: Retired architecture has not come back
         run: python3 scripts/legacy_guard.py
 
@@ -206,7 +209,21 @@ jobs:
       - name: Verify it is the tested build
         run: (cd dist && sha256sum --quiet -c ../dist.sha256) && sha256sum dist.sha256
 
+      # Fail closed: no production gateway route, no owner approval for THIS commit, or no
+      # answering gateway = no publish. The three values are repository variables only the owner
+      # sets (Settings -> Secrets and variables -> Actions -> Variables); a push alone approves nothing.
+      - name: Release guard (production routing and owner approval)
+        env:
+          BFF_SERVICE: ${{ vars.PRODUCTION_BFF_SERVICE }}
+          BFF_HEALTH_URL: ${{ vars.PRODUCTION_BFF_HEALTH_URL }}
+          PRODUCTION_RELEASE_APPROVED_SHA: ${{ vars.PRODUCTION_RELEASE_APPROVED_SHA }}
+        run: python scripts/release_guard.py dist
+
       - name: Publish
+        env:
+          BFF_SERVICE: ${{ vars.PRODUCTION_BFF_SERVICE }}
+          BFF_HEALTH_URL: ${{ vars.PRODUCTION_BFF_HEALTH_URL }}
+          PRODUCTION_RELEASE_APPROVED_SHA: ${{ vars.PRODUCTION_RELEASE_APPROVED_SHA }}
         run: python scripts/deploy-hosting.py
 
       - name: Confirm the site is serving the new build

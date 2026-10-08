@@ -9,6 +9,8 @@ interface RoleBasedProtectedRouteProps {
   fallbackRoute?: string;
 }
 
+const NO_ROLE = 'none';
+
 export default function RoleBasedProtectedRoute({ 
   children, 
   allowedRoles, 
@@ -57,18 +59,14 @@ export default function RoleBasedProtectedRoute({
             return;
           }
         } else {
-          // Default to student if no role found
-          await supabase.from('user_roles').insert({
-            user_id: user.id,
-            role: 'student'
-          });
-          setUserRole('student');
-          navigate('/student/start', { replace: true });
-          return;
+          // Accounts are created by an administrator or a college, never by the
+          // browser. No role (or a role that could not be read) means no access:
+          // guessing "student" here sent colleges and admins to the student pages.
+          setUserRole(NO_ROLE);
         }
       } catch (error) {
         console.error('Error fetching user role:', error);
-        setUserRole('student');
+        setUserRole(NO_ROLE);
       } finally {
         setRoleLoading(false);
       }
@@ -89,7 +87,7 @@ export default function RoleBasedProtectedRoute({
     return <Navigate to={fallbackRoute} replace />;
   }
 
-  if (userRole && !allowedRoles.includes(userRole)) {
+  if (!userRole || !allowedRoles.includes(userRole)) {
     return <Navigate to={fallbackRoute} replace />;
   }
 

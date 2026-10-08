@@ -11,26 +11,24 @@
 // Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
 // Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
 //     node scripts/dev-tools/voice_modal_lifecycle_browser.mjs <speech.wav>
-// Genuine Google sign-in is NOT exercised (session minted like the staging auth-bridge).
+// Signs in for real through the web BFF (see SIGN-IN below).
 import { chromium } from 'playwright';
 import crypto from 'node:crypto';
-import { mintStaging } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor, signedInUserId } from "./bff_login.mjs";
 
 const WAV = process.argv[2];
-const APP = 'http://localhost:5173';
-const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
-const FN = 'https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app';
-const FILES = 'https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app/file/voice-explanations';
-const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
-
-const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
-const tok = mint({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com' });
-const session = {
-  access_token: tok, provider_token: tok, refresh_token: 'browser-test-no-refresh', expires_in: 7200,
-  expires_at: Math.floor(Date.now() / 1000) + 7200, token_type: 'bearer',
-  user: { id: T07, email: 'vidyuthsetu+t07@gmail.com', aud: 'authenticated', role: 'authenticated',
-          created_at: new Date().toISOString(), last_sign_in_at: new Date().toISOString(), app_metadata: {}, user_metadata: {}, identities: [] },
-};
+// SIGN-IN (changed 8 Oct 2026): the site keeps its session in the web BFF's HttpOnly cookie and ignores
+// browser storage, so this signs in for real through the form (./bff_login.mjs). It needs a site served
+// WITH the BFF (E2E_BASE, e.g. the staging site - a bare `vite` server has no /api) and a dedicated test
+// login in the environment: E2E_STUDENT_EMAIL / _PASSWORD / _ID. The browser now calls same-origin /api/db, /api/functions and
+// /api/files, so those are the addresses intercepted below. NOT RUN since this change.
+const APP = (process.env.E2E_BASE ?? '').replace(/\/$/, '');
+if (!APP) throw new Error('set E2E_BASE to a site served with the web BFF (for example the staging site)');
+const API = `${APP}/api/db`;
+const FN = `${APP}/api/functions`;
+const FILES = `${APP}/api/files/voice-explanations`;
+const T07 = process.env.E2E_STUDENT_ID;   // account id of the E2E_STUDENT_* test login (checked after sign-in)
+if (!T07) throw new Error('set E2E_STUDENT_ID to the account id of the E2E_STUDENT_* test login');
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
@@ -50,8 +48,7 @@ const row = (id, over = {}) => ({
 /** Scriptable fakes for one page. */
 async function setup(browser, { blockVoiceStorage = false, consentError = false } = {}) {
   const ctx = await browser.newContext({ permissions: ['microphone'] });
-  await ctx.addInitScript(({ s, blockVoiceStorage }) => {
-    if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(s));
+  await ctx.addInitScript(({ blockVoiceStorage }) => {
     // blob URL log
     const log = { created: [], revoked: [] };
     window.__blobLog = log;
@@ -84,7 +81,9 @@ async function setup(browser, { blockVoiceStorage = false, consentError = false 
         };
       }
     }
-  }, { s: session, blockVoiceStorage });
+  }, { blockVoiceStorage });
+  await cookieSignIn(ctx, APP, credentialsFor('student'));
+  if ((await signedInUserId(ctx, APP)) !== T07) throw new Error('E2E_STUDENT_ID is not the signed-in test student');
 
   const state = { putHold: null, putCount: 0, enqueue: [], pollHold: null, rows: new Map(), owner: new Map(), autoComplete: true };
   const page = await ctx.newPage();
@@ -121,6 +120,7 @@ async function setup(browser, { blockVoiceStorage = false, consentError = false 
   await page.route(`${API}/**`, async (route) => {
     const req = route.request();
     const url = new URL(req.url());
+    url.pathname = url.pathname.replace(/^\/api\/db/, '');   // same table / rpc paths as before, now behind the BFF
     if (req.method() === 'OPTIONS') return route.continue();
     if (url.pathname.startsWith('/rpc/')) {
       const fn = url.pathname.slice(5);

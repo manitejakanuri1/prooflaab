@@ -54,7 +54,7 @@ class AtomicMigrationGuardTests(unittest.TestCase):
                 self.assertIn("pg_advisory_xact_lock", sql)
                 self.assertIn("\\if :already", sql)
                 self.assertIn("\\else", sql)
-                self.assertIn("migration checksum differs", sql)
+                self.assertIn("(ledger checksum differs)", sql)
 
                 insert = sql.index(
                     "insert into public.schema_migrations"

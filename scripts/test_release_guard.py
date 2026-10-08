@@ -4,7 +4,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release_guard as guard  # noqa: E402
@@ -78,6 +80,59 @@ class ReleaseGuardTests(unittest.TestCase):
         self.refused({**GOOD, "BFF_HEALTH_URL": "http://prooflab-web-bff-abc-el.a.run.app"}, "https://...run.app")
         self.refused({**GOOD, "BFF_HEALTH_URL": "https://evil.example/"}, "https://...run.app")
         self.refused({**GOOD, "BFF_HEALTH_URL": "https://prooflab-staging-web-bff-abc-el.a.run.app"}, "staging service")
+
+    def real_probe(self, answer):
+        """The guard with the REAL fetch_health; only the network call underneath is replaced."""
+        asked = []
+
+        def urlopen(url, timeout=None):
+            asked.append((url, timeout))
+            if isinstance(answer, Exception):
+                raise answer
+            reply = mock.MagicMock()
+            reply.__enter__.return_value.read.return_value = answer
+            return reply
+
+        with mock.patch.object(guard.urllib.request, "urlopen", urlopen):
+            found = guard.problems("prooflab-508214", GOOD, self.dist, commit=COMMIT)
+        return found, asked
+
+    def test_real_probe_asks_health_and_never_healthz(self):
+        found, asked = self.real_probe(b'{"ok": true, "service": "prooflab-web-bff"}')
+        self.assertEqual(found, [])
+        self.assertEqual([url for url, _ in asked], ["https://prooflab-web-bff-abc123-el.a.run.app/health"])
+        self.assertTrue(all(timeout for _, timeout in asked), "the probe must have a timeout")
+
+    def test_real_probe_ignores_a_trailing_slash(self):
+        asked = []
+
+        def urlopen(url, timeout=None):
+            asked.append(url)
+            raise OSError("stop here")
+
+        with mock.patch.object(guard.urllib.request, "urlopen", urlopen):
+            with self.assertRaises(OSError):
+                guard.fetch_health("https://prooflab-web-bff-abc123-el.a.run.app/")
+        self.assertEqual(asked, ["https://prooflab-web-bff-abc123-el.a.run.app/health"])
+
+    def test_real_probe_blocks_release_when_the_gateway_is_down_or_wrong(self):
+        not_found = urllib.error.HTTPError("https://x/health", 404, "Not Found", None, None)
+        refusals = [
+            (not_found, "not reachable"),                                              # Google's own 404 page, or not deployed
+            (urllib.error.URLError("connection refused"), "not reachable"),
+            (TimeoutError("timed out"), "not reachable"),
+            (b"<!doctype html><title>404</title>", "not reachable"),                   # a page, not JSON
+            (b"", "not reachable"),
+            (b'{"ok": false, "service": "prooflab-web-bff"}', "did not answer /health"),
+            (b'{"ok": true, "service": "prooflab-staging-web-bff"}', "did not answer /health"),
+            (b'{"ok": "true", "service": "prooflab-web-bff"}', "did not answer /health"),
+            (b'{"service": "prooflab-web-bff"}', "did not answer /health"),
+            (b'[]', "did not answer /health"),
+        ]
+        for answer, word in refusals:
+            found, asked = self.real_probe(answer)
+            self.assertEqual(len(asked), 1, answer)
+            self.assertTrue(any(word in line for line in found), f"{answer!r}: expected '{word}', got {found}")
 
     def test_gateway_is_not_asked_when_the_address_is_wrong(self):
         asked = []

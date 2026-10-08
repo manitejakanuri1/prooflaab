@@ -8,7 +8,7 @@ that rewrite looks fine and lets nobody sign in. scripts/deploy-hosting.py used 
 with no BFF configured ("When unset, Hosting behaviour stays exactly as before").
 
 Nothing here deploys, and nothing is changed anywhere: it reads environment variables and the built
-files, and (only when asked to) makes one GET to the BFF's own /healthz.
+files, and (only when asked to) makes one GET to the BFF's own /health.
 
 Rules - every one must hold, otherwise nothing is published:
 
@@ -20,7 +20,7 @@ Rules - every one must hold, otherwise nothing is published:
     * the build is not a staging build                 (no staging service address inside it)
     * PRODUCTION_RELEASE_APPROVED_SHA is the full commit being published
       - the owner sets it, per release, as a repository variable; a push alone is not approval
-    * BFF_HEALTH_URL is the production gateway's https://...run.app address and its /healthz answers
+    * BFF_HEALTH_URL is the production gateway's https://...run.app address and its /health answers
       {"ok": true, "service": "prooflab-web-bff"}      (the gateway must exist BEFORE the site needs it)
   a staging site (HOSTING_SITE contains "staging")
     * BFF_SERVICE is a staging service                 (a staging site must never drive the production gateway)
@@ -52,7 +52,8 @@ def current_commit(env) -> str:
 
 
 def fetch_health(url: str) -> dict:
-    with urllib.request.urlopen(url.rstrip("/") + "/healthz", timeout=20) as res:
+    # /health, not /healthz: Google's edge answers /healthz on a run.app address itself (its own 404 page).
+    with urllib.request.urlopen(url.rstrip("/") + "/health", timeout=20) as res:
         return json.loads(res.read().decode("utf-8"))
 
 
@@ -120,7 +121,7 @@ def problems(site, env, dist, health=fetch_health, commit=None, read_build=built
         try:
             body = health(url)
             if not (isinstance(body, dict) and body.get("ok") is True and body.get("service") == PRODUCTION_BFF):
-                found.append("the production gateway did not answer /healthz as prooflab-web-bff")
+                found.append("the production gateway did not answer /health as prooflab-web-bff")
         except Exception as error:  # unreachable, wrong address, not deployed: all mean "do not publish"
             found.append(f"the production gateway is not reachable ({type(error).__name__}): deploy it before the site")
     return found

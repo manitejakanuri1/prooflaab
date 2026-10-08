@@ -1,5 +1,6 @@
 import { handleAuthRoute } from "./authRoutes.ts";
 import { handleProxyRoute } from "./proxyRoutes.ts";
+import { readiness } from "./readiness.ts";
 import { rejectCrossSiteBrowserWrite } from "./requestGuard.ts";
 
 const PORT = Number(Deno.env.get("PORT") ?? "8080");
@@ -34,7 +35,13 @@ function json(
 export async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
-  if (req.method === "GET" && url.pathname === "/healthz") {
+  // Liveness only: the process answers. It says nothing about readiness (/ready).
+  // /health is the one to call on Cloud Run: Google's edge answers /healthz on a
+  // run.app address itself, with its own 404. /healthz stays for local callers.
+  if (
+    req.method === "GET" &&
+    (url.pathname === "/health" || url.pathname === "/healthz")
+  ) {
     return json({
       ok: true,
       service: "prooflab-web-bff",
@@ -57,23 +64,24 @@ export async function handler(req: Request): Promise<Response> {
   if (proxyResponse) return proxyResponse;
 
   /*
-   * Deliberately NOT ready yet.
+   * Closed (503) by default.
    *
-   * Authentication, encrypted HttpOnly sessions and authenticated backend
-   * proxying now exist, but frontend cutover, deployment wiring and live
-   * integration validation are still incomplete.
-   *
-   * Returning 503 prevents a partially integrated BFF from being mistaken for
-   * the production-ready gateway.
+   * It opens only when the release is explicitly enabled, the configuration is
+   * valid and every backend answered its health check just now (readiness.ts).
+   * Returning 503 otherwise prevents a partially integrated BFF from being
+   * mistaken for the production-ready gateway.
    */
   if (req.method === "GET" && url.pathname === "/ready") {
+    const { ok, state, failed } = await readiness();
+
     return json(
       {
-        ok: false,
+        ok,
         service: "prooflab-web-bff",
-        state: "security-migration-in-progress",
+        state,
+        ...(failed.length > 0 ? { failed } : {}),
       },
-      503,
+      ok ? 200 : 503,
     );
   }
 

@@ -68,9 +68,9 @@ const noText = (text) => async (page) => {
 
 // The sidebar of a role must show exactly these four destinations, and none of the retired ones.
 const menuIs = (labels, gone = []) => async (page) => {
-  for (const l of labels) await page.locator('[data-sidebar="menu-button"], aside button, nav button').filter({ hasText: new RegExp(`^\s*${l}`) }).first().waitFor({ timeout: 15000 });
+  for (const l of labels) await page.locator('[data-sidebar="menu-button"], aside button, nav button').filter({ hasText: new RegExp(`^\\s*${l}`) }).first().waitFor({ timeout: 15000 });
   for (const g of gone) {
-    const n = await page.locator('[data-sidebar="menu-button"]').filter({ hasText: new RegExp(`^\s*${g}\s*$`) }).count();
+    const n = await page.locator('[data-sidebar="menu-button"]').filter({ hasText: new RegExp(`^\\s*${g}\\s*$`) }).count();
     if (n) throw new Error(`retired menu item still shown: "${g}"`);
   }
   return `menu = ${labels.join(" / ")}`;

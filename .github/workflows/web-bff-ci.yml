@@ -45,6 +45,15 @@ jobs:
             web-bff/requestGuard.test.ts \
             web-bff/accountRecheck.test.ts
 
+      # Separate step: only this file loads main.ts, which reads settings. It
+      # gets exactly the names the container gets (web-bff/Dockerfile) and no
+      # network. The security tests above keep running with no permissions.
+      - name: BFF readiness tests (fail-closed /ready)
+        run: |
+          deno test --no-lock \
+            --allow-env=PORT,GOOGLE_API_KEY,AUTH_BRIDGE_URL,POSTGREST_URL,FUNCTIONS_URL,FILES_URL,ACCOUNTS_URL,TRANSCRIBER_URL,SESSION_KEY,ENVIRONMENT,BROWSER_ORIGINS,BFF_RELEASE_READY \
+            web-bff/readiness.test.ts
+
       - name: Build BFF container
         run: docker build -t prooflab-web-bff-ci web-bff
 
@@ -56,8 +65,8 @@ jobs:
             prooflab-web-bff-ci
 
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:18080/healthz >/tmp/healthz.json; then
-              cat /tmp/healthz.json
+            if curl -fsS http://127.0.0.1:18080/health >/tmp/health.json; then
+              cat /tmp/health.json
               exit 0
             fi
             sleep 1
@@ -67,7 +76,7 @@ jobs:
           docker logs prooflab-web-bff-ci
           exit 1
 
-      - name: Ready endpoint must remain closed during migration
+      - name: Ready endpoint must remain closed by default
         run: |
           code="$(
             curl -sS \
@@ -79,11 +88,43 @@ jobs:
           cat /tmp/ready.json
 
           if [ "$code" != "503" ]; then
-            echo "Expected /ready to return 503 during migration, got $code"
+            echo "Expected /ready to return 503 by default, got $code"
             exit 1
           fi
 
           echo "PASS: /ready remains fail-closed at 503"
+
+      - name: Release switch alone must not open the ready endpoint
+        run: |
+          docker run -d \
+            --name prooflab-web-bff-ci-enabled \
+            -e BFF_RELEASE_READY=true \
+            -p 18081:8080 \
+            prooflab-web-bff-ci
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18081/health >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          code="$(
+            curl -sS \
+              -o /tmp/ready-enabled.json \
+              -w '%{http_code}' \
+              http://127.0.0.1:18081/ready
+          )"
+
+          cat /tmp/ready-enabled.json
+
+          if [ "$code" != "503" ]; then
+            echo "Expected /ready to return 503 with no configuration, got $code"
+            docker logs prooflab-web-bff-ci-enabled
+            exit 1
+          fi
+
+          echo "PASS: enablement without valid configuration stays at 503"
 
       - name: Container logs
         if: always()

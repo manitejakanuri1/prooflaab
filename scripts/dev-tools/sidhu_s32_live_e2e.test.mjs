@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertStaging, classify, dbQuery, EXIT, planMatrix, provenance, RECIPES, redact, revisionProvenance, summarize } from "./sidhu_s32_live_e2e.mjs";
+import { assertStaging, classify, dbQuery, emailDelivery, EXIT, planMatrix, PROTECTED_NOTICES, provenance, RECIPES, redact, revisionProvenance, summarize } from "./sidhu_s32_live_e2e.mjs";
 import { buildInventory } from "./sidhu_s32_inventory.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -122,7 +122,7 @@ test("S34: an unverified build can never exit OK, even if every row passed", () 
 });
 
 test("S34: twelve recipes; the account deletion is destructive and needs its own disposable identity", () => {
-  assert.ok(RECIPES.length >= 12);
+  assert.ok(RECIPES.length >= 14);
   const del = RECIPES.find((r) => r.id === "student-delete-own-account");
   assert.equal(del.destructive, true);
   assert.deepEqual(del.fixtures, ["E2E_DISPOSABLE_STUDENT_EMAIL", "E2E_DISPOSABLE_STUDENT_PASSWORD", "E2E_DISPOSABLE_STUDENT_USER_ID"]);
@@ -134,4 +134,27 @@ test("S34: every recipe covers at least one real control of the S34 source", () 
   for (const r of RECIPES) {
     assert.ok(rows.some((x) => r.role.includes(x.role) && r.matches.test(x.control)), r.id);
   }
+});
+
+// ---------------------------------------------------------------- S36 additions
+test("S36: test-email delivery is PASS only when the provider reports 'delivered'", async () => {
+  const res = (status, body) => async () => ({ status, ok: status < 300, json: async () => body });
+  const none = async () => {};
+  assert.match(await emailDelivery("abcd1234-0000", {}), /^BLOCKED: .*not verified/);
+  assert.match(await emailDelivery("abcd1234-0000", { E2E_RESEND_READ_KEY: "k" }, { fetchImpl: res(200, { last_event: "delivered" }), sleep: none }), /delivered/);
+  await assert.rejects(emailDelivery("abcd1234-0000", { E2E_RESEND_READ_KEY: "k" }, { fetchImpl: res(200, { last_event: "bounced" }), sleep: none }), /not delivered: bounced/);
+  assert.match(await emailDelivery("abcd1234-0000", { E2E_RESEND_READ_KEY: "k" }, { fetchImpl: res(200, { last_event: "sent" }), sleep: none, tries: 2 }), /^BLOCKED: .*last event: sent/);
+  assert.match(await emailDelivery("abcd1234-0000", { E2E_RESEND_READ_KEY: "k" }, { fetchImpl: res(403, {}), sleep: none }), /^BLOCKED/);
+  await assert.rejects(emailDelivery("../x", { E2E_RESEND_READ_KEY: "k" }), /invalid message id/);
+});
+
+test("S36: the recipes cover the protected-notice refusal and the real test email; the deletion checks the S36 answer", () => {
+  assert.ok(RECIPES.find((r) => r.id === "admin-notification-protected-refused"));
+  const send = RECIPES.find((r) => r.id === "admin-email-send-test");
+  assert.ok(send && !send.destructive);
+  assert.deepEqual(PROTECTED_NOTICES, ["review_outcome", "sponsored_task", "college_linked"]);
+  const del = String(RECIPES.find((r) => r.id === "student-delete-own-account").run);
+  assert.match(del, /login_deleted !== true/, "checks the S36 response field, not the old login_failures");
+  assert.match(del, /Nothing was changed/, "reports staging's safe refusal as BLOCKED, not PASS");
+  assert.match(RECIPES.find((r) => r.id === "student-delete-own-account").db({ env: { E2E_DISPOSABLE_STUDENT_USER_ID: "u" } }), /login_deleted_at is not null/);
 });

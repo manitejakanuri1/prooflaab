@@ -31,9 +31,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Settings, Plus, Trash2, UserPlus } from "lucide-react";
+import EmailTemplatesDialog from "./EmailTemplatesDialog";
+import NotificationRulesDialog from "./NotificationRulesDialog";
 
 const SystemSettings = () => {
   const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
+  const [emailTemplatesOpen, setEmailTemplatesOpen] = useState(false);
+  const [notificationRulesOpen, setNotificationRulesOpen] = useState(false);
   const [newAdminData, setNewAdminData] = useState({
     name: "",
     email: "",
@@ -226,19 +230,22 @@ const SystemSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email-template">Email Template Settings</Label>
-              <Button variant="outline" className="w-full mt-2">
+              <Button variant="outline" className="w-full mt-2" onClick={() => setEmailTemplatesOpen(true)}>
                 Configure Email Templates
               </Button>
             </div>
             <div>
               <Label htmlFor="notification-rules">Notification Rules</Label>
-              <Button variant="outline" className="w-full mt-2">
+              <Button variant="outline" className="w-full mt-2" onClick={() => setNotificationRulesOpen(true)}>
                 Manage Notification Rules
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <EmailTemplatesDialog open={emailTemplatesOpen} onOpenChange={setEmailTemplatesOpen} />
+      <NotificationRulesDialog open={notificationRulesOpen} onOpenChange={setNotificationRulesOpen} />
 
       {/* Create Admin Modal */}
       <Dialog open={isCreateAdminModalOpen} onOpenChange={setIsCreateAdminModalOpen}>

@@ -4,6 +4,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
+import { type EmailOverride, renderOverride } from "../_shared/email-template.ts";
 
 /**
  * Built per request, not once at module load.
@@ -290,12 +291,36 @@ const handler = async (req: Request): Promise<Response> => {
         actionLink.startsWith("https://")
       ? actionLink
       : null;
-    const emailContent = getEmailContent(
+    let emailContent = getEmailContent(
       finalUserType,
       finalName,
       origin,
       setPasswordLink,
     );
+
+    // An administrator's own wording, when one is saved (System Settings ->
+    // Email Templates). Any failure here leaves the built-in wording in place:
+    // a welcome email must not depend on a settings read.
+    try {
+      const settings = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      );
+      const key = ["student", "college", "startup", "admin"].includes(finalUserType) ? finalUserType : "general";
+      const { data: override } = await settings.from("email_templates")
+        .select("subject, intro").eq("key", key).maybeSingle();
+      if (override?.subject && override?.intro) {
+        const baseUrl = Deno.env.get("SITE_URL") ?? "https://prooflab.co.in";
+        emailContent = renderOverride(
+          override as EmailOverride,
+          finalName,
+          setPasswordLink ?? `${baseUrl}/auth`,
+          setPasswordLink ? "Set your password" : "Sign in to ProofLab",
+        );
+      }
+    } catch (err) {
+      console.error("email template read failed, built-in wording used:", err instanceof Error ? err.message : String(err));
+    }
 
     const resend = getResend();
     if (!resend) {

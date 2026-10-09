@@ -30,7 +30,8 @@
   "student_logins()",
   "touch_lot_template(uuid,uuid)",
   "touch_streak(uuid)",
-  "touch_template(text)"
+  "touch_template(text)",
+  "company_voice_recording(uuid,uuid)"
  ],
  "user_callable": [
   "accept_voice_consent()",
@@ -76,6 +77,7 @@
   "save_mock_interview_answer(uuid,text,text,integer)",
   "season_awards(uuid)",
   "season_leaderboard(text,uuid,integer)",
+  "set_share_voice_audio(boolean)",
   "start_task_assignment(uuid)",
   "topic_priorities(uuid,integer)",
   "touch_my_activity()",
@@ -123,7 +125,11 @@
   "admin_trace_search(text)",
   "admin_trace_slow(integer)",
   "admin_trace_student(uuid,integer,integer)",
-  "admin_verify_recruiter(uuid,boolean)"
+  "admin_verify_recruiter(uuid,boolean)",
+  "admin_email_templates()",
+  "admin_save_email_template(text,text,text)",
+  "admin_notification_rules()",
+  "admin_set_notification_rule(text,boolean)"
  ],
  "pending_review": [],
  "sql_internal": [
@@ -177,7 +183,8 @@
   "squad_town(uuid)",
   "suggest_tracks(uuid,integer)",
   "unlock_ceiling(uuid,text)",
-  "write_audit(text,text,uuid,jsonb,jsonb,uuid)"
+  "write_audit(text,text,uuid,jsonb,jsonb,uuid)",
+  "apply_notification_rules()"
  ],
  "policy_helper": [
   "college_owns_student(uuid)",

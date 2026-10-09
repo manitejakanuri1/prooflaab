@@ -167,6 +167,8 @@ interface ProfileWork { submitted_at?: string | null; title?: string | null; sta
 interface ProfileExplanation {
   id: string; about?: string | null; duration_seconds?: number | null;
   created_at?: string | null; communication_notes?: string | null;
+  /** The student switched audio sharing on and the recording is still there (migration 105). */
+  audio_shared?: boolean | null;
 }
 interface ProofProfilePayload {
   error?: unknown; id: string; full_name?: string | null; branch?: string | null; batch?: string | null;
@@ -256,6 +258,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
       duration: v.duration_seconds ? `${v.duration_seconds}s` : "—",
       date: String(v.created_at ?? "").slice(0, 10),
       transcript: v.communication_notes ?? "",
+      audioShared: v.audio_shared === true,
     })),
     streak: Number(p.consistency?.current_streak ?? 0),
     consistency: Number(p.consistency?.active_weeks ?? 0),

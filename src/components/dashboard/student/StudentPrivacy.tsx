@@ -79,6 +79,23 @@ const StudentPrivacy = () => {
     refreshProfile?.();
   };
 
+  const setShareVoiceAudio = async (on: boolean) => {
+    setBusy(true);
+    const { error } = await supabase.rpc("set_share_voice_audio" as never, { _on: on } as never);
+    setBusy(false);
+    if (error) {
+      toast({ title: "Not changed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: on ? "Companies can listen" : "Companies can no longer listen",
+      description: on
+        ? "Approved companies that can see your profile can play your scored recordings."
+        : "Your recordings cannot be played by any company.",
+    });
+    refreshProfile?.();
+  };
+
   const setPortfolioPublic = async (on: boolean) => {
     if (!profile?.id) return;
     setBusy(true);
@@ -128,6 +145,7 @@ const StudentPrivacy = () => {
   if (!profile) return <Skeleton className="h-64 w-full rounded-xl" />;
 
   const current = (profile as unknown as { profile_visibility?: string }).profile_visibility ?? "public";
+  const shareAudio = (profile as unknown as { share_voice_audio?: boolean }).share_voice_audio === true;
 
   return (
     <div className="space-y-4">
@@ -180,6 +198,29 @@ const StudentPrivacy = () => {
               checked={portfolio?.is_public ?? false}
               disabled={busy}
               onCheckedChange={(on) => void setPortfolioPublic(on)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-5">
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <Label htmlFor="share-voice-audio" className="text-sm font-medium">
+                Let companies listen to your recordings
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 max-w-prose">
+                Off by default. When on, an approved company that can see your profile can play your scored
+                60-second explanations. Each listen is recorded. Switch it off, or delete a recording below,
+                and it can no longer be played.
+              </p>
+            </div>
+            <Switch
+              id="share-voice-audio"
+              checked={shareAudio}
+              disabled={busy}
+              onCheckedChange={(on) => void setShareVoiceAudio(on)}
             />
           </div>
         </CardContent>

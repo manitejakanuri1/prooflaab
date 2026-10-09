@@ -115,6 +115,17 @@ def delete_logins(rows: list) -> list:
     return failed
 
 
+def removal_reason(role: str | None, who: str, ids: list, confirm) -> str | None:
+    """Why this caller may remove these accounts, or None if they may not.
+
+    A student may remove exactly one account, their own, and only after typing
+    DELETE on the settings screen. The database checks the same rule again.
+    """
+    if role == "student":
+        return "self" if ids == [who] and confirm == "DELETE" else None
+    return {"admin": "admin", "college_admin": "college"}.get(role)
+
+
 def link_refusal(email: str) -> str | None:
     """Why a set-password link must not be returned for this email, or None if it may."""
     st, out = identity("accounts:lookup", {"email": [email]})
@@ -197,12 +208,13 @@ class Handler(BaseHTTPRequestHandler):
         who = caller(self.headers.get("Authorization"))
         if not who:
             return self.reply(401, {"error": "Sign in again."})
-        ids = [str(i) for i in (self.body().get("student_ids") or [])][:500]
+        body = self.body()
+        ids = [str(i) for i in (body.get("student_ids") or [])][:500]
         if not ids:
             return self.reply(400, {"error": "Choose at least one student."})
         st, roles = db(f"user_roles?select=role&user_id=eq.{who}", method="GET")
         role = roles[0]["role"] if st == 200 and roles else None
-        reason = {"admin": "admin", "college_admin": "college"}.get(role)
+        reason = removal_reason(role, who, ids, body.get("confirm"))
         if not reason:
             return self.reply(403, {"error": "Only a college or an administrator can remove students."})
         st, rows = db("rpc/remove_students", {"_ids": ids, "_by": who, "_reason": reason})

@@ -104,7 +104,7 @@ jobs:
       - name: Accounts sync safety tests (Python)
         run: |
           pip install --quiet cryptography
-          cd accounts && python3 test_sync_plan.py && python3 test_apptoken.py
+          cd accounts && python3 test_sync_plan.py && python3 test_apptoken.py && python3 test_removal_reason.py
           cd ../transcription-worker && python3 -m unittest test_server
           cd ../transcriber && python3 test_language_gate.py
 

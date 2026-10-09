@@ -1,0 +1,649 @@
+file	line	kind	label	wiring	verdict
+src/pages/AdminDashboard.tsx	146	TabsTrigger	{c.label} {c.id === "reviewed-submissions" && pendingReviews > 0 && ( 	-	wired
+src/pages/AdminNotifications.tsx	73	Button	Mark All as Read	onClick	wired
+src/pages/AdminNotifications.tsx	84	TabsTrigger	All ({notifications.length})	-	wired
+src/pages/AdminNotifications.tsx	87	TabsTrigger	Proofs ({notifications.filter(n => n.type === 'proof').length})	-	wired
+src/pages/AdminNotifications.tsx	90	TabsTrigger	Tasks ({notifications.filter(n => n.type === 'task').length})	-	wired
+src/pages/AdminNotifications.tsx	93	TabsTrigger	Users ({notifications.filter(n => n.type === 'user').length})	-	wired
+src/pages/AdminNotifications.tsx	96	TabsTrigger	System ({notifications.filter(n => n.type === 'system').length})	-	wired
+src/pages/AdminNotifications.tsx	144	Button	Mark read	onClick	wired
+src/pages/AdminNotifications.tsx	155	Button		onClick	wired
+src/pages/Auth.tsx	140	Link	ProofLabAI	to	wired
+src/pages/AuthCallback.tsx	134	a	Return to Login	href	wired
+src/pages/Index.tsx	106	button	How It Works	onClick	wired
+src/pages/Index.tsx	107	button	For Colleges	onClick	wired
+src/pages/Index.tsx	108	button	For Startups	onClick	wired
+src/pages/Index.tsx	109	Link	Try Premium	to	wired
+src/pages/Index.tsx	115	Button	Sign In	asChild	wired
+src/pages/Index.tsx	116	Link	Sign In	to	wired
+src/pages/Index.tsx	121	button	{mobileMenuOpen ? : }	onClick	wired
+src/pages/Index.tsx	133	button	How It Works	onClick	wired
+src/pages/Index.tsx	134	button	For Colleges	onClick	wired
+src/pages/Index.tsx	135	button	For Startups	onClick	wired
+src/pages/Index.tsx	136	Link	Pricing	onClick,to	wired
+src/pages/Index.tsx	142	Button	setMobileMenuOpen(false)}>Sign In	asChild	wired
+src/pages/Index.tsx	143	Link	Sign In	onClick,to	wired
+src/pages/Index.tsx	168	Button	Student Sign In	asChild	wired
+src/pages/Index.tsx	169	Link	Student Sign In	to	wired
+src/pages/Index.tsx	171	Button	College Sign In	asChild	wired
+src/pages/Index.tsx	172	Link	College Sign In	to	wired
+src/pages/Index.tsx	247	TabsTrigger	For Students	-	wired
+src/pages/Index.tsx	251	TabsTrigger	For Colleges	-	wired
+src/pages/Index.tsx	255	TabsTrigger	For Startups	-	wired
+src/pages/Index.tsx	299	Button	See full pricing plans	asChild	wired
+src/pages/Index.tsx	300	Link	See full pricing plans	to	wired
+src/pages/Index.tsx	345	Button	See full pricing plans	asChild	wired
+src/pages/Index.tsx	346	Link	See full pricing plans	to	wired
+src/pages/Index.tsx	391	Button	See full pricing plans	asChild	wired
+src/pages/Index.tsx	392	Link	See full pricing plans	to	wired
+src/pages/Index.tsx	551	Button	Sign In	asChild	wired
+src/pages/Index.tsx	552	Link	Sign In	to	wired
+src/pages/Index.tsx	562	Button	Subscribe	-	CHECK-no-handler
+src/pages/Index.tsx	590	Link	Pricing	to	wired
+src/pages/Index.tsx	591	button	For Students	onClick	wired
+src/pages/Index.tsx	592	button	For Colleges	onClick	wired
+src/pages/Index.tsx	599	button	About ProofLab	onClick	wired
+src/pages/Index.tsx	600	a	Blog	href	CHECK-no-target
+src/pages/Index.tsx	601	button	Contact	onClick	wired
+src/pages/Index.tsx	608	Link	Terms & Conditions	to	wired
+src/pages/Index.tsx	609	Link	Privacy Policy	to	wired
+src/pages/Index.tsx	610	a	LinkedIn	href	wired
+src/pages/Index.tsx	611	a	Instagram	href	wired
+src/pages/NotFound.tsx	19	a	Return to Home	href	wired
+src/pages/Portfolio.tsx	178	Button	Try Again	onClick	wired
+src/pages/Portfolio.tsx	181	Button	Go to ProofLabAI	onClick,href	wired
+src/pages/Portfolio.tsx	257	a	{isRecruiterMode ? "Contact Student" : "Contact Me"}	href	wired
+src/pages/ResetPassword.tsx	229	form	<PasswordInput value={password} onChange={ setPassword } placeholder="	onSubmit	wired
+src/pages/ResetPassword.tsx	256	Button	{loading ? ( ) : null} Update Password	submit,disabled	wired
+src/pages/ResetPassword.tsx	313	button	Back to Login	onClick	wired
+src/pages/StudentDashboard.tsx	76	Button	Try again	onClick	wired
+src/pages/StudentInterestOnboarding.tsx	176	Button	{generating ? ( Building your questions... ) : ( "Start assessment" )}	onClick,disabled	wired
+src/pages/StudentInterestOnboarding.tsx	233	Button	Continue to dashboard	onClick	wired
+src/pages/StudentResumeOnboarding.tsx	55	button	Sign out	onClick	wired
+src/pages/StudentResumeOnboarding.tsx	76	Button	Continue to dashboard	onClick	wired
+src/components/AppGuideChatbot.tsx	55	Button		onClick	wired
+src/components/AppGuideChatbot.tsx	88	Button		onClick,disabled	wired
+src/components/AppGuideChatbot.tsx	94	Button	{open ? : }	onClick	wired
+src/components/ErrorBoundary.tsx	92	button	Reload the page	onClick	wired
+src/components/ErrorBoundary.tsx	98	button	Go to the start	onClick,href	wired
+src/components/OnboardingModal.tsx	203	Button	{content.ctaText}	onClick	wired
+src/components/OnboardingModal.tsx	210	Button	Maybe Later	onClick	wired
+src/components/StickyCtaBar.tsx	91	Link	{button.text}	href,to	wired
+src/components/StickyCtaBar.tsx	92	Button	{button.text}	-	CHECK-no-handler
+src/components/StickyCtaBar.tsx	102	Button		onClick	wired
+src/components/ThemeToggle.tsx	37	Button	{theme === 'dark' ? ( ) : ( )}	onClick	wired
+src/components/auth/EmailConfirmationRequired.tsx	83	Button	{loading ? ( ) : ( )} Resend Confirmation Email	onClick,disabled	wired
+src/components/auth/EmailConfirmationRequired.tsx	97	Button	Back to Login	onClick	wired
+src/components/auth/EnhancedRoleBasedAuthForm.tsx	251	TabsTrigger	Login	-	wired
+src/components/auth/EnhancedRoleBasedAuthForm.tsx	255	form	setEmail(e.target.value)} required	onSubmit	wired
+src/components/auth/EnhancedRoleBasedAuthForm.tsx	269	Button	{loading ? : null} Sign In	submit,disabled	wired
+src/components/auth/EnhancedRoleBasedAuthForm.tsx	275	button	Forgot Password?	onClick	wired
+src/components/auth/EnhancedRoleBasedAuthForm.tsx	293	form	setEmail(e.target.value)} required /> {loading ? : null} Send Reset Li	onSubmit	wired
+src/components/auth/EnhancedRoleBasedAuthForm.tsx	301	Button	{loading ? : null} Send Reset Link	submit,disabled	wired
+src/components/auth/EnhancedRoleBasedAuthForm.tsx	307	button	Back to Login	onClick	wired
+src/components/auth/PasswordInput.tsx	73	Button	{showPassword ? ( ) : ( )}	onClick	wired
+src/components/dashboard/ProfilePhotoModal.tsx	186	Button		onClick	wired
+src/components/dashboard/ProfilePhotoModal.tsx	212	Button	Edit	onClick,disabled	wired
+src/components/dashboard/ProfilePhotoModal.tsx	222	Button	{uploading ? "Uploading..." : "Add photo"}	onClick,disabled	wired
+src/components/dashboard/ProfilePhotoModal.tsx	234	Button	Frames	disabled	CHECK-always-disabled
+src/components/dashboard/ProfilePhotoModal.tsx	243	Button	{deleting ? "Removing..." : "Delete"}	onClick,disabled	wired
+src/components/dashboard/ProfilePhotoModal.tsx	260	input	); }; export default ProfilePhotoModal;	onChange	wired
+src/components/dashboard/admin/AdminAnalytics.tsx	154	Select	Weekly Monthly Yearly	onValueChange	wired
+src/components/dashboard/admin/AdminDashboardOverview.tsx	203	Select	Last 7 days Last 30 days Last 3 months	onValueChange	wired
+src/components/dashboard/admin/AdminHeader.tsx	18	Button		onClick	wired
+src/components/dashboard/admin/AdminHeader.tsx	32	Button	{unreadCount > 0 && ( {unreadCount > 9 ? '9+' : unreadCount} )}	onClick	wired
+src/components/dashboard/admin/AdminNotificationsPopover.tsx	63	Button	Mark all read	onClick	wired
+src/components/dashboard/admin/AdminNotificationsPopover.tsx	73	Button		onClick	wired
+src/components/dashboard/admin/AdminNotificationsPopover.tsx	120	Button	View All Notifications	onClick	wired
+src/components/dashboard/admin/AdminSidebar.tsx	82	SidebarMenuButton	{group.label}	onClick	wired
+src/components/dashboard/admin/AdminSidebar.tsx	102	SidebarMenuButton	Sign Out	onClick	wired
+src/components/dashboard/admin/AdminSubmissions.tsx	48	Select	All Passed Not passed Needs review	onValueChange	wired
+src/components/dashboard/admin/BugFinder.tsx	47	Button	Refresh	onClick	wired
+src/components/dashboard/admin/BugFinder.tsx	63	button	{failed.length === 0 ? : } {format(new Date(r.started_at), "d MMM HH:m	onClick	wired
+src/components/dashboard/admin/CollegeOversight.tsx	380	Button	Add New College	onClick	wired
+src/components/dashboard/admin/CollegeOversight.tsx	399	Select	All Status Pending Active Suspended	onValueChange	wired
+src/components/dashboard/admin/CollegeOversight.tsx	410	Select	10 25 50 100	onValueChange	wired
+src/components/dashboard/admin/CollegeOversight.tsx	491	Button		-	wired
+src/components/dashboard/admin/CollegeOversight.tsx	496	DropdownMenuItem	View Details	onClick	wired
+src/components/dashboard/admin/CollegeOversight.tsx	501	DropdownMenuItem	Approve	onClick	wired
+src/components/dashboard/admin/CollegeOversight.tsx	506	DropdownMenuItem	Edit	onClick	wired
+src/components/dashboard/admin/CollegeOversight.tsx	511	DropdownMenuItem	Suspend	onClick	wired
+src/components/dashboard/admin/CollegeOversight.tsx	535	Button	Previous	onClick,disabled	wired
+src/components/dashboard/admin/CollegeOversight.tsx	546	Button	Next	onClick,disabled	wired
+src/components/dashboard/admin/CollegeOversight.tsx	636	Select	Active Pending Suspended	onValueChange	wired
+src/components/dashboard/admin/CollegeOversight.tsx	653	Button	{viewMode === 'view' ? 'Close' : 'Cancel'}	onClick	wired
+src/components/dashboard/admin/CollegeOversight.tsx	657	Button	{createMutation.isPending || updateMutation.isPending ? 'Saving...' : 	onClick,disabled	wired
+src/components/dashboard/admin/ContentLibrary.tsx	117	a	{p.url}	href	wired
+src/components/dashboard/admin/ContentLibrary.tsx	128	Button	Read	onClick	wired
+src/components/dashboard/admin/ContentLibrary.tsx	129	Button	{p.hidden ? Show : Hide }	onClick	wired
+src/components/dashboard/admin/DailyLots.tsx	77	button	{r.student_name} <span c	onClick	wired
+src/components/dashboard/admin/DailyLots.tsx	143	Button	Previous	onClick,disabled	wired
+src/components/dashboard/admin/DailyLots.tsx	145	Button	Next	onClick,disabled	wired
+src/components/dashboard/admin/EditTaskModal.tsx	107	form	Task Title setFormData({ ...	onSubmit	wired
+src/components/dashboard/admin/EditTaskModal.tsx	131	Select	Development Design Marketing General	onValueChange	wired
+src/components/dashboard/admin/EditTaskModal.tsx	146	Select	Pending Assigned In Progress Completed	onValueChange	wired
+src/components/dashboard/admin/EditTaskModal.tsx	187	Select	None {SCRATCH_LANGUAGES.map((l) => ( {scratchLabel(l)} ))}	onValueChange,disabled	wired
+src/components/dashboard/admin/EditTaskModal.tsx	234	Button	Cancel	onClick	wired
+src/components/dashboard/admin/EditTaskModal.tsx	237	Button	{updateTaskMutation.isPending ? "Saving..." : "Save Changes"}	submit,disabled	wired
+src/components/dashboard/admin/EmailTemplatesDialog.tsx	82	Select	{KINDS.map((k) => {k.label} )}	onValueChange	wired
+src/components/dashboard/admin/EmailTemplatesDialog.tsx	103	Button	Use built-in wording	onClick,disabled	wired
+src/components/dashboard/admin/EmailTemplatesDialog.tsx	107	Button	{save.isPending ? "Saving…" : "Save"}	onClick,disabled	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	504	Button	Add Company	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	509	Button	Export CSV	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	519	TabsTrigger	{getTabIcon('students')} Students Students	-	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	524	TabsTrigger	{getTabIcon('startups')} Companies Companies	-	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	529	TabsTrigger	{getTabIcon('colleges')} Colleges Colleges	-	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	557	Select	</SelectTrigge	onValueChange	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	582	Select		onValueChange	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	595	Select	<SelectValue placeholder="College" /	onValueChange	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	741	Button		-	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	746	DropdownMenuItem	{tab === 'startups' ? 'View Profile' : 'View Details'}	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	753	DropdownMenuItem	Block User	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	762	DropdownMenuItem	Unblock User	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	774	DropdownMenuItem	Approve	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	783	DropdownMenuItem	Reject	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	791	DropdownMenuItem	Suspend	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	802	DropdownMenuItem	Approve	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	811	DropdownMenuItem	Suspend	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	899	Button	Cancel	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	905	Button	{createCompanyMutation.isPending ? 'Creating...' : 'Create Company'}	onClick,disabled	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	990	Button	Cancel	onClick	wired
+src/components/dashboard/admin/EnhancedUserManagement.tsx	993	Button	{updateUserMutation.isPending ? 'Processing...' : `${actionType} User`	onClick,disabled	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	222	Button	Add New	onClick	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	276	Button		-	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	281	DropdownMenuItem	View Announcement	onClick	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	285	DropdownMenuItem	Edit	onClick	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	289	DropdownMenuItem	Delete	onClick	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	328	form	Announcement Title <Input id="title"	onSubmit	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	358	Button	{formData.expiry_date ? format(formData.expiry_date, "PPP") : "Pick an	-	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	383	Button	Cancel	onClick	wired
+src/components/dashboard/admin/ManageAnnouncementsPage.tsx	391	Button	{submitting ? "Posting..." : editingAnnouncement ? "Update Announcemen	submit,disabled	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	242	Button	Add New	onClick	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	288	Button		-	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	293	DropdownMenuItem	View Details	onClick	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	297	DropdownMenuItem	Edit	onClick	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	301	DropdownMenuItem	Delete	onClick	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	327	form	Job	onSubmit	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	367	Select	{jobTypes.map((type) => ( {type} ))}	onValueChange	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	399	Button	{formData.deadline ? format(formData.deadline, "PPP") : "Pick a deadli	-	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	436	Button	Cancel	onClick	wired
+src/components/dashboard/admin/ManageJobsPage.tsx	444	Button	{submitting ? "Creating..." : editingJob ? "Update Job" : "Create"}	submit,disabled	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	266	Button	Add New	onClick	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	319	Button		-	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	324	DropdownMenuItem	Preview	onClick	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	328	DropdownMenuItem	Edit	onClick	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	332	DropdownMenuItem	Delete	onClick	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	386	a	Open original link	href	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	401	Button	Visit Resource	asChild	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	402	a	Visit Resource	href	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	425	form	Resource Title <Input id="title"	onSubmit	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	441	Select	{categories.map((category) => ( {category} ))}	onValueChange	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	494	Button	Cancel	onClick	wired
+src/components/dashboard/admin/ManageResourcesPage.tsx	502	Button	{submitting ? "Adding..." : editingResource ? "Update Resource" : "Add	submit,disabled	wired
+src/components/dashboard/admin/NotificationRulesDialog.tsx	69	Switch	))} )} ); }; export default NotificationRulesDialog;	onCheckedChange,disabled	wired
+src/components/dashboard/admin/ReassignTaskModal.tsx	89	form	Select Student	onSubmit	wired
+src/components/dashboard/admin/ReassignTaskModal.tsx	92	Select	{students?.map((student) => ( {student.full_name} ({student.email}) ))	onValueChange	wired
+src/components/dashboard/admin/ReassignTaskModal.tsx	107	Button	Cancel	onClick	wired
+src/components/dashboard/admin/ReassignTaskModal.tsx	110	Button	{reassignMutation.isPending ? "Reassigning..." : "Reassign Task"}	submit,disabled	wired
+src/components/dashboard/admin/RecruiterOversight.tsx	128	a		href	wired
+src/components/dashboard/admin/RecruiterOversight.tsx	163	Button	Remove approval	onClick,disabled	wired
+src/components/dashboard/admin/RecruiterOversight.tsx	175	Button	Approve	onClick,disabled	wired
+src/components/dashboard/admin/ReviewedSubmissions.tsx	136	Button	Approve	onClick,disabled	wired
+src/components/dashboard/admin/ReviewedSubmissions.tsx	144	Button	Reject	onClick,disabled	wired
+src/components/dashboard/admin/SecurityEvents.tsx	151	Button	Refresh	onClick	wired
+src/components/dashboard/admin/SecurityEvents.tsx	155	Button	All	onClick	wired
+src/components/dashboard/admin/SecurityEvents.tsx	163	Button	{LABEL[t] ?? t}	onClick	wired
+src/components/dashboard/admin/StudentOversight.tsx	285	Button	Add New Student	onClick	wired
+src/components/dashboard/admin/StudentOversight.tsx	303	Select	10 25 50 100	onValueChange	wired
+src/components/dashboard/admin/StudentOversight.tsx	349	Button		-	wired
+src/components/dashboard/admin/StudentOversight.tsx	354	DropdownMenuItem	View	onClick	wired
+src/components/dashboard/admin/StudentOversight.tsx	358	DropdownMenuItem	Edit	onClick	wired
+src/components/dashboard/admin/StudentOversight.tsx	362	DropdownMenuItem	Suspend	onClick	wired
+src/components/dashboard/admin/StudentOversight.tsx	369	DropdownMenuItem	Remove student	onClick	wired
+src/components/dashboard/admin/StudentOversight.tsx	400	Button	Previous	onClick,disabled	wired
+src/components/dashboard/admin/StudentOversight.tsx	411	Button	Next	onClick,disabled	wired
+src/components/dashboard/admin/StudentOversight.tsx	462	Select	{(colleges ?? []).map((c) => ( {c.name} ))}	onValueChange	wired
+src/components/dashboard/admin/StudentOversight.tsx	498	Select	Active Inactive Pending Suspended	onValueChange	wired
+src/components/dashboard/admin/StudentOversight.tsx	516	Button	{viewMode === 'view' ? 'Close' : 'Cancel'}	onClick	wired
+src/components/dashboard/admin/StudentOversight.tsx	520	Button	{createMutation.isPending || updateMutation.isPending ? 'Saving...' : 	onClick,disabled	wired
+src/components/dashboard/admin/StudentTrace.tsx	57	Button	Search	onClick	wired
+src/components/dashboard/admin/StudentTrace.tsx	66	button	{s.full_name ?? "(no name)"} {s.events_7d} steps in 7 days{s.last_seen	onClick	wired
+src/components/dashboard/admin/StudentTrace.tsx	79	Button	{h === 24 ? "24 h" : h === 72 ? "3 days" : "7 days"}	onClick	wired
+src/components/dashboard/admin/StudentTrace.tsx	120	Button	{d === 1 ? "Today" : `${d} days`}	onClick	wired
+src/components/dashboard/admin/StudentTrace.tsx	156	Button	{d === 1 ? "Today" : `${d} days`}	onClick	wired
+src/components/dashboard/admin/StudentTrace.tsx	198	Button	{name}	onClick	wired
+src/components/dashboard/admin/SystemSettings.tsx	177	Button	Add Admin	onClick	wired
+src/components/dashboard/admin/SystemSettings.tsx	207	Button		onClick,disabled	wired
+src/components/dashboard/admin/SystemSettings.tsx	233	Button	Configure Email Templates	onClick	wired
+src/components/dashboard/admin/SystemSettings.tsx	239	Button	Manage Notification Rules	onClick	wired
+src/components/dashboard/admin/SystemSettings.tsx	284	Select	Administrator	onValueChange	wired
+src/components/dashboard/admin/SystemSettings.tsx	306	Button	Cancel	onClick	wired
+src/components/dashboard/admin/SystemSettings.tsx	309	Button	{createAdminMutation.isPending ? 'Creating...' : 'Create Admin'}	onClick,disabled	wired
+src/components/dashboard/admin/TaskOversight.tsx	419	Select	All Status Active Completed Overdue	onValueChange	wired
+src/components/dashboard/admin/TaskOversight.tsx	431	Select	All Creators Colleges Startups Admins	onValueChange	wired
+src/components/dashboard/admin/TaskOversight.tsx	443	Select	All Categories Development Design Marketing General	onValueChange	wired
+src/components/dashboard/admin/TaskOversight.tsx	456	Select	All Dates Due Today Due This Week Due This Month	onValueChange	wired
+src/components/dashboard/admin/TaskOversight.tsx	534	Button		-	wired
+src/components/dashboard/admin/TaskOversight.tsx	539	DropdownMenuItem	Edit Task	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	543	DropdownMenuItem	View Assigned Students	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	547	DropdownMenuItem	Reassign Task	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	551	DropdownMenuItem	{task.visibility === 'public' ? : } Toggle Visibility ({task.visibilit	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	555	DropdownMenuItem	Flag for Review	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	559	DropdownMenuItem	Remove Task	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	680	Button	Edit	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	689	Button	Students	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	700	Button		-	wired
+src/components/dashboard/admin/TaskOversight.tsx	705	DropdownMenuItem	Reassign	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	709	DropdownMenuItem	Flag	onClick	wired
+src/components/dashboard/admin/TaskOversight.tsx	713	DropdownMenuItem	Remove	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	933	Button	Preview Assignment	onClick,disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	999	TabsTrigger	{getTabIcon('manual')} Manual	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1006	TabsTrigger	{getTabIcon('ai')} AI	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1013	TabsTrigger	{getTabIcon('template')} Template	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1020	TabsTrigger	{getTabIcon('personalized')} Personal	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1076	TabsTrigger	URL	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1077	Link	URL <	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1080	TabsTrigger	File	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1094	Input	{attachmentFile && ( <FileText classN	onChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1108	Button		onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1145	Select		onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1162	Button	Clear Task	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1178	Button	{dueDate ? format(dueDate, "PPP") : "Pick a date"}	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1211	Select		onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1243	Button	Save as template	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1256	Select	{["CSE", "ECE", "ME", "CE", "EEE", "IT"].map(branch => ( {branch} ))}	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1283	Button	{dueDate ? format(dueDate, "PPP") : "Pick a date"}	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1306	Select		onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1328	Button	{aiGenerating ? "Generating..." : "Generate AI Task"}	onClick,disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1365	Select		disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1374	Button	Clear Generated Task	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1394	Select	{templates.map(template => ( {template.title} ))}	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1442	Select	Coding Design Research	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1456	Button	Clear Template	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1472	Button	{dueDate ? format(dueDate, "PPP") : "Pick a date"}	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1495	Select		onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1530	Button	{selectedStudents.length > 0 ? `Generate ${selectedStudents.length} Pe	onClick,disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1549	Button	{personalizedTasks.every(t => t.selected) ? 'Deselect All' : 'Select A	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1561	Checkbox	{task.studentName}	onCheckedChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1588	Button	{task.isEditing ? 'Done' : 'Edit'}	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1614	Button	{dueDate ? format(dueDate, "PPP") : "Pick a date"}	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1638	Button	Clear All Tasks	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1667	Select	All Students By College Custom Selection	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1694	Checkbox	{college.name} ))} </di	onCheckedChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1713	Button	{showFilters ? 'Hide Filters' : 'Show Filters'}	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1727	Select	All Branches {uniqueBranches.map(branch => ( {branch} ))}	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1742	Select	All Years {uniqueYears.map(year => ( {year} ))}	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1763	Button	{selectedStudents.length === filteredStudents.length ? 'Deselect All' 	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1778	Checkbox	{student.full_name} <p className="te	onCheckedChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1893	Button	Cancel	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1896	Button	{loading ? "Assigning..." : "Confirm Assignment"}	onClick,disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1912	Button	Preview Assignment	onClick,disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1936	TabsTrigger	{getTabIcon('manual')} Manual	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1943	TabsTrigger	{getTabIcon('ai')} AI	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1950	TabsTrigger	{getTabIcon('template')} Template	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	1957	TabsTrigger	{getTabIcon('personalized')} Personal	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2012	TabsTrigger	URL	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2013	Link	URL <Upload c	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2016	TabsTrigger	File	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2030	Input	{attachmentFile && ( <FileText className="h	onChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2044	Button		onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2081	Select	<SelectIte	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2099	Button	Clear Task	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2117	Select	{uniqueBranches.map(branch => ( {branch} ))}	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2141	Button	{aiGenerating ? "Generating..." : "Generate AI Task"}	onClick,disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2183	Button	Clear Task	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2200	Select	{templates.map(template => ( {template.title} ({template.difficulty}) 	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2216	Button	Clear Template	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2276	Button	Generate Personalized Tasks	onClick,disabled	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2294	Button	{personalizedTasks.every(t => t.selected) ? "Deselect All" : "Select A	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2301	Button	Clear All	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2323	Checkbox	<div classN	onCheckedChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2345	Button	{task.isEditing ? "Done" : "Edit"}	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2419	Button	{dueDate ? format(dueDate, "PPP") : "Select due date"}	-	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2457	Switch	{/* Student Selection */} <div clas	onCheckedChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2475	Button	Filters	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2491	Select	All branches {uniqueBranches.map(branch => ( {branch} ))}	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2508	Select	All years {uniqueYears.map(year => ( {year} ))}	onValueChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2525	Button	Clear Filters	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2540	Button	{selectedStudents.length === filteredStudents.length ? "Deselect All" 	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2553	Checkbox	<p className="text-sm font-medium text-foreground trun	onCheckedChange	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2681	Button	Cancel	onClick	wired
+src/components/dashboard/assignTasks/AssignTasksScreen.tsx	2684	Button	{loading ? "Assigning..." : "Confirm Assignment"}	onClick,disabled	wired
+src/components/dashboard/college/CollegeDashboardHeader.tsx	58	Button		onClick	wired
+src/components/dashboard/college/CollegeDashboardHeader.tsx	79	Button	{unreadCount > 0 && ( {unreadCount > 9 ? '9+' : unreadCount} )}	onClick	wired
+src/components/dashboard/college/CollegeDashboardHeader.tsx	98	Button	{collegeName.split(' ').map(word => word[0]).join('').slice(0, 2)} {co	-	wired
+src/components/dashboard/college/CollegeDashboardHeader.tsx	109	DropdownMenuItem	My Profile	onClick	wired
+src/components/dashboard/college/CollegeDashboardHeader.tsx	113	DropdownMenuItem	Settings	onClick	wired
+src/components/dashboard/college/CollegeDashboardHeader.tsx	118	DropdownMenuItem	Log out	onClick	wired
+src/components/dashboard/college/CollegeDashboardSidebar.tsx	62	Button	{item.label} {item.job}	onClick	wired
+src/components/dashboard/college/CollegeDashboardSidebar.tsx	83	Button	Sign Out	onClick	wired
+src/components/dashboard/college/CollegeProfilePage.tsx	184	Button	Change Logo	onClick	wired
+src/components/dashboard/college/CollegeProfilePage.tsx	241	Button	{saving ? 'Saving...' : 'Save Changes'}	onClick,disabled	wired
+src/components/dashboard/college/CollegeSettingsPage.tsx	215	Button	Update Password	onClick	wired
+src/components/dashboard/college/CollegeSettingsPage.tsx	235	Switch	Push Notificat	onCheckedChange	wired
+src/components/dashboard/college/CollegeSettingsPage.tsx	251	Switch	Task Reminders	onCheckedChange	wired
+src/components/dashboard/college/CollegeSettingsPage.tsx	267	Switch	Weekly Digest	onCheckedChange	wired
+src/components/dashboard/college/CollegeSettingsPage.tsx	283	Switch	{/* System Settings */} <Setti	onCheckedChange	wired
+src/components/dashboard/college/NotificationsSection.tsx	24	Button	Mark all as read	onClick	wired
+src/components/dashboard/college/NotificationsSection.tsx	52	Button	Mark read	onClick	wired
+src/components/dashboard/college/PostJobDescription.tsx	75	Button	Post Job Description	onClick	wired
+src/components/dashboard/college/PostJobDescription.tsx	105	Select	{JOB_TYPES.map((t) => {t} )}	onValueChange	wired
+src/components/dashboard/college/PostJobDescription.tsx	131	Button	Cancel	onClick	wired
+src/components/dashboard/college/PostJobDescription.tsx	132	Button	{submitting ? "Posting…" : "Post"}	onClick,disabled	wired
+src/components/dashboard/college/PostSourceMaterial.tsx	58	Button	Submit Interview Material	onClick	wired
+src/components/dashboard/college/PostSourceMaterial.tsx	87	Button	Cancel	onClick	wired
+src/components/dashboard/college/PostSourceMaterial.tsx	88	Button	{submitting ? "Submitting…" : "Submit"}	onClick,disabled	wired
+src/components/dashboard/college/TpoHome.tsx	185	Button	View	onClick	wired
+src/components/dashboard/college/TpoHome.tsx	207	Button	Import students	onClick	wired
+src/components/dashboard/college/TpoHome.tsx	210	Button	View students	onClick	wired
+src/components/dashboard/college/TpoHome.tsx	213	Button	View squads	onClick	wired
+src/components/dashboard/college/TpoHome.tsx	240	button	{data.leader.name} {data.leader.points} pts	onClick	wired
+src/components/dashboard/college/TpoHome.tsx	264	Button	Open squads	onClick	wired
+src/components/dashboard/college/TpoImportStudents.tsx	391	input	<	onChange	wired
+src/components/dashboard/college/TpoImportStudents.tsx	396	Select	{branches.map((b) => {b} )} Other…	onValueChange	wired
+src/components/dashboard/college/TpoImportStudents.tsx	409	Button	{busy ? "Reading…" : "Import students"}	onClick,disabled	wired
+src/components/dashboard/college/TpoImportStudents.tsx	486	Button	Download error report	onClick	wired
+src/components/dashboard/college/TpoImportStudents.tsx	490	Button	Cancel	onClick	wired
+src/components/dashboard/college/TpoImportStudents.tsx	491	Button	{busy ? "Saving…" : counts?.valid ? `Import ${counts.valid} students` 	onClick,disabled	wired
+src/components/dashboard/college/TpoInsights.tsx	148	Button	Export weekly report	onClick	wired
+src/components/dashboard/college/TpoInsights.tsx	246	Button	View {g.students}	onClick	wired
+src/components/dashboard/college/TpoSquads.tsx	437	TabsTrigger	Standings	-	wired
+src/components/dashboard/college/TpoSquads.tsx	438	TabsTrigger	Overview	-	wired
+src/components/dashboard/college/TpoSquads.tsx	439	TabsTrigger	Members	-	wired
+src/components/dashboard/college/TpoSquads.tsx	440	TabsTrigger	Matches	-	wired
+src/components/dashboard/college/TpoSquads.tsx	441	TabsTrigger	Assign	-	wired
+src/components/dashboard/college/TpoSquads.tsx	442	TabsTrigger	Manage	-	wired
+src/components/dashboard/college/TpoSquads.tsx	443	TabsTrigger	Performance	-	wired
+src/components/dashboard/college/TpoSquads.tsx	444	TabsTrigger	Achievements	-	wired
+src/components/dashboard/college/TpoSquads.tsx	445	TabsTrigger	Leaderboards	-	wired
+src/components/dashboard/college/TpoSquads.tsx	512	Button	{busy ? "Working…" : "Recalculate now"}	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	519	Button	Redo match schedule	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	552	Button	{m.student_profiles?.full_name}	onClick	wired
+src/components/dashboard/college/TpoSquads.tsx	663	Select	{reserves.map((s) => ( {s.cohort ? `${s.cohort} · ` : ""}{s.full_name}	onValueChange	wired
+src/components/dashboard/college/TpoSquads.tsx	675	Select	{squads.map((s) => { const n = members.filter((m) => m.squad_id === s.	onValueChange	wired
+src/components/dashboard/college/TpoSquads.tsx	689	Select	Immediately Next Monday	onValueChange	wired
+src/components/dashboard/college/TpoSquads.tsx	697	Button	{busy ? "Assigning…" : "Confirm assignment"}	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	730	Button	{busy ? "Working…" : "Form squads"}	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	734	Button	{busy ? "Working…" : "Rebalance the reserve pool"}	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	759	Button	{busy ? "Working…" : "Create squad"}	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	799	Button	Save	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	807	Button	Reset	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	850	Button	Save	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	858	Button	Reset	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	900	Button	Save	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	920	Button	Save	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	933	Button	{s.is_locked ? Unlock : Lock }	onClick,disabled	wired
+src/components/dashboard/college/TpoSquads.tsx	944	Button	{archived ? Restore : Archive }	onClick,disabled	wired
+src/components/dashboard/college/TpoStudentProfile.tsx	141	Button	{data.squad.name}	onClick	wired
+src/components/dashboard/college/TpoStudentProfile.tsx	322	Button	{sending ? "Sending…" : "Send reminder"}	onClick,disabled	wired
+src/components/dashboard/college/TpoStudentProfile.tsx	327	Button	Close	onClick	wired
+src/components/dashboard/college/TpoStudents.tsx	235	Select	All branches {branches.map((b) => {b} )}	onValueChange	wired
+src/components/dashboard/college/TpoStudents.tsx	242	Select	All years {batches.map((b) => {b} )}	onValueChange	wired
+src/components/dashboard/college/TpoStudents.tsx	249	Select	All squads Reserve {squads.map((s) => {s} )}	onValueChange	wired
+src/components/dashboard/college/TpoStudents.tsx	257	Select	All status Needs attention Quiet 7+ days Onboarding unfinished Active 	onValueChange	wired
+src/components/dashboard/college/TpoStudents.tsx	269	Select	Any skill {skills.map((k) => Weak at {k} )}	onValueChange	wired
+src/components/dashboard/college/TpoStudents.tsx	278	Button	Assign Task	onClick	wired
+src/components/dashboard/college/TpoStudents.tsx	285	Button	Flagged Submissions {pendingReviews > 0 && ( {pendingReviews} )}	onClick	wired
+src/components/dashboard/college/TpoStudents.tsx	310	Button	Remove selected ({picked.size})	onClick,disabled	wired
+src/components/dashboard/college/TpoStudents.tsx	362	button	{r.squad_name}	onClick	wired
+src/components/dashboard/college/TpoStudents.tsx	391	Button		onClick,disabled	wired
+src/components/dashboard/college/TpoStudents.tsx	397	Button	{sending === r.student_id ? "Sending…" : "Remind"}	onClick,disabled	wired
+src/components/dashboard/college/TpoStudents.tsx	427	Button	Previous	onClick,disabled	wired
+src/components/dashboard/college/TpoStudents.tsx	431	Button	Next	onClick,disabled	wired
+src/components/dashboard/recruiter/ProofProfile.tsx	25	button	{label} {score ?? 'not tested'} {verified ? • : null}	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	193	button	{c.full_name} <p className="text-xs text-muted-foreground	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	240	Select	Any role {(filters?.roles ?? []).map((r: string) => ( {r} ))}	onValueChange	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	249	Select	Any skill {(filters?.skills ?? []).map((s: string) => ( {s} ))}	onValueChange	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	258	Button	Apply	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	325	button	Open candidate	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	345	Select	{OUTCOMES.map((o) => {o} )}	onValueChange	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	351	Button	Sponsor a task	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	387	button	{String(l.student_name)}	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	452	Button	Shortlist	onClick,disabled	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	465	Button	Sponsor a task for {open.name}	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	488	Button	Code + tests	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	490	Button	Written answer	onClick	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	494	Button	{busy ? "Preparing the Lot (up to a minute)…" : "Send it"}	onClick,disabled	wired
+src/components/dashboard/recruiter/RecruiterDashboardContent.tsx	498	Button	Cancel	onClick	wired
+src/components/dashboard/recruiter/VoicePlayButton.tsx	31	audio	; } return ( void load	src	wired
+src/components/dashboard/recruiter/VoicePlayButton.tsx	35	button	{audio.loading ? : }	onClick,disabled	wired
+src/components/dashboard/season/SeasonLeaderboards.tsx	106	TabsTrigger	{b.label}	-	wired
+src/components/dashboard/startup/StartupDashboardContent.tsx	82	TabsTrigger	{label}	-	wired
+src/components/dashboard/startup/StartupDashboardHeader.tsx	24	button	{profile?.startup_name?.charAt(0)?.toUpperCase() || 'S'} {profile?.sta	onClick	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	292	Button	Add New	onClick,disabled	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	337	Button		-	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	342	DropdownMenuItem	View Details	onClick	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	346	DropdownMenuItem	Edit	onClick,disabled	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	350	DropdownMenuItem	Delete	onClick	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	376	form	Job	onSubmit	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	414	Select	{jobTypes.map((type) => ( {type} ))}	onValueChange	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	446	Button	{formData.deadline ? format(formData.deadline, "PPP") : "Pick a deadli	-	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	483	Button	Cancel	onClick	wired
+src/components/dashboard/startup/StartupJobsPage.tsx	491	Button	{submitting ? "Saving..." : editingJob ? "Update Job" : "Create Job"}	submit,disabled	wired
+src/components/dashboard/startup/StartupSettingsPage.tsx	251	Button	{saving ? "Saving…" : "Update Profile"}	onClick,disabled	wired
+src/components/dashboard/startup/StartupSettingsPage.tsx	271	Switch	Task Deadlines	onCheckedChange	wired
+src/components/dashboard/startup/StartupSettingsPage.tsx	284	Switch	Weekly Reports	onCheckedChange	wired
+src/components/dashboard/startup/StartupSettingsPage.tsx	297	Switch	{/* Security Settings */} <Shield	onCheckedChange	wired
+src/components/dashboard/startup/StartupSettingsPage.tsx	337	Button	{savingPassword ? "Updating…" : "Update Password"}	onClick,disabled	wired
+src/components/dashboard/startup/StartupSettingsPage.tsx	359	Button	Delete Account	disabled	CHECK-always-disabled
+src/components/dashboard/startup/StartupSidebar.tsx	76	SidebarMenuButton	{item.title}	onClick,disabled	wired
+src/components/dashboard/startup/StartupSidebar.tsx	101	SidebarMenuButton	Logout	onClick	wired
+src/components/dashboard/startup/StartupSubmissionsPage.tsx	81	Select	All Not reviewed yet Accepted Needs work Rejected	onValueChange	wired
+src/components/dashboard/startup/StartupSubmissionsPage.tsx	167	Button	Reject	onClick	wired
+src/components/dashboard/startup/StartupSubmissionsPage.tsx	171	Button	Needs work	onClick	wired
+src/components/dashboard/startup/StartupSubmissionsPage.tsx	174	Button	Accept	onClick	wired
+src/components/dashboard/startup/StartupSubmissionsPage.tsx	198	Button	Cancel	onClick	wired
+src/components/dashboard/startup/StartupSubmissionsPage.tsx	199	Button	{review.isPending ? "Saving..." : "Save"}	onClick,disabled	wired
+src/components/dashboard/startup/VerificationBanner.tsx	24	Button	Contact Support	asChild	wired
+src/components/dashboard/startup/VerificationBanner.tsx	30	a	Contact Support	href	wired
+src/components/dashboard/startup/VerificationBanner.tsx	51	Button	Contact Support	asChild	wired
+src/components/dashboard/startup/VerificationBanner.tsx	57	a	Contact Support	href	wired
+src/components/dashboard/student/CodeRunBox.tsx	95	Button	{running ? : } {running ? "Running..." : "Run"}	onClick,disabled	wired
+src/components/dashboard/student/CodeRunBox.tsx	99	Button	Reset	onClick,disabled	wired
+src/components/dashboard/student/DeleteAccountDialog.tsx	35	Button	Delete Account	onClick	wired
+src/components/dashboard/student/DeleteAccountDialog.tsx	54	Button	Keep my account	onClick,disabled	wired
+src/components/dashboard/student/DeleteAccountDialog.tsx	55	Button	{busy ? "Deleting…" : "Delete my account"}	onClick,disabled	wired
+src/components/dashboard/student/LevelDetail.tsx	280	Button	Back to the map	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	297	Button	Open the full {courseLink.course_name} course	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	301	Button	I already know {courseLink.course_name}: skip (I will revise later)	onClick,disabled	wired
+src/components/dashboard/student/LevelDetail.tsx	304	Button	Just read the short version here	onClick,disabled	wired
+src/components/dashboard/student/LevelDetail.tsx	321	Button	Open the full {data.linked_course.course_name} course	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	421	button	{String.fromCharCode(65 + oi)}	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	518	Button	Go to this task	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	551	Button	{skipping && } Skip to check	onClick,disabled	wired
+src/components/dashboard/student/LevelDetail.tsx	561	Button	{advancing && } Got it — next	onClick,disabled	wired
+src/components/dashboard/student/LevelDetail.tsx	580	Button	Got it — quiz me	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	587	Button	{submitting && } {allAnswered ? "Check my answers" : `Answer all ${dat	onClick,disabled	wired
+src/components/dashboard/student/LevelDetail.tsx	596	Button	Read it again	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	609	Button	Back to the map	onClick	wired
+src/components/dashboard/student/LevelDetail.tsx	613	Button	{result.passed && result.next_level ? ( Continue: {result.next_level.s	onClick	wired
+src/components/dashboard/student/LevelMap.tsx	392	button	{t.emoji}	onClick,disabled	wired
+src/components/dashboard/student/LevelMap.tsx	426	Button	{t.emoji} {t.name}	onClick,disabled	wired
+src/components/dashboard/student/LevelMap.tsx	442	button	{showAllTracks ? "Back to what suits you" : `Something else? Show all 	onClick	wired
+src/components/dashboard/student/LevelMap.tsx	479	Button	Back to {tracks.find((t) => t.track_slug === returnTo.slug)?.name}	onClick	wired
+src/components/dashboard/student/LevelMap.tsx	487	Button	{t.emoji} {t.name}	onClick	wired
+src/components/dashboard/student/LevelMap.tsx	524	Button	{view === "map" ? : } {view === "map" ? "List" : "Map"}	onClick	wired
+src/components/dashboard/student/LevelMap.tsx	560	button		onClick	wired
+src/components/dashboard/student/LevelMap.tsx	582	button	{track.emoji} {level.skill} — {level.title} {state === "locked" ? "loc	onClick,disabled	wired
+src/components/dashboard/student/LevelMap.tsx	670	button	Level {l.level_number} · {l.title} {stateOf(l, activeTrack) === "locke	onClick,disabled	wired
+src/components/dashboard/student/LevelMap.tsx	704	button	{state === "mastered" ? ( ) : state === "cleared" || state === "placed	onClick,disabled	wired
+src/components/dashboard/student/LevelMap.tsx	728	button	<p className={`text-sm font-semibold leading-snug ${ st	onClick,disabled	wired
+src/components/dashboard/student/LevelPath.tsx	326	button	{/* Gloss. Two pixels of work, and the rung stops looking flat. Skippe	onClick,disabled	wired
+src/components/dashboard/student/MockInterview.tsx	236	Button	I understand — continue	onClick	wired
+src/components/dashboard/student/MockInterview.tsx	246	Button	Start mock interview	onClick	wired
+src/components/dashboard/student/MockInterview.tsx	267	Button	Answer	onClick	wired
+src/components/dashboard/student/MockInterview.tsx	281	Button	Stop and save answer	onClick	wired
+src/components/dashboard/student/MockInterview.tsx	319	Button	Download PDF	onClick	wired
+src/components/dashboard/student/MockInterview.tsx	333	Button	Take another	onClick	wired
+src/components/dashboard/student/MockInterview.tsx	344	Button	Start over	onClick	wired
+src/components/dashboard/student/MockInterview.tsx	361	button	{h.target_role || "Mock interview"} ·{" "} {new Date(h.created_at).toL	onClick	wired
+src/components/dashboard/student/PracticeBox.tsx	53	button	{n}	onClick	wired
+src/components/dashboard/student/PracticeBox.tsx	68	Button	Run	onClick	wired
+src/components/dashboard/student/PracticeBox.tsx	69	Button	Reset	onClick	wired
+src/components/dashboard/student/RecordingPlayback.tsx	49	audio	) : storagePath ? ( void load()} disabled={loading}> {loading ? : <P	src	wired
+src/components/dashboard/student/RecordingPlayback.tsx	52	Button	{loading ? : } {failed ? "Could not load - try again" : "Play recordin	onClick,disabled	wired
+src/components/dashboard/student/RecordingPlayback.tsx	62	button	{clock(s.start)}	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	501	input	{/* Only on the upload step. It used to render on every screen, so the	onChange,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	515	Button	{uploading ? ( Analyzing resume... ) : ( Upload resume (PDF) )}	asChild,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	576	Button	Download improved resume (PDF)	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	601	Button	{improving ? ( Fixing and re-checking… ) : ( Auto-fix with AI (one tim	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	610	Button	Edit myself &amp; re-upload	asChild	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	656	Select	{TARGET_ROLES.map((role) => ( {role} ))}	onValueChange	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	698	Button		onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	726	Button		onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	737	Button		onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	768	Button	Add project	onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	774	Button	{saving ? ( Saving... ) : claim.status === "confirmed" ? ( "Save chang	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	786	Button	Cancel	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	830	Button	{generatingAssessment ? ( Building your questions... ) : ( "Start asse	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	842	Button	Edit details	onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	911	Button	{retesting ? ( Building retest... ) : retestLocked && retestUnlockAt ?	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	927	Button	{generatingAssessment ? ( Building your questions... ) : ( "Retake ful	onClick,disabled	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	936	Button	Edit details	onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	948	Button	Match to a Job	onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	949	Button	Certification Radar	onClick	wired
+src/components/dashboard/student/ResumeCheckFlow.tsx	950	Button	Retest History	onClick	wired
+src/components/dashboard/student/SandboxTaskPanel.tsx	176	Button	{busy === "run" ? : } Run samples	onClick,disabled	wired
+src/components/dashboard/student/SandboxTaskPanel.tsx	180	Button	{busy === "submit" ? : } Submit	onClick,disabled	wired
+src/components/dashboard/student/SandboxTaskPanel.tsx	201	Button	Next: explain it in 60 seconds	onClick	wired
+src/components/dashboard/student/SimpleQuestion.tsx	99	button	{showOriginal ? "Hide original wording" : "Show original wording"}	onClick	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	229	Select	All Status In Progress Under Review Completed	onValueChange	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	241	Select	<SelectContent className="bg-b	onValueChange	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	317	Button	Start Task	onClick	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	329	Button	Solve in editor	onClick	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	338	Button	Write my answer	onClick	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	350	Button	Write my answer	onClick	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	362	Button	Explain 60s	onClick	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	373	Button	View Submission	onClick	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	385	Button	Under Review	disabled	CHECK-always-disabled
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	400	Button		-	wired
+src/components/dashboard/student/StudentAssignedTasksPage.tsx	405	DropdownMenuItem	View Details	onClick	wired
+src/components/dashboard/student/StudentCertifications.tsx	136	a	Verify	href	wired
+src/components/dashboard/student/StudentCertifications.tsx	146	Button		onClick	wired
+src/components/dashboard/student/StudentCertifications.tsx	160	Button	Add a certification	onClick	wired
+src/components/dashboard/student/StudentCertifications.tsx	217	Button	{busy ? "Saving…" : "Save"}	onClick,disabled	wired
+src/components/dashboard/student/StudentCertifications.tsx	220	Button	Cancel	onClick	wired
+src/components/dashboard/student/StudentDailyCard.tsx	274	Button	{lot.sandbox_config_id ? ( Solve in editor ) : ( Write my answer )}	onClick	wired
+src/components/dashboard/student/StudentDailyCard.tsx	284	Button	Record 60s explain	onClick	wired
+src/components/dashboard/student/StudentDailyCard.tsx	348	Button	My roadmap	onClick	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	102	TabsTrigger	Recent work	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	103	TabsTrigger	Progress	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	104	TabsTrigger	Skills evidence	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	105	TabsTrigger	History	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	129	TabsTrigger	Readiness	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	130	TabsTrigger	Roadmap	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	131	TabsTrigger	Resume	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	132	TabsTrigger	Mock interview	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	133	TabsTrigger	Certifications	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	134	TabsTrigger	Badges	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	135	TabsTrigger	Role preference	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	136	TabsTrigger	Privacy	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	137	TabsTrigger	Portfolio	-	wired
+src/components/dashboard/student/StudentDashboardContent.tsx	138	TabsTrigger	Settings	-	wired
+src/components/dashboard/student/StudentHeader.tsx	46	Button		onClick	wired
+src/components/dashboard/student/StudentHeader.tsx	69	Button	{unreadCount > 0 && ( {unreadCount > 9 ? '9+' : unreadCount} )}	-	wired
+src/components/dashboard/student/StudentHeader.tsx	86	Button	Mark all read	onClick	wired
+src/components/dashboard/student/StudentHeader.tsx	153	Button		onClick	wired
+src/components/dashboard/student/StudentHistory.tsx	118	Button	{loading ? "Loading…" : `Show ${Math.min(PAGE, total - events.length)}	onClick,disabled	wired
+src/components/dashboard/student/StudentPortfolioPage.tsx	85	Switch	<Share className="h-3 w-3	onCheckedChange	wired
+src/components/dashboard/student/StudentPortfolioPage.tsx	87	Button	Share Portfolio	onClick	wired
+src/components/dashboard/student/StudentPrivacy.tsx	162	button	{v.label} {v.says}	onClick,disabled	wired
+src/components/dashboard/student/StudentPrivacy.tsx	196	Switch	<div className="min-w-0 flex-	onCheckedChange,disabled	wired
+src/components/dashboard/student/StudentPrivacy.tsx	219	Switch	<span className=	onCheckedChange,disabled	wired
+src/components/dashboard/student/StudentPrivacy.tsx	260	Button		onClick	wired
+src/components/dashboard/student/StudentRolePreference.tsx	114	button		onClick	wired
+src/components/dashboard/student/StudentRolePreference.tsx	137	Button	{prefs.target_role ? "Add" : "Set"}	onClick,disabled	wired
+src/components/dashboard/student/StudentRolePreference.tsx	141	Button	Clear	onClick,disabled	wired
+src/components/dashboard/student/StudentRolePreference.tsx	163	button	{w.label}	onClick,disabled	wired
+src/components/dashboard/student/StudentRolePreference.tsx	193	button		onClick	wired
+src/components/dashboard/student/StudentRolePreference.tsx	215	Button	Add	onClick,disabled	wired
+src/components/dashboard/student/StudentRolePreference.tsx	225	Switch	); }; export default StudentRolePreference;	onCheckedChange,disabled	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	373	Button	Change Photo	onClick	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	411	Select	{BRANCHES.map(branch => ( {branch} ))}	onValueChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	424	Select	{YEARS.map(year => ( {year} ))}	onValueChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	443	Checkbox	{interest} ))} {/* Preferred Skills */}	onCheckedChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	466	Checkbox	{skill} ))} {/* Career Goals */} <di	onCheckedChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	514	Checkbox	{skill} ))} <Button onClick={ha	onCheckedChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	531	Button	{saving ? 'Saving...' : 'Save Changes'}	onClick,disabled	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	577	Button	Update Password	onClick	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	597	Switch	Push Notificat	onCheckedChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	613	Switch	{/* Privacy Settings */} <Eye	onCheckedChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	638	Switch	Show Progress	onCheckedChange	wired
+src/components/dashboard/student/StudentSettingsPage.tsx	654	Switch	{/* Account Actions */} Danger Zone </	onCheckedChange	wired
+src/components/dashboard/student/StudentSidebar.tsx	105	Button	{item.label} {(expandedGroups[item.id] ?? false) ? ( ) : ( )}	-	wired
+src/components/dashboard/student/StudentSidebar.tsx	128	Button	{child.label}	onClick	wired
+src/components/dashboard/student/StudentSidebar.tsx	150	Button	{item.label}	onClick	wired
+src/components/dashboard/student/StudentSidebar.tsx	175	Button	Sign Out	onClick	wired
+src/components/dashboard/student/StudentSquadPage.tsx	224	TabsTrigger	Overview	-	wired
+src/components/dashboard/student/StudentSquadPage.tsx	225	TabsTrigger	Members	-	wired
+src/components/dashboard/student/StudentSquadPage.tsx	226	TabsTrigger	Matches	-	wired
+src/components/dashboard/student/StudentSquadPage.tsx	227	TabsTrigger	Standings	-	wired
+src/components/dashboard/student/StudentSquadPage.tsx	228	TabsTrigger	Achievements	-	wired
+src/components/dashboard/student/StudentSquadPage.tsx	229	TabsTrigger	Leaderboards	-	wired
+src/components/dashboard/student/StudentSquadPage.tsx	230	TabsTrigger	Season	-	wired
+src/components/dashboard/student/TaskDetailsDialog.tsx	117	Button	Start Task	onClick	wired
+src/components/dashboard/student/TaskDetailsDialog.tsx	129	Button	Submit Proof	onClick	wired
+src/components/dashboard/student/TaskDetailsDialog.tsx	140	Button	Close	onClick	wired
+src/components/dashboard/student/TestMistakes.tsx	44	Button	{m.status === "Pending" ? "Start" : "Continue"}	onClick	wired
+src/components/dashboard/student/TimedResumeAssessment.tsx	562	button	{c.emoji}	onClick	wired
+src/components/dashboard/student/TimedResumeAssessment.tsx	586	Button	{submitting ? ( Grading... ) : isLastQuestion ? ( "Submit & finish" ) 	onClick,disabled	wired
+src/components/dashboard/student/TimedResumeAssessment.tsx	608	Button	Retry	onClick	wired
+src/components/dashboard/student/TimedResumeAssessment.tsx	744	Button	{running ? : } Run sample	onClick,disabled	wired
+src/components/dashboard/student/TimedResumeAssessment.tsx	753	Button	Skip	onClick,disabled	wired
+src/components/dashboard/student/TimedResumeAssessment.tsx	762	Button	{submittingCode ? ( Submitting... ) : isLastCodingQuestion ? ( "Finish	onClick,disabled	wired
+src/components/dashboard/student/TimedResumeAssessment.tsx	870	Button	Done	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1368	Button	{state === "checking" ? "Checking…" : "Check"}	onClick,disabled	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1372	Button	Save it to this work	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1376	Button	Show in the list again	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1378	Button	Delete from this device	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1382	Button	Remove from this list	onClick,disabled	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1434	Button	{accepting ? "Saving…" : "I understand — continue"}	onClick,disabled	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1437	Button	Not now	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1458	Button	{starting ? : } {starting ? "Starting microphone…" : "Start recording"	onClick,disabled	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1474	button	{showHidden ? "Hide" : "Show"} hidden recordings ({hiddenList.length})	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1504	Button	Stop and save	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1564	Button	Download PDF	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1575	Button	Done	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1594	Button	Check again	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1598	Button	It was for this work — save it here	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1602	Button	Keep it aside and record a new one	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1621	Button	Check again	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1624	Button	Keep it aside and record a new one	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1636	Button	Resume existing recording	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1639	Button	Keep it aside and record a new one	onClick	wired
+src/components/dashboard/student/VoiceExplainModal.tsx	1655	Button	Try recording again	onClick	wired
+src/components/dashboard/student/WrittenTaskPanel.tsx	168	Button	{busy ? : } Submit	onClick,disabled	wired
+src/components/dashboard/student/WrittenTaskPanel.tsx	209	Button	Next: explain it in 60 seconds	onClick	wired
+src/components/onboarding/CollegeMultiStepWizard.tsx	147	Button	Next Step	onClick	wired
+src/components/onboarding/CollegeMultiStepWizard.tsx	172	Button	Back	onClick	wired
+src/components/onboarding/CollegeMultiStepWizard.tsx	175	Button	Next Step	onClick	wired
+src/components/onboarding/CollegeMultiStepWizard.tsx	210	Button	Back	onClick	wired
+src/components/onboarding/CollegeMultiStepWizard.tsx	213	Button	{loading ? "Creating Dashboard..." : "Create College Dashboard"}	onClick,disabled	wired
+src/components/onboarding/CollegeWizard.tsx	120	Checkbox	{branch} ))}	onCheckedChange	wired
+src/components/onboarding/CollegeWizard.tsx	142	Button	{loading ? "Setting up..." : "Complete Setup"}	onClick,disabled	wired
+src/components/onboarding/IntakeChoice.tsx	153	input	{uploading ? (	onChange,disabled	wired
+src/components/onboarding/IntakeChoice.tsx	162	Button	{uploading ? ( {progress ?? "Reading your resume…"} ) : ( Upload your 	asChild,disabled	wired
+src/components/onboarding/IntakeChoice.tsx	186	Button	{skipping ? ( Setting you up… ) : ( Skip &mdash; send me a general tas	onClick,disabled	wired
+src/components/onboarding/InterestReview.tsx	130	Button	Continue to dashboard	onClick	wired
+src/components/onboarding/InterestReview.tsx	227	Button	{starting ? ( Building your questions… ) : ( analysis.match ? "Start t	onClick,disabled	wired
+src/components/onboarding/StartupMultiStepWizard.tsx	187	Button	Next Step	onClick	wired
+src/components/onboarding/StartupMultiStepWizard.tsx	229	Checkbox	{area} ))} Select all a	onCheckedChange	wired
+src/components/onboarding/StartupMultiStepWizard.tsx	245	Button	Back	onClick	wired
+src/components/onboarding/StartupMultiStepWizard.tsx	248	Button	Next Step	onClick	wired
+src/components/onboarding/StartupMultiStepWizard.tsx	291	Button	Back	onClick	wired
+src/components/onboarding/StartupMultiStepWizard.tsx	294	Button	{loading ? "Creating Dashboard..." : "Create Startup Dashboard"}	onClick,disabled	wired
+src/components/onboarding/StartupWizard.tsx	119	Checkbox	{skill} ))} <Button onClick={hand	onCheckedChange	wired
+src/components/onboarding/StartupWizard.tsx	130	Button	{loading ? "Setting up..." : "Complete Setup"}	onClick,disabled	wired
+src/components/onboarding/StudentWizard.tsx	175	Checkbox	{interest} ))} <div	onCheckedChange	wired
+src/components/onboarding/StudentWizard.tsx	187	Button	Next	onClick	wired
+src/components/onboarding/StudentWizard.tsx	202	Checkbox	{skill} ))}	onCheckedChange	wired
+src/components/onboarding/StudentWizard.tsx	215	Button	Other skills	onClick	wired
+src/components/onboarding/StudentWizard.tsx	235	Button	{skill}	onClick	wired
+src/components/onboarding/StudentWizard.tsx	267	Button	Back	onClick	wired
+src/components/onboarding/StudentWizard.tsx	271	Button	{loading ? "Setting up..." : "Complete Setup"}	onClick,disabled	wired
+src/components/onboarding/WelcomeScreen.tsx	46	Button	{starting ? "Starting…" : "Start"} {!starting && }	onClick,disabled	wired
+src/components/public/RecruiterHeader.tsx	21	Link	ProofLabAI	to	wired
+src/components/public/RecruiterHeader.tsx	42	Button	Sign In as Student Sign In	asChild	wired
+src/components/public/RecruiterHeader.tsx	43	Link	Sign In as Student Sign In	to	wired
+src/components/public/RecruiterHeader.tsx	52	Button	Back to Dashboard Dashboard	asChild	wired
+src/components/public/RecruiterHeader.tsx	53	Link	Back to Dashboard Dashboard	to	wired

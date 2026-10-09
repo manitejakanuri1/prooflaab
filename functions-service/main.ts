@@ -37,6 +37,7 @@ const SLUGS = [
   "app-guide-chat",
   "assign_tasks",
   "company-lot",
+  "company-voice-play",
   "create-admin-user",
   "create-college-user",
   "create-company-user",

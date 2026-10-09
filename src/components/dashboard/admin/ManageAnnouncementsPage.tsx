@@ -52,6 +52,7 @@ const ManageAnnouncementsPage = () => {
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [formData, setFormData] = useState<AnnouncementFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
+  const [viewing, setViewing] = useState<Announcement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -231,9 +232,9 @@ const ManageAnnouncementsPage = () => {
         <CardContent className="p-6">
           {/* Search and Filters */}
           <div className="flex items-center gap-4 mb-6">
-            <Button variant="outline" size="sm">
-              All Announcements
-            </Button>
+            <p className="text-sm font-medium text-muted-foreground">
+              All announcements ({announcements.length})
+            </p>
           </div>
 
           {/* Table */}
@@ -277,7 +278,7 @@ const ManageAnnouncementsPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setViewing(announcement)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Announcement
                           </DropdownMenuItem>
@@ -302,6 +303,19 @@ const ManageAnnouncementsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Read-only view */}
+      <Dialog open={viewing !== null} onOpenChange={(open) => { if (!open) setViewing(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewing?.title}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            {viewing?.status} · {viewing ? new Date(viewing.created_at).toLocaleString() : ""}
+          </p>
+          <p className="whitespace-pre-wrap text-sm">{viewing?.description || "No description."}</p>
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

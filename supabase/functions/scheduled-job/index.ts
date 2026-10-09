@@ -95,6 +95,22 @@ serve(async (req) => {
     else console.log('scheduled-job daily-lots: review digest', JSON.stringify(digest ?? null));
   }
 
+  // S34: a student who deleted their own account (migration 105) has their voice audio deleted here, riding on
+  // the daily prune so no new scheduler job is needed. Non-fatal and repeatable: a row is marked only once
+  // every one of its files is gone, so a failed delete is tried again tomorrow.
+  if (job === 'prune-events') {
+    const { data: gone, error: goneError } = await db.from('removed_students')
+      .select('id, snapshot').eq('reason', 'self').is('files_purged_at', null).limit(50);
+    if (goneError) console.error(`scheduled-job prune-events: reading self-removed accounts failed: ${goneError.message}`);
+    for (const row of gone ?? []) {
+      const files = (row.snapshot?.voice_files ?? []).filter((f: unknown) => typeof f === 'string' && f && !f.includes('..'));
+      const { error: removeError } = await db.storage.from('voice-explanations').remove(files);
+      if (removeError) { console.error(`scheduled-job prune-events: voice files of a deleted account not removed: ${removeError.message}`); continue; }
+      await db.from('removed_students').update({ files_purged_at: new Date().toISOString() }).eq('id', row.id);
+    }
+    if (gone?.length) console.log(`scheduled-job prune-events: checked ${gone.length} deleted account(s) for leftover audio`);
+  }
+
   // A job that ran but failed at its purpose is a failure (migration 75): answer 500 so Cloud
   // Scheduler retries it and the scheduled-job alert fires. Only daily-lots reports a status today.
   const state = jobState(data);

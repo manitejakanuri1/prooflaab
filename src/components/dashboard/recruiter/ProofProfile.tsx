@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Play } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { Candidate, ProofItem } from "@/recruiter/types";
+import VoicePlayButton from "./VoicePlayButton";
 
 /**
  * The Proof Profile, as delivered — screens built against mock data, now fed
@@ -141,7 +141,7 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
               {candidate.voiceExplanations.map(voice => (
                 <div key={voice.id} className='rounded-lg border border-border bg-secondary/30 p-3'>
                   <div className='flex items-center justify-between gap-3'>
-                    <div className='flex items-center gap-3'><button className='flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary'><Play className='h-4 w-4 fill-current' /></button><div><div className='text-sm font-medium'>{voice.topic}</div><div className='text-[11px] text-muted-foreground'>{voice.date}</div></div></div>
+                    <div className='flex items-center gap-3'>{voice.audioShared && <VoicePlayButton voiceId={voice.id} />}<div><div className='text-sm font-medium'>{voice.topic}</div><div className='text-[11px] text-muted-foreground'>{voice.date}</div></div></div>
                     <div className='text-xs font-mono tabular text-muted-foreground'>{voice.duration}</div>
                   </div>
                   <p className='mt-3 text-xs text-muted-foreground'>{voice.transcript}</p>

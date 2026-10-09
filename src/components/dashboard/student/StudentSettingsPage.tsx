@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Lock, Bell, Eye, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ProfilePhotoModal from "../ProfilePhotoModal";
+import DeleteAccountDialog from "./DeleteAccountDialog";
 import { getInitials } from "@/lib/utils";
 
 interface StudentSettingsPageProps {
@@ -672,9 +673,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
             <p className="text-sm text-red-600 mb-4">
               Once you delete your account, there is no going back. Please be certain.
             </p>
-            <Button variant="destructive">
-              Delete Account
-            </Button>
+            {profile?.id && <DeleteAccountDialog studentId={profile.id} />}
           </div>
         </CardContent>
       </Card>

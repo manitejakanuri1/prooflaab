@@ -7,9 +7,13 @@
 -- Deploy order: put the previous functions and accounts images back BEFORE running this.
 begin;
 
-create or replace function public.remove_students(_ids uuid[], _by uuid, _reason text)
-returns table (student_id uuid, provider_uid text, email text)
-language plpgsql security definer set search_path = public, auth, pg_temp as $$
+-- The body migration 65 wrote (the current one before 105), verbatim.
+CREATE OR REPLACE FUNCTION public.remove_students(_ids uuid[], _by uuid, _reason text)
+ RETURNS TABLE(student_id uuid, provider_uid text, email text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'auth', 'pg_temp'
+AS $function$
 #variable_conflict use_column
 declare
   is_admin boolean := exists (select 1 from public.user_roles where user_id = _by and role = 'admin');
@@ -25,7 +29,6 @@ begin
   if _by is not null and not is_admin and my_college is null then
     raise exception 'only a college or an administrator can remove students';
   end if;
-
   for s in
     select l.student_id, l.provider_uid, l.email, p.full_name, p.college_id
       from public.student_logins() l
@@ -35,7 +38,6 @@ begin
     if _by is not null and not is_admin and s.college_id is distinct from my_college then
       raise exception 'that student belongs to another college';
     end if;
-
     insert into public.removed_students (student_id, college_id, email, full_name, removed_by, reason, snapshot)
     values (s.student_id, s.college_id, s.email, s.full_name, _by, _reason, jsonb_build_object(
       'profile',     (select to_jsonb(p) from public.student_profiles p where p.id = s.student_id),
@@ -43,22 +45,22 @@ begin
       'provider_uid', s.provider_uid,
       'squad',       (select jsonb_agg(to_jsonb(m)) from public.squad_members m where m.student_id = s.student_id),
       'tasks',       (select jsonb_agg(to_jsonb(t)) from public.tasks t where t.student_id = s.student_id),
-      'proofs',      (select jsonb_agg(to_jsonb(x)) from public.proof_uploads x where x.student_id = s.student_id),
+      -- The student's graded work. (This backup used to keep proof uploads only, so a
+      -- removed student's real submissions were not in it.)
+      'submissions', (select jsonb_agg(to_jsonb(x)) from public.task_submissions x where x.student_id = s.student_id),
       'scorecards',  (select jsonb_agg(to_jsonb(x)) from public.resume_scorecards x where x.student_id = s.student_id),
       'tracks',      (select jsonb_agg(to_jsonb(x)) from public.student_tracks x where x.student_id = s.student_id),
       'levels',      (select jsonb_agg(to_jsonb(x)) from public.student_levels x where x.student_id = s.student_id),
       'voice',       (select jsonb_agg(to_jsonb(x)) from public.voice_explanations x where x.student_id = s.student_id)
     ));
-
     delete from public.account_identities where user_id = s.student_id;
     delete from public.student_intake    where user_id = s.student_id;
     delete from auth.users               where id      = s.student_id;  -- everything else cascades
-
     student_id := s.student_id; provider_uid := s.provider_uid; email := s.email;
     return next;
   end loop;
 end;
-$$;
+$function$;
 
 drop trigger if exists notifications_apply_rules on public.notifications;
 drop function if exists public.apply_notification_rules();

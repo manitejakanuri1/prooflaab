@@ -38,7 +38,7 @@ expect() { if [ "$2" = "$3" ]; then echo "PASS  $1 ($3)"; else echo "FAIL  $1: w
 ledger() { # read-only: which of the migrations this release needs are recorded on staging
   local q; q=$(mktemp --suffix=.sql)
   printf '%s\n' '\pset tuples_only on' 'begin transaction read only;' \
-    "select 'LEDGER ' || coalesce(string_agg(version::text, ',' order by version::text), 'none') from public.schema_migrations where version::text ~ '^(9[2-8]|10[0-5])[a-z]?-';" 'rollback;' > "$q"
+    "select 'LEDGER ' || coalesce(string_agg(version::text, ',' order by version::text), 'none') from public.schema_migrations where version::text ~ '^(9[2-8]|10[0-6])[a-z]?-';" 'rollback;' > "$q"
   bash scripts/dev-tools/staging_sql.sh "$q" | grep -o 'LEDGER .*' | head -1
 }
 
@@ -71,6 +71,7 @@ prepare() {
   echo "== 3. migrations through the ledger (already-applied files are skipped; a changed file is refused)"
   bash scripts/dev-tools/staging_migrate.sh migration/104-ai-first-review-and-safe-resolution.sql
   bash scripts/dev-tools/staging_migrate.sh migration/105-live-controls.sql
+  bash scripts/dev-tools/staging_migrate.sh migration/106-live-controls-repair.sql
 
   echo "== 4. build from the commit; canaries at 0% traffic, tag $TAG, labelled with the commit"
   for s in $SERVICES; do bash scripts/dev-tools/staging_deploy.sh "$s" --no-traffic --tag "$TAG" --labels "commit-sha=$SHA"; done
@@ -136,6 +137,7 @@ rollback() {
   echo "Traffic is back on the previous revisions. Two steps are printed, not run:"
   python scripts/dev-tools/staging_rollback_plan.py --stable-revision "$PREV_web_bff" --site-version "$PREV_SITE"
   echo "Database, only if needed (put the images back first; saved settings are kept, every student's audio sharing goes off):"
+  echo "  bash scripts/dev-tools/staging_sql.sh migration/106-rollback-live-controls-repair.sql"
   echo "  bash scripts/dev-tools/staging_sql.sh migration/105-rollback-live-controls.sql"
 }
 

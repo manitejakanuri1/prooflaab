@@ -1,4 +1,4 @@
-// S34: migration 105 executed on a real PostgreSQL engine. OFFLINE, IN-MEMORY, THROWAWAY.
+// S34: migrations 105 and 106 executed on a real PostgreSQL engine. OFFLINE, IN-MEMORY, THROWAWAY.
 //
 // Uses PGlite (PostgreSQL compiled to WebAssembly, inside this Node process), the same way as
 // sidhu_s30_pg_harness.mjs. It is NOT a project database: nothing is read from or written to staging or production.
@@ -19,7 +19,9 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const MIGRATION = readFileSync(join(ROOT, "migration/105-live-controls.sql"), "utf8");
+const REPAIR = readFileSync(join(ROOT, "migration/106-live-controls-repair.sql"), "utf8");
 const ROLLBACK = readFileSync(join(ROOT, "migration/105-rollback-live-controls.sql"), "utf8");
+const REPAIR_ROLLBACK = readFileSync(join(ROOT, "migration/106-rollback-live-controls-repair.sql"), "utf8");
 
 let PGlite = null;
 try { ({ PGlite } = await import(process.env.PGLITE_MODULE ?? "@electric-sql/pglite")); } catch { /* skipped below */ }
@@ -54,7 +56,7 @@ create table public.student_intake (user_id uuid primary key, intake_completed_a
 create table public.account_identities (user_id uuid primary key, provider_uid text not null);
 create table public.squad_members (student_id uuid references auth.users on delete cascade);
 create table public.tasks (id uuid primary key default gen_random_uuid(), student_id uuid references auth.users on delete cascade, title text);
-create table public.proof_uploads (student_id uuid references auth.users on delete cascade);
+create table public.task_submissions (student_id uuid references auth.users on delete cascade, status text);
 create table public.resume_scorecards (student_id uuid references auth.users on delete cascade);
 create table public.student_tracks (student_id uuid references auth.users on delete cascade);
 create table public.student_levels (student_id uuid references auth.users on delete cascade);
@@ -124,10 +126,11 @@ insert into public.voice_explanations (id, student_id, storage_path, communicati
   ('${ID.VB}', '${ID.SB}', '${ID.SB}/b.webm', 75, 'server', 'scored', null);
 `;
 
-async function database() {
+async function database({ repaired = true } = {}) {
   const db = new PGlite();
   await db.exec(FIXTURE);
   await db.exec(MIGRATION);
+  if (repaired) await db.exec(REPAIR);
   return db;
 }
 /** Runs sql as a role with a signed-in user id, then returns to the owner. */
@@ -139,9 +142,23 @@ const refused = (p, re) => assert.rejects(p, re);
 const one = async (db, sql) => Object.values((await db.query(sql)).rows[0])[0];
 const play = (db, company, voice) => as(db, "service_role", null, `select public.company_voice_recording('${company}', '${voice}') as path`).then((r) => r.rows[0].path);
 
-test("105 applies as written, and its own self-check passes", { skip }, async () => {
+test("105 then 106 apply as written, and their own self-checks pass", { skip }, async () => {
   const db = await database();
   assert.equal(await one(db, `select count(*)::int from public.student_profiles where share_voice_audio`), 0);
+});
+
+test("why 106 exists: 105 alone reads a retired table and lets an administrator give consent", { skip }, async () => {
+  const db = await database({ repaired: false });
+  // The fixture, like the cleaned-up schema, has no proof-upload table. 105's remove_students() still reads it.
+  await refused(as(db, "service_role", null, `select * from public.remove_students(array['${ID.SA}']::uuid[], '${ID.SA}', 'self')`), /does not exist/);
+  assert.equal(await one(db, `select count(*)::int from auth.users where id = '${ID.SA}'`), 1, "nothing was removed by the failed call");
+  await as(db, "authenticated", ID.ADM, `update public.student_profiles set share_voice_audio = true where id = '${ID.SB}'`);
+  assert.equal(await one(db, `select share_voice_audio from public.student_profiles where id = '${ID.SB}'`), true, "the gap 106 closes");
+  // 106 applies on top of a database that already has 105 (the state of staging) and repairs both.
+  await db.exec(`update public.student_profiles set share_voice_audio = false`);
+  await db.exec(REPAIR);
+  await refused(as(db, "authenticated", ID.ADM, `update public.student_profiles set share_voice_audio = true where id = '${ID.SB}'`), /only the student/);
+  assert.equal((await as(db, "service_role", null, `select * from public.remove_students(array['${ID.SA}']::uuid[], '${ID.SA}', 'self')`)).rows.length, 1);
 });
 
 test("consent: only the student can switch audio sharing on", { skip }, async () => {
@@ -267,17 +284,21 @@ test("delete my account: own account only, no copy of the work kept, server role
   await as(db, "service_role", null, `update public.removed_students set login_deleted_at = now(), files_purged_at = now() where student_id = '${ID.SA}'`);
   // A college or admin removal still keeps its snapshot (unchanged behaviour).
   await remove([ID.SB], ID.ADM, "admin");
-  assert.ok("profile" in (await one(db, `select snapshot from public.removed_students where student_id = '${ID.SB}'`)));
+  const kept = await one(db, `select snapshot from public.removed_students where student_id = '${ID.SB}'`);
+  assert.ok("profile" in kept && "submissions" in kept && !("proofs" in kept), "migration 65's backup, graded work included");
 });
 
 test("the rollback applies as written and leaves no consent switched on", { skip }, async () => {
   const db = await database();
   await as(db, "authenticated", ID.SA, `select public.set_share_voice_audio(true)`);
+  await db.exec(REPAIR_ROLLBACK);
+  assert.equal(await one(db, `select count(*)::int from public.student_profiles where share_voice_audio`), 0, "106 rollback switches everyone off before the guard goes");
   await db.exec(ROLLBACK);
+  await refused(as(db, "service_role", null, `select * from public.remove_students(array['${ID.SA}']::uuid[], '${ID.SA}', 'self')`), /unknown reason/);
   assert.equal(await one(db, `select count(*)::int from public.student_profiles where share_voice_audio`), 0);
   assert.equal(await one(db, `select count(*)::int from pg_proc where proname in ('company_voice_recording', 'set_share_voice_audio', 'apply_notification_rules', 'guard_share_voice_audio')`), 0);
   assert.ok(!("audio_shared" in (await one(db, `select public.recruiter_proof_profile('${ID.SA}')`)).explanations[0]));
   await as(db, "service_role", null, `insert into public.notifications (user_id, type, title) values ('${ID.SA}', 'x', 't')`); // trigger gone, inserts work
-  // 105 can be applied again after a rollback.
-  await db.exec(MIGRATION);
+  // Both can be applied again after a rollback.
+  await db.exec(MIGRATION); await db.exec(REPAIR);
 });

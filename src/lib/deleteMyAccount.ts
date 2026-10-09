@@ -6,8 +6,12 @@ export const DELETE_WORD = "DELETE";
  * login (accounts/ service + remove_students() with the reason 'self',
  * migration 105). It cannot be undone, so the caller signs the browser out
  * straight afterwards.
+ *
+ * loginDeleted false means the data is gone and the login is locked but not
+ * yet deleted (the server retries it). That is not the same as done, and the
+ * screen must say so.
  */
-export async function deleteMyAccount(myId: string, typed: string): Promise<void> {
+export async function deleteMyAccount(myId: string, typed: string): Promise<{ loginDeleted: boolean }> {
   if (typed !== DELETE_WORD) throw new Error(`Type ${DELETE_WORD} to confirm.`);
   const res = await fetch("/api/accounts/remove", {
     method: "POST",
@@ -19,4 +23,5 @@ export async function deleteMyAccount(myId: string, typed: string): Promise<void
   if (!res.ok || json.removed !== 1) {
     throw new Error(res.ok ? "Your account was not deleted. Please try again." : json.error ?? "Your account was not deleted.");
   }
+  return { loginDeleted: json.login_deleted === true };
 }

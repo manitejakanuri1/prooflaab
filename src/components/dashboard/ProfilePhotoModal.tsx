@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Camera, Edit3, Image, Trash2 } from "lucide-react";
+import { X, Camera, Edit3, Trash2 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 
 interface ProfilePhotoModalProps {
@@ -229,15 +229,6 @@ const ProfilePhotoModal = ({
                 <span className="text-xs">
                   {uploading ? "Uploading..." : "Add photo"}
                 </span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center gap-2 h-auto py-3 px-4 text-muted-foreground hover:text-foreground"
-                disabled
-              >
-                <Image className="h-5 w-5" />
-                <span className="text-xs">Frames</span>
               </Button>
 
               <Button

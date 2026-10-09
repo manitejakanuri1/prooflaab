@@ -10,45 +10,43 @@ src/pages/AdminNotifications.tsx	144	Button	Mark read	onClick	wired
 src/pages/AdminNotifications.tsx	155	Button		onClick	wired
 src/pages/Auth.tsx	140	Link	ProofLabAI	to	wired
 src/pages/AuthCallback.tsx	134	a	Return to Login	href	wired
-src/pages/Index.tsx	106	button	How It Works	onClick	wired
-src/pages/Index.tsx	107	button	For Colleges	onClick	wired
-src/pages/Index.tsx	108	button	For Startups	onClick	wired
-src/pages/Index.tsx	109	Link	Try Premium	to	wired
-src/pages/Index.tsx	115	Button	Sign In	asChild	wired
-src/pages/Index.tsx	116	Link	Sign In	to	wired
-src/pages/Index.tsx	121	button	{mobileMenuOpen ? : }	onClick	wired
-src/pages/Index.tsx	133	button	How It Works	onClick	wired
-src/pages/Index.tsx	134	button	For Colleges	onClick	wired
-src/pages/Index.tsx	135	button	For Startups	onClick	wired
-src/pages/Index.tsx	136	Link	Pricing	onClick,to	wired
-src/pages/Index.tsx	142	Button	setMobileMenuOpen(false)}>Sign In	asChild	wired
-src/pages/Index.tsx	143	Link	Sign In	onClick,to	wired
-src/pages/Index.tsx	168	Button	Student Sign In	asChild	wired
-src/pages/Index.tsx	169	Link	Student Sign In	to	wired
-src/pages/Index.tsx	171	Button	College Sign In	asChild	wired
-src/pages/Index.tsx	172	Link	College Sign In	to	wired
-src/pages/Index.tsx	247	TabsTrigger	For Students	-	wired
-src/pages/Index.tsx	251	TabsTrigger	For Colleges	-	wired
-src/pages/Index.tsx	255	TabsTrigger	For Startups	-	wired
-src/pages/Index.tsx	299	Button	See full pricing plans	asChild	wired
-src/pages/Index.tsx	300	Link	See full pricing plans	to	wired
-src/pages/Index.tsx	345	Button	See full pricing plans	asChild	wired
-src/pages/Index.tsx	346	Link	See full pricing plans	to	wired
-src/pages/Index.tsx	391	Button	See full pricing plans	asChild	wired
-src/pages/Index.tsx	392	Link	See full pricing plans	to	wired
-src/pages/Index.tsx	551	Button	Sign In	asChild	wired
-src/pages/Index.tsx	552	Link	Sign In	to	wired
-src/pages/Index.tsx	562	Button	Subscribe	-	CHECK-no-handler
-src/pages/Index.tsx	590	Link	Pricing	to	wired
-src/pages/Index.tsx	591	button	For Students	onClick	wired
-src/pages/Index.tsx	592	button	For Colleges	onClick	wired
-src/pages/Index.tsx	599	button	About ProofLab	onClick	wired
-src/pages/Index.tsx	600	a	Blog	href	CHECK-no-target
-src/pages/Index.tsx	601	button	Contact	onClick	wired
-src/pages/Index.tsx	608	Link	Terms & Conditions	to	wired
-src/pages/Index.tsx	609	Link	Privacy Policy	to	wired
-src/pages/Index.tsx	610	a	LinkedIn	href	wired
-src/pages/Index.tsx	611	a	Instagram	href	wired
+src/pages/Index.tsx	105	button	How It Works	onClick	wired
+src/pages/Index.tsx	106	button	For Colleges	onClick	wired
+src/pages/Index.tsx	107	button	For Startups	onClick	wired
+src/pages/Index.tsx	108	Link	Try Premium	to	wired
+src/pages/Index.tsx	114	Button	Sign In	asChild	wired
+src/pages/Index.tsx	115	Link	Sign In	to	wired
+src/pages/Index.tsx	120	button	{mobileMenuOpen ? : }	onClick	wired
+src/pages/Index.tsx	132	button	How It Works	onClick	wired
+src/pages/Index.tsx	133	button	For Colleges	onClick	wired
+src/pages/Index.tsx	134	button	For Startups	onClick	wired
+src/pages/Index.tsx	135	Link	Pricing	onClick,to	wired
+src/pages/Index.tsx	141	Button	setMobileMenuOpen(false)}>Sign In	asChild	wired
+src/pages/Index.tsx	142	Link	Sign In	onClick,to	wired
+src/pages/Index.tsx	167	Button	Student Sign In	asChild	wired
+src/pages/Index.tsx	168	Link	Student Sign In	to	wired
+src/pages/Index.tsx	170	Button	College Sign In	asChild	wired
+src/pages/Index.tsx	171	Link	College Sign In	to	wired
+src/pages/Index.tsx	246	TabsTrigger	For Students	-	wired
+src/pages/Index.tsx	250	TabsTrigger	For Colleges	-	wired
+src/pages/Index.tsx	254	TabsTrigger	For Startups	-	wired
+src/pages/Index.tsx	298	Button	See full pricing plans	asChild	wired
+src/pages/Index.tsx	299	Link	See full pricing plans	to	wired
+src/pages/Index.tsx	344	Button	See full pricing plans	asChild	wired
+src/pages/Index.tsx	345	Link	See full pricing plans	to	wired
+src/pages/Index.tsx	390	Button	See full pricing plans	asChild	wired
+src/pages/Index.tsx	391	Link	See full pricing plans	to	wired
+src/pages/Index.tsx	550	Button	Sign In	asChild	wired
+src/pages/Index.tsx	551	Link	Sign In	to	wired
+src/pages/Index.tsx	576	Link	Pricing	to	wired
+src/pages/Index.tsx	577	button	For Students	onClick	wired
+src/pages/Index.tsx	578	button	For Colleges	onClick	wired
+src/pages/Index.tsx	585	button	About ProofLab	onClick	wired
+src/pages/Index.tsx	586	button	Contact	onClick	wired
+src/pages/Index.tsx	593	Link	Terms & Conditions	to	wired
+src/pages/Index.tsx	594	Link	Privacy Policy	to	wired
+src/pages/Index.tsx	595	a	LinkedIn	href	wired
+src/pages/Index.tsx	596	a	Instagram	href	wired
 src/pages/NotFound.tsx	19	a	Return to Home	href	wired
 src/pages/Portfolio.tsx	178	Button	Try Again	onClick	wired
 src/pages/Portfolio.tsx	181	Button	Go to ProofLabAI	onClick,href	wired
@@ -85,9 +83,8 @@ src/components/auth/PasswordInput.tsx	73	Button	{showPassword ? ( ) : ( )}	onCli
 src/components/dashboard/ProfilePhotoModal.tsx	186	Button		onClick	wired
 src/components/dashboard/ProfilePhotoModal.tsx	212	Button	Edit	onClick,disabled	wired
 src/components/dashboard/ProfilePhotoModal.tsx	222	Button	{uploading ? "Uploading..." : "Add photo"}	onClick,disabled	wired
-src/components/dashboard/ProfilePhotoModal.tsx	234	Button	Frames	disabled	CHECK-always-disabled
-src/components/dashboard/ProfilePhotoModal.tsx	243	Button	{deleting ? "Removing..." : "Delete"}	onClick,disabled	wired
-src/components/dashboard/ProfilePhotoModal.tsx	260	input	); }; export default ProfilePhotoModal;	onChange	wired
+src/components/dashboard/ProfilePhotoModal.tsx	234	Button	{deleting ? "Removing..." : "Delete"}	onClick,disabled	wired
+src/components/dashboard/ProfilePhotoModal.tsx	251	input	); }; export default ProfilePhotoModal;	onChange	wired
 src/components/dashboard/admin/AdminAnalytics.tsx	154	Select	Weekly Monthly Yearly	onValueChange	wired
 src/components/dashboard/admin/AdminDashboardOverview.tsx	203	Select	Last 7 days Last 30 days Last 3 months	onValueChange	wired
 src/components/dashboard/admin/AdminHeader.tsx	18	Button		onClick	wired
@@ -125,9 +122,10 @@ src/components/dashboard/admin/EditTaskModal.tsx	146	Select	Pending Assigned In 
 src/components/dashboard/admin/EditTaskModal.tsx	187	Select	None {SCRATCH_LANGUAGES.map((l) => ( {scratchLabel(l)} ))}	onValueChange,disabled	wired
 src/components/dashboard/admin/EditTaskModal.tsx	234	Button	Cancel	onClick	wired
 src/components/dashboard/admin/EditTaskModal.tsx	237	Button	{updateTaskMutation.isPending ? "Saving..." : "Save Changes"}	submit,disabled	wired
-src/components/dashboard/admin/EmailTemplatesDialog.tsx	82	Select	{KINDS.map((k) => {k.label} )}	onValueChange	wired
-src/components/dashboard/admin/EmailTemplatesDialog.tsx	103	Button	Use built-in wording	onClick,disabled	wired
-src/components/dashboard/admin/EmailTemplatesDialog.tsx	107	Button	{save.isPending ? "Saving…" : "Save"}	onClick,disabled	wired
+src/components/dashboard/admin/EmailTemplatesDialog.tsx	103	Select	{KINDS.map((k) => {k.label} )}	onValueChange	wired
+src/components/dashboard/admin/EmailTemplatesDialog.tsx	124	Button	{sendTest.isPending ? "Sending…" : "Send test to me"}	onClick,disabled	wired
+src/components/dashboard/admin/EmailTemplatesDialog.tsx	128	Button	Use built-in wording	onClick,disabled	wired
+src/components/dashboard/admin/EmailTemplatesDialog.tsx	132	Button	{save.isPending ? "Saving…" : "Save"}	onClick,disabled	wired
 src/components/dashboard/admin/EnhancedUserManagement.tsx	504	Button	Add Company	onClick	wired
 src/components/dashboard/admin/EnhancedUserManagement.tsx	509	Button	Export CSV	onClick	wired
 src/components/dashboard/admin/EnhancedUserManagement.tsx	519	TabsTrigger	{getTabIcon('students')} Students Students	-	wired
@@ -440,9 +438,10 @@ src/components/dashboard/startup/VerificationBanner.tsx	51	Button	Contact Suppor
 src/components/dashboard/startup/VerificationBanner.tsx	57	a	Contact Support	href	wired
 src/components/dashboard/student/CodeRunBox.tsx	95	Button	{running ? : } {running ? "Running..." : "Run"}	onClick,disabled	wired
 src/components/dashboard/student/CodeRunBox.tsx	99	Button	Reset	onClick,disabled	wired
-src/components/dashboard/student/DeleteAccountDialog.tsx	35	Button	Delete Account	onClick	wired
-src/components/dashboard/student/DeleteAccountDialog.tsx	54	Button	Keep my account	onClick,disabled	wired
-src/components/dashboard/student/DeleteAccountDialog.tsx	55	Button	{busy ? "Deleting…" : "Delete my account"}	onClick,disabled	wired
+src/components/dashboard/student/DeleteAccountDialog.tsx	41	Button	Delete Account	onClick	wired
+src/components/dashboard/student/DeleteAccountDialog.tsx	55	Button	Close	onClick	wired
+src/components/dashboard/student/DeleteAccountDialog.tsx	74	Button	Keep my account	onClick,disabled	wired
+src/components/dashboard/student/DeleteAccountDialog.tsx	75	Button	{busy ? "Deleting…" : "Delete my account"}	onClick,disabled	wired
 src/components/dashboard/student/LevelDetail.tsx	280	Button	Back to the map	onClick	wired
 src/components/dashboard/student/LevelDetail.tsx	297	Button	Open the full {courseLink.course_name} course	onClick	wired
 src/components/dashboard/student/LevelDetail.tsx	301	Button	I already know {courseLink.course_name}: skip (I will revise later)	onClick,disabled	wired

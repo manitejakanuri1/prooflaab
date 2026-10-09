@@ -150,6 +150,9 @@ export const RECIPES = [
     db: (x) => `select 'S32DB ' || status from public.task_submissions where id = '${x.env.E2E_FIXTURE_REVIEW_SUBMISSION_ID}';`, expectDb: "passed" },
 ];
 
+// S34 (TEJA): the recipes for the controls S34 made real live in their own file and join the same list.
+RECIPES.push(...(await import("./s34_live_recipes.mjs")).default);
+
 /** Runs one READ-ONLY query on STAGING through the repository's runner and returns the S32DB line's value. */
 export function dbQuery(sql, { run = spawnSync } = {}) {
   if (!/^\s*select\b/i.test(sql) || /;\s*\S/.test(sql.trim().replace(/;\s*$/, "")) || /\b(insert|update|delete|drop|alter|create|grant|revoke|truncate)\b/i.test(sql.replace(/'[^']*'/g, ""))) {

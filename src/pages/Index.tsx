@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight, Menu, X, Building, Briefcase, GraduationCap, Clock, Trophy } from "lucide-react";
@@ -551,19 +550,6 @@ const Index = () => {
             <Button asChild size="lg" className="rounded-2xl px-8 py-6 text-lg">
               <Link to="/auth">Sign In</Link>
             </Button>
-            
-            <div className="space-y-4">
-              <p className="text-muted-foreground">Get weekly job & task updates via email</p>
-              <div className="flex max-w-md mx-auto space-x-2">
-                <Input 
-                  placeholder="Enter your email" 
-                  className="rounded-2xl"
-                />
-                <Button className="rounded-2xl">
-                  Subscribe
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -597,7 +583,6 @@ const Index = () => {
               <h4 className="font-semibold">Company</h4>
               <div className="space-y-2">
                 <button onClick={() => scrollToSection('about')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">About ProofLab</button>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Blog</a>
                 <button onClick={() => scrollToSection('contact')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">Contact</button>
               </div>
             </div>

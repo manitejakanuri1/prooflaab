@@ -2,8 +2,9 @@
 -- Requires 17 (remove_students), 61 (voice bound to submission), 104.
 --
 --   1. Student "Delete Account": remove_students() accepts the reason 'self', and only for the caller's own
---      account. A self-removal keeps NO copy of the student's work: the record holds who, when, and the paths
---      of their voice files so the daily job can delete the audio (files_purged_at).
+--      account. A self-removal keeps NO copy of the student's work: the record holds who and when. The daily
+--      job deletes every file in the student's own folders (files_purged_at); the accounts service finishes
+--      deleting the login if the first attempt failed (login_deleted_at).
 --   2. Admin "Email Templates": email_templates holds the subject and opening paragraph of each welcome email.
 --      send-onboarding-email reads it; with no row the built-in wording is used. Plain text only.
 --   3. Admin "Notification Rules": notification_rules switches one notification type off. A trigger on
@@ -21,7 +22,10 @@ alter table public.removed_students drop constraint if exists removed_students_r
 alter table public.removed_students add constraint removed_students_reason_check
   check (reason in ('college', 'admin', 'console_sync', 'self'));
 alter table public.removed_students add column if not exists files_purged_at timestamptz;
-grant update (files_purged_at) on table public.removed_students to service_role;
+-- When the Google login was confirmed gone. Empty on a 'self' row = the login is disabled and still to be deleted;
+-- the accounts service retries it on every sync run.
+alter table public.removed_students add column if not exists login_deleted_at timestamptz;
+grant update (files_purged_at, login_deleted_at) on table public.removed_students to service_role;
 
 create or replace function public.remove_students(_ids uuid[], _by uuid, _reason text)
 returns table (student_id uuid, provider_uid text, email text)
@@ -60,9 +64,7 @@ begin
     values (s.student_id, s.college_id, s.email, s.full_name, _by, _reason,
       case when _reason = 'self' then jsonb_build_object(
         'self_requested', true,
-        'voice_files', (select coalesce(jsonb_agg(x.storage_path), '[]'::jsonb)
-                          from public.voice_explanations x
-                         where x.student_id = s.student_id and x.storage_path is not null))
+        'provider_uid', s.provider_uid)  -- needed to finish deleting the login; files are found by student_id
       else jsonb_build_object(
         'profile',     (select to_jsonb(p) from public.student_profiles p where p.id = s.student_id),
         'contact',     (select to_jsonb(c) from public.student_contact c where c.student_id = s.student_id),
@@ -190,7 +192,25 @@ end $$;
 -- ── 4. a company listens to a recording ─────────────────────────────────────
 alter table public.student_profiles add column if not exists share_voice_audio boolean not null default false;
 
--- The student's own switch. A function, so no column grant on student_profiles changes.
+-- Consent belongs to the student alone. student_profiles lets an administrator update any row, so without this
+-- an administrator (or the backend) could switch a student's audio sharing on. Anyone may switch it OFF.
+create or replace function public.guard_share_voice_audio()
+returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if new.share_voice_audio
+     and (tg_op = 'INSERT' or not old.share_voice_audio)
+     and (select auth.uid()) is distinct from new.id then
+    raise exception 'only the student can allow companies to listen' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+drop trigger if exists student_profiles_guard_share_voice_audio on public.student_profiles;
+create trigger student_profiles_guard_share_voice_audio
+  before insert or update of share_voice_audio on public.student_profiles
+  for each row execute function public.guard_share_voice_audio();
+
+-- The student's own switch. A function, so every change is recorded.
 create or replace function public.set_share_voice_audio(_on boolean)
 returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -251,6 +271,7 @@ revoke all on function public.admin_notification_rules()                     fro
 revoke all on function public.admin_set_notification_rule(text, boolean)     from public, anon;
 revoke all on function public.set_share_voice_audio(boolean)                 from public, anon;
 revoke all on function public.apply_notification_rules()                     from public, anon, authenticated;
+revoke all on function public.guard_share_voice_audio()                      from public, anon, authenticated;
 revoke all on function public.company_voice_recording(uuid, uuid)            from public, anon, authenticated;
 grant execute on function public.admin_email_templates()                     to authenticated;
 grant execute on function public.admin_save_email_template(text, text, text) to authenticated;
@@ -281,6 +302,12 @@ begin
   end if;
   if not exists (select 1 from pg_trigger where tgname = 'notifications_apply_rules' and not tgisinternal) then
     raise exception '105 self-check: the notification rules trigger is missing';
+  end if;
+  if not exists (select 1 from pg_trigger where tgname = 'student_profiles_guard_share_voice_audio' and not tgisinternal) then
+    raise exception '105 self-check: the consent guard trigger is missing';
+  end if;
+  if exists (select 1 from public.student_profiles where share_voice_audio) then
+    raise exception '105 self-check: audio sharing must start switched off for everyone';
   end if;
 end $$;
 

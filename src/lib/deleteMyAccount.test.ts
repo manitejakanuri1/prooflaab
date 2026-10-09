@@ -26,12 +26,19 @@ test("nothing is sent until the word is typed exactly", async () => {
 
 test("only the caller is named, with the confirmation, on the same origin", async () => {
   answerWith(200, { removed: 1 });
-  await deleteMyAccount(ME, "DELETE");
+  assert.deepEqual(await deleteMyAccount(ME, "DELETE"), { loginDeleted: false });
   const [url, init] = calls[0];
   assert.equal(url, "/api/accounts/remove");
   assert.equal(init.method, "POST");
   assert.equal(init.credentials, "same-origin");
   assert.deepEqual(JSON.parse(String(init.body)), { student_ids: [ME], confirm: "DELETE" });
+});
+
+test("a login that is only locked, not deleted, is never reported as fully done", async () => {
+  answerWith(200, { removed: 1, login_deleted: false });
+  assert.deepEqual(await deleteMyAccount(ME, "DELETE"), { loginDeleted: false });
+  answerWith(200, { removed: 1, login_deleted: true });
+  assert.deepEqual(await deleteMyAccount(ME, "DELETE"), { loginDeleted: true });
 });
 
 test("a refusal, or an answer that removed nothing, is a failure", async () => {

@@ -39,10 +39,14 @@ test("every inventory control of the real source is in the plan, none counted as
   assert.ok(rows.length > 400);
   assert.equal(rows.filter((r) => r.status.startsWith("PASS")).length, 0);
   for (const role of ["admin", "tpo", "company", "student", "established"]) assert.ok(rows.some((r) => r.role === role), role);
-  // the known dead / destructive controls are WRITE or UNSURE, never SAFE
-  for (const re of [/Delete Account/, /Configure Email Templates/, /Manage Notification Rules/]) {
+  // the destructive controls are WRITE or UNSURE, never SAFE
+  for (const re of [/Delete Account/, /Delete my account/]) {
     const r = rows.find((x) => re.test(x.control)); assert.ok(r, String(re)); assert.notEqual(r.class, "SAFE", r.control);
   }
+  // S34 (TEJA, for Sidhu's review): these two were dead buttons at 5bef957 and were asserted never SAFE. They now
+  // only open a window, which is SAFE to click; what must never be SAFE is the Save inside the templates window.
+  for (const re of [/Configure Email Templates/, /Manage Notification Rules/]) assert.ok(rows.some((x) => re.test(x.control)), String(re));
+  for (const r of rows.filter((x) => x.control.includes("EmailTemplatesDialog.tsx") && /Save|built-in/.test(x.control))) assert.notEqual(r.class, "SAFE", r.control);
 });
 
 test("db-verify accepts exactly one SELECT and runs it read-only through staging_sql.sh", () => {

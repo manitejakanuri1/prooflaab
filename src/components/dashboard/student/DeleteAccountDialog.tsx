@@ -15,15 +15,21 @@ const DeleteAccountDialog = ({ studentId }: { studentId: string }) => {
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loginPending, setLoginPending] = useState(false);
+
+  // The login no longer works either way; clear this browser's session and leave.
+  const leave = async () => {
+    await supabase.auth.signOut().catch(() => {});
+    window.location.assign("/");
+  };
 
   const confirm = async () => {
     setBusy(true);
     setError(null);
     try {
-      await deleteMyAccount(studentId, typed);
-      // The login no longer exists; clear this browser's session and leave.
-      await supabase.auth.signOut().catch(() => {});
-      window.location.assign("/");
+      const { loginDeleted } = await deleteMyAccount(studentId, typed);
+      if (loginDeleted) await leave();
+      else setLoginPending(true); // data gone, login locked: say so before leaving
     } catch (e) {
       setError(e instanceof Error ? e.message : "Your account was not deleted.");
       setBusy(false);
@@ -36,6 +42,20 @@ const DeleteAccountDialog = ({ studentId }: { studentId: string }) => {
         Delete Account
       </Button>
       <Dialog open={open} onOpenChange={(next) => { if (!busy) setOpen(next); }}>
+        {loginPending ? (
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Your data is deleted</DialogTitle>
+              <DialogDescription>
+                Your profile, work and recordings are deleted. Your sign-in could not be removed just now, so it
+                has been locked and cannot be used. We will finish removing it automatically.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => void leave()}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        ) : (
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete your account?</DialogTitle>
@@ -57,6 +77,7 @@ const DeleteAccountDialog = ({ studentId }: { studentId: string }) => {
             </Button>
           </DialogFooter>
         </DialogContent>
+        )}
       </Dialog>
     </>
   );

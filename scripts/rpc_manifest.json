@@ -184,7 +184,8 @@
   "suggest_tracks(uuid,integer)",
   "unlock_ceiling(uuid,text)",
   "write_audit(text,text,uuid,jsonb,jsonb,uuid)",
-  "apply_notification_rules()"
+  "apply_notification_rules()",
+  "guard_share_voice_audio()"
  ],
  "policy_helper": [
   "college_owns_student(uuid)",

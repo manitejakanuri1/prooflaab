@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import apptoken
+import self_delete
 import sync_plan
 
 PORT = int(os.environ.get("PORT", "8080"))
@@ -217,6 +218,11 @@ class Handler(BaseHTTPRequestHandler):
         reason = removal_reason(role, who, ids, body.get("confirm"))
         if not reason:
             return self.reply(403, {"error": "Only a college or an administrator can remove students."})
+        if reason == "self":
+            # Its own order of steps (login disabled first), so no failure leaves a usable half-deleted account.
+            st, out = self_delete.run(who, identity, db, time.sleep)
+            print(f"self-delete by {who}: status {st}, login_deleted={out.get('login_deleted')}", flush=True)
+            return self.reply(st, out)
         st, rows = db("rpc/remove_students", {"_ids": ids, "_by": who, "_reason": reason})
         if st != 200:
             msg = rows.get("message") if isinstance(rows, dict) else str(rows)
@@ -475,6 +481,12 @@ class Handler(BaseHTTPRequestHandler):
         if not WEBHOOK or not hmac.compare_digest(self.headers.get("x-webhook-secret", ""), WEBHOOK):
             return self.reply(401, {"error": "unauthorized"})
         dry_run = "dry_run=1" in (self.path.split("?", 1)[1] if "?" in self.path else "")
+        if not dry_run:
+            # Finish self-requested deletions whose login could not be deleted at the time (migration 105).
+            try:
+                print("self-delete retry:", json.dumps(self_delete.retry_pending(identity, db, time.sleep)), flush=True)
+            except Exception as e:
+                print("self-delete retry failed:", type(e).__name__, flush=True)
         logins = all_login_ids()          # any listing/paging/timeout error raises -> 500, nothing changed
         st, students = db("rpc/student_logins", {})
         if st != 200:

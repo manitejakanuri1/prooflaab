@@ -3,7 +3,7 @@
 -- from the database refusal), notification rules stop applying, companies cannot play audio, and
 -- send-onboarding-email uses its built-in wording (it tolerates the missing read).
 -- Kept on purpose: tables email_templates and notification_rules, columns student_profiles.share_voice_audio and
--- removed_students.files_purged_at, and existing removed_students rows with the reason 'self'.
+-- removed_students.files_purged_at and login_deleted_at, and existing removed_students rows with the reason 'self'.
 -- Deploy order: put the previous functions and accounts images back BEFORE running this.
 begin;
 
@@ -67,6 +67,10 @@ drop function if exists public.admin_save_email_template(text, text, text);
 drop function if exists public.admin_notification_rules();
 drop function if exists public.admin_set_notification_rule(text, boolean);
 drop function if exists public.set_share_voice_audio(boolean);
+drop trigger if exists student_profiles_guard_share_voice_audio on public.student_profiles;
+drop function if exists public.guard_share_voice_audio();
+-- With the guard gone nothing protects the consent column, so every student is switched off again.
+update public.student_profiles set share_voice_audio = false where share_voice_audio;
 drop function if exists public.company_voice_recording(uuid, uuid);
 revoke select on table public.email_templates from service_role;
 

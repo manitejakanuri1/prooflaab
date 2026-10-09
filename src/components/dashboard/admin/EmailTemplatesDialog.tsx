@@ -60,7 +60,28 @@ const EmailTemplatesDialog = ({ open, onOpenChange }: { open: boolean; onOpenCha
     onError: (e: Error) => toast({ title: "Not saved", description: e.message, variant: "destructive" }),
   });
 
+  // Sends the real welcome email, with the wording as saved, to the signed-in administrator's own address
+  // (the function refuses any other address). "Not switched on" is reported as a failure, never as sent.
+  const sendTest = useMutation({
+    mutationFn: async () => {
+      const { data: me } = await supabase.auth.getUser();
+      const email = me.user?.email;
+      if (!email) throw new Error("Your own email address could not be read.");
+      const { data, error } = await supabase.functions.invoke("send-onboarding-email", {
+        body: { userType: key, email, name: "Test" },
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        throw new Error(data?.skipped ? "Email sending is not switched on here, so nothing was sent." : data?.error ?? "The email was not sent.");
+      }
+      return email;
+    },
+    onSuccess: (email) => toast({ title: "Test email sent", description: `Check ${email}.` }),
+    onError: (e: Error) => toast({ title: "Test email not sent", description: e.message, variant: "destructive" }),
+  });
+
   const clean = { subject: subject.trim(), intro: intro.trim() };
+  const unsaved = clean.subject !== (saved?.subject ?? "") || clean.intro !== (saved?.intro ?? "");
   const valid = clean.subject.length >= 3 && clean.subject.length <= 150 && clean.intro.length >= 10 && clean.intro.length <= 1000;
 
   return (
@@ -100,6 +121,10 @@ const EmailTemplatesDialog = ({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
         )}
         <DialogFooter>
+          <Button variant="outline" disabled={unsaved || sendTest.isPending || save.isPending}
+            onClick={() => sendTest.mutate()}>
+            {sendTest.isPending ? "Sending…" : "Send test to me"}
+          </Button>
           <Button variant="outline" disabled={!saved || save.isPending}
             onClick={() => save.mutate({ subject: "", intro: "" })}>
             Use built-in wording

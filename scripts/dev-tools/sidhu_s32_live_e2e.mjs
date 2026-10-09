@@ -186,12 +186,43 @@ export const RECIPES = [
   { id: "admin-notification-rule-off-on", role: ["admin"], fixtures: ["E2E_FIXTURE_NOTIFICATION_TYPE"], matches: /NotificationRulesDialog\.tsx|SystemSettings\.tsx/,
     async run(p, x) { await x.go("/admin/dashboard?tab=settings");
       await p.getByRole("button", { name: "Manage Notification Rules" }).click();
+      if (PROTECTED_NOTICES.includes(x.env.E2E_FIXTURE_NOTIFICATION_TYPE)) return "BLOCKED: that type cannot be switched off (migration 107); pick another fixture type";
       const sw = p.locator(`#rule-${x.env.E2E_FIXTURE_NOTIFICATION_TYPE}`); await sw.waitFor({ timeout: 15000 });
       if ((await sw.getAttribute("aria-checked")) !== "true") return "BLOCKED: that notification type is already switched off; the recipe only tests off-then-on";
       await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/admin_set_notification_rule/, "POST");
       await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/admin_set_notification_rule/, "POST");
       return "rule switched off and back on"; },
     db: (x) => `select 'S32DB ' || coalesce((select enabled::text from public.notification_rules where type = '${x.env.E2E_FIXTURE_NOTIFICATION_TYPE}'), 'none');`, expectDb: "true" },
+  // S36: migration 107 refuses switching off a notice people need in order to act. Nothing is changed on success.
+  { id: "admin-notification-protected-refused", role: ["admin"], fixtures: [], matches: /NotificationRulesDialog\.tsx/,
+    async run(p, x) { await x.go("/admin/dashboard?tab=settings");
+      await p.getByRole("button", { name: "Manage Notification Rules" }).click();
+      const sw = p.locator("#rule-review_outcome");
+      if (!(await sw.waitFor({ timeout: 15000 }).then(() => true, () => false))) return "BLOCKED: review_outcome is not listed (no such notice sent in 90 days and no rule row)";
+      if ((await sw.getAttribute("aria-checked")) !== "true") throw new Error("review_outcome is switched OFF on this database: migration 107 should have switched it back on");
+      const w = p.waitForResponse((r) => /\/api\/db\/rpc\/admin_set_notification_rule$/.test(new URL(r.url()).pathname) && r.request().method() === "POST", { timeout: 30000 });
+      await sw.click(); const r = await w;
+      if (r.status() < 400) throw new Error(`switching review_outcome off answered ${r.status()}: it was accepted`);
+      await p.getByText(/cannot be switched off/i).first().waitFor({ timeout: 15000 }).catch(() => {});
+      return `switching review_outcome off refused (HTTP ${r.status()})`; },
+    db: () => `select 'S32DB ' || coalesce((select enabled::text from public.notification_rules where type = 'review_outcome'), 'true');`, expectDb: "true" },
+  // S36: "Send test to me" sends the REAL welcome email to the signed-in administrator's own address.
+  // Accepted by the provider is not delivered: delivery is PASS only when the provider reports it (E2E_RESEND_READ_KEY).
+  { id: "admin-email-send-test", role: ["admin"], fixtures: ["E2E_FIXTURE_EMAIL_TEMPLATE_KEY_LABEL"], matches: /EmailTemplatesDialog\.tsx/,
+    async run(p, x) { await x.go("/admin/dashboard?tab=settings");
+      await p.getByRole("button", { name: "Configure Email Templates" }).click();
+      await p.getByRole("dialog").getByRole("combobox").first().click(); await p.getByRole("option", { name: x.env.E2E_FIXTURE_EMAIL_TEMPLATE_KEY_LABEL }).click();
+      const btn = p.getByRole("dialog").getByRole("button", { name: /Send test to me/ });
+      if (!(await btn.isEnabled())) return "BLOCKED: Send test is disabled (unsaved changes in the dialog)";
+      const w = p.waitForResponse((r) => new URL(r.url()).pathname === "/api/functions/send-onboarding-email" && r.request().method() === "POST", { timeout: 60000 });
+      await btn.click(); const r = await w; const body = await r.json().catch(() => ({}));
+      if (body.skipped) throw new Error("email sending is not switched on here (no provider key): nothing was sent");
+      if (r.status() !== 200 || body.success !== true) throw new Error(`send-onboarding-email answered ${r.status()} success=${body.success}`);
+      await p.getByText("Test email sent").first().waitFor({ timeout: 15000 });
+      const id = body.emailResponse?.data?.id ?? body.emailResponse?.id;
+      if (!id) throw new Error("the provider accepted the email but returned no message id");
+      return await emailDelivery(id, x.env); },
+    db: () => `select 'S32DB ' || 'none';`, expectDb: "none" },
   { id: "company-voice-play-with-consent", role: ["company"], fixtures: ["E2E_FIXTURE_VOICE_CANDIDATE_NAME", "E2E_FIXTURE_VOICE_CANDIDATE_ID"], matches: /VoicePlayButton\.tsx|ProofProfile\.tsx/,
     async run(p, x) { await x.go("/company/dashboard?tab=talent");
       await p.getByText(x.env.E2E_FIXTURE_VOICE_CANDIDATE_NAME).first().click();
@@ -220,14 +251,47 @@ export const RECIPES = [
         const w = s1.page.waitForResponse((r) => new URL(r.url()).pathname === "/api/accounts/remove", { timeout: 60000 });
         await s1.page.getByRole("dialog").getByRole("button", { name: /Delete my account/ }).click();   // DeleteAccountDialog.tsx:55
         const r = await w; const body = await r.json().catch(() => ({}));
+        if (r.status() !== 200 && /Nothing was changed/.test(String(body.error))) {
+          // Staging's accounts robot has no Identity rights (by design), so the login cannot be disabled and the
+          // service refuses before touching data. Prove that safe failure, then report the real deletion as BLOCKED.
+          await s1.ctx.close().catch(() => {});
+          const again = await x.signInFresh(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD, e.E2E_DISPOSABLE_STUDENT_USER_ID, "student");
+          if (!again.ok) throw new Error("deletion was refused with 'Nothing was changed' but the account can no longer sign in");
+          await again.ctx.close();
+          return `BLOCKED: deletion refused safely (HTTP ${r.status()}, nothing changed, sign-in still works); a real deletion needs an environment whose accounts service may manage logins`;
+        }
         if (r.status() !== 200 || body.removed !== 1) throw new Error(`accounts/remove answered ${r.status()} removed=${body.removed}`);
-        if ((body.login_failures ?? []).length) throw new Error("account rows deleted but the Identity login was NOT deleted");
+        if (body.login_deleted !== true) throw new Error("account data deleted but the Identity login was NOT deleted (login_deleted=false)");
       } finally { await s1.ctx.close().catch(() => {}); }
       const s2 = await x.signInFresh(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD, e.E2E_DISPOSABLE_STUDENT_USER_ID, "student").catch(() => ({ ok: false }));
       if (s2.ok) { await s2.ctx.close(); throw new Error("the deleted account can still sign in"); }
       return "account deleted; Identity login deleted; signing in again is refused"; },
-    db: (x) => `select 'S32DB ' || ((select count(*) from public.removed_students where student_id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}' and reason = 'self') = 1 and (select count(*) from auth.users where id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}') = 0)::text;`, expectDb: "true" },
+    db: (x) => `select 'S32DB ' || ((select count(*) from public.removed_students where student_id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}' and reason = 'self') = 1 and (select count(*) from auth.users where id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}') = 0 and (select count(*) from public.removed_students where student_id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}' and reason = 'self' and login_deleted_at is not null) = 1)::text;`, expectDb: "true" },
 ];
+
+/** Notices migration 107 refuses to switch off. */
+export const PROTECTED_NOTICES = ["review_outcome", "sponsored_task", "college_linked"];
+
+/**
+ * Was a sent email DELIVERED? Asks the provider (Resend GET /emails/{id}) with a read key. Without the key, or if
+ * the provider has not reported delivery in time, the answer is BLOCKED, never PASS. A bounce or complaint throws.
+ */
+export async function emailDelivery(id, env, { fetchImpl = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), tries = 24 } = {}) {
+  if (!/^[\w-]{8,80}$/.test(String(id))) throw new Error("the provider returned an invalid message id");
+  if (!env.E2E_RESEND_READ_KEY) return `BLOCKED: the provider accepted message ${id}; delivery to the inbox not verified (no E2E_RESEND_READ_KEY)`;
+  let last = "unknown";
+  for (let i = 0; i < tries; i++) {
+    const r = await fetchImpl(`https://api.resend.com/emails/${id}`, { headers: { authorization: `Bearer ${env.E2E_RESEND_READ_KEY}` } });
+    if (r.status === 401 || r.status === 403) return "BLOCKED: E2E_RESEND_READ_KEY cannot read sent emails (needs a full-access key)";
+    if (r.ok) {
+      last = String((await r.json()).last_event ?? "unknown");
+      if (last === "delivered") return `test email ${id} delivered (provider event: delivered)`;
+      if (/bounced|complained|failed/.test(last)) throw new Error(`test email ${id} was not delivered: ${last}`);
+    }
+    if (i < tries - 1) await sleep(5000);
+  }
+  return `BLOCKED: test email ${id} accepted but not reported delivered within ${tries * 5} s (last event: ${last})`;
+}
 
 /** Runs one READ-ONLY query on STAGING through the repository's runner and returns the S32DB line's value. */
 export function dbQuery(sql, { run = spawnSync } = {}) {
@@ -315,7 +379,7 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, al
       const email = env[`${K}_EMAIL`], password = env[`${K}_PASSWORD`], expectId = env[`${K}_USER_ID`];
       const blockRole = (why) => { for (const r of rows.filter((x) => x.role === role)) { r.status = "BLOCKED"; r.liveResult = why; } };
       if (!email || !password || !expectId) { blockRole(`no authorized account: set ${K}_EMAIL, ${K}_PASSWORD, ${K}_USER_ID`); await ctx.close(); continue; }
-      secrets.push(email, password);
+      secrets.push(email, password, env.E2E_RESEND_READ_KEY);
       try {
         await go("/auth");
         await page.fill('input[type="email"]', email); await page.fill('input[type="password"]', password);

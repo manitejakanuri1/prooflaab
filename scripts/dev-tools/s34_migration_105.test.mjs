@@ -109,7 +109,8 @@ create policy own_or_admin on public.student_profiles for all to authenticated
   using (id = (select auth.uid()) or public.is_admin()) with check (id = (select auth.uid()) or public.is_admin());
 grant usage on schema public to anon, authenticated, service_role;
 grant select, insert, update, delete on all tables in schema public to authenticated, service_role;
-revoke all on table public.removed_students from authenticated;
+revoke all on table public.removed_students from authenticated, service_role;
+grant select, insert on table public.removed_students to service_role;  -- as migration 17 leaves it
 grant execute on function public.is_admin() to authenticated, service_role;
 
 insert into auth.users (id, email) values
@@ -176,9 +177,16 @@ test("consent: only the student can switch audio sharing on", { skip }, async ()
   await refused(as(db, "service_role", null, `update public.student_profiles set share_voice_audio = true where id = '${ID.SB}'`), /only the student/);
   await db.exec(`insert into auth.users (id) values ('00000000-0000-4000-8000-0000000000a9')`);
   await refused(as(db, "service_role", null, `insert into public.student_profiles (id, share_voice_audio) values ('00000000-0000-4000-8000-0000000000a9', true)`), /only the student/);
-  // Anyone who may update the row may switch it OFF.
+  // Anyone who may update the row may switch it OFF, and that is recorded with who did it.
   await as(db, "authenticated", ID.ADM, `update public.student_profiles set share_voice_audio = false where id = '${ID.SA}'`);
   assert.equal(await one(db, `select share_voice_audio from public.student_profiles where id = '${ID.SA}'`), false);
+  assert.equal(await one(db, `select count(*)::int from public.security_events where event_type = 'voice_audio_sharing_changed' and user_id = '${ID.ADM}' and detail ->> 'enabled' = 'false'`), 1);
+  // S36-03: the student's own DIRECT table write is allowed and is recorded exactly like the function call.
+  await as(db, "authenticated", ID.SB, `update public.student_profiles set share_voice_audio = true where id = '${ID.SB}'`);
+  assert.equal(await one(db, `select count(*)::int from public.security_events where event_type = 'voice_audio_sharing_changed' and user_id = '${ID.SB}' and detail ->> 'enabled' = 'true'`), 1);
+  // Setting the value it already has records nothing.
+  await as(db, "authenticated", ID.SB, `select public.set_share_voice_audio(true)`);
+  assert.equal(await one(db, `select count(*)::int from public.security_events where event_type = 'voice_audio_sharing_changed' and user_id = '${ID.SB}'`), 1);
   // A company or a signed-out caller has no profile to switch.
   await refused(as(db, "authenticated", ID.CO, `select public.set_share_voice_audio(true)`), /only a student/);
   await refused(as(db, "anon", null, `select public.set_share_voice_audio(true)`), /permission denied/);
@@ -242,6 +250,11 @@ test("notification rules: off stops new rows of that type only; admin only", { s
   await refused(as(db, "authenticated", ID.ADM, `select public.admin_set_notification_rule('review_outcome', false)`), /cannot be switched off/);
   await send("review_outcome");
   assert.equal(await count("review_outcome"), 2);
+  // S36-04: even a rule row written by a later migration cannot stop a protected notice.
+  await db.exec(`insert into public.notification_rules (type, enabled) values ('review_outcome', false)`);
+  await send("review_outcome");
+  assert.equal(await count("review_outcome"), 3);
+  await db.exec(`delete from public.notification_rules where type = 'review_outcome'`);
   await as(db, "authenticated", ID.ADM, `select public.admin_set_notification_rule('weekly_progress', true)`);
   await send("weekly_progress");
   assert.equal(await count("weekly_progress"), 2);
@@ -286,8 +299,13 @@ test("delete my account: own account only, no copy of the work kept, server role
   assert.equal(rec.snapshot.provider_uid, "google-a");
   assert.equal(rec.login_deleted_at, null);
   assert.equal(rec.files_purged_at, null);
-  // The server can record the two follow-ups and nothing else on that row.
+  // The server can record the follow-ups and nothing else on that row.
+  await refused(as(db, "service_role", null, `update public.removed_students set snapshot = '{}'::jsonb where student_id = '${ID.SA}'`), /permission denied/);
+  await as(db, "service_role", null, `update public.removed_students set login_delete_attempts = login_delete_attempts + 1 where student_id = '${ID.SA}'`);
+  assert.equal(await one(db, `select snapshot ->> 'provider_uid' from public.removed_students where student_id = '${ID.SA}'`), "google-a", "kept while the login is still to delete");
   await as(db, "service_role", null, `update public.removed_students set login_deleted_at = now(), files_purged_at = now() where student_id = '${ID.SA}'`);
+  // S36-05: once the login is recorded gone, the login id leaves the record.
+  assert.equal(await one(db, `select snapshot ? 'provider_uid' from public.removed_students where student_id = '${ID.SA}'`), false);
   // A college or admin removal still keeps its snapshot (unchanged behaviour).
   await remove([ID.SB], ID.ADM, "admin");
   const kept = await one(db, `select snapshot from public.removed_students where student_id = '${ID.SB}'`);
@@ -303,7 +321,7 @@ test("the rollback applies as written and leaves no consent switched on", { skip
   await refused(as(db, "service_role", null, `select * from public.remove_students(array['${ID.SA}']::uuid[], '${ID.SA}', 'self')`), /unknown reason/);
   await as(db, "authenticated", ID.ADM, `select 1`);
   assert.equal(await one(db, `select count(*)::int from public.student_profiles where share_voice_audio`), 0);
-  assert.equal(await one(db, `select count(*)::int from pg_proc where proname in ('company_voice_recording', 'set_share_voice_audio', 'apply_notification_rules', 'guard_share_voice_audio')`), 0);
+  assert.equal(await one(db, `select count(*)::int from pg_proc where proname in ('company_voice_recording', 'set_share_voice_audio', 'apply_notification_rules', 'guard_share_voice_audio', 'notification_type_protected', 'removed_students_forget_login_id')`), 0);
   assert.ok(!("audio_shared" in (await one(db, `select public.recruiter_proof_profile('${ID.SA}')`)).explanations[0]));
   await as(db, "service_role", null, `insert into public.notifications (user_id, type, title) values ('${ID.SA}', 'x', 't')`); // trigger gone, inserts work
   // Both can be applied again after a rollback.

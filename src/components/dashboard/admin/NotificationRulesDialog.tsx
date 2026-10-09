@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Rule { type: string; enabled: boolean; sent_90d: number }
 
+// The same three as notification_type_protected() in migration 107: the server refuses to switch these off.
+const ALWAYS_ON = new Set(["review_outcome", "sponsored_task", "college_linked"]);
+
 const words = (type: string) => type.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
 /**
@@ -64,9 +67,11 @@ const NotificationRulesDialog = ({ open, onOpenChange }: { open: boolean; onOpen
               <div key={r.type} className="flex items-center justify-between gap-4">
                 <div>
                   <Label htmlFor={`rule-${r.type}`}>{words(r.type)}</Label>
-                  <p className="text-xs text-muted-foreground">{r.sent_90d} sent in the last 90 days</p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.sent_90d} sent in the last 90 days{ALWAYS_ON.has(r.type) ? ". Always on: people need it to act." : ""}
+                  </p>
                 </div>
-                <Switch id={`rule-${r.type}`} checked={r.enabled} disabled={setRule.isPending}
+                <Switch id={`rule-${r.type}`} checked={r.enabled} disabled={setRule.isPending || ALWAYS_ON.has(r.type)}
                   onCheckedChange={(enabled) => setRule.mutate({ type: r.type, enabled })} />
               </div>
             ))}

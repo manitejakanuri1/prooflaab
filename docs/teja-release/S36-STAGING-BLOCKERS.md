@@ -125,6 +125,39 @@ exact-build gate, GitHub workflow); my separate recipe file is removed because h
 
 Nothing here is a live result. Unit and database tests prove the code; they do not prove the screens.
 
+## 4a. Coding questions and Sidhu's S36 security QA (added after the first S36 commit)
+
+**Coding questions.** A student on staging got "couldn't load the coding problems". Cause: the Java test wrapper
+the server generates did not compile (two quote-escaping mistakes), so every Java coding question was rejected.
+Fixed in `8c0246a`, with a test that really compiles and runs the wrapper in all eight languages. The same fault
+is in the functions image serving staging and in production's image. Not deployed.
+
+**Sidhu's findings** (`docs/sidhu-qa/S36-SECURITY-QA.md`), all confirmed:
+
+| ID | Finding | State |
+|---|---|---|
+| S36-01 (P1) | The functions program had no permission to write, so the files of a self-deleted student could never be deleted | **Fixed in code**: write access to the mounted buckets only (`/mnt`). Needs a new functions image to take effect. |
+| S36-02 (P1) | Staging functions has no bucket mounted; a missing path would have been read as "already deleted" and recorded as done | **Fixed in code**: storage that cannot be seen is a failure, never "nothing to delete". Staging still has no mount, so staging rows stay pending and are reported every day. Mounting the buckets is an owner infrastructure change. |
+| S36-03 | A student's direct table write switched consent on with no record | Fixed: the trigger writes the record for every change, whoever makes it (107) |
+| S36-04 | A protected notice could still be dropped if its rule row was off | Fixed: the dropping trigger knows the protected list (107) |
+| S36-05 | The login id stayed in the deletion record after the login was gone | Fixed: removed the moment the login is recorded gone (107). **Still open, owner decision:** email and name stay with no end date. |
+| S36-06 | Fifty stuck logins starved newer ones and slept 150 s inside the sync request | Fixed: 10 a run, one try each, no sleeping, least-tried first |
+| S36-06b | A record with no login id stayed pending silently | It is now counted and logged for a person; a machine still cannot finish it |
+| S36-07 | Protected notices looked switchable in the admin window | Fixed: shown locked, "Always on" |
+
+His reproduction tests were written to fail once a finding is fixed. All of them are now normal tests that fail
+if a fix is lost.
+
+**What is true about file deletion today, in plain words:**
+
+- Nothing has been deleted or recorded as deleted: there are 0 self-deleted accounts on staging.
+- With the current live images, files of a self-deleted student would **not** be deleted, and would be reported as
+  not deleted every day (never marked done).
+- Production functions does have both buckets mounted. Whether its robot account is allowed to delete objects
+  there is **not checked** (it is an IAM read on production, and deletion has never been attempted).
+- The student screen says "your profile, work and recordings are deleted". Until a purge is proven end to end,
+  **self-deletion should not be offered in production.**
+
 ## 5. Manager demo accounts
 
 BLOCKED. No confirmation of the five logins has reached this session, so no signed-in browser test was run and no
@@ -132,9 +165,12 @@ Identity user, password or fixture mapping was read or changed.
 
 ## 6. Remaining blockers, in order
 
-1. Owner: apply 106 (and 107) to staging.
+0. Deploy the functions fix for coding questions (commit `8c0246a` or later) and verify with a real student.
+1. Owner: apply 106 (and 107) to staging. 107 was changed after Sidhu's QA; it has not been applied anywhere.
 2. Owner: raise the Cloud Run CPU quota.
 3. The five demo logins confirmed, then the signed-in suite.
 4. Owner: approve `switch` for this commit (traffic and staging site).
-5. Sidhu: independent sign-off on 107 and the deletion flow.
+5. Sidhu: re-review of the changed 107 and the purge fix; owner: mount buckets on staging functions (or accept
+   that staging cannot prove file deletion), confirm the production robot may delete objects, and decide how long
+   email and name stay in a self-deletion record.
 6. Production: nothing is ready to go there until 1 to 5 pass on staging.

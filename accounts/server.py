@@ -484,7 +484,7 @@ class Handler(BaseHTTPRequestHandler):
         if not dry_run:
             # Finish self-requested deletions whose login could not be deleted at the time (migration 105).
             try:
-                print("self-delete retry:", json.dumps(self_delete.retry_pending(identity, db, time.sleep)), flush=True)
+                print("self-delete retry:", json.dumps(self_delete.retry_pending(identity, db)), flush=True)
             except Exception as e:
                 print("self-delete retry failed:", type(e).__name__, flush=True)
         logins = all_login_ids()          # any listing/paging/timeout error raises -> 500, nothing changed

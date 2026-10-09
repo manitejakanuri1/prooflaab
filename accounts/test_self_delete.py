@@ -11,6 +11,7 @@ class World:
         self.fail = dict(fail or {})
         self.calls, self.disabled, self.data, self.login, self.marked = [], False, True, True, False
         self.mapping, self.already_gone = mapping, already_gone
+        self.attempts = 0
 
     def _fails(self, step):
         if self.fail.get(step, 0) > 0:
@@ -48,12 +49,17 @@ class World:
             return 200, [{"student_id": ME, "provider_uid": UID, "email": "x"}]
         if method == "PATCH":
             assert "reason=eq.self" in path and "login_deleted_at=is.null" in path
-            self.marked = True
+            if "login_deleted_at" in body:
+                assert list(body) == ["login_deleted_at"], "the service may write only this column"
+                self.marked = True
+            else:
+                self.attempts += body["login_delete_attempts"]
             return 204, None
         if method == "GET" and "select=id" in path:  # did the delete happen after all?
             return 200, ([] if self.data else [{"id": "r1"}])
-        if method == "GET":  # retry listing
-            return 200, [{"student_id": ME, "snapshot": {"provider_uid": UID}}]
+        if method == "GET":  # retry listing: least-tried first, a small batch
+            assert "order=login_delete_attempts.asc,removed_at.asc" in path and "limit=10" in path, path
+            return 200, [{"student_id": ME, "snapshot": {"provider_uid": UID}, "login_delete_attempts": 0}]
         raise AssertionError(path)
 
 
@@ -107,8 +113,9 @@ assert run(w) == (200, {"removed": 1, "login_deleted": True}) and w.marked
 
 # The retry finishes a pending deletion and records it; a second failure leaves it pending.
 w = World()
-assert self_delete.retry_pending(w.identity, w.db, lambda s: None) == {"pending": 0, "finished": 1} and w.marked
+assert self_delete.retry_pending(w.identity, w.db) == {"pending": 0, "finished": 1, "needs_review": 0} and w.marked
 w = World(fail={"delete": 3})
-assert self_delete.retry_pending(w.identity, w.db, lambda s: None) == {"pending": 1, "finished": 0} and not w.marked
+assert self_delete.retry_pending(w.identity, w.db) == {"pending": 1, "finished": 0, "needs_review": 0} and not w.marked
+assert w.calls.count("accounts:delete") == 1 and w.attempts == 1, "one try a run, and the failure is counted"
 
 print("self_delete: 11 cases passed")

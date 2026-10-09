@@ -53,6 +53,10 @@ preflight() {
   case ",${L#LEDGER }," in *,103-*) echo "PASS  migration 103 is recorded (104 needs it)";; *) echo "FAIL  migration 103 is not recorded on staging: reconcile the ledger first"; exit 1;; esac
   env_names=$(describe functions 'value(spec.template.spec.containers[0].env[].name)')
   for n in RESEND_API_KEY EMAIL_FROM PRIVATE_MOUNT PUBLIC_MOUNT; do case ";$env_names;" in *";$n;"*) echo "PASS  functions has $n";; *) echo "FAIL  functions has no $n"; exit 1;; esac; done
+  # The variable names prove nothing by themselves (Sidhu S36-02): are buckets really mounted there?
+  mounts=$(describe functions 'value(spec.template.spec.containers[0].volumeMounts[].mountPath)')
+  if [ -n "$mounts" ]; then echo "PASS  functions has storage mounted at: $mounts"
+  else echo "NOTE  functions has NO storage mounted: the files of a self-deleted account cannot be deleted on staging. The daily job reports each one as not deleted and leaves it pending; it never marks it done."; fi
   case ";$(describe web-bff 'value(spec.template.spec.containers[0].env[].name)');" in
     *";BFF_RELEASE_READY;"*) echo "NOTE  the release switch is set on the staging gateway";;
     *) echo "NOTE  the release switch is NOT set: signed-in pages stay closed and the e2e phase cannot pass until the owner sets it";; esac

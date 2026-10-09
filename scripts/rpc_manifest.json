@@ -185,7 +185,9 @@
   "unlock_ceiling(uuid,text)",
   "write_audit(text,text,uuid,jsonb,jsonb,uuid)",
   "apply_notification_rules()",
-  "guard_share_voice_audio()"
+  "guard_share_voice_audio()",
+  "notification_type_protected(text)",
+  "removed_students_forget_login_id()"
  ],
  "policy_helper": [
   "college_owns_student(uuid)",

@@ -40,6 +40,8 @@ def delete_login(identity, provider_uid: str, sleep) -> bool:
 
 
 def mark_login_deleted(db, student_id: str) -> bool:
+    """Record that the login is gone. The database then drops the login id from the record by itself
+    (migration 107, Sidhu S36-05): it was kept only to get this far."""
     status, _ = db(f"removed_students?student_id=eq.{student_id}&reason=eq.self&login_deleted_at=is.null",
                    {"login_deleted_at": datetime.now(timezone.utc).isoformat()}, method="PATCH")
     return status in (200, 204)
@@ -92,17 +94,41 @@ def run(who: str, identity, db, sleep):
     return 200, {"removed": 1, "login_deleted": login_deleted}
 
 
-def retry_pending(identity, db, sleep) -> dict:
-    """Finish login deletions that failed earlier. Safe to run any number of times."""
-    status, rows = db("removed_students?select=student_id,snapshot&reason=eq.self&login_deleted_at=is.null&limit=50",
+RETRY_BATCH = 10
+
+
+def retry_pending(identity, db, sleep=None) -> dict:
+    """Finish login deletions that failed earlier. Safe to run any number of times.
+
+    Small and fair (Sidhu S36-06): at most RETRY_BATCH rows a run, ONE try each with no waiting (this runs
+    inside the sync request), and the rows tried least often go first, so a login that can never be deleted
+    cannot hold up the others. A row with no login id cannot be finished by a machine: it is counted, logged
+    for a person, and also moved to the back of the queue (S36-06b).
+    """
+    status, rows = db("removed_students?select=student_id,snapshot,login_delete_attempts&reason=eq.self"
+                      f"&login_deleted_at=is.null&order=login_delete_attempts.asc,removed_at.asc&limit={RETRY_BATCH}",
                       method="GET")
     if status != 200 or not isinstance(rows, list):
-        return {"pending": None, "finished": 0}
-    finished = 0
+        return {"pending": None, "finished": 0, "needs_review": 0}
+    finished = needs_review = 0
     for row in rows:
         provider_uid = (row.get("snapshot") or {}).get("provider_uid")
-        if provider_uid and delete_login(identity, str(provider_uid), sleep) and mark_login_deleted(db, row["student_id"]):
+        done = False
+        if not provider_uid:
+            needs_review += 1
+        else:
+            try:
+                status, out = identity("accounts:delete", {"localId": str(provider_uid)})
+                done = _gone(status, out)
+            except Exception as e:
+                print("self-delete retry: login delete failed:", type(e).__name__, flush=True)
+        if done and mark_login_deleted(db, row["student_id"]):
             finished += 1
+        else:
+            db(f"removed_students?student_id=eq.{row['student_id']}&reason=eq.self&login_deleted_at=is.null",
+               {"login_delete_attempts": int(row.get("login_delete_attempts") or 0) + 1}, method="PATCH")
+    if needs_review:
+        print(f"SELF DELETE NEEDS REVIEW: {needs_review} deleted account(s) have no login id on record", flush=True)
     if len(rows) - finished:
-        print(f"SELF DELETE LOGIN PENDING: {len(rows) - finished} login(s) still to delete", flush=True)
-    return {"pending": len(rows) - finished, "finished": finished}
+        print(f"SELF DELETE LOGIN PENDING: {len(rows) - finished} login(s) still to delete in this batch", flush=True)
+    return {"pending": len(rows) - finished, "finished": finished, "needs_review": needs_review}

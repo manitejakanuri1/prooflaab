@@ -5,7 +5,8 @@ Branch: `feat/teja-claude-s34-live-functionality-2026-10-10`.
 
 > **Updated the same day by [`S34-RELEASE-PREPARATION.md`](S34-RELEASE-PREPARATION.md):** Frames, Subscribe and Blog
 > were removed; all stored files are now deleted on self-deletion; the staging command in section 5 is replaced by
-> the phased pipeline. Read that file for the current state.
+> the phased pipeline. **Migration 105 as described here has a bug, repaired by migration 106.** Read that file
+> for the current state.
 
 **Short answer.** Every control on the four dashboards was listed (648). Nine had nothing behind them. Seven are
 now real, built end to end in code. Two were left for the owner to decide. **Nothing here has run against a live

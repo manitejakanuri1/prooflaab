@@ -42,17 +42,20 @@ jobs:
             web-bff/sessionStore.test.ts \
             web-bff/authRoutes.test.ts \
             web-bff/proxyRoutes.test.ts \
+            web-bff/publicRoutes.test.ts \
             web-bff/requestGuard.test.ts \
             web-bff/accountRecheck.test.ts
 
-      # Separate step: only this file loads main.ts, which reads settings. It
-      # gets exactly the names the container gets (web-bff/Dockerfile) and no
+      # Separate step: only these files load main.ts, which reads settings. They
+      # get exactly the names the container gets (web-bff/Dockerfile) and no
       # network. The security tests above keep running with no permissions.
-      - name: BFF readiness tests (fail-closed /ready)
+      - name: BFF readiness and route-order tests (fail-closed /ready, closed /api/db)
         run: |
           deno test --no-lock \
             --allow-env=PORT,GOOGLE_API_KEY,AUTH_BRIDGE_URL,POSTGREST_URL,FUNCTIONS_URL,FILES_URL,ACCOUNTS_URL,TRANSCRIBER_URL,SESSION_KEY,ENVIRONMENT,BROWSER_ORIGINS,BFF_RELEASE_READY \
-            web-bff/readiness.test.ts
+            web-bff/routeContract.test.ts \
+            web-bff/readiness.test.ts \
+            web-bff/mainRouting.test.ts
 
       - name: Build BFF container
         run: docker build -t prooflab-web-bff-ci web-bff

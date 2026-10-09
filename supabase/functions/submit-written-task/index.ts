@@ -1,3 +1,4 @@
+import { selfAuthoredTask } from "../_shared/submission.ts";
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
@@ -66,8 +67,10 @@ serve(async (req) => {
     if (!profile) return json({ error: "Student profile not found" }, 404);
 
     const { data: task } = await db.from("tasks")
-      .select("id, student_id, rubric_config_id, title, description").eq("id", task_id).maybeSingle();
+      .select("id, student_id, rubric_config_id, title, description, inserted_by").eq("id", task_id).maybeSingle();
     if (!task?.rubric_config_id) return json({ error: "This is not a written task" }, 404);
+    // A task its own student created is never evidence (migration 103; the database refuses it too).
+    if (selfAuthoredTask(task)) return json({ error: "This task cannot be submitted as evidence" }, 403);
     if (task.student_id !== profile.id) {
       const { data: assigned } = await db.from("task_assignments")
         .select("id").eq("task_id", task_id).eq("student_id", profile.id).maybeSingle();

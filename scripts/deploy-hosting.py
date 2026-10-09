@@ -38,6 +38,7 @@ BFF_REGION = os.environ.get("BFF_REGION", "asia-south1").strip()
 # Fail closed before anything is uploaded (rules and reasons: scripts/release_guard.py).
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import release_guard  # noqa: E402
+import hosting_rewrites  # noqa: E402
 
 release_guard.enforce(SITE, os.environ, DIST)
 
@@ -117,19 +118,8 @@ print(f"  {len(files)} files prepared")
 # 2. create a version
 # ---------------------------------------------------------------------------
 
-rewrites = []
-
-if BFF_SERVICE:
-    rewrites.append({
-        "glob": "/api/**",
-        "run": {
-            "serviceId": BFF_SERVICE,
-            "region": BFF_REGION,
-        },
-    })
-
-# Keep the SPA catch-all last. Firebase Hosting uses the first matching rewrite.
-rewrites.append({"glob": "**", "path": "/index.html"})
+# /api/** to the gateway first, the SPA catch-all last (scripts/hosting_rewrites.py, tested there).
+rewrites = hosting_rewrites.rewrites(BFF_SERVICE, BFF_REGION)
 
 version = call("POST", f"sites/{SITE}/versions", {
     "config": {

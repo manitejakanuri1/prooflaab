@@ -25,7 +25,8 @@ const Portfolio = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   
   const { portfolio, loading, error } = usePortfolio(slug);
-  const { data: provenWork = [] } = useProvenWork(portfolio?.student_id);
+  const { data: fetchedWork = [] } = useProvenWork(portfolio?.student_id);
+  const provenWork = portfolio?.work ?? fetchedWork;
   const { scorecard } = usePublicScorecard(portfolio?.student_id);
 
   // Get current user ID and check if they're a student
@@ -302,7 +303,7 @@ const Portfolio = () => {
                 <Trophy className="h-7 w-7 text-primary" />
                 <h2 className="text-3xl font-bold">Proven work</h2>
               </div>
-              <ProvenWork studentId={portfolio?.student_id} emptyText="Nothing passed yet. Check back later." />
+              <ProvenWork studentId={portfolio?.student_id} rows={portfolio?.work} emptyText="Nothing passed yet. Check back later." />
             </div>
           </div>
 

@@ -87,6 +87,13 @@ export const useStudentProfile = () => {
   const profileQuery = useQuery({
     queryKey: PROFILE_KEY,
     queryFn: fetchProfile,
+    // A failed profile must not be fetched again just because another component
+    // mounted. The dashboard shows a spinner while this loads, which unmounts
+    // every screen under it; when the fetch failed they all mounted again, each
+    // mount retried, the spinner came back, and that went round for as long as
+    // the backend was down (34 requests in 15 seconds). It is still retried by
+    // the Try again button, on window focus, on reconnect and every minute.
+    retryOnMount: false,
   });
   const profile = profileQuery.data ?? null;
 

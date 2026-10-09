@@ -50,6 +50,9 @@ jobs:
       - name: Release guard tests (publish refuses without routing and approval)
         run: python3 scripts/test_release_guard.py
 
+      - name: Hosting rewrite tests (/api goes to the gateway before the page catch-all)
+        run: python3 scripts/test_hosting_rewrites.py
+
       - name: Retired architecture has not come back
         run: python3 scripts/legacy_guard.py
 

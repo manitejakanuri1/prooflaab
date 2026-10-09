@@ -31,10 +31,11 @@ import SandboxTaskPanel from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Code2, PenLine } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 const StudentAssignedTasksPage = () => {
+  const navigate = useNavigate();
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
   const [codingTaskId, setCodingTaskId] = useState<string | null>(null);
   const [writingTaskId, setWritingTaskId] = useState<string | null>(null);
@@ -372,6 +373,7 @@ const StudentAssignedTasksPage = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => navigate(`/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(task.id)}`)}
                             className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />

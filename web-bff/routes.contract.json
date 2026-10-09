@@ -1,0 +1,109 @@
+{
+  "about": "Every /api address the website calls, and what the gateway must do with it. Read by web-bff/routeContract.test.ts (the gateway side) and src/lib/apiRouteContract.test.ts (the website side). 'open' = answers without a login. 'closed' = 401 without a login.",
+  "routes": [
+    {
+      "match": "/api/auth/login",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "identity"
+    },
+    {
+      "match": "/api/auth/session",
+      "method": "GET",
+      "anonymous": "open",
+      "backend": "session store"
+    },
+    {
+      "match": "/api/auth/logout",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "session store"
+    },
+    {
+      "match": "/api/auth/signup",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "none (refused)"
+    },
+    {
+      "match": "/api/auth/update",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "identity"
+    },
+    {
+      "match": "/api/auth/verify-email",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "identity"
+    },
+    {
+      "match": "/api/auth/resend-verification",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "identity"
+    },
+    {
+      "match": "/api/auth/password-reset/request",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "identity"
+    },
+    {
+      "match": "/api/auth/password-reset/verify",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "identity"
+    },
+    {
+      "match": "/api/auth/password-reset/complete",
+      "method": "POST",
+      "anonymous": "open",
+      "backend": "identity"
+    },
+    {
+      "match": "/api/db",
+      "prefix": true,
+      "example": "/api/db/student_profiles",
+      "method": "GET",
+      "anonymous": "closed",
+      "backend": "POSTGREST_URL"
+    },
+    {
+      "match": "/api/functions/",
+      "prefix": true,
+      "example": "/api/functions/level-open",
+      "method": "POST",
+      "anonymous": "closed",
+      "backend": "FUNCTIONS_URL"
+    },
+    {
+      "match": "/api/files/",
+      "prefix": true,
+      "example": "/api/files/proof-files/student/resume.pdf",
+      "method": "GET",
+      "anonymous": "closed",
+      "backend": "FILES_URL"
+    },
+    {
+      "match": "/api/accounts/remove",
+      "method": "POST",
+      "anonymous": "closed",
+      "backend": "ACCOUNTS_URL"
+    },
+    {
+      "match": "/api/transcriber/transcribe",
+      "method": "POST",
+      "anonymous": "closed",
+      "backend": "TRANSCRIBER_URL"
+    },
+    {
+      "match": "/api/public/portfolio/",
+      "prefix": true,
+      "example": "/api/public/portfolio/qa-absent-r17b-20261009",
+      "method": "GET",
+      "anonymous": "open",
+      "backend": "public portfolio (published & visibility-filtered)"
+    }
+  ]
+}

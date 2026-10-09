@@ -1,5 +1,6 @@
 import { handleAuthRoute } from "./authRoutes.ts";
 import { handleProxyRoute } from "./proxyRoutes.ts";
+import { handlePublicRoute } from "./publicRoutes.ts";
 import { readiness } from "./readiness.ts";
 import { rejectCrossSiteBrowserWrite } from "./requestGuard.ts";
 
@@ -59,6 +60,10 @@ export async function handler(req: Request): Promise<Response> {
 
   const authResponse = await handleAuthRoute(req);
   if (authResponse) return authResponse;
+
+  // Signed-out reads: published portfolios only (publicRoutes.ts).
+  const publicResponse = await handlePublicRoute(req);
+  if (publicResponse) return publicResponse;
 
   const proxyResponse = await handleProxyRoute(req);
   if (proxyResponse) return proxyResponse;

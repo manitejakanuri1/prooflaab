@@ -4,6 +4,9 @@ Date: 10 October 2026. Branch `feat/teja-claude-s34-live-functionality-2026-10-1
 This follows [`S34-LIVE-FUNCTIONALITY.md`](S34-LIVE-FUNCTIONALITY.md) and replaces its sections 3.5, 5 and its
 "left as they are" table.
 
+> **Superseded in part by [`S36-STAGING-BLOCKERS.md`](S36-STAGING-BLOCKERS.md):** the repair is now Sidhu's migration 106
+> plus migration 107; the `106-live-controls-repair` file named below no longer exists.
+
 **Short answer.** The five blockers are closed in code and tested locally, including migration 105 executed on a
 real PostgreSQL engine. Sidhu's S32 live suite is merged with nothing of S34 reverted. One staging-only pipeline
 is ready. **Nothing was deployed, no migration was applied, no signed-in browser test was run.** There is still

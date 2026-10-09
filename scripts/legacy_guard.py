@@ -40,6 +40,7 @@ ALLOW = {
     "src/integrations/supabase/types.ts": "GENERATED from the production schema, which still has these tables until migrations 66/71 are approved there; regenerate after the production cleanup",
     "src/lib/voiceJob.ts": "COMPATIBILITY: optional proof_id on a row type so recovery markers written by older recorder builds still match; never read from the server",
     "src/lib/voiceRound4.test.ts": "tests of that marker compatibility",
+    "scripts/dev-tools/sidhu_s34_remove_students.test.mjs": "REGRESSION TEST: proves migration 105's remove_students fails because it still reads the dropped table, and that 106 removes that reference",
     "src/lib/voiceRound6.test.ts": "tests of that marker compatibility",
     "src/lib/voiceRound7.test.ts": "tests of that marker compatibility",
     "src/lib/voiceJob.test.ts": "tests of that marker compatibility",

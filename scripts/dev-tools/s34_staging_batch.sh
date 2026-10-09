@@ -3,27 +3,30 @@
 # Nothing here can reach production, and the release switch (BFF_RELEASE_READY) is never read or changed.
 #
 #   bash scripts/dev-tools/s34_staging_batch.sh preflight <commit>   # READ-ONLY: is everything in place?
-#   bash scripts/dev-tools/s34_staging_batch.sh prepare   <commit>   # backup, migrations, builds, canaries at 0% traffic
+#   bash scripts/dev-tools/s34_staging_batch.sh canary    <commit>   # builds from the commit, canaries at 0% traffic
+#   bash scripts/dev-tools/s34_staging_batch.sh migrate   <commit>   # database backup, then migrations 106 and 107
 #   bash scripts/dev-tools/s34_staging_batch.sh switch    <commit>   # traffic to the canaries, publish the staging site
 #   bash scripts/dev-tools/s34_staging_batch.sh smoke     <commit>   # checks that need no login
 #   bash scripts/dev-tools/s34_staging_batch.sh e2e       <commit>   # Sidhu's signed-in browser suite + S34 recipes
 #   bash scripts/dev-tools/s34_staging_batch.sh rollback  <commit>   # traffic back; prints the site and database steps
-#   bash scripts/dev-tools/s34_staging_batch.sh all       <commit>   # preflight, prepare, switch, smoke, e2e
+#   bash scripts/dev-tools/s34_staging_batch.sh all       <commit>   # preflight, canary, migrate, switch, smoke, e2e
 #
 # Two locks:
 #   1. The worktree must be exactly <commit> with nothing uncommitted, so images and site are that commit only.
-#   2. Every phase except preflight needs STAGING_RELEASE_AUTHORIZED=<commit> in the environment. The owner sets
-#      it for the commit they approved; a different commit, or no approval, is refused.
+#   2. canary needs STAGING_CANARY_AUTHORIZED=<commit>: new revisions that receive no traffic and no database write.
+#      Every other phase except preflight needs STAGING_RELEASE_AUTHORIZED=<commit>: database writes, traffic and
+#      the site. The owner sets each for the commit they approved; another commit, or no approval, is refused.
 # It stops at the first failure. Evidence is written to e2e-out/s34-staging/ (not in git).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-PHASE="${1:?phase: preflight|prepare|switch|smoke|e2e|rollback|all}"; SHA="${2:?full commit id}"
-P=prooflab-508214; R=asia-south1; TAG=s34; SITE=https://prooflab-staging.web.app
+PHASE="${1:?phase: preflight|canary|migrate|switch|smoke|e2e|rollback|all}"; SHA="${2:?full commit id}"
+P=prooflab-508214; R=asia-south1; TAG=s36; SITE=https://prooflab-staging.web.app
 STATE=e2e-out/s34-staging; mkdir -p "$STATE"; EVIDENCE="$STATE/evidence-${SHA:0:7}.txt"
 SERVICES="functions accounts web-bff"
 
 [ "$(git rev-parse HEAD)" = "$SHA" ] || { echo "REFUSED: this worktree is not $SHA"; exit 1; }
 [ -z "$(git status --porcelain)" ] || { echo "REFUSED: uncommitted changes; the build would not be the commit"; exit 1; }
+canary_authorized() { [ "${STAGING_CANARY_AUTHORIZED:-}" = "$SHA" ] || [ "${STAGING_RELEASE_AUTHORIZED:-}" = "$SHA" ] || { echo "REFUSED: canary needs STAGING_CANARY_AUTHORIZED=$SHA (approval of 0%-traffic revisions for this exact commit)"; exit 1; }; }
 authorized() { [ "${STAGING_RELEASE_AUTHORIZED:-}" = "$SHA" ] || { echo "REFUSED: $1 needs STAGING_RELEASE_AUTHORIZED=$SHA (the owner's approval of this exact commit)"; exit 1; }; }
 
 describe() { gcloud run services describe "prooflab-staging-$1" --project=$P --region=$R --format="$2"; }
@@ -38,7 +41,7 @@ expect() { if [ "$2" = "$3" ]; then echo "PASS  $1 ($3)"; else echo "FAIL  $1: w
 ledger() { # read-only: which of the migrations this release needs are recorded on staging
   local q; q=$(mktemp --suffix=.sql)
   printf '%s\n' '\pset tuples_only on' 'begin transaction read only;' \
-    "select 'LEDGER ' || coalesce(string_agg(version::text, ',' order by version::text), 'none') from public.schema_migrations where version::text ~ '^(9[2-8]|10[0-6])[a-z]?-';" 'rollback;' > "$q"
+    "select 'LEDGER ' || coalesce(string_agg(version::text, ',' order by version::text), 'none') from public.schema_migrations where version::text ~ '^(9[2-8]|10[0-7])[a-z]?-';" 'rollback;' > "$q"
   bash scripts/dev-tools/staging_sql.sh "$q" | grep -o 'LEDGER .*' | head -1
 }
 
@@ -58,20 +61,12 @@ preflight() {
   echo "PREFLIGHT DONE. Nothing was changed."
 }
 
-prepare() {
-  authorized prepare
+canary() {
+  canary_authorized
   echo "== 1. rollback targets (written before anything changes)"
   [ -f "$STATE/rollback.env" ] || { for s in $SERVICES; do echo "PREV_${s//-/_}=$(revision_at_100 "$s")"; done; echo "PREV_SITE=$(site_version)"; } > "$STATE/rollback.env"
   cat "$STATE/rollback.env"
   if grep -qE '=$' "$STATE/rollback.env"; then echo "REFUSED: a rollback target is empty"; exit 1; fi
-
-  echo "== 2. database backup"
-  gcloud sql backups create --instance=prooflab-staging-db --project=$P --description="before S34 ${SHA:0:7}"
-
-  echo "== 3. migrations through the ledger (already-applied files are skipped; a changed file is refused)"
-  bash scripts/dev-tools/staging_migrate.sh migration/104-ai-first-review-and-safe-resolution.sql
-  bash scripts/dev-tools/staging_migrate.sh migration/105-live-controls.sql
-  bash scripts/dev-tools/staging_migrate.sh migration/106-live-controls-repair.sql
 
   echo "== 4. build from the commit; canaries at 0% traffic, tag $TAG, labelled with the commit"
   for s in $SERVICES; do bash scripts/dev-tools/staging_deploy.sh "$s" --no-traffic --tag "$TAG" --labels "commit-sha=$SHA"; done
@@ -90,12 +85,29 @@ prepare() {
   expect "voice play refuses a caller with no login" 401 "$(status_of -X POST -H 'Content-Type: application/json' -d '{"voice_id":"00000000-0000-0000-0000-000000000000"}' "$(tagged functions url)/company-voice-play")"
   expect "account removal refuses a caller with no login" 401 "$(status_of -X POST -H 'Content-Type: application/json' -d '{"student_ids":["00000000-0000-0000-0000-000000000000"],"confirm":"DELETE"}' "$(tagged accounts url)/remove")"
   for s in $SERVICES; do . "$STATE/rollback.env"; v="PREV_${s//-/_}"; expect "$s still serves the previous revision" "${!v}" "$(revision_at_100 "$s")"; done
-  echo "PREPARED. The previous revisions still serve 100%."
+  echo "CANARIES READY at 0%. The previous revisions still serve 100%. No database write was made."
+}
+
+migrate() {
+  authorized migrate
+  [ -f "$STATE/rollback.env" ] || { echo "REFUSED: run canary first (it records the rollback targets)"; exit 1; }
+  echo "== database backup"
+  gcloud sql backups create --instance=prooflab-staging-db --project=$P --description="before S34 ${SHA:0:7}"
+
+  echo "== migrations through the ledger (already-applied files are skipped; a changed file is refused)"
+  bash scripts/dev-tools/staging_migrate.sh migration/104-ai-first-review-and-safe-resolution.sql
+  bash scripts/dev-tools/staging_migrate.sh migration/105-live-controls.sql
+  bash scripts/dev-tools/staging_migrate.sh migration/106-remove-students-restore-submissions-backup.sql
+  bash scripts/dev-tools/staging_migrate.sh migration/107-consent-guard-and-login-tracking.sql
+
+  ledger | tee -a "$EVIDENCE"
+  echo "MIGRATED. Traffic was not moved."
 }
 
 switch() {
   authorized switch
-  [ -f "$EVIDENCE" ] || { echo "REFUSED: run prepare for this commit first"; exit 1; }
+  [ -f "$EVIDENCE" ] || { echo "REFUSED: run canary for this commit first"; exit 1; }
+  case "$(ledger)" in *107-consent-guard*) ;; *) echo "REFUSED: migrations 106 and 107 are not recorded: run migrate first (the new code needs them)"; exit 1;; esac
   echo "== 7. traffic to the canaries"
   for s in $SERVICES; do gcloud run services update-traffic "prooflab-staging-$s" --project=$P --region=$R --to-tags "$TAG=100" --quiet | tail -1; done
   echo "== 8. staging site from this commit"
@@ -123,7 +135,7 @@ e2e() {
     [ -n "${!v:-}" ] || { echo "REFUSED: $v is not set. The signed-in suite runs only with the owner-approved staging accounts."; exit 1; }; done
   [ -f dist-staging/index.html ] || npx vite build --mode staging --outDir dist-staging
   echo "== 10. signed-in browser suite on the deployed site (must be build $(built_entry))"
-  node scripts/dev-tools/sidhu_s32_live_e2e.mjs --confirm-staging --expect-entry "$(built_entry)" --allow-writes --db-verify --out "$STATE/e2e-${SHA:0:7}"
+  node scripts/dev-tools/sidhu_s32_live_e2e.mjs --confirm-staging --expect-entry "$(built_entry)"     --expect-revisions "functions=$(tagged functions revisionName),web-bff=$(tagged web-bff revisionName),accounts=$(tagged accounts revisionName)"     --allow-writes --db-verify --out "$STATE/e2e-${SHA:0:7}"   # never --allow-destructive here: no account is deleted by this pipeline
   echo "E2E FINISHED with exit 0. Send $STATE/e2e-${SHA:0:7}/matrix.csv and the screenshots to Sidhu for the independent sign-off."
 }
 
@@ -137,12 +149,12 @@ rollback() {
   echo "Traffic is back on the previous revisions. Two steps are printed, not run:"
   python scripts/dev-tools/staging_rollback_plan.py --stable-revision "$PREV_web_bff" --site-version "$PREV_SITE"
   echo "Database, only if needed (put the images back first; saved settings are kept, every student's audio sharing goes off):"
-  echo "  bash scripts/dev-tools/staging_sql.sh migration/106-rollback-live-controls-repair.sql"
+  echo "  bash scripts/dev-tools/staging_sql.sh migration/107-rollback-consent-guard-and-login-tracking.sql"
   echo "  bash scripts/dev-tools/staging_sql.sh migration/105-rollback-live-controls.sql"
 }
 
 case "$PHASE" in
-  preflight) preflight ;; prepare) prepare ;; switch) switch ;; smoke) smoke ;; e2e) e2e ;; rollback) rollback ;;
-  all) preflight; prepare; switch; smoke; e2e ;;
+  preflight) preflight ;; canary) canary ;; migrate) migrate ;; switch) switch ;; smoke) smoke ;; e2e) e2e ;; rollback) rollback ;;
+  all) preflight; canary; migrate; switch; smoke; e2e ;;
   *) echo "unknown phase $PHASE"; exit 2 ;;
 esac

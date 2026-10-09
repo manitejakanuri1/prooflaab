@@ -1,0 +1,206 @@
+# Staging live E2E (QA). Runs scripts/dev-tools/sidhu_s32_live_e2e.mjs against the STAGING site in a real browser
+# with real, owner-approved staging test accounts. Never production, never a deploy.
+#
+# How to start it (either):
+#   1. Actions tab -> "Staging live E2E (QA)" -> Run workflow (once this file is on the default branch), or
+#   2. push a branch named qa/staging-e2e-<anything> containing qa/staging-e2e-request.json (works from any branch).
+#
+# It builds the expected commit itself to know which index-<hash>.js the live site must serve, and (when the QA
+# Google identity is configured) checks that the expected Cloud Run revisions hold 100% of the traffic. If the live
+# build is not the expected one, the run fails with exit 4 and its results are not release evidence.
+#
+# Owner setup (one time): GitHub environment "staging-e2e" with required reviewers and these secrets:
+#   E2E_{ADMIN,TPO,COMPANY,STUDENT,ESTABLISHED}_{EMAIL,PASSWORD,USER_ID}   approved staging-only test accounts
+#   E2E_FIXTURE_*                                                          disposable fixture ids (see the S34 QA doc)
+#   E2E_DISPOSABLE_STUDENT_{EMAIL,PASSWORD,USER_ID}                         only for the destructive recipe
+# and, for --db-verify and revision provenance, variables QA_WIF_PROVIDER and QA_SERVICE_ACCOUNT (a read-only QA
+# identity; until it exists those two checks report UNVERIFIED / BLOCKED instead of passing).
+name: Staging live E2E (QA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: "Commit the staging build must be (full SHA)"
+        required: true
+      expect_revisions:
+        description: "functions=REV,web-bff=REV,accounts=REV (each must hold 100% traffic)"
+        required: true
+      base_url:
+        description: "Staging site or a staging preview channel URL"
+        required: false
+        default: "https://prooflab-staging.web.app"
+      roles:
+        description: "Comma-separated roles"
+        required: false
+        default: "admin,tpo,company,student,established"
+      allow_writes:
+        description: "Run write recipes on disposable fixtures"
+        type: boolean
+        default: false
+      db_verify:
+        description: "Prove write recipes with a read-only database query"
+        type: boolean
+        default: false
+      allow_destructive:
+        description: "Run the account-deletion recipe on the disposable identity"
+        type: boolean
+        default: false
+  push:
+    branches: ["qa/staging-e2e-*"]
+
+permissions:
+  contents: read
+  id-token: write   # only used by the optional read-only QA Google identity
+
+concurrency:
+  group: staging-live-e2e
+  cancel-in-progress: false
+
+jobs:
+  live-e2e:
+    runs-on: ubuntu-latest
+    environment: staging-e2e
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the request
+        id: req
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            f=qa/staging-e2e-request.json
+            [ -f "$f" ] || { echo "push trigger needs $f"; exit 3; }
+            get() { python3 -c "import json,sys; print(json.load(open('$f')).get(sys.argv[1], sys.argv[2]))" "$1" "$2"; }
+            echo "expected_sha=$(get expected_sha '')" >> "$GITHUB_OUTPUT"
+            echo "expect_revisions=$(get expect_revisions '')" >> "$GITHUB_OUTPUT"
+            echo "base_url=$(get base_url https://prooflab-staging.web.app)" >> "$GITHUB_OUTPUT"
+            echo "roles=$(get roles admin,tpo,company,student,established)" >> "$GITHUB_OUTPUT"
+            echo "allow_writes=$(get allow_writes false)" >> "$GITHUB_OUTPUT"
+            echo "db_verify=$(get db_verify false)" >> "$GITHUB_OUTPUT"
+            echo "allow_destructive=$(get allow_destructive false)" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "expected_sha=${{ inputs.expected_sha }}"
+              echo "expect_revisions=${{ inputs.expect_revisions }}"
+              echo "base_url=${{ inputs.base_url }}"
+              echo "roles=${{ inputs.roles }}"
+              echo "allow_writes=${{ inputs.allow_writes }}"
+              echo "db_verify=${{ inputs.db_verify }}"
+              echo "allow_destructive=${{ inputs.allow_destructive }}"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refuse anything but a full SHA and the staging site
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ steps.req.outputs.expected_sha }}" =~ ^[0-9a-f]{40}$ ]] || { echo "expected_sha must be a full 40-character SHA"; exit 3; }
+          [[ "${{ steps.req.outputs.base_url }}" =~ ^https://prooflab-staging(--[a-z0-9-]+)?\.(web\.app|firebaseapp\.com)/?$ ]] || { echo "base_url must be the staging site or one of its preview channels"; exit 3; }
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.req.outputs.expected_sha }}
+          path: expected
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Build the expected commit the way staging is built, to know its entry bundle
+        id: expected
+        shell: bash
+        working-directory: expected
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npx vite build --mode staging --outDir ../expected-dist > ../expected-build.log 2>&1
+          entry=$(grep -oE 'index-[A-Za-z0-9_-]+\.js' ../expected-dist/index.html | head -1)
+          [ -n "$entry" ] || { echo "could not read the expected entry bundle"; exit 1; }
+          echo "entry=$entry" >> "$GITHUB_OUTPUT"
+          echo "Expected entry for ${{ steps.req.outputs.expected_sha }}: $entry"
+
+      - name: Install the suite and a browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Read-only QA Google identity (optional)
+        if: ${{ vars.QA_WIF_PROVIDER != '' && vars.QA_SERVICE_ACCOUNT != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.QA_WIF_PROVIDER }}
+          service_account: ${{ vars.QA_SERVICE_ACCOUNT }}
+
+      - name: gcloud (optional)
+        if: ${{ vars.QA_WIF_PROVIDER != '' && vars.QA_SERVICE_ACCOUNT != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run the live suite
+        id: run
+        shell: bash
+        env:
+          E2E_BASE: ${{ steps.req.outputs.base_url }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_ADMIN_USER_ID: ${{ secrets.E2E_ADMIN_USER_ID }}
+          E2E_TPO_EMAIL: ${{ secrets.E2E_TPO_EMAIL }}
+          E2E_TPO_PASSWORD: ${{ secrets.E2E_TPO_PASSWORD }}
+          E2E_TPO_USER_ID: ${{ secrets.E2E_TPO_USER_ID }}
+          E2E_COMPANY_EMAIL: ${{ secrets.E2E_COMPANY_EMAIL }}
+          E2E_COMPANY_PASSWORD: ${{ secrets.E2E_COMPANY_PASSWORD }}
+          E2E_COMPANY_USER_ID: ${{ secrets.E2E_COMPANY_USER_ID }}
+          E2E_STUDENT_EMAIL: ${{ secrets.E2E_STUDENT_EMAIL }}
+          E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
+          E2E_STUDENT_USER_ID: ${{ secrets.E2E_STUDENT_USER_ID }}
+          E2E_ESTABLISHED_EMAIL: ${{ secrets.E2E_ESTABLISHED_EMAIL }}
+          E2E_ESTABLISHED_PASSWORD: ${{ secrets.E2E_ESTABLISHED_PASSWORD }}
+          E2E_ESTABLISHED_USER_ID: ${{ secrets.E2E_ESTABLISHED_USER_ID }}
+          E2E_FIXTURE_WRITTEN_TASK_ID: ${{ secrets.E2E_FIXTURE_WRITTEN_TASK_ID }}
+          E2E_FIXTURE_QUIET_STUDENT_NAME: ${{ secrets.E2E_FIXTURE_QUIET_STUDENT_NAME }}
+          E2E_FIXTURE_QUIET_STUDENT_ID: ${{ secrets.E2E_FIXTURE_QUIET_STUDENT_ID }}
+          E2E_FIXTURE_CANDIDATE_NAME: ${{ secrets.E2E_FIXTURE_CANDIDATE_NAME }}
+          E2E_FIXTURE_CANDIDATE_ID: ${{ secrets.E2E_FIXTURE_CANDIDATE_ID }}
+          E2E_FIXTURE_REVIEW_SUBMISSION_ID: ${{ secrets.E2E_FIXTURE_REVIEW_SUBMISSION_ID }}
+          E2E_FIXTURE_EMAIL_TEMPLATE_KEY_LABEL: ${{ secrets.E2E_FIXTURE_EMAIL_TEMPLATE_KEY_LABEL }}
+          E2E_FIXTURE_NOTIFICATION_TYPE: ${{ secrets.E2E_FIXTURE_NOTIFICATION_TYPE }}
+          E2E_FIXTURE_VOICE_CANDIDATE_NAME: ${{ secrets.E2E_FIXTURE_VOICE_CANDIDATE_NAME }}
+          E2E_FIXTURE_VOICE_CANDIDATE_ID: ${{ secrets.E2E_FIXTURE_VOICE_CANDIDATE_ID }}
+          E2E_FIXTURE_NO_CONSENT_CANDIDATE_NAME: ${{ secrets.E2E_FIXTURE_NO_CONSENT_CANDIDATE_NAME }}
+          E2E_FIXTURE_NO_CONSENT_VOICE_ID: ${{ secrets.E2E_FIXTURE_NO_CONSENT_VOICE_ID }}
+          E2E_DISPOSABLE_STUDENT_EMAIL: ${{ secrets.E2E_DISPOSABLE_STUDENT_EMAIL }}
+          E2E_DISPOSABLE_STUDENT_PASSWORD: ${{ secrets.E2E_DISPOSABLE_STUDENT_PASSWORD }}
+          E2E_DISPOSABLE_STUDENT_USER_ID: ${{ secrets.E2E_DISPOSABLE_STUDENT_USER_ID }}
+        run: |
+          set -uo pipefail
+          flags=(--confirm-staging --expect-entry "${{ steps.expected.outputs.entry }}"
+                 --expect-revisions "${{ steps.req.outputs.expect_revisions }}"
+                 --roles "${{ steps.req.outputs.roles }}" --out e2e-out/ci)
+          [ "${{ steps.req.outputs.allow_writes }}" = "true" ] && flags+=(--allow-writes)
+          [ "${{ steps.req.outputs.db_verify }}" = "true" ] && flags+=(--db-verify)
+          [ "${{ steps.req.outputs.allow_destructive }}" = "true" ] && flags+=(--allow-destructive)
+          node scripts/dev-tools/sidhu_s32_live_e2e.mjs "${flags[@]}" | tee e2e-out-ci.log
+          code=${PIPESTATUS[0]}
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Staging live E2E"
+            echo "- expected commit: \`${{ steps.req.outputs.expected_sha }}\` (entry \`${{ steps.expected.outputs.entry }}\`)"
+            echo "- suite exit code: $code (0 all PASS on the verified build, 1 FAIL, 2 BLOCKED/NOT_TESTED/unverified, 3 refused, 4 wrong build)"
+            tail -3 e2e-out-ci.log | sed 's/^/    /'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-live-e2e-${{ steps.req.outputs.expected_sha }}
+          path: |
+            e2e-out/ci/
+            e2e-out-ci.log
+            expected-build.log
+          retention-days: 30

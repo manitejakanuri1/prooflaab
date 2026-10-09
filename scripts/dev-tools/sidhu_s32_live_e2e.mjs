@@ -54,7 +54,8 @@ const FOREIGN_RPC = {
 export function assertStaging(base) {
   let u; try { u = new URL(base); } catch { throw new Error(`not a URL: ${base}`); }
   if (/(^|\.)prooflab\.co\.in$/i.test(u.hostname) || /prooflab-508214\./.test(u.hostname)) throw new Error(`refusing PRODUCTION (${u.hostname})`);
-  if (!STAGING.has(u.hostname) || u.protocol !== "https:") throw new Error(`only ${[...STAGING].join(" / ")} over https (got ${u.host})`);
+  const preview = /^prooflab-staging--[a-z0-9-]+\.web\.app$/i.test(u.hostname);   // a Firebase preview channel of the staging site
+  if ((!STAGING.has(u.hostname) && !preview) || u.protocol !== "https:") throw new Error(`only ${[...STAGING].join(" / ")} or its preview channels, over https (got ${u.host})`);
   return u.origin;
 }
 
@@ -148,10 +149,85 @@ export const RECIPES = [
       const r = await x.expectCall(() => p.getByRole("button", { name: /^\s*Approve/ }).first().click(), /\/api\/db\/rpc\/review_task_submission/, "POST");
       return `review_task_submission HTTP ${r}`; },
     db: (x) => `select 'S32DB ' || status from public.task_submissions where id = '${x.env.E2E_FIXTURE_REVIEW_SUBMISSION_ID}';`, expectDb: "passed" },
+  // ---- S34 additions ------------------------------------------------------------------------------------------
+  { id: "student-voice-consent-on-off", role: ["student", "established"], fixtures: [], matches: /StudentPrivacy\.tsx/,
+    async run(p, x) { await x.go("/student/dashboard?tab=profile&view=privacy");
+      const sw = p.locator("#share-voice-audio"); await sw.waitFor({ timeout: 15000 });
+      const was = (await sw.getAttribute("aria-checked")) === "true";
+      await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/set_share_voice_audio/, "POST");
+      await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/set_share_voice_audio/, "POST");
+      await p.reload(); await sw.waitFor({ timeout: 15000 });
+      const now = (await sw.getAttribute("aria-checked")) === "true";
+      if (now !== was) throw new Error(`consent switch did not return to ${was} after refresh`);
+      x.voiceConsentWas = was; return `consent switched and restored to ${was}; persisted across refresh`; },
+    db: (x) => `select 'S32DB ' || count(*) from public.security_events where event_type = 'voice_audio_sharing_changed' and user_id = '${x.userId}' and created_at > now() - interval '30 minutes';`, expectDb: ">=2" },
+  { id: "student-portfolio-visibility-on-off", role: ["student", "established"], fixtures: [], matches: /StudentPrivacy\.tsx/,
+    async run(p, x) { await x.go("/student/dashboard?tab=profile&view=privacy");
+      const sw = p.locator("#portfolio-public"); await sw.waitFor({ timeout: 15000 });
+      const was = (await sw.getAttribute("aria-checked")) === "true";
+      const write = () => p.waitForResponse((r) => /\/api\/db\/student_portfolios/.test(new URL(r.url()).pathname) && ["POST", "PATCH", "PUT"].includes(r.request().method()), { timeout: 30000 });
+      for (let i = 0; i < 2; i++) { const w = write(); await sw.click(); const r = await w; if (r.status() >= 400) throw new Error(`portfolio save answered ${r.status()}`); }
+      await p.reload(); await sw.waitFor({ timeout: 15000 });
+      if (((await sw.getAttribute("aria-checked")) === "true") !== was) throw new Error("portfolio visibility did not return to its first value");
+      x.portfolioWas = was; return `portfolio visibility switched and restored to ${was}`; },
+    db: (x) => `select 'S32DB ' || coalesce((select is_public::text from public.student_portfolios where student_id = '${x.userId}'), 'none');`, expectDb: "__portfolioWas" },
+  { id: "admin-email-template-save-reset", role: ["admin"], fixtures: ["E2E_FIXTURE_EMAIL_TEMPLATE_KEY_LABEL"], matches: /EmailTemplatesDialog\.tsx|SystemSettings\.tsx/,
+    async run(p, x) { await x.go("/admin/dashboard?tab=settings");
+      await p.getByRole("button", { name: "Configure Email Templates" }).click();
+      await p.getByRole("dialog").getByRole("combobox").first().click(); await p.getByRole("option", { name: x.env.E2E_FIXTURE_EMAIL_TEMPLATE_KEY_LABEL }).click();
+      const reset = p.getByRole("button", { name: "Use built-in wording" });
+      if (await reset.isEnabled()) return "BLOCKED: a real template is saved for this email; the recipe will not overwrite it";
+      await p.locator("#email-subject").fill(`S32 E2E subject ${x.runId}`);
+      await p.locator("#email-intro").fill(`S32 E2E opening words ${x.runId}, written by the staging QA suite and removed straight away.`);
+      await x.expectCall(() => p.getByRole("dialog").getByRole("button", { name: /^\s*Save\s*$/ }).click(), /\/api\/db\/rpc\/admin_save_email_template/, "POST");
+      await x.expectCall(() => reset.click(), /\/api\/db\/rpc\/admin_save_email_template/, "POST");
+      return "template saved, then put back to the built-in wording"; },
+    db: (x) => `select 'S32DB ' || ((select count(*) from public.email_templates where subject like 'S32 E2E subject %') = 0 and (select count(*) from public.security_events where event_type = 'email_template_changed' and user_id = '${x.userId}' and created_at > now() - interval '30 minutes') >= 2)::text;`, expectDb: "true" },
+  { id: "admin-notification-rule-off-on", role: ["admin"], fixtures: ["E2E_FIXTURE_NOTIFICATION_TYPE"], matches: /NotificationRulesDialog\.tsx|SystemSettings\.tsx/,
+    async run(p, x) { await x.go("/admin/dashboard?tab=settings");
+      await p.getByRole("button", { name: "Manage Notification Rules" }).click();
+      const sw = p.locator(`#rule-${x.env.E2E_FIXTURE_NOTIFICATION_TYPE}`); await sw.waitFor({ timeout: 15000 });
+      if ((await sw.getAttribute("aria-checked")) !== "true") return "BLOCKED: that notification type is already switched off; the recipe only tests off-then-on";
+      await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/admin_set_notification_rule/, "POST");
+      await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/admin_set_notification_rule/, "POST");
+      return "rule switched off and back on"; },
+    db: (x) => `select 'S32DB ' || coalesce((select enabled::text from public.notification_rules where type = '${x.env.E2E_FIXTURE_NOTIFICATION_TYPE}'), 'none');`, expectDb: "true" },
+  { id: "company-voice-play-with-consent", role: ["company"], fixtures: ["E2E_FIXTURE_VOICE_CANDIDATE_NAME", "E2E_FIXTURE_VOICE_CANDIDATE_ID"], matches: /VoicePlayButton\.tsx|ProofProfile\.tsx/,
+    async run(p, x) { await x.go("/company/dashboard?tab=talent");
+      await p.getByText(x.env.E2E_FIXTURE_VOICE_CANDIDATE_NAME).first().click();
+      const r = await x.expectCall(() => p.getByRole("button", { name: "Play recording" }).first().click(), /\/api\/functions\/company-voice-play/, "POST");
+      return `company-voice-play HTTP ${r}`; },
+    db: (x) => `select 'S32DB ' || count(*) from public.security_events where event_type = 'company_voice_played' and detail->>'student_id' = '${x.env.E2E_FIXTURE_VOICE_CANDIDATE_ID}' and created_at > now() - interval '30 minutes';`, expectDb: ">=1" },
+  { id: "company-voice-play-refused-without-consent", role: ["company"], fixtures: ["E2E_FIXTURE_NO_CONSENT_CANDIDATE_NAME", "E2E_FIXTURE_NO_CONSENT_VOICE_ID"], matches: /VoicePlayButton\.tsx/,
+    async run(p, x) {
+      const r = await p.evaluate(async (voice) => (await fetch("/api/functions/company-voice-play", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ voice_id: voice }) })).status, x.env.E2E_FIXTURE_NO_CONSENT_VOICE_ID);
+      if (r !== 404) throw new Error(`a recording without consent answered HTTP ${r}, expected 404`);
+      return "recording without consent refused (404)"; },
+    db: (x) => `select 'S32DB ' || count(*) from public.security_events where event_type = 'company_voice_played' and detail->>'voice_id' = '${x.env.E2E_FIXTURE_NO_CONSENT_VOICE_ID}' and created_at > now() - interval '30 minutes';`, expectDb: "0" },
+  // DESTRUCTIVE: deletes a whole account. Only with --allow-destructive AND an owner-approved DISPOSABLE identity
+  // that is not one of the five role accounts (staging shares Identity with production).
+  { id: "student-delete-own-account", role: ["student"], destructive: true,
+    fixtures: ["E2E_DISPOSABLE_STUDENT_EMAIL", "E2E_DISPOSABLE_STUDENT_PASSWORD", "E2E_DISPOSABLE_STUDENT_USER_ID"], matches: /DeleteAccountDialog\.tsx|StudentSettingsPage\.tsx/,
+    async run(p, x) {
+      const e = x.env; x.secrets.push(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD);
+      if (e.E2E_DISPOSABLE_STUDENT_USER_ID === x.userId) throw new Error("the disposable identity must not be the student role account");
+      const s1 = await x.signInFresh(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD, e.E2E_DISPOSABLE_STUDENT_USER_ID, "student");
+      if (!s1.ok) throw new Error(`disposable identity could not sign in (HTTP ${s1.status})`);
+      try {
+        await s1.page.goto(`${x.base}/student/dashboard?tab=profile&view=settings`, { waitUntil: "domcontentloaded" });
+        await s1.page.getByRole("button", { name: /^\s*Delete Account\s*$/ }).first().click();
+        await s1.page.locator("#delete-confirm").fill("DELETE");
+        const w = s1.page.waitForResponse((r) => new URL(r.url()).pathname === "/api/accounts/remove", { timeout: 60000 });
+        await s1.page.getByRole("dialog").getByRole("button", { name: /Delete my account/ }).click();   // DeleteAccountDialog.tsx:55
+        const r = await w; const body = await r.json().catch(() => ({}));
+        if (r.status() !== 200 || body.removed !== 1) throw new Error(`accounts/remove answered ${r.status()} removed=${body.removed}`);
+        if ((body.login_failures ?? []).length) throw new Error("account rows deleted but the Identity login was NOT deleted");
+      } finally { await s1.ctx.close().catch(() => {}); }
+      const s2 = await x.signInFresh(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD, e.E2E_DISPOSABLE_STUDENT_USER_ID, "student").catch(() => ({ ok: false }));
+      if (s2.ok) { await s2.ctx.close(); throw new Error("the deleted account can still sign in"); }
+      return "account deleted; Identity login deleted; signing in again is refused"; },
+    db: (x) => `select 'S32DB ' || ((select count(*) from public.removed_students where student_id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}' and reason = 'self') = 1 and (select count(*) from auth.users where id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}') = 0)::text;`, expectDb: "true" },
 ];
-
-// S34 (TEJA): the recipes for the controls S34 made real live in their own file and join the same list.
-RECIPES.push(...(await import("./s34_live_recipes.mjs")).default);
 
 /** Runs one READ-ONLY query on STAGING through the repository's runner and returns the S32DB line's value. */
 export function dbQuery(sql, { run = spawnSync } = {}) {
@@ -175,9 +251,35 @@ export async function provenance(base, expectEntry, fetchImpl = fetch) {
   return { live, status: live === expectEntry ? "VERIFIED" : "MISMATCH", detail: `live ${live}, expected ${expectEntry}` };
 }
 
-export async function runLive({ base, roles, env, chromium, out, allowWrites, dbVerify, anon, expectEntry, inv, log = console.log }) {
+/**
+ * --expect-revisions "functions=REV,web-bff=REV,accounts=REV": each prooflab-staging-<service> must send 100% of its
+ * traffic to REV. Read-only (gcloud run services describe). No expectation or no gcloud = UNVERIFIED, never VERIFIED.
+ */
+export function revisionProvenance(expect, { run = spawnSync } = {}) {
+  if (!expect) return { status: "UNVERIFIED", detail: "no --expect-revisions given" };
+  const pairs = expect.split(",").map((x) => x.split("=").map((y) => y.trim())).filter(([k, v]) => k && v);
+  if (!pairs.length) return { status: "UNVERIFIED", detail: "empty --expect-revisions" };
+  const seen = [];
+  for (const [svc, rev] of pairs) {
+    if (!/^[a-z0-9-]+$/.test(svc) || !/^[a-z0-9-]+$/.test(rev)) return { status: "UNVERIFIED", detail: `bad name ${svc}=${rev}` };
+    const r = run("gcloud", ["run", "services", "describe", `prooflab-staging-${svc}`, "--project=prooflab-508214", "--region=asia-south1", "--format=json(status.traffic)"], { encoding: "utf8", timeout: 60000, shell: process.platform === "win32" });
+    if (r.status !== 0) return { status: "UNVERIFIED", detail: `gcloud could not read ${svc}` };
+    let traffic = [];
+    try { traffic = JSON.parse(r.stdout).status.traffic ?? []; } catch { return { status: "UNVERIFIED", detail: `unreadable traffic for ${svc}` }; }
+    const serving = traffic.filter((t) => (t.percent ?? 0) > 0).map((t) => `${t.revisionName}=${t.percent}%`);
+    seen.push(`${svc}: ${serving.join(" ") || "nothing"}`);
+    if (!traffic.some((t) => t.revisionName === rev && t.percent === 100)) return { status: "MISMATCH", detail: `${svc} serves ${serving.join(" ")}, expected ${rev}=100%` };
+  }
+  return { status: "VERIFIED", detail: seen.join("; ") };
+}
+const combine = (front, back) => ({
+  status: [front.status, back.status].includes("MISMATCH") ? "MISMATCH" : front.status === "VERIFIED" && back.status === "VERIFIED" ? "VERIFIED" : "UNVERIFIED",
+  detail: `frontend: ${front.detail} | backend: ${back.detail}`, live: front.live,
+});
+
+export async function runLive({ base, roles, env, chromium, out, allowWrites, allowDestructive = false, dbVerify, anon, expectEntry, expectRevisions, inv, log = console.log }) {
   const rows = planMatrix(inv).filter((r) => anon || roles.includes(r.role));
-  const prov = await provenance(base, expectEntry);
+  const prov = combine(await provenance(base, expectEntry), revisionProvenance(expectRevisions));
   log(`provenance: ${prov.status} (${prov.detail})`);
   const runId = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
   const browser = await chromium.launch();
@@ -225,7 +327,18 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, db
         if (userId !== expectId || managed !== R.managed) throw new Error(`signed in as ${userId}/${managed}, expected ${expectId}/${R.managed}`);
       } catch (e) { blockRole(`sign-in failed: ${redact(e.message, secrets)}`); for (const r of rows.filter((x) => x.role === role)) r.status = "FAIL"; await ctx.close(); continue; }
 
-      const x = { go, expectCall, env, runId, userId, page };
+      const signInFresh = async (em, pw, id, managed) => {
+        const c2 = await browser.newContext({ viewport: { width: 1366, height: 900 } }); const p2 = await c2.newPage();
+        await p2.goto(`${base}/auth`, { waitUntil: "domcontentloaded", timeout: 60000 });
+        await p2.fill('input[type="email"]', em); await p2.fill('input[type="password"]', pw);
+        const w = p2.waitForResponse((r) => new URL(r.url()).pathname === "/api/auth/login", { timeout: 45000 });
+        await p2.click('button[type="submit"]'); const lr = await w;
+        if (lr.status() !== 200) { await c2.close(); return { ok: false, status: lr.status() }; }
+        const sess = await (await c2.request.get(`${base}/api/auth/session`)).json();
+        if (sess?.session?.user?.id !== id || sess?.session?.user?.user_metadata?.account_type !== managed) { await c2.close(); throw new Error("disposable identity is not the expected account"); }
+        return { ok: true, ctx: c2, page: p2 };
+      };
+      const x = { go, expectCall, env, runId, userId, page, base, signInFresh, secrets };
       // Screens: open, unauthorized/5xx/HTML, refresh persistence, offline + retry.
       for (const row of rows.filter((r) => r.role === role && r.class === "SCREEN")) {
         const from = net.length; errors.length = 0;
@@ -277,12 +390,15 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, db
         const covered = rows.filter((r) => r.role === role && r.class !== "SCREEN" && r.class !== "SAFE" && rec.matches.test(r.control));
         const missing = rec.fixtures.filter((f) => !env[f]);
         const result = { role, page: "(recipe)", url: "", control: rec.id, class: "RECIPE", expectedRoute: "", api: "", dbEffect: rec.db({ ...x, env }).replace(/\s+/g, " ").slice(0, 160), liveResult: "", status: "BLOCKED", evidence: "" };
-        if (!allowWrites) result.liveResult = "write recipe not run (no --allow-writes)";
+        if (rec.destructive && !allowDestructive) result.liveResult = "destructive recipe not run (no --allow-destructive)";
+        else if (!allowWrites) result.liveResult = "write recipe not run (no --allow-writes)";
         else if (missing.length) result.liveResult = `fixture missing: ${missing.join(", ")}`;
         else {
           try {
-            result.liveResult = await rec.run(page, x); result.status = "PASS (UI + API)";
-            if (dbVerify) { const got = dbQuery(rec.db({ ...x, env })); result.liveResult += `; DB: ${got}`; result.status = dbOk(got, rec.expectDb) ? "PASS" : "FAIL"; }
+            const said = await rec.run(page, x);
+            if (typeof said === "string" && said.startsWith("BLOCKED:")) { result.liveResult = said.slice(8).trim(); result.status = "BLOCKED"; extra.push(result); continue; }
+            result.liveResult = said; result.status = "PASS (UI + API)";
+            if (dbVerify) { const got = dbQuery(rec.db({ ...x, env })); const want = rec.expectDb === "__portfolioWas" ? String(x.portfolioWas) : rec.expectDb; result.liveResult += `; DB: ${got}`; result.status = dbOk(got, want) ? "PASS" : "FAIL"; }
             else result.liveResult += "; DB effect not verified (no --db-verify)";
           } catch (e) { result.liveResult = redact(e.message, secrets).slice(0, 240); result.status = "FAIL"; }
           result.evidence = (await shot(`recipe-${rec.id}`)) ?? "";
@@ -312,7 +428,7 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, db
 
 export function summarize(rows, prov) {
   const c = {}; for (const r of rows) { const k = r.status.startsWith("PASS") ? "PASS" : r.status; c[k] = (c[k] ?? 0) + 1; }
-  const exit = prov?.status === "MISMATCH" ? EXIT.WRONG_BUILD : c.FAIL ? EXIT.FAIL : (c.BLOCKED || c.NOT_TESTED) ? EXIT.INCOMPLETE : EXIT.OK;
+  const exit = prov?.status === "MISMATCH" ? EXIT.WRONG_BUILD : c.FAIL ? EXIT.FAIL : (c.BLOCKED || c.NOT_TESTED || prov?.status !== "VERIFIED") ? EXIT.INCOMPLETE : EXIT.OK;
   return { counts: c, exit };
 }
 const csv = (rows) => ["Role,Page,Control,Class,Expected route,API,DB effect,Live result,Status,Evidence",
@@ -333,7 +449,7 @@ if (isMain) {
   catch (e) { console.log(`REFUSED: ${e.message}`); process.exit(EXIT.REFUSED); }
   const { chromium } = await import("playwright");
   const roles = (val("--roles") ?? Object.keys(ROLES).join(",")).split(",").filter((r) => ROLES[r]);
-  const { rows, provenance: prov } = await runLive({ base, roles, env: process.env, chromium, out, allowWrites: has("--allow-writes"), dbVerify: has("--db-verify"), anon: has("--anon"), expectEntry: val("--expect-entry"), inv });
+  const { rows, provenance: prov } = await runLive({ base, roles, env: process.env, chromium, out, allowWrites: has("--allow-writes"), allowDestructive: has("--allow-destructive"), dbVerify: has("--db-verify"), anon: has("--anon"), expectEntry: val("--expect-entry"), expectRevisions: val("--expect-revisions"), inv });
   const s = summarize(rows, prov);
   writeFileSync(join(out, "matrix.json"), JSON.stringify({ base, provenance: prov, counts: s.counts, rows }, null, 1)); writeFileSync(join(out, "matrix.csv"), csv(rows));
   console.log(`provenance ${prov.status}; ${JSON.stringify(s.counts)}; exit ${s.exit}; ${out}/matrix.csv`);

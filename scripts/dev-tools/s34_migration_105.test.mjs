@@ -1,4 +1,4 @@
-// S34: migrations 105 and 106 executed on a real PostgreSQL engine. OFFLINE, IN-MEMORY, THROWAWAY.
+// S34/S36: migrations 105, 106 and 107 executed on a real PostgreSQL engine. OFFLINE, IN-MEMORY, THROWAWAY.
 //
 // Uses PGlite (PostgreSQL compiled to WebAssembly, inside this Node process), the same way as
 // sidhu_s30_pg_harness.mjs. It is NOT a project database: nothing is read from or written to staging or production.
@@ -19,9 +19,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const MIGRATION = readFileSync(join(ROOT, "migration/105-live-controls.sql"), "utf8");
-const REPAIR = readFileSync(join(ROOT, "migration/106-live-controls-repair.sql"), "utf8");
+const REPAIR = readFileSync(join(ROOT, "migration/106-remove-students-restore-submissions-backup.sql"), "utf8") // Sidhu's repair
+  + readFileSync(join(ROOT, "migration/107-consent-guard-and-login-tracking.sql"), "utf8");
 const ROLLBACK = readFileSync(join(ROOT, "migration/105-rollback-live-controls.sql"), "utf8");
-const REPAIR_ROLLBACK = readFileSync(join(ROOT, "migration/106-rollback-live-controls-repair.sql"), "utf8");
+const REPAIR_ROLLBACK = readFileSync(join(ROOT, "migration/107-rollback-consent-guard-and-login-tracking.sql"), "utf8");
 
 let PGlite = null;
 try { ({ PGlite } = await import(process.env.PGLITE_MODULE ?? "@electric-sql/pglite")); } catch { /* skipped below */ }
@@ -142,12 +143,12 @@ const refused = (p, re) => assert.rejects(p, re);
 const one = async (db, sql) => Object.values((await db.query(sql)).rows[0])[0];
 const play = (db, company, voice) => as(db, "service_role", null, `select public.company_voice_recording('${company}', '${voice}') as path`).then((r) => r.rows[0].path);
 
-test("105 then 106 apply as written, and their own self-checks pass", { skip }, async () => {
+test("105, 106 and 107 apply as written, and their own self-checks pass", { skip }, async () => {
   const db = await database();
   assert.equal(await one(db, `select count(*)::int from public.student_profiles where share_voice_audio`), 0);
 });
 
-test("why 106 exists: 105 alone reads a retired table and lets an administrator give consent", { skip }, async () => {
+test("why 106 and 107 exist: 105 alone reads a retired table and lets an administrator give consent", { skip }, async () => {
   const db = await database({ repaired: false });
   // The fixture, like the cleaned-up schema, has no proof-upload table. 105's remove_students() still reads it.
   await refused(as(db, "service_role", null, `select * from public.remove_students(array['${ID.SA}']::uuid[], '${ID.SA}', 'self')`), /does not exist/);
@@ -237,6 +238,10 @@ test("notification rules: off stops new rows of that type only; admin only", { s
   assert.equal(await count("review_outcome"), 1, "other types unaffected");
   const rules = (await as(db, "authenticated", ID.ADM, `select * from public.admin_notification_rules()`)).rows;
   assert.deepEqual(rules.map((r) => [r.type, r.enabled, Number(r.sent_90d)]), [["review_outcome", true, 1], ["weekly_progress", false, 1]]);
+  // 107: a notice people need in order to act can never be switched off, and stays deliverable.
+  await refused(as(db, "authenticated", ID.ADM, `select public.admin_set_notification_rule('review_outcome', false)`), /cannot be switched off/);
+  await send("review_outcome");
+  assert.equal(await count("review_outcome"), 2);
   await as(db, "authenticated", ID.ADM, `select public.admin_set_notification_rule('weekly_progress', true)`);
   await send("weekly_progress");
   assert.equal(await count("weekly_progress"), 2);
@@ -277,7 +282,8 @@ test("delete my account: own account only, no copy of the work kept, server role
   assert.equal(await one(db, `select count(*)::int from public.student_profiles where id = '${ID.SB}'`), 1, "nobody else is removed");
   const rec = (await db.query(`select reason, snapshot, login_deleted_at, files_purged_at from public.removed_students where student_id = '${ID.SA}'`)).rows[0];
   assert.equal(rec.reason, "self");
-  assert.deepEqual(Object.keys(rec.snapshot).sort(), ["provider_uid", "self_requested"], "no profile, contact, tasks or voice rows are kept");
+  assert.deepEqual(Object.keys(rec.snapshot).sort(), ["provider_uid", "self_requested", "voice_files"], "no profile, contact, tasks or voice rows are kept");
+  assert.equal(rec.snapshot.provider_uid, "google-a");
   assert.equal(rec.login_deleted_at, null);
   assert.equal(rec.files_purged_at, null);
   // The server can record the two follow-ups and nothing else on that row.
@@ -295,6 +301,7 @@ test("the rollback applies as written and leaves no consent switched on", { skip
   assert.equal(await one(db, `select count(*)::int from public.student_profiles where share_voice_audio`), 0, "106 rollback switches everyone off before the guard goes");
   await db.exec(ROLLBACK);
   await refused(as(db, "service_role", null, `select * from public.remove_students(array['${ID.SA}']::uuid[], '${ID.SA}', 'self')`), /unknown reason/);
+  await as(db, "authenticated", ID.ADM, `select 1`);
   assert.equal(await one(db, `select count(*)::int from public.student_profiles where share_voice_audio`), 0);
   assert.equal(await one(db, `select count(*)::int from pg_proc where proname in ('company_voice_recording', 'set_share_voice_audio', 'apply_notification_rules', 'guard_share_voice_audio')`), 0);
   assert.ok(!("audio_shared" in (await one(db, `select public.recruiter_proof_profile('${ID.SA}')`)).explanations[0]));

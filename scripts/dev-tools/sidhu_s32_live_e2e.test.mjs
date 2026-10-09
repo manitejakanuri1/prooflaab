@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertStaging, classify, dbQuery, EXIT, planMatrix, provenance, RECIPES, redact, summarize } from "./sidhu_s32_live_e2e.mjs";
+import { assertStaging, classify, dbQuery, EXIT, planMatrix, provenance, RECIPES, redact, revisionProvenance, summarize } from "./sidhu_s32_live_e2e.mjs";
 import { buildInventory } from "./sidhu_s32_inventory.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -39,14 +39,18 @@ test("every inventory control of the real source is in the plan, none counted as
   assert.ok(rows.length > 400);
   assert.equal(rows.filter((r) => r.status.startsWith("PASS")).length, 0);
   for (const role of ["admin", "tpo", "company", "student", "established"]) assert.ok(rows.some((r) => r.role === role), role);
-  // the destructive controls are WRITE or UNSURE, never SAFE
-  for (const re of [/Delete Account/, /Delete my account/]) {
-    const r = rows.find((x) => re.test(x.control)); assert.ok(r, String(re)); assert.notEqual(r.class, "SAFE", r.control);
+  // S34 wired the former dead buttons: the dialog openers are safe, the account deletion is never auto-clicked,
+  // and none of them is still a handler-less (DEAD) control.
+  const del = rows.find((x) => /Delete Account \[student\/DeleteAccountDialog/.test(x.control));
+  assert.ok(del, "student Delete Account row"); assert.equal(del.class, "WRITE", del.control);
+  for (const re of [/Configure Email Templates/, /Manage Notification Rules/]) {
+    const r = rows.find((x) => re.test(x.control)); assert.ok(r, String(re)); assert.equal(r.class, "SAFE", r.control);
   }
-  // S34 (TEJA, for Sidhu's review): these two were dead buttons at 5bef957 and were asserted never SAFE. They now
-  // only open a window, which is SAFE to click; what must never be SAFE is the Save inside the templates window.
-  for (const re of [/Configure Email Templates/, /Manage Notification Rules/]) assert.ok(rows.some((x) => re.test(x.control)), String(re));
-  for (const r of rows.filter((x) => x.control.includes("EmailTemplatesDialog.tsx") && /Save|built-in/.test(x.control))) assert.notEqual(r.class, "SAFE", r.control);
+  const confirm = rows.find((x) => /Delete my account.*DeleteAccountDialog/.test(x.control));
+  assert.ok(confirm, "the confirm button"); assert.equal(confirm.class, "WRITE", confirm.control);
+  for (const re of [/Delete Account \[student/, /Configure Email Templates/, /Manage Notification Rules/]) {
+    assert.equal(rows.filter((x) => x.class === "DEAD" && re.test(x.control)).length, 0, `still dead: ${re}`);
+  }
 });
 
 test("db-verify accepts exactly one SELECT and runs it read-only through staging_sql.sh", () => {
@@ -91,4 +95,43 @@ test("CLI: refuses production and refuses without --confirm-staging (exit 3); pl
   const p = node(["--plan", "--out", join(HERE, "../../e2e-out/s32/test-plan")]);
   assert.equal(p.status, EXIT.INCOMPLETE, p.stdout + p.stderr);
   assert.match(p.stdout, /PLAN: \d+ rows/);
+});
+
+// ---------------------------------------------------------------- S34 additions
+test("S34: Firebase preview channels of the staging site are staging; look-alikes are not", () => {
+  assert.equal(assertStaging("https://prooflab-staging--s34-abc123.web.app/"), "https://prooflab-staging--s34-abc123.web.app");
+  for (const b of ["https://prooflab-stagingx--s34.web.app", "https://prooflab--s34.web.app", "https://prooflab-508214--s34.web.app", "http://prooflab-staging--s34.web.app"]) {
+    assert.throws(() => assertStaging(b), undefined, b);
+  }
+});
+
+test("S34: backend provenance needs every expected revision at 100% traffic", () => {
+  const gcloud = (traffic) => () => ({ status: 0, stdout: JSON.stringify({ status: { traffic } }) });
+  assert.equal(revisionProvenance(undefined).status, "UNVERIFIED");
+  assert.equal(revisionProvenance("functions=prooflab-staging-functions-00079-voc", { run: gcloud([{ revisionName: "prooflab-staging-functions-00079-voc", percent: 100 }]) }).status, "VERIFIED");
+  const canary = revisionProvenance("functions=prooflab-staging-functions-00079-voc", { run: gcloud([{ revisionName: "prooflab-staging-functions-00075-git", percent: 100 }, { revisionName: "prooflab-staging-functions-00079-voc", percent: 0, tag: "s34" }]) });
+  assert.equal(canary.status, "MISMATCH", "a 0%-traffic canary is not the deployed build");
+  assert.match(canary.detail, /00075-git=100%/);
+  assert.equal(revisionProvenance("functions=x", { run: () => ({ status: 1, stdout: "" }) }).status, "UNVERIFIED");
+  assert.equal(revisionProvenance("functions=bad name;rm", { run: gcloud([]) }).status, "UNVERIFIED");
+});
+
+test("S34: an unverified build can never exit OK, even if every row passed", () => {
+  assert.equal(summarize([{ status: "PASS" }], { status: "UNVERIFIED" }).exit, EXIT.INCOMPLETE);
+  assert.equal(summarize([{ status: "PASS" }], null).exit, EXIT.INCOMPLETE);
+});
+
+test("S34: twelve recipes; the account deletion is destructive and needs its own disposable identity", () => {
+  assert.ok(RECIPES.length >= 12);
+  const del = RECIPES.find((r) => r.id === "student-delete-own-account");
+  assert.equal(del.destructive, true);
+  assert.deepEqual(del.fixtures, ["E2E_DISPOSABLE_STUDENT_EMAIL", "E2E_DISPOSABLE_STUDENT_PASSWORD", "E2E_DISPOSABLE_STUDENT_USER_ID"]);
+  assert.equal(RECIPES.filter((r) => r.destructive).length, 1, "only the deletion is destructive");
+});
+
+test("S34: every recipe covers at least one real control of the S34 source", () => {
+  const rows = planMatrix(inv);
+  for (const r of RECIPES) {
+    assert.ok(rows.some((x) => r.role.includes(x.role) && r.matches.test(x.control)), r.id);
+  }
 });

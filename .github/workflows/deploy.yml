@@ -98,6 +98,11 @@ jobs:
       - name: Files service tests
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
 
+      # S36: the coding-task harness is really compiled and run in each language. The Java one did not compile,
+      # and tests that only read the generated text did not notice. Languages the runner image lacks are skipped.
+      - name: Function-mode harness compiles and runs (real toolchains)
+        run: REQUIRE_TOOLCHAINS=python,javascript,java,c,cpp deno test --no-lock --allow-read --allow-write --allow-run --allow-env supabase/functions/_exec_tests/
+
       - name: Type-check every active server function (Deno)
         run: deno check --no-lock functions-service/main.ts supabase/functions/*/index.ts
 

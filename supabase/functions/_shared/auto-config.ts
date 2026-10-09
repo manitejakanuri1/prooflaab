@@ -368,7 +368,9 @@ async function tryGenerateFunction(
         (code) => gradeSandboxConfig(configOf(a), code)),
     );
     if (verdict.accepted) return { ok: true, attempt: { ...verdict.attempt, difficulty }, scenarioFields: parsed };
-    console.warn(`FUNCTION DRAFT REJECTED (${feature}, attempt ${attempt + 1})`);
+    // The reason is a category and counts only (function-generation.ts): safe to log, and without it a
+    // broken harness looks exactly like a model that keeps getting the answer wrong.
+    console.warn(`FUNCTION DRAFT REJECTED (${feature}, attempt ${attempt + 1}): ${verdict.reason}`);
     retryNote = verdict.retryNote;
   }
   return { ok: false, attempt: null, scenarioFields: lastFields };

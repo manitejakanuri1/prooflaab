@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
+import { codingErrorMessage, retryAllowance } from "@/lib/codingRoundRetry";
 import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, signatureLine,
   type HiddenSummary,
@@ -173,6 +174,11 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   const codingAdvancingRef = useRef(false);
 
   const [codingGenError, setCodingGenError] = useState(false);
+  // What the server said, how many retries were used, and seconds left before the next one is allowed.
+  const [codingErrorText, setCodingErrorText] = useState("");
+  const [codingRetries, setCodingRetries] = useState(0);
+  const [retryWait, setRetryWait] = useState(0);
+  const codingGenBusyRef = useRef(false);
 
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const skipNextScrollRef = useRef(false);
@@ -195,7 +201,22 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   // Regenerates just the coding round. Used both as the initial fetch (fired
   // alongside grading in submitAssessment) and as the retry action if that
   // fetch fails — retrying never re-submits the already-graded quiz answers.
+  // Records a failed coding-round fetch: the server's own words, and the wait before the next retry.
+  const failCodingGen = useCallback(async (err: unknown, retriesUsed: number) => {
+    console.error("Coding round generation failed:", err);
+    const message = codingErrorMessage(err, await readFunctionError(err));
+    setCodingErrorText(message);
+    setRetryWait(retryAllowance(retriesUsed).waitSeconds);
+    toast({ title: "Couldn't load coding problems", description: message, variant: "destructive" });
+    setCodingGenError(true);
+  }, [toast]);
+
   const retryCodingGen = useCallback(async () => {
+    // One request at a time, and never past the limit: each one costs several AI calls.
+    if (codingGenBusyRef.current || !retryAllowance(codingRetries).allowed) return;
+    codingGenBusyRef.current = true;
+    const used = codingRetries + 1;
+    setCodingRetries(used);
     setPhase("coding-loading");
     setCodingGenError(false);
     try {
@@ -204,13 +225,20 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      applyCodingQuestions(data.questions || []);
-    } catch (err: any) {
-      console.error("Coding round generation failed:", err);
-      toast({ title: "Couldn't load coding problems", description: err.message || "Please try again.", variant: "destructive" });
-      setCodingGenError(true);
+      if (!Array.isArray(data?.questions) || data.questions.length === 0) throw new Error("No coding problems came back.");
+      applyCodingQuestions(data.questions);
+    } catch (err: unknown) {
+      await failCodingGen(err, used);
+    } finally {
+      codingGenBusyRef.current = false;
     }
-  }, [source, toast]);
+  }, [source, codingRetries, failCodingGen]);
+
+  useEffect(() => {
+    if (retryWait <= 0) return;
+    const id = setTimeout(() => setRetryWait((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(id);
+  }, [retryWait]);
 
   // Grading and coding-problem generation don't depend on each other's output,
   // so they're fired together instead of back-to-back — halves the wait after
@@ -282,15 +310,14 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
       : codingOutcome.value.data?.error ? new Error(codingOutcome.value.data.error)
       : null;
 
-    if (codingErr) {
-      console.error("Coding round generation failed:", codingErr);
-      toast({ title: "Couldn't load coding problems", description: codingErr.message || "Please try again.", variant: "destructive" });
-      setCodingGenError(true);
+    const questionsBack = codingOutcome.status === "fulfilled" ? codingOutcome.value.data?.questions : null;
+    if (codingErr || !Array.isArray(questionsBack) || questionsBack.length === 0) {
+      await failCodingGen(codingErr ?? new Error("No coding problems came back."), codingRetries);
       return;
     }
 
-    applyCodingQuestions((codingOutcome as PromiseFulfilledResult<any>).value.data.questions || []);
-  }, [assessmentId, source, toast, onOpenChange]);
+    applyCodingQuestions(questionsBack);
+  }, [assessmentId, source, toast, onOpenChange, codingRetries, failCodingGen]);
 
   const advance = useCallback(() => {
     if (advancingRef.current || !currentQuestion) return;
@@ -344,8 +371,13 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
             setPhase("coding");
           } else if (saved.phase === "coding-loading" && saved.pendingResult) {
             // Grading already succeeded before the reload — only the coding
-            // round is missing, so fetch just that instead of redoing the quiz.
-            retryCodingGen();
+            // round is missing. A reload must not become a way around the retry
+            // limit or fire a request by itself: show the saved state and let the
+            // student choose Retry (if any are left) or continue to results.
+            setCodingRetries(Number(saved.codingRetries) || 0);
+            setCodingErrorText("We could not prepare your coding problems. Your quiz score is saved.");
+            setCodingGenError(true);
+            setPhase("coding-loading");
           } else {
             skipNextScrollRef.current = true;
             const resumeAt = Math.min(saved.currentIndex ?? 0, Math.max(questions.length - 1, 0));
@@ -364,13 +396,13 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
 
   useEffect(() => {
     if (!hydrated || phase === "results") return;
-    const snapshot = { phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code };
+    const snapshot = { phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, codingRetries };
     try {
       localStorage.setItem(progressStorageKey, JSON.stringify(snapshot));
     } catch {
       // storage full/unavailable — progress just won't resume, not fatal
     }
-  }, [hydrated, phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, progressStorageKey]);
+  }, [hydrated, phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, codingRetries, progressStorageKey]);
 
   useEffect(() => {
     if (phase === "results") {
@@ -602,10 +634,26 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
           <div className="flex flex-col items-center gap-3 py-10">
             {codingGenError ? (
               <>
-                <p className="text-sm text-muted-foreground">
-                  Your score is saved — just couldn't load the coding problems.
+                <p className="text-sm font-medium">Your quiz score is saved.</p>
+                <p role="alert" className="text-sm text-muted-foreground text-center max-w-md">
+                  {codingErrorText || "We could not prepare your coding problems."}
                 </p>
-                <Button onClick={retryCodingGen}>Retry</Button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {retryAllowance(codingRetries).allowed ? (
+                    <Button onClick={() => void retryCodingGen()} disabled={retryWait > 0}>
+                      {retryWait > 0 ? `Retry in ${retryWait}s` : "Retry"}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground w-full text-center">
+                      That was the last try for now. You can take the coding round later from a new resume check.
+                    </p>
+                  )}
+                  {pendingResult && (
+                    <Button variant="outline" onClick={() => { onGraded(pendingResult); setPhase("results"); }}>
+                      See my results without the coding round
+                    </Button>
+                  )}
+                </div>
               </>
             ) : (
               <>

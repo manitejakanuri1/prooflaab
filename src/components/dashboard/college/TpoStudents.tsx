@@ -22,6 +22,7 @@ import AssignTasksScreen from "@/components/dashboard/assignTasks/AssignTasksScr
 // scope to "admin OR this student's own approved college" (stage70), so the
 // same screen is correct here without a college-specific fork.
 import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
+import { usePendingReviewCount } from "@/hooks/usePendingReviewCount";
 
 interface Row {
   student_id: string;
@@ -95,6 +96,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   const [skill, setSkill] = useState<string>("all");
   const [assignOpen, setAssignOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const pendingReviews = usePendingReviewCount();
 
   /**
    * One page, filtered by the database.
@@ -283,6 +285,11 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
         <Button variant="outline" onClick={() => setReviewOpen(true)}>
           <FlagTriangleRight className="h-4 w-4 mr-2" />
           Flagged Submissions
+          {pendingReviews > 0 && (
+            <Badge variant="destructive" className="ml-2" aria-label={`${pendingReviews} waiting for review`}>
+              {pendingReviews}
+            </Badge>
+          )}
         </Button>
       </div>
 

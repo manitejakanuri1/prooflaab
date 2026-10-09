@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groupOf } from "@/components/dashboard/admin/adminNav";
 import AdminOpsHealth from "@/components/dashboard/admin/AdminOpsHealth";
 import { useUrlTab } from "@/hooks/useUrlTab";
+import { usePendingReviewCount } from "@/hooks/usePendingReviewCount";
 
 const AdminDashboard = () => {
   const { userType } = useParams();
@@ -33,6 +34,7 @@ const AdminDashboard = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const pendingReviews = usePendingReviewCount();
 
   // The page is in the URL (?tab=), so refresh, Back/Forward and pasted links work.
   // /admin/dashboard/user-management/<type> is an older address for the People lists.
@@ -141,7 +143,15 @@ const AdminDashboard = () => {
                   <Tabs value={current} onValueChange={handleTabChange}>
                     <TabsList className="flex-wrap h-auto">
                       {group.children.map((c) => (
-                        <TabsTrigger key={c.id} value={c.id}>{c.label}</TabsTrigger>
+                        <TabsTrigger key={c.id} value={c.id}>
+                          {c.label}
+                          {c.id === "reviewed-submissions" && pendingReviews > 0 && (
+                            <span className="ml-1.5 rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-destructive-foreground"
+                                  aria-label={`${pendingReviews} waiting for review`}>
+                              {pendingReviews}
+                            </span>
+                          )}
+                        </TabsTrigger>
                       ))}
                     </TabsList>
                   </Tabs>

@@ -131,9 +131,11 @@ export function beforeStateSql(files) {
   return { sql: parts.join("\n"), skipped };
 }
 
-export async function makeDb({ fixed, preSelfClaim = false } = {}) {
+// `extensions` (S31): PGlite extension modules, e.g. { pg_trgm }; each is also CREATEd. Default: none (as in S30).
+export async function makeDb({ fixed, preSelfClaim = false, extensions } = {}) {
   const mod = await import(process.env.PGLITE_MODULE ?? "@electric-sql/pglite");
-  const db = new mod.PGlite();
+  const db = new mod.PGlite(extensions ? { extensions } : undefined);
+  for (const name of Object.keys(extensions ?? {})) await db.exec(`create extension if not exists ${name};`);
   await db.exec("set check_function_bodies = off;");
   await db.exec(FIXTURE);
   const files = applyOrder(ROOT).filter((f) => !/[\\/]migration[\\/]103-/.test(f));

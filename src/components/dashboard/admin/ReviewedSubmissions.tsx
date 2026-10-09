@@ -22,6 +22,7 @@ interface FlaggedSubmission {
 }
 
 const FLAG_LABEL: Record<string, string> = {
+  copied_answer: "Nearly word-for-word the same as another student's earlier answer to this same question",
   similar: "Close match to another student's answer",
   grader_disagreement: "The two AI graders disagreed by more than 15 points",
   ai_risk: "Flagged as possibly AI-written",
@@ -61,7 +62,12 @@ const ReviewedSubmissions = () => {
       toast.error(result?.reason === "forbidden" ? "You can't review this submission." : "Could not save your decision.");
       return;
     }
-    toast.success(approve ? "Approved — XP awarded." : "Marked as not passing.");
+    const done = result as { status?: string; xp_awarded?: number };
+    toast.success(
+      done.status === "already_completed" ? "Closed: the student already passed this task with a later answer."
+        : approve ? `Approved${done.xp_awarded ? ` (+${done.xp_awarded} XP)` : ""}. The student has been told.`
+        : "Marked as not passing. The student has been told and can try again.",
+    );
     queryClient.invalidateQueries({ queryKey: ["needs-review-submissions"] });
   };
 

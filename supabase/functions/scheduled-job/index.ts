@@ -86,6 +86,15 @@ serve(async (req) => {
   // a distinct log line, watched by its own alert, rather than folding into the job's own success/fail.
   await sanityCheck(db, job, data).catch((e) => console.error(`scheduled-job ${job}: sanity check itself failed:`, e));
 
+  // S31: one daily digest of answers waiting for a person (migration 104), riding on the daily Lot run so no
+  // new scheduler job is needed. Non-fatal: a reminder never fails or retries the Lot job, and the function
+  // itself sends at most one digest per reviewer per IST day.
+  if (job === 'daily-lots') {
+    const { data: digest, error: digestError } = await db.rpc('notify_pending_reviews');
+    if (digestError) console.error(`scheduled-job daily-lots: review digest failed: ${digestError.message}`);
+    else console.log('scheduled-job daily-lots: review digest', JSON.stringify(digest ?? null));
+  }
+
   // A job that ran but failed at its purpose is a failure (migration 75): answer 500 so Cloud
   // Scheduler retries it and the scheduled-job alert fires. Only daily-lots reports a status today.
   const state = jobState(data);

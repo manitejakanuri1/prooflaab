@@ -6,7 +6,7 @@ import { cors } from "../_shared/cors.ts";
 import {
   gradeOnce, zeroUnquotedCredit, totalOf, wordCount, DISAGREEMENT_THRESHOLD, type Criterion,
 } from "../_shared/rubric-grading.ts";
-import { usesSharedChecklist } from "../_shared/scratch.ts";
+import { decidingGrade, needsThirdOpinion, seriousCopy, type SimilarityResult } from "../_shared/review-policy.ts";
 
 /**
  * Final submit for a rubric-graded (written) task: business/pitch Lots,
@@ -16,11 +16,13 @@ import { usesSharedChecklist } from "../_shared/scratch.ts";
  * One LLM grading pass scores the answer against the rubric. A second,
  * independent pass only runs when that first score lands within
  * NEAR_THRESHOLD points of pass_threshold — a clear pass or clear fail
- * doesn't need a second opinion, a borderline one does. Any of three flags —
- * a grader disagreement over 15 points (only checkable when two ran), a
- * close trigram match to another student's answer, or high AI-authorship
- * risk — routes the submission to a human via needs_review instead of auto
- * pass or fail. A clean pass/fail goes straight through
+ * doesn't need a second opinion, a borderline one does. If those two disagree
+ * by more than DISAGREEMENT_THRESHOLD, ONE third pass settles it (median of
+ * three; never more than three calls). AI decides normal cases (S31).
+ * Only a serious evidence-integrity signal routes the answer to a human via
+ * needs_review: a near-verbatim copy of another student's earlier answer to
+ * the SAME question that is not just a restatement of the prompt or reference
+ * answer (_shared/review-policy.ts). A clean pass/fail goes straight through
  * record_task_submission(), the same completion path sandbox tasks use
  * (stage69).
  */
@@ -106,17 +108,15 @@ Title: ${task.title ?? ""}
 ${task.description ?? ""}`;
     const flags: string[] = [];
 
-    // 6. Cheap pre-check: does this closely match another student's answer
-    // to the same question? Checked before paying for two LLM calls.
-    // The shared checklist is used by many different tasks, so comparing
-    // against "other answers to the same checklist" would compare unrelated work.
-    // A scratchpad copy of it (migration 48) keeps exactly the same behaviour.
-    if (!usesSharedChecklist(cfg)) {
-      const { data: similar } = await db.rpc("similar_written_submission", {
-        _rubric_config_id: cfg.id, _student_id: profile.id, _answer: answer, _threshold: 0.8,
-      });
-      if (similar) flags.push("similar");
-    }
+    // 6. Integrity pre-check, before paying for grading: compared ONLY with other students'
+    // answers to this exact question (same checklist and same task text), and judged by
+    // review-policy.seriousCopy. Similar correct answers and shared terminology are normal.
+    // A failure of this check never blocks or accuses the student (missing data = no flag).
+    const { data: similarity, error: simError } = await db.rpc("similar_written_answer", {
+      _task_id: task_id, _student_id: profile.id, _answer: answer,
+    });
+    if (simError) console.error("similar_written_answer failed:", simError.message);
+    else if (seriousCopy(similarity as SimilarityResult)) flags.push("copied_answer");
 
     // 7. Grade once. A second, independent grader only runs when the first
     // score is close enough to the pass line that a second opinion actually
@@ -150,15 +150,25 @@ ${task.description ?? ""}`;
       }
       const checkedB = zeroUnquotedCredit(gradeB, answer);
       const totalB = totalOf(checkedB);
+      const graded = [checkedA, checkedB];
+      const totals = [totalA, totalB];
 
-      if (Math.abs(totalA - totalB) > DISAGREEMENT_THRESHOLD) {
-        flags.push("grader_disagreement");
+      // Two graders far apart on a borderline answer: ONE more opinion settles it (median of
+      // three). A grading disagreement is not an integrity problem, so it never goes to a human.
+      if (needsThirdOpinion(totalA, totalB, DISAGREEMENT_THRESHOLD)) {
+        const gradeC = await gradeOnce(gradingPrompt, criteria, answer, callerId);
+        if (!gradeC) return json({
+          error: "Grading is busy right now. This is not a problem with your answer - try again in a minute.",
+          runner_unavailable: true,
+        }, 503);
+        const checkedC = zeroUnquotedCredit(gradeC, answer);
+        graded.push(checkedC);
+        totals.push(totalOf(checkedC));
       }
-      // The lower of the two totals — an optimistic single grader should not
-      // be the one that decides a pass.
-      lower = totalA <= totalB ? checkedA : checkedB;
-      const rawScore = totalA <= totalB ? totalA : totalB;
-      score = maxTotal > 0 ? Math.round((rawScore / maxTotal) * 100) : 0;
+      // Two grades: the lower (an optimistic single grader should not decide a pass). Three: the median.
+      const pick = decidingGrade(totals);
+      lower = graded[pick];
+      score = maxTotal > 0 ? Math.round((totals[pick] / maxTotal) * 100) : 0;
     }
 
     const { data: rec, error } = await db.rpc("record_task_submission", {

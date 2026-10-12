@@ -56,6 +56,9 @@ jobs:
       - name: Retired architecture has not come back
         run: python3 scripts/legacy_guard.py
 
+      - name: Deno services may read every setting their code reads (--allow-env)
+        run: python3 scripts/test_deno_env_allowlist.py
+
       - name: Migrations are consistent (numbering, self-check, mirror copy, rollback)
         run: python3 scripts/migrations.py check
 

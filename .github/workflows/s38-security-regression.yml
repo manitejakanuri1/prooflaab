@@ -1,0 +1,62 @@
+name: Self-deletion and migration 105-107 security gate
+
+# Sidhu S38: the tests that prove the S36 fixes (consent audit, protected notices, login-id clean-up, retry order,
+# file purge) existed but no workflow ran them, so losing a fix would not have failed any check.
+# The database tests run on PGlite (real PostgreSQL 16, in memory). A skipped test fails this gate.
+
+on:
+  push:
+    paths:
+      - "migration/10[5-9]-*.sql"
+      - "supabase/migrations/2026110300*.sql"
+      - "accounts/self_delete.py"
+      - "functions-service/Dockerfile"
+      - "supabase/functions/_shared/owner-files*.ts"
+      - "supabase/functions/scheduled-job/**"
+      - "src/components/dashboard/student/DeleteAccountDialog.tsx"
+      - "src/components/dashboard/admin/NotificationRulesDialog.tsx"
+      - "scripts/dev-tools/s34_migration_105.test.mjs"
+      - "scripts/dev-tools/sidhu_s3[4-8]_*"
+      - ".github/workflows/s38-security-regression.yml"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install PGlite (pinned, PostgreSQL 16; not a repository dependency)
+        run: npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/pgl" @electric-sql/pglite@0.2.17
+
+      - name: Migrations 105-107 on PostgreSQL (none may be skipped)
+        env:
+          PGLITE_MODULE: file://${{ runner.temp }}/pgl/node_modules/@electric-sql/pglite/dist/index.js
+        run: |
+          node --test --test-reporter=tap \
+            scripts/dev-tools/s34_migration_105.test.mjs \
+            scripts/dev-tools/sidhu_s34_remove_students.test.mjs \
+            scripts/dev-tools/sidhu_s36_security.test.mjs \
+            scripts/dev-tools/sidhu_s38_rereview.test.mjs | tee "$RUNNER_TEMP/pg.tap"
+          grep -q '^# fail 0$' "$RUNNER_TEMP/pg.tap"
+          grep -q '^# skipped 0$' "$RUNNER_TEMP/pg.tap" || { echo "::error::database tests were skipped: PGlite did not load"; exit 1; }
+
+      - name: Login-deletion retry (order, no waiting, rows with no login id)
+        run: python3 scripts/dev-tools/sidhu_s36_self_delete_retry_test.py
+
+      - name: File purge with the real Deno.remove (write scope, missing mount, real delete)
+        run: deno test --no-lock --allow-read --allow-write --allow-env scripts/dev-tools/sidhu_s36_owner_files_test.ts

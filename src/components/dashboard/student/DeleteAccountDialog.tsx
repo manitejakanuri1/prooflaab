@@ -47,8 +47,9 @@ const DeleteAccountDialog = ({ studentId }: { studentId: string }) => {
             <DialogHeader>
               <DialogTitle>Your data is deleted</DialogTitle>
               <DialogDescription>
-                Your profile, work and recordings are deleted. Your sign-in could not be removed just now, so it
-                has been locked and cannot be used. We will finish removing it automatically.
+                Your profile and work are deleted. Your uploaded files (resume, photo and voice recordings) are
+                removed by a daily clean-up. Your sign-in could not be removed just now, so it has been locked and
+                cannot be used. We will finish removing it automatically.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -61,7 +62,8 @@ const DeleteAccountDialog = ({ studentId }: { studentId: string }) => {
             <DialogTitle>Delete your account?</DialogTitle>
             <DialogDescription>
               This deletes your login, your profile, your tasks and scores, your squad place, your portfolio and
-              your voice recordings. It cannot be undone, and your college cannot bring it back.
+              your voice recordings. Your uploaded files are removed by a daily clean-up. It cannot be undone, and
+              your college cannot bring it back.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">

@@ -555,7 +555,8 @@ Now generate a personalized mini-project for ${student.full_name}:`;
       errorMessage = error.message;
       
       // Specific error handling for different types of errors
-      if (errorMessage.includes('Authentication') || errorMessage.includes('authorization')) {
+      // S41: was case-sensitive, so 'Invalid authentication' (a bad, forged or expired ticket) answered 500.
+      if (/authenticat|authoriz/i.test(errorMessage)) {
         statusCode = 401;
         errorMessage = 'Authentication failed. Please log in again.';
       } else if (errorMessage.includes('Insufficient permissions')) {

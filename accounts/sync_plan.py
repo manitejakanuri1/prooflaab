@@ -42,6 +42,8 @@ def plan(accounts: list[dict], logins: dict[str, bool], now: datetime, limits: L
     # by managed account creation, or by `link` below). An account that never had a Google login - e.g. the
     # 15,000 synthetic staging students - is not a deleted login, and is neither counted nor touched.
     # An unlinked account whose own id IS in the listing is a real (uuid-named) login: it gets linked.
+    # On hold (owner decision): no automatic step at all - not marked, cut, restored or linked.
+    accounts = [a for a in accounts if not a.get("on_hold")]
     link = [a for a in accounts if not a.get("linked") and a["provider_uid"] in logins]
     pool = [a for a in accounts if a.get("linked") and not a.get("protected") and not a.get("in_app_deletion")]
     gone = [a for a in pool if logins.get(a["provider_uid"], True)]       # absent, or present but disabled

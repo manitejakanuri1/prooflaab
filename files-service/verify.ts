@@ -14,8 +14,12 @@
 // it simply is not for us.
 import { keyFor } from './jwks.ts';
 
-const PROJECT = Deno.env.get('GCP_PROJECT') ?? 'prooflab-508214';
+// The Google Identity project whose sign-in tokens are accepted. IDENTITY_PROJECT names it explicitly (staging has
+// its own isolated project); GCP_PROJECT is only the fallback.
+const PROJECT = Deno.env.get('IDENTITY_PROJECT') || Deno.env.get('GCP_PROJECT') || 'prooflab-508214';
 const ISSUER = `https://securetoken.google.com/${PROJECT}`;
+/** Which login project's tokens this service accepts (read once at start). */
+export const IDENTITY_PROJECT = PROJECT;
 
 export interface Verified {
   sub: string;

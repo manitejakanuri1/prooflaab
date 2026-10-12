@@ -233,3 +233,28 @@ Deno.test('/service-token is closed when the bridge has no asymmetric key', asyn
   const res = await handler(new Request('https://bridge/service-token', { method: 'POST', headers: { Authorization: 'Bearer x.y.z' } }));
   assert(res.status === 401, `status ${res.status}`);
 });
+
+// ── which login project (13 Oct 2026, staging isolation) ───────────────────
+// IDENTITY_PROJECT names the login project; GCP_PROJECT (the infrastructure project other services read) is only
+// the fallback, so moving staging logins to their own project never redirects anything else.
+Deno.test('IDENTITY_PROJECT wins over GCP_PROJECT; GCP_PROJECT is only the fallback', async () => {
+  const saved = { i: Deno.env.get('IDENTITY_PROJECT'), g: Deno.env.get('GCP_PROJECT') };
+  try {
+    Deno.env.set('GCP_PROJECT', 'infra-project');
+    Deno.env.set('IDENTITY_PROJECT', 'login-project');
+    const a = await import('./verify.ts?case=both');
+    assert(a.IDENTITY_PROJECT === 'login-project', `got ${a.IDENTITY_PROJECT}`);
+    Deno.env.delete('IDENTITY_PROJECT');
+    const b = await import('./verify.ts?case=fallback');
+    assert(b.IDENTITY_PROJECT === 'infra-project', `got ${b.IDENTITY_PROJECT}`);
+    // a token for the infrastructure project is refused when the login project is another one
+    Deno.env.set('IDENTITY_PROJECT', 'login-project');
+    const c = await import('./verify.ts?case=refuse');
+    const tok = fakeToken({ alg: 'RS256', kid: 'k' }, { sub: SUB, iss: 'https://securetoken.google.com/infra-project',
+      aud: 'infra-project', exp: future, iat: past + 3000 });
+    assert(await c.verifyGoogleToken(tok) === null, 'a token for another project was accepted');
+  } finally {
+    saved.i === undefined ? Deno.env.delete('IDENTITY_PROJECT') : Deno.env.set('IDENTITY_PROJECT', saved.i);
+    saved.g === undefined ? Deno.env.delete('GCP_PROJECT') : Deno.env.set('GCP_PROJECT', saved.g);
+  }
+});

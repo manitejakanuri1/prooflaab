@@ -49,7 +49,10 @@ PORT = int(os.environ.get("PORT", "8080"))
 SECRET = os.environ.get("PGRST_JWT_SECRET", "").encode()
 WEBHOOK = os.environ.get("WEBHOOK_SECRET", "")
 POSTGREST = os.environ["POSTGREST_URL"].rstrip("/")
-PROJECT = os.environ.get("GCP_PROJECT", "prooflab-508214")
+# The Google Identity project whose logins this service manages. IDENTITY_PROJECT names it explicitly (staging:
+# its own isolated project); GCP_PROJECT is only the fallback, so moving logins never has to touch the variable other
+# services read as "our infrastructure project".
+PROJECT = os.environ.get("IDENTITY_PROJECT") or os.environ.get("GCP_PROJECT", "prooflab-508214")
 ORIGINS = set(filter(None, os.environ.get("ALLOWED_ORIGINS", "").split(",")))
 IDENTITY = f"https://identitytoolkit.googleapis.com/v1/projects/{PROJECT}"
 # The exact identity scope this service acts on. Every ledger row carries it, and rows of any other scope

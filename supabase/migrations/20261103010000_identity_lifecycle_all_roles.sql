@@ -95,6 +95,19 @@ grant select, insert, update on public.identity_lifecycle to service_role;
 revoke delete, truncate on public.identity_lifecycle from service_role;   -- audit rows are never removed by the app
 grant usage on sequence public.identity_lifecycle_id_seq to service_role;
 
+-- Accounts whose AUTOMATIC reconciliation is on hold (owner decision, 13 Oct 2026: staging accounts linked to a
+-- personal mailbox, until their ownership is verified). The sync neither marks, cuts nor links them; their data is
+-- untouched. Rows are added/removed only by a person with direct SQL (no API grant beyond reading).
+create table if not exists public.identity_reconcile_hold (
+  user_id    uuid primary key,
+  reason     text not null check (length(reason) between 3 and 300),
+  held_by    text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.identity_reconcile_hold enable row level security;
+revoke all on public.identity_reconcile_hold from public, anon, authenticated;
+grant select on public.identity_reconcile_hold to service_role;
+
 -- Protected test accounts can never be blocked, by any path.
 create or replace function public.identity_lifecycle_guard()
 returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
@@ -237,11 +250,12 @@ grant execute on function public.resolve_account(text, text, boolean) to service
 -- where it stands in the ledger for THIS identity scope. Only linked logins are reconciled (accounts/sync_plan.py):
 -- an account that never had a Google login (e.g. synthetic staging students) is never treated as a deleted one.
 create or replace function public.identity_sync_accounts(_project text, _tenant text default '')
-returns table (user_id uuid, role text, provider_uid text, linked boolean, protected boolean,
+returns table (user_id uuid, role text, provider_uid text, linked boolean, protected boolean, on_hold boolean,
                ledger_status text, first_missing_at timestamptz, in_app_deletion boolean)
 language sql stable security definer set search_path = public, pg_temp as $$
   select r.user_id, r.role::text, coalesce(ai.provider_uid, r.user_id::text), ai.provider_uid is not null,
          exists (select 1 from public.protected_test_accounts t where t.user_id = r.user_id),
+         exists (select 1 from public.identity_reconcile_hold h where h.user_id = r.user_id),
          l.status, l.event_at,
          exists (select 1 from public.identity_lifecycle a
                   where a.user_id = r.user_id and a.direction = 'app' and a.status <> 'cancelled')
@@ -263,6 +277,7 @@ begin
     uid := (e ->> 'user_id')::uuid;
     continue when e ->> 'provider_uid' is distinct from uid::text;
     continue when not exists (select 1 from public.user_roles r where r.user_id = uid);
+    continue when exists (select 1 from public.identity_reconcile_hold h where h.user_id = uid);
     insert into public.account_identities (provider_uid, user_id) values (uid::text, uid) on conflict do nothing;
     get diagnostics k = row_count; n := n + k;
   end loop;
@@ -284,7 +299,8 @@ begin
   end if;
 
   for e in select * from jsonb_array_elements(coalesce(_mark, '[]'::jsonb)) loop
-    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid) then
+    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid)
+       or exists (select 1 from public.identity_reconcile_hold h where h.user_id = (e ->> 'user_id')::uuid) then
       n_skip := n_skip + 1; continue;
     end if;
     insert into public.identity_lifecycle (event_key, user_id, role_snapshot, identity_project, tenant_id, provider_uid,
@@ -298,7 +314,8 @@ begin
   end loop;
 
   for e in select * from jsonb_array_elements(coalesce(_verified, '[]'::jsonb)) loop
-    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid) then
+    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid)
+       or exists (select 1 from public.identity_reconcile_hold h where h.user_id = (e ->> 'user_id')::uuid) then
       n_skip := n_skip + 1; continue;
     end if;
     update public.identity_lifecycle l
@@ -541,6 +558,11 @@ begin
      or has_table_privilege('authenticated', 'public.identity_lifecycle', 'insert')
      or has_table_privilege('authenticated', 'public.identity_lifecycle', 'update') then
     raise exception '110 self-check: a browser role can touch identity_lifecycle';
+  end if;
+  if has_table_privilege('authenticated', 'public.identity_reconcile_hold', 'select')
+     or has_table_privilege('service_role', 'public.identity_reconcile_hold', 'insert')
+     or has_table_privilege('service_role', 'public.identity_reconcile_hold', 'delete') then
+    raise exception '110 self-check: the reconcile hold can be read by a browser or changed through the API';
   end if;
   if has_table_privilege('service_role', 'public.identity_lifecycle', 'delete') then
     raise exception '110 self-check: audit rows can be deleted through the API';

@@ -134,4 +134,11 @@ assert uids(r["link"]) == ["x1"] and r["mark"] == [], r
 r = plan(real + [dict(s, linked=True) for s in synthetic[:100]], dict(RL, x1=False), NOW)
 assert r["abort"] and r["link"] == [], r
 
+# Owner hold (13 Oct 2026): accounts on hold get no automatic step - not marked, cut, restored or linked.
+held = [dict(a, on_hold=a["user_id"] in {"u1", "u2"}) for a in seen_missing(A, {"u2"}, status="verified_missing")]
+r = plan(held, without(L, "p1"), NOW)
+assert r["mark"] == [] and r["recover"] == [], r
+r = plan(held + [dict(synthetic[0], on_hold=True)], dict(L, x0=False), NOW)
+assert r["link"] == [] and r["recover"] == [], r
+
 print("sync_plan: all checks passed")

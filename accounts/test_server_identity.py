@@ -171,6 +171,13 @@ assert h.out[0] == 503, h.out
 # Production itself (same project, production API) is NOT the shared case.
 os.environ.update({"POSTGREST_URL": "https://prooflab-api.test"})
 assert not importlib.reload(server).SHARED_IDENTITY
+# IDENTITY_PROJECT names the login project; GCP_PROJECT (infrastructure) is only the fallback. Staging pointed at
+# its own login project is NOT the shared case, even though GCP_PROJECT stays prooflab-508214.
+os.environ.update({"IDENTITY_PROJECT": "prooflab-stg-identity-508214"})
+iso = importlib.reload(server)
+assert iso.PROJECT == "prooflab-stg-identity-508214" and not iso.SHARED_IDENTITY
+assert iso.IDENTITY.endswith("/projects/prooflab-stg-identity-508214") and iso.scope()["_project"] == iso.PROJECT
+os.environ.pop("IDENTITY_PROJECT")
 # A tenant isolates: tenantId goes on every call.
 os.environ.update({"IDENTITY_TENANT": "staging-t1", "POSTGREST_URL": "https://prooflab-staging-api.test"})
 t = importlib.reload(server)

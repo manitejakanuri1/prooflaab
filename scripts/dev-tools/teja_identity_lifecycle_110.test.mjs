@@ -390,3 +390,17 @@ test("a uuid-named login becomes linked when it signs in (resolve_account); a cu
   await assert.rejects(db.query(`select * from public.resolve_account('${ID.ADM}', null, false)`), /no longer active/);
   assert.equal(await one(db, `select count(*)::int from public.account_identities where user_id = '${ID.ADM}'`), 0);
 });
+
+test("owner hold: a held account is never marked, cut or linked by the sync; the API cannot change holds", { skip }, async () => {
+  const db = await database(M73, M110);
+  await db.exec(`insert into public.identity_reconcile_hold (user_id, reason, held_by) values
+    ('${ID.STU2}', 'personal mailbox, ownership not verified', 'owner'), ('${ID.ADM2}', 'personal mailbox', 'owner')`);
+  assert.equal((await mark(db, [{ user_id: ID.STU2, provider_uid: "g-stu2", role: "student" }])).rows[0].r.skipped, 1);
+  assert.equal(await one(db, `select count(*)::int from public.identity_lifecycle where user_id = '${ID.STU2}'`), 0);
+  assert.equal(await one(db, `select public.identity_link_present(${j([{ user_id: ID.ADM2, provider_uid: ID.ADM2 }])})`), 0);
+  assert.equal((await svc(db, `select on_hold from public.identity_sync_accounts('${P}', '') where user_id = '${ID.STU2}'`)).rows[0].on_hold, true);
+  assert.equal(await blocked(db, ID.STU2), false);
+  await assert.rejects(svc(db, `delete from public.identity_reconcile_hold`), /permission denied/);
+  await assert.rejects(svc(db, `insert into public.identity_reconcile_hold values ('${ID.CO}', 'xyz', 'api')`), /permission denied/);
+  await assert.rejects(as(db, "authenticated", ID.ADM, `select * from public.identity_reconcile_hold`), /permission denied/);
+});

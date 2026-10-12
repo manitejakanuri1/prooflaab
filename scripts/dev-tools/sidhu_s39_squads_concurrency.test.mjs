@@ -6,7 +6,7 @@
 //     node --test scripts/dev-tools/sidhu_s39_squads_concurrency.test.mjs
 //
 // Each test gets its own new database. Without PG_URL every test is SKIPPED, never passed; CI refuses skips.
-import test from "node:test";
+import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { ID, FIXTURE, M108, students, squad, active } from "./sidhu_s39_squad_fixture.mjs";
 
@@ -15,6 +15,9 @@ try { pg = (await import(process.env.PG_MODULE ?? "pg")).default; } catch { /* s
 const skip = pg && process.env.PG_URL ? false : "no PostgreSQL server (set PG_URL and PG_MODULE)";
 
 let n = 0;
+// Every session a test opened is closed after it, pass or fail: an open session would keep node running for ever.
+const sessions = [];
+afterEach(async () => { await Promise.all(sessions.splice(0).map((c) => c.end().catch(() => {}))); });
 async function database({ with108 = true } = {}) {
   const name = `s39_${process.pid}_${++n}`;
   const admin = new pg.Client({ connectionString: process.env.PG_URL });
@@ -22,7 +25,13 @@ async function database({ with108 = true } = {}) {
   await admin.query(`create database ${name}`);
   await admin.end();
   const url = new URL(process.env.PG_URL); url.pathname = `/${name}`;
-  const open = async () => { const c = new pg.Client({ connectionString: url.toString() }); await c.connect(); return c; };
+  const open = async () => {
+    const c = new pg.Client({ connectionString: url.toString() });
+    await c.connect();
+    c.pid = await one(c, "select pg_backend_pid()");   // read now: a busy client queues every later query
+    sessions.push(c);
+    return c;
+  };
   const setup = await open();
   await setup.query(FIXTURE);
   if (with108) await setup.query(M108);
@@ -38,37 +47,34 @@ async function waitingOnLock(c, pid) {
   }
   throw new Error(`session ${pid} never waited on a lock`);
 }
-const pidOf = (c) => one(c, "select pg_backend_pid()");
 
-test("BEFORE 108: a second formation run for the same college fails when the first commits (same reserve, same seat)", { skip }, async () => {
+test("BEFORE 108: a second formation run for the same college fails when the first commits (same reserve, same seat)", { skip, timeout: 60_000 }, async () => {
   const { setup, open } = await database({ with108: false });
   const m = students(ID.A, "CSE-A", 5); const s = squad(ID.A, ID.SA, "CSE-A", m.ids); const r = students(ID.A, "CSE-A", 6);
   await setup.query(m.sql + s.sql + r.sql);
   const first = await open(); const second = await open();
   await first.query("begin"); await form(first);
   const running = form(second).then(() => "ok", (e) => e.code);
-  await waitingOnLock(setup, await pidOf(second));
+  await waitingOnLock(setup, second.pid);
   await first.query("commit");
   assert.equal(await running, "23505", "unique_violation: the nightly job, an import or the button fails");
-  for (const c of [first, second, setup]) await c.end();
 });
 
-test("108: runs at the same moment are taken one at a time; the second places nobody and does not fail", { skip }, async () => {
+test("108: runs at the same moment are taken one at a time; the second places nobody and does not fail", { skip, timeout: 60_000 }, async () => {
   const { setup, open } = await database();
   const m = students(ID.A, "CSE-A", 5); const s = squad(ID.A, ID.SA, "CSE-A", m.ids); const r = students(ID.A, "CSE-A", 6);
   await setup.query(m.sql + s.sql + r.sql);
   const first = await open(); const second = await open();
   await first.query("begin"); const a = await form(first);
   const running = form(second);
-  await waitingOnLock(setup, await pidOf(second));   // waits on the college's advisory lock
+  await waitingOnLock(setup, second.pid);   // waits on the college's advisory lock
   await first.query("commit");
   const b = await running;
   assert.deepEqual([a.students_placed, b.students_placed], [6, 0]);
   assert.equal(await one(setup, active(s.id)), 11);
-  for (const c of [first, second, setup]) await c.end();
 });
 
-test("108: six runs fired together (nightly, imports, button) fill each seat once; nobody is placed twice", { skip }, async () => {
+test("108: six runs fired together (nightly, imports, button) fill each seat once; nobody is placed twice", { skip, timeout: 60_000 }, async () => {
   const { setup, open } = await database();
   const parts = [];
   const squads = [];
@@ -83,10 +89,9 @@ test("108: six runs fired together (nightly, imports, button) fill each seat onc
   assert.deepEqual(await Promise.all(squads.map((s) => one(setup, active(s.id)))), [10, 9, 11, 11], "emptiest first, never past eleven");
   assert.equal(await one(setup, `select count(*)::int from (select student_id from public.squad_members where left_at is null group by 1 having count(*) > 1) d`), 0);
   assert.equal(await one(setup, `select count(*)::int from public.student_profiles p where not exists (select 1 from public.squad_members m where m.student_id = p.id and m.left_at is null)`), 3, "ECE: 15 - 12 = 3 wait");
-  for (const c of [...sessions, setup]) await c.end();
 });
 
-test("108: a student the college assigns while a run is under way keeps that squad; the run skips them and finishes", { skip }, async () => {
+test("108: a student the college assigns while a run is under way keeps that squad; the run skips them and finishes", { skip, timeout: 60_000 }, async () => {
   const { setup, open } = await database();
   const m = students(ID.A, "CSE-A", 8); const s = squad(ID.A, ID.SA, "CSE-A", m.ids);
   const other = squad(ID.A, ID.SA, "CSE-B", []);
@@ -98,12 +103,11 @@ test("108: a student the college assigns while a run is under way keeps that squ
   await college.query(`select set_config('request.jwt.claims', '{"sub":"${ID.TPO_A}","role":"authenticated"}', true)`);
   await college.query(`select public.assign_to_squad('${r.ids[0]}', '${other.id}')`);
   const running = form(job);
-  await waitingOnLock(setup, await pidOf(job));      // the run's insert waits on the unique index
+  await waitingOnLock(setup, job.pid);      // the run's insert waits on the unique index
   await college.query("commit");
   const out = await running;
   assert.equal(out.students_placed, 2, "the other two reserves are seated");
   assert.equal(await one(setup, `select squad_id::text from public.squad_members where student_id = '${r.ids[0]}' and left_at is null`), other.id,
     "the college's choice stands");
   assert.equal(await one(setup, active(s.id)), 10);
-  for (const c of [college, job, setup]) await c.end();
 });

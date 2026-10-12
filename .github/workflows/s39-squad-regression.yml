@@ -63,6 +63,7 @@ jobs:
           grep -q '^# skipped 0$' "$RUNNER_TEMP/pglite.tap" || { echo "::error::tests were skipped: PGlite did not load"; exit 1; }
 
       - name: Concurrency on a real PostgreSQL 16 server (several sessions)
+        timeout-minutes: 5
         env:
           PG_URL: postgres://postgres:postgres@localhost:5432/postgres
           PG_MODULE: file://${{ runner.temp }}/t/node_modules/pg/lib/index.js

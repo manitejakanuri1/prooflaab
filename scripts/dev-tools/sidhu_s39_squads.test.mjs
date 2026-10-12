@@ -331,6 +331,21 @@ test("109: twice changes nothing; an existing default and a college's own theme 
   await assert.rejects(as(db, "authenticated", ID.TPO_A, `insert into public.squad_name_themes (branch, theme) values ('X', 'Y')`), /permission denied/);
 });
 
+test("109 on the staging shape (browser write grants, row security on, no policy): applies; any write policy: refused", { skip }, async () => {
+  const db = await database();
+  await db.exec(`grant insert, update, delete on public.squad_name_themes to anon, authenticated;
+    alter table public.squad_name_themes enable row level security;`);
+  await db.exec(M109);
+  assert.equal(await one(db, `select count(*)::int from public.squad_name_themes where college_id is null`), 9);
+  await assert.rejects(as(db, "authenticated", ID.TPO_A, `insert into public.squad_name_themes (branch, theme) values ('X', 'Y')`), /row-level security/);
+  await db.exec(`create policy open_write on public.squad_name_themes for insert to authenticated with check (true)`);
+  await assert.rejects(db.exec(M109), /a browser role can write the theme list/);
+  await db.exec("rollback");
+  const plain = await database();
+  await plain.exec(`grant insert on public.squad_name_themes to authenticated`);   // no row security at all
+  await assert.rejects(plain.exec(M109), /a browser role can write the theme list/);
+});
+
 test("109 does not change how squads are named: a CSE squad drawn after 109 carries the CSE theme", { skip }, async () => {
   const db = await database();
   await db.exec(M109);

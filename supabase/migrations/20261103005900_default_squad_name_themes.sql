@@ -30,8 +30,13 @@ begin
   if exists (select 1 from public.squad_name_themes where college_id is null group by branch having count(*) > 1) then
     raise exception '109 self-check: a default theme is listed twice';
   end if;
-  if has_table_privilege('authenticated', 'public.squad_name_themes', 'insert')
-     or has_table_privilege('anon', 'public.squad_name_themes', 'insert') then
+  -- A browser role must not be able to write the list. Staging grants them write but turns row security on with no
+  -- write policy, which refuses every write; that is accepted. A grant with no row security, or any write policy, is not.
+  if exists (select 1 from unnest(array['anon', 'authenticated']) r(role), unnest(array['insert', 'update', 'delete']) p(priv)
+              where has_table_privilege(r.role, 'public.squad_name_themes', p.priv))
+     and not (exists (select 1 from pg_class where oid = 'public.squad_name_themes'::regclass and relrowsecurity)
+              and not exists (select 1 from pg_policy where polrelid = 'public.squad_name_themes'::regclass
+                                                       and polcmd in ('a', 'w', 'd', '*'))) then
     raise exception '109 self-check: a browser role can write the theme list';
   end if;
 end $$;

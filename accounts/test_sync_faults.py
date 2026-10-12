@@ -292,6 +292,13 @@ class SyncFaults(unittest.TestCase):
         code, out = self.post()
         self.assertEqual((code, out["newly_missing"]), (200, 1))
 
+    def test_look_alike_paths_are_still_404_and_touch_nothing(self):
+        # S41: the router ignores the query string of /sync since S40; it must not ignore anything else.
+        w = self.use(World(logins=self.missing(3)))
+        for p in ("/sync/", "/syncx", "/sync/../remove", "/SYNC", "/sync%3Fdry_run=1"):
+            self.assertEqual(self.post(p)[0], 404, p)
+        self.assertEqual(w.calls, [])
+
     # ---- what the sync may touch
     def test_the_sync_never_deletes_anyone_and_never_writes_to_google(self):
         w = self.use(World(logins=self.missing(3)))

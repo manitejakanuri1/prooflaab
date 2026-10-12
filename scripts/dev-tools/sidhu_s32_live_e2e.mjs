@@ -484,10 +484,32 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, al
         const ok = r.status() >= 400 || rowsBack === 0;
         extra.push({ role, page: "(isolation)", url: `/api/db/rpc/${fn}`, control: `call ${fn}`, class: "ISOLATION", expectedRoute: "", api: `POST /api/db/rpc/${fn}`, dbEffect: "none", liveResult: `HTTP ${r.status()}, ${rowsBack} rows`, status: ok ? "PASS" : "FAIL", evidence: "" });
       }
+      const bundle = failureBundle({ role, rows: [...rows, ...extra], url: page.url(), net, errors, html: await page.content().catch(() => ""), secrets });
+      if (bundle) { writeFileSync(join(out, `${role}-failure.json`), JSON.stringify(bundle, null, 1)); await shot("failure-final"); }
       await ctx.close();
     }
   } finally { await browser.close().catch(() => {}); }
   return { rows: [...rows, ...extra], provenance: prov };
+}
+
+/**
+ * S40: a reproducible, secret-free bug report for every role with a FAIL row. Not a Playwright trace: a trace keeps
+ * request headers (the session cookie) and typed text (the password). This keeps what a developer needs: the failing
+ * rows, where the page was, every /api call as method + path + status (no headers, no bodies), page errors and the
+ * page HTML with inputs, emails and tokens removed. Screenshots (inputs masked) are written next to it.
+ */
+export function failureBundle({ role, rows, url, net, errors, html, secrets = [], at = new Date().toISOString() }) {
+  const failed = rows.filter((r) => r.role === role && r.status === "FAIL");
+  if (!failed.length) return null;
+  const clean = (t) => redact(t, secrets);
+  return {
+    role, at, url: clean(url),
+    failed: failed.map((r) => ({ page: r.page, control: r.control, class: r.class, expected: r.expectedRoute, api: r.api, live: clean(r.liveResult) })),
+    api_calls: net.map((n) => `${n.m} ${clean(n.p)} ${n.s}`),
+    page_errors: errors.map(clean),
+    html: clean(String(html ?? "").replace(/<input\b[^>]*>/gi, "<input [removed]>").replace(/<textarea\b[\s\S]*?<\/textarea>/gi, "<textarea [removed]></textarea>")).slice(0, 200_000),
+    reproduce: `E2E_BASE=<staging> node scripts/dev-tools/sidhu_s32_live_e2e.mjs --confirm-staging --roles ${role} --expect-entry <entry>`,
+  };
 }
 
 export function summarize(rows, prov) {

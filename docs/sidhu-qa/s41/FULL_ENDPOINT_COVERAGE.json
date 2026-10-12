@@ -1,0 +1,2125 @@
+{
+ "generated": "2026-10-12T21:03:44.532Z",
+ "note": "STATIC = source check only. LIVE = really called on deployed staging. Nothing signed-in has run yet.",
+ "frontend_and_server_calls": {
+  "kind": "STATIC (sidhu_s41_contract_drift.mjs)",
+  "endpoints": [
+   {
+    "kind": "api",
+    "name": "/api/accounts/remove",
+    "callers": [
+     "src/lib/deleteMyAccount.ts:16",
+     "src/lib/removeStudents.ts:23"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "api",
+    "name": "/api/auth/logout",
+    "callers": [
+     "src/integrations/google/bffSession.ts:157"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "api",
+    "name": "/api/auth/session",
+    "callers": [
+     "src/integrations/google/bffSession.ts:133"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "api",
+    "name": "/api/transcriber/transcribe",
+    "callers": [
+     "src/lib/transcribeAudio.ts:41"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "app-guide-chat",
+    "callers": [
+     "src/components/AppGuideChatbot.tsx:37"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "assign_tasks",
+    "callers": [
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:463",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:766",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:815"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "client-log",
+    "callers": [
+     "src/lib/tracker.ts:51"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "company-lot",
+    "callers": [
+     "src/recruiter/data.ts:315"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "company-voice-play",
+    "callers": [
+     "src/components/dashboard/recruiter/VoicePlayButton.tsx:20"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "create-admin-user",
+    "callers": [
+     "src/components/dashboard/admin/SystemSettings.tsx:64"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "create-college-user",
+    "callers": [
+     "src/components/dashboard/admin/CollegeOversight.tsx:178"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "create-company-user",
+    "callers": [
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:259"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "create-student-users",
+    "callers": [
+     "src/components/dashboard/admin/StudentOversight.tsx:106",
+     "src/components/dashboard/college/TpoImportStudents.tsx:251"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "interests-analyze",
+    "callers": [
+     "src/components/onboarding/InterestReview.tsx:62"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "level-open",
+    "callers": [
+     "src/components/dashboard/student/LevelDetail.tsx:144"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "level-quiz-submit",
+    "callers": [
+     "src/components/dashboard/student/LevelDetail.tsx:217"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "levels-place",
+    "callers": [
+     "src/components/dashboard/student/LevelMap.tsx:202",
+     "src/components/dashboard/student/LevelMap.tsx:248"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "lot-writer",
+    "callers": [
+     "src/components/dashboard/student/StudentDailyCard.tsx:141"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "mock-interview-generate",
+    "callers": [
+     "src/components/dashboard/student/MockInterview.tsx:99"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "mock-interview-score",
+    "callers": [
+     "src/components/dashboard/student/MockInterview.tsx:134"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "resume-assessment-submit",
+    "callers": [
+     "src/components/dashboard/student/TimedResumeAssessment.tsx:254"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "resume-code-execute",
+    "callers": [
+     "src/components/dashboard/student/TimedResumeAssessment.tsx:428",
+     "src/components/dashboard/student/TimedResumeAssessment.tsx:453"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "resume-coding-generate",
+    "callers": [
+     "src/components/dashboard/student/TimedResumeAssessment.tsx:223",
+     "src/components/dashboard/student/TimedResumeAssessment.tsx:257"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "resume-improve",
+    "callers": [
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:365"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "resume-parser",
+    "callers": [
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:265",
+     "src/components/onboarding/IntakeChoice.tsx:78"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "resume-question-generator",
+    "callers": [
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:397",
+     "src/components/onboarding/InterestReview.tsx:84",
+     "src/pages/StudentInterestOnboarding.tsx:118"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "resume-retest-generate",
+    "callers": [
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:419"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "run-code",
+    "callers": [
+     "src/components/dashboard/student/CodeRunBox.tsx:59"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "run-sandbox",
+    "callers": [
+     "src/components/dashboard/student/SandboxTaskPanel.tsx:104"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "security-log",
+    "callers": [
+     "src/lib/securityLog.ts:48"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "send-onboarding-email",
+    "callers": [
+     "src/components/dashboard/admin/EmailTemplatesDialog.tsx:70",
+     "src/components/OnboardingModal.tsx:82"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "submit-sandbox-task",
+    "callers": [
+     "src/components/dashboard/student/SandboxTaskPanel.tsx:116"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "submit-written-task",
+    "callers": [
+     "src/components/dashboard/student/WrittenTaskPanel.tsx:96"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "task-explain",
+    "callers": [
+     "src/components/dashboard/student/SimpleQuestion.tsx:27"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "transcription-enqueue",
+    "callers": [
+     "src/components/dashboard/student/VoiceExplainModal.tsx:633"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "function",
+    "name": "voice-score",
+    "callers": [
+     "src/components/dashboard/student/VoiceExplainModal.tsx:898"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "<dynamic:fn>",
+    "callers": [
+     "src/components/dashboard/admin/StudentTrace.tsx:25"
+    ],
+    "status": "DYNAMIC"
+   },
+   {
+    "kind": "rpc",
+    "name": "accept_voice_consent",
+    "callers": [
+     "src/components/dashboard/student/MockInterview.tsx:83",
+     "src/components/dashboard/student/VoiceExplainModal.tsx:1264"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_bug_finder_runs",
+    "callers": [
+     "src/components/dashboard/admin/BugFinder.tsx:27"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_bug_finder_steps",
+    "callers": [
+     "src/components/dashboard/admin/BugFinder.tsx:35"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_content_library",
+    "callers": [
+     "src/components/dashboard/admin/ContentLibrary.tsx:39"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_content_page",
+    "callers": [
+     "src/components/dashboard/admin/ContentLibrary.tsx:46"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_daily_lots",
+    "callers": [
+     "src/components/dashboard/admin/DailyLots.tsx:44"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_email_templates",
+    "callers": [
+     "src/components/dashboard/admin/EmailTemplatesDialog.tsx:38"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_hide_content",
+    "callers": [
+     "src/components/dashboard/admin/ContentLibrary.tsx:52"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_notification_rules",
+    "callers": [
+     "src/components/dashboard/admin/NotificationRulesDialog.tsx:28"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_recruiters",
+    "callers": [
+     "src/components/dashboard/admin/RecruiterOversight.tsx:37"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_save_email_template",
+    "callers": [
+     "src/components/dashboard/admin/EmailTemplatesDialog.tsx:52"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_set_notification_rule",
+    "callers": [
+     "src/components/dashboard/admin/NotificationRulesDialog.tsx:36"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "admin_verify_recruiter",
+    "callers": [
+     "src/components/dashboard/admin/RecruiterOversight.tsx:45"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "assign_to_squad",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:184"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "college_submit_source_content",
+    "callers": [
+     "src/components/dashboard/college/PostSourceMaterial.tsx:40"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "company_review_submission",
+    "callers": [
+     "src/hooks/useStartupSubmissions.tsx:60"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "company_submissions",
+    "callers": [
+     "src/hooks/useStartupSubmissions.tsx:48"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "complete_own_wizard",
+    "callers": [
+     "src/pages/OnboardingWizard.tsx:92"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "create_my_lot",
+    "callers": [
+     "src/components/dashboard/student/StudentDailyCard.tsx:127"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_college_id",
+    "callers": [
+     "src/components/dashboard/college/TpoHome.tsx:68",
+     "src/components/dashboard/college/TpoSquads.tsx:114",
+     "src/components/dashboard/college/TpoStudents.tsx:117"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_history",
+    "callers": [
+     "src/components/dashboard/student/StudentHistory.tsx:54"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_placement_status",
+    "callers": [
+     "src/components/dashboard/student/StudentSeasonReport.tsx:46"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_rank",
+    "callers": [
+     "src/hooks/useStudentProfile.tsx:114"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_rubric_labels",
+    "callers": [
+     "src/components/dashboard/student/BuildLogEntries.tsx:55"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_season_report",
+    "callers": [
+     "src/components/dashboard/student/StudentSeasonReport.tsx:45"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_season_status",
+    "callers": [
+     "src/components/dashboard/season/SeasonPhaseBar.tsx:46"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_skills_proved",
+    "callers": [
+     "src/components/dashboard/student/StudentSkillsProved.tsx:58"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_squad_achievements",
+    "callers": [
+     "src/components/dashboard/student/StudentSquadPage.tsx:108"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_squad_members",
+    "callers": [
+     "src/components/dashboard/student/StudentSquadPage.tsx:94"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_suggested_tracks",
+    "callers": [
+     "src/components/dashboard/student/LevelMap.tsx:211"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_todays_lot",
+    "callers": [
+     "src/components/dashboard/student/StudentDailyCard.tsx:99",
+     "src/components/dashboard/student/StudentDailyCard.tsx:145"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "my_week",
+    "callers": [
+     "src/components/dashboard/student/ThisWeekPlan.tsx:45"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "needs_review_submissions",
+    "callers": [
+     "src/components/dashboard/admin/ReviewedSubmissions.tsx:47",
+     "src/hooks/usePendingReviewCount.ts:14"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "portfolio_work",
+    "callers": [
+     "src/components/portfolio/ProvenWork.tsx:27"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "record_outcome",
+    "callers": [
+     "src/recruiter/data.ts:328"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "recruiter_filters",
+    "callers": [
+     "src/recruiter/data.ts:147"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "recruiter_home",
+    "callers": [
+     "src/recruiter/data.ts:155"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "recruiter_log_view",
+    "callers": [
+     "src/recruiter/data.ts:195"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "recruiter_lots",
+    "callers": [
+     "src/recruiter/data.ts:302"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "recruiter_proof_profile",
+    "callers": [
+     "src/recruiter/data.ts:187"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "recruiter_shortlist",
+    "callers": [
+     "src/recruiter/data.ts:287"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "recruiter_talent",
+    "callers": [
+     "src/recruiter/data.ts:132"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "review_task_submission",
+    "callers": [
+     "src/components/dashboard/admin/ReviewedSubmissions.tsx:55"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "rubric_task_view",
+    "callers": [
+     "src/components/dashboard/student/WrittenTaskPanel.tsx:75"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "sandbox_task_view",
+    "callers": [
+     "src/components/dashboard/student/SandboxTaskPanel.tsx:86"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "save_mock_interview_answer",
+    "callers": [
+     "src/components/dashboard/student/MockInterview.tsx:121"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "season_awards",
+    "callers": [
+     "src/components/dashboard/season/SeasonLeaderboards.tsx:63"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "season_leaderboard",
+    "callers": [
+     "src/components/dashboard/season/SeasonLeaderboards.tsx:55"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "set_share_voice_audio",
+    "callers": [
+     "src/components/dashboard/student/StudentPrivacy.tsx:84"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "start_task_assignment",
+    "callers": [
+     "src/hooks/useAllStudentTasks.tsx:201"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "touch_my_activity",
+    "callers": [
+     "src/pages/StudentDashboard.tsx:45"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_attention",
+    "callers": [
+     "src/hooks/useCollegeNotifications.ts:32"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_college_report",
+    "callers": [
+     "src/components/dashboard/college/TpoInsights.tsx:70"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_create_squad",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:308"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_delete_empty_squads",
+    "callers": [
+     "src/components/dashboard/college/TpoStudents.tsx:160"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_empty_squads",
+    "callers": [
+     "src/components/dashboard/college/TpoStudents.tsx:156"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_form_squads",
+    "callers": [
+     "src/components/dashboard/college/TpoImportStudents.tsx:228",
+     "src/components/dashboard/college/TpoImportStudents.tsx:325",
+     "src/components/dashboard/college/TpoSquads.tsx:288"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_generate_fixtures",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:229"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_home",
+    "callers": [
+     "src/components/dashboard/college/TpoHome.tsx:59"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_insights",
+    "callers": [
+     "src/components/dashboard/college/TpoInsights.tsx:69"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_naming_themes",
+    "callers": [
+     "src/components/dashboard/college/TpoImportStudents.tsx:65",
+     "src/components/dashboard/college/TpoSquads.tsx:146"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_placement_report",
+    "callers": [
+     "src/components/dashboard/college/TpoInsights.tsx:71"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_rebalance_squads",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:329"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_reserves",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:147"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_reset_naming_theme",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:398"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_reset_scoring_weight",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:367"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_run_week",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:212"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_scoring_rules",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:145"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_send_reminder",
+    "callers": [
+     "src/components/dashboard/college/TpoStudentProfile.tsx:109",
+     "src/components/dashboard/college/TpoStudents.tsx:202"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_set_cohorts",
+    "callers": [
+     "src/components/dashboard/college/TpoImportStudents.tsx:223",
+     "src/components/dashboard/college/TpoImportStudents.tsx:275"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_set_naming_theme",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:383"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_set_scoring_weight",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:352"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_squad_achievements",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:144"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_squad_performance",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:143"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_squad_update",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:268"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_student_filters",
+    "callers": [
+     "src/components/dashboard/college/TpoStudents.tsx:118"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_student_learning",
+    "callers": [
+     "src/components/dashboard/college/TpoStudentProfile.tsx:97"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_student_profile",
+    "callers": [
+     "src/components/dashboard/college/TpoStudentProfile.tsx:91"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "tpo_students",
+    "callers": [
+     "src/components/dashboard/college/TpoInsights.tsx:96",
+     "src/components/dashboard/college/TpoStudents.tsx:111"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "rpc",
+    "name": "withdraw_voice_explanation",
+    "callers": [
+     "src/components/dashboard/student/StudentPrivacy.tsx:132"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "account_email_confirmed",
+    "callers": [
+     "supabase/functions/create-student-users/index.ts:211"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "account_id_for_email",
+    "callers": [
+     "supabase/functions/_shared/backend.ts:832",
+     "accounts/server.py:187"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "account_is_suspended",
+    "callers": [
+     "supabase/functions/_shared/backend.ts:288"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "assign_todays_lots_batch",
+    "callers": [
+     "supabase/functions/scheduled-job/index.ts:148"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "bump_llm_cache_hit",
+    "callers": [
+     "supabase/functions/_shared/llm.ts:343"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "check_rate_limit",
+    "callers": [
+     "supabase/functions/_shared/backend.ts:760",
+     "supabase/functions/_shared/rate-limit.ts:57"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "claim_transcription_recovery",
+    "callers": [
+     "supabase/functions/transcription-reap/index.ts:50"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "claim_voice_scoring",
+    "callers": [
+     "supabase/functions/_shared/voiceScore.ts:146"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "company_create_lot",
+    "callers": [
+     "supabase/functions/company-lot/index.ts:95"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "company_voice_recording",
+    "callers": [
+     "supabase/functions/company-voice-play/index.ts:39"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "complete_voice_scoring",
+    "callers": [
+     "supabase/functions/_shared/voiceScore.ts:293"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "drop_empty_account",
+    "callers": [
+     "supabase/functions/create-student-users/index.ts:149",
+     "accounts/server.py:511"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "ensure_and_claim_lot_template",
+    "callers": [
+     "supabase/functions/_shared/lot-pipeline.ts:106"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "fail_voice_scoring",
+    "callers": [
+     "supabase/functions/_shared/voiceScore.ts:180"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "form_squads",
+    "callers": [
+     "supabase/functions/create-student-users/index.ts:435"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "identity_attempt_result",
+    "callers": [
+     "accounts/lifecycle.py:55",
+     "accounts/server.py:164"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "identity_due_deletions",
+    "callers": [
+     "accounts/lifecycle.py:66"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "identity_lifecycle_health",
+    "callers": [
+     "accounts/server.py:643"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "identity_record_student_removals",
+    "callers": [
+     "accounts/server.py:139",
+     "accounts/server.py:157"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "identity_request_deletion",
+    "callers": [
+     "accounts/server.py:321"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "identity_sync_accounts",
+    "callers": [
+     "accounts/server.py:604"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "identity_sync_apply",
+    "callers": [
+     "accounts/server.py:636"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "import_student_record",
+    "callers": [
+     "supabase/functions/create-student-users/index.ts:323"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "log_security_event",
+    "callers": [
+     "supabase/functions/security-log/index.ts:82",
+     "supabase/functions/_shared/audit.ts:31"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "notify_pending_reviews",
+    "callers": [
+     "supabase/functions/scheduled-job/index.ts:94"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "provision_admin_account",
+    "callers": [
+     "supabase/functions/create-admin-user/index.ts:157"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "provision_college_account",
+    "callers": [
+     "supabase/functions/create-college-user/index.ts:94"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "provision_company_account",
+    "callers": [
+     "supabase/functions/create-company-user/index.ts:164"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "record_account",
+    "callers": [
+     "accounts/server.py:405",
+     "accounts/server.py:534"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "record_task_submission",
+    "callers": [
+     "supabase/functions/submit-sandbox-task/index.ts:95",
+     "supabase/functions/submit-written-task/index.ts:174"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "record_topic_attempt",
+    "callers": [
+     "supabase/functions/level-quiz-submit/index.ts:193"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "release_lot_template",
+    "callers": [
+     "supabase/functions/_shared/lot-pipeline.ts:115"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "remove_students",
+    "callers": [
+     "accounts/self_delete.py:65",
+     "accounts/server.py:296"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "save_lot_template",
+    "callers": [
+     "supabase/functions/_shared/lot-pipeline.ts:207"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "similar_written_answer",
+    "callers": [
+     "supabase/functions/submit-written-task/index.ts:115"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "student_is_discoverable",
+    "callers": [
+     "supabase/functions/company-lot/index.ts:54"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "template_key",
+    "callers": [
+     "supabase/functions/resume-coding-generate/index.ts:155"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "touch_lot_template",
+    "callers": [
+     "supabase/functions/_shared/lot-pipeline.ts:111"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "touch_streak",
+    "callers": [
+     "supabase/functions/mock-interview-score/index.ts:122",
+     "supabase/functions/_shared/voiceScore.ts:316"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "server-rpc",
+    "name": "touch_template",
+    "callers": [
+     "supabase/functions/resume-coding-generate/index.ts:167"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "storage",
+    "name": "profile-photos",
+    "callers": [
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:548",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:554",
+     "src/components/dashboard/ProfilePhotoModal.tsx:68",
+     "src/components/dashboard/ProfilePhotoModal.tsx:78"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "storage",
+    "name": "resumes",
+    "callers": [
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:251",
+     "src/components/onboarding/IntakeChoice.tsx:62"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "storage",
+    "name": "voice-explanations",
+    "callers": [
+     "src/components/dashboard/student/MockInterview.tsx:117",
+     "src/components/dashboard/student/StudentPrivacy.tsx:137",
+     "src/hooks/useRecordingAudio.ts:16"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "<dynamic:table>",
+    "callers": [
+     "src/components/dashboard/admin/AdminOpsHealth.tsx:7",
+     "src/components/dashboard/admin/TaskOversight.tsx:222"
+    ],
+    "status": "DYNAMIC"
+   },
+   {
+    "kind": "table",
+    "name": "admin_users",
+    "callers": [
+     "src/components/dashboard/admin/SystemSettings.tsx:53",
+     "src/components/dashboard/admin/SystemSettings.tsx:102"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "announcements",
+    "callers": [
+     "src/components/dashboard/admin/ManageAnnouncementsPage.tsx:66",
+     "src/components/dashboard/admin/ManageAnnouncementsPage.tsx:102",
+     "src/components/dashboard/admin/ManageAnnouncementsPage.tsx:116",
+     "src/components/dashboard/admin/ManageAnnouncementsPage.tsx:147"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "audit_logs",
+    "callers": [
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:882"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "badges",
+    "callers": [
+     "src/components/dashboard/student/StudentAchievements.tsx:47"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "college_profiles",
+    "callers": [
+     "src/components/dashboard/college/CollegeProfilePage.tsx:40",
+     "src/components/dashboard/college/CollegeProfilePage.tsx:92",
+     "src/components/dashboard/college/CollegeProfilePage.tsx:107",
+     "src/components/dashboard/college/CollegeProfilePage.tsx:115",
+     "src/components/dashboard/ProfilePhotoModal.tsx:86",
+     "src/components/dashboard/ProfilePhotoModal.tsx:94",
+     "src/components/dashboard/ProfilePhotoModal.tsx:101",
+     "src/components/dashboard/ProfilePhotoModal.tsx:144",
+     "src/components/onboarding/CollegeMultiStepWizard.tsx:59",
+     "src/components/onboarding/CollegeWizard.tsx:56",
+     "src/hooks/useCollegeProfile.tsx:55"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "colleges",
+    "callers": [
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:38",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:39",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:76",
+     "src/components/dashboard/admin/CollegeOversight.tsx:75",
+     "src/components/dashboard/admin/CollegeOversight.tsx:208",
+     "src/components/dashboard/admin/CollegeOversight.tsx:233",
+     "src/components/dashboard/admin/CollegeOversight.tsx:257",
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:198",
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:244",
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:320",
+     "src/components/dashboard/admin/StudentOversight.tsx:91",
+     "src/components/dashboard/admin/TaskOversight.tsx:131",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:164",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:222",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:836",
+     "src/components/dashboard/college/CollegeProfilePage.tsx:57",
+     "src/hooks/useCollegeProfile.tsx:41",
+     "src/pages/OnboardingCollege.tsx:20"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "job_opportunities",
+    "callers": [
+     "src/components/dashboard/admin/ManageJobsPage.tsx:75",
+     "src/components/dashboard/admin/ManageJobsPage.tsx:122",
+     "src/components/dashboard/admin/ManageJobsPage.tsx:133",
+     "src/components/dashboard/admin/ManageJobsPage.tsx:164",
+     "src/components/dashboard/college/PostJobDescription.tsx:49",
+     "src/components/dashboard/startup/StartupJobsPage.tsx:83",
+     "src/components/dashboard/startup/StartupJobsPage.tsx:152",
+     "src/components/dashboard/startup/StartupJobsPage.tsx:163",
+     "src/components/dashboard/startup/StartupJobsPage.tsx:194"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "learning_resources",
+    "callers": [
+     "src/components/dashboard/admin/ManageResourcesPage.tsx:107",
+     "src/components/dashboard/admin/ManageResourcesPage.tsx:143",
+     "src/components/dashboard/admin/ManageResourcesPage.tsx:154",
+     "src/components/dashboard/admin/ManageResourcesPage.tsx:185"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "level_tracks",
+    "callers": [
+     "src/components/dashboard/student/LevelMap.tsx:212"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "levels",
+    "callers": [
+     "src/components/dashboard/student/LevelMap.tsx:232"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "llm_usage_by_student",
+    "callers": [
+     "src/components/dashboard/admin/TokenUsage.tsx:42"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "mock_interviews",
+    "callers": [
+     "src/components/dashboard/student/MockInterview.tsx:60",
+     "src/components/dashboard/student/MockInterview.tsx:142"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "notifications",
+    "callers": [
+     "src/hooks/useAdminNotifications.tsx:40",
+     "src/hooks/useAdminNotifications.tsx:108",
+     "src/hooks/useAdminNotifications.tsx:124",
+     "src/hooks/useAdminNotifications.tsx:140",
+     "src/hooks/useNotifications.ts:36",
+     "src/hooks/useNotifications.ts:86",
+     "src/hooks/useNotifications.ts:100",
+     "src/hooks/useNotifications.ts:116"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "public_resume_scorecards",
+    "callers": [
+     "src/hooks/usePublicScorecard.tsx:30"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "quests",
+    "callers": [
+     "src/components/dashboard/student/StudentAchievements.tsx:49"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "recruiter_shortlists",
+    "callers": [
+     "src/recruiter/data.ts:295"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "resume_assessments",
+    "callers": [
+     "src/components/dashboard/student/StudentResumeHistoryPage.tsx:53"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "resume_claims",
+    "callers": [
+     "src/components/dashboard/student/LevelMap.tsx:181",
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:161",
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:335"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "resume_scorecards",
+    "callers": [
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:183",
+     "src/components/dashboard/student/StudentResumeHistoryPage.tsx:73",
+     "src/components/dashboard/student/StudentRoadmapPage.tsx:28",
+     "src/hooks/useStudentIntake.tsx:44",
+     "src/pages/StudentInterestOnboarding.tsx:51",
+     "src/pages/StudentResumeOnboarding.tsx:24"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "security_events",
+    "callers": [
+     "src/components/dashboard/admin/SecurityEvents.tsx:53"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "squad_matches",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:140",
+     "src/components/dashboard/student/StudentSquadPage.tsx:96"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "squad_members",
+    "callers": [
+     "src/components/dashboard/college/TpoSquads.tsx:136",
+     "src/components/dashboard/student/StudentDailyCard.tsx:114",
+     "src/components/dashboard/student/StudentSquadPage.tsx:82"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "squads",
+    "callers": [
+     "src/components/dashboard/college/TpoHome.tsx:72",
+     "src/components/dashboard/college/TpoSquads.tsx:123",
+     "src/components/dashboard/student/StudentSquadPage.tsx:90",
+     "src/components/dashboard/student/StudentSquadPage.tsx:104"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "startup_profiles",
+    "callers": [
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:179",
+     "src/components/dashboard/startup/StartupSettingsPage.tsx:75",
+     "src/components/dashboard/startup/StartupSettingsPage.tsx:108",
+     "src/components/onboarding/StartupMultiStepWizard.tsx:96",
+     "src/components/onboarding/StartupWizard.tsx:56",
+     "src/hooks/useStartupProfile.tsx:24"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "startups",
+    "callers": [
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:41",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:42",
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:154",
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:314",
+     "src/components/dashboard/admin/TaskOversight.tsx:133",
+     "src/hooks/useStartupVerification.tsx:14",
+     "src/pages/OnboardingStartup.tsx:20"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_badges",
+    "callers": [
+     "src/components/dashboard/student/StudentAchievements.tsx:48",
+     "src/components/dashboard/student/StudentProgressPage.tsx:49"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_certifications",
+    "callers": [
+     "src/components/dashboard/student/StudentCertifications.tsx:47",
+     "src/components/dashboard/student/StudentCertifications.tsx:59",
+     "src/components/dashboard/student/StudentCertifications.tsx:86"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_contact",
+    "callers": [
+     "src/components/dashboard/admin/StudentOversight.tsx:157",
+     "src/components/dashboard/college/TpoImportStudents.tsx:115"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_import_rows",
+    "callers": [
+     "src/components/dashboard/college/TpoImportStudents.tsx:184"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_imports",
+    "callers": [
+     "src/components/dashboard/college/TpoImportStudents.tsx:170",
+     "src/components/dashboard/college/TpoImportStudents.tsx:230",
+     "src/components/dashboard/college/TpoImportStudents.tsx:249",
+     "src/components/dashboard/college/TpoImportStudents.tsx:264",
+     "src/components/dashboard/college/TpoImportStudents.tsx:304"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_intake",
+    "callers": [
+     "src/hooks/useStudentIntake.tsx:43",
+     "src/hooks/useStudentIntake.tsx:72"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_interests",
+    "callers": [
+     "src/pages/StudentInterestOnboarding.tsx:69",
+     "src/pages/StudentInterestOnboarding.tsx:82"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_levels",
+    "callers": [
+     "src/components/dashboard/student/LevelMap.tsx:141"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_portfolios",
+    "callers": [
+     "src/components/dashboard/student/StudentPrivacy.tsx:51",
+     "src/components/dashboard/student/StudentPrivacy.tsx:105",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:65",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:182",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:190",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:201",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:330",
+     "src/hooks/usePortfolio.tsx:52",
+     "src/hooks/usePortfolio.tsx:96",
+     "src/hooks/usePortfolio.tsx:115",
+     "src/hooks/usePortfolio.tsx:159"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_profiles",
+    "callers": [
+     "src/components/dashboard/admin/AdminAnalytics.tsx:53",
+     "src/components/dashboard/admin/AdminAnalytics.tsx:95",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:35",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:36",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:76",
+     "src/components/dashboard/admin/CollegeOversight.tsx:100",
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:114",
+     "src/components/dashboard/admin/EnhancedUserManagement.tsx:308",
+     "src/components/dashboard/admin/ReassignTaskModal.tsx:26",
+     "src/components/dashboard/admin/StudentOversight.tsx:68",
+     "src/components/dashboard/admin/StudentOversight.tsx:150",
+     "src/components/dashboard/admin/StudentOversight.tsx:182",
+     "src/components/dashboard/admin/TaskOversight.tsx:136",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:184",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:230",
+     "src/components/dashboard/ProfilePhotoModal.tsx:112",
+     "src/components/dashboard/ProfilePhotoModal.tsx:150",
+     "src/components/dashboard/student/LevelMap.tsx:166",
+     "src/components/dashboard/student/MockInterview.tsx:73",
+     "src/components/dashboard/student/ResumeCheckFlow.tsx:151",
+     "src/components/dashboard/student/StudentPrivacy.tsx:70",
+     "src/components/dashboard/student/StudentResumeHistoryPage.tsx:67",
+     "src/components/dashboard/student/StudentRoadmapPage.tsx:25",
+     "src/components/dashboard/student/StudentRolePreference.tsx:47",
+     "src/components/dashboard/student/StudentRolePreference.tsx:63",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:166",
+     "src/components/dashboard/student/VoiceExplainModal.tsx:1245",
+     "src/components/onboarding/InterestReview.tsx:52",
+     "src/components/onboarding/StudentWizard.tsx:123",
+     "src/components/OnboardingModal.tsx:39",
+     "src/hooks/useAllStudentTasks.tsx:34",
+     "src/hooks/useBuildLog.tsx:54",
+     "src/hooks/useNotifications.ts:55",
+     "src/hooks/usePortfolio.tsx:82",
+     "src/hooks/useStudentProfile.tsx:40",
+     "src/lib/ensureStudentProfile.ts:18",
+     "src/lib/ensureStudentProfile.ts:41",
+     "src/pages/OnboardingStudent.tsx:23",
+     "src/pages/OnboardingStudent.tsx:37",
+     "src/pages/Portfolio.tsx:41"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_quests",
+    "callers": [
+     "src/components/dashboard/student/StudentAchievements.tsx:51"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_streaks",
+    "callers": [
+     "src/components/dashboard/student/StudentDailyCard.tsx:101"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_tracks",
+    "callers": [
+     "src/components/dashboard/student/LevelMap.tsx:124"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "student_weekly_scores",
+    "callers": [
+     "src/components/dashboard/student/StudentProgressPage.tsx:47"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "task_assignments",
+    "callers": [
+     "src/components/dashboard/admin/TaskOversight.tsx:138",
+     "src/hooks/useAllStudentTasks.tsx:43"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "task_rubric_config",
+    "callers": [
+     "src/components/dashboard/admin/EditTaskModal.tsx:40",
+     "src/components/dashboard/admin/EditTaskModal.tsx:73"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "task_submissions",
+    "callers": [
+     "src/components/dashboard/admin/AdminAnalytics.tsx:52",
+     "src/components/dashboard/admin/AdminAnalytics.tsx:76",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:45",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:46",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:76",
+     "src/components/dashboard/admin/AdminSubmissions.tsx:34",
+     "src/components/dashboard/admin/TaskOversight.tsx:153",
+     "src/components/dashboard/student/StudentProgressPage.tsx:51",
+     "src/hooks/useBuildLog.tsx:57",
+     "src/lib/explainGate.ts:10"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "task_templates",
+    "callers": [
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:264",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:303"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "tasks",
+    "callers": [
+     "src/components/dashboard/admin/AdminAnalytics.tsx:55",
+     "src/components/dashboard/admin/AdminAnalytics.tsx:56",
+     "src/components/dashboard/admin/AdminAnalytics.tsx:132",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:48",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:49",
+     "src/components/dashboard/admin/AdminDashboardOverview.tsx:76",
+     "src/components/dashboard/admin/CollegeOversight.tsx:111",
+     "src/components/dashboard/admin/EditTaskModal.tsx:66",
+     "src/components/dashboard/admin/ReassignTaskModal.tsx:49",
+     "src/components/dashboard/admin/TaskOversight.tsx:63",
+     "src/components/dashboard/admin/TaskOversight.tsx:190",
+     "src/components/dashboard/admin/TaskOversight.tsx:204",
+     "src/components/dashboard/admin/TaskOversight.tsx:229",
+     "src/components/dashboard/assignTasks/AssignTasksScreen.tsx:855",
+     "src/components/dashboard/student/GivenMaterial.tsx:23",
+     "src/components/dashboard/student/StudentDailyCard.tsx:106",
+     "src/components/dashboard/student/StudentRoadmapPage.tsx:39",
+     "src/hooks/useAllStudentTasks.tsx:71"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "user_preferences",
+    "callers": [
+     "src/components/dashboard/college/CollegeSettingsPage.tsx:38",
+     "src/components/dashboard/college/CollegeSettingsPage.tsx:110",
+     "src/components/dashboard/college/CollegeSettingsPage.tsx:118",
+     "src/components/dashboard/college/CollegeSettingsPage.tsx:131",
+     "src/components/dashboard/startup/StartupSettingsPage.tsx:80",
+     "src/components/dashboard/startup/StartupSettingsPage.tsx:132",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:86",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:276",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:284",
+     "src/components/dashboard/student/StudentSettingsPage.tsx:297"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "user_roles",
+    "callers": [
+     "src/components/auth/EnhancedRoleBasedAuthForm.tsx:151",
+     "src/components/onboarding/CollegeMultiStepWizard.tsx:70",
+     "src/components/onboarding/CollegeWizard.tsx:69",
+     "src/components/onboarding/StartupMultiStepWizard.tsx:108",
+     "src/components/onboarding/StartupWizard.tsx:68",
+     "src/components/RoleBasedProtectedRoute.tsx:33",
+     "src/lib/ensureStudentProfile.ts:30",
+     "src/pages/Auth.tsx:49",
+     "src/pages/Auth.tsx:110",
+     "src/pages/Index.tsx:32",
+     "src/pages/OnboardingWizard.tsx:26"
+    ],
+    "status": "OK"
+   },
+   {
+    "kind": "table",
+    "name": "voice_explanations",
+    "callers": [
+     "src/components/dashboard/student/StudentPrivacy.tsx:56",
+     "src/components/dashboard/student/VoiceExplainModal.tsx:408",
+     "src/components/dashboard/student/VoiceExplainModal.tsx:490",
+     "src/components/dashboard/student/VoiceExplainModal.tsx:507",
+     "src/components/dashboard/student/VoiceExplainModal.tsx:879",
+     "src/hooks/useBuildLog.tsx:60"
+    ],
+    "status": "OK"
+   }
+  ]
+ },
+ "gateway_routes_live": {
+  "kind": "LIVE signed-out (sidhu_s40_anon_api.mjs, staging 59235dd, 13 Oct 2026: 68 PASS, 0 FAIL)",
+  "probes": [
+   {
+    "method": "POST",
+    "path": "/api/auth/login",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "GET",
+    "path": "/api/auth/session",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/logout",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/signup",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/update",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/verify-email",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/resend-verification",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/password-reset/request",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/password-reset/verify",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/auth/password-reset/complete",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/student_profiles",
+    "expect": "closed",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/functions/level-open",
+    "expect": "closed",
+    "source": "contract"
+   },
+   {
+    "method": "GET",
+    "path": "/api/files/proof-files/student/resume.pdf",
+    "expect": "closed",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/accounts/remove",
+    "expect": "closed",
+    "source": "contract"
+   },
+   {
+    "method": "POST",
+    "path": "/api/transcriber/transcribe",
+    "expect": "closed",
+    "source": "contract"
+   },
+   {
+    "method": "GET",
+    "path": "/api/public/portfolio/qa-absent-r17b-20261009",
+    "expect": "open",
+    "source": "contract"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/student_profiles?select=id,full_name&limit=1",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/student_contact?select=*&limit=1",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/account_identities?select=*&limit=1",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/removed_students?select=*&limit=1",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/security_events?select=*&limit=1",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/web_sessions?select=*&limit=1",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "GET",
+    "path": "/api/db/squad_members?select=*&limit=1",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/db/rpc/tpo_students",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/db/rpc/form_squads",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/db/rpc/remove_students",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/db/rpc/admin_set_notification_rule",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/db/rpc/set_share_voice_audio",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/functions/scheduled-job?job=nightly-squads",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/functions/create-student-users",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/functions/delete-my-account",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/accounts/remove",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "GET",
+    "path": "/api/files/resumes/00000000-0000-4000-8000-000000000001/resume.pdf",
+    "expect": "closed",
+    "source": "sensitive"
+   },
+   {
+    "method": "POST",
+    "path": "/api/transcriber/transcribe",
+    "expect": "closed",
+    "source": "sensitive"
+   }
+  ]
+ },
+ "scheduled_jobs": {
+  "kind": "LIVE production job logs (read-only, 13 Oct 2026)",
+  "jobs": {
+   "nightly-squads": "form_all_colleges ok",
+   "extend-fixtures": "extend_all_fixtures ok",
+   "daily-lots": "assign_todays_lots ok (20 lots)",
+   "weekly-seasons": "run_all_seasons ok",
+   "weekly-progress": "notify_weekly_progress ok",
+   "weekly-plan": "plan_all_weeks ok",
+   "prune-events": "prune_app_events ok",
+   "accounts-sync": "accounts /sync (not checked by log here)",
+   "staging": "BLOCKED: staging has only transcription-reap; no squad, Lot, season or account-sync job exists there"
+  }
+ },
+ "matrix_counts": {
+  "BLOCKED": 1287,
+  "NOT_IMPLEMENTED": 5
+ }
+}

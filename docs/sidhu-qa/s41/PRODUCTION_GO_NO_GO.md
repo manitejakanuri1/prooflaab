@@ -6,7 +6,8 @@
 |---|---|---|
 | Release SHA | one integrated SHA, CI green | QA branch head (this commit) includes TEJA `441d378` + S40/S41; TEJA's newer `e9b1d52` was not fetched in this session (fetch declined), so it is **not tested here** |
 | Source = staging deployment | site and 4 services built from that SHA | staging serves `59235dd` (8 Oct), functions `00075-git`, web-bff `00004-9nn`, accounts `00015-rpk`, files `00012-gf4`: **FAIL (old build)** |
-| Migrations on staging | ... 109, 110, 111 | 110, 111 not applied: **FAIL** |
+| Migrations on staging | ... 109, 110, 111, 112 | 110 applied 13 Oct 02:30 IST (3 accounts on the owner's reconcile hold); **111, 112 not applied** |
+| Database API reachable directly | publicly invokable (staging and production, `allUsers`) | signed-out direct probe of staging: 28 tables + 29 read-only functions, **57 PASS, 0 FAIL** (refused or no data). 100 SECURITY DEFINER functions are executable by anon on staging; the read-only ones are probed, the writing ones are not called |
 | Signed-in E2E, five roles | all launch-critical rows PASS | 1,287 rows **BLOCKED** (no `staging-e2e`) |
 | Destructive identity tests | isolated tenant, disposable pool | **BLOCKED** |
 | Scheduled workflows on staging | jobs exist | only `transcription-reap`: **BLOCKED** |

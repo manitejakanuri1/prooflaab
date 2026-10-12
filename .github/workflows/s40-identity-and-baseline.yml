@@ -32,7 +32,7 @@ jobs:
       - name: Gateway session vs Google account deleted / disabled (all roles)
         run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/identityFaults.test.ts web-bff/accountRecheck.test.ts
       - name: Contract drift - every frontend and server call is connected (S41)
-        run: node --test scripts/dev-tools/sidhu_s41_contract_drift.test.mjs
+        run: node --test scripts/dev-tools/sidhu_s41_contract_drift.test.mjs scripts/dev-tools/sidhu_s41_anon_direct_api.test.mjs
       - name: Migrations 111 + 112 on PostgreSQL 16 (PGlite) - no skip allowed
         run: |
           npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/pgl" @electric-sql/pglite@0.2.17
@@ -52,6 +52,8 @@ jobs:
         with: { node-version: '22' }
       - name: BASELINE - every gateway address, signed out and with a forged token (staging)
         run: node scripts/dev-tools/sidhu_s40_anon_api.mjs --confirm-staging --out e2e-out/s40-anon
+      - name: BASELINE - the database API itself, called directly with no token (it is publicly invokable)
+        run: node scripts/dev-tools/sidhu_s41_anon_direct_api.mjs --confirm-staging
       - name: Install the browser suite
         run: |
           npm ci --no-audit --no-fund

@@ -3,8 +3,9 @@ name: Identity faults and staging BASELINE (S40)
 # Sidhu S40.
 #   faults:   offline fault injection of the Google Identity <-> app account handling (sync, gateway sessions) and
 #             the unit tests of the live suites. Must be green.
+#   provenance: staging must serve TEJA's release candidate (built here and compared); else exit 4.
 #   baseline: signed-out checks against the CURRENTLY DEPLOYED staging site. BASELINE only, not release
-#             certification: staging serves frontend 59235dd (index-BbfwBTK1.js), not this branch. No login, no
+#             certification. No login, no
 #             secret, nothing can be written (every write is sent without a session and must be refused).
 
 on:
@@ -46,7 +47,36 @@ jobs:
       - name: The live suites' own unit tests
         run: node --test scripts/dev-tools/sidhu_s40_anon_api.test.mjs scripts/dev-tools/sidhu_s32_live_e2e.test.mjs scripts/dev-tools/sidhu_s40_e2e_infra.test.mjs
 
+  provenance:
+    # Is staging really serving TEJA's release candidate? Build that exact commit the way staging is built and compare
+    # its entry file with the live one. Change STAGING_RC when a new candidate is deployed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      STAGING_RC: 3847f3ed1a0be8c052a887af2e9014333a37230b   # release/teja-sidhu-s41-staging-rc-2026-10-13
+    outputs:
+      entry: ${{ steps.build.outputs.entry }}
+      live: ${{ steps.build.outputs.live }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.STAGING_RC }}", path: rc }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Build the release candidate the way staging is built; compare with the live site
+        id: build
+        working-directory: rc
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npx vite build --mode staging --outDir ../rc-dist > ../rc-build.log 2>&1
+          entry=$(grep -oE 'index-[A-Za-z0-9_-]+\.js' ../rc-dist/index.html | head -1)
+          live=$(curl -s https://prooflab-staging.web.app/ | grep -oE 'index-[A-Za-z0-9_-]+\.js' | head -1)
+          echo "entry=$entry" >> "$GITHUB_OUTPUT"; echo "live=$live" >> "$GITHUB_OUTPUT"
+          echo "release candidate $STAGING_RC builds to $entry; staging serves $live"
+          [ -n "$entry" ] && [ "$entry" = "$live" ] || { echo "::error::staging is NOT serving the release candidate"; exit 4; }
+
   baseline:
+    needs: provenance
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -64,7 +94,7 @@ jobs:
       - name: BASELINE - every screen sends a signed-out visitor to sign-in, no data answered (deployed build)
         run: |
           set +e
-          node scripts/dev-tools/sidhu_s32_live_e2e.mjs --anon --confirm-staging --expect-entry index-BbfwBTK1.js \
+          node scripts/dev-tools/sidhu_s32_live_e2e.mjs --anon --confirm-staging --expect-entry "${{ needs.provenance.outputs.entry }}" \
             --out e2e-out/s40-screens | tee e2e-out/s40-screens.log
           code=${PIPESTATUS[0]}
           echo "suite exit $code (0 all PASS; 1 FAIL; 2 incomplete or provenance not VERIFIED; 4 wrong build)"

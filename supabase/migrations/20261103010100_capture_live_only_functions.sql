@@ -3,9 +3,8 @@
 --   complete_own_wizard()  src/pages/OnboardingWizard.tsx    a new student finishes onboarding
 --   touch_my_activity()    src/pages/StudentDashboard.tsx    the daily "active" mark colleges see
 -- and two activity triggers found by diffing the staging schema against the migrations (see below).
--- (Not captured: the tables verification_settings / manual_adjustment_log, which migration 94 drops and staging has
--- not run yet. generate_round_robin was first reported live-only by mistake: stage 37 creates its three-argument
--- form and only drops the old two-argument one; the drift check now tells overloads apart.)
+-- (Also live-only, deliberately NOT captured: generate_round_robin, which nothing in the repository calls, and the
+-- tables verification_settings / manual_adjustment_log, which migration 94 drops and staging has not run yet.)
 --
 -- Found by scripts/dev-tools/sidhu_s41_contract_drift.mjs (every frontend call against the repository); TEJA's
 -- S34 notes had already seen them in the live schema snapshot. Anything rebuilt from the migrations (disaster

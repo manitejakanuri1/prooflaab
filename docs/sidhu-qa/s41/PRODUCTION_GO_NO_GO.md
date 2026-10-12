@@ -5,8 +5,9 @@
 | Gate | Required | Today |
 |---|---|---|
 | Release SHA | one integrated SHA, CI green | QA branch head (this commit) includes TEJA `441d378` + S40/S41; TEJA's newer `e9b1d52` was not fetched in this session (fetch declined), so it is **not tested here** |
-| Source = staging deployment | site and 4 services built from that SHA | staging serves `59235dd` (8 Oct), functions `00075-git`, web-bff `00004-9nn`, accounts `00015-rpk`, files `00012-gf4`: **FAIL (old build)** |
-| Migrations on staging | ... 109, 110, 111, 112 | 110 applied 13 Oct 02:30 IST (3 accounts on the owner's reconcile hold); **111, 112 not applied** |
+| Source = staging deployment | site and services built from that SHA | **13 Oct ~03:30 IST: TEJA deployed release candidate `3847f3e`** (release/teja-sidhu-s41-staging-rc-2026-10-13). Site **VERIFIED** in CI (c8c03eb provenance job: 3847f3e builds to `index-Ju1L-FZy.js` = live). Services at 100%: functions `00081-wib`, web-bff `00013-duc`, accounts `00020-kej`, files `00015-nip`, auth-bridge `00018-mob`, api `00006-6x4` (images not yet tied to a commit by me: needs the QA identity or TEJA's digest table) |
+| Signed-out checks on the RC | all pass | gateway 68/68, direct database API 57/57, screens 100/100 (CI, 13 Oct) |
+| Migrations on staging | ... 109, 110, 111, 112, 113 | 110 (02:30), 111 (03:45), 112 (03:47) applied 13 Oct; ledger checksums equal this branch's files byte for byte; **113 not applied** (written after the RC) |
 | Database API reachable directly | publicly invokable (staging and production, `allUsers`) | signed-out direct probe of staging: 28 tables + 29 read-only functions, **57 PASS, 0 FAIL** (refused or no data). 100 SECURITY DEFINER functions are executable by anon on staging; the read-only ones are probed, the writing ones are not called |
 | Signed-in E2E, five roles | all launch-critical rows PASS | 1,287 rows **BLOCKED** (no `staging-e2e`) |
 | Destructive identity tests | isolated tenant, disposable pool | **BLOCKED** |

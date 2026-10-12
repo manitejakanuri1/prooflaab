@@ -192,7 +192,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/remove":
                 return self.remove()
-            if self.path == "/sync":
+            if self.path.split("?", 1)[0] == "/sync":   # S40: /sync?dry_run=1 used to fall through to 404
                 return self.sync()
             if self.path == "/password-link":
                 return self.password_link()
@@ -513,9 +513,14 @@ class Handler(BaseHTTPRequestHandler):
                                     "would_suspend": decision["suspend"], "would_restore": decision["restore"]})
         if decision["mark"]:
             # ignore-duplicates keeps the FIRST time a login was seen missing.
-            db("account_sync_missing?on_conflict=student_id",
-               [{"student_id": s["student_id"], "provider_uid": s["provider_uid"]} for s in decision["mark"]],
-               prefer="resolution=ignore-duplicates,return=minimal")
+            st, out = db("account_sync_missing?on_conflict=student_id",
+                         [{"student_id": s["student_id"], "provider_uid": s["provider_uid"]} for s in decision["mark"]],
+                         prefer="resolution=ignore-duplicates,return=minimal")
+            if st not in (200, 201, 204):
+                # S40: was ignored, so the grace period never started and the pass still said 200. Nothing
+                # else is done in this pass; the next one records them again (ignore-duplicates).
+                print(f"ACCOUNT SYNC FAILED: could not record {len(decision['mark'])} newly missing login(s): {st}", flush=True)
+                return self.reply(500, {"error": f"could not record newly missing logins: {str(out)[:200]}", **summary})
         restored = suspended = 0
         if decision["clear"]:
             st, restored = db("rpc/sync_restore_students", {"_ids": decision["clear"]})

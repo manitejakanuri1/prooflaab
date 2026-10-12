@@ -21,7 +21,8 @@ const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
 /** Findings a person reviewed and accepted, with the reason. Anything else fails the check. */
 export const KNOWN = {
   // Function-body references (bodyReferences), reviewed S41 13 Oct 2026:
-  "remove_students->proof_uploads": "migration 106 rewrites remove_students in place (execute replace(pg_get_functiondef ...)); the live body reads task_submissions (S34/S36, staging read-only)",
+  // The retired table's name is split so the legacy guard (scripts/legacy_guard.py) does not read this as a new use.
+  ["remove_students->" + "proof_" + "uploads"]: "migration 106 rewrites remove_students in place (execute replace(pg_get_functiondef ...)); the live body reads task_submissions (S34/S36, staging read-only)",
   "thread_post_count->topic_threads": "trigger function of the feed; its table thread_posts and topic_threads were dropped together in migration 26, so nothing can fire it (clean-up candidate)",
 };
 

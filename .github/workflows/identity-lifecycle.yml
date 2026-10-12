@@ -69,6 +69,9 @@ jobs:
             fi
           done
 
+      - name: Deno services may read every setting their code reads (auth-bridge/files canaries crashed without it)
+        run: python3 scripts/test_deno_env_allowlist.py
+
       - name: Files - cut-off accounts refused, fail closed
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
 

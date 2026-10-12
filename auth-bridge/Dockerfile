@@ -16,4 +16,4 @@ EXPOSE 8080
 # --allow-net is needed for two things only: serving, and fetching Google's
 # public keys. No file access, no subprocesses, no environment beyond what is
 # listed - so a compromise here cannot read secrets it was not given.
-CMD ["deno", "run", "--allow-net", "--allow-env=PORT,TOKEN_TTL,ALLOWED_ORIGINS,PGRST_JWT_SECRET,GCP_PROJECT,POSTGREST_URL,APP_SIGNING_KEY,SERVICE_TOKEN_CALLERS,SERVICE_TOKEN_AUDIENCE", "main.ts"]
+CMD ["deno", "run", "--allow-net", "--allow-env=PORT,TOKEN_TTL,ALLOWED_ORIGINS,PGRST_JWT_SECRET,GCP_PROJECT,IDENTITY_PROJECT,POSTGREST_URL,APP_SIGNING_KEY,SERVICE_TOKEN_CALLERS,SERVICE_TOKEN_AUDIENCE", "main.ts"]

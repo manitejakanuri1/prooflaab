@@ -90,7 +90,8 @@ create index if not exists identity_lifecycle_due on public.identity_lifecycle (
   where direction = 'app' and status in ('requested', 'pending');
 
 alter table public.identity_lifecycle enable row level security;
-revoke all on public.identity_lifecycle from public, anon, authenticated;
+-- revoke from service_role too: the default privileges grant it ALL on new tables; it gets exactly these back.
+revoke all on public.identity_lifecycle from public, anon, authenticated, service_role;
 grant select, insert, update on public.identity_lifecycle to service_role;
 revoke delete, truncate on public.identity_lifecycle from service_role;   -- audit rows are never removed by the app
 grant usage on sequence public.identity_lifecycle_id_seq to service_role;
@@ -105,7 +106,8 @@ create table if not exists public.identity_reconcile_hold (
   created_at timestamptz not null default now()
 );
 alter table public.identity_reconcile_hold enable row level security;
-revoke all on public.identity_reconcile_hold from public, anon, authenticated;
+-- revoke from service_role too: staging/production grant it ALL on new tables by default privileges (seen 13 Oct).
+revoke all on public.identity_reconcile_hold from public, anon, authenticated, service_role;
 grant select on public.identity_reconcile_hold to service_role;
 
 -- Protected test accounts can never be blocked, by any path.

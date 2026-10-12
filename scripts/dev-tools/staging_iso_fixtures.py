@@ -100,7 +100,7 @@ def main():
     for r in take:
         pw = passwords.get(r["email"]) or secrets.token_urlsafe(18)
         st, out = identity("accounts", {"localId": r["provider_uid"], "email": r["email"], "password": pw,
-                                        "emailVerified": True, "disabled": False})
+                                        "emailVerified": True, "disabled": False}, token)
         if st == 200:
             passwords[r["email"]] = pw; created += 1
         elif "DUPLICATE_LOCAL_ID" in json.dumps(out) or "EMAIL_EXISTS" in json.dumps(out):

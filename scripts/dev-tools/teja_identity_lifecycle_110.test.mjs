@@ -33,6 +33,10 @@ const H = (n) => String(n).repeat(64).slice(0, 64);
 // A slice of the real schema: the tables and functions 110 reads, with the shapes of 05/11/17/51/55/95/101/102.
 const FIXTURE = `
 create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
+-- the default privileges staging and production really have (read 13 Oct 2026): ALL to service_role on new objects
+alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant all on sequences to service_role;
+alter default privileges in schema public grant execute on functions to service_role;
 create schema auth;
 create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz, created_at timestamptz default now());
 grant usage on schema auth to anon, authenticated, service_role;

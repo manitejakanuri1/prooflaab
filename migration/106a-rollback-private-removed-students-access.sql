@@ -1,0 +1,4 @@
+-- 106a rollback note (no executable rollback).
+-- Regranting browser access to sensitive deleted-student snapshots would
+-- recreate the security failure. To undo only with approved privacy review,
+-- use a tested Cloud SQL restore and reconcile subsequent migrations/data.

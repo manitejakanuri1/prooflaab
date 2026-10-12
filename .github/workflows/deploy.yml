@@ -59,6 +59,9 @@ jobs:
       - name: Migrations are consistent (numbering, self-check, mirror copy, rollback)
         run: python3 scripts/migrations.py check
 
+      - name: Removed-student privacy migration regression
+        run: python3 scripts/test_removed_students_privacy_migration.py
+
       - name: Atomic migration wrapper regression
         run: python3 scripts/test_atomic_migration_guard.py
 

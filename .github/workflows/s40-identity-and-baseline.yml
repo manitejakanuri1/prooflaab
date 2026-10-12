@@ -32,7 +32,7 @@ jobs:
       - name: Gateway session vs Google account deleted / disabled (all roles)
         run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/identityFaults.test.ts web-bff/accountRecheck.test.ts
       - name: The live suites' own unit tests
-        run: node --test scripts/dev-tools/sidhu_s40_anon_api.test.mjs scripts/dev-tools/sidhu_s32_live_e2e.test.mjs
+        run: node --test scripts/dev-tools/sidhu_s40_anon_api.test.mjs scripts/dev-tools/sidhu_s32_live_e2e.test.mjs scripts/dev-tools/sidhu_s40_e2e_infra.test.mjs
 
   baseline:
     runs-on: ubuntu-latest

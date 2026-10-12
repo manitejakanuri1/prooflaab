@@ -33,6 +33,10 @@ const H = (n) => String(n).repeat(64).slice(0, 64);
 // A slice of the real schema: the tables and functions 110 reads, with the shapes of 05/11/17/51/55/95/101/102.
 const FIXTURE = `
 create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
+-- the default privileges staging and production really have (read 13 Oct 2026): ALL to service_role on new objects
+alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant all on sequences to service_role;
+alter default privileges in schema public grant execute on functions to service_role;
 create schema auth;
 create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz, created_at timestamptz default now());
 grant usage on schema auth to anon, authenticated, service_role;
@@ -354,4 +358,53 @@ test("outbox: a confirmed delete completes once; a second (duplicate) result cha
   assert.equal(await blocked(db, ID.REC), true, "a deleted account stays cut off");
   const sync = (await svc(db, `select in_app_deletion from public.identity_sync_accounts('${P}', '') where user_id = '${ID.REC}'`)).rows[0];
   assert.equal(sync.in_app_deletion, true, "the sync leaves it to the outbox");
+});
+
+// ------------------------------------------------------------------ only genuinely linked logins are reconciled
+test("linked flag: mapped logins are linked; an account with no login link (synthetic) is not", { skip }, async () => {
+  const db = await database(M73, M110);
+  await db.exec(`insert into public.user_roles (user_id, role) select gen_random_uuid(), 'student' from generate_series(1, 50)`);
+  const rows = (await svc(db, `select user_id, linked from public.identity_sync_accounts('${P}', '')`)).rows;
+  const by = Object.fromEntries(rows.map((r) => [r.user_id, r.linked]));
+  assert.equal(by[ID.CO], true);
+  assert.equal(by[ID.ADM], false, "uuid-named admin has no mapping row yet");
+  assert.equal(rows.filter((r) => !r.linked).length, 52, "50 synthetic + 2 uuid-named admins");
+});
+
+test("identity_link_present links only uuid-named logins of existing accounts, never overwrites a mapping", { skip }, async () => {
+  const db = await database(M73, M110);
+  const n = await one(db, `select public.identity_link_present(${j([
+    { user_id: ID.ADM, provider_uid: ID.ADM },                       // uuid-named, present: linked
+    { user_id: ID.CO, provider_uid: ID.CO },                         // already mapped to g-co: untouched
+    { user_id: ID.ADM2, provider_uid: "someone-else" },              // id is not its own: skipped
+    { user_id: "00000000-0000-4000-8000-00000000dead", provider_uid: "00000000-0000-4000-8000-00000000dead" }, // no account
+  ])})`);
+  assert.equal(n, 1);
+  assert.equal(await one(db, `select provider_uid from public.account_identities where user_id = '${ID.CO}'`), "g-co");
+  assert.equal(await one(db, `select count(*)::int from public.account_identities where user_id = '${ID.ADM}'`), 1);
+  await assert.rejects(as(db, "authenticated", ID.ADM, `select public.identity_link_present('[]')`), /permission denied/);
+});
+
+test("a uuid-named login becomes linked when it signs in (resolve_account); a cut-off one does not", { skip }, async () => {
+  const db = await database(M73, M110);
+  assert.equal(await one(db, `select user_id from public.resolve_account('${ID.ADM2}', 'a2@x.test', true)`), ID.ADM2);
+  assert.equal(await one(db, `select count(*)::int from public.account_identities where user_id = '${ID.ADM2}'`), 1);
+  await mark(db, [{ user_id: ID.ADM, provider_uid: ID.ADM, role: "admin" }]);
+  await verify(db, [{ user_id: ID.ADM, provider_uid: ID.ADM }]);
+  await assert.rejects(db.query(`select * from public.resolve_account('${ID.ADM}', null, false)`), /no longer active/);
+  assert.equal(await one(db, `select count(*)::int from public.account_identities where user_id = '${ID.ADM}'`), 0);
+});
+
+test("owner hold: a held account is never marked, cut or linked by the sync; the API cannot change holds", { skip }, async () => {
+  const db = await database(M73, M110);
+  await db.exec(`insert into public.identity_reconcile_hold (user_id, reason, held_by) values
+    ('${ID.STU2}', 'personal mailbox, ownership not verified', 'owner'), ('${ID.ADM2}', 'personal mailbox', 'owner')`);
+  assert.equal((await mark(db, [{ user_id: ID.STU2, provider_uid: "g-stu2", role: "student" }])).rows[0].r.skipped, 1);
+  assert.equal(await one(db, `select count(*)::int from public.identity_lifecycle where user_id = '${ID.STU2}'`), 0);
+  assert.equal(await one(db, `select public.identity_link_present(${j([{ user_id: ID.ADM2, provider_uid: ID.ADM2 }])})`), 0);
+  assert.equal((await svc(db, `select on_hold from public.identity_sync_accounts('${P}', '') where user_id = '${ID.STU2}'`)).rows[0].on_hold, true);
+  assert.equal(await blocked(db, ID.STU2), false);
+  await assert.rejects(svc(db, `delete from public.identity_reconcile_hold`), /permission denied/);
+  await assert.rejects(svc(db, `insert into public.identity_reconcile_hold values ('${ID.CO}', 'xyz', 'api')`), /permission denied/);
+  await assert.rejects(as(db, "authenticated", ID.ADM, `select * from public.identity_reconcile_hold`), /permission denied/);
 });

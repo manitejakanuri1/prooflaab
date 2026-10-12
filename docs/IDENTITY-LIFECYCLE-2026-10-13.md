@@ -17,6 +17,7 @@ from P0 (S38 `74c3a12`, the removal-table gate `213bf00`, which was never pushed
 | S39 UI freeze baseline | `s39-squad-regression.yml` compared to `7704a98` | moved to `74c3a12` (the reviewed S38 wording), else the recovered fix fails the freeze |
 | Organisation approve/suspend states, managed invites | `a9b287e`, `a74a4da` | already in P0 (same content) |
 | Atomic migration guard, Google key hardening, S39 hotfix | `d8e5e07`, `1a4d550`, `34f7bf2` | already in P0 (same or newer content) |
+| Sidhu S40: `/sync?dry_run=1` answered 404; unchecked ledger write; fault-injection + gateway tests | `8c57c06`, `b6e2c26` | **merged**. Routing fix kept (TEJA's code had the same bug); the fault test ported to the all-role ledger, every case kept |
 | Older Supabase-era branches / the July stash | `backup/pre-sync-*`, `fix/security-and-follows-normalization` | not recovered: they target the deleted Supabase stack |
 
 New in this branch (no earlier implementation existed anywhere): the all-role ledger, the Console → app cut for
@@ -43,6 +44,14 @@ Google Console deletes/disables login ──► /sync (every 10 min)
 App delete ─► identity_lifecycle (app): access cut at once ─► data step ─► Google delete
     confirmed ─► completed     failed ─► pending, retry 1,2,4… min (max 6 h) ─► after 8 tries: failed (alert)
 ```
+
+## 2a. Only linked logins are reconciled
+
+An account is compared with Google only when it has a login link (`account_identities` row: written at sign-in by the
+bridge, by managed account creation, or by the sync when it SEES a uuid-named login in the listing). An account that
+never had a Google login - the 15,000 synthetic staging students - is not a deleted login: it is not counted, not
+marked and does not trip the abnormal-drop guard (`unlinked_ignored` in the sync answer). Nothing about those records
+is changed.
 
 ## 3. API contract (accounts service)
 

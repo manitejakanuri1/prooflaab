@@ -90,10 +90,25 @@ create index if not exists identity_lifecycle_due on public.identity_lifecycle (
   where direction = 'app' and status in ('requested', 'pending');
 
 alter table public.identity_lifecycle enable row level security;
-revoke all on public.identity_lifecycle from public, anon, authenticated;
+-- revoke from service_role too: the default privileges grant it ALL on new tables; it gets exactly these back.
+revoke all on public.identity_lifecycle from public, anon, authenticated, service_role;
 grant select, insert, update on public.identity_lifecycle to service_role;
 revoke delete, truncate on public.identity_lifecycle from service_role;   -- audit rows are never removed by the app
 grant usage on sequence public.identity_lifecycle_id_seq to service_role;
+
+-- Accounts whose AUTOMATIC reconciliation is on hold (owner decision, 13 Oct 2026: staging accounts linked to a
+-- personal mailbox, until their ownership is verified). The sync neither marks, cuts nor links them; their data is
+-- untouched. Rows are added/removed only by a person with direct SQL (no API grant beyond reading).
+create table if not exists public.identity_reconcile_hold (
+  user_id    uuid primary key,
+  reason     text not null check (length(reason) between 3 and 300),
+  held_by    text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.identity_reconcile_hold enable row level security;
+-- revoke from service_role too: staging/production grant it ALL on new tables by default privileges (seen 13 Oct).
+revoke all on public.identity_reconcile_hold from public, anon, authenticated, service_role;
+grant select on public.identity_reconcile_hold to service_role;
 
 -- Protected test accounts can never be blocked, by any path.
 create or replace function public.identity_lifecycle_guard()
@@ -201,6 +216,13 @@ begin
   if public.identity_access_blocked(_uuid) then
     raise exception 'this account is no longer active' using errcode = 'P0001', hint = 'identity_blocked';
   end if;
+  -- 110: a uuid-named login (Google id == app id) is recorded as LINKED the first time it signs in, so the sync
+  -- reconciles it from then on. Never replaces an existing mapping.
+  if _provider_uid = _uuid::text then
+    insert into public.account_identities (provider_uid, user_id, email)
+    values (_provider_uid, _uuid, lower(nullif(trim(coalesce(_email, '')), '')))
+    on conflict do nothing;
+  end if;
 
   if nullif(trim(coalesce(_email, '')), '') is not null then
     insert into auth.users (id, email, email_confirmed_at, created_at)
@@ -226,13 +248,16 @@ revoke all on function public.resolve_account(text, text, boolean) from public, 
 grant execute on function public.resolve_account(text, text, boolean) to service_role;
 
 -- ------------------------------------------------------------------ Google Console -> app (the sync)
--- Every account with a role, its exact login id, and where it stands in the ledger for THIS identity scope.
+-- Every account with a role, its exact login id, whether that login is LINKED (an account_identities row), and
+-- where it stands in the ledger for THIS identity scope. Only linked logins are reconciled (accounts/sync_plan.py):
+-- an account that never had a Google login (e.g. synthetic staging students) is never treated as a deleted one.
 create or replace function public.identity_sync_accounts(_project text, _tenant text default '')
-returns table (user_id uuid, role text, provider_uid text, protected boolean,
+returns table (user_id uuid, role text, provider_uid text, linked boolean, protected boolean, on_hold boolean,
                ledger_status text, first_missing_at timestamptz, in_app_deletion boolean)
 language sql stable security definer set search_path = public, pg_temp as $$
-  select r.user_id, r.role::text, coalesce(ai.provider_uid, r.user_id::text),
+  select r.user_id, r.role::text, coalesce(ai.provider_uid, r.user_id::text), ai.provider_uid is not null,
          exists (select 1 from public.protected_test_accounts t where t.user_id = r.user_id),
+         exists (select 1 from public.identity_reconcile_hold h where h.user_id = r.user_id),
          l.status, l.event_at,
          exists (select 1 from public.identity_lifecycle a
                   where a.user_id = r.user_id and a.direction = 'app' and a.status <> 'cancelled')
@@ -243,6 +268,23 @@ language sql stable security definer set search_path = public, pg_temp as $$
           and l.identity_project = _project and l.tenant_id = coalesce(_tenant, '')
           and l.provider_uid = coalesce(ai.provider_uid, r.user_id::text) and l.user_id = r.user_id;
 $$;
+
+-- Links uuid-named logins (August accounts: Google id == app id, no mapping row) that the sync SAW in the listing.
+-- Only an account whose own id is its login id, and that has no mapping yet; anything else is skipped.
+create or replace function public.identity_link_present(_rows jsonb)
+returns integer language plpgsql security definer set search_path = public, pg_temp as $$
+declare e jsonb; n int := 0; k int; uid uuid;
+begin
+  for e in select * from jsonb_array_elements(coalesce(_rows, '[]'::jsonb)) loop
+    uid := (e ->> 'user_id')::uuid;
+    continue when e ->> 'provider_uid' is distinct from uid::text;
+    continue when not exists (select 1 from public.user_roles r where r.user_id = uid);
+    continue when exists (select 1 from public.identity_reconcile_hold h where h.user_id = uid);
+    insert into public.account_identities (provider_uid, user_id) values (uid::text, uid) on conflict do nothing;
+    get diagnostics k = row_count; n := n + k;
+  end loop;
+  return n;
+end $$;
 
 -- Applies one sync pass's decisions (accounts/sync_plan.py) in one transaction. Each entry names the account
 -- AND its exact login id; an entry that no longer matches the database is skipped, never guessed.
@@ -259,7 +301,8 @@ begin
   end if;
 
   for e in select * from jsonb_array_elements(coalesce(_mark, '[]'::jsonb)) loop
-    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid) then
+    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid)
+       or exists (select 1 from public.identity_reconcile_hold h where h.user_id = (e ->> 'user_id')::uuid) then
       n_skip := n_skip + 1; continue;
     end if;
     insert into public.identity_lifecycle (event_key, user_id, role_snapshot, identity_project, tenant_id, provider_uid,
@@ -273,7 +316,8 @@ begin
   end loop;
 
   for e in select * from jsonb_array_elements(coalesce(_verified, '[]'::jsonb)) loop
-    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid) then
+    if exists (select 1 from public.protected_test_accounts p where p.user_id = (e ->> 'user_id')::uuid)
+       or exists (select 1 from public.identity_reconcile_hold h where h.user_id = (e ->> 'user_id')::uuid) then
       n_skip := n_skip + 1; continue;
     end if;
     update public.identity_lifecycle l
@@ -470,6 +514,7 @@ end $$;
 
 revoke all on function public.identity_sync_accounts(text, text) from public, anon, authenticated;
 revoke all on function public.identity_sync_apply(text, text, jsonb, jsonb, jsonb) from public, anon, authenticated;
+revoke all on function public.identity_link_present(jsonb) from public, anon, authenticated;
 revoke all on function public.identity_request_deletion(uuid, uuid, text, text, text) from public, anon, authenticated;
 revoke all on function public.identity_record_student_removals(jsonb, text, text, text) from public, anon, authenticated;
 revoke all on function public.identity_due_deletions(text, text, int) from public, anon, authenticated;
@@ -478,6 +523,7 @@ revoke all on function public.identity_lifecycle_health() from public, anon, aut
 revoke all on function public.admin_identity_lifecycle(int) from public, anon;
 grant execute on function public.identity_sync_accounts(text, text) to service_role;
 grant execute on function public.identity_sync_apply(text, text, jsonb, jsonb, jsonb) to service_role;
+grant execute on function public.identity_link_present(jsonb) to service_role;
 grant execute on function public.identity_request_deletion(uuid, uuid, text, text, text) to service_role;
 grant execute on function public.identity_record_student_removals(jsonb, text, text, text) to service_role;
 grant execute on function public.identity_due_deletions(text, text, int) to service_role;
@@ -515,13 +561,18 @@ begin
      or has_table_privilege('authenticated', 'public.identity_lifecycle', 'update') then
     raise exception '110 self-check: a browser role can touch identity_lifecycle';
   end if;
+  if has_table_privilege('authenticated', 'public.identity_reconcile_hold', 'select')
+     or has_table_privilege('service_role', 'public.identity_reconcile_hold', 'insert')
+     or has_table_privilege('service_role', 'public.identity_reconcile_hold', 'delete') then
+    raise exception '110 self-check: the reconcile hold can be read by a browser or changed through the API';
+  end if;
   if has_table_privilege('service_role', 'public.identity_lifecycle', 'delete') then
     raise exception '110 self-check: audit rows can be deleted through the API';
   end if;
   foreach f in array array['public.identity_access_blocked(uuid)', 'public.account_is_suspended(uuid)',
       'public.web_login_identity(uuid)', 'public.web_login_identity_base(uuid)',
       'public.resolve_account(text,text,boolean)', 'public.identity_sync_accounts(text,text)',
-      'public.identity_sync_apply(text,text,jsonb,jsonb,jsonb)',
+      'public.identity_sync_apply(text,text,jsonb,jsonb,jsonb)', 'public.identity_link_present(jsonb)',
       'public.identity_request_deletion(uuid,uuid,text,text,text)',
       'public.identity_record_student_removals(jsonb,text,text,text)',
       'public.identity_due_deletions(text,text,integer)', 'public.identity_attempt_result(bigint,boolean,text)',

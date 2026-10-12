@@ -9,7 +9,7 @@ name: Identity faults and staging BASELINE (S40)
 
 on:
   push:
-    branches: ["fix/sidhu-s40-*"]
+    branches: ["fix/sidhu-s40-*", "fix/teja-identity-*"]
   workflow_dispatch:
   schedule:
     - cron: "30 1 * * *"     # 07:00 IST: notice a staging regression without anyone asking

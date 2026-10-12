@@ -33,29 +33,31 @@ class Limits:
 
 
 def plan(accounts: list[dict], logins: dict[str, bool], now: datetime, limits: Limits = Limits()) -> dict:
-    """accounts: rows of identity_sync_accounts() - {user_id, role, provider_uid, protected, ledger_status,
+    """accounts: rows of identity_sync_accounts() - {user_id, role, provider_uid, linked, protected, ledger_status,
     first_missing_at, in_app_deletion}. logins: {provider_uid: disabled} for the WHOLE scoped listing.
 
-    Returns {abort, review, missing, mark, verify, recover}; mark/verify/recover hold the account rows.
+    Returns {abort, review, missing, mark, verify, recover, link}; each list holds account rows.
     """
-    # S40: an account with no Google mapping carries its own app id as login id (identity_sync_accounts). If Google
-    # does not list that id, nothing proves it ever was a login: a seeded or synthetic record (15,004 on staging), or
-    # an older login already deleted, which cannot sign in anyway. Such an account is never marked or cut, and does
-    # not count towards the abnormal-drop guard; it is only reported. Listed (enabled or disabled), it is a login.
-    unmapped_absent = [a for a in accounts if str(a["provider_uid"]) == str(a["user_id"]) and a["provider_uid"] not in logins]
-    skip = {a["user_id"] for a in unmapped_absent}
-    pool = [a for a in accounts if not a.get("protected") and not a.get("in_app_deletion") and a["user_id"] not in skip]
+    # Only GENUINELY LINKED logins are reconciled (an account_identities row: written by the bridge at sign-in,
+    # by managed account creation, or by `link` below). An account that never had a Google login - e.g. the
+    # 15,000 synthetic staging students - is not a deleted login, and is neither counted nor touched.
+    # An unlinked account whose own id IS in the listing is a real (uuid-named) login: it gets linked.
+    # On hold (owner decision): no automatic step at all - not marked, cut, restored or linked.
+    accounts = [a for a in accounts if not a.get("on_hold")]
+    link = [a for a in accounts if not a.get("linked") and a["provider_uid"] in logins]
+    pool = [a for a in accounts if a.get("linked") and not a.get("protected") and not a.get("in_app_deletion")]
     gone = [a for a in pool if logins.get(a["provider_uid"], True)]       # absent, or present but disabled
     result = {"abort": None, "review": None, "missing": sorted(a["user_id"] for a in gone),
-              "mark": [], "verify": [], "recover": [], "unmapped_absent": len(unmapped_absent)}
+              "mark": [], "verify": [], "recover": [], "link": link}
 
     if not logins:
-        result["abort"] = "the login listing is empty"
+        result["abort"], result["link"] = "the login listing is empty", []
         return result
     threshold = max(limits.abnormal_abs, int(len(pool) * limits.abnormal_fraction))
     if len(gone) > threshold:
         result["abort"] = (f"{len(gone)} of {len(pool)} accounts have no usable login in this listing "
                            f"(abnormal-drop guard {threshold}); nothing marked, cut or restored")
+        result["link"] = []
         return result
 
     gone_ids = {a["user_id"] for a in gone}

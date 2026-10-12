@@ -8,6 +8,9 @@
 --   * every student the ledger still holds as missing goes back into account_sync_missing (with suspended_at
 --     when this ledger suspended them), so the old sync restores them when their login returns;
 --   * the identity_* functions and the ledger triggers are dropped.
+-- Login links 110 added for uuid-named accounts (account_identities rows with provider_uid = user_id) are kept:
+-- they are true mappings and the bridge resolves those ids to the same uuid with or without them.
+-- identity_reconcile_hold is KEPT (owner decisions; nothing reads it after this).
 -- The identity_lifecycle TABLE is kept as an audit record (nothing reads it after this). Dropping it is a
 -- separate decision for the owner.
 begin;
@@ -26,6 +29,7 @@ drop function if exists public.identity_lifecycle_revoke_sessions();
 drop function if exists public.identity_lifecycle_guard();
 drop function if exists public.identity_sync_accounts(text, text);
 drop function if exists public.identity_sync_apply(text, text, jsonb, jsonb, jsonb);
+drop function if exists public.identity_link_present(jsonb);
 drop function if exists public.identity_request_deletion(uuid, uuid, text, text, text);
 drop function if exists public.identity_record_student_removals(jsonb, text, text, text);
 drop function if exists public.identity_due_deletions(text, text, int);

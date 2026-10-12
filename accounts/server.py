@@ -49,7 +49,10 @@ PORT = int(os.environ.get("PORT", "8080"))
 SECRET = os.environ.get("PGRST_JWT_SECRET", "").encode()
 WEBHOOK = os.environ.get("WEBHOOK_SECRET", "")
 POSTGREST = os.environ["POSTGREST_URL"].rstrip("/")
-PROJECT = os.environ.get("GCP_PROJECT", "prooflab-508214")
+# The Google Identity project whose logins this service manages. IDENTITY_PROJECT names it explicitly (staging:
+# its own isolated project); GCP_PROJECT is only the fallback, so moving logins never has to touch the variable other
+# services read as "our infrastructure project".
+PROJECT = os.environ.get("IDENTITY_PROJECT") or os.environ.get("GCP_PROJECT", "prooflab-508214")
 ORIGINS = set(filter(None, os.environ.get("ALLOWED_ORIGINS", "").split(",")))
 IDENTITY = f"https://identitytoolkit.googleapis.com/v1/projects/{PROJECT}"
 # The exact identity scope this service acts on. Every ledger row carries it, and rows of any other scope
@@ -607,8 +610,9 @@ class Handler(BaseHTTPRequestHandler):
         decision = sync_plan.plan(accounts, logins, datetime.now(timezone.utc), LIMITS)
         summary = {"accounts": len(accounts), "logins": len(logins), "missing_now": len(decision["missing"]),
                    "newly_missing": len(decision["mark"]), "to_verify": len(decision["verify"]),
-                   "came_back": len(decision["recover"]), "shared_identity": SHARED_IDENTITY,
-                   "unmapped_absent": decision.get("unmapped_absent", 0)}   # S40: never marked or cut
+                   "came_back": len(decision["recover"]), "to_link": len(decision["link"]),
+                   "unlinked_ignored": sum(1 for a in accounts if not a.get("linked")) - len(decision["link"]),
+                   "shared_identity": SHARED_IDENTITY}
         if decision["abort"]:
             print(f"ACCOUNT SYNC ABORTED: {decision['abort']} {json.dumps(summary)}", flush=True)
             return self.reply(409, {"error": decision["abort"], **summary})
@@ -633,10 +637,19 @@ class Handler(BaseHTTPRequestHandler):
         def slim(rows):
             return [{"user_id": a["user_id"], "provider_uid": a["provider_uid"], "role": a.get("role")} for a in rows]
 
-        st, applied = db("rpc/identity_sync_apply", {**scope(), "_mark": slim(decision["mark"]),
-                                                     "_verified": verified, "_recover": slim(decision["recover"])})
+        if decision["mark"] or verified or decision["recover"]:
+            st, applied = db("rpc/identity_sync_apply", {**scope(), "_mark": slim(decision["mark"]),
+                                                         "_verified": verified, "_recover": slim(decision["recover"])})
+        else:   # nothing to record: no database write at all
+            st, applied = 200, {"marked": 0, "verified": 0, "suspended": 0, "recovered": 0, "restored": 0, "skipped": 0}
         if st != 200 or not isinstance(applied, dict):
+            print(f"ACCOUNT SYNC FAILED: the pass could not be recorded ({st}); nothing changed", flush=True)
             return self.reply(500, {"error": f"apply failed: {str(applied)[:200]}", **summary})
+        if decision["link"]:
+            st, linked = db("rpc/identity_link_present", {"_rows": slim(decision["link"])})
+            applied["linked"] = linked if st == 200 else 0
+            if st != 200:
+                print(f"ACCOUNT SYNC FAILED: could not link {len(decision['link'])} present login(s) ({st})", flush=True)
         if applied.get("verified"):
             print(f"ACCOUNT SYNC SUSPENDED: access cut for {applied['verified']} account(s) whose login stayed "
                   f"missing {LIMITS.grace_seconds // 60}+ min {json.dumps(summary)}", flush=True)

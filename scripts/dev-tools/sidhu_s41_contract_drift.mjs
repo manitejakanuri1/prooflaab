@@ -19,7 +19,11 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
 
 /** Findings a person reviewed and accepted, with the reason. Anything else fails the check. */
-export const KNOWN = {};
+export const KNOWN = {
+  // Function-body references (bodyReferences), reviewed S41 13 Oct 2026:
+  "remove_students->proof_uploads": "migration 106 rewrites remove_students in place (execute replace(pg_get_functiondef ...)); the live body reads task_submissions (S34/S36, staging read-only)",
+  "thread_post_count->topic_threads": "trigger function of the feed; its table thread_posts and topic_threads were dropped together in migration 26, so nothing can fire it (clean-up candidate)",
+};
 
 function walk(dir, out = []) {
   for (const f of readdirSync(dir)) {
@@ -39,6 +43,29 @@ export function migrationFiles() {
   ];
 }
 
+/** Argument TYPES of a parameter list, so overloads are told apart: "(_a uuid, _b boolean default false)" -> "uuid,boolean". */
+export function argTypes(list) {
+  const parts = []; let depth = 0, cur = "";
+  for (const ch of list) { if (ch === "(") depth++; if (ch === ")") depth--; if (ch === "," && depth === 0) { parts.push(cur); cur = ""; } else cur += ch; }
+  if (cur.trim()) parts.push(cur);
+  const MULTI = /^(double|timestamp|time|character|bit|interval)\b/i;
+  return parts.map((p) => {
+    let t = p.replace(/\s+default\s+[\s\S]*$/i, "").replace(/\s*=\s*[\s\S]*$/, "").trim().replace(/^(in|out|inout|variadic)\s+/i, "");
+    const words = t.split(/\s+/);
+    if (words.length > 1 && !MULTI.test(t)) t = words.slice(1).join(" ");   // drop the parameter name
+    return t.toLowerCase().replace(/^public\./, "").replace(/\s+/g, " ")
+      .replace(/^int4$|^int$/, "integer").replace(/^bool$/, "boolean").replace(/^varchar.*$/, "character varying")
+      .replace(/^timestamptz$/, "timestamp with time zone").replace(/^int8$/, "bigint");
+  }).join(",");
+}
+
+/** Text from an opening "(" to its matching ")". */
+function parenAt(sql, i) {
+  let d = 0;
+  for (let j = i; j < sql.length; j++) { if (sql[j] === "(") d++; else if (sql[j] === ")" && --d === 0) return sql.slice(i + 1, j); }
+  return "";
+}
+
 /** Replays the SQL: which functions / tables exist at the end, and whether `authenticated` may EXECUTE each function. */
 export function sqlState(files = migrationFiles(), read = (f) => readFileSync(f, "utf8")) {
   const fn = new Map(), table = new Map();
@@ -48,12 +75,32 @@ export function sqlState(files = migrationFiles(), read = (f) => readFileSync(f,
     const at = (re, cb) => { for (const m of sql.matchAll(re)) events.push([m.index, () => cb(m)]); };
     at(/\bcreate\s+(or\s+replace\s+)?function\s+(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s*\(/gi, (m) => {
       const e = fn.get(m[2].toLowerCase());
+      // The body: from "as $tag$" to the same "$tag$" (S41: checked for calls to objects that no longer exist).
+      const as = /\bas\s+(\$[a-z_]*\$)/i.exec(sql.slice(m.index, m.index + 4000));
+      const start = as ? m.index + as.index + as[0].length : -1;
+      const body = as ? sql.slice(start, sql.indexOf(as[1], start)) : "";
+      const sig = argTypes(parenAt(sql, m.index + m[0].length - 1));
       // A new function (or one re-created after a drop) gets PostgreSQL's default: EXECUTE for PUBLIC.
-      if (!e || e.dropped) fn.set(m[2].toLowerCase(), { exists: true, dropped: false, browser: true, where: rel(f) });
-      else { e.exists = true; e.where = rel(f); }
+      if (!e || e.dropped) fn.set(m[2].toLowerCase(), { exists: true, dropped: false, browser: true, where: rel(f), body, sigs: new Set([sig]) });
+      else { e.exists = true; e.where = rel(f); e.body = body; (e.sigs ??= new Set()).add(sig); }
     });
-    at(/\bdrop\s+function\s+(?:if\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?/gi, (m) => {
-      const e = fn.get(m[1].toLowerCase()) ?? {}; fn.set(m[1].toLowerCase(), { ...e, exists: false, dropped: true, where: rel(f) });
+    // A drop with an argument list removes that overload only (stage 37 drops the OLD generate_round_robin(uuid,
+    // boolean) after creating the new three-argument one); without one, every overload.
+    at(/\bdrop\s+function\s+(?:if\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?(\s*\()?/gi, (m) => {
+      const name = m[1].toLowerCase(), e = fn.get(name) ?? { sigs: new Set() };
+      if (m[2]) e.sigs?.delete(argTypes(parenAt(sql, m.index + m[0].length - 1))); else e.sigs = new Set();
+      const gone = !e.sigs || e.sigs.size === 0;
+      fn.set(name, { ...e, exists: !gone, dropped: gone, where: rel(f) });
+    });
+    // alter function public.a(args) rename to b
+    at(/\balter\s+function\s+(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s*\(([^)]*)\)\s+rename\s+to\s+"?([a-z_][a-z0-9_]*)/gi, (m) => {
+      const from = fn.get(m[1].toLowerCase()); if (!from) return;
+      const sig = argTypes(m[2]);
+      from.sigs?.delete(sig);
+      if (!from.sigs || from.sigs.size === 0) { from.exists = false; from.dropped = true; }
+      const to = fn.get(m[3].toLowerCase());
+      if (to && to.exists) to.sigs.add(sig);
+      else fn.set(m[3].toLowerCase(), { exists: true, dropped: false, browser: from.browser, where: rel(f), body: from.body, sigs: new Set([sig]) });
     });
     at(/\b(grant|revoke)\s+(?:all(?:\s+privileges)?|execute)\s+on\s+function\s+(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s*\([^)]*\)\s+(to|from)\s+([^;]+);/gi, (m) => {
       const who = m[4].toLowerCase();
@@ -62,15 +109,36 @@ export function sqlState(files = migrationFiles(), read = (f) => readFileSync(f,
       if (m[1].toLowerCase() === "grant" && /\bauthenticated\b|\bpublic\b/.test(who)) e.browser = true;
       if (m[1].toLowerCase() === "revoke" && browserRole) e.browser = false;
     });
-    at(/\bcreate\s+(?:unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
-    at(/\bcreate\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
-    at(/\bdrop\s+(?:table|view|materialized\s+view)\s+(?:if\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: false, dropped: true, where: rel(f) }));
+    at(/\bcreate\s+type\s+(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, type: true, where: rel(f) }));
+    at(/\bcreate\s+(?:unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?(?!if\b)([a-z_][a-z0-9_]*)\b(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
+    at(/\bcreate\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?(?!if\b)([a-z_][a-z0-9_]*)\b(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
+    at(/\bdrop\s+(?:table|view|materialized\s+view)\s+(?:if\s+exists\s+)?(?:"?public"?\.)?"?(?!if\b)([a-z_][a-z0-9_]*)\b(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: false, dropped: true, where: rel(f) }));
     at(/\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s+rename\s+to\s+"?([a-z_][a-z0-9_]*)/gi, (m) => {
       table.set(m[1].toLowerCase(), { exists: false, dropped: true, where: rel(f) }); table.set(m[2].toLowerCase(), { exists: true, where: rel(f) });
     });
     for (const [, run] of events.sort((a, b) => a[0] - b[0])) run();   // in file order
   }
   return { fn, table };
+}
+
+/**
+ * S41: inside every function that still exists, each schema-qualified reference (public.x( for a function, public.x
+ * for a table or view) must name something that still exists. PostgreSQL only finds a broken one when that line
+ * runs. Dynamic SQL strings are included: a name inside execute '...public.x...' fails the same way.
+ */
+export function bodyReferences(s) {
+  const out = [];
+  for (const [name, e] of s.fn) {
+    if (!e.exists || !e.body) continue;
+    for (const m of e.body.matchAll(/\bpublic\.([a-z_][a-z0-9_]*)\s*(\()?/gi)) {
+      // "insert into public.t (cols)" has a parenthesis too, so a name is fine if it exists as either kind.
+      const ref = m[1].toLowerCase(), isCall = !!m[2] && !s.table.has(ref);
+      const t = s.table.get(ref), f = s.fn.get(ref);
+      const status = (t?.exists || f?.exists) ? "OK" : (t || f) ? "ENDPOINT_DROPPED" : "ENDPOINT_NOT_FOUND";
+      if (status !== "OK") out.push({ kind: isCall ? "body-call" : "body-table", name: ref, in: name, where: e.where, status });
+    }
+  }
+  return out;
 }
 
 export function slugs() {

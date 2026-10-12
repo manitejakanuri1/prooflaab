@@ -11,6 +11,7 @@ removing the fix and rerunning). "Shared" = another owner's file; TEJA reviews a
 | 4 | **P1** | `complete_own_wizard` and `touch_my_activity`, called by the website, existed in no migration: a database rebuilt from migrations could not finish a student's onboarding or mark activity (S41 contract drift, every file under `src/`) | created by hand in the live databases, never written down | migration 111 (a20bb45): staging definitions and grants unchanged. Shared (DB) | `sidhu_s41_contract_drift.test.mjs` (fails without 111), `sidhu_s41_live_only_functions.test.mjs` | FIXED in source; apply BLOCKED (TEJA) |
 | 5 | **P1** | triggers `task_assignments_activity` / `voice_explanations_activity` (student activity log: Lot completed, voice recorded) existed only live (S41 schema diff staging vs migrations) | same | added to 111 (4c75abb) | PGlite: logged once per completion, not on other updates, re-apply does not double | FIXED in source; apply BLOCKED |
 | 5b | **P1 (data integrity)** | College -> Students "N squads are now empty. Remove them?" -> OK deleted squads that had played: their matches (and each opponent's match record), weekly scores, membership history, and a finished season's champion / runner-up / third (S41: untested-write-endpoint scan, then PostgreSQL with the deployed function) | `tpo_delete_empty_squads` (migration 25) treats "no CURRENT member" as empty; matches / scores / members are ON DELETE CASCADE, podium SET NULL | migration 112: only never-used squads (no membership row ever, no match, no score, no podium place) are removed; the prompt counts the same set. Same names, grants, screen. Shared (DB) | `sidhu_s41_squad_management.test.mjs` (5: bug reproduced on the deployed body, fix keeps history, past member keeps squad, college isolation, create squad) | FIXED in source; apply BLOCKED (TEJA) |
+| 5c | P3 | `assign_tasks` answered **500** "An unexpected error occurred" to a garbage, forged or expired ticket (S41: all 22 untested write functions driven through the real handlers) | thrown 'Invalid authentication' vs a case-sensitive match on 'Authentication' | case-insensitive match (f94a5ed). Shared | `functions-service/write_authz_test.ts` (118: every bad ticket 401, students 403 on staff functions, nothing written, no AI call) | FIXED; in the release gate |
 | 6 | P3 | failure bundle scrubbing regex held backspace characters, so typed text would have reached the bug report (my own S40 code; caught by its test) | shell layer turned `\b` into U+0008 | 9d6d296 | `sidhu_s40_e2e_infra.test.mjs` | FIXED |
 | 7 | P4 | drift checker read `create table auth.users` as a public table `auth` | regex accepted a schema prefix as the name | 4c75abb | `sidhu_s41_contract_drift.test.mjs` | FIXED |
 
@@ -20,7 +21,11 @@ Reviewed, not bugs: two inventory "dead buttons" (`StudentAssignedTasksPage` "Un
 Not fixed, reported:
 - Staging has no scheduler jobs except `transcription-reap`: nightly squads, daily Lots, weekly seasons and the
   account sync never run there, so no scheduled workflow can be proven on staging (TEJA / owner).
-- `generate_round_robin` exists only live and nothing calls it; `verification_settings` / `manual_adjustment_log`
-  wait for migration 94 on staging. Clean-up, not launch-critical.
+- CORRECTION (S41): `generate_round_robin` was reported "live-only, nothing calls it". Wrong: stage 37 creates its
+  three-argument form and drops only the old two-argument overload, and `extend_fixtures` (nightly `extend-fixtures`)
+  calls it. The drift check now tracks signatures, renames and types; staging has 0 live-only functions after 111.
+- `verification_settings` / `manual_adjustment_log` wait for migration 94 on staging. Clean-up, not launch-critical.
+- Function bodies: every existing function references only existing objects, except two reviewed ones
+  (`remove_students` is rewritten in place by 106; `thread_post_count` belongs to the removed feed). Regression test.
 - A Google account deleted in the Console keeps an open session until token refresh (about 55 minutes): measured
   by `web-bff/identityFaults.test.ts`; 110's sync cuts access after its grace period. Owner decision on the window.

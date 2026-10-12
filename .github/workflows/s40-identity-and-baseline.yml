@@ -31,6 +31,14 @@ jobs:
         run: cd accounts && python3 test_sync_faults.py && python3 test_sync_unmapped.py && python3 test_sync_plan.py && python3 test_server_identity.py && python3 test_lifecycle.py && python3 test_self_delete.py
       - name: Gateway session vs Google account deleted / disabled (all roles)
         run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/identityFaults.test.ts web-bff/accountRecheck.test.ts
+      - name: Contract drift - every frontend and server call is connected (S41)
+        run: node --test scripts/dev-tools/sidhu_s41_contract_drift.test.mjs
+      - name: Migration 111 on PostgreSQL 16 (PGlite) - no skip allowed
+        run: |
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/pgl" @electric-sql/pglite@0.2.17
+          PGLITE_MODULE="file://$RUNNER_TEMP/pgl/node_modules/@electric-sql/pglite/dist/index.js" \
+            node --test --test-reporter=tap scripts/dev-tools/sidhu_s41_live_only_functions.test.mjs | tee "$RUNNER_TEMP/s41.tap"
+          grep -q '^# fail 0$' "$RUNNER_TEMP/s41.tap" && grep -q '^# skipped 0$' "$RUNNER_TEMP/s41.tap"
       - name: The live suites' own unit tests
         run: node --test scripts/dev-tools/sidhu_s40_anon_api.test.mjs scripts/dev-tools/sidhu_s32_live_e2e.test.mjs scripts/dev-tools/sidhu_s40_e2e_infra.test.mjs
 

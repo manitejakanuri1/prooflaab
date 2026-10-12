@@ -35,6 +35,35 @@ const PORT = Number(Deno.env.get('PORT') ?? 8080);
 const PRIVATE_BUCKET = Deno.env.get('PRIVATE_BUCKET') ?? 'prooflab-private-508214';
 const PUBLIC_BUCKET = Deno.env.get('PUBLIC_BUCKET') ?? 'prooflab-public-508214';
 
+/**
+ * Migration 110: a ticket stays valid for up to an hour, so "the ticket verifies" is not enough once an
+ * account is cut off (Google login deleted or disabled, deletion in progress, student suspended). With
+ * POSTGREST_URL set, every signed-in request asks the database API, WITH THE CALLER'S OWN TICKET, whether
+ * the account is still active (account_access_ok). No answer means no access (fail closed). Without it set
+ * the service behaves as before.
+ */
+const POSTGREST_URL = (Deno.env.get('POSTGREST_URL') ?? '').replace(/\/+$/, '');
+
+export async function accountActive(
+  token: string,
+  fetcher: typeof fetch = fetch,
+  base: string = POSTGREST_URL,
+): Promise<'active' | 'refused' | 'unavailable'> {
+  if (!base) return 'active';
+  try {
+    const res = await fetcher(`${base}/rpc/account_access_ok`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    if (res.status === 401 || res.status === 403) return 'refused';
+    if (!res.ok) return 'unavailable';
+    return (await res.json()) === true ? 'active' : 'refused';
+  } catch {
+    return 'unavailable';
+  }
+}
+
 /** Refuse anything larger. Matches the limit the upload screens already apply. */
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -245,9 +274,19 @@ async function handler(req: Request): Promise<Response> {
     const auth = req.headers.get('Authorization');
     if (!auth?.startsWith('Bearer ')) return json({ error: 'sign in first' }, 401, origin);
 
-    const verified = await callerOf(auth.slice(7).trim());
+    const token = auth.slice(7).trim();
+    const verified = await callerOf(token);
     if (!verified) return json({ error: 'invalid token' }, 401, origin);
     caller = verified;
+
+    if (POSTGREST_URL) {
+      // Only the bridge's ticket can be checked against the account (a Google token names Google's id,
+      // and the app never sends one here: the BFF injects the bridge ticket).
+      if (await verifyAppToken(token) === null) return json({ error: 'invalid token' }, 401, origin);
+      const state = await accountActive(token);
+      if (state === 'refused') return json({ error: 'this account is not active' }, 403, origin);
+      if (state === 'unavailable') return json({ error: 'try again shortly' }, 503, origin);
+    }
 
     if (ownerOf(target.object) !== caller) {
       // Same answer whether the file exists or not. Telling the caller which

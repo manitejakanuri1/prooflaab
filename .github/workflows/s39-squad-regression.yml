@@ -1,7 +1,7 @@
 name: Squad vacancy filling (migrations 108-109) and college UI freeze
 
 # Sidhu S39. Proves, in the cloud:
-#   1. the screens are frozen: nothing under src/ differs from TEJA 7704a98, and the named college controls exist;
+#   1. the screens are frozen: nothing under src/ differs from S38 74c3a12 (TEJA 7704a98 + the reviewed S38 delete-dialog wording), and the named college controls exist;
 #   2. migration 108 (squads below eleven are filled from the reserve) and 109 (the import Branch list) on PGlite;
 #   3. the same under real concurrency, with several sessions on a real PostgreSQL 16 server;
 #   4. the earlier 105-107 suites still pass on the same schema slice.
@@ -32,16 +32,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0          # the freeze check compares with 7704a98
+          fetch-depth: 0          # the freeze check compares with 74c3a12
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: UI freeze - no screen file changed since TEJA 7704a98
+      - name: UI freeze - no screen file changed since S38 74c3a12
         run: |
-          git diff --stat 7704a982be87baa926229deb416b6d78e0cf328f -- src index.html public
-          git diff --quiet 7704a982be87baa926229deb416b6d78e0cf328f -- src index.html public \
+          git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public
+          git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
 
       - name: UI freeze - the college controls by name

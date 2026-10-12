@@ -7,8 +7,11 @@
 -- scores, its membership history, and a finished season's podium. Reproduced on PostgreSQL with the deployed
 -- function (scripts/dev-tools/sidhu_s41_squad_management.test.mjs).
 --
--- Now a squad is "empty" only if it was never used: no membership row at all (current or past), no match, no weekly
--- score, and not on any season's podium. Such a squad has nothing to lose. A squad with history is left as it is
+-- (Staging, read-only 13 Oct 2026: the live functions are migration 25's, and the live grants also let PUBLIC and
+-- anon execute them; student_weekly_scores.squad_id is SET NULL too. The revokes below restore 25's intent.)
+--
+-- Now a squad is "empty" only if it was never used: no membership row at all (current or past), no match, no squad or
+-- student weekly score, and not on any season's podium. Such a squad has nothing to lose. A squad with history is left as it is
 -- (the nightly job and the next import refill it, migration 108). tpo_empty_squads() counts the same set, so the
 -- prompt says exactly how many will go. Same names, arguments and grants: the screen does not change.
 -- Rollback: 112-rollback-empty-squads-keep-history.sql (restores migration 25's bodies).
@@ -22,6 +25,7 @@ as $function$
   select not exists (select 1 from public.squad_members m where m.squad_id = _squad_id)
      and not exists (select 1 from public.squad_matches x where x.home_squad = _squad_id or x.away_squad = _squad_id)
      and not exists (select 1 from public.squad_weekly_scores w where w.squad_id = _squad_id)
+     and not exists (select 1 from public.student_weekly_scores sw where sw.squad_id = _squad_id)
      and not exists (select 1 from public.seasons s
                       where _squad_id in (s.champion_squad_id, s.runner_up_squad_id, s.third_squad_id));
 $function$;

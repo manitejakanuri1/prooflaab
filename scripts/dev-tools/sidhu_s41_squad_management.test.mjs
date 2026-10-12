@@ -25,6 +25,7 @@ create table public.squad_matches (id uuid primary key default gen_random_uuid()
   home_squad uuid not null references public.squads(id) on delete cascade,
   away_squad uuid not null references public.squads(id) on delete cascade, home_points int, away_points int);
 create table public.squad_weekly_scores (season_id uuid, squad_id uuid not null references public.squads(id) on delete cascade, week int, points int);
+create table public.student_weekly_scores (student_id uuid, squad_id uuid references public.squads(id) on delete set null, week int, points int);
 alter table public.seasons add column champion_squad_id uuid references public.squads(id) on delete set null,
   add column runner_up_squad_id uuid references public.squads(id) on delete set null,
   add column third_squad_id uuid references public.squads(id) on delete set null;
@@ -87,6 +88,24 @@ test("FIXED (112): a squad a student has ever been in (left since) is kept", { s
   assert.equal((await as(db, ID.TPO_A, "select public.tpo_delete_empty_squads() as n")).rows[0].n, 0);
   assert.equal(await one(db, active(s.id)), 0);
   assert.equal(await one(db, `select count(*)::int from public.squad_members where squad_id = '${s.id}'`), 1, "the membership history is kept");
+});
+
+test("FIXED (112): a squad that only has students' weekly scores (its members since removed) is kept and stays linked", { skip: skip || (!M112 && "migration 112 not written yet") }, async () => {
+  const db = await database();
+  const s = squad(ID.A, ID.SA, "CSE-A", []);
+  await seed(db, s);
+  await db.exec(`insert into public.student_weekly_scores values (null, '${s.id}', 1, 40)`);
+  assert.equal((await as(db, ID.TPO_A, "select public.tpo_delete_empty_squads() as n")).rows[0].n, 0);
+  assert.equal(await one(db, `select squad_id::text from public.student_weekly_scores`), s.id);
+});
+
+test("FIXED (112): a signed-out caller can no longer even run the functions (live grants had PUBLIC and anon)", { skip: skip || (!M112 && "migration 112 not written yet") }, async () => {
+  const db = await database();
+  await db.exec(`grant execute on function public.tpo_delete_empty_squads() to public, anon; grant execute on function public.tpo_empty_squads() to public, anon;`);
+  await db.exec(M112);
+  assert.equal(await one(db, `select has_function_privilege('anon', 'public.tpo_delete_empty_squads()', 'execute')`), false);
+  assert.equal(await one(db, `select has_function_privilege('anon', 'public.tpo_empty_squads()', 'execute')`), false);
+  assert.equal(await one(db, `select has_function_privilege('authenticated', 'public.tpo_delete_empty_squads()', 'execute')`), true);
 });
 
 test("delete empty squads: only the caller's college; students and anonymous callers refused", { skip }, async () => {

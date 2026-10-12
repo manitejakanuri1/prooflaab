@@ -1,0 +1,85 @@
+name: Squad vacancy filling (migrations 108-109) and college UI freeze
+
+# Sidhu S39. Proves, in the cloud:
+#   1. the screens are frozen: nothing under src/ differs from TEJA 7704a98, and the named college controls exist;
+#   2. migration 108 (squads below eleven are filled from the reserve) and 109 (the import Branch list) on PGlite;
+#   3. the same under real concurrency, with several sessions on a real PostgreSQL 16 server;
+#   4. the earlier 105-107 suites still pass on the same schema slice.
+# A skipped test fails this gate.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  squads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # the freeze check compares with 7704a98
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: UI freeze - no screen file changed since TEJA 7704a98
+        run: |
+          git diff --stat 7704a982be87baa926229deb416b6d78e0cf328f -- src index.html public
+          git diff --quiet 7704a982be87baa926229deb416b6d78e0cf328f -- src index.html public \
+            || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
+
+      - name: UI freeze - the college controls by name
+        run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs
+
+      - name: Install PGlite and pg (pinned; not repository dependencies)
+        run: npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/t" @electric-sql/pglite@0.2.17 pg@8.13.1
+
+      - name: Migrations 105-109 on PostgreSQL 16 (PGlite)
+        env:
+          PGLITE_MODULE: file://${{ runner.temp }}/t/node_modules/@electric-sql/pglite/dist/index.js
+        run: |
+          node --test --test-reporter=tap \
+            scripts/dev-tools/sidhu_s39_squads.test.mjs \
+            scripts/dev-tools/s34_migration_105.test.mjs \
+            scripts/dev-tools/sidhu_s34_remove_students.test.mjs \
+            scripts/dev-tools/sidhu_s36_security.test.mjs | tee "$RUNNER_TEMP/pglite.tap"
+          grep -q '^# fail 0$' "$RUNNER_TEMP/pglite.tap"
+          grep -q '^# skipped 0$' "$RUNNER_TEMP/pglite.tap" || { echo "::error::tests were skipped: PGlite did not load"; exit 1; }
+
+      - name: Concurrency on a real PostgreSQL 16 server (several sessions)
+        env:
+          PG_URL: postgres://postgres:postgres@localhost:5432/postgres
+          PG_MODULE: file://${{ runner.temp }}/t/node_modules/pg/lib/index.js
+        run: |
+          node --test --test-reporter=tap scripts/dev-tools/sidhu_s39_squads_concurrency.test.mjs | tee "$RUNNER_TEMP/pg.tap"
+          grep -q '^# fail 0$' "$RUNNER_TEMP/pg.tap"
+          grep -q '^# skipped 0$' "$RUNNER_TEMP/pg.tap" || { echo "::error::concurrency tests were skipped: no server"; exit 1; }
+
+      - name: The migrations apply on the real server as one file each, twice (what gcloud sql import does)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node -e 'import("./scripts/dev-tools/sidhu_s39_squad_fixture.mjs").then(m => process.stdout.write(m.FIXTURE))' > "$RUNNER_TEMP/fixture.sql"
+          psql -h localhost -U postgres -c 'create database s39_files'
+          psql -h localhost -U postgres -d s39_files -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/fixture.sql"
+          for f in migration/108-squad-vacancies-fill-safely.sql migration/109-default-squad-name-themes.sql \
+                   migration/108-squad-vacancies-fill-safely.sql migration/109-default-squad-name-themes.sql \
+                   migration/108-rollback-squad-vacancies-fill-safely.sql migration/108-squad-vacancies-fill-safely.sql; do
+            echo "== $f"; psql -h localhost -U postgres -d s39_files -v ON_ERROR_STOP=1 -q -f "$f"
+          done

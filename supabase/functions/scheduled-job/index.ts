@@ -198,6 +198,10 @@ async function sanityCheck(db: any, job: string, data: any) {
       console.error(`JOB SANITY: daily-lots could not create a Lot for ${failed} student(s). First: ${data?.first_failed_student} - ${String(data?.first_error ?? '').slice(0, 200)}`);
     }
   }
+  // Migration 108: a college whose squads could not be formed was a NOTICE nobody saw, while the job said ok.
+  if (job === 'nightly-squads' && Number(data?.colleges_failed ?? 0) > 0) {
+    console.error(`JOB SANITY: nightly-squads could not form squads for ${data.colleges_failed} college(s). First: ${String(data?.first_error ?? '').slice(0, 200)}`);
+  }
   if (job === 'weekly-seasons') {
     const seasons = Number(data?.seasons_scored ?? 0) + Number(data?.seasons_closed ?? 0) + Number(data?.seasons_advanced ?? 0);
     const { count: active } = await db.from('seasons').select('id', { count: 'exact', head: true }).eq('status', 'active');

@@ -35,6 +35,7 @@
  ],
  "user_callable": [
   "accept_voice_consent()",
+  "account_access_ok()",
   "assign_to_squad(uuid,uuid,date)",
   "can_see_season(uuid)",
   "college_submit_source_content(text,text)",
@@ -113,6 +114,7 @@
  ],
  "admin_only": [
   "admin_bug_finder_runs(integer)",
+  "admin_identity_lifecycle(integer)",
   "admin_bug_finder_steps(uuid)",
   "admin_content_library()",
   "admin_content_page(uuid)",
@@ -291,9 +293,11 @@
  ],
  "d4_class": {
   "accept_voice_consent()": "E USER_SELF_SERVICE",
+  "account_access_ok()": "E USER_SELF_SERVICE",
   "admin_bug_finder_runs(integer)": "D ADMIN_ONLY",
   "admin_bug_finder_steps(uuid)": "D ADMIN_ONLY",
   "admin_content_library()": "D ADMIN_ONLY",
+  "admin_identity_lifecycle(integer)": "D ADMIN_ONLY",
   "admin_content_page(uuid)": "D ADMIN_ONLY",
   "admin_hide_content(uuid,boolean)": "D ADMIN_ONLY",
   "admin_notify_student(uuid,text,text,text,text)": "D ADMIN_ONLY",

@@ -67,6 +67,7 @@ gate "suspended account, old ticket refused" python scripts/dev-tools/staging_su
 gate "evaluator type integrity"           python scripts/dev-tools/staging_evaluator_type_check.py
 gate "database permissions (D1-D4, D2 defaults)" python scripts/dev-tools/staging_rpc_authz_check.py
 gate "database behaviour (D3, D4, cross-tenant)" python scripts/dev-tools/staging_d4_behaviour_check.py
+gate "student removal reads no retired table" python scripts/dev-tools/staging_removal_tables_check.py
 gate "infrastructure matches infra/"      python scripts/infra_snapshot.py --check
 
 echo "== staging scale (screens and nightly jobs on the 15,000-student dataset; launch target is 2,000)"

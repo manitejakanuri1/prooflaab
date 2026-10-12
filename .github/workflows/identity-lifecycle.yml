@@ -1,0 +1,106 @@
+name: Identity sync lifecycle
+
+# Migration 110 + accounts / files changes: Google login <-> app account lifecycle for every role.
+# Proves, in the cloud, with stand-ins only (no Google call, no real account, no deploy):
+#   1. accounts: sync plan for all roles, Google-side outbox, the real request handlers (sync, remove,
+#      delete-account), paging, shared-pool refusal, tenant scoping;
+#   2. files: an old ticket of a cut-off account is refused, fail closed;
+#   3. migration 110 on PostgreSQL 16 (PGlite): grants, every role, recovery, protected accounts, last admin,
+#      outbox backoff, scoping, rollback;
+#   4. the same file applied on a real PostgreSQL 16 server twice, rolled back, applied again (what
+#      gcloud sql import does), plus the repository's migration rules.
+# A skipped test fails this gate.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-lifecycle:
+    name: Identity sync lifecycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Accounts - sync plan, outbox, request handlers, self-delete (no network)
+        run: |
+          pip install --quiet cryptography
+          cd accounts
+          python3 test_sync_plan.py
+          python3 test_lifecycle.py
+          python3 test_server_identity.py
+          python3 test_self_delete.py
+          python3 test_removal_reason.py
+          python3 test_apptoken.py
+
+      - name: Accounts image ships every module it imports
+        run: |
+          for m in $(grep -hoE '^import [a-z_]+' accounts/server.py | awk '{print $2}'); do
+            if [ -f "accounts/$m.py" ]; then
+              grep -q "$m.py" accounts/Dockerfile || { echo "::error::accounts/Dockerfile does not copy $m.py"; exit 1; }
+            fi
+          done
+
+      - name: Files - cut-off accounts refused, fail closed
+        run: PGRST_JWT_SECRET=ci-only-not-a-real-secret deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
+
+      - name: Migration rules (numbering, self-check, mirror copy, rollback)
+        run: python3 scripts/migrations.py check
+
+      - name: Install PGlite and pg (pinned; not repository dependencies)
+        run: npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/t" @electric-sql/pglite@0.2.17 pg@8.13.1
+
+      - name: Migration 110 on PostgreSQL 16 (PGlite)
+        env:
+          PGLITE_MODULE: file://${{ runner.temp }}/t/node_modules/@electric-sql/pglite/dist/index.js
+        run: |
+          node --test --test-reporter=tap scripts/dev-tools/teja_identity_lifecycle_110.test.mjs | tee "$RUNNER_TEMP/pglite.tap"
+          grep -q '^# fail 0$' "$RUNNER_TEMP/pglite.tap"
+          grep -q '^# skipped 0$' "$RUNNER_TEMP/pglite.tap" || { echo "::error::tests were skipped: PGlite did not load"; exit 1; }
+
+      - name: Migration 110 on a real server - apply twice, roll back, apply again (one file each, like gcloud sql import)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node -e '
+            const s = require("fs").readFileSync("scripts/dev-tools/teja_identity_lifecycle_110.test.mjs", "utf8");
+            const a = s.indexOf("const ID = {"), b = s.indexOf("async function database");
+            process.stdout.write(new Function(s.slice(a, b) + "; return FIXTURE;")());
+          ' > "$RUNNER_TEMP/fixture.sql"
+          psql -h localhost -U postgres -c 'create database identity_110'
+          psql -h localhost -U postgres -d identity_110 -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/fixture.sql"
+          for f in migration/73-suspended-accounts-are-refused.sql \
+                   migration/110-identity-lifecycle-all-roles.sql migration/110-identity-lifecycle-all-roles.sql \
+                   migration/110-rollback-identity-lifecycle-all-roles.sql migration/110-identity-lifecycle-all-roles.sql; do
+            echo "== $f"; psql -h localhost -U postgres -d identity_110 -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+          psql -h localhost -U postgres -d identity_110 -v ON_ERROR_STOP=1 -tA -c \
+            "select public.account_is_suspended('00000000-0000-4000-8000-0000000000a9')" | grep -qx t \
+            || { echo "::error::the student suspended before 110 is not held after apply/rollback/apply"; exit 1; }

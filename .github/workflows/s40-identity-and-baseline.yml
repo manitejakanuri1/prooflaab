@@ -28,7 +28,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with: { deno-version: v2.x }
       - name: Account sync fault injection (real handler, fake Google and database)
-        run: cd accounts && python3 test_sync_faults.py && python3 test_sync_plan.py && python3 test_self_delete.py
+        run: cd accounts && python3 test_sync_faults.py && python3 test_sync_unmapped.py && python3 test_sync_plan.py && python3 test_server_identity.py && python3 test_lifecycle.py && python3 test_self_delete.py
       - name: Gateway session vs Google account deleted / disabled (all roles)
         run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/identityFaults.test.ts web-bff/accountRecheck.test.ts
       - name: The live suites' own unit tests

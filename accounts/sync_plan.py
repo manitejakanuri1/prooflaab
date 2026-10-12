@@ -1,20 +1,21 @@
-"""Decides what one account-sync pass may do. Pure: no network, no clock.
+"""Decides what one account-sync pass may do, for EVERY role. Pure: no network, no clock.
 
-History: until 3 Oct 2026 the sync HARD-DELETED every student whose Google
-login was missing from ONE listing, with no ceiling (F6). Now automation never
-deletes anyone. The most it does is SUSPEND (student_profiles.status =
-'suspended': no Lots, no leaderboard, no recruiter search; fully reversible),
-and only when all of these hold:
+History: until 3 Oct 2026 the sync HARD-DELETED every student whose Google login was missing from ONE
+listing, with no ceiling (F6). Since then automation never deletes anyone. Since migration 110 it covers
+student, college_admin, startup, recruiter and admin alike, and the strongest thing it does is CUT ACCESS
+(sessions revoked, every old ticket refused; a student is also suspended) - fully reversible, and only when
+all of these hold:
 
-  1. the listing looks normal - the abnormal-drop guard did not trip;
-  2. the login has been missing in passes at least GRACE seconds apart
-     (two independent listings agree);
-  3. the number due for suspension in this pass is within MAX_SUSPEND.
+  1. the listing is complete and normal - not empty, and the abnormal-drop guard did not trip;
+  2. the login was missing in passes at least GRACE seconds apart (two independent listings agree);
+  3. the number due in this pass is within MAX_SUSPEND;
+  4. an exact lookup of that one login id then says it is gone or disabled (server.py does the lookup;
+     this module only names the candidates in `verify`).
 
-Anything above MAX_SUSPEND suspends nobody and asks for admin review. A login
-that reappears restores the student. Permanent deletion is a separate, manual
-admin action (accounts /remove), never this job. Protected test accounts are
-never touched.
+Anything above MAX_SUSPEND cuts nobody and asks for admin review. The SAME login id reappearing (enabled)
+restores the account; a different id with the same email is a different identity and restores nothing.
+Permanent deletion is a separate, authorised app action, never this job. Protected test accounts and
+accounts whose app deletion is in progress are never touched.
 """
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -23,51 +24,51 @@ from datetime import datetime, timedelta
 @dataclass(frozen=True)
 class Limits:
     grace_seconds: int = 30 * 60
-    # Abnormal upstream drop: more missing than this many OR this share of students
-    # means the listing itself is suspect. Nothing is marked, suspended or restored.
+    # Abnormal upstream drop: more missing than this many OR this share of accounts
+    # means the listing itself is suspect. Nothing is marked, cut or restored.
     abnormal_abs: int = 25
     abnormal_fraction: float = 0.05
-    # Most students one pass may suspend. Above it: no action + admin review.
+    # Most accounts one pass may cut off. Above it: no action + admin review.
     max_suspend: int = 3
 
 
-def plan(students: list[dict], logins: set[str], ledger: list[dict], now: datetime,
-         limits: Limits = Limits(), protected: set[str] = frozenset()) -> dict:
-    """students: [{student_id, provider_uid}] (active or suspended-by-sync);
-    ledger: [{student_id, first_missing_at, suspended_at}].
+def plan(accounts: list[dict], logins: dict[str, bool], now: datetime, limits: Limits = Limits()) -> dict:
+    """accounts: rows of identity_sync_accounts() - {user_id, role, provider_uid, protected, ledger_status,
+    first_missing_at, in_app_deletion}. logins: {provider_uid: disabled} for the WHOLE scoped listing.
 
-    Returns {abort, review, missing, mark, clear, suspend, restore}.
+    Returns {abort, review, missing, mark, verify, recover}; mark/verify/recover hold the account rows.
     """
-    pool = [s for s in students if s["student_id"] not in protected]
-    gone = [s for s in pool if s["provider_uid"] not in logins]
-    gone_ids = {s["student_id"] for s in gone}
-    known = {r["student_id"]: r for r in ledger}
-    result = {"abort": None, "review": None, "missing": sorted(gone_ids), "mark": [], "clear": [],
-              "suspend": [], "restore": []}
+    # S40: an account with no Google mapping carries its own app id as login id (identity_sync_accounts). If Google
+    # does not list that id, nothing proves it ever was a login: a seeded or synthetic record (15,004 on staging), or
+    # an older login already deleted, which cannot sign in anyway. Such an account is never marked or cut, and does
+    # not count towards the abnormal-drop guard; it is only reported. Listed (enabled or disabled), it is a login.
+    unmapped_absent = [a for a in accounts if str(a["provider_uid"]) == str(a["user_id"]) and a["provider_uid"] not in logins]
+    skip = {a["user_id"] for a in unmapped_absent}
+    pool = [a for a in accounts if not a.get("protected") and not a.get("in_app_deletion") and a["user_id"] not in skip]
+    gone = [a for a in pool if logins.get(a["provider_uid"], True)]       # absent, or present but disabled
+    result = {"abort": None, "review": None, "missing": sorted(a["user_id"] for a in gone),
+              "mark": [], "verify": [], "recover": [], "unmapped_absent": len(unmapped_absent)}
 
     if not logins:
         result["abort"] = "the login listing is empty"
         return result
     threshold = max(limits.abnormal_abs, int(len(pool) * limits.abnormal_fraction))
     if len(gone) > threshold:
-        result["abort"] = (f"{len(gone)} of {len(pool)} students have no login in this listing "
-                           f"(abnormal-drop guard {threshold}); nothing marked, suspended or restored")
+        result["abort"] = (f"{len(gone)} of {len(pool)} accounts have no usable login in this listing "
+                           f"(abnormal-drop guard {threshold}); nothing marked, cut or restored")
         return result
 
-    result["mark"] = [s for s in gone if s["student_id"] not in known]
-    came_back = sorted(set(known) - gone_ids)
-    result["clear"] = came_back
-    result["restore"] = [i for i in came_back if known[i].get("suspended_at")]
+    gone_ids = {a["user_id"] for a in gone}
+    result["mark"] = [a for a in gone if not a.get("ledger_status")]
+    result["recover"] = [a for a in pool if a.get("ledger_status") and a["user_id"] not in gone_ids]
 
     cutoff = now - timedelta(seconds=limits.grace_seconds)
-    due = [s["student_id"] for s in gone
-           if s["student_id"] in known and not known[s["student_id"]].get("suspended_at")
-           and _ts(known[s["student_id"]]["first_missing_at"]) <= cutoff]
+    due = [a for a in gone if a.get("ledger_status") == "observed_missing" and _ts(a["first_missing_at"]) <= cutoff]
     if len(due) > limits.max_suspend:
-        result["review"] = (f"{len(due)} students are due for suspension, above the ceiling of "
-                            f"{limits.max_suspend}; none suspended - an admin must review")
+        result["review"] = (f"{len(due)} accounts are due to be cut off, above the ceiling of "
+                            f"{limits.max_suspend}; none cut - an admin must review")
     else:
-        result["suspend"] = due
+        result["verify"] = due
     return result
 
 

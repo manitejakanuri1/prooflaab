@@ -5,6 +5,7 @@
 //   node scripts/dev-tools/sidhu_s32_live_e2e.mjs --anon --confirm-staging     live, signed out (route + API denial)
 //   node scripts/dev-tools/sidhu_s32_live_e2e.mjs --confirm-staging \
 //        --expect-entry index-XXXX.js [--roles admin,tpo,company,student,established] [--allow-writes] [--db-verify]
+//        [--resume <out>/matrix.partial.json] [--step-seconds 120] [--stall-minutes 6]   (S42: progress, deadlines, watchdog)
 //
 // Every row of the matrix is: Role | Page | Control | Expected route | API | DB effect | Live result | Status.
 // Status is PASS only when the control was really exercised on the live site and every check held.
@@ -33,6 +34,7 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildInventory } from "./sidhu_s32_inventory.mjs";
+import { createRunControl, ordered, resumeFrom, writeAtomic, FINAL } from "./sidhu_s42_run_control.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 export const EXIT = { OK: 0, FAIL: 1, INCOMPLETE: 2, REFUSED: 3, WRONG_BUILD: 4 };
@@ -341,21 +343,43 @@ const combine = (front, back) => ({
   detail: `frontend: ${front.detail} | backend: ${back.detail}`, live: front.live,
 });
 
-export async function runLive({ base, roles, env, chromium, out, allowWrites, allowDestructive = false, dbVerify, anon, expectEntry, expectRevisions, inv, log = console.log }) {
-  const rows = planMatrix(inv).filter((r) => anon || roles.includes(r.role));
+export async function runLive({ base, roles, env, chromium, out, allowWrites, allowDestructive = false, dbVerify, anon, expectEntry, expectRevisions, inv, log = console.log, resume, stepMs = 120_000, stallMs = 6 * 60_000 }) {
+  // S42: fixed order, resumable, observable (sidhu_s42_run_control.mjs).
+  const rows = ordered(planMatrix(inv).filter((r) => anon || roles.includes(r.role)));
   const prov = combine(await provenance(base, expectEntry), revisionProvenance(expectRevisions));
   log(`provenance: ${prov.status} (${prov.detail})`);
+  const rc = createRunControl({ log, stallMs });
+  const { resumed, recipes: doneRecipes } = resumeFrom(resume, rows, { entry: expectEntry });
+  if (resume) log(`resume: ${resumed} rows already final, ${doneRecipes.length} recipe(s) already done (not repeated)`);
   const runId = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
   const browser = await chromium.launch();
-  const extra = [];
+  const extra = [...doneRecipes];
+  let lastCheckpoint = 0;
+  const checkpoint = (force = false) => {
+    if (!force && Date.now() - lastCheckpoint < 5000) return;
+    lastCheckpoint = Date.now();
+    try { writeAtomic(join(out, "matrix.partial.json"), { entry: expectEntry ?? null, base, at: new Date().toISOString(), provenance: prov, rows, extra }); }
+    catch (e) { log(`checkpoint failed: ${e.message}`); }
+  };
+  let onStall = () => {};
+  const stopWatchdog = rc.watchdog((where, n) => { checkpoint(true); onStall(where, n); });
   try {
     for (const role of anon ? ["anonymous"] : roles) {
       const R = ROLES[role];
       const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
-      const page = await ctx.newPage();
       const net = []; const errors = [];
-      page.on("response", (r) => { const u = new URL(r.url()); if (u.pathname.startsWith("/api/")) net.push({ m: r.request().method(), p: u.pathname, s: r.status(), t: r.headers()["content-type"] ?? "" }); });
-      page.on("pageerror", (e) => errors.push(String(e.message).slice(0, 160)));
+      let page;
+      const attach = async () => {
+        page = await ctx.newPage();
+        page.setDefaultTimeout(30_000); page.setDefaultNavigationTimeout(60_000);
+        page.on("response", (r) => { const u = new URL(r.url()); if (u.pathname.startsWith("/api/")) net.push({ m: r.request().method(), p: u.pathname, s: r.status(), t: r.headers()["content-type"] ?? "" }); });
+        page.on("pageerror", (e) => errors.push(String(e.message).slice(0, 160)));
+      };
+      await attach();
+      // A step that timed out may have left the page stuck (a dialog, a download, a hung navigation): replace it.
+      const resetPage = async () => { await page.close({ runBeforeUnload: false }).catch(() => {}); await attach(); };
+      onStall = (where, n) => { if (n >= 3) { log(`WATCHDOG: giving up after ${n} stalls at "${where}"; partial matrix kept`); process.exit(EXIT.INCOMPLETE); } void resetPage(); };
+      const step = (what, fn) => rc.bounded(stepMs, what, fn).catch(async (e) => { if (e?.name === "TimeoutError") await resetPage(); throw e; });
       const shot = (n) => page.screenshot({ path: join(out, `${role}-${n.replace(/[^a-z0-9]+/gi, "-").slice(0, 60)}.png`), mask: [page.locator("input, textarea")] }).catch(() => null);
       const go = async (path) => { await page.goto(`${base}${path}`, { waitUntil: "domcontentloaded", timeout: 60000 }); await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {}); };
       const bad = (from) => net.slice(from).filter((n) => n.s >= 500 || /text\/html/.test(n.t) || (!anon && (n.s === 401 || n.s === 403)));
@@ -404,9 +428,13 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, al
       };
       const x = { go, expectCall, env, runId, userId, page, base, signInFresh, secrets };
       // Screens: open, unauthorized/5xx/HTML, refresh persistence, offline + retry.
-      for (const row of rows.filter((r) => r.role === role && r.class === "SCREEN")) {
+      const screens = rows.filter((r) => r.role === role && r.class === "SCREEN");
+      for (const [i, row] of screens.entries()) {
+        if (FINAL(row.status)) continue;   // resumed
+        rc.progress(`${role} SCREEN ${i + 1}/${screens.length} ${row.url}`);
         const from = net.length; errors.length = 0;
         try {
+          await step(`${role} screen ${row.url}`, async () => {
           await go(row.url); const at = new URL(page.url()); const path0 = at.pathname + at.search;
           if (!at.pathname.startsWith(R.home.split("/").slice(0, 2).join("/"))) throw new Error(`redirected to ${at.pathname}`);
           await page.reload({ waitUntil: "domcontentloaded" }); await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
@@ -417,40 +445,71 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, al
           const b = bad(from);
           if (errors.length || txt.length < 30 || b.length) throw new Error(errors[0] ?? (b.length ? b.map((n) => `${n.s} ${n.m} ${n.p}`).join(", ") : "blank after retry"));
           row.liveResult = `opened; refresh kept ${path0}; recovered after offline; ${net.slice(from).length} API calls, none failing`; row.status = "PASS";
-        } catch (e) { row.liveResult = redact(e.message, secrets).slice(0, 240); row.status = "FAIL"; }
-        row.evidence = (await shot(row.url)) ?? "";
+          });
+        } catch (e) { row.liveResult = redact(e.message, secrets).slice(0, 240); row.status = "FAIL"; await ctx.setOffline(false).catch(() => {}); }
+        row.evidence = (await rc.bounded(20_000, "screenshot", () => shot(row.url)).catch(() => null)) ?? "";
+        checkpoint();
       }
       // SAFE controls: really clicked on the live page.
-      for (const row of rows.filter((r) => r.role === role && r.class === "SAFE")) {
+      const safe = rows.filter((r) => r.role === role && r.class === "SAFE");
+      let onUrl = null;   // S42: the same screen is not reloaded for every control on it (most of the old silent time)
+      for (const [i, row] of safe.entries()) {
+        if (FINAL(row.status)) continue;
         const label = (row.label ?? "").trim();
+        rc.progress(`${role} SAFE ${i + 1}/${safe.length} ${row.url} '${label.slice(0, 40)}'`);
         if (!label || /^\(icon/.test(label) || label.length > 50) { row.status = "BLOCKED"; row.liveResult = "no stable accessible name to click"; continue; }
-        try {
-          await go(row.url); const from = net.length;
+        const attempt = (fresh) => step(`${role} click '${label}' on ${row.url}${fresh ? " (fresh page)" : ""}`, async () => {
+          errors.length = 0;
+          let loaded = false;
+          if (fresh || onUrl !== row.url || new URL(page.url()).pathname !== row.url.split("?")[0]) { await go(row.url); onUrl = row.url; loaded = true; }
+          const from = net.length;
           const el = page.getByRole("tab", { name: label, exact: true }).or(page.getByRole("button", { name: label, exact: true })).first();
-          if (!(await el.count())) { row.status = "BLOCKED"; row.liveResult = "not rendered for this account's data"; continue; }
+          if (!(await el.count())) {
+            if (!loaded) throw new Error("not found on the reused page");   // a previous click may have hidden it: retry fresh
+            row.status = "BLOCKED"; row.liveResult = "not rendered for this account's data"; return;
+          }
           await el.click({ timeout: 10000 }); await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
           await page.keyboard.press("Escape").catch(() => {});
+          if (new URL(page.url()).pathname !== row.url.split("?")[0]) onUrl = null;   // navigated away: reload next time
           const b = bad(from); if (b.length || errors.length) throw new Error(errors[0] ?? b.map((n) => `${n.s} ${n.p}`).join(", "));
           row.liveResult = `clicked; now ${new URL(page.url()).pathname}${new URL(page.url()).search}; ${net.slice(from).length} API calls ok`; row.status = "PASS";
-        } catch (e) { row.liveResult = redact(e.message, secrets).slice(0, 240); row.status = "FAIL"; }
+        });
+        const reused = onUrl === row.url;
+        try {
+          // A failure on a reused page may be left over from the previous click: only a fresh page decides FAIL.
+          try { await attempt(false); } catch (first) { if (!reused) throw first; onUrl = null; await attempt(true); }
+        } catch (e) {
+          row.liveResult = redact(e.message, secrets).slice(0, 240); row.status = "FAIL"; onUrl = null;
+          row.evidence = (await rc.bounded(20_000, "screenshot", () => shot(`fail-safe-${label}`)).catch(() => null)) ?? "";
+        }
+        checkpoint();
       }
       // DEAD controls (no handler in source): safe to click; a click that changes nothing is a broken interaction.
-      for (const row of rows.filter((r) => r.role === role && r.class === "DEAD")) {
+      const dead = rows.filter((r) => r.role === role && r.class === "DEAD");
+      for (const [i, row] of dead.entries()) {
+        if (FINAL(row.status)) continue;
         const label = (row.label ?? "").trim();
+        rc.progress(`${role} DEAD ${i + 1}/${dead.length} ${row.url} '${label.slice(0, 40)}'`);
         if (!label || /^\(icon/.test(label)) { row.status = "BLOCKED"; row.liveResult = "no stable accessible name to click"; continue; }
         try {
-          await go(row.url); const from = net.length; const before = page.url();
+          await step(`${role} dead control '${label}' on ${row.url}`, async () => {
+          await go(row.url); onUrl = null; const from = net.length; const before = page.url();
           const el = page.getByRole("button", { name: label, exact: true }).first();
-          if (!(await el.count())) { row.status = "BLOCKED"; row.liveResult = "not rendered for this account's data"; continue; }
-          if (await el.isDisabled()) { row.status = "PASS"; row.liveResult = "rendered disabled (not a dead interaction)"; continue; }
+          if (!(await el.count())) { row.status = "BLOCKED"; row.liveResult = "not rendered for this account's data"; return; }
+          if (await el.isDisabled()) { row.status = "PASS"; row.liveResult = "rendered disabled (not a dead interaction)"; return; }
           await el.click({ timeout: 10000 }); await page.waitForTimeout(1500);
           const changed = page.url() !== before || net.length > from || (await page.getByRole("dialog").count()) > 0;
           row.status = changed ? "PASS" : "FAIL"; row.liveResult = changed ? "click did something" : "control does nothing (no request, navigation or dialog)";
+          });
         } catch (e) { row.liveResult = redact(e.message, secrets).slice(0, 240); row.status = "FAIL"; }
-        row.evidence = (await shot(`dead-${label}`)) ?? "";
+        row.evidence = (await rc.bounded(20_000, "screenshot", () => shot(`dead-${label}`)).catch(() => null)) ?? "";
+        checkpoint();
       }
       // WRITE / READ / UNSURE controls: recipes only.
       for (const rec of RECIPES.filter((r) => r.role.includes(role))) {
+        // S42: a recipe finished in an interrupted earlier run is never performed again (no repeated writes).
+        if (doneRecipes.some((d) => d.role === role && d.control === rec.id)) { rc.progress(`${role} RECIPE ${rec.id}: done in the earlier run, not repeated`); continue; }
+        rc.progress(`${role} RECIPE ${rec.id}`);
         const covered = rows.filter((r) => r.role === role && r.class !== "SCREEN" && r.class !== "SAFE" && rec.matches.test(r.control));
         const missing = rec.fixtures.filter((f) => !env[f]);
         const result = { role, page: "(recipe)", url: "", control: rec.id, class: "RECIPE", expectedRoute: "", api: "", dbEffect: rec.db({ ...x, env }).replace(/\s+/g, " ").slice(0, 160), liveResult: "", status: "BLOCKED", evidence: "" };
@@ -475,20 +534,38 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, al
       }
       // Role isolation: other dashboards and other roles' RPCs.
       for (const path of R.foreign) {
-        await go(path); const stayed = new URL(page.url()).pathname.startsWith(path);
-        extra.push({ role, page: "(isolation)", url: path, control: `open ${path}`, class: "ISOLATION", expectedRoute: "redirect away", api: "", dbEffect: "none", liveResult: stayed ? "stayed" : `sent to ${new URL(page.url()).pathname}`, status: stayed ? "FAIL" : "PASS", evidence: "" });
+        rc.progress(`${role} ISOLATION open ${path}`);
+        const row = { role, page: "(isolation)", url: path, control: `open ${path}`, class: "ISOLATION", expectedRoute: "redirect away", api: "", dbEffect: "none", liveResult: "", status: "FAIL", evidence: "" };
+        try {
+          await step(`${role} isolation ${path}`, async () => {
+            await go(path); const stayed = new URL(page.url()).pathname.startsWith(path);
+            row.liveResult = stayed ? "stayed" : `sent to ${new URL(page.url()).pathname}`; row.status = stayed ? "FAIL" : "PASS";
+          });
+        } catch (e) { row.liveResult = redact(e.message, secrets).slice(0, 240); }
+        extra.push(row); checkpoint();
       }
       for (const fn of FOREIGN_RPC[role] ?? []) {
-        const r = await ctx.request.post(`${base}/api/db/rpc/${fn}`, { data: {}, headers: { "content-type": "application/json", origin: base }, failOnStatusCode: false });
-        const t = await r.text(); let rowsBack = 0; try { const j = JSON.parse(t); rowsBack = Array.isArray(j) ? j.length : 0; } catch { /* error body */ }
-        const ok = r.status() >= 400 || rowsBack === 0;
-        extra.push({ role, page: "(isolation)", url: `/api/db/rpc/${fn}`, control: `call ${fn}`, class: "ISOLATION", expectedRoute: "", api: `POST /api/db/rpc/${fn}`, dbEffect: "none", liveResult: `HTTP ${r.status()}, ${rowsBack} rows`, status: ok ? "PASS" : "FAIL", evidence: "" });
+        rc.progress(`${role} ISOLATION call ${fn}`);
+        const row = { role, page: "(isolation)", url: `/api/db/rpc/${fn}`, control: `call ${fn}`, class: "ISOLATION", expectedRoute: "", api: `POST /api/db/rpc/${fn}`, dbEffect: "none", liveResult: "", status: "FAIL", evidence: "" };
+        try {
+          await step(`${role} isolation rpc ${fn}`, async () => {
+            const r = await ctx.request.post(`${base}/api/db/rpc/${fn}`, { data: {}, headers: { "content-type": "application/json", origin: base }, failOnStatusCode: false, timeout: 30_000 });
+            const t = await r.text(); let rowsBack = 0; try { const j = JSON.parse(t); rowsBack = Array.isArray(j) ? j.length : 0; } catch { /* error body */ }
+            row.liveResult = `HTTP ${r.status()}, ${rowsBack} rows`; row.status = r.status() >= 400 || rowsBack === 0 ? "PASS" : "FAIL";
+          });
+        } catch (e) { row.liveResult = redact(e.message, secrets).slice(0, 240); }
+        extra.push(row); checkpoint();
       }
-      const bundle = failureBundle({ role, rows: [...rows, ...extra], url: page.url(), net, errors, html: await page.content().catch(() => ""), secrets });
-      if (bundle) { writeFileSync(join(out, `${role}-failure.json`), JSON.stringify(bundle, null, 1)); await shot("failure-final"); }
-      await ctx.close();
+      const bundle = failureBundle({ role, rows: [...rows, ...extra], url: page.url(), net, errors, html: await rc.bounded(20_000, "page html", () => page.content()).catch(() => ""), secrets });
+      if (bundle) { writeFileSync(join(out, `${role}-failure.json`), JSON.stringify(bundle, null, 1)); await rc.bounded(20_000, "screenshot", () => shot("failure-final")).catch(() => null); }
+      await ctx.close().catch(() => {});
+      rc.progress(`${role} done: ${rows.filter((r) => r.role === role && FINAL(r.status)).length}/${rows.filter((r) => r.role === role).length} rows final`);
+      checkpoint(true);
     }
-  } finally { await browser.close().catch(() => {}); }
+  } finally {
+    stopWatchdog(); checkpoint(true);
+    await rc.bounded(30_000, "close browser", () => browser.close()).catch(() => {});
+  }
   return { rows: [...rows, ...extra], provenance: prov };
 }
 
@@ -533,9 +610,10 @@ if (isMain) {
   }
   let base; try { base = assertStaging(process.env.E2E_BASE ?? "https://prooflab-staging.web.app"); if (!has("--confirm-staging")) throw new Error("add --confirm-staging"); }
   catch (e) { console.log(`REFUSED: ${e.message}`); process.exit(EXIT.REFUSED); }
-  const { chromium } = await import("playwright");
+  const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");   // S42: a path, like PGLITE_MODULE
   const roles = (val("--roles") ?? Object.keys(ROLES).join(",")).split(",").filter((r) => ROLES[r]);
-  const { rows, provenance: prov } = await runLive({ base, roles, env: process.env, chromium, out, allowWrites: has("--allow-writes"), allowDestructive: has("--allow-destructive"), dbVerify: has("--db-verify"), anon: has("--anon"), expectEntry: val("--expect-entry"), expectRevisions: val("--expect-revisions"), inv });
+  const { rows, provenance: prov } = await runLive({ base, roles, env: process.env, chromium, out, allowWrites: has("--allow-writes"), allowDestructive: has("--allow-destructive"), dbVerify: has("--db-verify"), anon: has("--anon"), expectEntry: val("--expect-entry"), expectRevisions: val("--expect-revisions"), inv,
+    resume: val("--resume"), stepMs: Number(val("--step-seconds") ?? 120) * 1000, stallMs: Number(val("--stall-minutes") ?? 6) * 60_000 });
   const s = summarize(rows, prov);
   writeFileSync(join(out, "matrix.json"), JSON.stringify({ base, provenance: prov, counts: s.counts, rows }, null, 1)); writeFileSync(join(out, "matrix.csv"), csv(rows));
   console.log(`provenance ${prov.status}; ${JSON.stringify(s.counts)}; exit ${s.exit}; ${out}/matrix.csv`);

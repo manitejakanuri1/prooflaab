@@ -45,7 +45,7 @@ jobs:
               scripts/dev-tools/sidhu_s41_review_queue.test.mjs | tee "$RUNNER_TEMP/s41.tap"
           grep -q '^# fail 0$' "$RUNNER_TEMP/s41.tap" && grep -q '^# skipped 0$' "$RUNNER_TEMP/s41.tap"
       - name: The live suites' own unit tests
-        run: node --test scripts/dev-tools/sidhu_s40_anon_api.test.mjs scripts/dev-tools/sidhu_s32_live_e2e.test.mjs scripts/dev-tools/sidhu_s40_e2e_infra.test.mjs
+        run: node --test scripts/dev-tools/sidhu_s40_anon_api.test.mjs scripts/dev-tools/sidhu_s32_live_e2e.test.mjs scripts/dev-tools/sidhu_s40_e2e_infra.test.mjs scripts/dev-tools/sidhu_s42_run_control.test.mjs
 
   provenance:
     # Is staging really serving TEJA's release candidate? Build that exact commit the way staging is built and compare

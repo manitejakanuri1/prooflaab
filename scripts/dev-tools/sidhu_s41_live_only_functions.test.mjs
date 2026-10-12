@@ -28,6 +28,8 @@ create table public.user_roles (user_id uuid primary key, role text, has_complet
 create table public.student_profiles (id uuid primary key, college_id uuid, onboarding_status text, last_active timestamptz);
 create table public.student_activity_events (id bigint generated always as identity primary key, student_id uuid not null references public.student_profiles(id),
   college_id uuid, event_type text not null, source_type text, source_id uuid, occurred_at timestamptz not null default now(), metadata jsonb);
+create table public.task_assignments (id uuid primary key default gen_random_uuid(), student_id uuid references public.student_profiles(id), status text);
+create table public.voice_explanations (id uuid primary key default gen_random_uuid(), student_id uuid references public.student_profiles(id));
 ${LOG_ACTIVITY}
 insert into public.user_roles values ('${ME}', 'student', false), ('${OTHER}', 'student', false);
 insert into public.student_profiles values ('${ME}', null, 'invited', null), ('${OTHER}', null, 'invited', null);`;
@@ -54,6 +56,23 @@ test("complete_own_wizard: finishes only the caller's own onboarding; refuses a 
   assert.equal(await one(d, `select onboarding_status from public.student_profiles where id = '${ME}'`), "in_progress");
   assert.equal(await one(d, `select onboarding_status from public.student_profiles where id = '${OTHER}'`), "invited");
   await assert.rejects(as(d, "authenticated", null, "select public.complete_own_wizard()"), /not signed in/);
+});
+
+test("activity triggers: a Lot completed once is logged once; other updates are not; each recording is logged", { skip }, async () => {
+  const d = await db();
+  const events = (type) => one(d, `select count(*)::int from public.student_activity_events where student_id = '${ME}' and event_type = '${type}'`);
+  await d.exec(`insert into public.task_assignments (id, student_id, status) values ('00000000-0000-4000-8000-0000000000c1', '${ME}', 'assigned')`);
+  assert.equal(await events("lot_submitted"), 0, "assigning is not submitting");
+  await d.exec(`update public.task_assignments set status = 'completed' where id = '00000000-0000-4000-8000-0000000000c1'`);
+  await d.exec(`update public.task_assignments set status = 'completed' where id = '00000000-0000-4000-8000-0000000000c1'`);
+  assert.equal(await events("lot_submitted"), 1, "completed once, logged once");
+  await d.exec(`insert into public.task_assignments (student_id, status) values ('${ME}', 'completed')`);
+  assert.equal(await events("lot_submitted"), 2, "inserted already completed: logged");
+  await d.exec(`insert into public.voice_explanations (student_id) values ('${ME}'), ('${ME}')`);
+  assert.equal(await events("voice_recorded"), 2);
+  await d.exec(M111);
+  await d.exec(`insert into public.voice_explanations (student_id) values ('${ME}')`);
+  assert.equal(await events("voice_recorded"), 3, "applying 111 again does not double the trigger");
 });
 
 test("touch_my_activity: one login event a day for the caller, last_active set; nothing for a signed-out caller", { skip }, async () => {

@@ -62,9 +62,9 @@ export function sqlState(files = migrationFiles(), read = (f) => readFileSync(f,
       if (m[1].toLowerCase() === "grant" && /\bauthenticated\b|\bpublic\b/.test(who)) e.browser = true;
       if (m[1].toLowerCase() === "revoke" && browserRole) e.browser = false;
     });
-    at(/\bcreate\s+(?:unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
-    at(/\bcreate\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
-    at(/\bdrop\s+(?:table|view|materialized\s+view)\s+(?:if\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: false, dropped: true, where: rel(f) }));
+    at(/\bcreate\s+(?:unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
+    at(/\bcreate\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: true, where: rel(f) }));
+    at(/\bdrop\s+(?:table|view|materialized\s+view)\s+(?:if\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)(?!"?\s*\.)"?/gi, (m) => table.set(m[1].toLowerCase(), { exists: false, dropped: true, where: rel(f) }));
     at(/\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s+rename\s+to\s+"?([a-z_][a-z0-9_]*)/gi, (m) => {
       table.set(m[1].toLowerCase(), { exists: false, dropped: true, where: rel(f) }); table.set(m[2].toLowerCase(), { exists: true, where: rel(f) });
     });

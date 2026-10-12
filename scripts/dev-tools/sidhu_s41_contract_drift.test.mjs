@@ -40,6 +40,13 @@ test("missing, dropped and renamed objects; server callers need existence only",
   assert.equal(judge({ kind: "server-rpc", name: "gone" }, s), "ENDPOINT_DROPPED");
 });
 
+test("a table in another schema (auth.users) is not read as a public table called auth", () => {
+  const s = env(["create table auth.users (id uuid); create table public.real_one (id int); create table plain (id int);"]);
+  assert.equal(s.table.has("auth"), false);
+  assert.equal(judge({ kind: "table", name: "real_one" }, s), "OK");
+  assert.equal(judge({ kind: "table", name: "plain" }, s), "OK");
+});
+
 test("functions, buckets and gateway routes", () => {
   const s = env([""]);
   assert.equal(judge({ kind: "function", name: "level-open" }, s), "OK");

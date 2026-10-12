@@ -8,7 +8,7 @@ ROLES = ["student", "college_admin", "startup", "recruiter", "admin"]
 
 
 def roster(n, roles=ROLES):
-    accounts = [{"user_id": f"u{i}", "role": roles[i % len(roles)], "provider_uid": f"p{i}", "protected": False,
+    accounts = [{"user_id": f"u{i}", "role": roles[i % len(roles)], "provider_uid": f"p{i}", "linked": True, "protected": False,
                  "ledger_status": None, "first_missing_at": None, "in_app_deletion": False} for i in range(n)]
     return accounts, {f"p{i}": False for i in range(n)}
 
@@ -116,5 +116,22 @@ assert uids(r["verify"]) == ["u4"], r
 # Thresholds are configuration.
 r = plan(seen_missing(A, five), without(L, *[f"p{i}" for i in range(5)]), NOW, Limits(max_suspend=5))
 assert len(r["verify"]) == 5, r
+
+# The staging shape: 15,000 synthetic students that never had a Google login (no link; their id falls back to the
+# app id) next to a few real, linked logins. They are not "deleted logins": not counted, not marked, no abort.
+synthetic = [{"user_id": f"x{i}", "role": "student", "provider_uid": f"x{i}", "linked": False, "protected": False,
+              "ledger_status": None, "first_missing_at": None, "in_app_deletion": False} for i in range(15000)]
+real, RL = roster(7)
+r = plan(real + synthetic, RL, NOW)
+assert not r["abort"] and r["mark"] == [] and r["missing"] == [] and r["link"] == [], r
+# ... and a real Console delete among them is still found.
+r = plan(real + synthetic, without(RL, "p2"), NOW)
+assert not r["abort"] and uids(r["mark"]) == ["u2"], r
+# An unlinked account whose own id IS a login in the listing (uuid-named August account) is linked, nothing else.
+r = plan(real + synthetic[:3], dict(RL, x1=False), NOW)
+assert uids(r["link"]) == ["x1"] and r["mark"] == [], r
+# Nothing is linked from an aborted pass.
+r = plan(real + [dict(s, linked=True) for s in synthetic[:100]], dict(RL, x1=False), NOW)
+assert r["abort"] and r["link"] == [], r
 
 print("sync_plan: all checks passed")

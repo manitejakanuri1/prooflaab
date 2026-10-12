@@ -41,6 +41,8 @@ class Fake:
             return 200, self.accounts
         if path == "rpc/identity_sync_apply":
             return 200, self.apply_answer
+        if path == "rpc/identity_link_present":
+            return 200, len(body["_rows"])
         if path == "rpc/identity_lifecycle_health":
             return 200, {"pending_over_1h": 0, "failed": 0}
         raise AssertionError(path)
@@ -48,9 +50,14 @@ class Fake:
     def sent(self, path):
         return [b for p, b in self.calls if p == path]
 
+    def verified(self):
+        """What this pass asked the database to cut ([] when it wrote nothing at all)."""
+        applied = self.sent("rpc/identity_sync_apply")
+        return applied[0]["_verified"] if applied else []
+
 
 def acct(i, role, status=None, minutes=40):
-    return {"user_id": f"u{i}", "role": role, "provider_uid": f"p{i}", "protected": False,
+    return {"user_id": f"u{i}", "role": role, "provider_uid": f"p{i}", "linked": True, "protected": False,
             "ledger_status": status, "in_app_deletion": False,
             "first_missing_at": (NOW - timedelta(minutes=minutes)).isoformat() if status else None}
 
@@ -104,12 +111,12 @@ assert all(v["reason"] == "login deleted" for v in apply["_verified"])
 for bad in [(403, {}), (429, {}), (500, {})]:
     out, db = run_sync(due, {k: v for k, v in logins.items() if k not in {"p0", "p1", "p2"}},
                        lambda p, b, bad=bad: bad)
-    assert db.sent("rpc/identity_sync_apply")[0]["_verified"] == [], bad
+    assert db.verified() == [], bad
 
 # 6. Lookup finds the login after all (listing glitch) -> NOT cut.
 out, db = run_sync(due, {k: v for k, v in logins.items() if k not in {"p0", "p1", "p2"}},
                    lambda p, b: (200, {"users": [{"localId": b["localId"][0]}]}))
-assert db.sent("rpc/identity_sync_apply")[0]["_verified"] == []
+assert db.verified() == []
 
 # 7. Disabled in the Console -> cut with reason "login disabled".
 out, db = run_sync([acct(0, "admin", "observed_missing")], {"p0": True, **{f"x{i}": False for i in range(30)}},

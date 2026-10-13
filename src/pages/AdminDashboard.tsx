@@ -62,8 +62,10 @@ const AdminDashboard = () => {
       case "students":
       case "student-oversight":
         return <StudentOversight />;
+      // One Colleges page (13 Oct): the old Colleges list and College users showed the same colleges.
       case "colleges":
-        return <EnhancedUserManagement initialTab={activeTab} hideTabList />;
+      case "college-oversight":
+        return <CollegeOversight />;
       // Companies = the old Startups list plus the old Recruiters screen: one
       // company now carries both, and approving it approves both halves.
       case "startups":
@@ -100,8 +102,6 @@ const AdminDashboard = () => {
         return <DailyLots />;
       case "ops-jobs":
         return <AdminOpsHealth />;
-      case "college-oversight":
-        return <CollegeOversight />;
       case "settings":
         return <SystemSettings />;
       default:

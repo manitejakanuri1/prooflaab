@@ -278,6 +278,21 @@ const CollegeOversight = () => {
     }
   });
 
+  // Reject (kept from the old Colleges list): the college is turned down; its admin cannot sign in.
+  const rejectMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('colleges').update({ verification_status: 'rejected' }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
+      toast({ title: "College rejected" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Failed to reject college: ${error.message}`, variant: "destructive" });
+    }
+  });
+
   const openModal = (mode: 'view' | 'edit' | 'add', college?: any) => {
     setViewMode(mode);
     setSelectedCollege(college);
@@ -315,6 +330,12 @@ const CollegeOversight = () => {
   const handleApprove = (college: any) => {
     if (confirm(`Approve ${college.name}? This will activate their account.`)) {
       approveMutation.mutate(college.id);
+    }
+  };
+
+  const handleReject = (college: any) => {
+    if (confirm(`Reject ${college.name}? Its admin will not be able to sign in.`)) {
+      rejectMutation.mutate(college.id);
     }
   };
 
@@ -373,7 +394,7 @@ const CollegeOversight = () => {
             <School className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">College Oversight</h1>
+            <h1 className="text-3xl font-bold">Colleges</h1>
             <p className="text-muted-foreground">Manage college accounts and activities</p>
           </div>
         </div>
@@ -465,7 +486,12 @@ const CollegeOversight = () => {
                   <TableRow key={college.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">{college.name}</TableCell>
                     <TableCell className="text-muted-foreground hidden sm:table-cell">{college.email}</TableCell>
-                    <TableCell>{getStatusBadge(college.status)}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(college.status)}
+                      {college.verification_status === 'rejected' && (
+                        <Badge variant="destructive" className="ml-1">rejected</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground hidden lg:table-cell">
                       {college.last_active 
                         ? new Date(college.last_active).toLocaleDateString('en-GB')
@@ -497,10 +523,16 @@ const CollegeOversight = () => {
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          {college.status === 'pending' && (
+                          {(college.status !== 'active' || college.verification_status !== 'approved') && (
                             <DropdownMenuItem onClick={() => handleApprove(college)}>
                               <CheckCircle className="h-4 w-4 mr-2" />
-                              Approve
+                              {college.status === 'suspended' ? 'Reactivate' : 'Approve'}
+                            </DropdownMenuItem>
+                          )}
+                          {college.verification_status !== 'approved' && college.verification_status !== 'rejected' && (
+                            <DropdownMenuItem onClick={() => handleReject(college)} className="text-destructive">
+                              <Pause className="h-4 w-4 mr-2" />
+                              Reject
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem onClick={() => openModal('edit', college)}>

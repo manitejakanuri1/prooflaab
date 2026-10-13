@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { confirmRemoval, removeStudents } from "@/lib/removeStudents";
+import { confirmRemoval, removalSummary, removeStudents } from "@/lib/removeStudents";
 import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -282,7 +282,7 @@ const StudentOversight = () => {
     setRemoving(true);
     try {
       const r = await removeStudents(ids);
-      toast({ title: `Removed ${r.removed} student${r.removed === 1 ? "" : "s"}` });
+      toast({ title: removalSummary(r) });
       setPicked(new Set());
       void queryClient.invalidateQueries();
     } catch (e) {
@@ -433,8 +433,8 @@ const StudentOversight = () => {
                           onClick={async () => {
                             if (!confirmRemoval(student.full_name)) return;
                             try {
-                              await removeStudents([student.id]);
-                              toast({ title: `Removed ${student.full_name}` });
+                              const r = await removeStudents([student.id]);
+                              toast({ title: r.keptProtected ? `${student.full_name} is a locked test account and was kept` : `Removed ${student.full_name}` });
                               void queryClient.invalidateQueries();
                             } catch (e) {
                               toast({ title: "Not removed", description: (e as Error).message, variant: "destructive" });

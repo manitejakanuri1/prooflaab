@@ -237,6 +237,8 @@ class RemDb:
             return 200, [{"role": "college_admin"}]
         if path == "rpc/web_login_identity":
             return self.login
+        if path.startswith("protected_test_accounts"):
+            return getattr(self, "protected", (200, []))
         if path == "rpc/remove_students":
             return 200, [{"student_id": "s1", "provider_uid": "g1", "email": "a@x"},
                          {"student_id": "s2", "provider_uid": "g2", "email": "b@x"}]
@@ -280,5 +282,27 @@ assert h.out[1]["link"].startswith("https://pool.firebaseapp.com/"), "a link wit
 s.link_refusal = lambda email: "login is not newly created"
 h = handler("/password-link", {"email": "old@x.test"}); h.password_link()
 assert h.out[0] == 403, "control: an old login still gets no link"
+
+# 16. 13 Oct: a locked (protected) test account in the list no longer fails the whole batch. It is left out and
+#     counted; everyone else is removed. Only protected -> nothing removed, 200. Unreadable list -> 503, nothing removed.
+A, B, P = "aaaaaaaa-0000-4000-8000-000000000001", "bbbbbbbb-0000-4000-8000-000000000002", "4e4deeda-0982-4789-9fcf-69d0ba7175c8"
+class MixDb(RemDb):
+    def __call__(self, path, body=None, method="POST", prefer=None):
+        if path == "rpc/remove_students":
+            self.calls.append((path, body))
+            return 200, [{"student_id": i, "provider_uid": None, "email": None} for i in body["_ids"]]
+        return super().__call__(path, body, method, prefer)
+s.identity = lambda p, b: (200, {})
+s.db = MixDb(); s.db.protected = (200, [{"user_id": P}])
+h = handler("/remove", {"student_ids": [A, P.upper(), B]}); h.remove()
+sent = [b for p, b in s.db.calls if p == "rpc/remove_students"][0]["_ids"]
+assert sent == [A, B] and h.out[0] == 200 and h.out[1]["removed"] == 2 and h.out[1]["kept_protected"] == 1, (sent, h.out)
+s.db = MixDb(); s.db.protected = (200, [{"user_id": P}])
+h = handler("/remove", {"student_ids": [P]}); h.remove()
+assert h.out == (200, {"removed": 0, "kept_protected": 1, "login_failures": [], "login_pending": 0}), h.out
+assert not [p for p, b in s.db.calls if p == "rpc/remove_students"], "remove_students called for protected only"
+s.db = MixDb(); s.db.protected = (500, {"message": "boom"})
+h = handler("/remove", {"student_ids": [A, B]}); h.remove()
+assert h.out[0] == 503 and not [p for p, b in s.db.calls if p == "rpc/remove_students"], h.out
 
 print("server identity lifecycle: all checks passed")

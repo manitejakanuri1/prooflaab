@@ -48,7 +48,7 @@ import {
   Trash2,
   UserMinus,
 } from "lucide-react";
-import { confirmRemoval, removeStudents } from "@/lib/removeStudents";
+import { confirmRemoval, removalSummary, removeStudents } from "@/lib/removeStudents";
 
 // Students removed per call to accounts /remove (it accepts at most 500).
 const REMOVE_BATCH = 200;
@@ -355,20 +355,22 @@ const CollegeOversight = () => {
       if (!total) { toast({ title: `${college.name} has no students` }); return; }
       if (!confirmRemoval(`all ${total} students of ${college.name}`)) return;
       let removed = 0;
+      let keptProtected = 0;
       setProgress({ name: college.name, done: 0, total });
       for (;;) {
-        // Always the first page: removed students drop out of the list.
+        // Locked test accounts never leave the list, so each batch skips the ones already found.
         const { data, error } = await supabase.from('student_profiles').select('id')
-          .eq('college_id', college.id).limit(REMOVE_BATCH);
+          .eq('college_id', college.id).range(keptProtected, keptProtected + REMOVE_BATCH - 1).order('id');
         if (error) throw error;
         const ids = (data ?? []).map((r) => r.id as string);
         if (!ids.length) break;
         const r = await removeStudents(ids);
-        if (r.removed === 0) throw new Error("the server removed nobody in the last batch; stopped");
+        if (r.removed === 0 && r.keptProtected === 0) throw new Error("the server removed nobody in the last batch; stopped");
         removed += r.removed;
+        keptProtected += r.keptProtected;
         setProgress({ name: college.name, done: removed, total });
       }
-      toast({ title: `Removed ${removed} student${removed === 1 ? "" : "s"} of ${college.name}` });
+      toast({ title: `${college.name}: ${removalSummary({ removed, keptProtected })}` });
     } catch (e) {
       toast({ title: "Stopped", description: (e as Error).message, variant: "destructive" });
     } finally {

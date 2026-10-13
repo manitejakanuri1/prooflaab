@@ -192,6 +192,18 @@ def own_reset_link(oob_link: str) -> str:
     return f"{site}/reset-password?" + urllib.parse.urlencode({"mode": "resetPassword", "oobCode": code})
 
 
+def protected_among(ids: list) -> set | None:
+    """Which of these student ids are protected test accounts (migration 55), or None if that can't be read.
+    Only well-formed ids go into the filter; anything else is left for remove_students to refuse."""
+    good = [i for i in ids if len(i) == 36 and all(c in "0123456789abcdefABCDEF-" for c in i)]
+    if not good:
+        return set()
+    st, rows = db("protected_test_accounts?select=user_id&user_id=in.(" + ",".join(good) + ")", method="GET")
+    if st != 200 or not isinstance(rows, list):
+        return None
+    return {str(r["user_id"]) for r in rows}
+
+
 def may_still_act(who: str) -> bool | None:
     """The website's managed-login rule (web_login_identity) for this account: True, False, or None when it
     cannot be read (callers fail closed)."""
@@ -299,7 +311,7 @@ class Handler(BaseHTTPRequestHandler):
         if not who:
             return self.reply(401, {"error": "Sign in again."})
         body = self.body()
-        ids = [str(i) for i in (body.get("student_ids") or [])][:500]
+        ids = [str(i).lower() for i in (body.get("student_ids") or [])][:500]
         if not ids:
             return self.reply(400, {"error": "Choose at least one student."})
         st, roles = db(f"user_roles?select=role&user_id=eq.{who}", method="GET")
@@ -328,14 +340,24 @@ class Handler(BaseHTTPRequestHandler):
                 self_outbox(who, provider_uid, out)
             print(f"self-delete by {who}: status {st}, login_deleted={out.get('login_deleted')}", flush=True)
             return self.reply(st, out)
+        # Protected test accounts (migration 55) cannot be deleted, and one of them used to fail the whole batch.
+        # They are left out and counted; everyone else in the list is removed. Fails closed if the list can't be read.
+        kept = protected_among(ids)
+        if kept is None:
+            return self.reply(503, {"error": "Could not check for protected test accounts. Nothing was changed."})
+        ids = [i for i in ids if i not in kept]
+        if not ids:
+            return self.reply(200, {"removed": 0, "kept_protected": len(kept), "login_failures": [], "login_pending": 0})
         st, rows = db("rpc/remove_students", {"_ids": ids, "_by": who, "_reason": reason})
         if st != 200:
             msg = rows.get("message") if isinstance(rows, dict) else str(rows)
             return self.reply(403 if "college" in str(msg) else 500, {"error": msg})
         unfinished = record_and_delete_students(rows, f"{reason}:{who}")
-        print(f"remove by {who} ({reason}): {len(rows)} students, {len(unfinished)} login deletes pending", flush=True)
+        print(f"remove by {who} ({reason}): {len(rows)} students, {len(kept)} protected kept, "
+              f"{len(unfinished)} login deletes pending", flush=True)
         # login_failures keeps its meaning for the screens: logins not deleted YET (they are retried by /sync).
-        return self.reply(200, {"removed": len(rows), "login_failures": unfinished, "login_pending": len(unfinished)})
+        return self.reply(200, {"removed": len(rows), "kept_protected": len(kept), "login_failures": unfinished,
+                                "login_pending": len(unfinished)})
 
     def delete_account(self):
         """A non-student account is deleted: by itself (confirm DELETE) or by an administrator. Who may delete

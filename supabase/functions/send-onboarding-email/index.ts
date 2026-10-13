@@ -4,7 +4,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
-import { type EmailOverride, renderOverride } from "../_shared/email-template.ts";
+import { type EmailOverride, escapeHtml, renderOverride } from "../_shared/email-template.ts";
 
 /**
  * Built per request, not once at module load.
@@ -44,6 +44,9 @@ const getEmailContent = (
   // each role to its own dashboard from there.
   void origin;
   const baseUrl = Deno.env.get("SITE_URL") ?? "https://prooflab.co.in";
+  // Security gate 14 Oct (run-1): the name comes from a college's CSV or the caller; it is text, never markup.
+  name = escapeHtml(name);
+  setPasswordLink = setPasswordLink ? escapeHtml(setPasswordLink) : setPasswordLink;
 
   switch (userType) {
     case "student":

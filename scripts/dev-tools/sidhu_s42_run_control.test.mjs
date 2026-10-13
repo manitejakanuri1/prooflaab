@@ -3,6 +3,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createRunControl, TimeoutError, writeAtomic, ordered, resumeFrom, rowKey } from "./sidhu_s42_run_control.mjs";
+import { labelCandidates, optionKey, planMatrix } from "./sidhu_s32_live_e2e.mjs";
+import { buildInventory } from "./sidhu_s32_inventory.mjs";
+
+test("label candidates: a conditional label gives both texts; a plain label is itself", () => {
+  assert.deepEqual(labelCandidates("showFilters 'Hide Filters' 'Show Filters'"), ["Hide Filters", "Show Filters"]);
+  assert.deepEqual(labelCandidates('task.isEditing "Done" "Edit"'), ["Done", "Edit"]);
+  assert.deepEqual(labelCandidates("Configure Email Templates"), ["Configure Email Templates"]);
+  assert.deepEqual(labelCandidates("Don't stop"), ["Don't stop"], "an apostrophe in a plain label is not a ternary");
+  assert.deepEqual(labelCandidates(""), []);
+});
+
+test("a dropdown is matched by its option set, whatever the spacing and case", () => {
+  assert.equal(optionKey(["Weekly", "Monthly", "Yearly"].join(" ")), optionKey("Weekly  Monthly\nYearly"));
+  assert.notEqual(optionKey("All Status Pending Active Suspended"), optionKey("All Status Active Completed Overdue"));
+});
+
+test("matrix rows carry the element and event the runner needs to find a control", () => {
+  const rows = planMatrix(buildInventory()).filter((r) => r.class !== "SCREEN" && r.class !== "DEAD");
+  assert.ok(rows.length > 100);
+  assert.ok(rows.every((r) => "element" in r && "event" in r));
+  assert.ok(rows.some((r) => r.element === "Select" && r.event === "onValueChange"));
+});
 
 function fakeTimers() {
   let t = 1_800_000_000_000; const jobs = new Map(); let id = 0;

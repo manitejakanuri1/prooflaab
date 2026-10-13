@@ -100,7 +100,8 @@ export function planMatrix(inv) {
       const key = `${role}|${s.url}|${c.file}:${c.line}`; if (seen.has(key)) continue; seen.add(key);
       const cls = classify(c);
       rows.push({ role, page: `${s.nav} / ${s.inner}`, url: s.url, control: `${(c.label ?? "").slice(0, 60)} [${c.file.replace("src/components/dashboard/", "")}:${c.line}]`,
-        label: c.label, class: cls, expectedRoute: s.url.split("?")[0], api: apiText(c.calls), dbEffect: opsText(c.calls) || (cls === "WRITE" ? "write (untraced helper)" : "none"),
+        label: c.label, element: c.element, event: c.event,   // S42: how the runner finds it (a Select is a combobox, a menu item needs its menu)
+        class: cls, expectedRoute: s.url.split("?")[0], api: apiText(c.calls), dbEffect: opsText(c.calls) || (cls === "WRITE" ? "write (untraced helper)" : "none"),
         liveResult: "", status: "NOT_TESTED", evidence: "" });
     }
     // Visible buttons with no handler at all (inventory "suspects"): interactive-looking, so they are rows too.
@@ -457,22 +458,30 @@ export async function runLive({ base, roles, env, chromium, out, allowWrites, al
         if (FINAL(row.status)) continue;
         const label = (row.label ?? "").trim();
         rc.progress(`${role} SAFE ${i + 1}/${safe.length} ${row.url} '${label.slice(0, 40)}'`);
-        if (!label || /^\(icon/.test(label) || label.length > 50) { row.status = "BLOCKED"; row.liveResult = "no stable accessible name to click"; continue; }
+        if (!label || /^\(icon/.test(label) || (label.length > 50 && row.element !== "Select")) { row.status = "BLOCKED"; row.liveResult = "no stable accessible name to click"; continue; }
         const attempt = (fresh) => step(`${role} click '${label}' on ${row.url}${fresh ? " (fresh page)" : ""}`, async () => {
           errors.length = 0;
           let loaded = false;
           if (fresh || onUrl !== row.url || new URL(page.url()).pathname !== row.url.split("?")[0]) { await go(row.url); onUrl = row.url; loaded = true; }
           const from = net.length;
-          const el = page.getByRole("tab", { name: label, exact: true }).or(page.getByRole("button", { name: label, exact: true })).first();
-          if (!(await el.count())) {
+          const found = await findControl(page, row);
+          if (!found) {
             if (!loaded) throw new Error("not found on the reused page");   // a previous click may have hidden it: retry fresh
-            row.status = "BLOCKED"; row.liveResult = "not rendered for this account's data"; return;
+            row.status = "BLOCKED"; row.liveResult = "not on screen: inside a dialog or menu that is closed, or a state this account's data does not show"; return;
           }
-          await el.click({ timeout: 10000 }); await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+          if (found.kind === "select") {
+            // Pick a different option than the shown one (pure state: the control's handler only sets a filter).
+            const shown = optionKey(await found.el.innerText().catch(() => ""));
+            const pick = found.options.find((o) => optionKey(o) !== shown) ?? found.options[0];
+            await page.getByRole("option", { name: pick, exact: true }).first().click({ timeout: 10000 });
+          } else {
+            await found.el.click({ timeout: 10000 });
+          }
+          await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
           await page.keyboard.press("Escape").catch(() => {});
           if (new URL(page.url()).pathname !== row.url.split("?")[0]) onUrl = null;   // navigated away: reload next time
           const b = bad(from); if (b.length || errors.length) throw new Error(errors[0] ?? b.map((n) => `${n.s} ${n.p}`).join(", "));
-          row.liveResult = `clicked; now ${new URL(page.url()).pathname}${new URL(page.url()).search}; ${net.slice(from).length} API calls ok`; row.status = "PASS";
+          row.liveResult = `${found.kind === "select" ? "chose another option" : "clicked"} (${found.how}); now ${new URL(page.url()).pathname}${new URL(page.url()).search}; ${net.slice(from).length} API calls ok`; row.status = "PASS";
         });
         const reused = onUrl === row.url;
         try {
@@ -587,6 +596,62 @@ export function failureBundle({ role, rows, url, net, errors, html, secrets = []
     html: clean(String(html ?? "").replace(/<input\b[^>]*>/gi, "<input [removed]>").replace(/<textarea\b[\s\S]*?<\/textarea>/gi, "<textarea [removed]></textarea>")).slice(0, 200_000),
     reproduce: `E2E_BASE=<staging> node scripts/dev-tools/sidhu_s32_live_e2e.mjs --confirm-staging --roles ${role} --expect-entry <entry>`,
   };
+}
+
+/**
+ * S42: the texts a control can show. The inventory records a conditional label as code, e.g.
+ * `showFilters 'Hide Filters' 'Show Filters'` -> ["Hide Filters", "Show Filters"]; a plain label is itself.
+ */
+export function labelCandidates(label) {
+  const t = String(label ?? "").trim();
+  const quoted = [...t.matchAll(/'([^']+)'|"([^"]+)"/g)].map((m) => (m[1] ?? m[2]).trim()).filter(Boolean);
+  if (quoted.length >= 2 && /^[\w.!?()\s&|<>=]+\s+['"]/.test(t)) return [...new Set(quoted)];
+  return t ? [t] : [];
+}
+
+/** Normalised text for comparing a dropdown's options with the inventory's joined label. */
+export const optionKey = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+
+/**
+ * S42: finds a SAFE control on the live page. Returns { el, kind, how } or null. Order: exact tab/button/link name for
+ * each label candidate, then a contains match, then (Select) the combobox whose options are exactly the label's words,
+ * then (DropdownMenuItem) a menu item after opening each menu on the page.
+ */
+export async function findControl(page, row) {
+  const names = labelCandidates(row.label);
+  for (const exact of [true, false]) {
+    for (const name of names) {
+      for (const role of ["tab", "button", "link"]) {
+        const el = page.getByRole(role, { name, exact }).first();
+        if (await el.count() && await el.isVisible().catch(() => false)) return { el, kind: "click", how: `${role} ${exact ? "=" : "~"} '${name}'` };
+      }
+    }
+  }
+  if (row.element === "Select") {
+    const boxes = page.getByRole("combobox"); const n = await boxes.count();
+    for (let i = 0; i < n; i++) {
+      const box = boxes.nth(i);
+      if (!(await box.isVisible().catch(() => false))) continue;
+      await box.click({ timeout: 5000 }).catch(() => {});
+      const opts = (await page.getByRole("option").allInnerTexts().catch(() => [])).map((o) => o.trim()).filter(Boolean);
+      if (opts.length && optionKey(opts.join(" ")) === optionKey(row.label)) return { el: box, kind: "select", options: opts, how: `combobox ${i + 1} with options ${opts.join("/")}` };
+      await page.keyboard.press("Escape").catch(() => {});
+    }
+  }
+  if (row.element === "DropdownMenuItem") {
+    const menus = page.locator('[aria-haspopup="menu"]'); const n = await menus.count();
+    for (let i = 0; i < n; i++) {
+      const m = menus.nth(i);
+      if (!(await m.isVisible().catch(() => false))) continue;
+      await m.click({ timeout: 5000 }).catch(() => {});
+      for (const name of names) {
+        const item = page.getByRole("menuitem", { name, exact: false }).first();
+        if (await item.count()) return { el: item, kind: "click", how: `menu ${i + 1} item '${name}'` };
+      }
+      await page.keyboard.press("Escape").catch(() => {});
+    }
+  }
+  return null;
 }
 
 export function summarize(rows, prov) {

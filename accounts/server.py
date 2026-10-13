@@ -178,6 +178,20 @@ def removal_reason(role: str | None, who: str, ids: list, confirm) -> str | None
     return {"admin": "admin", "college_admin": "college"}.get(role)
 
 
+def own_reset_link(oob_link: str) -> str:
+    """The set-password link on ProofLab's own page (SITE_URL/reset-password), not Google's hosted handler.
+
+    Google's handler needs a Firebase web setup in the login pool's project. The isolated staging pool has none,
+    so its links showed "The selected page mode is invalid" (13 Oct). Our page takes the same one-time code and
+    completes it through the BFF. A link without a code is returned unchanged."""
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(oob_link).query)
+    code = (q.get("oobCode") or [""])[0]
+    if not code:
+        return oob_link
+    site = os.environ.get("SITE_URL", "https://prooflab.co.in").rstrip("/")
+    return f"{site}/reset-password?" + urllib.parse.urlencode({"mode": "resetPassword", "oobCode": code})
+
+
 def may_still_act(who: str) -> bool | None:
     """The website's managed-login rule (web_login_identity) for this account: True, False, or None when it
     cannot be read (callers fail closed)."""
@@ -600,7 +614,7 @@ class Handler(BaseHTTPRequestHandler):
         })
         if st != 200 or not out.get("oobLink"):
             return self.reply(502, {"error": str(out)[:200]})
-        return self.reply(200, {"link": out["oobLink"]})
+        return self.reply(200, {"link": own_reset_link(out["oobLink"])})
 
     def sync(self):
         if not WEBHOOK or not hmac.compare_digest(self.headers.get("x-webhook-secret", ""), WEBHOOK):

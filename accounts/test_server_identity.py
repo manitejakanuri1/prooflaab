@@ -267,4 +267,18 @@ for login, code in [((200, {"allowed": False, "reason": "college_account_unavail
     assert "rpc/remove_students" not in asked and "rpc/identity_record_student_removals" not in asked, asked
     assert [b for p, b in s.db.calls if p == "rpc/web_login_identity"][0] == {"_user_id": "c0ffee00-0000-0000-0000-000000000001"}
 
+# 15. 13 Oct staging: set-password links open ProofLab's own page (SITE_URL/reset-password) with the same one-time
+#     code. Google's hosted page needs a Firebase web setup the isolated staging pool does not have.
+os.environ["SITE_URL"] = "https://prooflab-staging.web.app"
+s.link_refusal = lambda email: None
+s.identity = lambda p, b: (200, {"oobLink": "https://pool.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=ABC-123_x&apiKey=k&lang=en"})
+h = handler("/password-link", {"email": "new@x.test"}); h.password_link()
+assert h.out == (200, {"link": "https://prooflab-staging.web.app/reset-password?mode=resetPassword&oobCode=ABC-123_x"}), h.out
+s.identity = lambda p, b: (200, {"oobLink": "https://pool.firebaseapp.com/__/auth/action?mode=resetPassword"})
+h = handler("/password-link", {"email": "new@x.test"}); h.password_link()
+assert h.out[1]["link"].startswith("https://pool.firebaseapp.com/"), "a link without a code is kept as Google sent it"
+s.link_refusal = lambda email: "login is not newly created"
+h = handler("/password-link", {"email": "old@x.test"}); h.password_link()
+assert h.out[0] == 403, "control: an old login still gets no link"
+
 print("server identity lifecycle: all checks passed")

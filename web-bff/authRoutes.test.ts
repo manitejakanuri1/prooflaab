@@ -216,6 +216,39 @@ Deno.test("login refuses an account not provisioned by the platform", async () =
   );
 });
 
+// Security gate 14 Oct: the bridge now refuses (403) a login the managed-login rule refuses. The BFF must keep
+// answering the same clear 403, not a generic 503, and must not create a session.
+Deno.test("login: a bridge refusal (403) is shown as the managed-account 403, no session", async () => {
+  const res = await handleAuthRoute(
+    new Request("https://prooflab.co.in/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "orphan@example.test", password: "password" }),
+    }),
+    {
+      env: env(),
+      fetcher: async (input) => {
+        const url = String(input);
+        if (url.includes("signInWithPassword")) {
+          return Response.json({ email: "orphan@example.test", idToken: "GOOGLE_ID_TOKEN", refreshToken: "GOOGLE_REFRESH_TOKEN" });
+        }
+        if (url === "https://bridge.example.test/token") {
+          return Response.json({ error: "Account access is managed by your college or platform administrator" }, { status: 403 });
+        }
+        throw new Error(`unexpected URL: ${url}`);
+      },
+      loadLoginIdentity: async () => {
+        throw new Error("the bridge already refused; the rule must not be asked again");
+      },
+      createSession: async () => {
+        throw new Error("refused login must not create session");
+      },
+    },
+  );
+  assert(res !== null && res.status === 403, `answered ${res?.status}`);
+  assert(/managed by your college/.test(JSON.stringify(await res.json())), "not the managed-account message");
+});
+
 Deno.test("invalid credentials return generic error", async () => {
   const fetcher: typeof fetch = async () =>
     new Response("bad", { status: 400 });

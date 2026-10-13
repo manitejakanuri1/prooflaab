@@ -148,6 +148,8 @@ function config(input: AuthRouteDeps) {
   };
 }
 
+class LoginRefused extends Error {}
+
 async function exchangeAppToken(
   idToken: string,
   cfg: ReturnType<typeof config>,
@@ -165,6 +167,10 @@ async function exchangeAppToken(
     body: "{}",
   });
 
+  if (response.status === 403) {
+    // The bridge applies the managed-login rule itself (security gate 14 Oct).
+    throw new LoginRefused();
+  }
   if (!response.ok) {
     throw new Error(`auth bridge rejected token: ${response.status}`);
   }
@@ -262,7 +268,16 @@ async function login(
 
   try {
     exchanged = await exchangeAppToken(identity.idToken, cfg);
-  } catch {
+  } catch (err) {
+    if (err instanceof LoginRefused) {
+      return json(
+        {
+          error:
+            "Account access is managed by your college or platform administrator",
+        },
+        403,
+      );
+    }
     return json({ error: "Could not start your session" }, 503);
   }
 

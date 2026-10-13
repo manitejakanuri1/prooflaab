@@ -35,6 +35,7 @@ async function run(policy: (() => Response) | 'throw', resolve?: () => Response)
 }
 
 const REFUSALS: Record<string, unknown> = {
+  'college waiting for approval (115)': { allowed: false, reason: 'college_pending_approval' },
   'no role (account_not_provisioned)': { allowed: false, reason: 'account_not_provisioned' },
   'student of an inactive college': { allowed: false, reason: 'college_inactive' },
   'suspended or rejected college admin': { allowed: false, reason: 'college_account_unavailable' },
@@ -47,6 +48,8 @@ for (const [who, answer] of Object.entries(REFUSALS)) {
     const r = await run(() => Response.json(answer));
     assert(r.status === 403, `answered ${r.status}`);
     assert(!('access_token' in r.body), 'a token was issued');
+    const expected = (answer as { reason?: string })?.reason ?? 'refused';
+    assert(r.body.reason === expected, `reason ${r.body.reason}, expected ${expected}`);
   });
 }
 

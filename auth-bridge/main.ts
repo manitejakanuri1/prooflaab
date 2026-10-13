@@ -176,13 +176,13 @@ async function resolveAccount(
  * role, active student/college, not suspended or rejected, supported role) is applied BEFORE a token is
  * minted. Before, this public door issued an API-usable token to any login that resolve_account knew, so an
  * account the website refuses could call the database and services directly. Fails closed.
- * 'allowed' | 'refused' | 'unavailable'.
+ * 'allowed' | 'unavailable' | { refused: <reason code> }.
  */
 async function loginPolicy(
   uuid: string,
   postgrest = POSTGREST_URL,
   fetcher: typeof fetch = fetch,
-): Promise<'allowed' | 'refused' | 'unavailable'> {
+): Promise<'allowed' | 'unavailable' | { refused: string }> {
   if (!postgrest) return 'allowed';   // no database to ask (legacy local mode); resolveAccount has no DB either
   const { token } = await mint('', undefined, 'service_role', 60);
   try {
@@ -196,7 +196,10 @@ async function loginPolicy(
       return 'unavailable';
     }
     const body = await res.json();
-    return body && typeof body === 'object' && body.allowed === true && body.role ? 'allowed' : 'refused';
+    if (body && typeof body === 'object' && body.allowed === true && body.role) return 'allowed';
+    // The rule's own reason code (e.g. college_pending_approval), so the website can say exactly why.
+    const reason = body && typeof body === 'object' && typeof body.reason === 'string' ? body.reason : 'refused';
+    return { refused: reason };
   } catch (err) {
     console.error('web_login_identity failed:', err);
     return 'unavailable';
@@ -216,8 +219,8 @@ async function exchangeVerified(
   }
   const policy = await loginPolicy(account.uuid, postgrest, fetcher);
   if (policy === 'unavailable') return json({ error: 'could not establish your account' }, 503, origin);
-  if (policy === 'refused') {
-    return json({ error: 'Account access is managed by your college or platform administrator' }, 403, origin);
+  if (policy !== 'allowed') {
+    return json({ error: 'Account access is managed by your college or platform administrator', reason: policy.refused }, 403, origin);
   }
   const { token, exp } = await mint(
     account.uuid, verified.email, 'authenticated', TTL_SECONDS, account.emailConfirmed,

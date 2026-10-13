@@ -148,7 +148,33 @@ function config(input: AuthRouteDeps) {
   };
 }
 
-class LoginRefused extends Error {}
+class LoginRefused extends Error {
+  constructor(readonly reason: string) {
+    super(reason);
+  }
+}
+
+/**
+ * The exact sentence for each login refusal (owner, 14 Oct). Reason codes come from web_login_identity
+ * (migrations 102, 110, 115); an unknown code gets the old general sentence.
+ */
+const REFUSAL_MESSAGES: Record<string, string> = {
+  college_pending_approval:
+    "Your college is waiting for approval by ProofLab. You can sign in after an administrator approves it.",
+  college_suspended: "Your college account is suspended. Please contact ProofLab.",
+  college_rejected: "Your college registration was not approved. Please contact ProofLab.",
+  college_account_unavailable: "This college account is not available. Please contact ProofLab.",
+  college_not_active: "Your college's ProofLab account is not active yet. Please contact your college.",
+  student_not_college_managed:
+    "Your student account is not active. Please contact your college.",
+  company_account_unavailable: "This company account is not available. Please contact ProofLab.",
+  account_not_provisioned:
+    "This email is not registered with ProofLab. Please ask your college or the ProofLab admin.",
+  identity_missing: "This account has been removed. Please contact your college or ProofLab.",
+};
+export const refusalMessage = (reason: string | undefined) =>
+  (reason && REFUSAL_MESSAGES[reason]) ||
+  "Account access is managed by your college or platform administrator";
 
 async function exchangeAppToken(
   idToken: string,
@@ -168,8 +194,9 @@ async function exchangeAppToken(
   });
 
   if (response.status === 403) {
-    // The bridge applies the managed-login rule itself (security gate 14 Oct).
-    throw new LoginRefused();
+    // The bridge applies the managed-login rule itself (security gate 14 Oct) and says which reason.
+    const refused = await response.json().catch(() => ({})) as { reason?: unknown };
+    throw new LoginRefused(typeof refused.reason === "string" ? refused.reason : "");
   }
   if (!response.ok) {
     throw new Error(`auth bridge rejected token: ${response.status}`);
@@ -270,13 +297,7 @@ async function login(
     exchanged = await exchangeAppToken(identity.idToken, cfg);
   } catch (err) {
     if (err instanceof LoginRefused) {
-      return json(
-        {
-          error:
-            "Account access is managed by your college or platform administrator",
-        },
-        403,
-      );
+      return json({ error: refusalMessage(err.reason), reason: err.reason || undefined }, 403);
     }
     return json({ error: "Could not start your session" }, 503);
   }
@@ -298,13 +319,7 @@ async function login(
     managedIdentity.allowed !== true ||
     !managedIdentity.role
   ) {
-    return json(
-      {
-        error:
-          "Account access is managed by your college or platform administrator",
-      },
-      403,
-    );
+    return json({ error: refusalMessage(managedIdentity.reason), reason: managedIdentity.reason }, 403);
   }
 
   const now = cfg.now();

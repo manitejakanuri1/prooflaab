@@ -89,13 +89,16 @@ jobs:
           grep -q '^# fail 0$' "$RUNNER_TEMP/pglite.tap"
           grep -q '^# skipped 0$' "$RUNNER_TEMP/pglite.tap" || { echo "::error::tests were skipped: PGlite did not load"; exit 1; }
 
-      - name: Migration 114 (security gate - suspension and profile-insert locks) on PostgreSQL 16 (PGlite)
+      - name: Migrations 114 (suspension and profile-insert locks) and 115 (pending college cannot sign in) on PostgreSQL 16 (PGlite)
         env:
           PGLITE_MODULE: file://${{ runner.temp }}/t/node_modules/@electric-sql/pglite/dist/index.js
         run: |
           node --test --test-reporter=tap scripts/dev-tools/teja_security_gate_114.test.mjs | tee "$RUNNER_TEMP/pglite114.tap"
           grep -q '^# fail 0$' "$RUNNER_TEMP/pglite114.tap"
           grep -q '^# skipped 0$' "$RUNNER_TEMP/pglite114.tap" || { echo "::error::tests were skipped: PGlite did not load"; exit 1; }
+          node --test --test-reporter=tap scripts/dev-tools/teja_college_approval_115.test.mjs | tee "$RUNNER_TEMP/pglite115.tap"
+          grep -q '^# fail 0$' "$RUNNER_TEMP/pglite115.tap"
+          grep -q '^# skipped 0$' "$RUNNER_TEMP/pglite115.tap" || { echo "::error::tests were skipped: PGlite did not load"; exit 1; }
 
       - name: Migration 110 on a real server - apply twice, roll back, apply again (one file each, like gcloud sql import)
         env:

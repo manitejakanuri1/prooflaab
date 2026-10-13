@@ -249,6 +249,47 @@ Deno.test("login: a bridge refusal (403) is shown as the managed-account 403, no
   assert(/managed by your college/.test(JSON.stringify(await res.json())), "not the managed-account message");
 });
 
+// 14 Oct (owner): every refusal says exactly why, whether the bridge or the BFF's own check refused it.
+for (const [reason, phrase, via] of [
+  ["college_pending_approval", "waiting for approval by ProofLab", "bridge"],
+  ["college_suspended", "college account is suspended", "bridge"],
+  ["college_rejected", "registration was not approved", "rule"],
+  ["college_not_active", "not active yet. Please contact your college", "rule"],
+  ["something_new", "managed by your college or platform administrator", "rule"],
+] as const) {
+  Deno.test(`login refused (${reason}, via ${via}) -> 403 with its exact sentence, no session`, async () => {
+    const res = await handleAuthRoute(
+      new Request("https://prooflab.co.in/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "college@example.test", password: "password" }),
+      }),
+      {
+        env: env(),
+        fetcher: async (input) => {
+          const url = String(input);
+          if (url.includes("signInWithPassword")) {
+            return Response.json({ email: "college@example.test", idToken: "GOOGLE_ID_TOKEN", refreshToken: "GOOGLE_REFRESH_TOKEN" });
+          }
+          if (url === "https://bridge.example.test/token") {
+            return via === "bridge"
+              ? Response.json({ error: "x", reason }, { status: 403 })
+              : Response.json({ access_token: jwt({ sub: USER_ID, role: "authenticated", email_confirmed: true }), expires_in: 3600 });
+          }
+          throw new Error(`unexpected URL: ${url}`);
+        },
+        loadLoginIdentity: async () => ({ allowed: false, reason }),
+        createSession: async () => {
+          throw new Error("refused login must not create session");
+        },
+      },
+    );
+    assert(res !== null && res.status === 403, `answered ${res?.status}`);
+    const body = await res.json();
+    assert(String(body.error).includes(phrase), `message: ${body.error}`);
+  });
+}
+
 Deno.test("invalid credentials return generic error", async () => {
   const fetcher: typeof fetch = async () =>
     new Response("bad", { status: 400 });

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -54,12 +55,15 @@ const StudentOversight = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+  const [collegeFilter, setCollegeFilter] = useState("all");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [removing, setRemoving] = useState(false);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: students, isLoading } = useQuery({
-    queryKey: ['student-oversight', searchTerm],
+    queryKey: ['student-oversight', searchTerm, collegeFilter],
     queryFn: async () => {
       // email moved to student_contact. It has to be pulled in explicitly now,
       // and the search can only match on the name — PostgREST cannot filter a
@@ -74,6 +78,9 @@ const StudentOversight = () => {
 
       if (searchTerm) {
         query = query.ilike('full_name', `%${searchTerm}%`);
+      }
+      if (collegeFilter !== "all") {
+        query = query.eq('college_id', collegeFilter);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
@@ -254,6 +261,37 @@ const StudentOversight = () => {
 
   const totalPages = Math.ceil((students?.length || 0) / itemsPerPage);
 
+  const collegeName = (id: string | null) => colleges?.find((c) => c.id === id)?.name ?? '—';
+  const pageIds = (paginatedStudents ?? []).map((s) => s.id as string);
+  const allOnPagePicked = pageIds.length > 0 && pageIds.every((id) => picked.has(id));
+  const togglePick = (id: string) => setPicked((p) => {
+    const next = new Set(p);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const togglePage = () => setPicked((p) => {
+    const next = new Set(p);
+    pageIds.forEach((id) => (allOnPagePicked ? next.delete(id) : next.add(id)));
+    return next;
+  });
+
+  // Same removal as one student (accounts /remove: login deleted, record kept), for the ticked rows.
+  const removePicked = async () => {
+    const ids = [...picked];
+    if (!ids.length || !confirmRemoval(`${ids.length} selected student${ids.length === 1 ? "" : "s"}`)) return;
+    setRemoving(true);
+    try {
+      const r = await removeStudents(ids);
+      toast({ title: `Removed ${r.removed} student${r.removed === 1 ? "" : "s"}` });
+      setPicked(new Set());
+      void queryClient.invalidateQueries();
+    } catch (e) {
+      toast({ title: "Not removed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -278,7 +316,7 @@ const StudentOversight = () => {
             <Users className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Student Oversight</h1>
+            <h1 className="text-3xl font-bold">Students</h1>
             <p className="text-muted-foreground">Manage student accounts and activities</p>
           </div>
         </div>
@@ -300,6 +338,23 @@ const StudentOversight = () => {
                 className="pl-10"
               />
             </div>
+            <Select value={collegeFilter} onValueChange={(value) => { setCollegeFilter(value); setCurrentPage(1); setPicked(new Set()); }}>
+              <SelectTrigger className="w-56" aria-label="College">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All colleges</SelectItem>
+                {(colleges ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {picked.size > 0 && (
+              <Button variant="destructive" size="sm" disabled={removing} onClick={() => void removePicked()}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {removing ? "Removing…" : `Remove selected (${picked.size})`}
+              </Button>
+            )}
             <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
               <SelectTrigger className="w-24">
                 <SelectValue />
@@ -317,6 +372,9 @@ const StudentOversight = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox checked={allOnPagePicked} onCheckedChange={togglePage} aria-label="Select all on this page" />
+                </TableHead>
                 <TableHead className="font-semibold">Name</TableHead>
                 <TableHead className="font-semibold">Email</TableHead>
                 <TableHead className="font-semibold">College</TableHead>
@@ -329,10 +387,14 @@ const StudentOversight = () => {
             <TableBody>
               {paginatedStudents?.map((student) => (
                 <TableRow key={student.id} className="hover:bg-muted/30">
+                  <TableCell>
+                    <Checkbox checked={picked.has(student.id)} onCheckedChange={() => togglePick(student.id)}
+                              aria-label={`Select ${student.full_name}`} />
+                  </TableCell>
                   <TableCell className="font-medium">{student.full_name}</TableCell>
                   <TableCell className="text-muted-foreground">{student.email}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{student.branch || 'N/A'}</Badge>
+                    <Badge variant="outline">{collegeName(student.college_id)}</Badge>
                   </TableCell>
                   <TableCell>{getStatusBadge(student.status)}</TableCell>
                   <TableCell>

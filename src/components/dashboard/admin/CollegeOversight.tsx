@@ -58,6 +58,21 @@ const REMOVE_BATCH = 25;
 // How often the page re-reads the database while it is open.
 const LIVE_MS = 10_000;
 
+// Same order as the sign-in rule (migration 115), so the badge says what the college will see at login.
+const realState = (c: { status?: string; verification_status?: string }) =>
+  c.verification_status === 'rejected' ? 'rejected'
+    : c.status === 'suspended' ? 'suspended'
+    : c.verification_status !== 'approved' ? 'waiting'
+    : c.status === 'active' ? 'live' : 'inactive';
+
+const STATE_BADGE: Record<string, { label: string; className: string }> = {
+  live: { label: '🟢 Live', className: 'bg-green-100 text-green-800 border-green-200' },
+  waiting: { label: '🟡 Waiting for approval', className: 'bg-orange-100 text-orange-800 border-orange-200' },
+  suspended: { label: '🔴 Suspended', className: 'bg-red-100 text-red-800 border-red-200' },
+  rejected: { label: '⛔ Rejected', className: 'bg-red-100 text-red-800 border-red-200' },
+  inactive: { label: '⚪ Approved, not active', className: 'bg-gray-100 text-gray-800 border-gray-200' },
+};
+
 const CollegeOversight = () => {
   const [progress, setProgress] = useState<{ name: string; done: number; total: number } | null>(null);
   const [confirmBox, ask] = useConfirm();
@@ -92,11 +107,8 @@ const CollegeOversight = () => {
           baseQuery = baseQuery.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
         }
 
-        if (statusFilter !== 'all') {
-          baseQuery = baseQuery.eq('status', statusFilter);
-        }
-
-        const { data: collegeData, error: collegeError } = await baseQuery;
+        const { data: allColleges, error: collegeError } = await baseQuery;
+        const collegeData = statusFilter === 'all' ? allColleges : allColleges?.filter((c) => realState(c) === statusFilter);
         if (collegeError) {
           console.error('College query error:', collegeError);
           throw collegeError;
@@ -401,19 +413,9 @@ const CollegeOversight = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: any; className: string }> = {
-      active: { variant: 'default', className: 'bg-green-100 text-green-800 border-green-200' },
-      pending: { variant: 'secondary', className: 'bg-orange-100 text-orange-800 border-orange-200' },
-      suspended: { variant: 'destructive', className: 'bg-red-100 text-red-800 border-red-200' }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
-    return (
-      <Badge variant={config.variant} className={config.className}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
+  const getStatusBadge = (college: { status?: string; verification_status?: string }) => {
+    const config = STATE_BADGE[realState(college)];
+    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
 
   const handleSort = (column: 'created_at' | 'students_count' | 'last_active') => {
@@ -497,9 +499,11 @@ const CollegeOversight = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="live">🟢 Live</SelectItem>
+                  <SelectItem value="waiting">🟡 Waiting for approval</SelectItem>
+                  <SelectItem value="suspended">🔴 Suspended</SelectItem>
+                  <SelectItem value="rejected">⛔ Rejected</SelectItem>
+                  <SelectItem value="inactive">⚪ Approved, not active</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
@@ -561,10 +565,7 @@ const CollegeOversight = () => {
                     <TableCell className="font-medium">{college.name}</TableCell>
                     <TableCell className="text-muted-foreground hidden sm:table-cell">{college.email}</TableCell>
                     <TableCell>
-                      {getStatusBadge(college.status)}
-                      {college.verification_status === 'rejected' && (
-                        <Badge variant="destructive" className="ml-1">rejected</Badge>
-                      )}
+                      {getStatusBadge(college)}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden lg:table-cell">
                       {college.last_active 
@@ -709,7 +710,7 @@ const CollegeOversight = () => {
               <>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Status</label>
-                  <div>{getStatusBadge(selectedCollege.status)}</div>
+                  <div>{getStatusBadge(selectedCollege)}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

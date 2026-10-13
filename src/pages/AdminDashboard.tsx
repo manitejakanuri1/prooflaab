@@ -33,6 +33,9 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Computer screens: the header's panel button shrinks the side panel to icons; the choice is kept
+  // in the cookie the sidebar component already writes on every change.
+  const [desktopOpen, setDesktopOpen] = useState(() => !document.cookie.includes("sidebar:state=false"));
   const isMobile = useIsMobile();
   const pendingReviews = usePendingReviewCount();
 
@@ -111,8 +114,8 @@ const AdminDashboard = () => {
 
   return (
     <SidebarProvider 
-      open={!isMobile || sidebarOpen}
-      onOpenChange={setSidebarOpen}
+      open={isMobile ? sidebarOpen : desktopOpen}
+      onOpenChange={isMobile ? setSidebarOpen : setDesktopOpen}
     >
       <div className="min-h-screen flex w-full bg-background relative">
         {/* Mobile overlay */}

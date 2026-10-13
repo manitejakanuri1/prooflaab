@@ -43,11 +43,18 @@ import {
   Edit, 
   Pause, 
   MoreHorizontal, 
-  CheckCircle, 
-  ArrowUpDown 
+  CheckCircle,
+  ArrowUpDown,
+  Trash2,
+  UserMinus,
 } from "lucide-react";
+import { confirmRemoval, removeStudents } from "@/lib/removeStudents";
+
+// Students removed per call to accounts /remove (it accepts at most 500).
+const REMOVE_BATCH = 200;
 
 const CollegeOversight = () => {
+  const [progress, setProgress] = useState<{ name: string; done: number; total: number } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState<'created_at' | 'students_count' | 'last_active'>('created_at');
@@ -333,6 +340,62 @@ const CollegeOversight = () => {
     }
   };
 
+  // Exact count at click time: the table's count reads rows and can be cut short on a very big college.
+  const countStudents = async (collegeId: string) => {
+    const { count, error } = await supabase.from('student_profiles')
+      .select('id', { count: 'exact', head: true }).eq('college_id', collegeId);
+    if (error) throw error;
+    return count ?? 0;
+  };
+
+  // Every student of one college, through the same removal as one student (accounts /remove), in batches.
+  const handleRemoveAll = async (college: any) => {
+    try {
+      const total = await countStudents(college.id);
+      if (!total) { toast({ title: `${college.name} has no students` }); return; }
+      if (!confirmRemoval(`all ${total} students of ${college.name}`)) return;
+      let removed = 0;
+      setProgress({ name: college.name, done: 0, total });
+      for (;;) {
+        // Always the first page: removed students drop out of the list.
+        const { data, error } = await supabase.from('student_profiles').select('id')
+          .eq('college_id', college.id).limit(REMOVE_BATCH);
+        if (error) throw error;
+        const ids = (data ?? []).map((r) => r.id as string);
+        if (!ids.length) break;
+        const r = await removeStudents(ids);
+        if (r.removed === 0) throw new Error("the server removed nobody in the last batch; stopped");
+        removed += r.removed;
+        setProgress({ name: college.name, done: removed, total });
+      }
+      toast({ title: `Removed ${removed} student${removed === 1 ? "" : "s"} of ${college.name}` });
+    } catch (e) {
+      toast({ title: "Stopped", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setProgress(null);
+      void queryClient.invalidateQueries();
+    }
+  };
+
+  // Only an empty college can be deleted. Its admin then cannot sign in (no college -> refused at login).
+  const handleDeleteCollege = async (college: any) => {
+    try {
+      const total = await countStudents(college.id);
+      if (total) {
+        toast({ title: "Not deleted", description: `${college.name} still has ${total} students. Remove them first.`, variant: "destructive" });
+        return;
+      }
+      const typed = window.prompt(`Delete ${college.name}? Its squads, seasons and imports go with it, and its admin can no longer sign in.\n\nType DELETE to confirm.`);
+      if (typed?.trim() !== "DELETE") return;
+      const { error } = await supabase.from('colleges').delete().eq('id', college.id);
+      if (error) throw error;
+      toast({ title: `Deleted ${college.name}` });
+      void queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
+    } catch (e) {
+      toast({ title: "Not deleted", description: (e as Error).message, variant: "destructive" });
+    }
+  };
+
   const handleReject = (college: any) => {
     if (confirm(`Reject ${college.name}? Its admin will not be able to sign in.`)) {
       rejectMutation.mutate(college.id);
@@ -403,6 +466,12 @@ const CollegeOversight = () => {
           Add New College
         </Button>
       </div>
+
+      {progress && (
+        <div role="status" className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
+          Removing students of <b>{progress.name}</b>: {progress.done} of {progress.total}. Keep this page open.
+        </div>
+      )}
 
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-4">
@@ -540,7 +609,7 @@ const CollegeOversight = () => {
                             Edit
                           </DropdownMenuItem>
                           {college.status !== 'suspended' && (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleSuspend(college)}
                               className="text-orange-600"
                             >
@@ -548,6 +617,14 @@ const CollegeOversight = () => {
                               Suspend
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleRemoveAll(college)} className="text-destructive">
+                            <UserMinus className="h-4 w-4 mr-2" />
+                            Remove all students
+                          </DropdownMenuItem>
+                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleDeleteCollege(college)} className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete college
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

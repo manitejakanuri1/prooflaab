@@ -1209,10 +1209,15 @@ async function updateCurrentUser(
     ? input.password
     : undefined;
 
-  const email = typeof input.email === "string"
-    ? input.email.trim()
-    : undefined;
-
+  // Security gate 14 Oct (run-1 P1): the login email is never changed here. Identity Platform would rebind
+  // the login to an address nobody proved (no verify-before-change flow), and no screen changes email:
+  // accounts are managed, so an administrator changes it. Refused before any provider call.
+  if (input.email !== undefined) {
+    return json(
+      { error: "the login email can only be changed by an administrator" },
+      400,
+    );
+  }
   const rawData = input.data &&
       typeof input.data === "object" &&
       !Array.isArray(input.data)
@@ -1224,7 +1229,6 @@ async function updateCurrentUser(
 
   if (
     password === undefined &&
-    email === undefined &&
     Object.keys(rawData).length === 0
   ) {
     return json(
@@ -1240,18 +1244,6 @@ async function updateCurrentUser(
     return json(
       {
         error: "Password should be at least 6 characters",
-      },
-      400,
-    );
-  }
-
-  if (
-    email !== undefined &&
-    (!email || !email.includes("@"))
-  ) {
-    return json(
-      {
-        error: "That email address is not valid",
       },
       400,
     );
@@ -1305,10 +1297,6 @@ async function updateCurrentUser(
     providerBody.password = password;
   }
 
-  if (email !== undefined) {
-    providerBody.email = email;
-  }
-
   if (
     typeof safeData.full_name === "string"
   ) {
@@ -1321,7 +1309,6 @@ async function updateCurrentUser(
   // account mutation unless displayName changes.
   if (
     password !== undefined ||
-    email !== undefined ||
     typeof safeData.full_name === "string"
   ) {
     try {
@@ -1417,16 +1404,9 @@ async function updateCurrentUser(
     ...next,
     user: {
       ...next.user,
-      ...(email !== undefined
-        ? {
-          email,
-          email_confirmed_at: null,
-        }
-        : {}),
       user_metadata: {
         ...next.user.user_metadata,
         ...safeData,
-        ...(email !== undefined ? { email } : {}),
       },
     },
   };

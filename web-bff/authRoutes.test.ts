@@ -804,6 +804,41 @@ Deno.test("authenticated password update stays server-side", async () => {
   );
 });
 
+// Security gate 14 Oct (run-1 P1): the login email cannot be changed from the browser. Identity Platform would
+// rebind the login to an address nobody proved. Refused before any provider call; the session is untouched.
+Deno.test("login email change is refused before any provider call", async () => {
+  const outbound: string[] = [];
+  let written = false;
+  for (const body of [{ email: "someone-else@example.test" }, { email: "x@example.test", password: "NewPassword123!" }]) {
+    const res = await handleAuthRoute(
+      new Request("https://prooflab.co.in/api/auth/update", {
+        method: "POST",
+        headers: {
+          Cookie: makeSessionCookie(SESSION_ID, 3600).split(";")[0],
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }),
+      {
+        env: env(),
+        fetcher: async (input) => {
+          outbound.push(String(input));
+          throw new Error(`unexpected URL: ${input}`);
+        },
+        now: () => NOW,
+        loadSession: async () => stored(),
+        loadLoginIdentity: stillAllowed,
+        updateSession: async () => {
+          written = true;
+        },
+      },
+    );
+    assert(res !== null && res.status === 400, `email change answered ${res?.status}`);
+  }
+  assert(outbound.length === 0, `provider called: ${outbound.join(", ")}`);
+  assert(!written, "session was rewritten");
+});
+
 Deno.test("verification resend uses the server session and returns no token", async () => {
   let sawVerification = false;
 

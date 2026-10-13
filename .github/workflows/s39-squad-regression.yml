@@ -38,10 +38,15 @@ jobs:
         with:
           node-version: '22'
 
-      - name: UI freeze - no screen file changed since S38 74c3a12
+      # Owner decision 13 Oct: the admin panel may change (People menu merge, bulk remove, confirm box, live
+      # numbers, side-panel toggle). Student and college screens stay frozen. removeStudents.ts is shared with
+      # the college page; its 13 Oct change only adds the "kept locked test accounts" count.
+      - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
-          git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public
-          git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public \
+          ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
+                   ':(exclude)src/hooks/useConfirm.tsx' ':(exclude)src/lib/removeStudents.ts')
+          git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
+          git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
 
       - name: UI freeze - the college controls by name

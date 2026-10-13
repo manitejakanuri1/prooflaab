@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { confirmRemoval, removalSummary, removeStudents } from "@/lib/removeStudents";
+import { removalSummary, removeStudents } from "@/lib/removeStudents";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -61,6 +62,7 @@ const StudentOversight = () => {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [confirmBox, ask] = useConfirm();
 
   const { data: students, isLoading } = useQuery({
     queryKey: ['student-oversight', searchTerm, collegeFilter],
@@ -278,7 +280,12 @@ const StudentOversight = () => {
   // Same removal as one student (accounts /remove: login deleted, record kept), for the ticked rows.
   const removePicked = async () => {
     const ids = [...picked];
-    if (!ids.length || !confirmRemoval(`${ids.length} selected student${ids.length === 1 ? "" : "s"}`)) return;
+    if (!ids.length) return;
+    if (!(await ask({
+      title: `Remove ${ids.length} selected student${ids.length === 1 ? "" : "s"}?`,
+      points: ["Their work, scores and login are deleted", "Locked test accounts are skipped"],
+      action: "Remove",
+    }))) return;
     setRemoving(true);
     try {
       const r = await removeStudents(ids);
@@ -310,6 +317,7 @@ const StudentOversight = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {confirmBox}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">
@@ -431,7 +439,8 @@ const StudentOversight = () => {
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={async () => {
-                            if (!confirmRemoval(student.full_name)) return;
+                            if (!(await ask({ title: `Remove ${student.full_name}?`,
+                              points: ["Their work, scores and login are deleted"], action: "Remove" }))) return;
                             try {
                               const r = await removeStudents([student.id]);
                               toast({ title: r.keptProtected ? `${student.full_name} is a locked test account and was kept` : `Removed ${student.full_name}` });

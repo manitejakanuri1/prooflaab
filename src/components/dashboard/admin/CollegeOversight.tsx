@@ -48,13 +48,15 @@ import {
   Trash2,
   UserMinus,
 } from "lucide-react";
-import { confirmRemoval, removalSummary, removeStudents } from "@/lib/removeStudents";
+import { removalSummary, removeStudents } from "@/lib/removeStudents";
+import { useConfirm } from "@/hooks/useConfirm";
 
 // Students removed per call to accounts /remove (it accepts at most 500).
 const REMOVE_BATCH = 200;
 
 const CollegeOversight = () => {
   const [progress, setProgress] = useState<{ name: string; done: number; total: number } | null>(null);
+  const [confirmBox, ask] = useConfirm();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState<'created_at' | 'students_count' | 'last_active'>('created_at');
@@ -353,7 +355,11 @@ const CollegeOversight = () => {
     try {
       const total = await countStudents(college.id);
       if (!total) { toast({ title: `${college.name} has no students` }); return; }
-      if (!confirmRemoval(`all ${total} students of ${college.name}`)) return;
+      if (!(await ask({
+        title: `Remove all ${total.toLocaleString("en-IN")} students of ${college.name}?`,
+        points: ["Their work, scores and logins are deleted", "Locked test accounts are skipped", "Keep this page open until it finishes"],
+        action: "Remove all",
+      }))) return;
       let removed = 0;
       let keptProtected = 0;
       setProgress({ name: college.name, done: 0, total });
@@ -387,8 +393,11 @@ const CollegeOversight = () => {
         toast({ title: "Not deleted", description: `${college.name} still has ${total} students. Remove them first.`, variant: "destructive" });
         return;
       }
-      const typed = window.prompt(`Delete ${college.name}? Its squads, seasons and imports go with it, and its admin can no longer sign in.\n\nType DELETE to confirm.`);
-      if (typed?.trim() !== "DELETE") return;
+      if (!(await ask({
+        title: `Delete "${college.name}"?`,
+        points: ["Its squads, seasons and imports are deleted too", "Its admin can no longer sign in"],
+        action: "Delete",
+      }))) return;
       const { error } = await supabase.from('colleges').delete().eq('id', college.id);
       if (error) throw error;
       toast({ title: `Deleted ${college.name}` });
@@ -453,6 +462,7 @@ const CollegeOversight = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {confirmBox}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">

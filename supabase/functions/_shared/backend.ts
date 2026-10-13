@@ -107,7 +107,18 @@ async function serviceToken(): Promise<string> {
 // files, straight off the mounted buckets
 // ---------------------------------------------------------------------------
 
+/**
+ * Security gate 14 Oct (run-1 P0 resume-parser): callers check only a prefix such as `${uid}/`, so a
+ * path must not be able to leave it. Refused, not normalised (same rule as files-service resolve()):
+ * empty, ".", ".." segments, a leading "/", backslashes and NUL.
+ */
+export function isSafeObjectPath(path: string): boolean {
+  return typeof path === "string" && path.length > 0 && !/[\\\0]/.test(path) &&
+    path.split("/").every((s) => s !== "" && s !== "." && s !== "..");
+}
+
 function mountedPath(bucket: string, path: string): string {
+  if (!isSafeObjectPath(path)) throw new Error("invalid storage path");
   const root = PUBLIC_BUCKETS.has(bucket) ? PUBLIC_MOUNT : PRIVATE_MOUNT;
   return `${root}/${bucket}/${path}`;
 }
@@ -147,6 +158,9 @@ function storageFor(bucket: string) {
       // Not a Cloud Storage signed URL: signing one needs a private key, and a
       // key that can sign any object in the bucket would be a far bigger thing
       // to hold than a token that names one file and expires in minutes.
+      if (!isSafeObjectPath(path)) {
+        return { data: null, error: new Error("invalid storage path") };
+      }
       if (!FILES_URL) {
         return { data: null, error: new Error("FILES_URL is not set") };
       }

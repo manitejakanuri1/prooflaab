@@ -87,7 +87,7 @@ jobs:
         run: npm run typecheck
 
       - name: Server function tests (Deno)
-        run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/ functions-service/write_authz_test.ts functions-service/assign_tasks_scope_test.ts functions-service/storage_path_test.ts functions-service/onboarding_email_test.ts
+        run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/ functions-service/write_authz_test.ts functions-service/assign_tasks_scope_test.ts functions-service/storage_path_test.ts functions-service/onboarding_email_test.ts functions-service/delete_college_test.ts
 
       - name: Web BFF authentication and proxy security regression
         run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/

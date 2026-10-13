@@ -82,9 +82,16 @@ serve(async (req) => {
       user_metadata: { full_name: name },
     })
     if (authError || !authData.user) {
+      // 13 Oct: the accounts service answers 409 when the email already has a login (for example a college
+      // that was deleted before delete-college also removed its admin's login). Say so plainly.
+      const taken = /already exists/i.test(authError?.message ?? '')
       return new Response(
-        JSON.stringify({ error: authError?.message ?? 'Could not create the account' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: taken
+            ? 'This email already has a ProofLab login. Use another email, or delete the old college fully first.'
+            : authError?.message ?? 'Could not create the account',
+        }),
+        { status: taken ? 409 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

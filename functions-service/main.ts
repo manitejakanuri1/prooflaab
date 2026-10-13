@@ -42,6 +42,7 @@ const SLUGS = [
   "create-college-user",
   "create-company-user",
   "create-student-users",
+  "delete-college",
   "interests-analyze",
   "level-open",
   "level-quiz-submit",

@@ -51,6 +51,7 @@ import {
 import { removalSummary, removeStudents } from "@/lib/removeStudents";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { readFunctionError } from "@/lib/functionError";
 
 // Students removed per call to accounts /remove. 200 took over the gateway's 60 s limit on staging (13 Oct).
 const REMOVE_BATCH = 25;
@@ -169,7 +170,7 @@ const CollegeOversight = () => {
       const { data: result, error } = await supabase.functions.invoke('create-college-user', {
         body: { name: data.name, email: data.email, status: data.status },
       });
-      if (error) throw error;
+      if (error) throw new Error(String((await readFunctionError(error))?.error ?? error.message));
       if (result?.error) throw new Error(result.error);
       return result;
     },
@@ -381,9 +382,13 @@ const CollegeOversight = () => {
         points: ["Its squads, seasons and imports are deleted too", "Its admin can no longer sign in"],
         action: "Delete",
       }))) return;
-      const { error } = await supabase.from('colleges').delete().eq('id', college.id);
-      if (error) throw error;
-      toast({ title: `Deleted ${college.name}` });
+      // Server side (delete-college): the college, then its admin's role and login, so the email can be reused.
+      const { data, error } = await supabase.functions.invoke('delete-college', { body: { college_id: college.id } });
+      if (error) throw new Error(String((await readFunctionError(error))?.error ?? error.message));
+      toast({
+        title: `Deleted ${college.name}`,
+        description: data?.login_deleted ? "Its admin's login was deleted too." : (data?.note ?? undefined),
+      });
       void queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
     } catch (e) {
       toast({ title: "Not deleted", description: (e as Error).message, variant: "destructive" });

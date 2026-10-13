@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { removalSummary, removeStudents } from "@/lib/removeStudents";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -64,7 +65,7 @@ const StudentOversight = () => {
   const queryClient = useQueryClient();
   const [confirmBox, ask] = useConfirm();
 
-  const { data: students, isLoading } = useQuery({
+  const { data: students, isLoading, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['student-oversight', searchTerm, collegeFilter],
     queryFn: async () => {
       // email moved to student_contact. It has to be pulled in explicitly now,
@@ -93,6 +94,23 @@ const StudentOversight = () => {
       }));
     }
   });
+
+  // The exact number in the database for the same search and college (the list itself stops at ADMIN_LIST_CAP).
+  const { data: total, refetch: refetchTotal } = useQuery({
+    queryKey: ['student-oversight-total', searchTerm, collegeFilter],
+    queryFn: async () => {
+      let q = supabase.from('student_profiles').select('id', { count: 'exact', head: true });
+      if (searchTerm) q = q.ilike('full_name', `%${searchTerm}%`);
+      if (collegeFilter !== "all") q = q.eq('college_id', collegeFilter);
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Live numbers: re-read every 10 s while the tab is visible, and at once when it is looked at again.
+  const refreshAll = () => { void refetch(); void refetchTotal(); };
+  useLiveRefresh(refreshAll, 10_000);
 
   const { data: colleges } = useQuery({
     queryKey: ['colleges-for-student-oversight'],
@@ -325,7 +343,14 @@ const StudentOversight = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Students</h1>
-            <p className="text-muted-foreground">Manage student accounts and activities</p>
+            <p className="text-muted-foreground">
+              {total !== undefined ? `${total.toLocaleString('en-IN')} students` : 'Students'}
+              {students && total !== undefined && students.length < total ? ` (list shows the newest ${students.length.toLocaleString('en-IN')}; use search or the college filter)` : ''}
+              {' · '}Updated {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('en-GB') : '—'}
+              <Button variant="link" size="sm" className="h-auto px-2" disabled={isFetching} onClick={refreshAll}>
+                {isFetching ? 'Refreshing…' : 'Refresh'}
+              </Button>
+            </p>
           </div>
         </div>
         <Button onClick={() => openModal('add')} className="gap-2">
@@ -465,7 +490,7 @@ const StudentOversight = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, students?.length || 0)} of {students?.length || 0} students
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, students?.length || 0)} of {students?.length || 0} loaded ({(total ?? 0).toLocaleString('en-IN')} in total)
               </p>
               <div className="flex items-center gap-2">
                 <Button

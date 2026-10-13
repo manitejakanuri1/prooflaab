@@ -50,9 +50,12 @@ import {
 } from "lucide-react";
 import { removalSummary, removeStudents } from "@/lib/removeStudents";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
-// Students removed per call to accounts /remove (it accepts at most 500).
-const REMOVE_BATCH = 200;
+// Students removed per call to accounts /remove. 200 took over the gateway's 60 s limit on staging (13 Oct).
+const REMOVE_BATCH = 25;
+// How often the page re-reads the database while it is open.
+const LIVE_MS = 10_000;
 
 const CollegeOversight = () => {
   const [progress, setProgress] = useState<{ name: string; done: number; total: number } | null>(null);
@@ -74,7 +77,7 @@ const CollegeOversight = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: colleges, isLoading, error: queryError } = useQuery({
+  const { data: colleges, isLoading, error: queryError, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['college-oversight', searchTerm, statusFilter, sortBy, sortOrder],
     queryFn: async () => {
       
@@ -103,43 +106,19 @@ const CollegeOversight = () => {
           return [];
         }
 
-        // Get student counts for each college
-        const collegeIds = collegeData.map(c => c.id);
-        const { data: studentCounts, error: studentError } = await supabase
-          .from('student_profiles')
-          .select('college_id')
-          .in('college_id', collegeIds);
-        
-        if (studentError) {
-          console.error('Student count error:', studentError);
-        }
-        
-
-        // Get task counts assigned by colleges
-        const { data: taskCounts, error: taskError } = await supabase
-          .from('tasks')
-          .select('created_by_college_id')
-          .in('created_by_college_id', collegeIds);
-          
-        if (taskError) {
-          console.error('Task count error:', taskError);
-        }
-        
-
-        // Process and combine data
-        const processedColleges = collegeData.map(college => {
-          const studentsCount = studentCounts?.filter(s => s.college_id === college.id).length || 0;
-          const tasksCount = taskCounts?.filter(t => t.created_by_college_id === college.id).length || 0;
-          
-          const result = {
-            ...college,
-            students_count: studentsCount,
-            tasks_assigned: tasksCount
-          };
-          
-          
-          return result;
-        });
+        // Exact counts from the database (13 Oct). These used to download every student and task row and count
+        // them in the browser, which the API cuts off, so a big college showed a wrong number.
+        const counted = ({ count, error }: { count: number | null; error: unknown }) => {
+          if (error) console.error('count error:', error);
+          return count ?? 0;
+        };
+        const processedColleges = await Promise.all(collegeData.map(async (college) => ({
+          ...college,
+          students_count: counted(await supabase.from('student_profiles')
+            .select('id', { count: 'exact', head: true }).eq('college_id', college.id)),
+          tasks_assigned: counted(await supabase.from('tasks')
+            .select('id', { count: 'exact', head: true }).eq('created_by_college_id', college.id)),
+        })));
 
         // Sort data
         processedColleges.sort((a, b) => {
@@ -170,6 +149,9 @@ const CollegeOversight = () => {
       }
     }
   });
+
+  // Live numbers: re-read every 10 s while the tab is visible, and at once when it is looked at again.
+  useLiveRefresh(() => { void refetch(); }, LIVE_MS);
 
   // Log any query errors
   if (queryError) {
@@ -375,6 +357,7 @@ const CollegeOversight = () => {
         removed += r.removed;
         keptProtected += r.keptProtected;
         setProgress({ name: college.name, done: removed, total });
+        void refetch();   // the table's count drops live, batch by batch
       }
       toast({ title: `${college.name}: ${removalSummary({ removed, keptProtected })}` });
     } catch (e) {
@@ -470,7 +453,12 @@ const CollegeOversight = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Colleges</h1>
-            <p className="text-muted-foreground">Manage college accounts and activities</p>
+            <p className="text-muted-foreground">
+              Manage college accounts and activities · Updated {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('en-GB') : '—'}
+              <Button variant="link" size="sm" className="h-auto px-2" disabled={isFetching} onClick={() => void refetch()}>
+                {isFetching ? 'Refreshing…' : 'Refresh'}
+              </Button>
+            </p>
           </div>
         </div>
         <Button onClick={() => openModal('add')} className="gap-2">

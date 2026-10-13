@@ -229,12 +229,14 @@ assert h.out[0] == 401
 
 # 13. College/admin removal: every removed student gets an outbox row; a failed delete is reported pending.
 class RemDb:
-    def __init__(self):
-        self.calls = []
+    def __init__(self, login=(200, {"allowed": True, "role": "college_admin"})):
+        self.calls, self.login = [], login
     def __call__(self, path, body=None, method="POST", prefer=None):
         self.calls.append((path, body))
         if path.startswith("user_roles"):
             return 200, [{"role": "college_admin"}]
+        if path == "rpc/web_login_identity":
+            return self.login
         if path == "rpc/remove_students":
             return 200, [{"student_id": "s1", "provider_uid": "g1", "email": "a@x"},
                          {"student_id": "s2", "provider_uid": "g2", "email": "b@x"}]
@@ -250,5 +252,19 @@ h = handler("/remove", {"student_ids": ["s1", "s2"]}); h.remove()
 assert h.out[0] == 200 and h.out[1]["removed"] == 2 and h.out[1]["login_pending"] == 1, h.out
 rec = [b for p, b in s.db.calls if p == "rpc/identity_record_student_removals"][0]
 assert rec["_actor"].startswith("college:") and rec["_project"] == "proj-iso", rec
+
+# 14. Security gate 14 Oct: a college/admin whose account may no longer act (cut-off admin, suspended or rejected
+#     college) is refused BEFORE remove_students; an unreadable rule fails closed. The allowed case is test 13.
+for login, code in [((200, {"allowed": False, "reason": "college_account_unavailable"}), 403),
+                    ((200, {"allowed": False, "reason": "identity_missing"}), 403),
+                    ((200, {"allowed": True}), 403),
+                    ((500, {"message": "boom"}), 503),
+                    ((200, ["not", "an", "object"]), 503)]:
+    s.db = RemDb(login)
+    h = handler("/remove", {"student_ids": ["s1"]}); h.remove()
+    assert h.out[0] == code, (login, h.out)
+    asked = [p for p, b in s.db.calls]
+    assert "rpc/remove_students" not in asked and "rpc/identity_record_student_removals" not in asked, asked
+    assert [b for p, b in s.db.calls if p == "rpc/web_login_identity"][0] == {"_user_id": "c0ffee00-0000-0000-0000-000000000001"}
 
 print("server identity lifecycle: all checks passed")

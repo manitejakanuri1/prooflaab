@@ -178,6 +178,15 @@ def removal_reason(role: str | None, who: str, ids: list, confirm) -> str | None
     return {"admin": "admin", "college_admin": "college"}.get(role)
 
 
+def may_still_act(who: str) -> bool | None:
+    """The website's managed-login rule (web_login_identity) for this account: True, False, or None when it
+    cannot be read (callers fail closed)."""
+    st, out = db("rpc/web_login_identity", {"_user_id": who})
+    if st != 200 or not isinstance(out, dict):
+        return None
+    return out.get("allowed") is True and bool(out.get("role"))
+
+
 def link_refusal(email: str) -> str | None:
     """Why a set-password link must not be returned for this email, or None if it may."""
     st, out = identity("accounts:lookup", {"email": [email]})
@@ -284,6 +293,15 @@ class Handler(BaseHTTPRequestHandler):
         reason = removal_reason(role, who, ids, body.get("confirm"))
         if not reason:
             return self.reply(403, {"error": "Only a college or an administrator can remove students."})
+        if reason != "self":
+            # Security gate 14 Oct (run-1 P1): the caller's role row survives a cut-off (deleted or Console-removed
+            # admin, suspended or rejected college), and a ticket lives an hour. The website's own login rule decides
+            # whether this account may still act. Fails closed.
+            allowed = may_still_act(who)
+            if allowed is None:
+                return self.reply(503, {"error": "Could not check your account. Nothing was changed."})
+            if not allowed:
+                return self.reply(403, {"error": "Your account can no longer remove students."})
         if SHARED_IDENTITY:
             return self.reply(503, {"error": "Removing accounts is switched off here until this environment has "
                                              "its own login pool. Nothing was changed."})

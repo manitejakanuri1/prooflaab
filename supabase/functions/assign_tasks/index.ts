@@ -5,6 +5,7 @@ import { generateText } from "../_shared/llm.ts";
 import { cors } from "../_shared/cors.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
 import { explicitCodingProblem } from '../_shared/coding-mode.ts';
+import { assignScope, clampTask, targetIds, templateAllowed } from '../_shared/assign-scope.ts';
 
 interface AssignTasksRequest {
   mode: 'manual' | 'ai' | 'template' | 'personalized';
@@ -63,58 +64,38 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (roleError || !roleData || !['admin', 'college_admin', 'startup'].includes(roleData.role)) {
+    if (roleError || !roleData) {
       throw new Error('Insufficient permissions');
     }
 
     const requestData: AssignTasksRequest = await req.json();
-    const { 
-      mode, 
-      due_date, 
-      selected_students, 
-      xp_reward = 50,
-      category = 'General', 
-      visibility = 'public'
+    const {
+      mode,
+      due_date,
+      category = 'General',
     } = requestData;
+
+    // Security gate 14 Oct: the caller's scope is decided, and every target checked, BEFORE any
+    // student read, AI call or write. Non-admins cannot choose XP, visibility or approval.
+    const selected_students = targetIds(requestData.selected_students);
+    const scope = await assignScope(supabase, callerId, roleData.role, selected_students);
+    const { xp_reward = 50, visibility = 'public' } = clampTask(scope, {
+      xp_reward: requestData.xp_reward, visibility: requestData.visibility,
+    });
 
     // Validate required fields
     // Due date is only required when actually assigning tasks (selected_students > 0)
     // For AI generation preview, due_date can be optional
-    if (!due_date && selected_students && selected_students.length > 0) {
+    if (!due_date && selected_students.length > 0) {
       throw new Error('Due date is required when assigning tasks');
     }
 
     console.log(`Processing task assignment in ${mode} mode for ${selected_students.length} students`);
 
-    // Get the appropriate creator ID and source based on role
-    let created_by_college_id: string | null = null;
-    let created_by_admin_id: string | null = null;
-    let created_by_startup_id: string | null = null;
-    let source_based_on_role: string;
-
-    if (roleData.role === 'college_admin') {
-      const { data: college, error: collegeError } = await supabase
-        .from('colleges')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (collegeError) {
-        console.error('Error fetching college:', collegeError);
-        created_by_college_id = null;
-      } else {
-        created_by_college_id = college?.id || null;
-      }
-      source_based_on_role = 'college';
-    } else if (roleData.role === 'admin') {
-      created_by_admin_id = user.id;
-      source_based_on_role = 'admin';
-    } else if (roleData.role === 'startup') {
-      created_by_startup_id = user.id;
-      source_based_on_role = 'startup';
-    } else {
-      source_based_on_role = 'manual';
-    }
+    const created_by_college_id: string | null = scope.collegeId;
+    const created_by_admin_id: string | null = scope.admin ? user.id : null;
+    const created_by_startup_id: string | null = null;
+    const source_based_on_role = scope.admin ? 'admin' : 'college';
 
     const createdTasks: any[] = [];
     const assignments: any[] = [];
@@ -200,7 +181,7 @@ serve(async (req) => {
     // Helper function to insert task
     async function insertTask(taskData: any) {
       // Determine approved_by_admin based on creator
-      const approvedByAdmin = true; // Default to true for all creators
+      const approvedByAdmin = scope.admin; // only an admin's task is pre-approved (migration 103 clamp)
       
       // Determine the correct source based on role if not provided
       const finalSource = taskData.source || source_based_on_role;
@@ -212,7 +193,7 @@ serve(async (req) => {
           description: taskData.description,
           due_date: due_date,
           status: 'Pending', // Will be overridden by trigger based on verification
-          xp_reward: taskData.xp_reward || 0,
+          xp_reward: scope.admin ? (taskData.xp_reward || 0) : 0,
           created_at: currentTime,
           updated_at: currentTime,
           duration_days: 7,
@@ -415,6 +396,9 @@ Now generate a task for: ${keywords}`;
 
         if (templateError || !template) {
           throw new Error('Template not found');
+        }
+        if (!(await templateAllowed(supabase, scope, callerId, template.created_by ?? null))) {
+          throw new Error('Insufficient permissions');
         }
 
         const gradingConfig = await attachGradingConfig(template.title, template.description);

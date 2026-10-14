@@ -29,7 +29,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write        # required to request the OIDC token
 
 jobs:
   # Release gate. Must pass before anything is published.
@@ -42,11 +41,32 @@ jobs:
       - name: No secrets in tracked files
         run: python3 scripts/secret_scan.py
 
+      - name: Google API key configuration tests
+        run: python3 scripts/test_google_api_key.py
+
+      - name: Code runner IAM configuration tests
+        run: python3 scripts/test_runner_configuration.py
+
+      - name: Release guard tests (publish refuses without routing and approval)
+        run: python3 scripts/test_release_guard.py
+
+      - name: Hosting rewrite tests (/api goes to the gateway before the page catch-all)
+        run: python3 scripts/test_hosting_rewrites.py
+
       - name: Retired architecture has not come back
         run: python3 scripts/legacy_guard.py
 
+      - name: Deno services may read every setting their code reads (--allow-env)
+        run: python3 scripts/test_deno_env_allowlist.py
+
       - name: Migrations are consistent (numbering, self-check, mirror copy, rollback)
         run: python3 scripts/migrations.py check
+
+      - name: Removed-student privacy migration regression
+        run: python3 scripts/test_removed_students_privacy_migration.py
+
+      - name: Atomic migration wrapper regression
+        run: python3 scripts/test_atomic_migration_guard.py
 
       - uses: actions/setup-node@v4
         with:
@@ -67,7 +87,10 @@ jobs:
         run: npm run typecheck
 
       - name: Server function tests (Deno)
-        run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/
+        run: deno test --no-lock --allow-env --allow-import --allow-read supabase/functions/_shared/ supabase/functions/transcription-reap/ functions-service/write_authz_test.ts functions-service/assign_tasks_scope_test.ts functions-service/storage_path_test.ts functions-service/onboarding_email_test.ts functions-service/delete_college_test.ts
+
+      - name: Web BFF authentication and proxy security regression
+        run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/
 
       - name: Auth bridge tests (signer, service callers, refusals)
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret-0123456789 deno test --no-lock --allow-env --allow-net auth-bridge/
@@ -81,18 +104,26 @@ jobs:
       - name: Files service tests
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
 
+      # S36: the coding-task harness is really compiled and run in each language. The Java one did not compile,
+      # and tests that only read the generated text did not notice. Languages the runner image lacks are skipped.
+      - name: Function-mode harness compiles and runs (real toolchains)
+        run: REQUIRE_TOOLCHAINS=python,javascript,java,c,cpp deno test --no-lock --allow-read --allow-write --allow-run --allow-env supabase/functions/_exec_tests/
+
       - name: Type-check every active server function (Deno)
         run: deno check --no-lock functions-service/main.ts supabase/functions/*/index.ts
 
       - name: Accounts sync safety tests (Python)
         run: |
           pip install --quiet cryptography
-          cd accounts && python3 test_sync_plan.py && python3 test_apptoken.py
+          cd accounts && python3 test_sync_plan.py && python3 test_lifecycle.py && python3 test_server_identity.py && python3 test_apptoken.py && python3 test_removal_reason.py && python3 test_self_delete.py && python3 test_sync_faults.py && python3 test_sync_unmapped.py
           cd ../transcription-worker && python3 -m unittest test_server
           cd ../transcriber && python3 test_language_gate.py
 
       - name: Production build
         run: npm run build
+
+      - name: Browser security regression gate
+        run: python3 scripts/browser_security_gate.py dist
 
       # Build once: this exact folder is what the deploy job publishes. The deploy
       # job never builds, so what was tested is what ships.
@@ -125,7 +156,10 @@ jobs:
             --cap-add SYS_ADMIN --security-opt seccomp=unconfined --memory 2g prooflab-runner
           for i in $(seq 1 30); do curl -sf http://localhost:8080/ready && break; sleep 1; done
       - name: Runner tests
-        run: RUNNER_URL=http://localhost:8080 RUNNER_SECRET=ci-secret REQUIRE_NET_ISOLATION=1 python3 code-runner/test_runner.py
+        run: |
+          docker cp code-runner/test_isolation.py runner:/tmp/test_isolation.py
+          docker exec -e PYTHONPATH=/app runner python3 /tmp/test_isolation.py
+          RUNNER_URL=http://localhost:8080 RUNNER_SECRET=ci-secret python3 code-runner/test_runner.py
       - name: Runner logs on failure
         if: failure()
         run: docker logs runner | tail -50
@@ -166,6 +200,9 @@ jobs:
     # Publishing only ever happens from main (or a manual run of main), never from
     # another branch or a pull request.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      id-token: write        # required to request the OIDC token
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -192,7 +229,21 @@ jobs:
       - name: Verify it is the tested build
         run: (cd dist && sha256sum --quiet -c ../dist.sha256) && sha256sum dist.sha256
 
+      # Fail closed: no production gateway route, no owner approval for THIS commit, or no
+      # answering gateway = no publish. The three values are repository variables only the owner
+      # sets (Settings -> Secrets and variables -> Actions -> Variables); a push alone approves nothing.
+      - name: Release guard (production routing and owner approval)
+        env:
+          BFF_SERVICE: ${{ vars.PRODUCTION_BFF_SERVICE }}
+          BFF_HEALTH_URL: ${{ vars.PRODUCTION_BFF_HEALTH_URL }}
+          PRODUCTION_RELEASE_APPROVED_SHA: ${{ vars.PRODUCTION_RELEASE_APPROVED_SHA }}
+        run: python scripts/release_guard.py dist
+
       - name: Publish
+        env:
+          BFF_SERVICE: ${{ vars.PRODUCTION_BFF_SERVICE }}
+          BFF_HEALTH_URL: ${{ vars.PRODUCTION_BFF_HEALTH_URL }}
+          PRODUCTION_RELEASE_APPROVED_SHA: ${{ vars.PRODUCTION_RELEASE_APPROVED_SHA }}
         run: python scripts/deploy-hosting.py
 
       - name: Confirm the site is serving the new build

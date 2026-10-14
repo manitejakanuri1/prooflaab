@@ -80,11 +80,6 @@ function glotFileName(language: string, code: string, fallback: string): string 
   return named ? `${named[1]}.java` : fallback;
 }
 
-export interface TestCase {
-  stdin: string;
-  expected_output: string;
-}
-
 /** How the run ended, when it ended at all. */
 export type ExecStatus = 'ok' | 'compile_error' | 'runtime_error' | 'time_limit';
 

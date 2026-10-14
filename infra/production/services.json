@@ -137,7 +137,8 @@
     "secret": "code-runner-secret",
     "version": "latest"
    },
-   "CODE_RUNNER_URL": "https://prooflab-code-runner-135298577404.asia-south1.run.app",
+   "CODE_RUNNER_AUTH": "iam",
+   "CODE_RUNNER_URL": "https://prooflab-code-runner-rc-lfnoedpoca-el.a.run.app",
    "DEEPSEEK_API_KEY": {
     "secret": "deepseek-api-key",
     "version": "latest"

@@ -5,8 +5,12 @@ except by calls that are expected to FAIL (and are checked to have failed).
 usage: python scripts/dev-tools/authz_matrix_check.py
 """
 import json, subprocess, sys, urllib.error, urllib.request, shutil
+from pathlib import Path
 
-KEY = "AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw"   # public browser key
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from google_api_key import google_api_key
+
+KEY = google_api_key()
 BRIDGE = "https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-api-ysn2mpe6sa-el.a.run.app"
 FN = "https://prooflab-functions-135298577404.asia-south1.run.app/functions/v1"

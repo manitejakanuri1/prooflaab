@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { CheckCircle, Users, Target, TrendingUp, Star, Award, Zap, Shield, ChevronRight, Menu, X, Building, Briefcase, GraduationCap, Clock, Trophy } from "lucide-react";
@@ -18,26 +17,10 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if this is an auth callback with tokens in the hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    
-    if (accessToken && refreshToken) {
-      console.log('Index: Auth tokens found in hash, redirecting to callback handler');
-      navigate(`/auth/callback${window.location.hash}`, { replace: true });
-      return;
-    }
-
-    // Only redirect authenticated users with a timeout to prevent hanging
+    // Only redirect authenticated users.
     const checkUser = async () => {
-      const timeoutId = setTimeout(() => {
-        console.log('Auth check timed out, showing landing page');
-      }, 3000); // 3 second timeout
-
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        clearTimeout(timeoutId);
         
         if (error) {
           console.error('Error getting session:', error);
@@ -72,6 +55,7 @@ const Index = () => {
                   navigate('/college/dashboard', { replace: true });
                   break;
                 case 'startup':
+                case 'recruiter':
                   navigate('/company/dashboard', { replace: true });
                   break;
                 // No 'student' case: students are sent to /student/start above
@@ -84,7 +68,6 @@ const Index = () => {
           }
         }
       } catch (error) {
-        clearTimeout(timeoutId);
         console.error('Error checking user session:', error);
       }
     };
@@ -128,11 +111,8 @@ const Index = () => {
             {/* Desktop Auth Buttons */}
             <div className="hidden md:flex items-center space-x-4">
               <ThemeToggle />
-              <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
-                Login
-              </Link>
               <Button asChild size="sm" className="rounded-2xl">
-                <Link to="/auth">Get Started</Link>
+                <Link to="/auth">Sign In</Link>
               </Button>
             </div>
 
@@ -158,9 +138,8 @@ const Index = () => {
                     <span className="text-sm text-muted-foreground">Theme:</span>
                     <ThemeToggle />
                   </div>
-                  <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>Login</Link>
                   <Button asChild size="sm" className="rounded-2xl w-fit">
-                    <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                    <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
                   </Button>
                 </div>
               </div>
@@ -186,10 +165,10 @@ const Index = () => {
               
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild size="lg" className="rounded-2xl px-8 py-6 text-lg">
-                  <Link to="/auth">Start Your Proof</Link>
+                  <Link to="/auth">Student Sign In</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="rounded-2xl px-8 py-6 text-lg">
-                  <Link to="/auth">Try as College</Link>
+                  <Link to="/auth">College Sign In</Link>
                 </Button>
               </div>
             </div>
@@ -569,21 +548,8 @@ const Index = () => {
               Ready to Build Your Proof?
             </h2>
             <Button asChild size="lg" className="rounded-2xl px-8 py-6 text-lg">
-              <Link to="/auth">Start Now – It's Free</Link>
+              <Link to="/auth">Sign In</Link>
             </Button>
-            
-            <div className="space-y-4">
-              <p className="text-muted-foreground">Get weekly job & task updates via email</p>
-              <div className="flex max-w-md mx-auto space-x-2">
-                <Input 
-                  placeholder="Enter your email" 
-                  className="rounded-2xl"
-                />
-                <Button className="rounded-2xl">
-                  Subscribe
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -617,7 +583,6 @@ const Index = () => {
               <h4 className="font-semibold">Company</h4>
               <div className="space-y-2">
                 <button onClick={() => scrollToSection('about')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">About ProofLab</button>
-                <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">Blog</a>
                 <button onClick={() => scrollToSection('contact')} className="block text-left text-muted-foreground hover:text-foreground transition-colors">Contact</button>
               </div>
             </div>

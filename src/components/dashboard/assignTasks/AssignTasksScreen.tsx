@@ -112,11 +112,11 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
   // The four tab drafts, their accessors and the clear buttons live in
   // useTaskForms — they were byte-identical in both original screens.
   const {
-    manualForm, setManualForm,
+    setManualForm,
     aiForm, setAiForm,
-    templateForm, setTemplateForm,
-    personalForm, setPersonalForm,
-    getActiveForm, updateActiveForm,
+    setTemplateForm,
+    setPersonalForm,
+    updateActiveForm,
     title, description, xpReward, dueDate, visibility, category,
     selectedBranch, topicArea, selectedTemplate,
     attachmentType, attachmentUrl, attachmentFile,
@@ -145,9 +145,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
   // Form validation state
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-
-  // Attachment state
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (isAdmin) fetchColleges();
@@ -544,7 +541,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
   const handleAttachmentUpload = async (file: File): Promise<string | null> => {
     try {
-      setUploading(true);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `task-attachments/${fileName}`;
@@ -568,8 +564,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
         variant: "destructive",
       });
       return null;
-    } finally {
-      setUploading(false);
     }
   };
 

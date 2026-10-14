@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { BadgeCheck, Ban, Briefcase, ExternalLink } from "lucide-react";
+import { safeExternalUrl } from "@/lib/safeNavigation";
 
 interface RecruiterRow {
   id: string;
@@ -125,7 +126,7 @@ const RecruiterOversight = () => {
                         {r.company}
                         {r.website && (
                           <a
-                            href={r.website}
+                            href={safeExternalUrl(r.website) ?? undefined}
                             target="_blank"
                             rel="noreferrer noopener"
                             className="text-muted-foreground hover:text-foreground"

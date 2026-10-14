@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Bell, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -14,16 +14,15 @@ const AdminHeader = () => {
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border h-16 flex items-center justify-between px-3 md:px-6">
       <div className="flex items-center space-x-2 md:space-x-4">
-        {isMobile && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          aria-label={isMobile ? "Open menu" : "Show or hide the side panel"}
+          title={isMobile ? "Menu" : "Show or hide the side panel (Ctrl+B)"}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
         <h1 className="text-xl font-bold">Admin Dashboard</h1>
       </div>
       

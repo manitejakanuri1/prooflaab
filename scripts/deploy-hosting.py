@@ -9,9 +9,9 @@ The upload is content-addressed. Each file is gzipped, hashed, and the hashes
 are offered to Google, which replies with only the ones it does not already
 have. A redeploy that changes one file therefore uploads one file.
 
-Usage:
-    python scripts/deploy-hosting.py [dist-dir]
-    HOSTING_SITE=prooflab-staging python scripts/deploy-hosting.py dist-staging   # staging-only site
+Usage (the release guard in scripts/release_guard.py must pass first, or nothing is uploaded):
+    BFF_SERVICE=prooflab-web-bff BFF_HEALTH_URL=https://...run.app PRODUCTION_RELEASE_APPROVED_SHA=<commit>         python scripts/deploy-hosting.py [dist-dir]
+    HOSTING_SITE=prooflab-staging BFF_SERVICE=prooflab-staging-web-bff python scripts/deploy-hosting.py dist-staging
 """
 
 import gzip
@@ -29,6 +29,18 @@ PROJECT = "prooflab-508214"
 SITE = os.environ.get("HOSTING_SITE", "prooflab-508214")   # default: the production site
 API = "https://firebasehosting.googleapis.com/v1beta1"
 DIST = sys.argv[1] if len(sys.argv) > 1 else "dist"
+
+# Same-origin API gateway. NOT optional any more: the site signs in and reads data only through
+# /api/**, so a publish without this rewrite is a site nobody can use.
+BFF_SERVICE = os.environ.get("BFF_SERVICE", "").strip()
+BFF_REGION = os.environ.get("BFF_REGION", "asia-south1").strip()
+
+# Fail closed before anything is uploaded (rules and reasons: scripts/release_guard.py).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import release_guard  # noqa: E402
+import hosting_rewrites  # noqa: E402
+
+release_guard.enforce(SITE, os.environ, DIST)
 
 def find_gcloud() -> str:
     """Wherever gcloud happens to live.
@@ -106,25 +118,52 @@ print(f"  {len(files)} files prepared")
 # 2. create a version
 # ---------------------------------------------------------------------------
 
+# /api/** to the gateway first, the SPA catch-all last (scripts/hosting_rewrites.py, tested there).
+rewrites = hosting_rewrites.rewrites(BFF_SERVICE, BFF_REGION)
+
 version = call("POST", f"sites/{SITE}/versions", {
     "config": {
-        # A single-page app: every unknown path must return index.html, or a
-        # visitor refreshing /dashboard gets a 404 instead of the dashboard.
-        "rewrites": [{"glob": "**", "path": "/index.html"}],
+        # /api/** goes to the BFF when configured; every other unknown path
+        # falls through to the SPA entrypoint.
+        "rewrites": rewrites,
         "headers": [
             {
-                # Security headers on every response. Deliberately no full script CSP:
-                # the lesson editor loads Monaco from its CDN. frame-ancestors blocks
-                # other sites from framing ProofLab (clickjacking); the in-page
-                # sandboxed practice iframe is same-page srcdoc, unaffected.
-                # Microphone stays allowed for ProofLab itself (voice explanations).
+                # Security headers on every response.
+                # Monaco itself is bundled locally.
+                #
+                # The lesson PracticeBox intentionally executes student/lesson HTML
+                # and JavaScript inside sandbox="allow-scripts" srcdoc frames.
+                # srcdoc inherits the parent CSP, so inline scripts must remain
+                # available until that runner is isolated on its own origin.
+                # Only the legacy lesson CDNs still required by existing practice
+                # content are allowed here.
+                #
+                # YouTube is permitted only as an iframe source for resource previews.
+                # Blob workers are required by Monaco.
+                # Microphone stays available for ProofLab voice explanations.
                 "glob": "**",
                 "headers": {
                     "X-Content-Type-Options": "nosniff",
                     "Referrer-Policy": "strict-origin-when-cross-origin",
                     "Permissions-Policy": "microphone=(self), camera=(), geolocation=(), payment=(), usb=()",
                     "X-Frame-Options": "SAMEORIGIN",
-                    "Content-Security-Policy": "frame-ancestors 'self'",
+                    "Content-Security-Policy": (
+                        "default-src 'self'; "
+                        "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; "
+                        "style-src 'self' 'unsafe-inline' https:; "
+                        "img-src 'self' data: blob: https:; "
+                        "font-src 'self' data: https:; "
+                        "connect-src 'self' https: wss:; "
+                        "media-src 'self' data: blob: https:; "
+                        "worker-src 'self' blob:; "
+                        "child-src 'self' blob:; "
+                        "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; "
+                        "object-src 'none'; "
+                        "base-uri 'self'; "
+                        "form-action 'self'; "
+                        "frame-ancestors 'self'; "
+                        "upgrade-insecure-requests"
+                    ),
                 },
             },
             {

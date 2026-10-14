@@ -23,7 +23,7 @@ export interface Candidate {
   skills: SkillScore[]
   assessmentScores: { category: string; score: number; proof: ProofItem[] }[]
   dailyTasks: { date: string; task: string; status: 'completed' | 'pending' | 'missed'; score?: number }[]
-  voiceExplanations: { id: string; topic: string; duration: string; date: string; transcript: string }[]
+  voiceExplanations: { id: string; topic: string; duration: string; date: string; transcript: string; audioShared: boolean }[]
   streak: number
   consistency: number
   lastActive: string

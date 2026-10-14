@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -26,13 +26,18 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groupOf } from "@/components/dashboard/admin/adminNav";
 import AdminOpsHealth from "@/components/dashboard/admin/AdminOpsHealth";
 import { useUrlTab } from "@/hooks/useUrlTab";
+import { usePendingReviewCount } from "@/hooks/usePendingReviewCount";
 
 const AdminDashboard = () => {
-  const { userType, packId } = useParams();
+  const { userType } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Computer screens: the header's panel button shrinks the side panel to icons; the choice is kept
+  // in the cookie the sidebar component already writes on every change.
+  const [desktopOpen, setDesktopOpen] = useState(() => !document.cookie.includes("sidebar:state=false"));
   const isMobile = useIsMobile();
+  const pendingReviews = usePendingReviewCount();
 
   // The page is in the URL (?tab=), so refresh, Back/Forward and pasted links work.
   // /admin/dashboard/user-management/<type> is an older address for the People lists.
@@ -56,9 +61,14 @@ const AdminDashboard = () => {
         return <AdminSubmissions />;
       case "reviewed-submissions":
         return <ReviewedSubmissions />;
+      // One Students page (13 Oct): the old Students list and Student oversight showed the same people.
       case "students":
+      case "student-oversight":
+        return <StudentOversight />;
+      // One Colleges page (13 Oct): the old Colleges list and College users showed the same colleges.
       case "colleges":
-        return <EnhancedUserManagement initialTab={activeTab} hideTabList />;
+      case "college-oversight":
+        return <CollegeOversight />;
       // Companies = the old Startups list plus the old Recruiters screen: one
       // company now carries both, and approving it approves both halves.
       case "startups":
@@ -95,10 +105,6 @@ const AdminDashboard = () => {
         return <DailyLots />;
       case "ops-jobs":
         return <AdminOpsHealth />;
-      case "college-oversight":
-        return <CollegeOversight />;
-      case "student-oversight":
-        return <StudentOversight />;
       case "settings":
         return <SystemSettings />;
       default:
@@ -108,8 +114,8 @@ const AdminDashboard = () => {
 
   return (
     <SidebarProvider 
-      open={!isMobile || sidebarOpen}
-      onOpenChange={setSidebarOpen}
+      open={isMobile ? sidebarOpen : desktopOpen}
+      onOpenChange={isMobile ? setSidebarOpen : setDesktopOpen}
     >
       <div className="min-h-screen flex w-full bg-background relative">
         {/* Mobile overlay */}
@@ -141,7 +147,15 @@ const AdminDashboard = () => {
                   <Tabs value={current} onValueChange={handleTabChange}>
                     <TabsList className="flex-wrap h-auto">
                       {group.children.map((c) => (
-                        <TabsTrigger key={c.id} value={c.id}>{c.label}</TabsTrigger>
+                        <TabsTrigger key={c.id} value={c.id}>
+                          {c.label}
+                          {c.id === "reviewed-submissions" && pendingReviews > 0 && (
+                            <span className="ml-1.5 rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-destructive-foreground"
+                                  aria-label={`${pendingReviews} waiting for review`}>
+                              {pendingReviews}
+                            </span>
+                          )}
+                        </TabsTrigger>
                       ))}
                     </TabsList>
                   </Tabs>

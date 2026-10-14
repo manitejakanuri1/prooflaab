@@ -1,4 +1,4 @@
-import { readSpreadsheet, UnsupportedFile } from "@/lib/readSpreadsheet";
+import { readSpreadsheet } from "@/lib/readSpreadsheet";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -70,23 +70,6 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   }, []);
 
   const effectiveBranch = (branch === "__other__" ? otherBranch : branch).trim();
-
-  /** Splits one CSV line, honouring quoted fields that contain commas. */
-  const splitLine = (line: string): string[] => {
-    const out: string[] = [];
-    let cur = "";
-    let quoted = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (quoted && line[i + 1] === '"') { cur += '"'; i++; }
-        else quoted = !quoted;
-      } else if (ch === "," && !quoted) { out.push(cur); cur = ""; }
-      else cur += ch;
-    }
-    out.push(cur);
-    return out.map((s) => s.trim());
-  };
 
   const parse = async (file: File) => {
     setBusy(true);
@@ -308,10 +291,15 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     const results = (data?.results ?? []) as Array<{ status: string; email: string; message?: string }>;
     const count = (s: string) => results.filter((r) => r.status === s).length;
     const created = count("success");
+    const createdInvited = results.filter(
+      (r: any) => r.status === "success" && r.invited === true,
+    ).length;
+    const createdWithoutInvite = results.filter(
+      (r: any) => r.status === "success" && r.invited !== true,
+    ).length;
     const linked = count("linked");
     const mine = count("already_yours");
     const elsewhere = count("other_college");
-    const failed = count("error");
 
     await supabase.from("student_imports")
       .update({ status: "completed", completed_at: new Date().toISOString() })
@@ -348,7 +336,12 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     const notAdded = results.filter((r) => !handled.has(r.status));
 
     const lines = [
-      created > 0 ? `${created} created and invited` : null,
+      createdInvited > 0
+        ? `${createdInvited} created and invited`
+        : null,
+      createdWithoutInvite > 0
+        ? `${createdWithoutInvite} created, but invitation delivery was not confirmed — they can use Forgot password on sign-in`
+        : null,
       linked > 0 ? `${linked} had already signed up — linked to you, their work kept` : null,
       mine > 0 ? `${mine} already in your college` : null,
       elsewhere > 0 ? `${elsewhere} belong to another college — not changed` : null,
@@ -359,7 +352,10 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     toast({
       title: `${created + linked} of ${good.length} students added`,
       description: lines.join(" · "),
-      variant: notAdded.length > 0 ? "destructive" : undefined,
+      variant:
+        notAdded.length > 0 || createdWithoutInvite > 0
+          ? "destructive"
+          : undefined,
       // Long enough to read who was left out.
       duration: notAdded.length > 0 ? 30000 : undefined,
     });

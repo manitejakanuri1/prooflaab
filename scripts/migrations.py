@@ -63,8 +63,26 @@ NO_ROLLBACK = {57}        # 57 (freeze covers resume evaluators) is undone by 52
 def wrap(path):
     version = os.path.basename(path)[:-4]
     body, digest = text(path), checksum(path)
-    return f"""\\set ON_ERROR_STOP on
-create table if not exists public.schema_migrations (
+    atomic = version in {
+        "100-managed-accounts-only-policies",
+        "101-revoke-sessions-when-access-ends",
+        "102-student-access-enforcement",
+    }
+
+    prefix = r"\set ON_ERROR_STOP on" + "\n"
+
+    if atomic:
+        if body.count("\nbegin;\n") != 1 or body.count("\ncommit;\n") != 1:
+            raise ValueError("unexpected migration transaction structure")
+        body = body.replace("\nbegin;\n", "\n", 1)
+        body = body.replace("\ncommit;\n", "\n", 1)
+        prefix += (
+            "begin;\n"
+            "select pg_advisory_xact_lock("
+            "hashtextextended('prooflab-managed-release', 0));\n"
+        )
+
+    return f"""{prefix}create table if not exists public.schema_migrations (
   version text primary key, checksum text not null, applied_at timestamptz not null default now(),
   applied_by text not null default current_user, note text);
 do $ledger$ begin
@@ -80,7 +98,7 @@ select exists (select 1 from public.schema_migrations where version = '{version}
   insert into public.schema_migrations (version, checksum) values ('{version}', '{digest}');
   \\echo 'LEDGER: {version} applied and recorded'
 \\endif
-"""
+""" + ("commit;\n" if atomic else "")
 
 
 if __name__ == "__main__":

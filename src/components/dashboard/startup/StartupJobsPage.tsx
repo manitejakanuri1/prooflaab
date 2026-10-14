@@ -21,6 +21,7 @@ import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { useStartupVerification } from "@/hooks/useStartupVerification";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { openExternal } from "@/lib/safeNavigation";
 
 interface JobOpportunity {
   id: string;
@@ -338,7 +339,7 @@ export function StartupJobsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => window.open(job.apply_link, "_blank")}>
+                          <DropdownMenuItem onClick={() => void openExternal(job.apply_link)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>

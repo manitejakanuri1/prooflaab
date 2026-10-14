@@ -54,38 +54,33 @@ docker compose exec web sh     # a shell inside the container
 docker compose down            # stop
 ```
 
-Nothing else is needed: the Supabase URL and publishable key are compiled into
-the client, so there is no .env to copy between machines. Two things do not
-live in the container and are per-machine: your GitHub credentials for pushing,
-and `supabase login` if you intend to deploy edge functions from there.
+Nothing else is needed: the public service addresses come from the committed
+`.env*` files, so there is nothing secret to copy between machines. Your GitHub
+credentials for pushing (and `gcloud` sign-in for operator work) stay per-machine.
 
 ## Stack
 
-> **Historical.** Supabase and Vercel were retired; everything now runs on Google Cloud.
-> Current picture: [docs/PRODUCTION-ARCHITECTURE.md](docs/PRODUCTION-ARCHITECTURE.md). The lines below and the
-> database/deploy notes that follow describe the old setup.
-
-- React 18 + TypeScript + Vite, Tailwind and shadcn/ui
-- TanStack Query for server state, React Router v6
-- Supabase — Postgres with row-level security, Auth, Storage
-- 40 Deno edge functions in `supabase/functions`, on DeepSeek for anything generative
-- Vercel hosting, deployed from `main`
+- React 18 + TypeScript + Vite, Tailwind and shadcn/ui; TanStack Query, React Router v6.
+  The code still uses the `supabase-js` client, pointed at the Google Cloud services below.
+- Google Cloud, project `prooflab-508214`, region `asia-south1`: Cloud SQL `prooflab-db`,
+  PostgREST `prooflab-api`, Identity Platform + `prooflab-auth-bridge`, `prooflab-functions`
+  (all Deno handlers in one service; AI = DeepSeek), `prooflab-files`, `prooflab-accounts`,
+  `prooflab-transcriber` + private `prooflab-transcription-worker`, the code runner in its own
+  project (`prooflab-runner-508214`), crawler and bug-finder jobs, Firebase Hosting.
+- Supabase and Vercel are retired. Full picture: [docs/PRODUCTION-ARCHITECTURE.md](docs/PRODUCTION-ARCHITECTURE.md).
 
 ## Working on the database
 
-Migrations live in `supabase/migrations` and are applied through the Supabase
-MCP tools, never `supabase db push`. Every applied change is saved back into that
-folder and committed, so the folder and the live database stay the same thing.
-
-Regenerate `src/integrations/supabase/types.ts` after any schema change — the
-editor reads it to know what tables and columns exist.
+Migrations are `migration/NN-*.sql` (self-check + rollback file) with an identical copy in
+`supabase/migrations/`; `python scripts/migrations.py check` must pass. They are rehearsed on
+staging and applied to production through the ledger wrapper - never `supabase db push`.
+Regenerate `src/integrations/supabase/types.ts` after a schema change.
 
 ## Deploying
 
-```sh
-git push prooflaab deploy/prooflaab:main   # Vercel builds automatically
-supabase functions deploy <name>           # edge functions deploy separately
-```
+See [DEPLOYING.md](DEPLOYING.md). In short: a push to `main` on `prooflaab` publishes the
+website (Firebase Hosting, after the CI gate); server services and the database are deployed
+separately, by hand, with the owner's yes.
 
 ## What the docs in here are worth
 

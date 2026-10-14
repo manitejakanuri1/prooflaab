@@ -161,7 +161,26 @@ export interface DraftGrade {
 
 export type DraftVerdict<Spec extends StarterSpec> =
   | { accepted: true; attempt: FunctionAttempt<Spec> }
-  | { accepted: false; retryNote: string };
+  | {
+    accepted: false;
+    retryNote: string;
+    /**
+     * Why, for the server log only: a category and counts. Never arguments,
+     * expected values, source or anything else from a test, hidden or not.
+     */
+    reason: string;
+  };
+
+/** "compile_error x4" - what kinds of failure the reference hit, and how often. Counts only. */
+function verdictTally(results: { passed: boolean; verdict?: string }[]): string {
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    if (r.passed) continue;
+    const kind = /^[a-z_]{1,24}$/.test(r.verdict ?? "") ? r.verdict! : "failed";
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  return [...counts].map(([kind, n]) => `${kind} x${n}`).join(", ");
+}
 
 /**
  * One function draft, start to finish: parse it through the contract, prove the
@@ -180,12 +199,13 @@ export async function evaluateFunctionDraft<Spec extends StarterSpec>(
   if (!attempt) {
     return {
       accepted: false,
+      reason: "reply did not match the function contract",
       retryNote: "\n\nYour previous reply did not match the function contract (language, function_spec names and types, one args value per parameter, expected matching return_type, and a reference_solution and buggy_solution that implement only the function - no main, no input reading). Return valid JSON in exactly the shape asked.",
     };
   }
   const graded = await grade(attempt, attempt.reference_solution);
   if (!graded.ok || !graded.results) {
-    return { accepted: false, retryNote: "\n\nYour previous reply could not be run. Return valid JSON in exactly the shape asked, with a complete reference implementation of only the function." };
+    return { accepted: false, reason: "reference could not be run by the grader", retryNote: "\n\nYour previous reply could not be run. Return valid JSON in exactly the shape asked, with a complete reference implementation of only the function." };
   }
   if (graded.results.length !== attempt.test_cases.length || graded.results.some((r) => !r.passed)) {
     const failing = graded.results.filter((r) => !r.passed).slice(0, 3)
@@ -194,6 +214,7 @@ export async function evaluateFunctionDraft<Spec extends StarterSpec>(
     const failed = graded.results.filter((r) => !r.passed).length;
     return {
       accepted: false,
+      reason: `reference failed ${failed} of ${attempt.test_cases.length} tests (${verdictTally(graded.results)}), language ${attempt.language}`,
       retryNote: `\n\nYour previous reference implementation failed ${failed} of ${attempt.test_cases.length} tests. Failing cases:\n${failing}\n\nReturn a corrected function (and corrected expected values if they were wrong). It must pass every test.`,
     };
   }
@@ -201,6 +222,7 @@ export async function evaluateFunctionDraft<Spec extends StarterSpec>(
   if (!q.ok) {
     return {
       accepted: false,
+      reason: `tests too weak (${q.problems.length} problem${q.problems.length === 1 ? "" : "s"})`,
       retryNote: `\n\nYour reference implementation passes, but the tests are too weak:\n- ${q.problems.join("\n- ")}\n\nReturn improved test_cases (and a buggy_solution the hidden tests catch). Keep the same function.`,
     };
   }

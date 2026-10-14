@@ -1,5 +1,4 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { ThemeToggle } from "@/components/ThemeToggle";
 

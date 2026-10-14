@@ -1,6 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient, findAccountByEmail } from "../_shared/backend.ts";
 import { cors } from "../_shared/cors.ts";
+import { deliverManagedInvite } from "../_shared/managedInvite.ts";
 
 serve(async (req) => {
   const corsHeaders = cors(req);
@@ -335,52 +336,75 @@ serve(async (req) => {
           _existing_profile_id: profileNeedsAuth && existingProfile ? existingProfile.id : null,
         })
         if (recordError) {
-          console.error('IMPORT RECORD FAILED (nothing was written for this student):', recordError)
+          console.error(
+            'IMPORT RECORD FAILED (nothing was written for this student):',
+            recordError,
+          )
+
+          const { error: rollbackError } =
+            await supabaseAdmin.auth.admin.deleteUser(
+              authData.user.id,
+            )
+
+          if (rollbackError) {
+            console.error(
+              'STUDENT LOGIN ROLLBACK FAILED:',
+              rollbackError,
+            )
+          }
+
           results.push({
             email,
             status: 'error',
-            message: `Could not save this student: ${recordError.message}. Nothing was saved for them; import the file again to retry.`
+            message: rollbackError
+              ? `Could not save this student: ${recordError.message}. Automatic login rollback also failed; administrator review is required.`
+              : `Could not save this student: ${recordError.message}. The login was rolled back; import the file again to retry.`
           })
           continue
         }
 
-        // The invitation. §6: after a successful import the platform invites the
-        // students it just created — until now the import created accounts and
-        // told nobody, so every imported student sat waiting for an email that
-        // was never sent.
-        //
-        // A recovery link rather than the temporary password: the password is
-        // generated here and should die here. Mailing it would put a working
-        // credential in an inbox forever.
-        //
-        // Never allowed to fail the import. A student whose account exists but
-        // whose email bounced is recoverable; a half-finished import is not.
-        try {
-          const { data: link } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'recovery',
-            email,
-          })
-
-          await supabaseAdmin.functions.invoke('send-onboarding-email', {
-            headers: { 'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '' },
-            body: {
+        const invite = await deliverManagedInvite(
+          () =>
+            supabaseAdmin.auth.admin.generateLink({
+              type: 'recovery',
               email,
-              name,
-              userType: 'student',
-              actionLink: link?.properties?.action_link ?? null,
-            },
-          })
-        } catch (inviteError) {
-          console.error('Invitation email failed (student was still created):', inviteError)
+            }),
+          (actionLink) =>
+            supabaseAdmin.functions.invoke(
+              'send-onboarding-email',
+              {
+                headers: {
+                  'x-webhook-secret':
+                    Deno.env.get('WEBHOOK_SECRET') ?? '',
+                },
+                body: {
+                  email,
+                  name,
+                  userType: 'student',
+                  actionLink,
+                },
+              },
+            ),
+          Deno.env.get('BACKEND') === 'google',
+        )
+
+        if (!invite.invited) {
+          console.error(
+            'student account created but invitation delivery was not confirmed:',
+            email,
+          )
         }
 
         results.push({
           email,
           status: 'success',
-          message: 'Student account created and invited',
+          invited: invite.invited,
+          inviteDelivery: invite.delivery,
+          message: invite.invited
+            ? 'Student account created and invitation sent'
+            : 'Student account created, but invitation delivery was not confirmed',
           userId: authData.user.id
-          // Temporary password intentionally omitted from the response: the
-          // student sets their own through the link above.
+          // Temporary password intentionally omitted from the response.
         })
 
       } catch (error) {

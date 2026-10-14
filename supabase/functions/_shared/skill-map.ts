@@ -48,8 +48,6 @@ export const INTEREST_ROLE: Record<string, string> = {
  * Interests with no runnable language. A coding round here would fall back to
  * Python and test something the student never claimed, so it is skipped.
  */
-export const NON_CODING_INTERESTS = new Set(['UI/UX Design']);
-
 export interface InterestVerdict {
   interest: string;
   covered: boolean;

@@ -3,14 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { Award, Eye, EyeOff, ExternalLink, Share, Star, Trophy, CheckCircle, Clock, Globe, Lock, Users } from "lucide-react";
+import { Award, Eye, EyeOff, Share, Star, CheckCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { useState, useEffect } from "react";
 import ProvenWork, { useProvenWork } from "@/components/portfolio/ProvenWork";
 import { getInitials } from "@/lib/utils";
 

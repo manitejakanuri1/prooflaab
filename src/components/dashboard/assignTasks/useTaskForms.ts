@@ -13,8 +13,6 @@ import { useState } from "react";
  * and visibility alone, since those are the settings you least want to retype.
  */
 
-export type TaskTab = "manual" | "ai" | "template" | "personalized";
-
 export interface PersonalizedTask {
   id: string;
   studentId: string;

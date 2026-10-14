@@ -16,5 +16,7 @@ RUN deno cache --allow-import functions-service/main.ts || true
 RUN for f in supabase/functions/*/index.ts; do deno cache --allow-import "$f" || exit 1; done
 
 USER deno
-CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", \
+# --allow-write=/mnt: only the mounted buckets, so the daily job can delete the files of a student who deleted
+# their own account (Sidhu S36-01). Nothing else in the container is writable by the program.
+CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", "--allow-write=/mnt", \
      "--allow-import", "functions-service/main.ts"]

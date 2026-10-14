@@ -2,10 +2,11 @@
 // and records per screen: crash (page error / error boundary), console errors, failed requests (>= 400),
 // and whether the screen rendered real content. Complements staging_browser_e2e.mjs, which checks content.
 //   E2E_BASE=https://prooflab-staging.web.app node scripts/dev-tools/staging_screen_walk.mjs
+// Signs in for real (bff_login.mjs): set E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD, and the same for TPO,
+// COMPANY and STUDENT - dedicated staging test logins that already exist. NOT RUN since this change.
 // Exit code = number of screens with a problem. Results: e2e-out/final/screen-walk.json
 import { chromium } from "playwright";
-import { createHash, createPublicKey, createSign } from "node:crypto";
-import { execSync } from "node:child_process";
+import { cookieSignIn, credentialsFor } from "./bff_login.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.E2E_BASE;
@@ -30,23 +31,12 @@ const SCREENS = {
     ...["timeline", "funnels", "problems"].map((v) => `${A}?tab=student-trace&view=${v}`), "/admin/notifications"],
 };
 
-const pem = execSync("gcloud secrets versions access latest --secret=prooflab-staging-app-signing-key", { encoding: "utf8" });
-const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-const kid = createHash("sha256").update(createPublicKey(pem).export({ format: "jwk" }).n).digest("hex").slice(0, 16);
-function session({ id, email }) {
-  const exp = Math.floor(Date.now() / 1000) + 3600, now = new Date().toISOString();
-  const h = b64({ alg: "RS256", typ: "JWT", kid }), p = b64({ sub: id, role: "authenticated", email, email_confirmed: true, exp });
-  return { access_token: `${h}.${p}.${createSign("RSA-SHA256").update(`${h}.${p}`).sign(pem).toString("base64url")}`,
-    refresh_token: "staging-e2e-no-refresh", expires_in: 3600, expires_at: exp, token_type: "bearer", provider_token: "",
-    user: { id, aud: "authenticated", role: "authenticated", email, email_confirmed_at: now, phone: "", created_at: now, updated_at: now,
-            last_sign_in_at: now, app_metadata: {}, user_metadata: {}, identities: [] } };
-}
-
 const rows = [];
 const browser = await chromium.launch();
 for (const [role, screens] of Object.entries(SCREENS)) {
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
-  await context.addInitScript(([k, v]) => localStorage.setItem(k, v), ["prooflab.auth.google", JSON.stringify(session(FIX[role]))]);
+  // Real sign-in: the site's form -> /api/auth/login -> HttpOnly cookie (the site ignores browser storage).
+  await cookieSignIn(context, BASE, credentialsFor(role));
   const page = await context.newPage();
   let problems = [];
   page.on("dialog", (d) => { problems.push(`dialog: ${d.message().slice(0, 80)}`); void d.dismiss(); });

@@ -1,0 +1,108 @@
+name: Identity faults and staging BASELINE (S40)
+
+# Sidhu S40.
+#   faults:   offline fault injection of the Google Identity <-> app account handling (sync, gateway sessions) and
+#             the unit tests of the live suites. Must be green.
+#   provenance: staging must serve TEJA's release candidate (built here and compared); else exit 4.
+#   baseline: signed-out checks against the CURRENTLY DEPLOYED staging site. BASELINE only, not release
+#             certification. No login, no
+#             secret, nothing can be written (every write is sent without a session and must be refused).
+
+on:
+  push:
+    branches: ["fix/sidhu-s40-*", "fix/teja-identity-*"]
+  workflow_dispatch:
+  schedule:
+    - cron: "30 1 * * *"     # 07:00 IST: notice a staging regression without anyone asking
+
+permissions:
+  contents: read
+
+jobs:
+  faults:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - name: Account sync fault injection (real handler, fake Google and database)
+        run: cd accounts && python3 test_sync_faults.py && python3 test_sync_unmapped.py && python3 test_sync_plan.py && python3 test_server_identity.py && python3 test_lifecycle.py && python3 test_self_delete.py
+      - name: Gateway session vs Google account deleted / disabled (all roles)
+        run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/identityFaults.test.ts web-bff/accountRecheck.test.ts
+      - name: Contract drift - every frontend and server call is connected (S41)
+        run: node --test scripts/dev-tools/sidhu_s41_contract_drift.test.mjs scripts/dev-tools/sidhu_s41_anon_direct_api.test.mjs
+      - name: Database write actions + migrations 111-113 on PostgreSQL 16 (PGlite) - no skip allowed
+        run: |
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/pgl" @electric-sql/pglite@0.2.17
+          PGLITE_MODULE="file://$RUNNER_TEMP/pgl/node_modules/@electric-sql/pglite/dist/index.js" \
+            node --test --test-reporter=tap scripts/dev-tools/sidhu_s41_live_only_functions.test.mjs \
+              scripts/dev-tools/sidhu_s41_squad_management.test.mjs scripts/dev-tools/sidhu_s41_squad_settings.test.mjs \
+              scripts/dev-tools/sidhu_s41_hiring.test.mjs scripts/dev-tools/sidhu_s41_student_writes.test.mjs \
+              scripts/dev-tools/sidhu_s41_college_material.test.mjs scripts/dev-tools/sidhu_s41_season_controls.test.mjs \
+              scripts/dev-tools/sidhu_s41_review_queue.test.mjs | tee "$RUNNER_TEMP/s41.tap"
+          grep -q '^# fail 0$' "$RUNNER_TEMP/s41.tap" && grep -q '^# skipped 0$' "$RUNNER_TEMP/s41.tap"
+      - name: The live suites' own unit tests
+        run: node --test scripts/dev-tools/sidhu_s40_anon_api.test.mjs scripts/dev-tools/sidhu_s32_live_e2e.test.mjs scripts/dev-tools/sidhu_s40_e2e_infra.test.mjs scripts/dev-tools/sidhu_s42_run_control.test.mjs
+
+  provenance:
+    # Is staging really serving TEJA's release candidate? Build that exact commit the way staging is built and compare
+    # its entry file with the live one. Change STAGING_RC when a new candidate is deployed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      STAGING_RC: 3847f3ed1a0be8c052a887af2e9014333a37230b   # release/teja-sidhu-s41-staging-rc-2026-10-13
+    outputs:
+      entry: ${{ steps.build.outputs.entry }}
+      live: ${{ steps.build.outputs.live }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.STAGING_RC }}", path: rc }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Build the release candidate the way staging is built; compare with the live site
+        id: build
+        working-directory: rc
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npx vite build --mode staging --outDir ../rc-dist > ../rc-build.log 2>&1
+          entry=$(grep -oE 'index-[A-Za-z0-9_-]+\.js' ../rc-dist/index.html | head -1)
+          live=$(curl -s https://prooflab-staging.web.app/ | grep -oE 'index-[A-Za-z0-9_-]+\.js' | head -1)
+          echo "entry=$entry" >> "$GITHUB_OUTPUT"; echo "live=$live" >> "$GITHUB_OUTPUT"
+          echo "release candidate $STAGING_RC builds to $entry; staging serves $live"
+          [ -n "$entry" ] && [ "$entry" = "$live" ] || { echo "::error::staging is NOT serving the release candidate"; exit 4; }
+
+  baseline:
+    needs: provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: BASELINE - every gateway address, signed out and with a forged token (staging)
+        run: node scripts/dev-tools/sidhu_s40_anon_api.mjs --confirm-staging --out e2e-out/s40-anon
+      - name: BASELINE - the database API itself, called directly with no token (it is publicly invokable)
+        run: node scripts/dev-tools/sidhu_s41_anon_direct_api.mjs --confirm-staging
+      - name: Install the browser suite
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: BASELINE - every screen sends a signed-out visitor to sign-in, no data answered (deployed build)
+        run: |
+          set +e
+          node scripts/dev-tools/sidhu_s32_live_e2e.mjs --anon --confirm-staging --expect-entry "${{ needs.provenance.outputs.entry }}" \
+            --out e2e-out/s40-screens | tee e2e-out/s40-screens.log
+          code=${PIPESTATUS[0]}
+          echo "suite exit $code (0 all PASS; 1 FAIL; 2 incomplete or provenance not VERIFIED; 4 wrong build)"
+          # 2 is expected here: anonymous rows only, and Cloud Run revisions are not verified without a QA identity.
+          [ "$code" = 0 ] || [ "$code" = 2 ]
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: s40-staging-baseline
+          path: e2e-out/
+          retention-days: 14

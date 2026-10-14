@@ -1,0 +1,134 @@
+name: Web BFF security gate
+
+on:
+  push:
+    paths:
+      - "web-bff/**"
+      - ".github/workflows/web-bff-ci.yml"
+      - "scripts/secret_scan.py"
+  pull_request:
+    paths:
+      - "web-bff/**"
+      - ".github/workflows/web-bff-ci.yml"
+      - "scripts/secret_scan.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web-bff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: No secrets in tracked files
+        run: python3 scripts/secret_scan.py
+
+      - name: Type-check BFF
+        run: deno check --no-lock web-bff/main.ts
+
+      - name: BFF security tests
+        run: |
+          deno test --no-lock \
+            web-bff/session.test.ts \
+            web-bff/serviceToken.test.ts \
+            web-bff/sessionStore.test.ts \
+            web-bff/authRoutes.test.ts \
+            web-bff/proxyRoutes.test.ts \
+            web-bff/publicRoutes.test.ts \
+            web-bff/requestGuard.test.ts \
+            web-bff/accountRecheck.test.ts
+
+      # Separate step: only these files load main.ts, which reads settings. They
+      # get exactly the names the container gets (web-bff/Dockerfile) and no
+      # network. The security tests above keep running with no permissions.
+      - name: BFF readiness and route-order tests (fail-closed /ready, closed /api/db)
+        run: |
+          deno test --no-lock \
+            --allow-env=PORT,GOOGLE_API_KEY,AUTH_BRIDGE_URL,POSTGREST_URL,FUNCTIONS_URL,FILES_URL,ACCOUNTS_URL,TRANSCRIBER_URL,SESSION_KEY,ENVIRONMENT,BROWSER_ORIGINS,BFF_RELEASE_READY \
+            web-bff/routeContract.test.ts \
+            web-bff/readiness.test.ts \
+            web-bff/mainRouting.test.ts
+
+      - name: Build BFF container
+        run: docker build -t prooflab-web-bff-ci web-bff
+
+      - name: Start BFF container
+        run: |
+          docker run -d \
+            --name prooflab-web-bff-ci \
+            -p 18080:8080 \
+            prooflab-web-bff-ci
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18080/health >/tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "BFF health check failed"
+          docker logs prooflab-web-bff-ci
+          exit 1
+
+      - name: Ready endpoint must remain closed by default
+        run: |
+          code="$(
+            curl -sS \
+              -o /tmp/ready.json \
+              -w '%{http_code}' \
+              http://127.0.0.1:18080/ready
+          )"
+
+          cat /tmp/ready.json
+
+          if [ "$code" != "503" ]; then
+            echo "Expected /ready to return 503 by default, got $code"
+            exit 1
+          fi
+
+          echo "PASS: /ready remains fail-closed at 503"
+
+      - name: Release switch alone must not open the ready endpoint
+        run: |
+          docker run -d \
+            --name prooflab-web-bff-ci-enabled \
+            -e BFF_RELEASE_READY=true \
+            -p 18081:8080 \
+            prooflab-web-bff-ci
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18081/health >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          code="$(
+            curl -sS \
+              -o /tmp/ready-enabled.json \
+              -w '%{http_code}' \
+              http://127.0.0.1:18081/ready
+          )"
+
+          cat /tmp/ready-enabled.json
+
+          if [ "$code" != "503" ]; then
+            echo "Expected /ready to return 503 with no configuration, got $code"
+            docker logs prooflab-web-bff-ci-enabled
+            exit 1
+          fi
+
+          echo "PASS: enablement without valid configuration stays at 503"
+
+      - name: Container logs
+        if: always()
+        run: docker logs prooflab-web-bff-ci || true

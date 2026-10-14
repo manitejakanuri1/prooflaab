@@ -6,9 +6,10 @@
 //   2. Remove on the empty task -> confirmation dialog; dismiss -> still there; accept -> deleted
 //   3. Student removal: cancel / a wrong word -> nothing removed (REMOVE is never typed)
 //   4. /pricing -> lands on the home page
+// Signs in for real (./bff_login.mjs); the minted-token-in-localStorage way no longer works. NOT RUN since this change.
 // Exit code = number of failed checks. Leaves only the first task (with its submission) as evidence.
 import { chromium } from "playwright";
-import { createHash, createPublicKey, createSign } from "node:crypto";
+import { cookieSignIn, credentialsFor } from "./bff_login.mjs";
 import { execSync } from "node:child_process";
 
 const BASE = process.env.E2E_BASE;
@@ -27,22 +28,12 @@ const setup = JSON.parse(py(
 const count = (path) => Number(py(`import sys; sys.path.insert(0,'scripts/dev-tools'); import st; print(len(st.call('svc','GET','${path}')[1]))`));
 if (setup.submit !== 200) throw new Error(`setup submit failed: ${setup.submit}`);
 
-const pem = execSync("gcloud secrets versions access latest --secret=prooflab-staging-app-signing-key", { encoding: "utf8" });
-const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-const kid = createHash("sha256").update(createPublicKey(pem).export({ format: "jwk" }).n).digest("hex").slice(0, 16);
-const exp = Math.floor(Date.now() / 1000) + 3600;
-const h = b64({ alg: "RS256", typ: "JWT", kid }), p = b64({ sub: ADMIN.id, role: "authenticated", email: ADMIN.email, email_confirmed: true, exp });
-const token = `${h}.${p}.${createSign("RSA-SHA256").update(`${h}.${p}`).sign(pem).toString("base64url")}`;
-const now = new Date().toISOString();
-const session = { access_token: token, refresh_token: "staging-e2e-no-refresh", expires_in: 3600, expires_at: exp, token_type: "bearer", provider_token: "",
-  user: { id: ADMIN.id, aud: "authenticated", role: "authenticated", email: ADMIN.email, email_confirmed_at: now, phone: "", created_at: now,
-          updated_at: now, last_sign_in_at: now, app_metadata: {}, user_metadata: {}, identities: [] } };
-
 let failed = 0;
 const check = (name, ok, detail = "") => { if (!ok) failed++; console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? ` - ${detail}` : ""}`); };
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
-await context.addInitScript(([k, v]) => localStorage.setItem(k, v), ["prooflab.auth.google", JSON.stringify(session)]);
+// Real sign-in: the form -> /api/auth/login -> HttpOnly cookie. E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD = a staging test admin.
+await cookieSignIn(context, BASE, credentialsFor('admin'));
 const page = await context.newPage();
 
 async function openRowMenu(title) {

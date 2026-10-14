@@ -80,6 +80,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
                 return (
                   <SidebarMenuItem key={group.id}>
                     <SidebarMenuButton
+                      tooltip={group.label}
                       onClick={() => openGroup(group.children[0].id)}
                       className={cn(
                         isActive && "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"

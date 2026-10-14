@@ -48,9 +48,6 @@ interface Match {
   home_points: number | null; away_points: number | null;
   stage: string; cohort: string | null; round_number: number | null;
 }
-interface StudentRow {
-  student_id: string; full_name: string; roll_number: string | null; is_reserve: boolean;
-}
 /** A student with no squad. The cohort matters: it says which league they belong in. */
 interface Reserve {
   student_id: string; full_name: string; roll_number: string | null;
@@ -89,7 +86,6 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const [squads, setSquads] = useState<Squad[] | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [students, setStudents] = useState<StudentRow[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [pickStudent, setPickStudent] = useState("");
   const [pickSquad, setPickSquad] = useState("");
@@ -136,7 +132,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     if (list.length === 0) { setMembers([]); setMatches([]); return; }
     const ids = list.map((s) => s.id);
 
-    const [mem, mat, stu, perf, ach, rules, themes, res] = await Promise.all([
+    const [mem, mat, perf, ach, rules, themes, res] = await Promise.all([
       supabase.from("squad_members")
         .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
         .in("squad_id", ids)
@@ -144,7 +140,6 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       supabase.from("squad_matches").select("*")
         .or(`home_squad.in.(${ids.join(",")}),away_squad.in.(${ids.join(",")})`)
         .order("scheduled_at", { ascending: false }).limit(20),
-      supabase.rpc("tpo_students" as never),
       supabase.rpc("tpo_squad_performance" as never, { _weeks: 8 } as never),
       supabase.rpc("tpo_squad_achievements" as never),
       supabase.rpc("tpo_scoring_rules" as never),
@@ -154,7 +149,6 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 
     setMembers((mem.data ?? []) as unknown as Member[]);
     setMatches((mat.data ?? []) as unknown as Match[]);
-    setStudents((stu.data ?? []) as unknown as StudentRow[]);
     setPerformance((perf.data ?? []) as unknown as Performance[]);
     setAchievements((ach.data ?? []) as unknown as Achievement[]);
     setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);

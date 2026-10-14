@@ -1,4 +1,6 @@
 import { format } from "date-fns";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +46,8 @@ const Row = ({ name, value }: { name: string; value: string }) => (
  * The AI's sentences and the transcript sit behind "View detailed feedback".
  */
 const BuildLogEntries = () => {
+  const [searchParams] = useSearchParams();
+  const targetTaskId = searchParams.get("task");
   const { data: entries = [], isLoading, error } = useBuildLog();
   const { data: labels = [] } = useQuery({
     queryKey: ["my-rubric-labels"],
@@ -55,6 +59,22 @@ const BuildLogEntries = () => {
   });
   const labelOf = (taskId: string, criterionId: string) =>
     labels.find((l) => l.task_id === taskId && l.criterion_id === criterionId);
+
+  useEffect(() => {
+    if (!targetTaskId || !entries.some(e => e.task_id === targetTaskId)) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const card = document.getElementById(`build-log-${targetTaskId}`);
+      if (!card) return;
+
+      const details = card.querySelector("details");
+      if (details) details.open = true;
+
+      card.scrollIntoView({ block: "center" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [targetTaskId, entries]);
 
   if (isLoading) return <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-28 animate-pulse rounded-lg bg-muted" />)}</div>;
   if (error) return <p className="text-sm text-destructive">Could not load your Build-log. Please refresh.</p>;
@@ -92,7 +112,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
   const hasDetail = Boolean(v?.communication_notes || v?.transcript || breakdown.some((b) => b.evidence) || e.work);
 
   return (
-    <Card>
+    <Card id={`build-log-${e.task_id}`}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

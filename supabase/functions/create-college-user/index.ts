@@ -1,6 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { cors } from "../_shared/cors.ts";
+import { deliverManagedInvite } from "../_shared/managedInvite.ts";
 
 /**
  * Admin -> Colleges -> Add College. Same shape as create-student-users: a
@@ -81,53 +82,111 @@ serve(async (req) => {
       user_metadata: { full_name: name },
     })
     if (authError || !authData.user) {
+      // 13 Oct: the accounts service answers 409 when the email already has a login (for example a college
+      // that was deleted before delete-college also removed its admin's login). Say so plainly.
+      const taken = /already exists/i.test(authError?.message ?? '')
       return new Response(
-        JSON.stringify({ error: authError?.message ?? 'Could not create the account' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: taken
+            ? 'This email already has a ProofLab login. Use another email, or delete the old college fully first.'
+            : authError?.message ?? 'Could not create the account',
+        }),
+        { status: taken ? 409 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // has_completed_wizard: true — an admin filling in name/email here has
-    // already done what the onboarding wizard would otherwise ask for.
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({ user_id: authData.user.id, role: 'college_admin', has_completed_wizard: true })
-    if (roleError) console.error('Role error:', roleError)
+    // Role + college row are one database transaction. If either cannot be
+    // written, nothing is kept and the fresh Identity login is rolled back.
+    const { data: collegeId, error: provisionError } =
+      await supabaseAdmin.rpc('provision_college_account', {
+        _user_id: authData.user.id,
+        _created_by: userData.user.id,
+        _name: name,
+        _email: email.toLowerCase(),
+        _status: status || 'active',
+      })
 
-    const { data: college, error: collegeError } = await supabaseAdmin
-      .from('colleges')
-      .insert({
-        user_id: authData.user.id,
-        name,
-        email: email.toLowerCase(),
-        status: status || 'active',
-      })
-      .select('id')
-      .single()
-    if (collegeError) {
-      return new Response(JSON.stringify({ error: `Account created but college record failed: ${collegeError.message}` }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+    if (provisionError || !collegeId) {
+      console.error(
+        'College provisioning failed:',
+        provisionError,
+      )
+
+      const { error: rollbackError } =
+        await supabaseAdmin.auth.admin.deleteUser(
+          authData.user.id,
+        )
+
+      if (rollbackError) {
+        console.error(
+          'College login rollback failed:',
+          rollbackError,
+        )
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: rollbackError
+            ? 'College provisioning failed and automatic login rollback also failed. Administrator review is required.'
+            : 'College provisioning failed. The login was rolled back; please try again.'
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
     }
 
-    // Never allowed to fail the creation — a college whose invite email
-    // bounced is recoverable, a half-created account is not.
-    try {
-      const { data: link } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email.toLowerCase(),
-      })
-      await supabaseAdmin.functions.invoke('send-onboarding-email', {
-        headers: { 'x-webhook-secret': Deno.env.get('WEBHOOK_SECRET') ?? '' },
-        body: { email, name, userType: 'college', actionLink: link?.properties?.action_link ?? null },
-      })
-    } catch (inviteError) {
-      console.error('Invitation email failed (college was still created):', inviteError)
+    // Invitation delivery is separate from account creation: creation stays
+    // successful, but the response must tell the UI the truth about delivery.
+    const invite = await deliverManagedInvite(
+      () =>
+        supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: email.toLowerCase(),
+        }),
+      (actionLink) =>
+        supabaseAdmin.functions.invoke(
+          'send-onboarding-email',
+          {
+            headers: {
+              'x-webhook-secret':
+                Deno.env.get('WEBHOOK_SECRET') ?? '',
+            },
+            body: {
+              email,
+              name,
+              userType: 'college',
+              actionLink,
+            },
+          },
+        ),
+      Deno.env.get('BACKEND') === 'google',
+    )
+
+    if (!invite.invited) {
+      console.error(
+        'college account created but invitation delivery was not confirmed',
+      )
     }
 
     return new Response(
-      JSON.stringify({ id: college.id, userId: authData.user.id, status: 'success' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        id: collegeId,
+        userId: authData.user.id,
+        status: 'success',
+        invited: invite.invited,
+        inviteDelivery: invite.delivery,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      },
     )
   } catch (error) {
     console.error('create-college-user error:', error)

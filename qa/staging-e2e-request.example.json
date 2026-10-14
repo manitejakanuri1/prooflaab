@@ -1,0 +1,9 @@
+{
+  "expected_sha": "<full 40-character SHA that staging must be running>",
+  "expect_revisions": "functions=<revision>,web-bff=<revision>,accounts=<revision>",
+  "base_url": "https://prooflab-staging.web.app",
+  "roles": "admin,tpo,company,student,established",
+  "allow_writes": "false",
+  "db_verify": "false",
+  "allow_destructive": "false"
+}

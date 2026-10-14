@@ -1,7 +1,3 @@
-import { currentAccessToken } from "@/integrations/google/identity";
-
-const ACCOUNTS_URL = import.meta.env.VITE_ACCOUNTS_URL as string;
-
 /**
  * Removal cannot be undone: the Google login is deleted and the database cascades
  * the student's work away. remove_students() keeps a record (profile, contact,
@@ -23,14 +19,26 @@ export function confirmRemoval(label: string): boolean {
  * with a partial record kept first (accounts/ service + remove_students() in the
  * database). A college can remove only its own students; an admin any.
  */
-export async function removeStudents(studentIds: string[]): Promise<{ removed: number; loginFailures: number }> {
-  const token = await currentAccessToken();
-  const res = await fetch(`${ACCOUNTS_URL}/remove`, {
+/** "Removed 99 students. Kept 1 locked test account." */
+export function removalSummary(r: { removed: number; keptProtected: number }): string {
+  const s = `Removed ${r.removed} student${r.removed === 1 ? "" : "s"}.`;
+  return r.keptProtected
+    ? `${s} Kept ${r.keptProtected} locked test account${r.keptProtected === 1 ? "" : "s"} (they cannot be deleted).`
+    : s;
+}
+
+export async function removeStudents(studentIds: string[]): Promise<{ removed: number; loginFailures: number; keptProtected: number }> {
+  const res = await fetch("/api/accounts/remove", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ student_ids: studentIds }),
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      student_ids: studentIds,
+    }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? "Could not remove the student.");
-  return { removed: json.removed ?? 0, loginFailures: (json.login_failures ?? []).length };
+  return { removed: json.removed ?? 0, loginFailures: (json.login_failures ?? []).length, keptProtected: json.kept_protected ?? 0 };
 }

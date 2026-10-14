@@ -1,47 +1,34 @@
 // Step 6 browser corrections: real-browser STAGING checks of VoiceExplainModal.
 //
 // Needs: `npx vite --mode staging --port 5173 --strictPort` running (staging
-// services allow http://localhost:5173), and STAGING_JWT in the environment:
-//   STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
+// services allow http://localhost:5173), and gcloud access to the staging signing key:
+// Tokens: signed like the staging bridge (RS256, F1) by ./staging_token.mjs - needs gcloud access to staging secrets.
 //     node scripts/dev-tools/voice_modal_browser.mjs <long.wav> <short.wav>
 // The secret only mints short-lived tokens in memory (a t07 session like the
 // staging auth-bridge issues, and a service token for read-only checks); it and
 // the tokens are never printed. Real Chromium with a fake microphone playing
 // the given WAV. Makes real staging recordings and a few real DeepSeek calls.
 import { chromium } from 'playwright';
-import crypto from 'node:crypto';
+import { mintStaging } from "./staging_token.mjs";
+import { cookieSignIn, credentialsFor, signedInUserId } from "./bff_login.mjs";
 
 const [LONG_WAV, SHORT_WAV] = process.argv.slice(2);
-const APP = 'http://localhost:5173';
+// SIGN-IN (changed 8 Oct 2026): the site keeps its session in the web BFF's HttpOnly cookie and ignores
+// browser storage, so this signs in for real through the form (./bff_login.mjs). It needs a site served
+// WITH the BFF (E2E_BASE, e.g. the staging site - a bare `vite` server has no /api) and a dedicated test
+// login in the environment: E2E_STUDENT_EMAIL / _PASSWORD / _ID. The browser now calls same-origin /api/db, /api/functions and
+// /api/files, so those are the addresses intercepted below. NOT RUN since this change.
+const APP = (process.env.E2E_BASE ?? '').replace(/\/$/, '');
+if (!APP) throw new Error('set E2E_BASE to a site served with the web BFF (for example the staging site)');
 const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
-const T07 = '7d71bff4-1ec2-4778-b26d-9567a416bfac';
-const JOB_KEY_PREFIX = `pl.voiceJob.${T07}.`;
+const T07 = process.env.E2E_STUDENT_ID;   // account id of the E2E_STUDENT_* test login (checked after sign-in)
+if (!T07) throw new Error('set E2E_STUDENT_ID to the account id of the E2E_STUDENT_* test login');
 
-const b64 = (b) => Buffer.from(b).toString('base64url');
-function mint(claims, ttl) {
-  const now = Math.floor(Date.now() / 1000);
-  const h = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const p = b64(JSON.stringify({ ...claims, iat: now, exp: now + ttl }));
-  const s = crypto.createHmac('sha256', process.env.STAGING_JWT).update(`${h}.${p}`).digest('base64url');
-  return `${h}.${p}.${s}`;
-}
+const mint = (claims, ttl = 7200) => mintStaging(claims, ttl);
 const SVC = mint({ role: 'service_role', sub: 'voice-modal-browser-test' }, 3600);
 async function rows(query) {
   const r = await fetch(`${API}/voice_explanations?${query}`, { headers: { Authorization: `Bearer ${SVC}` } });
   return r.json();
-}
-
-function session() {
-  const token = mint({ role: 'authenticated', sub: T07, email: 'vidyuthsetu+t07@gmail.com' }, 7200);
-  return {
-    access_token: token, provider_token: token, refresh_token: 'browser-test-no-refresh',
-    expires_in: 7200, expires_at: Math.floor(Date.now() / 1000) + 7200, token_type: 'bearer',
-    user: {
-      id: T07, email: 'vidyuthsetu+t07@gmail.com', aud: 'authenticated', role: 'authenticated',
-      created_at: new Date().toISOString(), last_sign_in_at: new Date().toISOString(),
-      app_metadata: {}, user_metadata: {}, identities: [],
-    },
-  };
 }
 
 const results = [];
@@ -55,10 +42,8 @@ async function withBrowser(wav, fn) {
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${wav}`],
   });
   const ctx = await browser.newContext({ permissions: ['microphone'] });
-  const s = session();
-  await ctx.addInitScript((sess) => {
-    if (!localStorage.getItem('prooflab.auth.google')) localStorage.setItem('prooflab.auth.google', JSON.stringify(sess));
-  }, s);
+  await cookieSignIn(ctx, APP, credentialsFor('student'));
+  if ((await signedInUserId(ctx, APP)) !== T07) throw new Error('E2E_STUDENT_ID is not the signed-in test student');
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
   try {
@@ -71,9 +56,12 @@ async function withBrowser(wav, fn) {
   }
 }
 
-async function openModal(page) {
+async function openModal(page, taskTitle) {
   await page.goto(`${APP}/student/tasks/assigned`, { waitUntil: 'domcontentloaded' });
-  const btn = page.getByRole('button', { name: /Explain 60s/ }).first();
+  // Each task is a card with its title as a heading; reopen a named task's own button (list order
+  // changes once a task has a recording).
+  const scope = taskTitle ? page.locator('[class*="border-l-4"]').filter({ has: page.getByRole('heading', { name: taskTitle, exact: true }) }) : page;
+  const btn = scope.getByRole('button', { name: /Explain 60s/ }).first();
   await btn.waitFor({ timeout: 60000 });
   await btn.click();
   await page.getByRole('dialog').waitFor({ timeout: 15000 });
@@ -83,13 +71,19 @@ async function record(page, ms) {
   await page.waitForTimeout(ms);
   await page.getByRole('button', { name: /Stop and save/ }).click();
 }
-const storedJob = (page) => page.evaluate((prefix) => {
+// The modal keeps one record per recording under pl.voiceJob.v3:<recordingId> (src/lib/voiceJob.ts),
+// carrying studentId/taskId - not the older pl.voiceJob.<student>.<task> keys.
+const storedJob = (page) => page.evaluate((id) => {
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith(prefix)) return JSON.parse(localStorage.getItem(k));
+    if (!k?.startsWith('pl.voiceJob.v3:')) continue;
+    const j = JSON.parse(localStorage.getItem(k));
+    if (j?.studentId === id) return j;
   }
   return null;
-}, JOB_KEY_PREFIX);
+}, T07);
+const titleOf = async (taskId) =>
+  (await (await fetch(`${API}/tasks?id=eq.${taskId}&select=title`, { headers: { Authorization: `Bearer ${SVC}` } })).json())[0]?.title;
 const tryAgainVisible = (page) => page.getByRole('button', { name: /Try recording again/ }).isVisible();
 
 if (!process.env.ONLY || process.env.ONLY.includes('A')) /* section A */
@@ -101,8 +95,12 @@ await withBrowser(LONG_WAV, async (page) => {
   const job = await storedJob(page);
   check('A1 stored job has voiceId, key, path and duration', !!(job?.voiceId && job.idempotencyKey && job.storagePath && job.durationSeconds > 0),
     `duration=${job?.durationSeconds}`);
+  const title = await titleOf(job?.taskId);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await openModal(page);                                    // reopen after refresh -> resume
+  // Heartbeat contract (voiceLifecycle.ts): a heartbeat older than 15 s means its page is gone. Reopened
+  // sooner, the dialog says "still being sent from another open tab" until reopened (reported finding).
+  await page.waitForTimeout(16000);
+  await openModal(page, title);                             // reopen after refresh -> resume
   await page.getByText('Saved. It will appear in your build-log.').waitFor({ timeout: 120000 });
   const emptySrc = await page.locator('audio[src=""]').count();
   check('A2 no <audio> with an empty src after refresh', emptySrc === 0);
@@ -195,7 +193,7 @@ if (!process.env.ONLY || process.env.ONLY.includes('E')) /* section E */
 await withBrowser(LONG_WAV, async (page) => {
   let failing = false;
   await page.route(/voice_explanations\?.*id=eq\./, (route) =>
-    failing && !route.request().url().includes('transcription_idempotency_key')
+    failing && !route.request().url().includes('transcription_idempotency_key=eq.')  // the key LOOKUP, not the poll (whose select list names the column)
       ? route.fulfill({ status: 503, body: '{"message":"test outage"}' }) : route.continue());
   await openModal(page);
   failing = true;

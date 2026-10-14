@@ -5,14 +5,12 @@ import CollegeDashboardSidebar from "@/components/dashboard/college/CollegeDashb
 import CollegeDashboardContent from "@/components/dashboard/college/CollegeDashboardContent";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCollegeProfile } from "@/hooks/useCollegeProfile";
-import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
 
 const CollegeDashboard = () => {
   const [activeTab, setActiveTab] = useUrlTab("tab", "home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { profile, loading } = useCollegeProfile();
+  const { profile } = useCollegeProfile();
 
   // Show loading state or use fallback data
   const collegeData = {

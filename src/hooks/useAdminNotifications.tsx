@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { safeInternalPath } from "@/lib/safeNavigation";
 
 interface AdminNotification {
   id: string;
@@ -73,7 +74,6 @@ export function useAdminNotifications() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('New notification received:', payload);
           const newNotification = payload.new as AdminNotification & { audience?: string };
 
           // One table now carries every audience, so an admin who is also a
@@ -81,11 +81,13 @@ export function useAdminNotifications() {
           if (newNotification.audience !== 'admin') return;
 
           // Show toast for new notification
+          const notificationPath = safeInternalPath(newNotification.link);
+
           toast(newNotification.title, {
             description: newNotification.message,
-            action: newNotification.link ? {
+            action: notificationPath ? {
               label: 'View',
-              onClick: () => window.location.href = newNotification.link,
+              onClick: () => { window.location.href = notificationPath; },
             } : undefined,
           });
 

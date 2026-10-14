@@ -4,7 +4,7 @@ import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Activity, AlertTriangle, Shield, Upload, Trophy } from "lucide-react";
+import { Users, Activity, AlertTriangle, Shield, Trophy } from "lucide-react";
 import PostJobDescription from "./PostJobDescription";
 import PostSourceMaterial from "./PostSourceMaterial";
 

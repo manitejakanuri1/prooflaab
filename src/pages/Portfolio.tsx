@@ -13,11 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import {
   Mail,
-  Trophy,
-  XCircle,
-  Star,
-  Briefcase,
-  Users
+  Trophy, Star,
+  Briefcase
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 
@@ -26,11 +23,10 @@ const Portfolio = () => {
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [followModalOpen, setFollowModalOpen] = useState(false);
-  const [followModalTab, setFollowModalTab] = useState<"followers" | "following">("followers");
   
   const { portfolio, loading, error } = usePortfolio(slug);
-  const { data: provenWork = [] } = useProvenWork(portfolio?.student_id);
+  const { data: fetchedWork = [] } = useProvenWork(portfolio?.student_id);
+  const provenWork = portfolio?.work ?? fetchedWork;
   const { scorecard } = usePublicScorecard(portfolio?.student_id);
 
   // Get current user ID and check if they're a student
@@ -56,11 +52,6 @@ const Portfolio = () => {
   // Derived state
   const isStudent = !!currentUserId;
   const isRecruiterMode = !isStudent && !isAuthLoading;
-
-  // Debug logging for API responses
-  useEffect(() => {
-    console.log('Portfolio API Response:', { portfolio, loading, error });
-  }, [portfolio, loading, error]);
 
   // SEO Meta Tags
   useEffect(() => {
@@ -312,7 +303,7 @@ const Portfolio = () => {
                 <Trophy className="h-7 w-7 text-primary" />
                 <h2 className="text-3xl font-bold">Proven work</h2>
               </div>
-              <ProvenWork studentId={portfolio?.student_id} emptyText="Nothing passed yet. Check back later." />
+              <ProvenWork studentId={portfolio?.student_id} rows={portfolio?.work} emptyText="Nothing passed yet. Check back later." />
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import { serve } from "../_shared/serve.ts";
+import { removeOwnerFiles } from '../_shared/owner-files.ts';
 import { createClient } from "../_shared/backend.ts";
 import { schedulerCaller } from "../_shared/googleIdentity.ts";
 import { pagesNeedingLots, reopenForRewrite, writeLotTemplate } from "../_shared/lot-pipeline.ts";
@@ -85,6 +86,34 @@ serve(async (req) => {
   // broke before Cloud Scheduler existed (see the comment at the top). These checks catch that:
   // a distinct log line, watched by its own alert, rather than folding into the job's own success/fail.
   await sanityCheck(db, job, data).catch((e) => console.error(`scheduled-job ${job}: sanity check itself failed:`, e));
+
+  // S31: one daily digest of answers waiting for a person (migration 104), riding on the daily Lot run so no
+  // new scheduler job is needed. Non-fatal: a reminder never fails or retries the Lot job, and the function
+  // itself sends at most one digest per reviewer per IST day.
+  if (job === 'daily-lots') {
+    const { data: digest, error: digestError } = await db.rpc('notify_pending_reviews');
+    if (digestError) console.error(`scheduled-job daily-lots: review digest failed: ${digestError.message}`);
+    else console.log('scheduled-job daily-lots: review digest', JSON.stringify(digest ?? null));
+  }
+
+  // S34: a student who deleted their own account (migration 105) has every stored file deleted here (resumes,
+  // voice audio, profile photo), riding on the daily prune so no new scheduler job is needed. Repeatable: a row is
+  // marked only once every folder is gone, so a failed delete is tried again tomorrow and stays visible in the log.
+  if (job === 'prune-events') {
+    const { data: gone, error: goneError } = await db.from('removed_students')
+      .select('id, student_id').eq('reason', 'self').is('files_purged_at', null).limit(50);
+    if (goneError) console.error(`scheduled-job prune-events: reading self-removed accounts failed: ${goneError.message}`);
+    let purged = 0;
+    for (const row of gone ?? []) {
+      const failed = await removeOwnerFiles(row.student_id, {
+        private: Deno.env.get('PRIVATE_MOUNT') ?? '/mnt/private', public: Deno.env.get('PUBLIC_MOUNT') ?? '/mnt/public',
+      });
+      if (failed.length) { console.error(`JOB SANITY: files of a deleted account not removed (${failed.join(', ')})`); continue; }
+      const { error: markError } = await db.from('removed_students').update({ files_purged_at: new Date().toISOString() }).eq('id', row.id);
+      if (markError) console.error(`scheduled-job prune-events: purge not recorded: ${markError.message}`); else purged++;
+    }
+    if (gone?.length) console.log(`scheduled-job prune-events: files purged for ${purged} of ${gone.length} deleted account(s)`);
+  }
 
   // A job that ran but failed at its purpose is a failure (migration 75): answer 500 so Cloud
   // Scheduler retries it and the scheduled-job alert fires. Only daily-lots reports a status today.

@@ -4,30 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { 
-  Calendar, 
-  Award, 
-  Play, 
-  Upload, 
-  Search, 
-  Eye, 
+import {
+  Calendar,
+  Award,
+  Play, Search,
+  Eye,
   CheckCircle,
-  Mic, 
+  Mic,
   ClipboardList,
   MoreVertical,
-  Target,
-  Clock,
-  Brain
+  Target
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -46,8 +35,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 const StudentAssignedTasksPage = () => {
-  const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
   const navigate = useNavigate();
+  const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
   const [codingTaskId, setCodingTaskId] = useState<string | null>(null);
   const [writingTaskId, setWritingTaskId] = useState<string | null>(null);
   const [explainTask, setExplainTask] = useState<{ id: string; title: string } | null>(null);
@@ -384,6 +373,7 @@ const StudentAssignedTasksPage = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => navigate(`/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(task.id)}`)}
                             className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />

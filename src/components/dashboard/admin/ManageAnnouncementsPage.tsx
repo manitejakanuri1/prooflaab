@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, Calendar, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -21,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, CheckCircle, XCircle } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 
 interface Announcement {
   id: string;
@@ -48,15 +47,12 @@ const initialFormData: AnnouncementFormData = {
 
 const ManageAnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [formData, setFormData] = useState<AnnouncementFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
-  const [filters, setFilters] = useState({
-    status: "all"
-  });
+  const [viewing, setViewing] = useState<Announcement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,7 +74,6 @@ const ManageAnnouncementsPage = () => {
       }));
       
       setAnnouncements(announcementsWithStatus);
-      setFilteredAnnouncements(announcementsWithStatus);
     } catch (error) {
       console.error("Error fetching announcements:", error);
       toast({
@@ -171,14 +166,6 @@ const ManageAnnouncementsPage = () => {
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    // Since announcements table doesn't have status column, we'll just show a message
-    toast({
-      title: "Info",
-      description: "Status management not available for announcements",
-    });
-  };
-
   const openEditDialog = (announcement: Announcement) => {
     setEditingAnnouncement(announcement);
     setFormData({
@@ -213,25 +200,6 @@ const ManageAnnouncementsPage = () => {
     );
   };
 
-  const applyFilters = () => {
-    let filtered = announcements;
-
-    if (filters.status && filters.status !== "all") {
-      filtered = filtered.filter(announcement => announcement.status === filters.status);
-    }
-
-    setFilteredAnnouncements(filtered);
-  };
-
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, announcements]);
-
-  const clearFilters = () => {
-    setFilters({ status: "all" });
-  };
-
   if (loading) {
     return (
       <div className="p-6">
@@ -264,13 +232,13 @@ const ManageAnnouncementsPage = () => {
         <CardContent className="p-6">
           {/* Search and Filters */}
           <div className="flex items-center gap-4 mb-6">
-            <Button variant="outline" size="sm">
-              All Announcements
-            </Button>
+            <p className="text-sm font-medium text-muted-foreground">
+              All announcements ({announcements.length})
+            </p>
           </div>
 
           {/* Table */}
-          {filteredAnnouncements.length === 0 ? (
+          {announcements.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="text-6xl mb-4">📢</div>
               <p className="text-muted-foreground text-lg">No announcements yet. Keep your community updated!</p>
@@ -286,7 +254,7 @@ const ManageAnnouncementsPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAnnouncements.map((announcement) => (
+                {announcements.map((announcement) => (
                   <TableRow key={announcement.id} className="hover:bg-muted/30 border-muted-foreground/10">
                     <TableCell>
                       <div>
@@ -310,7 +278,7 @@ const ManageAnnouncementsPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setViewing(announcement)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Announcement
                           </DropdownMenuItem>
@@ -335,6 +303,19 @@ const ManageAnnouncementsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Read-only view */}
+      <Dialog open={viewing !== null} onOpenChange={(open) => { if (!open) setViewing(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewing?.title}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            {viewing?.status} · {viewing ? new Date(viewing.created_at).toLocaleString() : ""}
+          </p>
+          <p className="whitespace-pre-wrap text-sm">{viewing?.description || "No description."}</p>
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

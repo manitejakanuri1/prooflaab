@@ -9,6 +9,7 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentIntake } from "@/hooks/useStudentIntake";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUrlTab } from "@/hooks/useUrlTab";
+import { Button } from "@/components/ui/button";
 
 /**
  * Four destinations: Floor, Build-log, Squad, Profile.
@@ -30,7 +31,7 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useUrlTab("tab", getTabFromPath(location.pathname));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { profile, loading, refreshProfile } = useStudentProfile();
+  const { profile, loading, error: profileError, refreshProfile } = useStudentProfile();
   const { loading: intakeLoading, intakeComplete, degraded: intakeDegraded } = useStudentIntake();
 
   // Opening the dashboard counts as being here, which is what a college means
@@ -60,6 +61,20 @@ const StudentDashboard = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // The profile could not be read (signed out, not allowed, server or network
+  // failure). Say so: the screens below would otherwise render with no profile
+  // and read as "no tasks" or "no squad", which is not what happened.
+  if (profileError && !profile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="max-w-sm text-center space-y-4" role="alert">
+          <p className="text-sm text-destructive">We could not load your profile. Please try again.</p>
+          <Button variant="outline" onClick={refreshProfile}>Try again</Button>
+        </div>
       </div>
     );
   }

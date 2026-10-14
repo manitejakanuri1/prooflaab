@@ -3,9 +3,8 @@
     RUNNER_URL=http://localhost:8080 RUNNER_SECRET=test python3 code-runner/test_runner.py
     (CI builds the image and runs it locally; staging: the staging URL + staging secret.)
 
-Exits non-zero if any check fails. REQUIRE_NET_ISOLATION=1 makes network
-isolation mandatory (staging/production must report it); a plain local Docker
-container may not grant it, and then the network checks are reported as skipped.
+Exits non-zero if any check fails. Network isolation is mandatory: a runner
+without verified isolation refuses to execute user code.
 """
 import json
 import os
@@ -59,11 +58,20 @@ ready_req = urllib.request.Request(
     f"{URL}/ready",
     headers=request_headers(),
 )
-ready = json.load(urllib.request.urlopen(ready_req, timeout=30))
+try:
+    ready_response = urllib.request.urlopen(ready_req, timeout=30)
+except urllib.error.HTTPError as exc:
+    if exc.code != 503:
+        raise
+    ready_response = exc
+with ready_response:
+    ready = json.load(ready_response)
 net = bool(ready.get("net_isolation"))
 print(f"ready: {ready}")
-if os.environ.get("REQUIRE_NET_ISOLATION") == "1":
-    check("network isolation active", net, ready)
+check("network isolation active", net, ready)
+if not net:
+    print("FAIL network isolation required; no user code was executed")
+    sys.exit(1)
 
 # --- every language: stdin -> stdout ------------------------------------------------
 HELLO = {

@@ -7,9 +7,7 @@ import {
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarTrigger,
-  useSidebar,
+  SidebarMenuItem
 } from "@/components/ui/sidebar";
 import {
   Tooltip,

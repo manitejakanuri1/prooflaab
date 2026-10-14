@@ -6,6 +6,22 @@ and Vercel are retired; any document that says otherwise is historical.
 
 Project `prooflab-508214`, region `asia-south1` (Mumbai). Site: https://prooflab.co.in
 
+## 0. Update - release 444b2f3 + closure (verified live 7 Oct 2026; main `d814d5d`)
+
+The sections below are from 1 Oct. What changed with the release and the 7 Oct production closure:
+
+| Area | Live now |
+|---|---|
+| Functions | image `prooflab-functions:prod-444b2f3`; `CODE_RUNNER_AUTH=iam`, `CODE_RUNNER_URL` = the dedicated runner below. `CODE_RUNNER_SECRET` is still set (unused with `iam`; removal is a later step). |
+| Code runner | own project `prooflab-runner-508214`, service `prooflab-code-runner-rc` (image `code-runner:prod-444b2f3`): Cloud Run IAM, callers = the functions robots only, no secret, no data. The old `prooflab-code-runner` in the main project still exists (public + `RUNNER_SECRET`) as the rollback; retire it later. |
+| Coding tasks | two kinds (migration 92, `task_sandbox_config.kind`): `stdio` (whole program, stdin/stdout - the old path, unchanged) and `function` (student implements one function; `function_spec` frozen with the tests; arguments are canonical JSON sent to the runner on stdin; a trusted per-language harness calls the function and returns the value in a result frame). Verdicts include `output_limit`. |
+| Scheduler | daily jobs at their normal times again: nightly-squads 05:35, extend-fixtures 05:37, daily-lots 05:40 IST. |
+| Hidden tests | Run uses visible tests only. Submit returns and stores visible rows plus ONE `hidden-summary` row (counts only: no hidden inputs, outputs, errors or ids). The pass rule counts that row as its `hidden_count` tests (migration 93, applied 7 Oct). |
+| API | `PGRST_DB_PRE_REQUEST=public.refuse_suspended`: a suspended account is refused at once. |
+| Images | every other service is deployed by digest (`docs/RELEASE-MANIFEST.md`). |
+| Shared secrets | `WEBHOOK_SECRET` (secret version 2 since 7 Oct; version 1 disabled) on functions + accounts - the 9 Scheduler jobs send it; the Google-identity replacement (F7) is prepared on branch `work/post-release`, not on main and not switched on. `PGRST_JWT_SECRET` on api, auth-bridge, files, functions, transcriber, worker, accounts and the crawler/bug-finder jobs (single-signer F1 not yet in production). |
+| Migrations | ledger `schema_migrations`: 45 files (50-93) applied; 66, 71, 72 and 94 (permanent drops) prepared, not applied. |
+
 ## 1. Whole system
 
 ```
@@ -72,7 +88,8 @@ PostgREST switches to role "authenticated"; row-level security + security-define
 ```
 Daily card -> task page -> (optional scratchpad Run: functions run-code -> code-runner, nothing saved)
           -> Submit: functions submit-written-task / submit-sandbox-task
-             -> DeepSeek grading (written) or hidden tests on code-runner (sandbox)
+             -> DeepSeek grading (written) or every test on the dedicated runner
+                (sandbox: stdio program or function harness; Cloud Run IAM, no secret)
              -> record_task_submission (server-only RPC) -> task_submissions row -> Build-Log
 DeepSeek down: written grading answers "busy" (503), student retries; nothing is lost.
 ```

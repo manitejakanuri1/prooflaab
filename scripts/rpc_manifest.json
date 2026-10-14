@@ -14,6 +14,9 @@
   "notify_weekly_progress()",
   "plan_all_weeks()",
   "prune_app_events()",
+  "provision_admin_account(uuid,uuid)",
+  "provision_college_account(uuid,uuid,text,text,text)",
+  "provision_company_account(uuid,uuid,text,text,text)",
   "record_account(text,text,text,boolean)",
   "record_task_submission(uuid,uuid,uuid,text,text,integer,integer,integer,jsonb,text,integer,uuid,jsonb,text[])",
   "record_topic_attempt(uuid,text,text,uuid,integer)",
@@ -27,10 +30,12 @@
   "student_logins()",
   "touch_lot_template(uuid,uuid)",
   "touch_streak(uuid)",
-  "touch_template(text)"
+  "touch_template(text)",
+  "company_voice_recording(uuid,uuid)"
  ],
  "user_callable": [
   "accept_voice_consent()",
+  "account_access_ok()",
   "assign_to_squad(uuid,uuid,date)",
   "can_see_season(uuid)",
   "college_submit_source_content(text,text)",
@@ -73,6 +78,7 @@
   "save_mock_interview_answer(uuid,text,text,integer)",
   "season_awards(uuid)",
   "season_leaderboard(text,uuid,integer)",
+  "set_share_voice_audio(boolean)",
   "start_task_assignment(uuid)",
   "topic_priorities(uuid,integer)",
   "touch_my_activity()",
@@ -108,6 +114,7 @@
  ],
  "admin_only": [
   "admin_bug_finder_runs(integer)",
+  "admin_identity_lifecycle(integer)",
   "admin_bug_finder_steps(uuid)",
   "admin_content_library()",
   "admin_content_page(uuid)",
@@ -120,7 +127,11 @@
   "admin_trace_search(text)",
   "admin_trace_slow(integer)",
   "admin_trace_student(uuid,integer,integer)",
-  "admin_verify_recruiter(uuid,boolean)"
+  "admin_verify_recruiter(uuid,boolean)",
+  "admin_email_templates()",
+  "admin_save_email_template(text,text,text)",
+  "admin_notification_rules()",
+  "admin_set_notification_rule(text,boolean)"
  ],
  "pending_review": [],
  "sql_internal": [
@@ -174,7 +185,11 @@
   "squad_town(uuid)",
   "suggest_tracks(uuid,integer)",
   "unlock_ceiling(uuid,text)",
-  "write_audit(text,text,uuid,jsonb,jsonb,uuid)"
+  "write_audit(text,text,uuid,jsonb,jsonb,uuid)",
+  "apply_notification_rules()",
+  "guard_share_voice_audio()",
+  "notification_type_protected(text)",
+  "removed_students_forget_login_id()"
  ],
  "policy_helper": [
   "college_owns_student(uuid)",
@@ -272,13 +287,17 @@
  ],
  "public_pure": [
   "check_answer(text,jsonb,jsonb)",
+  "function_mode_reserved_names()",
+  "function_spec_ok(jsonb)",
   "template_key(text,text,text[],text)"
  ],
  "d4_class": {
   "accept_voice_consent()": "E USER_SELF_SERVICE",
+  "account_access_ok()": "E USER_SELF_SERVICE",
   "admin_bug_finder_runs(integer)": "D ADMIN_ONLY",
   "admin_bug_finder_steps(uuid)": "D ADMIN_ONLY",
   "admin_content_library()": "D ADMIN_ONLY",
+  "admin_identity_lifecycle(integer)": "D ADMIN_ONLY",
   "admin_content_page(uuid)": "D ADMIN_ONLY",
   "admin_hide_content(uuid,boolean)": "D ADMIN_ONLY",
   "admin_notify_student(uuid,text,text,text,text)": "D ADMIN_ONLY",
@@ -312,6 +331,8 @@
   "gen_random_bytes(integer)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "gen_salt(text)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "gen_salt(text,integer)": "I PUBLIC_READ_ONLY_INTENTIONAL",
+  "function_mode_reserved_names()": "I PUBLIC_READ_ONLY_INTENTIONAL",
+  "function_spec_ok(jsonb)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "get_leaderboard(integer)": "J LEGACY_UNUSED (kept: own-data only, documented API)",
   "gin_extract_query_trgm(text,internal,smallint,internal,internal,internal,internal)": "I PUBLIC_READ_ONLY_INTENTIONAL",
   "gin_extract_value_trgm(text,internal)": "I PUBLIC_READ_ONLY_INTENTIONAL",

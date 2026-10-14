@@ -10,56 +10,73 @@
 // browser; every other write (function, RPC, insert/update/delete) is blocked
 // and reported. Every faked request records which account's token it carried.
 //
-// Needs `npx vite --mode staging --port 5173 --strictPort` running, and:
-//   STAGING_JWT="$(gcloud secrets versions access latest --secret=prooflab-staging-jwt-secret)" \
-//     node scripts/dev-tools/voice_modal_harness_browser.mjs <speech.wav>
-// The synchronous (legacy) save path is tested by a second run against a dev
-// server started with VITE_ASYNC_TRANSCRIPTION=false and MODE=sync:
-//   VITE_ASYNC_TRANSCRIPTION=false npx vite --mode staging --port 5173 --strictPort
-//   MODE=sync STAGING_JWT=... node scripts/dev-tools/voice_modal_harness_browser.mjs <speech.wav>
-// ONLY=<regex> runs just the matching groups. Genuine Google sign-in is NOT
-// exercised (sessions are minted like the staging auth-bridge issues them).
+// SIGN-IN (redesigned 8 Oct 2026). The site keeps its session in the web BFF's HttpOnly cookie and
+// ignores browser storage, so nothing is minted or planted any more:
+//   * every test browser (context) signs in for real through the form  -> /api/auth/login -> cookie
+//   * "the account changes" (setAccount / setAuth) is a real second sign-in in the same browser,
+//     done by the harness page itself, exactly as when another person signs in on that computer
+//   * a faked request is attributed to an account by the session COOKIE it carried (the browser
+//     holds no token to read), learned from each /api/auth/login answer as it passes through
+// It needs a site served WITH the BFF and the dev-only harness page:
+//   LOCAL (no real account, nothing leaves this machine) - three terminals:
+//     npm run build
+//     deno run --no-lock --allow-net=127.0.0.1,localhost --allow-read=dist scripts/dev-tools/harness/bff_local_stack.ts 5197 http://localhost:5199
+//     npx vite --mode staging --config scripts/dev-tools/harness/vite.local-bff.config.ts --port 5199 --strictPort   (staging mode = async voice path)
+//     E2E_BASE=http://localhost:5199 E2E_LOCAL_STACK=1 node scripts/dev-tools/voice_modal_harness_browser.mjs <any.wav>
+//   STAGING: E2E_BASE=<a dev server proxied to the staging BFF>, plus two dedicated test students:
+//     E2E_STUDENT_EMAIL / _PASSWORD / _ID  and  E2E_STUDENT2_EMAIL / _PASSWORD / _ID   (NOT RUN on staging)
+// The synchronous (legacy) save path is tested by a second run against a dev server started with
+// VITE_ASYNC_TRANSCRIPTION=false, with MODE=sync. ONLY=<regex> runs just the matching groups.
 import { chromium } from 'playwright';
 import crypto from 'node:crypto';
+import { cookieSignIn, credentialsFor } from "./bff_login.mjs";
 
 const WAV = process.argv[2];
-const APP = 'http://localhost:5173';
-const API = 'https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app';
-const FN = 'https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app';
-const FILES = 'https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app/file/voice-explanations';
-const TRANSCRIBER = 'https://prooflab-staging-transcriber-ysn2mpe6sa-el.a.run.app';
+const APP = (process.env.E2E_BASE ?? '').replace(/\/$/, '');
+if (!APP) throw new Error('set E2E_BASE to a dev server whose /api reaches the web BFF (see the top of this file)');
+if (process.env.E2E_LOCAL_STACK) {   // the made-up accounts of harness/bff_local_stack.ts; they exist nowhere else
+  Object.assign(process.env, {
+    E2E_STUDENT_EMAIL: 'student@local.test', E2E_STUDENT_PASSWORD: 'local-student-pw', E2E_STUDENT_ID: 'aaaaaaaa-0000-4000-8000-000000000003',
+    E2E_STUDENT2_EMAIL: 'student2@local.test', E2E_STUDENT2_PASSWORD: 'local-student2-pw', E2E_STUDENT2_ID: 'aaaaaaaa-0000-4000-8000-000000000007',
+  });
+}
+const API = `${APP}/api/db`;
+const FN = `${APP}/api/functions`;
+const FILES = `${APP}/api/files/voice-explanations`;
+const TRANSCRIBER = `${APP}/api/transcriber`;
 const MODE = process.env.MODE === 'sync' ? 'sync' : 'async';
 const ONLY = process.env.ONLY ? new RegExp(process.env.ONLY) : null;
-const A = '7d71bff4-1ec2-4778-b26d-9567a416bfac';     // t07
-const B = '67c7f711-6ca8-4b4d-a586-278857dcb0ab';     // t16
+const A = process.env.E2E_STUDENT_ID;      // first test student
+const B = process.env.E2E_STUDENT2_ID;     // second test student
+if (!A || !B) throw new Error('set E2E_STUDENT_ID and E2E_STUDENT2_ID (or E2E_LOCAL_STACK=1)');
+const LOGINS = { [A]: credentialsFor('student'), [B]: credentialsFor('student2') };   // never printed
 const TASK = 'harness-task';
 const P1 = 'harness-proof-1', P2 = 'harness-proof-2';
+// Since 862efe8 a recording's context is student + task (proof links are retired, the modal has no
+// proofId prop), so tests that need a second context switch the TASK.
+const T2 = 'harness-task-2';
 const HARNESS = `${APP}/scripts/dev-tools/harness/voice-modal-harness.html?student=${A}&task=${TASK}`;
 // records of the previous builds (read for migration only)
 const v2Key = (student, task, proof) => `pl.voiceJob.v2:${JSON.stringify([student, task ?? null, proof ?? null])}`;
 const legacyKey = (student, task, proof) => `pl.voiceJob.${student}.${task ?? proof ?? 'general'}`;
 const v3Key = (id) => `pl.voiceJob.v3:${id}`;
 
-const b64 = (b) => Buffer.from(b).toString('base64url');
-function mint(claims, ttl = 7200) {
-  const now = Math.floor(Date.now() / 1000);
-  const h = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const p = b64(JSON.stringify({ ...claims, iat: now, exp: now + ttl }));
-  return `${h}.${p}.${crypto.createHmac('sha256', process.env.STAGING_JWT).update(`${h}.${p}`).digest('base64url')}`;
+// Which account does a request belong to? The one whose session cookie it carried.
+const cookieOwner = new Map();   // __session cookie value -> account id
+const sessionCookie = (text) => /(?:^|[;,\s])__session=([^;,\s]+)/.exec(text ?? '')?.[1] ?? null;
+/** Every sign-in of this browser passes through here, so the owner of a new cookie is known before the page uses it. */
+async function trackLogins(ctx) {
+  await ctx.route('**/api/auth/login', async (route) => {
+    const res = await route.fetch();
+    try {
+      const id = (await res.json())?.session?.user?.id;
+      const value = sessionCookie(res.headers()['set-cookie']);
+      if (id && value) cookieOwner.set(value, id);
+    } catch { /* a refused sign-in sets no cookie */ }
+    await route.fulfill({ response: res });
+  });
 }
-const sessionFor = (id, email) => {
-  const tok = mint({ role: 'authenticated', sub: id, email });
-  return {
-    access_token: tok, provider_token: tok, refresh_token: 'browser-test-no-refresh', expires_in: 7200,
-    expires_at: Math.floor(Date.now() / 1000) + 7200, token_type: 'bearer',
-    user: { id, email, aud: 'authenticated', role: 'authenticated', created_at: new Date().toISOString(),
-            last_sign_in_at: new Date().toISOString(), app_metadata: {}, user_metadata: {}, identities: [] },
-  };
-};
-const SESSIONS = { [A]: sessionFor(A, 'vidyuthsetu+t07@gmail.com'), [B]: sessionFor(B, 'vidyuthsetu+t16@gmail.com') };
-const subOf = (auth) => {
-  try { return JSON.parse(Buffer.from((auth ?? '').replace(/^Bearer /, '').split('.')[1], 'base64url').toString()).sub ?? null; } catch { return null; }
-};
+const whoSent = async (req) => cookieOwner.get(sessionCookie((await req.allHeaders()).cookie)) ?? null;
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
@@ -89,10 +106,11 @@ const rowOf = (state, id) => ({ ...state.rows.get(id), ...(state.owner.get(id) ?
 
 async function setup(browser, opts = {}) {
   const ctx = await browser.newContext({ permissions: ['microphone'], acceptDownloads: true });
-  await ctx.addInitScript(({ s, sessions, opts }) => {
+  await trackLogins(ctx);
+  await cookieSignIn(ctx, APP, LOGINS[A]);                // real sign-in: form -> /api/auth/login -> HttpOnly cookie
+  await ctx.addInitScript(({ logins, opts }) => {
     if (location.protocol === 'about:') return;          // a blank page left to (F9): nothing to set up
-    localStorage.setItem('prooflab.auth.google', JSON.stringify(s));
-    window.__sessions = sessions;
+    window.__logins = logins;                              // for the harness page's own re-sign-in (setAccount / setAuth)
     const log = { created: [], revoked: [] };
     window.__blobLog = log;
     const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
@@ -156,7 +174,7 @@ async function setup(browser, opts = {}) {
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
       document.dispatchEvent(new Event('visibilitychange'));
     };
-  }, { s: SESSIONS[A], sessions: SESSIONS, opts });
+  }, { logins: LOGINS, opts });
   const state = newState(opts);
   const page = await addPage(ctx, state, opts);
   return { page, state, ctx };
@@ -167,13 +185,18 @@ async function addPage(ctx, state, opts = {}) {
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log(`  pageerror: ${e.message.slice(0, 160)}`));
   page.on('dialog', (d) => { state.dialogs = [...(state.dialogs ?? []), d.type()]; void d.accept(); });
-  const note = (req, extra = {}) => state.requests.push({ sub: subOf(req.headers().authorization), method: req.method(), url: req.url(), ...extra });
+  // Recorded at once (order matters to the tests); the account is filled in a moment later.
+  const note = async (req, extra = {}) => {
+    const entry = { sub: null, method: req.method(), url: req.url(), ...extra };
+    state.requests.push(entry);
+    entry.sub = await whoSent(req);
+  };
 
   await page.route(`${FILES}/**`, async (route) => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    const path = decodeURIComponent(new URL(req.url()).pathname.replace(/^\/file\/voice-explanations\//, ''));
-    note(req, { path });
+    const path = decodeURIComponent(new URL(req.url()).pathname.replace(/^\/api\/files\/voice-explanations\//, ''));
+    await note(req, { path });
     if (req.method() === 'GET') {                      // FAKED download (existence check / playback)
       state.gets.push(path);
       if (state.uploaded.has(path)) return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'audio/webm' }, body: Buffer.from([26, 69, 223, 163]) });
@@ -181,7 +204,7 @@ async function addPage(ctx, state, opts = {}) {
     }
     if (req.method() !== 'PUT') { blocked.push(`files ${req.method()}`); return route.abort('blockedbyclient'); }
     const size = req.postDataBuffer()?.length ?? 0;
-    state.puts.push({ path, size, sub: subOf(req.headers().authorization) });
+    state.puts.push({ path, size, sub: (await whoSent(req)) });
     if (state.putHold) await state.putHold.promise;
     const mode = state.putMode;
     if (mode && typeof mode === 'object') {                            // one answer with this status (R4-1)
@@ -202,10 +225,10 @@ async function addPage(ctx, state, opts = {}) {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
     const name = new URL(req.url()).pathname.split('/').pop();
-    note(req, { fn: name, body: req.postData() });
+    await note(req, { fn: name, body: req.postData() });
     if (name === 'transcription-enqueue') {
       const body = JSON.parse(req.postData() || '{}');
-      const sub = subOf(req.headers().authorization);
+      const sub = (await whoSent(req));
       if (state.enqueueLost > 0) { state.enqueueLost--; state.enqueue.push({ id: null, body, sub, lost: true }); return route.abort('failed'); }
       // like the real function: a retry with the same key returns the existing row (Step 6B)
       const existing = [...state.rows.keys()].find((rid) => rowOf(state, rid).transcription_idempotency_key === body.idempotency_key);
@@ -225,18 +248,19 @@ async function addPage(ctx, state, opts = {}) {
   await page.route(`${API}/**`, async (route) => {
     const req = route.request();
     const url = new URL(req.url());
+    url.pathname = url.pathname.replace(/^\/api\/db/, '');   // same table / rpc paths as before, now behind the BFF
     if (req.method() === 'OPTIONS') return route.continue();
-    note(req, { body: req.postData() });
+    await note(req, { body: req.postData() });
     if (url.pathname === '/rpc/accept_voice_consent') {        // FAKED: nothing reaches staging
       state.consentCalls++;
       if (state.consentHold) await state.consentHold.promise;
-      state.consent[subOf(req.headers().authorization)] = true;   // recorded for the account that sent it
+      state.consent[(await whoSent(req))] = true;   // recorded for the account that sent it
       return route.fulfill({ status: 204, headers: CORS });
     }
     if (url.pathname === '/voice_explanations' && req.method() === 'POST' && MODE === 'sync') {   // FAKED sync insert
       const body = JSON.parse(req.postData() || '{}');
       const id = crypto.randomUUID();
-      state.inserts.push({ id, body, sub: subOf(req.headers().authorization) });
+      state.inserts.push({ id, body, sub: (await whoSent(req)) });
       return json(route, 201, { id });
     }
     if (url.pathname.startsWith('/rpc/') || (req.method() !== 'GET' && req.method() !== 'HEAD')) {
@@ -250,7 +274,7 @@ async function addPage(ctx, state, opts = {}) {
     if (url.pathname === '/voice_explanations') {
       const byKey = url.searchParams.get('transcription_idempotency_key')?.replace('eq.', '');
       const byPath = url.searchParams.get('storage_path')?.replace('eq.', '');
-      const sub = subOf(req.headers().authorization);
+      const sub = (await whoSent(req));
       if (byKey || byPath) {
         state.lookups.push(byKey ? `key:${byKey}` : `path:${byPath}`);
         if (state.lookup === 'hang') return;                   // never answers (route left pending)
@@ -273,7 +297,7 @@ async function addPage(ctx, state, opts = {}) {
   await page.route(`${TRANSCRIBER}/**`, async (route) => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    note(req);
+    await note(req);
     if (state.transcribeHold) await state.transcribeHold.promise;
     return json(route, 200, { text: 'I built a queue, changed polling to a lease token and tested every step twice today.', segments: [] });
   });
@@ -491,28 +515,9 @@ async function previousTests(browser) {
     }
   });
 
-  await group('H19-H20 other proof', async () => {
-    const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}` });
-    state.autoComplete = false;
-    await recordAndStop(page);
-    await waitFor(() => state.enqueue.find((e) => e.id));
-    const j1 = state.enqueue.find((e) => e.id);
-    await H(page, 'setProof', P2);
-    await startBtn(page).waitFor({ timeout: 15000 });
-    const m1 = await marker(page, A, TASK, P1), m2 = await marker(page, A, TASK, P2);
-    check('H19 other proof, same task: P2 offers Start (P1\'s job not resumed there); P1 record kept with proof P1',
-      m1?.voiceId === j1.id && m1?.proofId === P1 && m2 === null && j1.body.proof_id === P1,
-      `P1=${JSON.stringify(m1 && { v: m1.voiceId, p: m1.proofId })} P2=${JSON.stringify(m2)}`);
-    state.rows.set(j1.id, row(j1.id));
-    await H(page, 'setProof', P1);
-    check('H20 back to P1: P1\'s own job resumed', await score77(page));
-    await ctx.close();
-  });
-
   await group('H21-H23 concurrent contexts', async () => {
     for (const [label, change, bCtx] of [
-      ['proof', (p) => H(p, 'setProof', P2), [A, TASK, P2]],
-      ['task', (p) => H(p, 'setTask', 'harness-task-2'), [A, 'harness-task-2', P1]],
+      ['task', (p) => H(p, 'setTask', T2), [A, T2, null]],
     ]) {
       const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}` });
       state.putHold = deferred();
@@ -525,17 +530,17 @@ async function previousTests(browser) {
       state.putHold.resolve();
       await waitFor(() => state.enqueue.filter((e) => e.id).length === 2, 20000);
       const keys = new Set(state.enqueue.map((e) => e.body.idempotency_key));
-      const bodyA = state.enqueue.find((e) => e.body.proof_id === P1 && e.body.task_id === TASK);
+      const bodyA = state.enqueue.find((e) => e.body.task_id === TASK);
       const bodyB = state.enqueue.find((e) => e !== bodyA);
-      const mA = await marker(page, A, TASK, P1);
+      const mA = await marker(page, A, TASK, null);
       const mB = await marker(page, ...bCtx);
       for (const e of state.enqueue) if (e.id) state.rows.set(e.id, row(e.id));
       await score77(page);
       check(`H21 ${label} change during A's upload: B could still record and save (2 uploads, 2 enqueues)`,
         bothUploading && state.puts.length === 2 && state.enqueue.length === 2, `puts=${state.puts.length} enqueues=${state.enqueue.length}`);
-      check(`H22 ${label}: unique idempotency keys; each enqueue carries its own task/proof`,
-        keys.size === 2 && !!bodyA && !!bodyB && bodyB.body.proof_id === bCtx[2] && bodyB.body.task_id === bCtx[1],
-        JSON.stringify(state.enqueue.map((e) => [e.body.task_id, e.body.proof_id])));
+      check(`H22 ${label}: unique idempotency keys; each enqueue carries its own task, no proof link`,
+        keys.size === 2 && !!bodyA && !!bodyB && bodyB.body.task_id === bCtx[1] && state.enqueue.every((e) => !('proof_id' in e.body)),
+        JSON.stringify(state.enqueue.map((e) => [e.body.task_id, 'proof_id' in e.body])));
       check(`H23 ${label}: A keeps its own recovery record (own key/path); B's record is B's`,
         mA?.idempotencyKey === bodyA?.body.idempotency_key && mA?.storagePath === bodyA?.body.storage_path && mA?.voiceId === bodyA?.id &&
         mB?.idempotencyKey === bodyB?.body.idempotency_key && mB?.voiceId === bodyB?.id,
@@ -623,8 +628,8 @@ async function previousTests(browser) {
         `lookups=${state.lookups.length}`);
       await page.getByRole('button', { name: /save it here/ }).click();
       const ok = await score77(page);
-      check('H30 "save it here" (explicit): one enqueue with the SAME key/path/duration and THIS proof; old key retired',
-        ok && state.enqueue.length === 1 && state.enqueue[0].body.idempotency_key === k && state.enqueue[0].body.proof_id === P2 && state.enqueue[0].body.duration_seconds === 20 &&
+      check('H30 "save it here" (explicit): one enqueue with the SAME key/path/duration and THIS task; old key retired',
+        ok && state.enqueue.length === 1 && state.enqueue[0].body.idempotency_key === k && state.enqueue[0].body.task_id === TASK && state.enqueue[0].body.duration_seconds === 20 &&
         (await readKey(page, legacyKey(A, TASK, P2))) === null, `enqueues=${state.enqueue.length}`);
       await ctx.close();
     }
@@ -645,10 +650,10 @@ async function previousTests(browser) {
     }
     {
       const k = crypto.randomUUID();
-      const mine = row('legacy-row-p2', { proof_id: P2, transcription_idempotency_key: k, storage_path: `${A}/1700000000000-explain.webm` });
+      const mine = row('legacy-row-mine', { transcription_idempotency_key: k, storage_path: `${A}/1700000000000-explain.webm` });
       const { page, state, ctx } = await setup(browser, { url: url2, seed: legacySeed(k), rows: [mine] });
       const ok = await score77(page);
-      check('H33 legacy record proven this proof\'s by the server: resumed without any new enqueue; old key retired',
+      check('H33 legacy record proven this task\'s by the server: resumed without any new enqueue; old key retired',
         ok && state.enqueue.length === 0 && (await readKey(page, legacyKey(A, TASK, P2))) === null);
       await ctx.close();
     }
@@ -816,7 +821,7 @@ async function round4Tests(browser) {
   await group('F3 delayed recorder events', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);                                  // A: 3.5 s; its data/stop events are held
-    await H(page, 'setProof', P2);                                    // context change ends A's session
+    await H(page, 'setTask', T2);                                    // context change ends A's session
     await startBtn(page).click({ timeout: 20000 });                   // B starts
     await stopBtn(page).waitFor({ timeout: 20000 });
     await page.waitForTimeout(700);
@@ -826,28 +831,28 @@ async function round4Tests(browser) {
     const tracks = await ev(page, () => window.__mic.streams.map((s) => s.getTracks().map((t) => t.readyState)[0]));
     await stopBtn(page).click();
     await waitFor(() => state.enqueue.filter((e) => e.id).length === 2, 20000);
-    const byProof = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, state.puts.find((p) => p.path === e.body.storage_path)?.size ?? 0]));
+    const byTask = Object.fromEntries(state.enqueue.map((e) => [e.body.task_id, state.puts.find((p) => p.path === e.body.storage_path)?.size ?? 0]));
     check('F3a A\'s late stop did not stop B: B\'s microphone still live and B still recording',
       bRecording && tracks[0] === 'ended' && tracks[1] === 'live', JSON.stringify(tracks));
-    check('F3b each recording uploaded only its own audio (A 3.5 s > B 1.5 s), once each, to its own proof',
-      byProof[P1] > 0 && byProof[P2] > 0 && byProof[P1] > byProof[P2] && state.puts.length === 2, JSON.stringify(byProof));
-    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, e.body.duration_seconds]));
+    check('F3b each recording uploaded only its own audio (A 3.5 s > B 1.5 s), once each, to its own task',
+      byTask[TASK] > 0 && byTask[T2] > 0 && byTask[TASK] > byTask[T2] && state.puts.length === 2, JSON.stringify(byTask));
+    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.task_id, e.body.duration_seconds]));
     check('R4-2a A\'s delayed onstop uses A\'s OWN stop time: A 3-4 s, B 1-3 s (not A measured to its late callback)',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('R4-2 delayed onstop after B stopped', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);                                  // A: 3.5 s, events held
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await recordAndStop(page, 1500);                                  // B records AND stops first
-    await waitFor(() => state.enqueue.some((e) => e.body.proof_id === P2), 20000);
+    await waitFor(() => state.enqueue.some((e) => e.body.task_id === T2), 20000);
     await page.waitForTimeout(2200);                                  // time passes before A's callback
     await ev(page, () => window.__releaseRecorder(1));                // A's onstop runs only now
-    await waitFor(() => state.enqueue.some((e) => e.body.proof_id === P1), 20000);
-    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.proof_id, e.body.duration_seconds]));
+    await waitFor(() => state.enqueue.some((e) => e.body.task_id === TASK), 20000);
+    const dur = Object.fromEntries(state.enqueue.map((e) => [e.body.task_id, e.body.duration_seconds]));
     check('R4-2b A\'s onstop delayed until after B stopped: A still reports its own 3-4 s (B\'s stop time never used), B 1-3 s',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('F3 delayed events after unmount', async () => {
@@ -1077,12 +1082,12 @@ async function round4Tests(browser) {
   // F8: a stale or edited local record is never shown for work whose server row disagrees.
   await group('F8 tampered record', async () => {
     const k = crypto.randomUUID();
-    const rowP1 = row('row-of-p1', { proof_id: P1, storage_path: `${A}/p1-explain.webm`, transcription_idempotency_key: 'k-p1' });
-    const seed = { [v3Key('forged')]: { voiceId: 'row-of-p1', idempotencyKey: k, storagePath: `${A}/p2-explain.webm`, durationSeconds: 9,
-      studentId: A, taskId: TASK, proofId: P2, recordingId: 'forged', stage: 'uploaded', createdAt: 1 } };
-    const { page, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P2}`, seed, rows: [rowP1] });
+    const rowOther = row('row-of-other-task', { task_id: T2, storage_path: `${A}/t2-explain.webm`, transcription_idempotency_key: 'k-t2' });
+    const seed = { [v3Key('forged')]: { voiceId: 'row-of-other-task', idempotencyKey: k, storagePath: `${A}/mine-explain.webm`, durationSeconds: 9,
+      studentId: A, taskId: TASK, proofId: null, recordingId: 'forged', stage: 'uploaded', createdAt: 1 } };
+    const { page, ctx } = await setup(browser, { seed, rows: [rowOther] });
     await page.getByTestId('voice-legacy').waitFor({ timeout: 20000 });
-    check('F8a a record pointing at another proof\'s row: nothing shown here (no score), student asked; record not deleted',
+    check('F8a a record pointing at another task\'s row: nothing shown here (no score), student asked; record not deleted',
       (await page.getByText(/Communication score/).count()) === 0 && !!(await readKey(page, v3Key('forged'))));
     await ctx.close();
   });
@@ -1325,18 +1330,18 @@ async function syncTests(browser) {
     state.putHold = deferred();
     await recordAndStop(page);
     await waitFor(() => state.puts.length === 1);
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await recordAndStop(page, 1500);
     const both = await waitFor(() => state.puts.length === 2, 20000);
     state.putHold.resolve();
     await page.getByText(/Communication score 70\/100/).waitFor({ timeout: 30000 });
     await waitFor(() => state.inserts.length === 2, 10000);
     await page.waitForTimeout(1500);
-    const proofs = state.inserts.map((i) => i.body.proof_id).sort();
+    const tasks = state.inserts.map((i) => i.body.task_id).sort();
     check('S1 sync path: A\'s save in flight did not swallow B\'s (2 uploads, 2 inserts)', both && state.puts.length === 2 && state.inserts.length === 2,
       `puts=${state.puts.length} inserts=${state.inserts.length}`);
-    check('S2 sync path: each insert carries its own proof (P1, P2), same task and student',
-      JSON.stringify(proofs) === JSON.stringify([P1, P2]) && state.inserts.every((i) => i.body.task_id === TASK && i.body.student_id === A));
+    check('S2 sync path: each insert carries its own task (TASK, T2), same student',
+      JSON.stringify(tasks) === JSON.stringify([TASK, T2].sort()) && state.inserts.every((i) => i.body.student_id === A));
     check('S3 sync path: B\'s screen shows B\'s saved result', await page.getByText(/Saved\. It will appear/).isVisible());
     check('S4 sync path (F7): paths are <student>/<random id>-explain.webm, distinct',
       new Set(state.puts.map((p) => p.path)).size === 2 && state.puts.every((p) => /^[0-9a-f-]{36}\/[0-9a-f-]{36}-explain\.webm$/.test(p.path)));
@@ -1345,7 +1350,7 @@ async function syncTests(browser) {
   await group('S5 delayed recorder events', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await startBtn(page).click({ timeout: 20000 });
     await stopBtn(page).waitFor({ timeout: 20000 });
     await page.waitForTimeout(700);
@@ -1354,26 +1359,26 @@ async function syncTests(browser) {
     const bRecording = await stopBtn(page).isVisible();
     await stopBtn(page).click();
     await waitFor(() => state.inserts.length === 2, 25000);
-    const size = (proof) => state.puts.find((p) => p.path === state.inserts.find((i) => i.body.proof_id === proof)?.body.storage_path)?.size ?? 0;
+    const size = (task) => state.puts.find((p) => p.path === state.inserts.find((i) => i.body.task_id === task)?.body.storage_path)?.size ?? 0;
     check('S5 sync path (F3): A\'s late events did not stop B; each upload holds only its own audio',
-      bRecording && size(P1) > size(P2) && size(P2) > 0 && state.inserts.length === 2, `A=${size(P1)} B=${size(P2)}`);
-    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.proof_id, i.body.duration_seconds]));
+      bRecording && size(TASK) > size(T2) && size(T2) > 0 && state.inserts.length === 2, `A=${size(TASK)} B=${size(T2)}`);
+    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.task_id, i.body.duration_seconds]));
     check('S5b sync path (R4-2): each insert carries its own recording length (A 3-4 s, B 1-3 s)',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('S5c delayed onstop after B stopped', async () => {
     const { page, state, ctx } = await setup(browser, { url: `${HARNESS}&proof=${P1}`, holdRecorders: [1] });
     await recordAndStop(page, 3500);                                  // A: 3.5 s, events held
-    await H(page, 'setProof', P2);
+    await H(page, 'setTask', T2);
     await recordAndStop(page, 1500);                                  // B records AND stops first
-    await waitFor(() => state.inserts.some((i) => i.body.proof_id === P2), 20000);
+    await waitFor(() => state.inserts.some((i) => i.body.task_id === T2), 20000);
     await page.waitForTimeout(2200);
     await ev(page, () => window.__releaseRecorder(1));                // A's onstop runs only now
-    await waitFor(() => state.inserts.some((i) => i.body.proof_id === P1), 20000);
-    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.proof_id, i.body.duration_seconds]));
+    await waitFor(() => state.inserts.some((i) => i.body.task_id === TASK), 20000);
+    const dur = Object.fromEntries(state.inserts.map((i) => [i.body.task_id, i.body.duration_seconds]));
     check('S5c sync path (R4-2): A\'s onstop delayed until after B stopped still inserts A\'s own 3-4 s; B 1-3 s',
-      dur[P1] >= 3 && dur[P1] <= 4 && dur[P2] >= 1 && dur[P2] <= 3, JSON.stringify(dur));
+      dur[TASK] >= 3 && dur[TASK] <= 4 && dur[T2] >= 1 && dur[T2] <= 3, JSON.stringify(dur));
     await ctx.close();
   });
   await group('S6 account change mid-transcription', async () => {

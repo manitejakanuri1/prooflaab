@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ExternalLink, Calendar, Filter, MoreVertical, Eye, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, MoreVertical, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { openExternal } from "@/lib/safeNavigation";
 
 interface JobOpportunity {
   id: string;
@@ -289,7 +290,7 @@ const ManageJobsPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => window.open(job.apply_link, "_blank")}>
+                          <DropdownMenuItem onClick={() => void openExternal(job.apply_link)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>

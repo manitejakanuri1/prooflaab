@@ -2,7 +2,7 @@
 //
 // Run: deno test --allow-net files_test.ts
 import { assertEquals } from 'jsr:@std/assert@1';
-import { callerOf, handler, ownerOf, resolve } from './main.ts';
+import { accountActive, callerOf, handler, ownerOf, resolve } from './main.ts';
 
 const ME = '9f77c6d5-bd7c-489e-9410-3db888729328';
 const SOMEONE_ELSE = '1ff6d149-acc1-441c-9899-d79c9894a9d0';
@@ -131,4 +131,37 @@ Deno.test('the retired proofs bucket is no longer served', async () => {
   }));
   assertEquals(res.status, 400);
   assertEquals((await res.json()).error, 'unknown bucket');
+});
+
+// Migration 110: an old ticket of a cut-off account is refused; no answer from the database means no access.
+const answer = (status: number, body: unknown) => (() =>
+  Promise.resolve(new Response(JSON.stringify(body), { status }))) as unknown as typeof fetch;
+
+Deno.test('an active account passes the access check with its own ticket', async () => {
+  let sent: Request | null = null;
+  const fetcher = ((url: string, init: RequestInit) => {
+    sent = new Request(url, init);
+    return Promise.resolve(new Response('true', { status: 200 }));
+  }) as unknown as typeof fetch;
+  assertEquals(await accountActive('tok', fetcher, 'http://api.test'), 'active');
+  assertEquals(sent!.url, 'http://api.test/rpc/account_access_ok');
+  assertEquals(sent!.headers.get('Authorization'), 'Bearer tok');
+});
+
+Deno.test('a cut-off account is refused (false, or the API pre-request hook answers 403)', async () => {
+  assertEquals(await accountActive('tok', answer(200, false), 'http://api.test'), 'refused');
+  assertEquals(await accountActive('tok', answer(403, { hint: 'account_suspended' }), 'http://api.test'), 'refused');
+  assertEquals(await accountActive('tok', answer(401, {}), 'http://api.test'), 'refused');
+});
+
+Deno.test('no answer from the database is no access (fail closed)', async () => {
+  assertEquals(await accountActive('tok', answer(500, {}), 'http://api.test'), 'unavailable');
+  assertEquals(await accountActive('tok', answer(404, {}), 'http://api.test'), 'unavailable');
+  const down = (() => Promise.reject(new TypeError('connection refused'))) as unknown as typeof fetch;
+  assertEquals(await accountActive('tok', down, 'http://api.test'), 'unavailable');
+});
+
+Deno.test('without POSTGREST_URL the check is off (old behaviour, nothing asked)', async () => {
+  const never = (() => { throw new Error('asked'); }) as unknown as typeof fetch;
+  assertEquals(await accountActive('tok', never, ''), 'active');
 });

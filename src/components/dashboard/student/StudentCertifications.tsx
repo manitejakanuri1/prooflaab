@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ExternalLink, Plus, Trash2 } from "lucide-react";
+import { safeExternalUrl } from "@/lib/safeNavigation";
 
 interface Certification {
   id: string;
@@ -133,9 +134,9 @@ const StudentCertifications = () => {
                     </p>
                     {c.credential_url && (
                       <a
-                        href={c.credential_url}
+                        href={safeExternalUrl(c.credential_url) ?? undefined}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
                       >
                         <ExternalLink className="h-3 w-3" /> Verify

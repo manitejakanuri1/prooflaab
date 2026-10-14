@@ -31,9 +31,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Settings, Plus, Trash2, UserPlus } from "lucide-react";
+import EmailTemplatesDialog from "./EmailTemplatesDialog";
+import NotificationRulesDialog from "./NotificationRulesDialog";
 
 const SystemSettings = () => {
   const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
+  const [emailTemplatesOpen, setEmailTemplatesOpen] = useState(false);
+  const [notificationRulesOpen, setNotificationRulesOpen] = useState(false);
   const [newAdminData, setNewAdminData] = useState({
     name: "",
     email: "",
@@ -56,20 +60,30 @@ const SystemSettings = () => {
   });
 
   const createAdminMutation = useMutation({
-    mutationFn: async (adminData: any) => {
-      // admin_users is a view over user_roles with INSTEAD OF triggers, so the
-      // type generator marks it read-only. The write is real; the cast is only
-      // to say so.
-      const { error } = await (supabase.from('admin_users') as any)
-        .insert([adminData]);
-      
+    mutationFn: async (adminData: { name: string; email: string; role: string }) => {
+      const { data, error } = await supabase.functions.invoke(
+        'create-admin-user',
+        {
+          body: {
+            name: adminData.name.trim(),
+            email: adminData.email.trim().toLowerCase(),
+          },
+        }
+      );
+
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast({
-        title: "Success",
-        description: "Admin user created successfully.",
+        title: "Admin account created",
+        description: result?.invited
+          ? "Set-password invitation sent."
+          : "Account created, but invitation delivery was not confirmed. Ask the administrator to use Forgot password on the sign-in page.",
+        variant: result?.invited ? undefined : "destructive",
       });
       setIsCreateAdminModalOpen(false);
       setNewAdminData({ name: "", email: "", role: "admin" });
@@ -216,19 +230,22 @@ const SystemSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email-template">Email Template Settings</Label>
-              <Button variant="outline" className="w-full mt-2">
+              <Button variant="outline" className="w-full mt-2" onClick={() => setEmailTemplatesOpen(true)}>
                 Configure Email Templates
               </Button>
             </div>
             <div>
               <Label htmlFor="notification-rules">Notification Rules</Label>
-              <Button variant="outline" className="w-full mt-2">
+              <Button variant="outline" className="w-full mt-2" onClick={() => setNotificationRulesOpen(true)}>
                 Manage Notification Rules
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <EmailTemplatesDialog open={emailTemplatesOpen} onOpenChange={setEmailTemplatesOpen} />
+      <NotificationRulesDialog open={notificationRulesOpen} onOpenChange={setNotificationRulesOpen} />
 
       {/* Create Admin Modal */}
       <Dialog open={isCreateAdminModalOpen} onOpenChange={setIsCreateAdminModalOpen}>
@@ -280,8 +297,8 @@ const SystemSettings = () => {
                   offering tiers that grant identical access is worse than
                   offering none, because somebody will believe them. */}
               <p className="text-xs text-muted-foreground mt-1.5">
-                They must already have a ProofLab account — this grants admin access
-                to that email, it does not create the account.
+                A new login will be created for this email and the administrator
+                will receive a secure set-password invitation.
               </p>
             </div>
           </div>

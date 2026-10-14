@@ -8,7 +8,9 @@ Exit code 0 = everything passed.
 """
 import json, subprocess, sys, time, urllib.error, urllib.request
 
-WEB_KEY = "AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw"  # public web key, same as in the site
+from google_api_key import google_api_key
+
+WEB_KEY = google_api_key()
 BRIDGE = "https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-api-ysn2mpe6sa-el.a.run.app"
 FN = "https://prooflab-functions-135298577404.asia-south1.run.app"

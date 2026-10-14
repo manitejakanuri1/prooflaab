@@ -3,8 +3,12 @@
   python pl.py recruiter RPC recruiter_talent '{}'
 """
 import base64, hashlib, hmac, json, subprocess, sys, time, urllib.request, urllib.error
+from pathlib import Path
 
-KEY = "AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from google_api_key import google_api_key
+
+KEY = google_api_key()
 BRIDGE = "https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-api-ysn2mpe6sa-el.a.run.app"
 EMAIL = {"admin": "vidyuthsetu@gmail.com", "college": "vidyuthsetu+college@gmail.com",

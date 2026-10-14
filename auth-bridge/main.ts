@@ -130,8 +130,10 @@ async function resolveAccount(
   providerUid: string,
   email: string | undefined,
   providerVerified: boolean,
+  postgrest = POSTGREST_URL,
+  fetcher: typeof fetch = fetch,
 ): Promise<{ uuid: string; emailConfirmed: boolean } | null> {
-  if (!POSTGREST_URL) {
+  if (!postgrest) {
     // Nothing to ask. A uuid-named account can still be served from the token
     // itself, which is every account migrated in August.
     return UUID.test(providerUid)
@@ -142,7 +144,7 @@ async function resolveAccount(
   const { token } = await mint('', undefined, 'service_role', 60);
 
   try {
-    const res = await fetch(`${POSTGREST_URL}/rpc/resolve_account`, {
+    const res = await fetcher(`${postgrest}/rpc/resolve_account`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -167,6 +169,67 @@ async function resolveAccount(
     console.error('resolve_account failed:', err);
     return null;
   }
+}
+
+/**
+ * Security gate 14 Oct (run-1 P1): the same login rule the website applies (web_login_identity: provisioned
+ * role, active student/college, not suspended or rejected, supported role) is applied BEFORE a token is
+ * minted. Before, this public door issued an API-usable token to any login that resolve_account knew, so an
+ * account the website refuses could call the database and services directly. Fails closed.
+ * 'allowed' | 'unavailable' | { refused: <reason code> }.
+ */
+async function loginPolicy(
+  uuid: string,
+  postgrest = POSTGREST_URL,
+  fetcher: typeof fetch = fetch,
+): Promise<'allowed' | 'unavailable' | { refused: string }> {
+  if (!postgrest) return 'allowed';   // no database to ask (legacy local mode); resolveAccount has no DB either
+  const { token } = await mint('', undefined, 'service_role', 60);
+  try {
+    const res = await fetcher(`${postgrest}/rpc/web_login_identity`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _user_id: uuid }),
+    });
+    if (!res.ok) {
+      console.error('web_login_identity returned', res.status);
+      return 'unavailable';
+    }
+    const body = await res.json();
+    if (body && typeof body === 'object' && body.allowed === true && body.role) return 'allowed';
+    // The rule's own reason code (e.g. college_pending_approval), so the website can say exactly why.
+    const reason = body && typeof body === 'object' && typeof body.reason === 'string' ? body.reason : 'refused';
+    return { refused: reason };
+  } catch (err) {
+    console.error('web_login_identity failed:', err);
+    return 'unavailable';
+  }
+}
+
+/** Everything after the Google token is verified: account, login rule, then the app token. */
+async function exchangeVerified(
+  verified: { sub: string; email?: string; email_verified?: boolean },
+  origin: string | null,
+  postgrest = POSTGREST_URL,
+  fetcher: typeof fetch = fetch,
+): Promise<Response> {
+  const account = await resolveAccount(verified.sub, verified.email, verified.email_verified === true, postgrest, fetcher);
+  if (!account) {
+    return json({ error: 'could not establish your account' }, 503, origin);
+  }
+  const policy = await loginPolicy(account.uuid, postgrest, fetcher);
+  if (policy === 'unavailable') return json({ error: 'could not establish your account' }, 503, origin);
+  if (policy !== 'allowed') {
+    return json({ error: 'Account access is managed by your college or platform administrator', reason: policy.refused }, 403, origin);
+  }
+  const { token, exp } = await mint(
+    account.uuid, verified.email, 'authenticated', TTL_SECONDS, account.emailConfirmed,
+  );
+  return json({
+    access_token: token,
+    token_type: 'bearer',
+    expires_in: exp - Math.floor(Date.now() / 1000),
+  }, 200, origin);
 }
 
 async function handler(req: Request): Promise<Response> {
@@ -225,21 +288,7 @@ async function handler(req: Request): Promise<Response> {
       return json({ error: 'invalid token' }, 401, origin);
     }
 
-    const account = await resolveAccount(
-      verified.sub, verified.email, verified.email_verified === true,
-    );
-    if (!account) {
-      return json({ error: 'could not establish your account' }, 503, origin);
-    }
-
-    const { token, exp } = await mint(
-      account.uuid, verified.email, 'authenticated', TTL_SECONDS, account.emailConfirmed,
-    );
-    return json({
-      access_token: token,
-      token_type: 'bearer',
-      expires_in: exp - Math.floor(Date.now() / 1000),
-    }, 200, origin);
+    return await exchangeVerified(verified, origin);
   }
 
   return json({ error: 'not found' }, 404, origin);
@@ -250,4 +299,4 @@ if (import.meta.main) {
   Deno.serve({ port: PORT }, handler);
 }
 
-export { handler, mint };
+export { exchangeVerified, handler, mint };

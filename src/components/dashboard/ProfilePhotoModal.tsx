@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Camera, Edit3, Image, Trash2 } from "lucide-react";
+import { X, Camera, Edit3, Trash2 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 
 interface ProfilePhotoModalProps {
@@ -13,16 +13,18 @@ interface ProfilePhotoModalProps {
   currentPhotoUrl?: string | null;
   userName: string;
   userId: string;
+  userType: 'student' | 'college';
   onPhotoUpdate: (newUrl: string | null) => void;
 }
 
-const ProfilePhotoModal = ({ 
-  isOpen, 
-  onClose, 
-  currentPhotoUrl, 
-  userName, 
+const ProfilePhotoModal = ({
+  isOpen,
+  onClose,
+  currentPhotoUrl,
+  userName,
   userId,
-  onPhotoUpdate 
+  userType,
+  onPhotoUpdate
 }: ProfilePhotoModalProps) => {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -56,7 +58,6 @@ const ProfilePhotoModal = ({
 
     setUploading(true);
     try {
-      // Get current user to find student profile
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -64,8 +65,7 @@ const ProfilePhotoModal = ({
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Math.random()}.${fileExt}`;
 
-      // Upload file to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('profile-photos')
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -78,17 +78,45 @@ const ProfilePhotoModal = ({
       const { data: { publicUrl } } = supabase.storage
         .from('profile-photos')
         .getPublicUrl(fileName);
-      
-      // Update the profile in the database using user_id to find the profile
-      const { error } = await supabase
-        .from('student_profiles')
-        .update({ profile_photo_url: publicUrl })
-        .eq('user_id', user.id);
 
-      if (error) throw error;
+      // Update the appropriate profile table
+      if (userType === 'college') {
+        // For college profiles, we need to check if the profile exists first
+        const { data: existingProfile } = await supabase
+          .from('college_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existingProfile) {
+          // Update existing profile
+          const { error } = await supabase
+            .from('college_profiles')
+            .update({ profile_photo_url: publicUrl })
+            .eq('user_id', user.id);
+          if (error) throw error;
+        } else {
+          // Create new profile
+          const { error } = await supabase
+            .from('college_profiles')
+            .insert({
+              user_id: user.id,
+              college_name: userName,
+              profile_photo_url: publicUrl
+            });
+          if (error) throw error;
+        }
+      } else {
+        // For students, just update
+        const { error } = await supabase
+          .from('student_profiles')
+          .update({ profile_photo_url: publicUrl })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      }
 
       onPhotoUpdate(publicUrl);
-      
+
       toast({
         title: "Photo updated successfully",
         description: "Your profile photo has been changed.",
@@ -108,19 +136,25 @@ const ProfilePhotoModal = ({
   const handleDeletePhoto = async () => {
     setDeleting(true);
     try {
-      // Get current user to find student profile
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('student_profiles')
-        .update({ profile_photo_url: null })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      if (userType === 'college') {
+        const { error } = await supabase
+          .from('college_profiles')
+          .update({ profile_photo_url: null })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('student_profiles')
+          .update({ profile_photo_url: null })
+          .eq('user_id', user.id);
+        if (error) throw error;
+      }
 
       onPhotoUpdate(null);
-      
+
       toast({
         title: "Photo removed successfully",
         description: "Your profile photo has been removed.",
@@ -162,8 +196,8 @@ const ProfilePhotoModal = ({
             {/* Main photo display */}
             <div className="flex justify-center items-center py-8 px-4 bg-muted/20">
               <Avatar className="h-48 w-48 border-4 border-background shadow-lg">
-                <AvatarImage 
-                  src={currentPhotoUrl || undefined} 
+                <AvatarImage
+                  src={currentPhotoUrl || undefined}
                   alt={userName}
                   className="object-cover"
                 />
@@ -195,15 +229,6 @@ const ProfilePhotoModal = ({
                 <span className="text-xs">
                   {uploading ? "Uploading..." : "Add photo"}
                 </span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center gap-2 h-auto py-3 px-4 text-muted-foreground hover:text-foreground"
-                disabled
-              >
-                <Image className="h-5 w-5" />
-                <span className="text-xs">Frames</span>
               </Button>
 
               <Button

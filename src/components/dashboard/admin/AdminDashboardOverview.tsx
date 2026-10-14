@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Building2, Rocket, ClipboardCheck, Eye, TrendingUp, Calendar, Filter } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ComposedChart } from "recharts";
+import { Users, Building2, Rocket, ClipboardCheck, Eye, TrendingUp, Filter } from "lucide-react";
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ComposedChart } from "recharts";
 interface AdminDashboardOverviewProps {
   onNavigate?: (section: string) => void;
 }
@@ -86,7 +85,6 @@ const AdminDashboardOverview = ({
         periodStart.setDate(periodStart.getDate() - (periods - i) * groupSize);
         const periodEnd = new Date();
         periodEnd.setDate(periodEnd.getDate() - (periods - i - 1) * groupSize);
-        const periodKey = periodStart.toISOString().split('T')[0];
         const studentSignups = signupsRes.data?.filter(s => {
           const date = new Date(s.created_at);
           return date >= periodStart && date < periodEnd;

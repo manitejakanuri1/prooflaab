@@ -12,8 +12,9 @@ Isolation (hardened 3 Oct 2026 after staging probes proved F8/F9):
   * after EVERY run - success, error, timeout - every process owned by 'runner'
     is killed and runner-owned files in the shared temp dirs are removed, so
     nothing survives into the next student's run (F8);
-  * where the platform allows it, each run gets its own empty network namespace:
-    no internet, no metadata server (F9). /ready reports whether it is active.
+  * each run requires its own empty network namespace: no internet or metadata
+    access (F9). If the startup probe or a per-run unshare fails, execution is
+    refused; /ready reports the isolation state.
 """
 import base64
 import ctypes
@@ -293,6 +294,9 @@ def run(
     memory_limit_mb: int = DEFAULT_MEMORY_LIMIT_MB,
     entrypoint: str | None = None,
 ) -> dict:
+    if not NET_ISOLATION:
+        raise OSError("network isolation unavailable")
+
     steps = plan(
         language,
         code,
@@ -414,8 +418,12 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        ok = self.path == "/ready"
-        self.reply(200 if ok else 404, {"ok": ok, "net_isolation": NET_ISOLATION} if ok else {"ok": False})
+        if self.path != "/ready":
+            return self.reply(404, {"ok": False})
+        self.reply(
+            200 if NET_ISOLATION else 503,
+            {"ok": NET_ISOLATION, "net_isolation": NET_ISOLATION},
+        )
 
     def do_POST(self):
         if self.path != "/run":

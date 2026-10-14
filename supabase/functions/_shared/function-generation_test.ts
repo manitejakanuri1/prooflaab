@@ -266,3 +266,35 @@ Deno.test("function quality gate: more than 2 visible tests is refused; missing 
   const medium = await checkFunctionTestQuality(tests, "s", "b", "Medium", () => Promise.resolve(graded([false, false, false, false])));
   assert(!medium.ok && medium.problems.some((p) => p.includes("Medium coding tasks require 6-8")));
 });
+
+Deno.test("S36: a rejected draft says why in the log line, with counts only and nothing from a test", async () => {
+  // What the broken Java harness looked like: the first run does not compile, the rest are not run.
+  const v = await evaluateFunctionDraft(reply(), V,
+    (a) => Promise.resolve({
+      ok: true,
+      results: a.test_cases.map((t) => ({ visible: t.visible, passed: false, stdin: t.stdin, expected: t.expected_output, actual: "", verdict: "compile_error" })),
+    }),
+    () => Promise.resolve({ ok: true, problems: [] }));
+  assert(!v.accepted, "rejected");
+  if (v.accepted) return;
+  assertEquals(v.reason, "reference failed 4 of 4 tests (compile_error x4), language python");
+  assert(!/[\[\]=]/.test(v.reason), "no arguments or expected values in the reason");
+
+  const contract = await evaluateFunctionDraft({ language: "cobol" }, V,
+    () => Promise.resolve({ ok: true, results: [] }), () => Promise.resolve({ ok: true, problems: [] }));
+  assert(!contract.accepted && contract.reason === "reply did not match the function contract");
+
+  const down = await evaluateFunctionDraft(reply(), V,
+    () => Promise.resolve({ ok: false }), () => Promise.resolve({ ok: true, problems: [] }));
+  assert(!down.accepted && down.reason === "reference could not be run by the grader");
+
+  const weak = await evaluateFunctionDraft(reply(), V, (a) => Promise.resolve(allPass(a)),
+    () => Promise.resolve({ ok: false, problems: ["a constant answer passes", "secret detail"] }));
+  assert(!weak.accepted && weak.reason === "tests too weak (2 problems)", "the problems themselves stay out of the log");
+
+  // An odd verdict string from a runner can never smuggle text into the log.
+  const odd = await evaluateFunctionDraft(reply(), V,
+    (a) => Promise.resolve({ ok: true, results: a.test_cases.map((t) => ({ visible: t.visible, passed: false, verdict: "x\ninjected line [[1,2],3]" })) }),
+    () => Promise.resolve({ ok: true, problems: [] }));
+  assert(!odd.accepted && odd.reason.includes("failed x4") && !odd.reason.includes("injected"));
+});

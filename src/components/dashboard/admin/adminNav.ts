@@ -17,8 +17,6 @@ export const ADMIN_GROUPS = [
     { id: "students", label: "Students" },
     { id: "colleges", label: "Colleges" },
     { id: "startups", label: "Companies" },
-    { id: "college-oversight", label: "College users" },
-    { id: "student-oversight", label: "Student oversight" },
     { id: "settings", label: "Admins & roles" },
   ] },
   { id: "work", label: "Work", icon: ClipboardList, children: [

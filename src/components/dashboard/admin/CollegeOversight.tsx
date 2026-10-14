@@ -43,12 +43,39 @@ import {
   Edit, 
   Pause, 
   MoreHorizontal, 
-  CheckCircle, 
-  Trash2, 
-  ArrowUpDown 
+  CheckCircle,
+  ArrowUpDown,
+  Trash2,
+  UserMinus,
 } from "lucide-react";
+import { removalSummary, removeStudents } from "@/lib/removeStudents";
+import { useConfirm } from "@/hooks/useConfirm";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { readFunctionError } from "@/lib/functionError";
+
+// Students removed per call to accounts /remove. 200 took over the gateway's 60 s limit on staging (13 Oct).
+const REMOVE_BATCH = 25;
+// How often the page re-reads the database while it is open.
+const LIVE_MS = 10_000;
+
+// Same order as the sign-in rule (migration 115), so the badge says what the college will see at login.
+const realState = (c: { status?: string; verification_status?: string }) =>
+  c.verification_status === 'rejected' ? 'rejected'
+    : c.status === 'suspended' ? 'suspended'
+    : c.verification_status !== 'approved' ? 'waiting'
+    : c.status === 'active' ? 'live' : 'inactive';
+
+const STATE_BADGE: Record<string, { label: string; className: string }> = {
+  live: { label: '🟢 Live', className: 'bg-green-100 text-green-800 border-green-200' },
+  waiting: { label: '🟡 Waiting for approval', className: 'bg-orange-100 text-orange-800 border-orange-200' },
+  suspended: { label: '🔴 Suspended', className: 'bg-red-100 text-red-800 border-red-200' },
+  rejected: { label: '⛔ Rejected', className: 'bg-red-100 text-red-800 border-red-200' },
+  inactive: { label: '⚪ Approved, not active', className: 'bg-gray-100 text-gray-800 border-gray-200' },
+};
 
 const CollegeOversight = () => {
+  const [progress, setProgress] = useState<{ name: string; done: number; total: number } | null>(null);
+  const [confirmBox, ask] = useConfirm();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState<'created_at' | 'students_count' | 'last_active'>('created_at');
@@ -66,10 +93,9 @@ const CollegeOversight = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: colleges, isLoading, error: queryError } = useQuery({
+  const { data: colleges, isLoading, error: queryError, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['college-oversight', searchTerm, statusFilter, sortBy, sortOrder],
     queryFn: async () => {
-      console.log('Fetching college data...');
       
       try {
         // First, get basic college data
@@ -81,66 +107,31 @@ const CollegeOversight = () => {
           baseQuery = baseQuery.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
         }
 
-        if (statusFilter !== 'all') {
-          baseQuery = baseQuery.eq('status', statusFilter);
-        }
-
-        const { data: collegeData, error: collegeError } = await baseQuery;
+        const { data: allColleges, error: collegeError } = await baseQuery;
+        const collegeData = statusFilter === 'all' ? allColleges : allColleges?.filter((c) => realState(c) === statusFilter);
         if (collegeError) {
           console.error('College query error:', collegeError);
           throw collegeError;
         }
         
-        console.log('College data:', collegeData);
 
         if (!collegeData || collegeData.length === 0) {
           return [];
         }
 
-        // Get student counts for each college
-        const collegeIds = collegeData.map(c => c.id);
-        const { data: studentCounts, error: studentError } = await supabase
-          .from('student_profiles')
-          .select('college_id')
-          .in('college_id', collegeIds);
-        
-        if (studentError) {
-          console.error('Student count error:', studentError);
-        }
-        
-        console.log('Student counts data:', studentCounts);
-
-        // Get task counts assigned by colleges
-        const { data: taskCounts, error: taskError } = await supabase
-          .from('tasks')
-          .select('created_by_college_id')
-          .in('created_by_college_id', collegeIds);
-          
-        if (taskError) {
-          console.error('Task count error:', taskError);
-        }
-        
-        console.log('Task counts data:', taskCounts);
-
-        // Process and combine data
-        const processedColleges = collegeData.map(college => {
-          const studentsCount = studentCounts?.filter(s => s.college_id === college.id).length || 0;
-          const tasksCount = taskCounts?.filter(t => t.created_by_college_id === college.id).length || 0;
-          
-          const result = {
-            ...college,
-            students_count: studentsCount,
-            tasks_assigned: tasksCount
-          };
-          
-          console.log(`College ${college.name}:`, {
-            studentsCount,
-            tasksCount,
-            last_active: college.last_active
-          });
-          
-          return result;
-        });
+        // Exact counts from the database (13 Oct). These used to download every student and task row and count
+        // them in the browser, which the API cuts off, so a big college showed a wrong number.
+        const counted = ({ count, error }: { count: number | null; error: unknown }) => {
+          if (error) console.error('count error:', error);
+          return count ?? 0;
+        };
+        const processedColleges = await Promise.all(collegeData.map(async (college) => ({
+          ...college,
+          students_count: counted(await supabase.from('student_profiles')
+            .select('id', { count: 'exact', head: true }).eq('college_id', college.id)),
+          tasks_assigned: counted(await supabase.from('tasks')
+            .select('id', { count: 'exact', head: true }).eq('created_by_college_id', college.id)),
+        })));
 
         // Sort data
         processedColleges.sort((a, b) => {
@@ -163,7 +154,6 @@ const CollegeOversight = () => {
           return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
         });
 
-        console.log('Final processed colleges:', processedColleges);
         return processedColleges;
         
       } catch (error) {
@@ -172,6 +162,9 @@ const CollegeOversight = () => {
       }
     }
   });
+
+  // Live numbers: re-read every 10 s while the tab is visible, and at once when it is looked at again.
+  useLiveRefresh(() => { void refetch(); }, LIVE_MS);
 
   // Log any query errors
   if (queryError) {
@@ -189,14 +182,18 @@ const CollegeOversight = () => {
       const { data: result, error } = await supabase.functions.invoke('create-college-user', {
         body: { name: data.name, email: data.email, status: data.status },
       });
-      if (error) throw error;
+      if (error) throw new Error(String((await readFunctionError(error))?.error ?? error.message));
       if (result?.error) throw new Error(result.error);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
       toast({
-        title: "Success",
-        description: "College added and invited.",
+        title: "College account created",
+        description: result?.invited
+          ? "Set-password invitation sent."
+          : "Account created, but invitation delivery was not confirmed. Ask the college administrator to use Forgot password on the sign-in page.",
+        variant: result?.invited ? undefined : "destructive",
       });
       closeModal();
     },
@@ -262,7 +259,10 @@ const CollegeOversight = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('colleges')
-        .update({ status: 'active' })
+        .update({
+          status: 'active',
+          verification_status: 'approved'
+        })
         .eq('id', id);
       if (error) throw error;
     },
@@ -282,27 +282,18 @@ const CollegeOversight = () => {
     }
   });
 
-  const deleteMutation = useMutation({
+  // Reject (kept from the old Colleges list): the college is turned down; its admin cannot sign in.
+  const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('colleges')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('colleges').update({ verification_status: 'rejected' }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
-      toast({
-        title: "Success",
-        description: "College deleted successfully.",
-      });
+      toast({ title: "College rejected" });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to delete college: ${error.message}`,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: `Failed to reject college: ${error.message}`, variant: "destructive" });
     }
   });
 
@@ -346,25 +337,85 @@ const CollegeOversight = () => {
     }
   };
 
-  const handleDelete = (college: any) => {
-    if (confirm(`Delete ${college.name}? This action cannot be undone.`)) {
-      deleteMutation.mutate(college.id);
+  // Exact count at click time: the table's count reads rows and can be cut short on a very big college.
+  const countStudents = async (collegeId: string) => {
+    const { count, error } = await supabase.from('student_profiles')
+      .select('id', { count: 'exact', head: true }).eq('college_id', collegeId);
+    if (error) throw error;
+    return count ?? 0;
+  };
+
+  // Every student of one college, through the same removal as one student (accounts /remove), in batches.
+  const handleRemoveAll = async (college: any) => {
+    try {
+      const total = await countStudents(college.id);
+      if (!total) { toast({ title: `${college.name} has no students` }); return; }
+      if (!(await ask({
+        title: `Remove all ${total.toLocaleString("en-IN")} students of ${college.name}?`,
+        points: ["Their work, scores and logins are deleted", "Locked test accounts are skipped", "Keep this page open until it finishes"],
+        action: "Remove all",
+      }))) return;
+      let removed = 0;
+      let keptProtected = 0;
+      setProgress({ name: college.name, done: 0, total });
+      for (;;) {
+        // Locked test accounts never leave the list, so each batch skips the ones already found.
+        const { data, error } = await supabase.from('student_profiles').select('id')
+          .eq('college_id', college.id).range(keptProtected, keptProtected + REMOVE_BATCH - 1).order('id');
+        if (error) throw error;
+        const ids = (data ?? []).map((r) => r.id as string);
+        if (!ids.length) break;
+        const r = await removeStudents(ids);
+        if (r.removed === 0 && r.keptProtected === 0) throw new Error("the server removed nobody in the last batch; stopped");
+        removed += r.removed;
+        keptProtected += r.keptProtected;
+        setProgress({ name: college.name, done: removed, total });
+        void refetch();   // the table's count drops live, batch by batch
+      }
+      toast({ title: `${college.name}: ${removalSummary({ removed, keptProtected })}` });
+    } catch (e) {
+      toast({ title: "Stopped", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setProgress(null);
+      void queryClient.invalidateQueries();
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: any; className: string }> = {
-      active: { variant: 'default', className: 'bg-green-100 text-green-800 border-green-200' },
-      pending: { variant: 'secondary', className: 'bg-orange-100 text-orange-800 border-orange-200' },
-      suspended: { variant: 'destructive', className: 'bg-red-100 text-red-800 border-red-200' }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
-    return (
-      <Badge variant={config.variant} className={config.className}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
+  // Only an empty college can be deleted. Its admin then cannot sign in (no college -> refused at login).
+  const handleDeleteCollege = async (college: any) => {
+    try {
+      const total = await countStudents(college.id);
+      if (total) {
+        toast({ title: "Not deleted", description: `${college.name} still has ${total} students. Remove them first.`, variant: "destructive" });
+        return;
+      }
+      if (!(await ask({
+        title: `Delete "${college.name}"?`,
+        points: ["Its squads, seasons and imports are deleted too", "Its admin can no longer sign in"],
+        action: "Delete",
+      }))) return;
+      // Server side (delete-college): the college, then its admin's role and login, so the email can be reused.
+      const { data, error } = await supabase.functions.invoke('delete-college', { body: { college_id: college.id } });
+      if (error) throw new Error(String((await readFunctionError(error))?.error ?? error.message));
+      toast({
+        title: `Deleted ${college.name}`,
+        description: data?.login_deleted ? "Its admin's login was deleted too." : (data?.note ?? undefined),
+      });
+      void queryClient.invalidateQueries({ queryKey: ['college-oversight'] });
+    } catch (e) {
+      toast({ title: "Not deleted", description: (e as Error).message, variant: "destructive" });
+    }
+  };
+
+  const handleReject = (college: any) => {
+    if (confirm(`Reject ${college.name}? Its admin will not be able to sign in.`)) {
+      rejectMutation.mutate(college.id);
+    }
+  };
+
+  const getStatusBadge = (college: { status?: string; verification_status?: string }) => {
+    const config = STATE_BADGE[realState(college)];
+    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
 
   const handleSort = (column: 'created_at' | 'students_count' | 'last_active') => {
@@ -401,14 +452,20 @@ const CollegeOversight = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {confirmBox}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">
             <School className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">College Oversight</h1>
-            <p className="text-muted-foreground">Manage college accounts and activities</p>
+            <h1 className="text-3xl font-bold">Colleges</h1>
+            <p className="text-muted-foreground">
+              Manage college accounts and activities · Updated {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('en-GB') : '—'}
+              <Button variant="link" size="sm" className="h-auto px-2" disabled={isFetching} onClick={() => void refetch()}>
+                {isFetching ? 'Refreshing…' : 'Refresh'}
+              </Button>
+            </p>
           </div>
         </div>
         <Button onClick={() => openModal('add')} className="gap-2">
@@ -416,6 +473,12 @@ const CollegeOversight = () => {
           Add New College
         </Button>
       </div>
+
+      {progress && (
+        <div role="status" className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
+          Removing students of <b>{progress.name}</b>: {progress.done} of {progress.total}. Keep this page open.
+        </div>
+      )}
 
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-4">
@@ -436,9 +499,11 @@ const CollegeOversight = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="live">🟢 Live</SelectItem>
+                  <SelectItem value="waiting">🟡 Waiting for approval</SelectItem>
+                  <SelectItem value="suspended">🔴 Suspended</SelectItem>
+                  <SelectItem value="rejected">⛔ Rejected</SelectItem>
+                  <SelectItem value="inactive">⚪ Approved, not active</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
@@ -499,7 +564,9 @@ const CollegeOversight = () => {
                   <TableRow key={college.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">{college.name}</TableCell>
                     <TableCell className="text-muted-foreground hidden sm:table-cell">{college.email}</TableCell>
-                    <TableCell>{getStatusBadge(college.status)}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(college)}
+                    </TableCell>
                     <TableCell className="text-muted-foreground hidden lg:table-cell">
                       {college.last_active 
                         ? new Date(college.last_active).toLocaleDateString('en-GB')
@@ -531,10 +598,16 @@ const CollegeOversight = () => {
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          {college.status === 'pending' && (
+                          {(college.status !== 'active' || college.verification_status !== 'approved') && (
                             <DropdownMenuItem onClick={() => handleApprove(college)}>
                               <CheckCircle className="h-4 w-4 mr-2" />
-                              Approve
+                              {college.status === 'suspended' ? 'Reactivate' : 'Approve'}
+                            </DropdownMenuItem>
+                          )}
+                          {college.verification_status !== 'approved' && college.verification_status !== 'rejected' && (
+                            <DropdownMenuItem onClick={() => handleReject(college)} className="text-destructive">
+                              <Pause className="h-4 w-4 mr-2" />
+                              Reject
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem onClick={() => openModal('edit', college)}>
@@ -542,7 +615,7 @@ const CollegeOversight = () => {
                             Edit
                           </DropdownMenuItem>
                           {college.status !== 'suspended' && (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleSuspend(college)}
                               className="text-orange-600"
                             >
@@ -550,12 +623,13 @@ const CollegeOversight = () => {
                               Suspend
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(college)}
-                            className="text-destructive"
-                          >
+                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleRemoveAll(college)} className="text-destructive">
+                            <UserMinus className="h-4 w-4 mr-2" />
+                            Remove all students
+                          </DropdownMenuItem>
+                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleDeleteCollege(college)} className="text-destructive">
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            Delete college
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -636,7 +710,7 @@ const CollegeOversight = () => {
               <>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Status</label>
-                  <div>{getStatusBadge(selectedCollege.status)}</div>
+                  <div>{getStatusBadge(selectedCollege)}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { confirmRemoval, removeStudents } from "@/lib/removeStudents";
+import { removalSummary, removeStudents } from "@/lib/removeStudents";
+import { useConfirm } from "@/hooks/useConfirm";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -54,12 +57,16 @@ const StudentOversight = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+  const [collegeFilter, setCollegeFilter] = useState("all");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [removing, setRemoving] = useState(false);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [confirmBox, ask] = useConfirm();
 
-  const { data: students, isLoading } = useQuery({
-    queryKey: ['student-oversight', searchTerm],
+  const { data: students, isLoading, dataUpdatedAt, refetch, isFetching } = useQuery({
+    queryKey: ['student-oversight', searchTerm, collegeFilter],
     queryFn: async () => {
       // email moved to student_contact. It has to be pulled in explicitly now,
       // and the search can only match on the name — PostgREST cannot filter a
@@ -75,6 +82,9 @@ const StudentOversight = () => {
       if (searchTerm) {
         query = query.ilike('full_name', `%${searchTerm}%`);
       }
+      if (collegeFilter !== "all") {
+        query = query.eq('college_id', collegeFilter);
+      }
 
       const { data, error } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
       if (error) throw error;
@@ -84,6 +94,23 @@ const StudentOversight = () => {
       }));
     }
   });
+
+  // The exact number in the database for the same search and college (the list itself stops at ADMIN_LIST_CAP).
+  const { data: total, refetch: refetchTotal } = useQuery({
+    queryKey: ['student-oversight-total', searchTerm, collegeFilter],
+    queryFn: async () => {
+      let q = supabase.from('student_profiles').select('id', { count: 'exact', head: true });
+      if (searchTerm) q = q.ilike('full_name', `%${searchTerm}%`);
+      if (collegeFilter !== "all") q = q.eq('college_id', collegeFilter);
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Live numbers: re-read every 10 s while the tab is visible, and at once when it is looked at again.
+  const refreshAll = () => { void refetch(); void refetchTotal(); };
+  useLiveRefresh(refreshAll, 10_000);
 
   const { data: colleges } = useQuery({
     queryKey: ['colleges-for-student-oversight'],
@@ -118,12 +145,16 @@ const StudentOversight = () => {
       if (error) throw error;
       const row = result?.results?.[0];
       if (row?.status === 'error') throw new Error(row.message ?? 'Could not create the student.');
+      return row;
     },
-    onSuccess: () => {
+    onSuccess: (row: any) => {
       queryClient.invalidateQueries({ queryKey: ['student-oversight'] });
       toast({
-        title: "Success",
-        description: "Student added and invited.",
+        title: "Student account created",
+        description: row?.invited
+          ? "Set-password invitation sent."
+          : "Account created, but invitation delivery was not confirmed. Ask the student to use Forgot password on the sign-in page.",
+        variant: row?.invited ? undefined : "destructive",
       });
       closeModal();
     },
@@ -250,6 +281,42 @@ const StudentOversight = () => {
 
   const totalPages = Math.ceil((students?.length || 0) / itemsPerPage);
 
+  const collegeName = (id: string | null) => colleges?.find((c) => c.id === id)?.name ?? '—';
+  const pageIds = (paginatedStudents ?? []).map((s) => s.id as string);
+  const allOnPagePicked = pageIds.length > 0 && pageIds.every((id) => picked.has(id));
+  const togglePick = (id: string) => setPicked((p) => {
+    const next = new Set(p);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const togglePage = () => setPicked((p) => {
+    const next = new Set(p);
+    pageIds.forEach((id) => (allOnPagePicked ? next.delete(id) : next.add(id)));
+    return next;
+  });
+
+  // Same removal as one student (accounts /remove: login deleted, record kept), for the ticked rows.
+  const removePicked = async () => {
+    const ids = [...picked];
+    if (!ids.length) return;
+    if (!(await ask({
+      title: `Remove ${ids.length} selected student${ids.length === 1 ? "" : "s"}?`,
+      points: ["Their work, scores and login are deleted", "Locked test accounts are skipped"],
+      action: "Remove",
+    }))) return;
+    setRemoving(true);
+    try {
+      const r = await removeStudents(ids);
+      toast({ title: removalSummary(r) });
+      setPicked(new Set());
+      void queryClient.invalidateQueries();
+    } catch (e) {
+      toast({ title: "Not removed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -268,14 +335,22 @@ const StudentOversight = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {confirmBox}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">
             <Users className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Student Oversight</h1>
-            <p className="text-muted-foreground">Manage student accounts and activities</p>
+            <h1 className="text-3xl font-bold">Students</h1>
+            <p className="text-muted-foreground">
+              {total !== undefined ? `${total.toLocaleString('en-IN')} students` : 'Students'}
+              {students && total !== undefined && students.length < total ? ` (list shows the newest ${students.length.toLocaleString('en-IN')}; use search or the college filter)` : ''}
+              {' · '}Updated {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('en-GB') : '—'}
+              <Button variant="link" size="sm" className="h-auto px-2" disabled={isFetching} onClick={refreshAll}>
+                {isFetching ? 'Refreshing…' : 'Refresh'}
+              </Button>
+            </p>
           </div>
         </div>
         <Button onClick={() => openModal('add')} className="gap-2">
@@ -296,6 +371,23 @@ const StudentOversight = () => {
                 className="pl-10"
               />
             </div>
+            <Select value={collegeFilter} onValueChange={(value) => { setCollegeFilter(value); setCurrentPage(1); setPicked(new Set()); }}>
+              <SelectTrigger className="w-56" aria-label="College">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All colleges</SelectItem>
+                {(colleges ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {picked.size > 0 && (
+              <Button variant="destructive" size="sm" disabled={removing} onClick={() => void removePicked()}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {removing ? "Removing…" : `Remove selected (${picked.size})`}
+              </Button>
+            )}
             <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
               <SelectTrigger className="w-24">
                 <SelectValue />
@@ -313,6 +405,9 @@ const StudentOversight = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox checked={allOnPagePicked} onCheckedChange={togglePage} aria-label="Select all on this page" />
+                </TableHead>
                 <TableHead className="font-semibold">Name</TableHead>
                 <TableHead className="font-semibold">Email</TableHead>
                 <TableHead className="font-semibold">College</TableHead>
@@ -325,10 +420,14 @@ const StudentOversight = () => {
             <TableBody>
               {paginatedStudents?.map((student) => (
                 <TableRow key={student.id} className="hover:bg-muted/30">
+                  <TableCell>
+                    <Checkbox checked={picked.has(student.id)} onCheckedChange={() => togglePick(student.id)}
+                              aria-label={`Select ${student.full_name}`} />
+                  </TableCell>
                   <TableCell className="font-medium">{student.full_name}</TableCell>
                   <TableCell className="text-muted-foreground">{student.email}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{student.branch || 'N/A'}</Badge>
+                    <Badge variant="outline">{collegeName(student.college_id)}</Badge>
                   </TableCell>
                   <TableCell>{getStatusBadge(student.status)}</TableCell>
                   <TableCell>
@@ -365,10 +464,11 @@ const StudentOversight = () => {
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={async () => {
-                            if (!confirmRemoval(student.full_name)) return;
+                            if (!(await ask({ title: `Remove ${student.full_name}?`,
+                              points: ["Their work, scores and login are deleted"], action: "Remove" }))) return;
                             try {
-                              await removeStudents([student.id]);
-                              toast({ title: `Removed ${student.full_name}` });
+                              const r = await removeStudents([student.id]);
+                              toast({ title: r.keptProtected ? `${student.full_name} is a locked test account and was kept` : `Removed ${student.full_name}` });
                               void queryClient.invalidateQueries();
                             } catch (e) {
                               toast({ title: "Not removed", description: (e as Error).message, variant: "destructive" });
@@ -390,7 +490,7 @@ const StudentOversight = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, students?.length || 0)} of {students?.length || 0} students
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, students?.length || 0)} of {students?.length || 0} loaded ({(total ?? 0).toLocaleString('en-IN')} in total)
               </p>
               <div className="flex items-center gap-2">
                 <Button

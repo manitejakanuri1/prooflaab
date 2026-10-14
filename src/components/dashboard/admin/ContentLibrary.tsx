@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ExternalLink, EyeOff, Eye, FileText } from "lucide-react";
+import { safeExternalUrl } from "@/lib/safeNavigation";
 
 interface Page {
   id: string; url: string; title: string | null; site: string | null; domain: string | null;
@@ -113,7 +114,7 @@ const ContentLibrary = () => {
                   <tr key={p.id} className={`border-t ${p.hidden ? "opacity-50" : ""}`}>
                     <td className="py-2.5 pr-3 max-w-[320px]">
                       <div className="font-medium truncate">{p.title || p.url}</div>
-                      <a href={p.url} target="_blank" rel="noreferrer" className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1 truncate max-w-full">
+                      <a href={safeExternalUrl(p.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1 truncate max-w-full">
                         {p.url} <ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
                       {p.college && <div className="text-xs text-primary">Submitted by {p.college}</div>}

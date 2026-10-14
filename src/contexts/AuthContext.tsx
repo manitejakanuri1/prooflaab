@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       async (event, session) => {
         // Handle auth errors (like invalid refresh token)
         if (event === 'TOKEN_REFRESHED' && !session) {
-          console.log('Token refresh failed, clearing auth state');
           await supabase.auth.signOut();
           setSession(null);
           setUser(null);

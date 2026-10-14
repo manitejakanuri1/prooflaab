@@ -36,8 +36,12 @@ export const useProvenWork = (studentId?: string | null) =>
  * voice_explanations) - the retired proof uploads are not shown. No code or answers
  * are shown here, only what was passed and when.
  */
-export default function ProvenWork({ studentId, emptyText }: { studentId?: string | null; emptyText: string }) {
-  const { data = [], isLoading, error } = useProvenWork(studentId);
+export default function ProvenWork({ studentId, rows, emptyText }: { studentId?: string | null; rows?: Row[]; emptyText: string }) {
+  // `rows` is the signed-out portfolio, which arrives with its work already read.
+  const { data: fetched = [], isLoading: fetching, error: fetchError } = useProvenWork(rows ? null : studentId);
+  const data = rows ?? fetched;
+  const isLoading = !rows && fetching;
+  const error = rows ? null : fetchError;
 
   if (isLoading) return <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>;
   if (error) return <p className="py-8 text-center text-sm text-destructive">Could not load the work. Please try again.</p>;

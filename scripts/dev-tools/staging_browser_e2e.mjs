@@ -3,16 +3,15 @@
 //   npx vite --mode staging --port 5173            (separate terminal)
 //   node scripts/dev-tools/staging_browser_e2e.mjs [student|established|tpo|company|admin ...]
 //
-// Signs in as the protected staging fixtures (docs/STAGING-TEST-FIXTURES.md) by
-// placing a staging ticket in the browser session, minted from Secret Manager at
-// run time - shaped exactly like the staging auth-bridge's. Real Google sign-in is
-// not exercised here (staging shares production's Identity pool; see fixtures doc).
+// Signs in for real through the site's form (bff_login.mjs): /api/auth/login -> HttpOnly cookie.
+// Set E2E_<ROLE>_EMAIL / E2E_<ROLE>_PASSWORD for ADMIN, TPO, COMPANY, STUDENT, ESTABLISHED: dedicated
+// staging test logins that already exist and own the fixture data (docs/STAGING-TEST-FIXTURES.md).
+// The old way (a minted token in localStorage) no longer signs anyone in. NOT RUN since this change.
 //
 // Every step records: what was checked, console errors, failed requests (>=400),
 // and a screenshot under E2E_OUT (default ./e2e-out). Exit code = number of failures.
 import { chromium } from "playwright";
-import { createHash, createPublicKey, createSign } from "node:crypto";
-import { execSync } from "node:child_process";
+import { cookieSignIn, credentialsFor } from "./bff_login.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:5173";
@@ -27,34 +26,12 @@ const FIX = {
   established: { id: "99999999-0001-0000-0000-000000000001", email: "student1@staging.prooflab.invalid" },
 };
 
-// Signed with the staging signing key (F1: the bridge signs RS256), read at run time.
-const pem = execSync("gcloud secrets versions access latest --secret=prooflab-staging-app-signing-key", { encoding: "utf8" });
-const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-const kid = createHash("sha256").update(createPublicKey(pem).export({ format: "jwk" }).n).digest("hex").slice(0, 16);
-function ticket(sub, email) {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  const h = b64({ alg: "RS256", typ: "JWT", kid });
-  const p = b64({ sub, role: "authenticated", email, email_confirmed: true, exp });
-  return { token: `${h}.${p}.${createSign("RSA-SHA256").update(`${h}.${p}`).sign(pem).toString("base64url")}`, exp };
-}
-function session(who) {
-  const { id, email } = FIX[who];
-  const { token, exp } = ticket(id, email);
-  const now = new Date().toISOString();
-  return {
-    access_token: token, refresh_token: "staging-e2e-no-refresh", expires_in: 3600, expires_at: exp,
-    token_type: "bearer", provider_token: "",
-    user: { id, aud: "authenticated", role: "authenticated", email, email_confirmed_at: now, phone: "",
-            created_at: now, updated_at: now, last_sign_in_at: now, app_metadata: {}, user_metadata: {}, identities: [] },
-  };
-}
-
 const results = [];
 async function journey(who, steps) {
   const browser = await chromium.launch();
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
-  await context.addInitScript(([key, value]) => localStorage.setItem(key, value),
-    ["prooflab.auth.google", JSON.stringify(session(who))]);
+  // Real sign-in: the site's form -> /api/auth/login -> HttpOnly cookie (the site ignores browser storage).
+  await cookieSignIn(context, BASE, credentialsFor(who));
   const page = await context.newPage();
   const problems = [];
   page.on("console", (m) => { if (m.type() === "error") problems.push(`console: ${m.text().slice(0, 200)}`); });
@@ -91,9 +68,9 @@ const noText = (text) => async (page) => {
 
 // The sidebar of a role must show exactly these four destinations, and none of the retired ones.
 const menuIs = (labels, gone = []) => async (page) => {
-  for (const l of labels) await page.locator('[data-sidebar="menu-button"], aside button, nav button').filter({ hasText: new RegExp(`^\s*${l}`) }).first().waitFor({ timeout: 15000 });
+  for (const l of labels) await page.locator('[data-sidebar="menu-button"], aside button, nav button').filter({ hasText: new RegExp(`^\\s*${l}`) }).first().waitFor({ timeout: 15000 });
   for (const g of gone) {
-    const n = await page.locator('[data-sidebar="menu-button"]').filter({ hasText: new RegExp(`^\s*${g}\s*$`) }).count();
+    const n = await page.locator('[data-sidebar="menu-button"]').filter({ hasText: new RegExp(`^\\s*${g}\\s*$`) }).count();
     if (n) throw new Error(`retired menu item still shown: "${g}"`);
   }
   return `menu = ${labels.join(" / ")}`;

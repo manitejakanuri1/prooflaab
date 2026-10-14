@@ -1,5 +1,9 @@
 # Resume-to-Readiness Feature — Status
 
+> **Historical (23 Aug 2026).** The Supabase project and `prooflaab.vercel.app` named below were
+> retired; everything runs on Google Cloud (see [DEPLOYING.md](DEPLOYING.md) and
+> [docs/PRODUCTION-ARCHITECTURE.md](docs/PRODUCTION-ARCHITECTURE.md)). The feature description still holds.
+
 Reference doc for what's built vs. what's left on the resume-first flow.
 Supabase project: `ajaeneehxlnmnhjtvrgs` (switched from the old `zlfjxcwltqtajnczfjjp`).
 Live at: `prooflaab.vercel.app` (auto-deploys from `main`).

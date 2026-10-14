@@ -106,6 +106,12 @@ The dedicated runner already exists and is proven on staging (6 Oct 2026):
 | Runner's own caller list | `RUNNER_ALLOWED_CALLERS` = the same two accounts; no `RUNNER_SECRET` |
 | Proven | anonymous 403; operator 401; staging Run 42; coding audit 43/43, Run-vs-Submit 12/12, 0 hidden-test leaks; network/metadata/DB/fork/command/memory contained; `staging_identity_check.py` 28/28 |
 
+The image digest recorded above predates the fail-closed network-isolation change in
+`code-runner/server.py`. Build and verify a new image from the hardened source before
+production cutover, then record its immutable digest in `infra/runner/services.json`
+and the release manifest. The runner returns 503 from `/ready` and refuses `/run`
+if its network-isolation probe fails; do not proceed unless isolation is verified.
+
 Because production functions are already on the runner's two lists, there is **no secret-to-IAM window**: one
 functions setting change moves production from the old runner to the new one.
 

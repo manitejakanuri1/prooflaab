@@ -2,17 +2,21 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchPublicPortfolio, type PublicWork } from "@/lib/publicPortfolio";
 
 interface Portfolio {
-  id: string;
-  student_id: string;
+  // id and student_id are absent on the signed-out read: a stranger is not told them.
+  id?: string;
+  student_id?: string;
   slug: string;
   bio: string | null;
   skills: string[] | null;
   achievements: string | null;
   is_public: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
+  // Present only on the signed-out read, which carries the passed Lots with it.
+  work?: PublicWork[];
 }
 
 interface PortfolioWithProfile extends Portfolio {
@@ -36,8 +40,14 @@ export const usePortfolio = (slug?: string) => {
         setLoading(true);
         setError(null);
 
-        if (slug) {
-          // Public portfolio access by slug
+        if (slug && !user) {
+          // Signed out: the general database route needs a login, so a shared
+          // link is read through the narrow public route instead.
+          const shared = await fetchPublicPortfolio(slug);
+          if (shared) setPortfolio(shared);
+          else setError('Portfolio not found');
+        } else if (slug) {
+          // Signed in: read by slug as this person
           const { data, error: fetchError } = await supabase
             .from('student_portfolios')
             .select(`
@@ -61,7 +71,11 @@ export const usePortfolio = (slug?: string) => {
             return;
           }
 
-          setPortfolio(data as PortfolioWithProfile);
+          // The database shows a profile only to its owner, their college and
+          // admins. Anyone else signed in sees what a signed-out visitor sees.
+          const shown = (data as PortfolioWithProfile | null) ?? await fetchPublicPortfolio(slug);
+          if (shown) setPortfolio(shown);
+          else setError('Portfolio not found');
         } else if (user) {
           // Current user's portfolio - first get student profile ID
           const { data: profileData, error: profileError } = await supabase
@@ -101,7 +115,7 @@ export const usePortfolio = (slug?: string) => {
               .from('student_portfolios')
               .insert({
                 student_id: profileData.id,
-                is_public: true,
+                is_public: false,
               })
               .select(`
                 *,

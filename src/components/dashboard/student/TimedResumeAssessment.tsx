@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle } from "lucide-react";
+import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle, RotateCcw } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { codingErrorMessage, retryAllowance } from "@/lib/codingRoundRetry";
@@ -702,6 +702,24 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                   <div>expected output: {currentCodingQuestion.sample_test.expected_output}</div>
                 </div>
               ))}
+
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs text-muted-foreground font-mono">Editor ({currentCodingQuestion.language})</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Reset editor to starter code? Any changes you typed will be replaced.")) {
+                      setCode(currentCodingQuestion.starter_code || "");
+                    }
+                  }}
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  Reset starter code
+                </Button>
+              </div>
 
               <div className="border rounded-md overflow-hidden">
                 <Editor

@@ -498,3 +498,29 @@ Deno.test("C2-B2-A2 C and C++ runtime stdin are test-independent", () => {
     "C++ class mode must be explicitly refused in v1",
   );
 });
+
+Deno.test("C2.2: harness generates clean friendly error check for missing function", () => {
+  const js = buildFunctionHarness(
+    "javascript",
+    "// empty",
+    BASE,
+    "[1,2]",
+    TOKEN,
+  );
+  assert(
+    js.includes("Function 'add' is not defined. Please keep the function name and parameters exactly as given in the starter code."),
+    "JavaScript harness missing friendly function error check",
+  );
+
+  const py = buildFunctionHarness(
+    "python",
+    "# empty",
+    BASE,
+    "[1,2]",
+    TOKEN,
+  );
+  assert(
+    py.includes("Function 'add' is not defined. Please keep the function name and parameters exactly as given in the starter code."),
+    "Python harness missing friendly function error check",
+  );
+});

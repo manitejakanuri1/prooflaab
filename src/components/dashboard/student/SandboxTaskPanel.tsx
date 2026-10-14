@@ -8,7 +8,7 @@ import { submitScoreLine, verdictText, type Verdict } from "@/lib/codingVerdicts
 import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, type HiddenSummary,
 } from "@/lib/functionSignature";
-import { CheckCircle2, Loader2, Play, Send, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Play, RotateCcw, Send, XCircle } from "lucide-react";
 
 interface SandboxView {
   task_id: string;
@@ -161,6 +161,25 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
       </div>
 
       <div className="space-y-4 lg:sticky lg:top-0 lg:self-start">
+      <div className="flex items-center justify-between pb-1">
+        <span className="text-xs text-muted-foreground font-mono">Editor ({view.language})</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          disabled={!!busy || !!done}
+          onClick={() => {
+            if (window.confirm("Reset editor to starter code? Any changes you typed will be replaced.")) {
+              saveDraft(view.starter_code ?? "");
+            }
+          }}
+          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <RotateCcw className="h-3.5 w-3.5 mr-1" />
+          Reset starter code
+        </Button>
+      </div>
+
       <div className="overflow-hidden rounded-lg border">
         <Editor
           height="420px"

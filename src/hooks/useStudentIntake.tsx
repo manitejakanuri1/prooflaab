@@ -106,7 +106,12 @@ export const useStudentIntake = () => {
     loading,
     degraded,
     hasSeenWelcome: intake?.has_seen_welcome ?? false,
-    intakeComplete: Boolean(intake?.intake_completed_at) || graded,
+    // A resume upload stamps intake_completed_at before the assessment is taken,
+    // so on the resume path only a graded test counts. Without this, leaving the
+    // page after the upload landed the student on the dashboard with the test
+    // never taken, and nothing ever sent them back to it.
+    intakeComplete:
+      graded || (Boolean(intake?.intake_completed_at) && intake?.task_source !== "resume"),
     markWelcomeSeen,
     completeIntake,
     refresh: fetchIntake,

@@ -139,10 +139,10 @@ interface RecordedAnswer {
   confidence?: ConfidenceLevel;
 }
 
-const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string; emoji: string }[] = [
-  { value: "high", label: "Nailed it", emoji: "😎" },
-  { value: "medium", label: "Pretty sure", emoji: "🤔" },
-  { value: "low", label: "Total guess", emoji: "😬" },
+const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string }[] = [
+  { value: "high", label: "Confident" },
+  { value: "medium", label: "Pretty sure" },
+  { value: "low", label: "Guess" },
 ];
 
 type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing" | "results";
@@ -602,9 +602,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                           : "border-border hover:bg-muted"
                       }`}
                     >
-                      <span className="text-lg" title={c.label} aria-label={c.label}>
-                        {c.emoji}
-                      </span>
+                      {c.label}
                     </button>
                   ))}
                 </div>
@@ -888,8 +886,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                       </div>
                       {s.confidence && (
                         <p className="text-xs text-muted-foreground">
-                          You said: {CONFIDENCE_OPTIONS.find((c) => c.value === s.confidence)?.emoji}{" "}
-                          {CONFIDENCE_OPTIONS.find((c) => c.value === s.confidence)?.label}
+                          You said: {CONFIDENCE_OPTIONS.find((c) => c.value === s.confidence)?.label}
                         </p>
                       )}
                       {s.confidence_flag === "lucky_guess" && (

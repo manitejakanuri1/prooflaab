@@ -41,6 +41,7 @@ const StudentStart = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const {
+    intake,
     loading,
     degraded,
     hasSeenWelcome,
@@ -75,11 +76,15 @@ const StudentStart = () => {
   const leavingRef = useRef(false);
 
   useEffect(() => {
-    if (leavingRef.current) return;
-    if (!loading && passThrough) {
+    if (leavingRef.current || loading) return;
+    if (passThrough) {
       navigate("/student/dashboard", { replace: true });
+    } else if (intake?.task_source === "resume") {
+      // Resume already uploaded but the test is not done: back to it, not the
+      // upload screen again.
+      navigate("/student/resume-onboarding", { replace: true });
     }
-  }, [loading, passThrough, navigate]);
+  }, [loading, passThrough, intake?.task_source, navigate]);
 
   const handleStart = async () => {
     setStarting(true);
@@ -146,7 +151,7 @@ const StudentStart = () => {
     navigate("/student/interest-onboarding", { replace: true });
   };
 
-  if (loading || passThrough) {
+  if (loading || passThrough || intake?.task_source === "resume") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />

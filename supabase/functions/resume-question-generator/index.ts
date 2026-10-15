@@ -71,6 +71,7 @@ serve(async (req) => {
     let source: {
       student_id: string;
       ready: boolean;
+      belowGate?: boolean;
       target_role: string | null;
       skills: string[];
       certifications: string[];
@@ -80,13 +81,17 @@ serve(async (req) => {
     if (fromResume) {
       const { data: row } = await supabase
         .from('resume_claims')
-        .select('student_id, status, target_role, skills, certifications, projects')
+        .select('student_id, status, target_role, skills, certifications, projects, ats_match_score, improved_at')
         .eq('id', resume_claims_id)
         .maybeSingle();
       if (row) {
         source = {
           student_id: row.student_id,
           ready: row.status === 'confirmed',
+          // The ATS gate the screen shows (ResumeCheckFlow ATS_GATE), enforced
+          // here too: it was only a disabled button, so calling this function
+          // directly walked past it. The one-time Auto-fix opens it (owner rule).
+          belowGate: (row.ats_match_score ?? 0) < 60 && !row.improved_at,
           target_role: row.target_role,
           skills: row.skills || [],
           certifications: row.certifications || [],
@@ -133,6 +138,12 @@ serve(async (req) => {
             ? 'Confirm your resume claims before starting the assessment'
             : 'Confirm your interests before starting the assessment',
         }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (source.belowGate) {
+      return new Response(
+        JSON.stringify({ error: 'Your resume scores under 60%. Use the one-time Auto-fix or re-upload an improved resume first.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

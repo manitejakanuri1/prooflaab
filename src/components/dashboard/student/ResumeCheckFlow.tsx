@@ -582,7 +582,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                   </div>
                 )}
                 {claim.improve_motivation && (
-                  <p className="text-sm">💪 {claim.improve_motivation}</p>
+                  <p className="text-sm">{claim.improve_motivation}</p>
                 )}
                 <p className="text-xs text-muted-foreground">You can take the assessment now, below.</p>
               </div>

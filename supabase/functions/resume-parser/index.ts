@@ -230,8 +230,11 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
     let generatedText = '';
     try {
       const result = await generateText(`${prompt}\n\nRESUME TEXT:\n${resumeText}`, {
-        temperature: 0.2,
+        // Same resume, same score: temperature 0, and the cache returns the
+        // stored answer for identical text instead of asking (and paying) again.
+        temperature: 0,
         maxOutputTokens: 4000,
+        cache: true,
       }, { feature: 'resume-parser', userId: callerId, studentId: profile.id });
       generatedText = result.text;
       console.log(`Resume extracted via ${result.provider}`);

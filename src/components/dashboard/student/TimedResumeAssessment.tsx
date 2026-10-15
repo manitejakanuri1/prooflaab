@@ -185,6 +185,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
+  const hasAnswer = currentQuestion?.type === "mcq"
+    ? selectedOption !== null
+    : textAnswer.trim().length > 0;
   const currentCodingQuestion = codingQuestions[codingIndex];
   const codingSpec = currentCodingQuestion ? functionSpecOf(currentCodingQuestion) : null;
   const isLastCodingQuestion = codingIndex === codingQuestions.length - 1;
@@ -329,7 +332,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
         ? (selectedOption !== null ? currentQuestion.options?.[selectedOption] ?? "" : "")
         : textAnswer,
       ...(currentQuestion.type === "mcq" && selectedOption !== null ? { selected_index: selectedOption } : {}),
-      ...(confidence ? { confidence } : {}),
+      ...(confidence && hasAnswer ? { confidence } : {}),
     };
     const nextAnswers = [...answers, recorded];
     setAnswers(nextAnswers);
@@ -586,18 +589,21 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
 
               <div className="space-y-1.5 pt-1">
                 <p className="text-xs text-muted-foreground">
-                  How sure are you, honestly?
-                  {confidence && <span className="ml-1 text-primary">— saved ✓</span>}
+                  {hasAnswer ? "How sure are you, honestly?" : "Select or type an answer to rate confidence"}
+                  {confidence && hasAnswer && <span className="ml-1 text-primary">— saved ✓</span>}
                 </p>
                 <div className="flex gap-2">
                   {CONFIDENCE_OPTIONS.map((c) => (
                     <button
                       key={c.value}
                       type="button"
-                      aria-pressed={confidence === c.value}
-                      onClick={() => setConfidence(c.value)}
+                      disabled={!hasAnswer}
+                      aria-pressed={hasAnswer && confidence === c.value}
+                      onClick={() => hasAnswer && setConfidence(c.value)}
                       className={`flex-1 rounded-md border-2 px-2 py-1.5 text-xs transition-colors ${
-                        confidence === c.value
+                        !hasAnswer
+                          ? "opacity-40 cursor-not-allowed border-border"
+                          : confidence === c.value
                           ? "border-primary bg-primary text-primary-foreground font-semibold shadow-sm"
                           : "border-border hover:bg-muted"
                       }`}

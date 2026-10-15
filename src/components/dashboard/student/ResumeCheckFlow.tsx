@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { FunctionsHttpError } from "@supabase/supabase-js";
+import { readFunctionError } from "@/lib/functionError";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import TimedResumeAssessment, { ResumeScoreResult } from "./TimedResumeAssessment";
@@ -265,7 +265,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       const { data, error: parseError } = await supabase.functions.invoke("resume-parser", {
         body: { storage_path: storagePath, resume_text: resumeTextValue },
       });
-      if (parseError) throw parseError;
+      if (parseError) throw new Error(String((await readFunctionError(parseError))?.error ?? parseError.message));
       if (data?.error) throw new Error(data.error);
 
       setTargetRole(data.target_role || "");
@@ -419,15 +419,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       const { data, error } = await supabase.functions.invoke("resume-retest-generate", {
         body: { resume_claims_id: claim.id },
       });
-      if (error) {
-        // FunctionsHttpError only carries the raw Response — pull the real
-        // message our function set (e.g. the cooldown text) out of its body.
-        if (error instanceof FunctionsHttpError) {
-          const body = await error.context.json().catch(() => null);
-          throw new Error(body?.error || error.message);
-        }
-        throw error;
-      }
+      // Carries the function's own message (e.g. the cooldown text).
+      if (error) throw new Error(String((await readFunctionError(error))?.error ?? error.message));
       if (data?.error) throw new Error(data.error);
 
       if (data.no_weak_topics) {

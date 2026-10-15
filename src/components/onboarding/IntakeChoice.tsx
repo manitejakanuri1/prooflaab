@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, SkipForward, CheckCircle2 } from "lucide-react";
 import type { TaskSource } from "@/hooks/useStudentIntake";
+import { readFunctionError } from "@/lib/functionError";
 
 /** Spec: PDF or DOCX, under 5 MB. Kept in sync with resume-parser's own check. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -78,7 +79,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
       const { data, error: parseError } = await supabase.functions.invoke("resume-parser", {
         body: { storage_path: storagePath, resume_text: resumeTextValue },
       });
-      if (parseError) throw parseError;
+      if (parseError) throw new Error(String((await readFunctionError(parseError))?.error ?? parseError.message));
       if (data?.error) throw new Error(data.error);
 
       const skills: string[] = data?.skills ?? [];

@@ -4,6 +4,7 @@ import { unzipSync } from "https://esm.sh/fflate@0.8.2";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
+import { fileTypeMatches, NOT_A_RESUME, resumeShapeProblem } from "../_shared/resume-check.ts";
 
 // 5MB — matches the client-side limit shown to students on the upload screen.
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
@@ -121,46 +122,48 @@ serve(async (req) => {
       );
     }
 
-    // Resolve the resume down to plain text. Preference order:
-    //   1. resume_text from the browser (pdf.js) — no download needed at all
-    //   2. DOCX unzipped server-side
-    //   3. PDF bytes handed to a multimodal model as a last resort
-    let resumeText = typeof resume_text === 'string' ? resume_text.trim() : '';
-    let fileBytes: Uint8Array | null = null;
+    // The uploaded file is always fetched and checked, even when the browser sent
+    // its text: otherwise any text could be posted against a path with no file
+    // behind it. A DOCX is always read here. A PDF's text still comes from the
+    // browser, because scans are OCR'd there and the server cannot do that.
+    const { data: fileBlob, error: downloadError } = await supabase
+      .storage
+      .from('resumes')
+      .download(storage_path);
+    if (downloadError || !fileBlob) {
+      console.error('Resume download failed:', downloadError);
+      return new Response(
+        JSON.stringify({ error: 'Could not read uploaded resume' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (fileBlob.size > MAX_RESUME_BYTES) {
+      return new Response(
+        JSON.stringify({ error: 'Resume file is too large (5MB max)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
+    if (!fileTypeMatches(fileBytes, isPdf)) {
+      return new Response(
+        JSON.stringify({ error: `That file is not a real ${isPdf ? 'PDF' : 'DOCX'}. Please upload your resume.` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (!resumeText) {
-      const { data: fileBlob, error: downloadError } = await supabase
-        .storage
-        .from('resumes')
-        .download(storage_path);
-      if (downloadError || !fileBlob) {
-        console.error('Resume download failed:', downloadError);
+    let resumeText = '';
+    if (isDocx) {
+      try {
+        resumeText = extractDocxText(fileBytes);
+      } catch (err) {
+        console.error('DOCX extraction failed:', err);
         return new Response(
-          JSON.stringify({ error: 'Could not read uploaded resume' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (fileBlob.size > MAX_RESUME_BYTES) {
-        return new Response(
-          JSON.stringify({ error: 'Resume file is too large (5MB max)' }),
+          JSON.stringify({ error: 'Could not read that DOCX. Try exporting it as a PDF.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
-
-      if (isDocx) {
-        try {
-          resumeText = extractDocxText(fileBytes);
-        } catch (err) {
-          console.error('DOCX extraction failed:', err);
-          return new Response(
-            JSON.stringify({ error: 'Could not read that DOCX. Try exporting it as a PDF.' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      }
+    } else if (typeof resume_text === 'string') {
+      resumeText = resume_text.trim();
     }
 
     if (resumeText.length < 30) {
@@ -174,7 +177,21 @@ serve(async (req) => {
       );
     }
 
-    const prompt = `You are analyzing a student's resume to extract exactly what they claim about themselves — no more, no less.
+    // Check 2: free shape check before any AI cost.
+    const shapeProblem = resumeShapeProblem(resumeText);
+    if (shapeProblem) {
+      console.log(`resume-parser refused upload: ${shapeProblem}`);
+      return new Response(
+        JSON.stringify({ error: NOT_A_RESUME }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const prompt = `You are analyzing a document a student uploaded as their resume.
+
+FIRST decide whether it really is a resume or CV: a document describing one person's own education, skills, projects and/or work history so they can apply for jobs. Assignments, answer sheets, reports, essays, notes, scripts, code, question papers, certificates on their own, cover letters and letters are NOT resumes. Set "is_resume" to false for those, put a short reason in "not_resume_reason", and leave the other fields empty.
+
+If it is a resume, extract exactly what they claim about themselves — no more, no less.
 
 Read the resume and return ONLY the skills, certifications, projects, and target role that are actually written in it. Do not invent, assume, or add anything not present in the document.
 
@@ -190,6 +207,8 @@ Also write "skill_relevance_notes": regardless of the scores above, independentl
 
 Return a JSON object with this exact structure:
 {
+  "is_resume": true,
+  "not_resume_reason": "",
   "target_role": "string",
   "skills": ["skill1", "skill2"],
   "certifications": ["cert1", "cert2"],
@@ -229,6 +248,8 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
     }
 
     let extraction: {
+      is_resume?: boolean;
+      not_resume_reason?: string;
       target_role?: string;
       skills?: string[];
       certifications?: string[];
@@ -250,6 +271,16 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
       return new Response(
         JSON.stringify({ error: 'Failed to parse resume analysis' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check 3: the model's own verdict. Only an explicit false refuses, so an
+    // older provider that omits the field does not block real resumes.
+    if (extraction.is_resume === false) {
+      console.log(`resume-parser refused upload (AI): ${extraction.not_resume_reason ?? ''}`);
+      return new Response(
+        JSON.stringify({ error: NOT_A_RESUME }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

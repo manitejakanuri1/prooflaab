@@ -59,3 +59,8 @@ __pycache__/
 e2e-out/
 authz_matrix_results.json
 voice-playback-fail.png
+
+# Agent skills cache
+.agents/
+skills-lock.json
+

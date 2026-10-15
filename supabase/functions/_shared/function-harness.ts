@@ -227,6 +227,12 @@ function pythonHarness(
   const call = callExpression(spec, args, "python");
   const prefix = jsonString(functionResultPrefix(token));
 
+  const check = spec.class_name
+    ? `if "${spec.class_name}" not in globals() or not hasattr(globals()["${spec.class_name}"], "${spec.function_name}"):
+    raise NameError("Method '${spec.function_name}' on class '${spec.class_name}' is not defined. Please keep the class and method name as given in the starter code.")`
+    : `if "${spec.function_name}" not in globals() or not callable(globals()["${spec.function_name}"]):
+    raise NameError("Function '${spec.function_name}' is not defined. Please keep the function name and parameters exactly as given in the starter code.")`;
+
   return `import json as __prooflab_json
 import sys as __prooflab_sys
 
@@ -245,6 +251,8 @@ if (
     or len(__prooflab_args) != ${spec.parameters.length}
 ):
     raise RuntimeError("invalid function arguments")
+
+${check}
 
 __prooflab_value = ${call}
 
@@ -274,6 +282,14 @@ function javascriptHarness(
     "javascript",
   );
 
+  const check = spec.class_name
+    ? `if (typeof ${spec.class_name} === "undefined" || typeof (new ${spec.class_name}())["${spec.function_name}"] !== "function") {
+  throw new ReferenceError("Method '${spec.function_name}' on class '${spec.class_name}' is not defined. Please keep the class and method name as given in the starter code.");
+}`
+    : `if (typeof ${spec.function_name} !== "function") {
+  throw new ReferenceError("Function '${spec.function_name}' is not defined. Please keep the function name and parameters exactly as given in the starter code.");
+}`;
+
   return `const __prooflab_fs_${suffix} = require("fs");
 const __prooflab_parse_${suffix} = JSON.parse.bind(JSON);
 const __prooflab_stringify_${suffix} = JSON.stringify.bind(JSON);
@@ -292,6 +308,8 @@ if (
 ) {
   throw new Error("invalid function arguments");
 }
+
+${check}
 
 const __prooflab_value_${suffix} = ${call};
 
@@ -2393,6 +2411,14 @@ function rubyHarness(
     "ruby",
   );
 
+  const check = spec.class_name
+    ? `unless defined?(${spec.class_name}) && ${spec.class_name}.method_defined?(:${spec.function_name})
+  raise NameError, "Method '${spec.function_name}' on class '${spec.class_name}' is not defined. Please keep the class and method name as given in the starter code."
+end`
+    : `unless defined?(${spec.function_name})
+  raise NameError, "Function '${spec.function_name}' is not defined. Please keep the function name as given in the starter code."
+end`;
+
   return `require "json"
 
 __prooflab_parse = JSON.method(:parse)
@@ -2411,6 +2437,8 @@ unless (
 )
   raise "invalid function arguments"
 end
+
+${check}
 
 __prooflab_value = ${call}
 __prooflab_payload = __prooflab_generate.call(__prooflab_value)
@@ -2453,6 +2481,14 @@ function phpHarness(
     "php",
   );
 
+  const check = spec.class_name
+    ? `if (!class_exists('${spec.class_name}') || !method_exists('${spec.class_name}', '${spec.function_name}')) {
+    throw new Error("Method '${spec.function_name}' on class '${spec.class_name}' is not defined. Please keep the class and method name as given in the starter code.");
+}`
+    : `if (!function_exists('${spec.function_name}')) {
+    throw new Error("Function '${spec.function_name}' is not defined. Please keep the function name as given in the starter code.");
+}`;
+
   return `<?php
 
 ${body}
@@ -2471,6 +2507,8 @@ if (
 ) {
     throw new RuntimeException("invalid function arguments");
 }
+
+${check}
 
 $__prooflab_value = ${call};
 

@@ -185,6 +185,34 @@ function safeTolerance(value: unknown): number {
 }
 
 /**
+ * Strips internal harness variables, temp container paths, and raw Node/Python
+ * runtime loader stack frames so students receive clean, friendly compiler/runtime errors.
+ */
+export function sanitizeStderr(raw: string): string {
+  if (!raw) return "";
+  const lines = raw.split("\n");
+  const filtered: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // If next line contains an internal harness identifier, skip this banner line too
+    if (i + 1 < lines.length && (lines[i + 1].includes("__prooflab_") || lines[i + 1].includes("__ProofLab"))) {
+      continue;
+    }
+    // Drop lines with internal harness identifiers
+    if (line.includes("__prooflab_") || line.includes("__ProofLab")) continue;
+    // Drop caret lines that pointed to dropped harness lines
+    if (/^\s*\^\s*$/.test(line) && (filtered.length === 0 || !filtered[filtered.length - 1].trim())) continue;
+    // Drop Node/Python internal runtime loader frames
+    if (/^\s*at\s+(Module\._|node:internal\/|Function\.executeUserEntryPoint)/.test(line)) continue;
+    if (line.includes("node:internal/main/run_main_module")) continue;
+    filtered.push(line);
+  }
+  // Replace temporary runner directory paths like /tmp/run-xxxxxx/main.js with solution.js
+  const cleaned = filtered.join("\n").replace(/\/tmp\/run-[^/\s]+\/main\.([a-z0-9]+)/g, "solution.$1");
+  return cleaned.trim();
+}
+
+/**
  * Deterministic output comparison only. There is deliberately no executable
  * custom-checker hook: a frozen evaluator may choose only one allow-listed
  * comparison mode.
@@ -807,7 +835,7 @@ export async function gradeFunctionTests(
       stdin: tc.stdin,
       expected,
       actual,
-      stderr: run.stderr.trim(),
+      stderr: sanitizeStderr(run.stderr.trim()),
     });
 
     if (verdict === "compile_error") {
@@ -902,9 +930,9 @@ export async function gradeTests(
     );
     results.push({
       id: tc.id, visible: tc.visible, verdict, passed: verdict === 'accepted',
-      stdin: tc.stdin, expected: tc.expected_output, actual: run.stdout.trim(), stderr: run.stderr.trim(),
+      stdin: tc.stdin, expected: tc.expected_output, actual: run.stdout.trim(), stderr: sanitizeStderr(run.stderr.trim()),
     });
-    if (verdict === 'compile_error') compileError = { stderr: run.stderr.trim() };
+    if (verdict === 'compile_error') compileError = { stderr: sanitizeStderr(run.stderr.trim()) };
   }
 
   return scoreGradedResults(tests, results, runner);

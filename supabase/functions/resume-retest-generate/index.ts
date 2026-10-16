@@ -143,7 +143,7 @@ Rules:
 - One short, plain-English sentence (under 25 words) per question.
 - For mcq: exactly 4 options, exactly one correct answer, wrong options plausible, vary difficulty. If the topic is a programming language or framework, prefer a short (1-3 line) code-reading snippet in the prompt.
 - For short_answer: require a real typed explanation (not one word) about the same project/skill/concept as the original question.
-- Every mcq needs an "explanation" field: why the correct option is correct, written with real personality — a quirky, funny one-liner (witty friend, not a textbook footnote), under 25 words, that still nails the technical reason.
+- Every mcq needs an "explanation" field: why the correct option is correct, in one plain, simple sentence (under 25 words) that gives the technical reason. No jokes or slang.
 
 Return a JSON array with this exact structure:
 [
@@ -153,7 +153,7 @@ Return a JSON array with this exact structure:
     "prompt": "Question text",
     "options": ["A", "B", "C", "D"],
     "correct_index": 0,
-    "explanation": "A funny, quirky one-liner on why this option is correct",
+    "explanation": "One plain sentence on why this option is correct",
     "difficulty": "easy|medium"
   },
   {

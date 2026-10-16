@@ -532,7 +532,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
-                <span>Prove your resume</span>
+                <span>{"resume_claims_id" in source ? "Prove your resume" : "Prove your skills"}</span>
                 <span className={`flex items-center gap-1 text-sm font-normal ${timeLeft <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
                   <Clock className="h-4 w-4" /> {timeLeft}s
                 </span>

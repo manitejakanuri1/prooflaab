@@ -209,7 +209,7 @@ Return a JSON object:
 {
   "correctness_score": <0-100, does this show real understanding of what they claimed>,
   "reasoning_clarity_score": <0-100, separate from correctness — how clearly and logically they explained their thinking, regardless of whether the content itself was fully right>,
-  "explanation": "<1-2 sentences, written with real personality — quirky and funny, like a witty friend roasting or hyping them, never a dry textbook verdict. If the score is below 70, it MUST name the specific thing missing or wrong in their answer (not just 'be more specific') so they know exactly what to fix. If 70+, name the specific thing they got right.>"
+  "explanation": "<1-2 sentences, in plain, simple, friendly English, like a kind teacher. No jokes, no sarcasm, no slang. If the score is below 70, it MUST name the specific thing missing or wrong in their answer (not just 'be more specific') so they know exactly what to fix. If 70+, name the specific thing they got right.>"
 }
 
 Guidelines: a vague, generic, or copy-pasted-sounding answer with no specifics scores low even if technically not wrong. A specific, concrete explanation referencing real details scores high.
@@ -388,7 +388,7 @@ Return ONLY the JSON object.`;
     }
 
     let roadmap = JSON.stringify([
-      { title: 'Clean sweep', why: "Nothing weak to roast here — you actually knew your stuff.", action: "Come back for a re-check later to prove it wasn't a fluke." },
+      { title: 'Clean sweep', why: "No weak areas in this test. You knew your material.", action: "Come back for a re-check later to prove it wasn't a fluke." },
     ]);
     if (weakQuestions.length > 0 || luckyGuesses.length > 0 || overconfident.length > 0 || (skillGap && skillGap.missing.length > 0)) {
       const confidenceNotes = [
@@ -404,7 +404,7 @@ Return ONLY the JSON object.`;
         ? `\nSkills required for "${resumeClaim?.target_role}" they haven't claimed at all — fold these in as their own foundational stage(s), even though no question tested them: ${skillGap.missing.join(', ') || '(none)'}\nClaimed skills that overlapped with weak answers above (already covered as weak-question stages, don't duplicate): ${skillGap.needs_improvement.join(', ') || '(none)'}`
         : '';
 
-      const roadmapPrompt = `You are a witty, funny mentor giving a student direct, specific coaching after a skills-verification test. Think "roast with love" — a friend who's genuinely rooting for them but isn't afraid to be quirky, playful, and a little cheeky about it. NOT a boring corporate coach, and NOT a re-taught lesson — one punchy beat per stage, not paragraphs.
+      const roadmapPrompt = `You are a calm, supportive mentor giving a student clear, specific coaching after a skills-verification test. Write in plain, simple English that an engineering student reads easily. Be serious and encouraging: no jokes, no sarcasm, no slang, no roasting. NOT a re-taught lesson: one short point per stage, not paragraphs.
 
 Student is targeting: "${resumeClaim?.target_role || 'a role'}"
 Claimed skills: [${(resumeClaim?.skills || []).join(', ')}]
@@ -415,9 +415,9 @@ ${confidenceNotes ? `\nConfidence-vs-performance mismatches to fold in as their 
 ${skillGapNotes}
 
 Return a JSON array, ordered from the most foundational/urgent gap first to the most polish-level gap last (a "from scratch to sharp" progression), one object per distinct weak topic (plus one per confidence mismatch, plus one per missing required skill, if any). Each object:
-{"skill": "${ladderSkills.length ? 'EXACTLY one of these ladder skills, copied character for character: ' + ladderSkills.join(' | ') + ' - or "other" if none fits' : 'other'}", "title": "short punchy stage name (3-6 words, not the raw question)", "why": "ONE quirky sentence — a joke or fun analogy — on why it matters for the role, no lecture", "action": "ONE concrete next step: a specific thing to practice, build, or re-read (e.g. '5 problems on X on LeetCode', 'rebuild the auth flow in your project using Y properly'), phrased with flair, not 'study more'"}
+{"skill": "${ladderSkills.length ? 'EXACTLY one of these ladder skills, copied character for character: ' + ladderSkills.join(' | ') + ' - or "other" if none fits' : 'other'}", "title": "short clear stage name (3-6 words, not the raw question)", "why": "ONE plain sentence on why it matters for the role, no lecture", "action": "ONE concrete next step: a specific thing to practice, build, or re-read inside ProofLab (e.g. 'write 5 small programs that use X', 'rebuild the login part of your project using Y'), not 'study more'"}
 
-Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never actually mean, never say "learn everything from scratch," never truly shame the student. Return ONLY the JSON array, no markdown fences, no commentary.`;
+Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never be mean, never say "learn everything from scratch," never shame the student. Never name or link any outside website, app or platform (no LeetCode, YouTube, Udemy and so on): the student practises inside ProofLab. Return ONLY the JSON array, no markdown fences, no commentary.`;
 
       try {
         // Tagged, unlike before: this was the whole of the 'unattributed' line in

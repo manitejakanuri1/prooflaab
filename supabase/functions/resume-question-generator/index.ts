@@ -211,7 +211,7 @@ Short-answer rules:
 - Ask general but specific skill-explanation questions ("explain how you would use X in a real scenario") — no project to defend here, so don't invent one.
 - These are graded by reading the student's typed explanation, so the question must require a real explanation, not a one-word answer.
 ` : ''}
-Every MCQ also needs an "explanation" field: why the correct option is correct, but write it with actual personality — a quirky, funny one-liner (think witty friend, not a textbook footnote), under 25 words, that still nails the technical reason.
+Every MCQ also needs an "explanation" field: why the correct option is correct, in one plain, simple sentence (under 25 words) that gives the technical reason. No jokes or slang.
 
 Return a JSON array with this exact structure:
 [
@@ -222,7 +222,7 @@ Return a JSON array with this exact structure:
     "prompt": "Question text",
     "options": ["A", "B", "C", "D"],
     "correct_index": 0,
-    "explanation": "A funny, quirky one-liner on why this option is correct",
+    "explanation": "One plain sentence on why this option is correct",
     "difficulty": "easy|medium"
   }${fallbackShortAnswerCount > 0 ? `,
   {

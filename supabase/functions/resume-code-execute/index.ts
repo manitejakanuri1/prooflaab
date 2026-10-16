@@ -3,6 +3,7 @@ import { createClient } from "../_shared/backend.ts";
 import { guard } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
 import { gradeSandboxConfig, redact, type SandboxTest } from "../_shared/sandbox.ts";
+import { scoreWithoutFreeTests } from "../_shared/coding-round.ts";
 
 // stage69: the runner (Wandbox -> Godbolt -> Glot chain) moved to
 // _shared/sandbox.ts so run-sandbox and submit-sandbox-task use the exact
@@ -178,11 +179,34 @@ serve(async (req) => {
       );
     }
 
+    // Tests the untouched starter code already passes are free marks; they are
+    // left out of this question's score (coding-round.ts). One extra run, on submit only.
+    let starterPassed: Set<string> | null = null;
+    if (mode === 'submit' && question.starter_code) {
+      const starter = await gradeSandboxConfig({
+        kind: sandboxKind,
+        language,
+        function_spec: functionSpec,
+        test_cases: tests,
+        time_limit_ms: timeLimitMs,
+        memory_limit_mb: memoryLimitMb,
+      }, question.starter_code);
+      if (!starter.ok) {
+        return new Response(
+          JSON.stringify({
+            error: 'The code runner is busy right now. This is not a problem with your code - please try again in a moment.',
+            runner_unavailable: true,
+          }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      starterPassed = new Set(starter.results.filter((r) => r.passed).map((r) => r.id));
+    }
+
     // submit mode: persist this question's result, and if all coding questions
     // are now submitted, compute the final coding score onto the scorecard.
-    const passCount = results.filter((r) => r.passed).length;
     // Always the full set: a compile error that stops early still fails every test.
-    const total: number = tests.length;
+    const { pass_count: passCount, total } = scoreWithoutFreeTests(results, tests.length, starterPassed);
     const updatedResults: Record<string, any> = {
       ...existingResults,
       [question_id]: { pass_count: passCount, total, results, ...(mode === 'skip' ? { skipped: true } : {}) },

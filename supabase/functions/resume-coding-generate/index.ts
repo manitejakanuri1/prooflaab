@@ -4,6 +4,10 @@ import { rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
 import { tryGenerateSandbox } from "../_shared/auto-config.ts";
 import { sandboxConfigRow } from "../_shared/function-generation.ts";
+import { sameProblem } from "../_shared/coding-round.ts";
+
+/** A stored round question, in the shape sameProblem compares. */
+const asProblem = (q: any) => ({ prompt: q?.prompt, function_name: q?.function_spec?.function_name });
 
 // Skills claimed on a resume, mapped to a language the ProofLab code runner can
 // execute. First match wins. TypeScript is deliberately absent: the runner has no
@@ -135,11 +139,11 @@ serve(async (req) => {
     // Tests are stored in task_sandbox_config (admin-only, frozen once used), never
     // in anything a student can read. Before 3 Oct 2026 this round used 3
     // AI-written tests that were never executed against any solution.
-    const problemSpec = (n: number) => ({
+    const problemSpec = (n: number, avoid?: string) => ({
       kind: 'scenario' as const,
       promptBody: `Write coding problem ${n} of 2 for a student targeting "${targetRole}" who claims these skills: ${skills.join(', ') || 'general programming'}.
 
-Rules:
+Rules:${avoid ? `\n- It MUST be a different problem from "${avoid}": a different task and a different function name.` : ''}
 - The language MUST be ${language}. The student implements ONE function (no reading input, no printing): you choose its name, parameters and return type in "function_spec".
 - Easy: solvable in under 15 lines, in a few minutes. Problem ${n === 1 ? '1 is about basic data handling (strings or arrays)' : '2 uses a loop with a condition or a simple calculation'}, and relates to the claimed skills where possible.
 - "statement" says, in simple English: what the function must return for its arguments, and one example call with its return value and a one-line explanation of why.`,
@@ -161,7 +165,9 @@ Rules:
     if (cacheKey) {
       const { data: cached } = await supabase
         .from('ai_templates').select('payload').eq('template_key', cacheKey).maybeSingle();
-      if (Array.isArray(cached?.payload) && cached.payload.every((q: any) => q?.sandbox_config_id)) {
+      // A cached round holding the same problem twice is not served; it is rebuilt and overwritten below.
+      if (Array.isArray(cached?.payload) && cached.payload.every((q: any) => q?.sandbox_config_id)
+          && !(cached.payload.length === 2 && sameProblem(asProblem(cached.payload[0]), asProblem(cached.payload[1])))) {
         console.log('coding round served from template cache:', cacheKey);
         codingQuestions = cached.payload as any[];
         await supabase.rpc('touch_template', { _key: cacheKey });
@@ -175,6 +181,21 @@ Rules:
         outcomes = await Promise.all([1, 2].map((n) =>
           tryGenerateSandbox(problemSpec(n), 'resume-coding-generate', { userId: callerId, studentId: profile.id },
             { kind: 'function', difficulty: 'Easy' })));
+        // Same problem twice: write problem 2 again, told what to avoid. Still the
+        // same after that: problem 2 is dropped below (a one-problem round is not cached).
+        const [o1, o2] = outcomes;
+        const fromOutcome = (o: typeof o1) => ({
+          title: o.scenarioFields?.title,
+          function_name: (o.attempt as any)?.function_spec?.function_name,
+        });
+        if (o1.ok && o2.ok && sameProblem(fromOutcome(o1), fromOutcome(o2))) {
+          console.log('coding round: problem 2 duplicated problem 1, regenerating');
+          outcomes[1] = await tryGenerateSandbox(problemSpec(2, String(o1.scenarioFields?.title ?? '')),
+            'resume-coding-generate', { userId: callerId, studentId: profile.id }, { kind: 'function', difficulty: 'Easy' });
+          if (outcomes[1].ok && sameProblem(fromOutcome(o1), fromOutcome(outcomes[1]))) {
+            outcomes[1] = { ...outcomes[1], ok: false };
+          }
+        }
       } catch (e) {
         console.error('Coding round generation failed:', e);
         const limited = rateLimitResponse(e, corsHeaders);

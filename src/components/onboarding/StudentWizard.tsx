@@ -106,6 +106,14 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
       toast.error("Please select at least one interest");
       return;
     }
+    if (formData.preferredSkills.length === 0) {
+      toast.error("Please select at least one skill");
+      return;
+    }
+    if (!formData.careerGoals.trim()) {
+      toast.error("Please write your career goal");
+      return;
+    }
 
     setLoading(true);
     try {

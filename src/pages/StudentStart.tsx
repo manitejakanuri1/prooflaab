@@ -170,7 +170,10 @@ const StudentStart = () => {
   if (reviewingInterests) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6 py-16">
-        <InterestReview onDone={handleReviewDone} />
+        <InterestReview
+          onDone={handleReviewDone}
+          onEditChoices={() => { setReviewingInterests(false); setCollectingProfile(true); }}
+        />
       </div>
     );
   }

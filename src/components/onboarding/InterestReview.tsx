@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import TimedResumeAssessment, { type ResumeScoreResult } from "@/components/dashboard/student/TimedResumeAssessment";
+import { readFunctionError } from "@/lib/functionError";
 
 interface Analysis {
   resume_claim_id: string;
@@ -16,8 +17,10 @@ interface Analysis {
 }
 
 interface InterestReviewProps {
-  /** Called once the student has finished the assessment (or opted out of it). */
+  /** Called once the student has finished the assessment. */
   onDone: () => void;
+  /** Back to the pickers: the choices could not be analysed or the goal did not match them. */
+  onEditChoices: () => void;
 }
 
 /**
@@ -28,7 +31,7 @@ interface InterestReviewProps {
  * coding assessment the resume path uses — the claims row written by
  * interests-analyze is what makes that reuse possible.
  */
-const InterestReview = ({ onDone }: InterestReviewProps) => {
+const InterestReview = ({ onDone, onEditChoices }: InterestReviewProps) => {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   // Their own choices, echoed back so the judgement is readable against them.
   const [picked, setPicked] = useState<{ interests: string[]; skills: string[] }>({ interests: [], skills: [] });
@@ -40,8 +43,11 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
   // Set once grading returns, so closing the modal afterwards means "done
   // reading my score" rather than "abandoned the test".
   const [graded, setGraded] = useState(false);
+  // Bumped by "Try again" to re-run the analysis.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setError(null);
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -68,13 +74,15 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
       });
 
       if (fnError || data?.error) {
-        setError(data?.error ?? "Could not analyse your choices.");
+        // invoke() hides the function's own message on a non-2xx reply.
+        const body = fnError ? await readFunctionError(fnError) : data;
+        setError(typeof body?.error === "string" ? body.error : "Could not analyse your choices.");
         return;
       }
       setAnalysis(data as Analysis);
     };
     run().catch((e) => setError(e instanceof Error ? e.message : "Something went wrong"));
-  }, []);
+  }, [attempt]);
 
   const startAssessment = async () => {
     if (!analysis) return;
@@ -119,15 +127,20 @@ const InterestReview = ({ onDone }: InterestReviewProps) => {
     if (!next && graded) onDone();
   };
 
+  // No way to the dashboard from here: that skipped the test entirely. The
+  // student fixes their choices or retries.
   if (error) {
     return (
       <Card className="w-full max-w-xl">
         <CardHeader>
-          <CardTitle className="text-lg">Something went wrong</CardTitle>
+          <CardTitle className="text-lg">Please check your choices</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">{error}</p>
-          <Button variant="outline" onClick={onDone}>Continue to dashboard</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={onEditChoices}>Edit my choices</Button>
+            <Button variant="outline" onClick={() => { setAnalysis(null); setAttempt((n) => n + 1); }}>Try again</Button>
+          </div>
         </CardContent>
       </Card>
     );

@@ -88,6 +88,11 @@ def existing_secret():
 
 def main():
     take, skip = plan(fixtures())
+    # --only=<prefix>: limit to addresses starting with it (e.g. --only=sim12.), so one fixture set
+    # can get its logins without touching any other staging account.
+    only = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--only=")), None)
+    if only:
+        take = [r for r in take if r["email"].startswith(only)]
     by_role = {}
     for r in take:
         by_role[r["role"]] = by_role.get(r["role"], 0) + 1

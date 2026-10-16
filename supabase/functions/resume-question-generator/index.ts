@@ -81,7 +81,7 @@ serve(async (req) => {
     if (fromResume) {
       const { data: row } = await supabase
         .from('resume_claims')
-        .select('student_id, status, target_role, skills, certifications, projects, ats_match_score, improved_at')
+        .select('student_id, status, target_role, skills, certifications, projects, ats_match_score, improved_at, raw_extraction')
         .eq('id', resume_claims_id)
         .maybeSingle();
       if (row) {
@@ -91,7 +91,12 @@ serve(async (req) => {
           // The ATS gate the screen shows (ResumeCheckFlow ATS_GATE), enforced
           // here too: it was only a disabled button, so calling this function
           // directly walked past it. The one-time Auto-fix opens it (owner rule).
-          belowGate: (row.ats_match_score ?? 0) < 60 && !row.improved_at,
+          // Only an uploaded resume has an ATS score. interests-analyze writes its claims
+          // into this table too (raw_extraction.source 'interests'), with no score; gating
+          // those blocked every Skip student from the test. raw_extraction is server-only
+          // (protect_resume_claims), so a student cannot relabel a resume claim to skip the gate.
+          belowGate: (row.raw_extraction as { source?: string } | null)?.source !== 'interests'
+            && (row.ats_match_score ?? 0) < 60 && !row.improved_at,
           target_role: row.target_role,
           skills: row.skills || [],
           certifications: row.certifications || [],

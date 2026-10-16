@@ -92,7 +92,10 @@ const InterestReview = ({ onDone, onEditChoices }: InterestReviewProps) => {
       const { data, error: fnError } = await supabase.functions.invoke("resume-question-generator", {
         body: { resume_claims_id: analysis.resume_claim_id },
       });
-      if (fnError || data?.error) throw new Error(data?.error ?? "Could not build your questions.");
+      if (fnError || data?.error) {
+        const body = fnError ? await readFunctionError(fnError) : data;
+        throw new Error(typeof body?.error === "string" ? body.error : "Could not build your questions.");
+      }
 
       setAssessmentId(data.assessment_id);
       setQuestions(data.questions ?? []);

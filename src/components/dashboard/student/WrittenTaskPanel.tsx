@@ -118,10 +118,13 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
   const done = result?.status === "passed";
   const scratch = scratchLanguage(view.scratch_language);
 
+  // Full-screen split: the question and how it is marked on the left, the
+  // answer on the right, each scrolling on its own. Narrow screens stack them.
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-col overflow-y-auto lg:grid lg:grid-cols-2 lg:overflow-hidden">
+    <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
       <div>
-        <h2 className="text-lg font-semibold">{view.title}</h2>
+        <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
         <div className="mt-3"><SimpleQuestion taskId={taskId} original={view.prompt_text} /></div>
         <div className="mt-3"><GivenMaterial taskId={taskId} /></div>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -143,7 +146,9 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
           ))}
         </div>
       </div>
+    </div>
 
+    <div className="flex min-h-0 flex-col gap-4 p-5 lg:overflow-y-auto">
       {scratch && (
         <div className="space-y-1">
           <p className="text-sm font-semibold">{scratchLabel(scratch)} Scratchpad</p>
@@ -159,16 +164,18 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
         readOnly={done}
         rows={12}
         placeholder="Write your answer here..."
-        className="font-normal"
+        className="min-h-[240px] font-normal lg:flex-1"
       />
       <p className={`text-xs ${tooShort || tooLong ? "text-amber-600" : "text-muted-foreground"}`}>
         {wordCount} words {tooShort ? `(need ${view.min_words - wordCount} more)` : tooLong ? "(too long)" : ""}
       </p>
 
-      <Button onClick={submit} disabled={busy || done || tooShort || tooLong || !answer.trim()}>
-        {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-        Submit
-      </Button>
+      <div className="flex justify-end">
+        <Button onClick={submit} disabled={busy || done || tooShort || tooLong || !answer.trim()}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+          Submit
+        </Button>
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -210,6 +217,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -27,7 +27,7 @@ import {
 import VoiceExplainModal from "./VoiceExplainModal";
 import { explainIfSubmitted } from "@/lib/explainGate";
 import TaskDetailsDialog from "./TaskDetailsDialog";
-import SandboxTaskPanel from "./SandboxTaskPanel";
+import SandboxTaskPanel, { TASK_SCREEN_CLASS } from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Code2, PenLine } from "lucide-react";
@@ -422,7 +422,7 @@ const StudentAssignedTasksPage = () => {
           entirely — they are graded automatically the moment they submit. */}
       {codingTaskId && (
         <Dialog open={!!codingTaskId} onOpenChange={(open) => !open && setCodingTaskId(null)}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className={TASK_SCREEN_CLASS}>
             <SandboxTaskPanel
               taskId={codingTaskId}
               onCompleted={() => { explainAfter(codingTaskId); setCodingTaskId(null); refetchTasks(); }}
@@ -433,7 +433,7 @@ const StudentAssignedTasksPage = () => {
 
       {writingTaskId && (
         <Dialog open={!!writingTaskId} onOpenChange={(open) => !open && setWritingTaskId(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className={TASK_SCREEN_CLASS}>
             <WrittenTaskPanel
               taskId={writingTaskId}
               onCompleted={() => { explainAfter(writingTaskId); setWritingTaskId(null); refetchTasks(); }}

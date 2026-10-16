@@ -9,7 +9,7 @@ import { Mic, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon } from "lu
 import StudentRoadmapPage from "./StudentRoadmapPage";
 import VoiceExplainModal from "./VoiceExplainModal";
 import { explainIfSubmitted } from "@/lib/explainGate";
-import SandboxTaskPanel from "./SandboxTaskPanel";
+import SandboxTaskPanel, { TASK_SCREEN_CLASS } from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
@@ -384,7 +384,7 @@ const StudentDailyCard = () => {
 
       {lot && lot.sandbox_config_id && (
         <Dialog open={coding} onOpenChange={setCoding}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className={TASK_SCREEN_CLASS}>
             <SandboxTaskPanel taskId={lot.id} onCompleted={() => { setCoding(false); setExplaining(true); void load(); }} />
           </DialogContent>
         </Dialog>
@@ -392,7 +392,7 @@ const StudentDailyCard = () => {
 
       {lot && !lot.sandbox_config_id && (
         <Dialog open={writing} onOpenChange={setWriting}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className={TASK_SCREEN_CLASS}>
             <WrittenTaskPanel taskId={lot.id} onCompleted={() => { setWriting(false); setExplaining(true); void load(); }} />
           </DialogContent>
         </Dialog>

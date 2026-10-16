@@ -59,6 +59,13 @@ async function errorMessage(e: unknown): Promise<string> {
   return "Something went wrong. Try again.";
 }
 
+/**
+ * Classes for the DialogContent that hosts a task panel: the whole screen
+ * instead of a centred box, so the question and the answer sit side by side.
+ */
+export const TASK_SCREEN_CLASS =
+  "left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden p-0 sm:rounded-none data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-top-0";
+
 interface SandboxTaskPanelProps {
   taskId: string;
   onCompleted?: () => void;
@@ -79,6 +86,8 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryNote, setRetryNote] = useState<string | null>(null);
+  const [tab, setTab] = useState<"testcase" | "result">("testcase");
+  const [caseIndex, setCaseIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +109,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   };
 
   const run = async () => {
-    setBusy("run"); setError(null);
+    setBusy("run"); setError(null); setTab("result");
     const { data, error: e } = await supabase.functions.invoke("run-sandbox", { body: { task_id: taskId, code } });
     setBusy(null);
     if (e) return setError(await errorMessage(e));
@@ -108,7 +117,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   };
 
   const submit = async () => {
-    setBusy("submit"); setError(null);
+    setBusy("submit"); setError(null); setTab("result");
     // A busy runner answers 503 BEFORE anything is stored, so sending the same code again
     // cannot duplicate or lose a submission. Retry for the student instead of asking them to.
     let data: unknown, e: unknown;
@@ -142,66 +151,35 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
   const shownResults = safeResultRows<TestResult>(result?.results ?? runResults);
   const spec = functionSpecOf(view);
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">{view.title}</h2>
-        <SimpleQuestion taskId={taskId} original={view.description} />
-        <GivenMaterial taskId={taskId} language={view.language} />
-        {spec && <FunctionSignature language={view.language} spec={spec} />}
-        <SampleExamples tests={view.visible_tests} spec={spec} />
-        {view.constraints && (
-          <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
-        )}
-        <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          {view.language} · every test must pass · {view.visible_tests.length} sample
-          {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
-          {view.hidden_test_count === 1 ? "" : "s"}
-        </p>
-      </div>
-
-      <div className="space-y-4 lg:sticky lg:top-0 lg:self-start">
-      <div className="flex items-center justify-between pb-1">
-        <span className="text-xs text-muted-foreground font-mono">Editor ({view.language})</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          type="button"
-          disabled={!!busy || !!done}
-          onClick={() => {
-            if (window.confirm("Reset editor to starter code? Any changes you typed will be replaced.")) {
-              saveDraft(view.starter_code ?? "");
-            }
-          }}
-          className="h-7 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <RotateCcw className="h-3.5 w-3.5 mr-1" />
-          Reset starter code
-        </Button>
-      </div>
-
-      <div className="overflow-hidden rounded-lg border">
-        <Editor
-          height="420px"
-          language={view.language === "cpp" || view.language === "c" ? "cpp" : view.language}
-          value={code}
-          onChange={(v) => saveDraft(v ?? "")}
-          theme="vs-dark"
-          options={{ minimap: { enabled: false }, fontSize: 13, readOnly: !!done, scrollBeyondLastLine: false }}
-        />
-      </div>
-
+  const testcaseTab = (
+    <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={run} disabled={!!busy || !!done}>
-          {busy === "run" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-          Run samples
-        </Button>
-        <Button onClick={submit} disabled={!!busy || !!done}>
-          {busy === "submit" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-          Submit
-        </Button>
+        {view.visible_tests.map((t, i) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setCaseIndex(i)}
+            className={`rounded-md px-3 py-1 text-xs ${caseIndex === i ? "bg-muted font-semibold" : "text-muted-foreground hover:bg-muted/60"}`}
+          >
+            Case {i + 1}
+          </button>
+        ))}
       </div>
+      {view.visible_tests[caseIndex] && (
+        <pre className="overflow-x-auto rounded bg-muted p-3 font-mono text-xs">
+          {spec
+            ? `arguments: ${formatArguments(view.visible_tests[caseIndex].stdin, spec)}\nexpected:  ${formatReturn(view.visible_tests[caseIndex].expected_output)}`
+            : `input:    ${view.visible_tests[caseIndex].stdin}\nexpected: ${view.visible_tests[caseIndex].expected_output}`}
+        </pre>
+      )}
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+        + {view.hidden_test_count} hidden test{view.hidden_test_count === 1 ? "" : "s"} on Submit
+      </p>
+    </div>
+  );
 
+  const resultTab = (
+    <div className="space-y-3">
       {busy === "submit" && (
         <p className="text-sm text-muted-foreground">{retryNote ?? "Evaluating against every test..."}</p>
       )}
@@ -256,6 +234,90 @@ export default function SandboxTaskPanel({ taskId, onCompleted }: SandboxTaskPan
       {view.completed && !result && (
         <p className="text-sm text-emerald-600">You already completed this task.</p>
       )}
+      {!busy && !error && !result && !runResults && !view.completed && (
+        <p className="text-sm text-muted-foreground">Run your code to see results here.</p>
+      )}
+    </div>
+  );
+
+  // Full-screen split (LeetCode-style): the question on the left, the editor and
+  // its tests on the right, each scrolling on its own. Narrow screens stack them.
+  return (
+    <div className="flex h-full flex-col overflow-y-auto lg:grid lg:grid-cols-2 lg:overflow-hidden">
+      <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
+        <SimpleQuestion taskId={taskId} original={view.description} />
+        <GivenMaterial taskId={taskId} language={view.language} />
+        {spec && <FunctionSignature language={view.language} spec={spec} />}
+        <SampleExamples tests={view.visible_tests} spec={spec} />
+        {view.constraints && (
+          <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
+        )}
+        <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          {view.language} · every test must pass · {view.visible_tests.length} sample
+          {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
+          {view.hidden_test_count === 1 ? "" : "s"}
+        </p>
+      </div>
+
+      <div className="flex min-h-0 flex-col lg:h-full">
+        <div className="flex items-center justify-between border-b px-4 py-2 pr-12">
+          <span className="text-xs text-muted-foreground font-mono">Editor ({view.language})</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            type="button"
+            disabled={!!busy || !!done}
+            onClick={() => {
+              if (window.confirm("Reset editor to starter code? Any changes you typed will be replaced.")) {
+                saveDraft(view.starter_code ?? "");
+              }
+            }}
+            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            Reset starter code
+          </Button>
+        </div>
+
+        <div className="h-[360px] shrink-0 lg:h-auto lg:min-h-[200px] lg:flex-1">
+          <Editor
+            height="100%"
+            language={view.language === "cpp" || view.language === "c" ? "cpp" : view.language}
+            value={code}
+            onChange={(v) => saveDraft(v ?? "")}
+            theme="vs-dark"
+            options={{ minimap: { enabled: false }, fontSize: 13, readOnly: !!done, scrollBeyondLastLine: false }}
+          />
+        </div>
+
+        <div className="flex flex-col border-t lg:h-[42%] lg:min-h-[220px] lg:shrink-0">
+          <div className="flex gap-1 border-b px-3 pt-2">
+            {(["testcase", "result"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`border-b-2 px-3 pb-2 text-sm ${tab === t ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}
+              >
+                {t === "testcase" ? "Testcase" : "Result"}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {tab === "testcase" ? testcaseTab : resultTab}
+          </div>
+          <div className="flex justify-end gap-2 border-t px-4 py-3">
+            <Button variant="outline" onClick={run} disabled={!!busy || !!done}>
+              {busy === "run" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+              Run
+            </Button>
+            <Button onClick={submit} disabled={!!busy || !!done}>
+              {busy === "submit" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Submit
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

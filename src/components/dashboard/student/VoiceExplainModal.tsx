@@ -1433,7 +1433,8 @@ const VoiceExplainModal = ({
               <Button onClick={() => void acceptConsent()} disabled={accepting} className="flex-1">
                 {accepting ? "Saving…" : "I understand — continue"}
               </Button>
-              <Button variant="ghost" onClick={() => close(false)}>Not now</Button>
+              {/* Inline there is nothing to close: the student simply does not continue. */}
+              {!inline && <Button variant="ghost" onClick={() => close(false)}>Not now</Button>}
             </div>
           </div>
         )}
@@ -1571,7 +1572,7 @@ const VoiceExplainModal = ({
                 <FileDown className="h-4 w-4" /> Download PDF
               </Button>
             )}
-            <Button className="w-full" onClick={() => close(false)}>Done</Button>
+            {!inline && <Button className="w-full" onClick={() => close(false)}>Done</Button>}
           </div>
         )}
 

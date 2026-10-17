@@ -129,6 +129,11 @@ interface TimedResumeAssessmentProps {
    * source ids — the same rule the database enforces on the assessment row.
    */
   source: { resume_claims_id: string } | { student_interest_id: string };
+  /**
+   * The Skip path: the claims came from interests, not a resume. Interest
+   * claims are stored as resume_claims too, so `source` alone cannot tell.
+   */
+  fromInterests?: boolean;
   questions: Question[];
   onGraded: (result: ResumeScoreResult) => void;
 }
@@ -148,7 +153,7 @@ const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string }[] = [
 
 type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing" | "results";
 
-const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, questions, onGraded }: TimedResumeAssessmentProps) => {
+const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, questions, onGraded, fromInterests = false }: TimedResumeAssessmentProps) => {
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(() => secondsFor(questions[0]));
@@ -533,7 +538,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
-                <span>{"resume_claims_id" in source ? "Prove your resume" : "Prove your skills"}</span>
+                <span>{fromInterests || "student_interest_id" in source ? "Prove your skills" : "Prove your resume"}</span>
                 <span className={`flex items-center gap-1 text-sm font-normal ${timeLeft <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
                   <Clock className="h-4 w-4" /> {timeLeft}s
                 </span>

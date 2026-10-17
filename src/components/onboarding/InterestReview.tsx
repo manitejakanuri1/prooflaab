@@ -261,6 +261,7 @@ const InterestReview = ({ onDone, onEditChoices }: InterestReviewProps) => {
           onOpenChange={handleModalOpenChange}
           assessmentId={assessmentId}
           source={{ resume_claims_id: analysis.resume_claim_id }}
+          fromInterests
           questions={questions as never}
           onGraded={handleGraded}
         />

@@ -714,7 +714,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
             </div>
             </div>
 
-            <div className="flex min-h-0 flex-col gap-3 p-5 lg:h-full">
+            <div className="flex min-h-0 shrink-0 flex-col gap-3 p-5 lg:h-full">
               <div className="flex items-center justify-between pb-1">
                 <span className="text-xs text-muted-foreground font-mono">Editor ({currentCodingQuestion.language})</span>
                 <Button

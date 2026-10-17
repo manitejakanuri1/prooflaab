@@ -153,7 +153,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted, voice }: Written
       </div>
     </div>
 
-    <div className="flex min-h-0 flex-col gap-4 p-5 lg:overflow-y-auto">
+    <div className="flex min-h-0 shrink-0 flex-col gap-4 p-5 lg:overflow-y-auto">
       {scratch && (
         <div className="space-y-1">
           <p className="text-sm font-semibold">{scratchLabel(scratch)} Scratchpad</p>
@@ -224,7 +224,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted, voice }: Written
       )}
     </div>
       {voice && (
-        <aside className="border-t p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
+        <aside className="shrink-0 border-t p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
           {voice(!!done)}
         </aside>
       )}

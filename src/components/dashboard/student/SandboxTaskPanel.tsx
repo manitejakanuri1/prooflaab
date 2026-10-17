@@ -265,7 +265,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted, voice }: Sandbox
         </p>
       </div>
 
-      <div className="flex min-h-0 flex-col lg:h-full">
+      <div className="flex min-h-0 shrink-0 flex-col lg:h-full">
         <div className="flex items-center justify-between border-b px-4 py-2 pr-12">
           <span className="text-xs text-muted-foreground font-mono">Editor ({view.language})</span>
           <Button
@@ -325,7 +325,7 @@ export default function SandboxTaskPanel({ taskId, onCompleted, voice }: Sandbox
         </div>
       </div>
       {voice && (
-        <aside className="border-t p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
+        <aside className="shrink-0 border-t p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
           {voice(!!done)}
         </aside>
       )}

@@ -118,6 +118,11 @@ interface VoiceExplainModalProps {
   /** What they are being asked to explain — shown while the clock runs. */
   prompt: string;
   onSaved?: () => void;
+  /**
+   * Render in place (beside the answer on the full-screen task page) instead of
+   * as a dialog. Keep `open` true while mounted; unmounting ends the session.
+   */
+  inline?: boolean;
 }
 
 /**
@@ -221,7 +226,7 @@ const ctxOf = (job: StoredJob): RecordingContext =>
  */
 
 const VoiceExplainModal = ({
-  open, onOpenChange, studentId, taskId, prompt, onSaved,
+  open, onOpenChange, studentId, taskId, prompt, onSaved, inline = false,
 }: VoiceExplainModalProps) => {
   const { toast } = useToast();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -1391,14 +1396,8 @@ const VoiceExplainModal = ({
     );
   };
 
-  return (
-    <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5" /> Explain it — 60 seconds
-          </DialogTitle>
-        </DialogHeader>
+  const body = (
+      <>
 
         <p className="text-sm text-muted-foreground">{prompt}</p>
         <p className="text-sm">
@@ -1667,6 +1666,27 @@ const VoiceExplainModal = ({
             </Button>
           </div>
         )}
+      </>
+  );
+
+  const heading = <><Mic className="h-5 w-5" /> Explain it — 60 seconds</>;
+
+  if (inline) {
+    return (
+      <div className="space-y-4" data-testid="voice-inline">
+        <h3 className="flex items-center gap-2 text-lg font-semibold">{heading}</h3>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">{heading}</DialogTitle>
+        </DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );

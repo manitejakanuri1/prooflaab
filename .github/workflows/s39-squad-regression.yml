@@ -46,6 +46,7 @@ jobs:
       # 16 Oct: interest picker drops the 5 interests the server never supported (Prompt Engineering, aptitude, HR).
       # 16 Oct: skill + career goal required; goal must match the picks; no dashboard exit from the review error.
       # 16 Oct: full-screen split task screens (question left, answer right) and voice recording beside them.
+      # 17 Oct: the voice recorder sits beside the answer (TaskVoicePanel), locked until the answer passes.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -61,7 +62,8 @@ jobs:
                    ':(exclude)src/components/dashboard/student/WrittenTaskPanel.tsx'
                    ':(exclude)src/components/dashboard/student/StudentDailyCard.tsx'
                    ':(exclude)src/components/dashboard/student/StudentAssignedTasksPage.tsx'
-                   ':(exclude)src/components/dashboard/student/VoiceExplainModal.tsx')
+                   ':(exclude)src/components/dashboard/student/VoiceExplainModal.tsx'
+                   ':(exclude)src/components/dashboard/student/TaskVoicePanel.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

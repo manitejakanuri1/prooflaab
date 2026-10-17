@@ -11,6 +11,7 @@ import VoiceExplainModal from "./VoiceExplainModal";
 import { explainIfSubmitted } from "@/lib/explainGate";
 import SandboxTaskPanel, { TASK_SCREEN_CLASS } from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
+import TaskVoicePanel from "./TaskVoicePanel";
 import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { tidyTitle } from "@/lib/utils";
@@ -187,6 +188,14 @@ const StudentDailyCard = () => {
     if (lot.sandbox_config_id) setCoding(true);
     else setWriting(true); // no uploads: every other Lot is a written answer
   };
+
+  // The recorder beside the answer on the full-screen task page.
+  const voice = lot && profile?.id
+    ? (unlocked: boolean) => (
+        <TaskVoicePanel unlocked={unlocked} studentId={profile.id} taskId={lot.id}
+          title={tidyTitle(lot.title)} onSaved={() => void load()} />
+      )
+    : undefined;
 
   return (
     <div className="space-y-5">
@@ -383,17 +392,17 @@ const StudentDailyCard = () => {
 
 
       {lot && lot.sandbox_config_id && (
-        <Dialog open={coding} onOpenChange={setCoding}>
+        <Dialog open={coding} onOpenChange={(o) => { setCoding(o); if (!o) void load(); }}>
           <DialogContent className={TASK_SCREEN_CLASS}>
-            <SandboxTaskPanel taskId={lot.id} onCompleted={() => { setCoding(false); setExplaining(true); void load(); }} />
+            <SandboxTaskPanel taskId={lot.id} voice={voice} onCompleted={() => { setCoding(false); setExplaining(true); void load(); }} />
           </DialogContent>
         </Dialog>
       )}
 
       {lot && !lot.sandbox_config_id && (
-        <Dialog open={writing} onOpenChange={setWriting}>
+        <Dialog open={writing} onOpenChange={(o) => { setWriting(o); if (!o) void load(); }}>
           <DialogContent className={TASK_SCREEN_CLASS}>
-            <WrittenTaskPanel taskId={lot.id} onCompleted={() => { setWriting(false); setExplaining(true); void load(); }} />
+            <WrittenTaskPanel taskId={lot.id} voice={voice} onCompleted={() => { setWriting(false); setExplaining(true); void load(); }} />
           </DialogContent>
         </Dialog>
       )}

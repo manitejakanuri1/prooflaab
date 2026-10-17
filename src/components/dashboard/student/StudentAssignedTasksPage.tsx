@@ -29,6 +29,7 @@ import { explainIfSubmitted } from "@/lib/explainGate";
 import TaskDetailsDialog from "./TaskDetailsDialog";
 import SandboxTaskPanel, { TASK_SCREEN_CLASS } from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
+import TaskVoicePanel from "./TaskVoicePanel";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Code2, PenLine } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -46,6 +47,13 @@ const StudentAssignedTasksPage = () => {
     setExplainTask({ id: taskId, title: t?.title ?? "this task" });
   };
   const { profile } = useStudentProfile();
+  // The recorder beside the answer on the full-screen task page.
+  const voiceFor = (taskId: string) => profile?.id
+    ? (unlocked: boolean) => (
+        <TaskVoicePanel unlocked={unlocked} studentId={profile.id} taskId={taskId}
+          title={allTasks.find((x) => x.id === taskId)?.title ?? "this task"} onSaved={refetchTasks} />
+      )
+    : undefined;
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -421,10 +429,11 @@ const StudentAssignedTasksPage = () => {
       {/* stage69/70: coding and written tasks skip the proof/quiz flow
           entirely — they are graded automatically the moment they submit. */}
       {codingTaskId && (
-        <Dialog open={!!codingTaskId} onOpenChange={(open) => !open && setCodingTaskId(null)}>
+        <Dialog open={!!codingTaskId} onOpenChange={(open) => { if (!open) { setCodingTaskId(null); refetchTasks(); } }}>
           <DialogContent className={TASK_SCREEN_CLASS}>
             <SandboxTaskPanel
               taskId={codingTaskId}
+              voice={voiceFor(codingTaskId)}
               onCompleted={() => { explainAfter(codingTaskId); setCodingTaskId(null); refetchTasks(); }}
             />
           </DialogContent>
@@ -432,10 +441,11 @@ const StudentAssignedTasksPage = () => {
       )}
 
       {writingTaskId && (
-        <Dialog open={!!writingTaskId} onOpenChange={(open) => !open && setWritingTaskId(null)}>
+        <Dialog open={!!writingTaskId} onOpenChange={(open) => { if (!open) { setWritingTaskId(null); refetchTasks(); } }}>
           <DialogContent className={TASK_SCREEN_CLASS}>
             <WrittenTaskPanel
               taskId={writingTaskId}
+              voice={voiceFor(writingTaskId)}
               onCompleted={() => { explainAfter(writingTaskId); setWritingTaskId(null); refetchTasks(); }}
             />
           </DialogContent>

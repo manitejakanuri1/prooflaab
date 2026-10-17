@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +46,11 @@ async function errorMessage(e: unknown): Promise<string> {
 interface WrittenTaskPanelProps {
   taskId: string;
   onCompleted?: () => void;
+  /**
+   * The spoken explanation, shown as a third column beside the answer. Gets
+   * whether the answer has passed; replaces the "Next: explain it" button.
+   */
+  voice?: (unlocked: boolean) => ReactNode;
 }
 
 /**
@@ -58,7 +63,7 @@ interface WrittenTaskPanelProps {
  * scratchpad sits between the question and the answer. It only calls run-code;
  * its code is never saved, submitted or graded.
  */
-export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPanelProps) {
+export default function WrittenTaskPanel({ taskId, onCompleted, voice }: WrittenTaskPanelProps) {
   const draftKey = `written-draft:${taskId}`;
   const [view, setView] = useState<RubricView | null>(null);
   const [answer, setAnswer] = useState("");
@@ -121,7 +126,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
   // Full-screen split: the question and how it is marked on the left, the
   // answer on the right, each scrolling on its own. Narrow screens stack them.
   return (
-    <div className="flex h-full flex-col overflow-y-auto lg:grid lg:grid-cols-2 lg:overflow-hidden">
+    <div className={`flex h-full flex-col overflow-y-auto lg:grid lg:overflow-hidden ${voice ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_320px]" : "lg:grid-cols-2"}`}>
     <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
       <div>
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
@@ -212,12 +217,17 @@ export default function WrittenTaskPanel({ taskId, onCompleted }: WrittenTaskPan
               })}
             </ul>
           )}
-          {result.status === "passed" && onCompleted && (
+          {result.status === "passed" && onCompleted && !voice && (
             <Button className="mt-3 w-full" onClick={onCompleted}>Next: explain it in 60 seconds</Button>
           )}
         </div>
       )}
     </div>
+      {voice && (
+        <aside className="border-t p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
+          {voice(!!done)}
+        </aside>
+      )}
     </div>
   );
 }

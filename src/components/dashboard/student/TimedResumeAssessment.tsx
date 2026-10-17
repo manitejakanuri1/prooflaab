@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TASK_SCREEN_CLASS } from "./SandboxTaskPanel";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -524,7 +525,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
         ref={dialogContentRef}
-        className={`${isWide ? "max-w-4xl" : "max-w-2xl"} max-h-[85vh] overflow-y-auto [&>button]:hidden`}
+        className={`${isWide ? TASK_SCREEN_CLASS : "max-w-2xl max-h-[85vh] overflow-y-auto"} [&>button]:hidden`}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -671,7 +672,10 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
         )}
 
         {phase === "coding" && currentCodingQuestion && (
-          <>
+          // Full screen like a Daily Lot: the problem on the left, the editor,
+          // its results and the buttons on the right. Narrow screens stack them; keyed so a new problem starts scrolled to the top.
+          <div key={currentCodingQuestion.id} className="flex h-full flex-col overflow-y-auto lg:grid lg:grid-cols-2 lg:overflow-hidden">
+            <div className="space-y-3 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
@@ -707,6 +711,10 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 </div>
               ))}
 
+            </div>
+            </div>
+
+            <div className="flex min-h-0 flex-col gap-3 p-5 lg:h-full">
               <div className="flex items-center justify-between pb-1">
                 <span className="text-xs text-muted-foreground font-mono">Editor ({currentCodingQuestion.language})</span>
                 <Button
@@ -725,9 +733,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 </Button>
               </div>
 
-              <div className="border rounded-md overflow-hidden">
+              <div className="h-[320px] shrink-0 overflow-hidden rounded-md border lg:h-auto lg:min-h-[200px] lg:flex-1">
                 <Editor
-                  height="260px"
+                  height="100%"
                   language={currentCodingQuestion.language}
                   value={code}
                   onChange={(v) => setCode(v || "")}
@@ -757,7 +765,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
               )}
 
               {runResults && (
-                <div className="space-y-1">
+                <div className="max-h-56 shrink-0 space-y-1 overflow-y-auto lg:max-h-[30vh]">
                   {safeResultRows<RunResult>(runResults).map((r, i) => {
                     if (isHiddenSummary(r)) {
                       return (
@@ -808,9 +816,8 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                   })}
                 </div>
               )}
-            </div>
 
-            <div className="flex gap-2 mt-4">
+            <div className="mt-auto flex shrink-0 gap-2 pt-1">
               <Button variant="outline" onClick={runSample} disabled={running || submittingCode} className="flex-1">
                 {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
                 Run sample
@@ -846,7 +853,8 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 )}
               </Button>
             </div>
-          </>
+            </div>
+          </div>
         )}
 
         {phase === "coding-analyzing" && (

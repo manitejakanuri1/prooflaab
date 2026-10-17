@@ -65,8 +65,14 @@ try {
   check("after a pass the recorder opens in place", await inline.isVisible());
   check("locked message is gone", !(await locked.isVisible().catch(() => false)));
   check("still one task page, no popup on top", (await page.getByRole("dialog").count()) === 1);
-  const passed = await dialog.innerText();
-  check("result shows the pass", /passed|all tests|tests passed|\d+\s*\/\s*\d+/i.test(passed));
+  // Strict: the exact pass line the panel prints, plus every hidden test passed.
+  const text = await dialog.innerText();
+  const hidden = text.match(/(\d+) of (\d+) hidden tests passed/);
+  check("result is Score 100% · Passed", /Score 100%\s*·\s*Passed/.test(text));
+  check("every hidden test passed", !!hidden && hidden[1] === hidden[2], hidden ? hidden[0] : "no hidden-test line");
+  check("recorder shows its consent step", await inline.getByRole("button", { name: /I understand/ }).isVisible().catch(() => false));
+  check("no dead 'Not now' button beside the answer", (await inline.getByRole("button", { name: /^Not now$/ }).count()) === 0);
+  check("no dead 'Done' button beside the answer", (await inline.getByRole("button", { name: /^Done$/ }).count()) === 0);
   await desk.close();
 
   // Phone: everything stacked, voice last.

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 08c859983b6fb012e03f3c2ffc652d47a0d415b8   # 2026-10-19: student task list sources
+      STAGING_RC: 5c73e1bc44aac4d9166f0f3188921f16927af330   # 2026-10-19: season report card (migration 125)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

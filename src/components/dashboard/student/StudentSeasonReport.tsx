@@ -18,7 +18,18 @@ interface Report {
   skills?: { proven: number; assessed: number; weak: string[] };
   ladder?: { cleared: number; started: number };
   next?: string[];
+  // migration 125
+  rank?: { place: number; of: number; points: number };
+  growth?: { first_avg: number | null; last_avg: number | null; change_pct: number | null } | null;
+  verdict?: { level: "strong" | "steady" | "quiet"; text: string };
+  skill_list?: { strong: string[]; needs_work: string[] };
 }
+
+const VERDICT_STYLE: Record<string, string> = {
+  strong: "border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
+  steady: "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400",
+  quiet: "border-destructive/40 bg-destructive/5 text-destructive",
+};
 
 const ACTIVITY: Record<string, string> = {
   lot_submitted: "Lots submitted",
@@ -102,11 +113,19 @@ const StudentSeasonReport = () => {
             </Badge>
           </div>
 
+          {r.verdict && (
+            <p className={`mt-3 rounded-lg border px-3 py-2 text-sm font-medium ${VERDICT_STYLE[r.verdict.level] ?? ""}`}
+               data-testid="season-verdict">
+              {r.verdict.text}
+            </p>
+          )}
+
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
+              ...(r.rank ? [{ k: "Your place", v: `#${r.rank.place} of ${r.rank.of}` }] : []),
               { k: "Points", v: r.totals?.points ?? 0 },
               { k: "Best week", v: r.totals?.best_week ?? 0 },
-              { k: "Weeks active", v: `${r.totals?.weeks_active ?? 0}/${r.totals?.weeks_total ?? 0}` },
+              { k: "Weeks active", v: `${r.totals?.weeks_active ?? 0}/${r.totals?.weeks_total || r.season?.weeks || 0}` },
               { k: "Topics cleared", v: r.ladder?.cleared ?? 0 },
             ].map(({ k, v }) => (
               <div key={k} className="rounded-lg bg-muted/50 p-3">
@@ -139,6 +158,38 @@ const StudentSeasonReport = () => {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {(r.growth || (r.skill_list && (r.skill_list.strong.length || r.skill_list.needs_work.length))) && (
+        <Card>
+          <CardContent className="pt-5 grid gap-4 sm:grid-cols-2">
+            {r.growth && (
+              <div data-testid="season-growth">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Growth</span>
+                <p className="mt-1 text-sm">
+                  First 3 weeks <b className="font-mono">{r.growth.first_avg ?? 0}</b> a week, last 3 weeks{" "}
+                  <b className="font-mono">{r.growth.last_avg ?? 0}</b> a week
+                </p>
+                {r.growth.change_pct != null && (
+                  <p className={`mt-1 font-mono text-lg font-semibold ${r.growth.change_pct >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    {r.growth.change_pct >= 0 ? "▲" : "▼"} {Math.abs(r.growth.change_pct)}%
+                  </p>
+                )}
+              </div>
+            )}
+            {r.skill_list && (r.skill_list.strong.length > 0 || r.skill_list.needs_work.length > 0) && (
+              <div data-testid="season-skills">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Skills</span>
+                {r.skill_list.strong.length > 0 && (
+                  <p className="mt-1 text-sm"><span className="text-emerald-600 font-medium">Strong:</span> {r.skill_list.strong.join(", ")}</p>
+                )}
+                {r.skill_list.needs_work.length > 0 && (
+                  <p className="mt-1 text-sm"><span className="text-amber-600 font-medium">Needs work:</span> {r.skill_list.needs_work.join(", ")}</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 7e57e9c6d4fe0ca811a0c306003c2a674935da8a   # 2026-10-19: squad tabs, final leaderboard (migration 124)
+      STAGING_RC: 08c859983b6fb012e03f3c2ffc652d47a0d415b8   # 2026-10-19: student task list sources
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -33,6 +33,30 @@ function useSimpleBrief(taskId: string) {
   return { brief, loading };
 }
 
+/**
+ * The simple version is written by a model and sometimes drops a rule the tests check (on staging,
+ * 19 Oct 2026, a grade Lot kept "90 to 100 is A, and so on" and lost the B/C/D/F bands). Every
+ * number in the original that the simple version does not mention comes back as the original
+ * sentence it sits in, so nothing the answer is marked against is hidden.
+ */
+function missingRules(original: string | null, shown: string): string[] {
+  if (!original) return [];
+  const have = new Set(shown.match(/\d+/g) ?? []);
+  const sentences = original.split(/(?<=[.!?])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
+  return sentences.filter((x) => (x.match(/\d+/g) ?? []).some((n) => !have.has(n))).slice(0, 4);
+}
+
+const ExactRules = ({ rules, tone }: { rules: string[]; tone?: "paper" }) =>
+  rules.length === 0 ? null : (
+    <div className={`rounded-lg border p-3 ${tone === "paper" ? "border-[#d8d1c1] bg-[#faf7ef]" : "border-amber-500/30 bg-amber-500/5"}`}
+         data-testid="exact-rules">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Exact rules from the question</p>
+      <ul className="mt-1 space-y-1 text-sm">
+        {rules.map((r) => <li key={r}><InlineText text={r} /></li>)}
+      </ul>
+    </div>
+  );
+
 const Label = ({ children }: { children: React.ReactNode }) => (
   <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{children}</p>
 );
@@ -59,6 +83,9 @@ export const SimpleQuestion = ({ taskId, original }: { taskId: string; original:
         <p className="text-base font-semibold leading-snug"><InlineText text={brief.in_one_line} /></p>
         <p className="text-sm leading-relaxed"><InlineText text={brief.what_it_means} /></p>
       </div>
+
+      <ExactRules rules={missingRules(original, [brief.in_one_line, brief.what_it_means, ...brief.steps,
+        brief.example ?? "", brief.done_when].join(" "))} />
 
       <div className="rounded-lg border p-3">
         <Label>Do it in these steps</Label>
@@ -117,9 +144,12 @@ export const SimpleQuestionShort = ({ taskId, original }: { taskId: string; orig
   if (loading) return <p className="text-sm text-[#6b6559]">Loading…</p>;
   if (!brief) return original ? <BriefCards text={original} tone="paper" /> : null;
   return (
-    <div className="space-y-2 rounded-lg border border-[#d8d1c1] bg-[#faf7ef] p-3">
-      <p className="text-sm font-semibold leading-snug"><InlineText text={brief.in_one_line} /></p>
-      <p className="text-sm leading-relaxed text-[#4d4a43]"><InlineText text={brief.what_it_means} /></p>
+    <div className="space-y-2">
+      <div className="space-y-2 rounded-lg border border-[#d8d1c1] bg-[#faf7ef] p-3">
+        <p className="text-sm font-semibold leading-snug"><InlineText text={brief.in_one_line} /></p>
+        <p className="text-sm leading-relaxed text-[#4d4a43]"><InlineText text={brief.what_it_means} /></p>
+      </div>
+      <ExactRules tone="paper" rules={missingRules(original, `${brief.in_one_line} ${brief.what_it_means}`)} />
     </div>
   );
 };

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 41c9995e2964a0de75caf7200c3fe042a0e1f020   # 2026-10-19: lot source label, exact rules (migration 126)
+      STAGING_RC: 8d57cc64bbe4336f39b169921fcfb6141fc57582   # 2026-10-19: Daily card done state
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

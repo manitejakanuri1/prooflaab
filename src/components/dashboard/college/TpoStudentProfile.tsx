@@ -29,14 +29,22 @@ interface Profile {
   };
   /** Seven steps in order, from the rows each step writes (migration 121). */
   onboarding_steps?: { step: string; done: boolean; at: string | null; detail: string | null }[];
-  squad: { id: string; name: string; role: string; contribution: number } | null;
+  squad: {
+    id: string; name: string; role: string; contribution: number;
+    // migration 122
+    points?: number | null; rank?: number | null; my_season_points?: number;
+  } | null;
   activity_30d: { event_type: string; n: number }[];
   skills: { skill: string; status: string; score: number | null; lots: number | null }[];
-  tasks: { assigned: number; completed: number };
+  tasks: { assigned: number; completed: number; attempts?: number; failed_attempts?: number };
   voice_recordings: number;
+  // migration 122: the rest of what the college and admin follow.
+  streak?: { current: number; longest: number; last_active_on: string | null } | null;
+  voice?: { count: number; scored: number; average_score: number | null; last_score: number | null };
+  mock_interviews?: { count: number; completed: number; last_score: number | null; last_at: string | null };
   recent_work: {
     id: string; file_name: string | null; task_title: string | null;
-    status: string; ai_score: number | null; submitted_at: string | null;
+    status: string; ai_score: number | null; submitted_at: string | null; attempts?: number;
   }[];
   interventions: { type: string; reason: string; created_at: string }[];
   error?: string;
@@ -162,8 +170,20 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                   hot: data.days_quiet >= 7 },
                 { k: "Total XP", v: data.total_xp ?? 0 },
                 { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}` },
+                ...(data.streak !== undefined ? [
+                  { k: "Streak", v: data.streak ? `${data.streak.current}d · best ${data.streak.longest}d` : "0d" },
+                  { k: "Failed attempts", v: data.tasks.failed_attempts ?? 0, hot: (data.tasks.failed_attempts ?? 0) >= 3 },
+                  { k: "Voice score", v: data.voice?.average_score != null
+                      ? `${data.voice.average_score} avg · last ${data.voice.last_score ?? "—"}` : "none yet" },
+                  { k: "Mock interviews", v: data.mock_interviews?.count
+                      ? `${data.mock_interviews.completed}/${data.mock_interviews.count} · last ${data.mock_interviews.last_score ?? "—"}`
+                      : "none yet" },
+                  { k: "Squad points", v: data.squad
+                      ? `${data.squad.my_season_points ?? 0} mine · squad ${data.squad.points ?? 0}${data.squad.rank ? ` (#${data.squad.rank})` : ""}`
+                      : "in reserve" },
+                ] : []),
               ].map((c) => (
-                <div key={c.k} className="rounded-lg bg-muted/50 p-3">
+                <div key={c.k} className="rounded-lg bg-muted/50 p-3" data-testid="profile-stat">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     {c.k}
                   </span>
@@ -296,6 +316,9 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                         </p>
                       </div>
                       <div className="ml-auto flex items-center gap-2">
+                        {(w.attempts ?? 1) > 1 && (
+                          <span className="font-mono text-[10px] text-muted-foreground">{w.attempts} tries</span>
+                        )}
                         {w.ai_score != null && (
                           <span className="font-mono text-xs tabular-nums">{w.ai_score}</span>
                         )}

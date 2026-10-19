@@ -27,6 +27,8 @@ interface Profile {
     calibration_completed: boolean; first_task_completed: boolean;
     invited_at: string | null; onboarded_at: string | null;
   };
+  /** Seven steps in order, from the rows each step writes (migration 121). */
+  onboarding_steps?: { step: string; done: boolean; at: string | null; detail: string | null }[];
   squad: { id: string; name: string; role: string; contribution: number } | null;
   activity_30d: { event_type: string; n: number }[];
   skills: { skill: string; status: string; score: number | null; lots: number | null }[];
@@ -177,16 +179,22 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                   Onboarding
                 </h4>
                 <div className="space-y-1.5">
-                  {[
-                    ["Profile filled in", data.onboarding.profile_completed],
-                    ["Calibration done", data.onboarding.calibration_completed],
-                    ["First Lot submitted", data.onboarding.first_task_completed],
-                  ].map(([label, done]) => (
-                    <div key={label as string} className="flex items-center gap-2 text-sm">
-                      <span className={done ? "text-emerald-500" : "text-muted-foreground"}>
-                        {done ? "✓" : "○"}
+                  {(data.onboarding_steps ?? [
+                    { step: "Profile filled in", done: data.onboarding.profile_completed, at: null, detail: null },
+                    { step: "Calibration done", done: data.onboarding.calibration_completed, at: null, detail: null },
+                    { step: "First Lot submitted", done: data.onboarding.first_task_completed, at: null, detail: null },
+                  ]).map((s) => (
+                    <div key={s.step} className="flex items-start gap-2 text-sm" data-testid="onboarding-step">
+                      <span className={s.done ? "text-emerald-500" : "text-muted-foreground"}>
+                        {s.done ? "✓" : "○"}
                       </span>
-                      <span className={done ? "" : "text-muted-foreground"}>{label as string}</span>
+                      <span className="min-w-0">
+                        <span className={s.done ? "" : "text-muted-foreground"}>{s.step}</span>
+                        {s.at && (
+                          <span className="font-mono text-[10px] text-muted-foreground"> · {format(new Date(s.at), "d MMM, HH:mm")}</span>
+                        )}
+                        {s.detail && <span className="block text-xs text-muted-foreground">{s.detail}</span>}
+                      </span>
                     </div>
                   ))}
                   <p className="font-mono text-[10px] text-muted-foreground pt-1">

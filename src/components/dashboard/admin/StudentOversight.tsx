@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, Users, Plus, Eye, Edit, Pause, MoreHorizontal } from "lucide-react";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
+import TpoStudentProfile from "@/components/dashboard/college/TpoStudentProfile";
 
 const StudentOversight = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,6 +61,8 @@ const StudentOversight = () => {
   const [collegeFilter, setCollegeFilter] = useState("all");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [removing, setRemoving] = useState(false);
+  // The same full profile a college sees (tpo_student_profile answers an admin for any college).
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -424,7 +427,11 @@ const StudentOversight = () => {
                     <Checkbox checked={picked.has(student.id)} onCheckedChange={() => togglePick(student.id)}
                               aria-label={`Select ${student.full_name}`} />
                   </TableCell>
-                  <TableCell className="font-medium">{student.full_name}</TableCell>
+                  <TableCell className="font-medium">
+                    <button type="button" className="text-left hover:underline" onClick={() => setProfileId(student.id)}>
+                      {student.full_name}
+                    </button>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{student.email}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{collegeName(student.college_id)}</Badge>
@@ -623,6 +630,7 @@ const StudentOversight = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <TpoStudentProfile studentId={profileId} onClose={() => setProfileId(null)} />
     </div>
   );
 };

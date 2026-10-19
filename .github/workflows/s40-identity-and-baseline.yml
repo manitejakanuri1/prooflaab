@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: cada2be710a51a911d67441f02823099902668c9   # main 2026-10-17: Parts 2 and 3, migration 119
+      STAGING_RC: 7a78ccd456f00d60cb452b8a927e341c6e13c409   # 2026-10-19: onboarding steps for college and admin (migration 121)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

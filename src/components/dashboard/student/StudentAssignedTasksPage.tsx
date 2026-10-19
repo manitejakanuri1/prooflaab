@@ -64,9 +64,9 @@ const StudentAssignedTasksPage = () => {
     return allTasks.filter(task => {
       const source = task.source?.toLowerCase() || '';
       // Everything the student has to do, except company tasks they applied
-      // to (those have their own flow). Roadmap and Track tasks used to get in
-      // here only because they were mislabelled "Admin".
-      return source !== 'company';
+      // to (those have their own flow) and the Daily Lot, which the Floor card
+      // already shows: the same Lot twice read as two different tasks.
+      return source !== 'company' && source !== 'daily lot';
     });
   }, [allTasks]);
 
@@ -143,8 +143,8 @@ const StudentAssignedTasksPage = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold mb-2">Assigned Tasks</h2>
-          <p className="text-muted-foreground">Tasks assigned to you by colleges and admins</p>
+          <h2 className="text-2xl font-bold mb-2">Your Tasks</h2>
+          <p className="text-muted-foreground">Every task you have, and where it came from. Today's Daily Lot is in the card above.</p>
         </div>
         <Card>
           <CardContent className="p-6">
@@ -158,6 +158,23 @@ const StudentAssignedTasksPage = () => {
       </div>
     );
   }
+
+  // Where each task came from, in the student's words (the hook's labels are short codes).
+  const SOURCE_LABEL: Record<string, string> = {
+    "From your test": "From your onboarding test",
+    "Track proof": "From a track lesson",
+    "College": "From your college",
+    "Admin": "From ProofLab admin",
+    "Company": "From a company",
+  };
+  const sourceLabel = (source: string) => SOURCE_LABEL[source] ?? (source || "Task");
+  const sourceCounts = Object.entries(
+    assignedTasks.reduce<Record<string, number>>((acc, t) => {
+      const k = sourceLabel(t.source || "");
+      acc[k] = (acc[k] ?? 0) + 1;
+      return acc;
+    }, {}),
+  );
 
   const getSourceBadgeColor = (source: string) => {
     const normalizedSource = source?.toLowerCase() || '';
@@ -197,6 +214,9 @@ const StudentAssignedTasksPage = () => {
     try {
       await startTask(taskId);
       toast.success("Task started successfully!");
+      // Open the task straight away instead of leaving the student to find a new button in the list.
+      const t = allTasks.find((x) => x.id === taskId);
+      if (t?.sandbox_config_id) setCodingTaskId(taskId); else setWritingTaskId(taskId);
     } catch (error) {
       console.error('Error starting task:', error);
       toast.error("Failed to start task");
@@ -206,21 +226,28 @@ const StudentAssignedTasksPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Assigned Tasks</h2>
-        <p className="text-muted-foreground">Tasks assigned to you by colleges and admins</p>
+        <h2 className="text-2xl font-bold mb-2">Your Tasks</h2>
+        <p className="text-muted-foreground">Every task you have, and where it came from. Today's Daily Lot is in the card above.</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
-            Your Assignments
+            All your tasks
             <Badge variant="outline" className="ml-auto">
               {filteredAndSortedTasks.length} tasks
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {sourceCounts.length > 0 && (
+            <div className="flex flex-wrap gap-2" data-testid="task-sources">
+              {sourceCounts.map(([label, n]) => (
+                <Badge key={label} variant="outline" className="font-normal">{label}: {n}</Badge>
+              ))}
+            </div>
+          )}
           {/* Filter Bar */}
           <div className="flex flex-col gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border">
             <div className="flex items-center gap-2">
@@ -268,7 +295,7 @@ const StudentAssignedTasksPage = () => {
               </h3>
               <p className="text-muted-foreground mb-6">
                 {assignedTasks.length === 0 
-                  ? "Tasks assigned by your college or admin will appear here."
+                  ? "Tasks from your onboarding test, your college or ProofLab will appear here."
                   : "Try adjusting your search or filter criteria."
                 }
               </p>
@@ -290,7 +317,7 @@ const StudentAssignedTasksPage = () => {
                               variant="outline" 
                               className={getSourceBadgeColor(task.source || '')}
                             >
-                              {task.source || 'Unknown'}
+                              {sourceLabel(task.source || '')}
                             </Badge>
                             <Badge 
                               variant="outline" 

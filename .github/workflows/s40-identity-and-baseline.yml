@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 0e22004ac5006850ca03224ec7d6098ab1975517   # 2026-10-19: profile shows attempts, streak, voice, mock, squad points (migration 122)
+      STAGING_RC: 45cfafa4a1ecea01d0bc6c273263755ddf750677   # 2026-10-19: squad contributions and season over (migration 123)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

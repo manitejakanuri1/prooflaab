@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 3847f3ed1a0be8c052a887af2e9014333a37230b   # release/teja-sidhu-s41-staging-rc-2026-10-13
+      STAGING_RC: cada2be710a51a911d67441f02823099902668c9   # main 2026-10-17: Parts 2 and 3, migration 119
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

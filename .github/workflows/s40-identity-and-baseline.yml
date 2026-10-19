@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 7a78ccd456f00d60cb452b8a927e341c6e13c409   # 2026-10-19: onboarding steps for college and admin (migration 121)
+      STAGING_RC: 0e22004ac5006850ca03224ec7d6098ab1975517   # 2026-10-19: profile shows attempts, streak, voice, mock, squad points (migration 122)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -21,6 +21,7 @@ interface Squad {
   previous_rank: number | null;
   max_members: number;
   cohort: string | null;
+  season_id: string | null;
   /** Null while the league is still running. */
   qualified: boolean | null;
   seed: number | null;
@@ -74,6 +75,8 @@ const StudentSquadPage = () => {
   const [names, setNames] = useState<Record<string, string>>({});
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const { status: season } = useSeasonStatus();
+  // my_season_status answers nothing once a season is over, so read the squad's own season row.
+  const [ended, setEnded] = useState<{ champion: string | null } | null>(null);
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -123,6 +126,12 @@ const StudentSquadPage = () => {
     // pairs this squad with one from another cohort.
     setNames(Object.fromEntries(allSquads.map((s) => [s.id, s.name])));
     setAchievements((achieveRes.data ?? []) as unknown as Achievement[]);
+    if (mySquad?.season_id) {
+      const { data: s } = await supabase.from("seasons")
+        .select("status, champion_squad_id").eq("id", mySquad.season_id).maybeSingle();
+      const champ = s?.champion_squad_id ? (allSquads.find((q) => q.id === s.champion_squad_id)?.name ?? null) : null;
+      setEnded(s?.status === "complete" ? { champion: champ } : null);
+    }
     setLoading(false);
   }, [profile?.id]);
 
@@ -188,7 +197,15 @@ const StudentSquadPage = () => {
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
             {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} of {squad.max_members} members
           </p>
-          {squad.qualified !== null && (
+          {ended ? (
+            <p className="mt-2 text-sm" data-testid="season-over">
+              <span className="font-medium">Season over.</span>{" "}
+              <span className="text-muted-foreground">
+                {ended.champion ? `Champion: ${ended.champion}. ` : ""}
+                {squad.rank ? `${squad.name} finished #${squad.rank}.` : ""}
+              </span>
+            </p>
+          ) : squad.qualified !== null && (
             <p className="mt-2 text-sm">
               {squad.qualified ? (
                 <span className="text-emerald-600 font-medium">
@@ -236,7 +253,10 @@ const StudentSquadPage = () => {
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Next match
               </span>
-              {restWeek && (
+              {ended && (
+                <p className="text-sm mt-2 text-muted-foreground">The season is over. No more matches.</p>
+              )}
+              {!ended && restWeek && (
                 <p className="text-sm mt-2">
                   <span className="font-medium">Rest round.</span>{" "}
                   <span className="text-muted-foreground">
@@ -255,7 +275,7 @@ const StudentSquadPage = () => {
                     {format(new Date(next.scheduled_at), "EEEE d MMM, h:mm a")}
                   </p>
                 </div>
-              ) : !restWeek ? (
+              ) : !restWeek && !ended ? (
                 <p className="text-sm text-muted-foreground mt-2">Nothing scheduled yet.</p>
               ) : null}
             </CardContent>

@@ -77,9 +77,9 @@ const StudentSeasonReport = () => {
         {placedBanner}
         <Card><CardContent className="pt-6">
           <p className="text-sm text-muted-foreground max-w-prose">
-            No season yet. Once your college starts one and the first week is scored, this
-            becomes your record of it — week by week, where your points came from, and what
-            to work on next.
+            No season points for you yet. Once your college runs a season and a week with your
+            work in it is scored, this becomes your record of it — week by week, where your
+            points came from, and what to work on next.
           </p>
         </CardContent></Card>
       </div>

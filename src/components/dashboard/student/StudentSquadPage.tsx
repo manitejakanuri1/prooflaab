@@ -170,6 +170,7 @@ const StudentSquadPage = () => {
   const myShare = totalPoints > 0 && mine ? Math.round((mine.contribution / totalPoints) * 100) : 0;
   const movement = squad.previous_rank != null && squad.rank != null ? squad.previous_rank - squad.rank : 0;
   const next = matches.find((m) => m.status === "scheduled");
+  const sectionRank = standings.findIndex((s) => s.id === squad.id) + 1;
 
   // With an odd number of squads one sits out each round. Their tab used to
   // show nothing at all, which reads as a broken screen rather than a rest.
@@ -185,7 +186,10 @@ const StudentSquadPage = () => {
           THE <span className="text-primary">LAB</span>
         </h1>
         <span className="ml-auto font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {squad.rank ? `Rank #${squad.rank}` : "Unranked"}
+          {/* The Standings tab ranks the squad inside its section; squads.rank is college-wide. */}
+          {squad.rank
+            ? `${sectionRank ? `#${sectionRank} in ${squad.cohort ?? "section"} · ` : ""}#${squad.rank} in college`
+            : "Unranked"}
         </span>
       </div>
 
@@ -202,7 +206,7 @@ const StudentSquadPage = () => {
               <span className="font-medium">Season over.</span>{" "}
               <span className="text-muted-foreground">
                 {ended.champion ? `Champion: ${ended.champion}. ` : ""}
-                {squad.rank ? `${squad.name} finished #${squad.rank}.` : ""}
+                {squad.rank ? `${squad.name} finished #${squad.rank} in the college.` : ""}
               </span>
             </p>
           ) : squad.qualified !== null && (
@@ -317,7 +321,7 @@ const StudentSquadPage = () => {
                           <span className="ml-2 font-mono text-[10px] text-muted-foreground">you</span>
                         )}
                       </td>
-                      <td className="py-2.5 pr-3 text-muted-foreground">{m.role ?? "—"}</td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">{m.role === "captain" ? "Captain" : "Member"}</td>
                       <td className="py-2.5 font-mono tabular-nums">{m.contribution}</td>
                     </tr>
                   ))}

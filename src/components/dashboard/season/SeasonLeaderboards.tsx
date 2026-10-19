@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useSeasonStatus } from "./SeasonPhaseBar";
 
 /**
  * The scoreboard that never ends.
@@ -46,6 +47,7 @@ const BOARDS = [
 const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: string }) => {
   const [kind, setKind] = useState("overall");
   const [rows, setRows] = useState<Row[]>([]);
+  const { status } = useSeasonStatus();
   const [awards, setAwards] = useState<Award[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -109,8 +111,10 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
           </Tabs>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            Every student is on this table for the whole season, whatever happened
-            to their squad in the championship.
+            {/* After a season ends the table is the last season's final one (migration 124). */}
+            {status && !status.season_id && rows.length > 0
+              ? "Final table of your college's last season. A new one starts with the next season."
+              : "Every student is on this table for the whole season, whatever happened to their squad in the championship."}
           </p>
 
           <div className="mt-3 overflow-x-auto">

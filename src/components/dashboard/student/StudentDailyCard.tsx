@@ -5,7 +5,7 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Mic, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon } from "lucide-react";
+import { Mic, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon, CheckCircle2 } from "lucide-react";
 import StudentRoadmapPage from "./StudentRoadmapPage";
 import VoiceExplainModal from "./VoiceExplainModal";
 import { explainIfSubmitted } from "@/lib/explainGate";
@@ -39,10 +39,11 @@ interface Lot {
   lot_skills?: string[] | null;
 }
 
-/** One dot per day, coloured by what was submitted. */
+/** One dot per day, coloured by the Lot's kind: filled once it is done, a ring while it is open. */
 interface DayMark {
   date: Date;
   kind: "technical" | "business" | "pitch" | null;
+  done: boolean;
 }
 
 /** The student's current squad, or null when they are still in the reserve pool. */
@@ -74,6 +75,9 @@ function lotLabel(lot: Lot): string {
 const StudentDailyCard = () => {
   const { profile } = useStudentProfile();
   const [lot, setLot] = useState<Lot | null>(null);
+  // Best passing score on today's Lot once it is done, and whether anything was submitted on it.
+  const [doneScore, setDoneScore] = useState<number | null>(null);
+  const [triedLot, setTriedLot] = useState(false);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [lastActive, setLastActive] = useState<string | null>(null);
@@ -105,7 +109,7 @@ const StudentDailyCard = () => {
         .maybeSingle(),
       supabase
         .from("tasks")
-        .select("lot_date, lot_category")
+        .select("lot_date, lot_category, status")
         .eq("student_id", profile.id)
         .gte("lot_date", format(monday, "yyyy-MM-dd"))
         .not("lot_date", "is", null),
@@ -149,20 +153,29 @@ const StudentDailyCard = () => {
     }
 
     setLot(today);
+    if (today) {
+      const { data: subs } = await supabase.from("task_submissions").select("status, sandbox_score")
+        .eq("task_id", today.id);
+      const rows = (subs ?? []) as { status: string; sandbox_score: number | null }[];
+      setTriedLot(rows.length > 0);
+      const passed = rows.filter((x) => x.status === "passed").map((x) => x.sandbox_score ?? 0);
+      setDoneScore(passed.length ? Math.max(...passed) : null);
+    }
     setStreak(streakRes.data?.current_days ?? 0);
     setLastActive(streakRes.data?.last_active_on ?? null);
     setSquad(
       ((squadRes.data as unknown as { squads: SquadSummary | null } | null)?.squads) ?? null,
     );
 
-    const byDay = new Map<string, DayMark["kind"]>();
-    for (const row of (weekRes.data ?? []) as { lot_date: string; lot_category: string | null }[]) {
-      byDay.set(row.lot_date, (row.lot_category as DayMark["kind"]) ?? "technical");
+    const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean }>();
+    for (const row of (weekRes.data ?? []) as { lot_date: string; lot_category: string | null; status: string | null }[]) {
+      byDay.set(row.lot_date, { kind: (row.lot_category as DayMark["kind"]) ?? "technical", done: row.status === "completed" });
     }
     setWeek(
       Array.from({ length: 7 }, (_, i) => {
         const date = addDays(monday, i);
-        return { date, kind: byDay.get(format(date, "yyyy-MM-dd")) ?? null };
+        const d = byDay.get(format(date, "yyyy-MM-dd"));
+        return { date, kind: d?.kind ?? null, done: d?.done ?? false };
       }),
     );
     setLoading(false);
@@ -260,7 +273,14 @@ const StudentDailyCard = () => {
               </span>
             )}
             <h2 className="mt-2 text-lg font-semibold leading-snug">{tidyTitle(lot.title)}</h2>
-            {lot.why_selected && (
+            {lot.status === "completed" && (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-600/15 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+                 data-testid="lot-done">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Done{doneScore != null ? ` · ${doneScore}%` : ""}
+              </p>
+            )}
+            {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}
+            {lot.why_selected && !triedLot && (
               <p className="mt-2 rounded-md bg-[#efe9dc] px-3 py-2 text-xs text-[#4a463d]">
                 <span className="font-semibold">Why this Lot: </span>{lot.why_selected}
                 {lot.lot_skills && lot.lot_skills.length > 0 && <> · Skills: {lot.lot_skills.join(", ")}</>}
@@ -284,7 +304,9 @@ const StudentDailyCard = () => {
                 onClick={openLot}
                 className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
               >
-                {lot.sandbox_config_id ? (
+                {lot.status === "completed" ? (
+                  <><CheckCircle2 className="mr-2 h-4 w-4" /> View my answer</>
+                ) : lot.sandbox_config_id ? (
                   <><Code2 className="mr-2 h-4 w-4" /> Solve in editor</>
                 ) : (
                   <><PenLine className="mr-2 h-4 w-4" /> Write my answer</>
@@ -327,16 +349,19 @@ const StudentDailyCard = () => {
         <div className="space-y-4">
           <div className="rounded-xl border p-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              This week
+              This week <span className="normal-case tracking-normal">· ● done · ○ not done yet</span>
             </p>
             <div className="mt-3 flex justify-between">
-              {week.map(({ date, kind }) => {
+              {week.map(({ date, kind, done }) => {
                 const today = isSameDay(date, new Date());
-                const colour =
-                  kind === "technical" ? "bg-emerald-500"
-                  : kind === "business" ? "bg-amber-500"
-                  : kind === "pitch" ? "bg-rose-500"
-                  : "bg-muted";
+                // Filled = the Lot was done; ring = it was given and is still open; grey = no Lot.
+                // Full class names, so Tailwind keeps them in the build.
+                const DOT = {
+                  technical: ["bg-emerald-500", "border-2 border-emerald-500 bg-transparent"],
+                  business: ["bg-amber-500", "border-2 border-amber-500 bg-transparent"],
+                  pitch: ["bg-rose-500", "border-2 border-rose-500 bg-transparent"],
+                } as const;
+                const colour = kind ? DOT[kind][done ? 0 : 1] : "bg-muted";
                 return (
                   <div key={date.toISOString()} className="flex flex-1 flex-col items-center gap-1.5">
                     <span

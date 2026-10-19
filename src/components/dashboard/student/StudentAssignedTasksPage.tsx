@@ -49,9 +49,9 @@ const StudentAssignedTasksPage = () => {
   const { profile } = useStudentProfile();
   // The recorder beside the answer on the full-screen task page.
   const voiceFor = (taskId: string) => profile?.id
-    ? (unlocked: boolean) => (
+    ? (unlocked: boolean, onDone?: () => void) => (
         <TaskVoicePanel unlocked={unlocked} studentId={profile.id} taskId={taskId}
-          title={allTasks.find((x) => x.id === taskId)?.title ?? "this task"} onSaved={refetchTasks} />
+          title={allTasks.find((x) => x.id === taskId)?.title ?? "this task"} onSaved={refetchTasks} onDone={onDone} />
       )
     : undefined;
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);

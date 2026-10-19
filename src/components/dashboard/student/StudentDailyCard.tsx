@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Mic, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon, CheckCircle2 } from "lucide-react";
@@ -73,6 +74,7 @@ function lotLabel(lot: Lot): string {
  * most one grading mode, so exactly one of the three ever applies.
  */
 const StudentDailyCard = () => {
+  const { toast } = useToast();
   const { profile } = useStudentProfile();
   const [lot, setLot] = useState<Lot | null>(null);
   // Best passing score on today's Lot once it is done, and whether anything was submitted on it.
@@ -87,6 +89,8 @@ const StudentDailyCard = () => {
   const [writing, setWriting] = useState(false);
   const [explaining, setExplaining] = useState(false);
   const [roadmap, setRoadmap] = useState(false);
+  const [taskPassed, setTaskPassed] = useState(false);
+  const [voiceSaved, setVoiceSaved] = useState(false);
   // "Start this stage" inside the roadmap navigates; close the dialog when it does.
   const { pathname } = useLocation();
   useEffect(() => { setRoadmap(false); }, [pathname]);
@@ -198,15 +202,68 @@ const StudentDailyCard = () => {
 
   const openLot = () => {
     if (!lot) return;
+    setTaskPassed(false);
+    setVoiceSaved(false);
     if (lot.sandbox_config_id) setCoding(true);
     else setWriting(true); // no uploads: every other Lot is a written answer
   };
 
+  const handleTaskFinish = () => {
+    setTaskPassed(false);
+    setVoiceSaved(false);
+    setWriting(false);
+    setCoding(false);
+    void load();
+  };
+
+  const handleWritingOpenChange = (open: boolean) => {
+    if (!open && taskPassed && !voiceSaved) {
+      toast({
+        title: "Voice explanation required",
+        description: "Please record and save your 60-second voice explanation before leaving. Your written answer is saved.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setWriting(open);
+    if (!open) {
+      setTaskPassed(false);
+      setVoiceSaved(false);
+      void load();
+    }
+  };
+
+  const handleCodingOpenChange = (open: boolean) => {
+    if (!open && taskPassed && !voiceSaved) {
+      toast({
+        title: "Voice explanation required",
+        description: "Please record and save your 60-second voice explanation before leaving. Your code submission is saved.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCoding(open);
+    if (!open) {
+      setTaskPassed(false);
+      setVoiceSaved(false);
+      void load();
+    }
+  };
+
   // The recorder beside the answer on the full-screen task page.
   const voice = lot && profile?.id
-    ? (unlocked: boolean) => (
-        <TaskVoicePanel unlocked={unlocked} studentId={profile.id} taskId={lot.id}
-          title={tidyTitle(lot.title)} onSaved={() => void load()} />
+    ? (unlocked: boolean, onDone?: () => void) => (
+        <TaskVoicePanel
+          unlocked={unlocked}
+          studentId={profile.id}
+          taskId={lot.id}
+          title={tidyTitle(lot.title)}
+          onSaved={() => {
+            setVoiceSaved(true);
+            void load();
+          }}
+          onDone={onDone ?? handleTaskFinish}
+        />
       )
     : undefined;
 
@@ -417,17 +474,65 @@ const StudentDailyCard = () => {
 
 
       {lot && lot.sandbox_config_id && (
-        <Dialog open={coding} onOpenChange={(o) => { setCoding(o); if (!o) void load(); }}>
-          <DialogContent className={TASK_SCREEN_CLASS}>
-            <SandboxTaskPanel taskId={lot.id} voice={voice} onCompleted={() => { setCoding(false); setExplaining(true); void load(); }} />
+        <Dialog open={coding} onOpenChange={handleCodingOpenChange}>
+          <DialogContent
+            className={TASK_SCREEN_CLASS}
+            onEscapeKeyDown={(e) => {
+              if (taskPassed && !voiceSaved) {
+                e.preventDefault();
+                toast({
+                  title: "Voice explanation required",
+                  description: "Please record and save your 60-second voice explanation before leaving.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            onPointerDownOutside={(e) => {
+              if (taskPassed && !voiceSaved) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <SandboxTaskPanel
+              taskId={lot.id}
+              voice={voice}
+              onPassedChange={setTaskPassed}
+              voiceSaved={voiceSaved}
+              onFinish={handleTaskFinish}
+              onCompleted={() => { setCoding(false); setExplaining(true); void load(); }}
+            />
           </DialogContent>
         </Dialog>
       )}
 
       {lot && !lot.sandbox_config_id && (
-        <Dialog open={writing} onOpenChange={(o) => { setWriting(o); if (!o) void load(); }}>
-          <DialogContent className={TASK_SCREEN_CLASS}>
-            <WrittenTaskPanel taskId={lot.id} voice={voice} onCompleted={() => { setWriting(false); setExplaining(true); void load(); }} />
+        <Dialog open={writing} onOpenChange={handleWritingOpenChange}>
+          <DialogContent
+            className={TASK_SCREEN_CLASS}
+            onEscapeKeyDown={(e) => {
+              if (taskPassed && !voiceSaved) {
+                e.preventDefault();
+                toast({
+                  title: "Voice explanation required",
+                  description: "Please record and save your 60-second voice explanation before leaving.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            onPointerDownOutside={(e) => {
+              if (taskPassed && !voiceSaved) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <WrittenTaskPanel
+              taskId={lot.id}
+              voice={voice}
+              onPassedChange={setTaskPassed}
+              voiceSaved={voiceSaved}
+              onFinish={handleTaskFinish}
+              onCompleted={() => { setWriting(false); setExplaining(true); void load(); }}
+            />
           </DialogContent>
         </Dialog>
       )}

@@ -8,6 +8,7 @@ interface TaskVoicePanelProps {
   taskId: string;
   title: string;
   onSaved?: () => void;
+  onDone?: () => void;
 }
 
 /**
@@ -15,7 +16,7 @@ interface TaskVoicePanelProps {
  * page. Locked until the answer passes: a recording needs a submission to belong
  * to (migration 61), so recording earlier would only be refused.
  */
-export default function TaskVoicePanel({ unlocked, studentId, taskId, title, onSaved }: TaskVoicePanelProps) {
+export default function TaskVoicePanel({ unlocked, studentId, taskId, title, onSaved, onDone }: TaskVoicePanelProps) {
   if (!unlocked) {
     return (
       <div className="space-y-3" data-testid="voice-locked">
@@ -38,6 +39,7 @@ export default function TaskVoicePanel({ unlocked, studentId, taskId, title, onS
       taskId={taskId}
       prompt={`In your own words: how did you approach "${title}"?`}
       onSaved={onSaved}
+      onDone={onDone}
     />
   );
 }

@@ -6,7 +6,7 @@ import { SimpleQuestion } from "./SimpleQuestion";
 import { GivenMaterial } from "./GivenMaterial";
 import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
-import { Loader2, Send, Clock } from "lucide-react";
+import { Loader2, Send, Clock, Mic, CheckCircle2, Code } from "lucide-react";
 
 interface RubricView {
   task_id: string;
@@ -50,7 +50,10 @@ interface WrittenTaskPanelProps {
    * The spoken explanation, shown as a third column beside the answer. Gets
    * whether the answer has passed; replaces the "Next: explain it" button.
    */
-  voice?: (unlocked: boolean) => ReactNode;
+  voice?: (unlocked: boolean, onDone?: () => void) => ReactNode;
+  onPassedChange?: (passed: boolean) => void;
+  voiceSaved?: boolean;
+  onFinish?: () => void;
 }
 
 /**
@@ -63,7 +66,14 @@ interface WrittenTaskPanelProps {
  * scratchpad sits between the question and the answer. It only calls run-code;
  * its code is never saved, submitted or graded.
  */
-export default function WrittenTaskPanel({ taskId, onCompleted, voice }: WrittenTaskPanelProps) {
+export default function WrittenTaskPanel({
+  taskId,
+  onCompleted,
+  voice,
+  onPassedChange,
+  voiceSaved,
+  onFinish,
+}: WrittenTaskPanelProps) {
   const draftKey = `written-draft:${taskId}`;
   const [view, setView] = useState<RubricView | null>(null);
   const [answer, setAnswer] = useState("");
@@ -106,6 +116,7 @@ export default function WrittenTaskPanel({ taskId, onCompleted, voice }: Written
     const r = data as SubmitResult;
     setResult(r);
     if (r.status === "passed") {
+      onPassedChange?.(true);
       // Not onCompleted() here: that closes the dialog, so a pass flashed its
       // score and vanished. The Done button below closes it once it is read.
       try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
@@ -162,7 +173,29 @@ export default function WrittenTaskPanel({ taskId, onCompleted, voice }: Written
         </div>
       )}
 
-      {scratch && <p className="text-sm font-semibold">Written answer</p>}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">{scratch ? "Written answer" : "Your Answer"}</p>
+        {!done && !answer.trim() && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs gap-1.5 border-dashed text-primary hover:text-primary"
+            onClick={() => {
+              const isTimerOrExecution = /settimeout|timer|execution order|console\.log/i.test(view.prompt_text);
+              const isGenericCode = /code|snippet|function|example/i.test(view.prompt_text);
+              const template = isTimerOrExecution
+                ? `// Example 1:\n// (Write your JavaScript snippet here, e.g. with setTimeout / console.log)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n\n\n// Example 2:\n// (Write your JavaScript snippet here)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n\n\n// Example 3:\n// (Write your JavaScript snippet here)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n`
+                : isGenericCode
+                ? `// Example 1:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n\n\n// Example 2:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n`
+                : `1. Approach & Reasoning:\n// (Write your explanation here)\n\n2. Key Decisions & Tradeoffs:\n// (Write your thoughts here)\n`;
+              saveDraft(template);
+            }}
+          >
+            <Code className="h-3.5 w-3.5" /> Insert example format
+          </Button>
+        )}
+      </div>
       <Textarea
         value={answer}
         onChange={(e) => saveDraft(e.target.value)}
@@ -220,12 +253,46 @@ export default function WrittenTaskPanel({ taskId, onCompleted, voice }: Written
           {result.status === "passed" && onCompleted && !voice && (
             <Button className="mt-3 w-full" onClick={onCompleted}>Next: explain it in 60 seconds</Button>
           )}
+
+          {done && !voiceSaved && (
+            <div className="mt-4 rounded-xl border-2 border-primary bg-primary/10 p-4 text-center shadow-sm animate-in fade-in">
+              <div className="flex items-center justify-center gap-2 text-base font-bold text-primary">
+                <Mic className="h-5 w-5 animate-pulse" />
+                Step 2 of 2: Record your 60-second explanation now
+              </div>
+              <p className="mt-1 text-sm font-medium">
+                Your written answer passed! You cannot exit without recording your explanation.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Look at the panel on the right — click &quot;I understand — continue&quot; and explain your work in your own words.
+              </p>
+            </div>
+          )}
+
+          {done && voiceSaved && (
+            <div className="mt-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-center animate-in fade-in">
+              <p className="flex items-center justify-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" /> Task Fully Completed!
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Your written answer and voice explanation have both been verified and saved.
+              </p>
+              {onFinish && (
+                <Button
+                  className="mt-3 w-full bg-emerald-600 text-white hover:bg-emerald-700 font-semibold"
+                  onClick={onFinish}
+                >
+                  Complete &amp; Return to Dashboard
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
       {voice && (
         <aside className="shrink-0 border-t p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
-          {voice(!!done)}
+          {voice(!!done, onFinish)}
         </aside>
       )}
     </div>

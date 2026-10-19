@@ -123,6 +123,8 @@ interface VoiceExplainModalProps {
    * as a dialog. Keep `open` true while mounted; unmounting ends the session.
    */
   inline?: boolean;
+  /** Called when the inline recording is finished and saved to return to dashboard. */
+  onDone?: () => void;
 }
 
 /**
@@ -226,7 +228,7 @@ const ctxOf = (job: StoredJob): RecordingContext =>
  */
 
 const VoiceExplainModal = ({
-  open, onOpenChange, studentId, taskId, prompt, onSaved, inline = false,
+  open, onOpenChange, studentId, taskId, prompt, onSaved, inline = false, onDone,
 }: VoiceExplainModalProps) => {
   const { toast } = useToast();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -1573,6 +1575,14 @@ const VoiceExplainModal = ({
               </Button>
             )}
             {!inline && <Button className="w-full" onClick={() => close(false)}>Done</Button>}
+            {inline && onDone && (
+              <Button
+                className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                onClick={onDone}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" /> All Done — Return to Dashboard
+              </Button>
+            )}
           </div>
         )}
 

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 5c73e1bc44aac4d9166f0f3188921f16927af330   # 2026-10-19: season report card (migration 125)
+      STAGING_RC: 41c9995e2964a0de75caf7200c3fe042a0e1f020   # 2026-10-19: lot source label, exact rules (migration 126)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

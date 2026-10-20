@@ -336,6 +336,12 @@ const StudentDailyCard = () => {
                 <CheckCircle2 className="h-3.5 w-3.5" /> Done{doneScore != null ? ` · ${doneScore}%` : ""}
               </p>
             )}
+            {lot.status === "pending_voice" && (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"
+                 data-testid="lot-pending-voice">
+                <Mic className="h-3.5 w-3.5" /> Code passed · Spoken explanation required
+              </p>
+            )}
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}
             {lot.why_selected && !triedLot && (
               <p className="mt-2 rounded-md bg-[#efe9dc] px-3 py-2 text-xs text-[#4a463d]">
@@ -355,27 +361,48 @@ const StudentDailyCard = () => {
               </pre>
             )}
 
-            {/* The only two actions on this screen. */}
+            {/* Actions on this screen */}
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                onClick={openLot}
-                className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
-              >
-                {lot.status === "completed" ? (
-                  <><CheckCircle2 className="mr-2 h-4 w-4" /> View my answer</>
-                ) : lot.sandbox_config_id ? (
-                  <><Code2 className="mr-2 h-4 w-4" /> Solve in editor</>
-                ) : (
-                  <><PenLine className="mr-2 h-4 w-4" /> Write my answer</>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
-                className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
-              >
-                <Mic className="mr-2 h-4 w-4" /> Record 60s explain
-              </Button>
+              {lot.status === "pending_voice" ? (
+                <>
+                  <Button
+                    onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
+                    className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
+                    data-testid="lot-action-explain"
+                  >
+                    <Mic className="mr-2 h-4 w-4" /> Record 60s explain
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={openLot}
+                    className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
+                  >
+                    <Code2 className="mr-2 h-4 w-4" /> View my code
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={openLot}
+                    className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
+                  >
+                    {lot.status === "completed" ? (
+                      <><CheckCircle2 className="mr-2 h-4 w-4" /> View my answer</>
+                    ) : lot.sandbox_config_id ? (
+                      <><Code2 className="mr-2 h-4 w-4" /> Solve in editor</>
+                    ) : (
+                      <><PenLine className="mr-2 h-4 w-4" /> Write my answer</>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
+                    className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
+                  >
+                    <Mic className="mr-2 h-4 w-4" /> Record 60s explain
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -540,11 +567,18 @@ const StudentDailyCard = () => {
       {lot && explaining && profile?.id && (
         <VoiceExplainModal
           open={explaining}
-          onOpenChange={setExplaining}
+          onOpenChange={(op) => {
+            setExplaining(op);
+            if (!op) void load();
+          }}
           studentId={profile.id}
           taskId={lot.id}
           prompt={`In your own words: how did you approach "${tidyTitle(lot.title)}"?`}
           onSaved={() => void load()}
+          onDone={() => {
+            setExplaining(false);
+            void load();
+          }}
         />
       )}
     </div>

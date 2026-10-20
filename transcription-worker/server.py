@@ -48,10 +48,10 @@ TRANSCRIBER_URL = os.environ.get("TRANSCRIBER_URL", "").rstrip("/")
 # this worker just saved, so scoring no longer waits for the student's browser.
 FUNCTIONS_URL = os.environ.get("FUNCTIONS_URL", "").rstrip("/")
 PRIVATE_BUCKET = os.environ.get("PRIVATE_BUCKET", "")
-STALE_AFTER_SECONDS = int(os.environ.get("STALE_AFTER_SECONDS", "180"))
+STALE_AFTER_SECONDS = int(os.environ.get("STALE_AFTER_SECONDS", "600"))
 # Must match the queue's own configured max-attempts (prooflab-staging-transcription: 3).
 # Cloud Tasks' retry-count header is 0-indexed, so attempt 2 is the last one it will make.
-QUEUE_MAX_ATTEMPTS = int(os.environ.get("QUEUE_MAX_ATTEMPTS", "3"))
+QUEUE_MAX_ATTEMPTS = int(os.environ.get("QUEUE_MAX_ATTEMPTS", "5"))
 # "staging" or "production". Fault injection is only ever honoured on staging.
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "")
 # Step 6C, staging test use only: after a REAL claim (a genuine Cloud Tasks

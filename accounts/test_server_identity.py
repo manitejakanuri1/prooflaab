@@ -87,11 +87,17 @@ h = handler("/sync", headers={"x-webhook-secret": "wrong"}); h.sync()
 assert h.out[0] == 401 and server.db.calls == []
 
 # 2. Listing failure (5xx, truncated page) -> 502, the database is never asked to change anything.
-def broken():
+orig_all_logins = server.all_logins
+orig_db = server.db
+def broken(*args, **kwargs):
     raise RuntimeError("could not list logins: 503")
-server.db, server.all_logins = Fake(accounts), broken
-h = handler("/sync"); h.sync()
-assert h.out[0] == 502 and not server.db.sent("rpc/identity_sync_apply"), h.out
+try:
+    server.db, server.all_logins = Fake(accounts), broken
+    h = handler("/sync"); h.sync()
+    assert h.out[0] == 502 and not server.db.sent("rpc/identity_sync_apply"), h.out
+finally:
+    server.all_logins = orig_all_logins
+    server.db = orig_db
 
 # 3. First sighting for every role -> marked, nobody cut.
 missing = {f"p{i}" for i in range(5)}

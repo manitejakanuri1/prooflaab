@@ -49,8 +49,8 @@ TRANSCRIBER_URL = os.environ.get("TRANSCRIBER_URL", "").rstrip("/")
 FUNCTIONS_URL = os.environ.get("FUNCTIONS_URL", "").rstrip("/")
 PRIVATE_BUCKET = os.environ.get("PRIVATE_BUCKET", "")
 STALE_AFTER_SECONDS = int(os.environ.get("STALE_AFTER_SECONDS", "600"))
-# Must match the queue's own configured max-attempts (prooflab-staging-transcription: 3).
-# Cloud Tasks' retry-count header is 0-indexed, so attempt 2 is the last one it will make.
+# Must match the queue's own configured max-attempts (5).
+# Cloud Tasks' retry-count header is 0-indexed, so attempt 4 is the last one it will make.
 QUEUE_MAX_ATTEMPTS = int(os.environ.get("QUEUE_MAX_ATTEMPTS", "5"))
 # "staging" or "production". Fault injection is only ever honoured on staging.
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "")

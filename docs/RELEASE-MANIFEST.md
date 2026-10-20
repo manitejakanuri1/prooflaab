@@ -15,14 +15,14 @@ Production must receive exactly these artifacts - deploy by digest, never by tag
 
 | Service | Staging Revision | Image | Digest | Concurrency / Scale |
 |---|---|---|---|---|
-| api | `prooflab-staging-api-00006-6x4` | `postgrest:v16.3` | `sha256:63b567a462c4fd81ede0bdff0b38a150f732ad5fe4f4b01cebeb6a1aa8dbe0d6` | Pool: 10, Scale: 6 |
+| api | `prooflab-staging-api-00006-6x4` | `postgrest:v16.3` | `sha256:63b567a462c4fd81ede0bdff0b38a150f732ad5fe4f4b01cebeb6a1aa8dbe0d6` | Pool: 4, Scale: 6 |
 | auth-bridge | `prooflab-staging-auth-bridge-00022-zat` | `prooflab-auth-bridge:sg487fb05` | `sha256:fa15be7311f7f63a72d48d7db6303dae3f97456f1c55ad0578902957e5696752` | Concurrency: 80, Scale: 3 |
 | functions | `prooflab-staging-functions-00101-lov` | `prooflab-functions:sgc318ce3` | `sha256:ab3f784dfd4f92bdfe5e6adda29ffd1b627e9826051a6259be149720bcb9d7e4` | Concurrency: 80, Scale: 5 |
 | files | `prooflab-staging-files-00015-nip` | `prooflab-files:rc41` | `sha256:956658b433bee8a554770495a0e397ff73b3911162d2681013c3a4480b238cd4` | Concurrency: 80, Scale: 3 |
 | accounts | `prooflab-staging-accounts-00024-jep` | `prooflab-accounts:sgab2369c` | `sha256:7c1e20b005404372e03cb3ec004a9e1b16879ca34cdc9f89198db82e3534441a` | Concurrency: 80, Scale: 2 |
-| transcriber | `prooflab-staging-transcriber-00012-qwe` | `prooflab-transcriber:prod-v1.2` | `sha256:357b139960429dca2537172dbfe11b52d11bc7079f03d357d21ebbcf0d87b49a` | Concurrency: 1, Scale: 15 (Target) |
-| transcription-worker | `prooflab-staging-transcription-worker-00025-h4b` | `prooflab-transcription-worker:sg487fb05` | `sha256:a148d99b66cd5f75d3abc7851e88f613a5a8e88ed9b6f611041691852eea8385` | Concurrency: 8, Scale: 5, Stale: 600s |
-| code-runner | `prooflab-code-runner-00007-xop` | `code-runner:b2a079c181` | `sha256:f280b0bdedce2f2a71bf64f6974780ff12e52b2fdfb8b3d8d641ba480cb2b2b1` | Concurrency: 4, Scale: 10 |
+| transcriber | `prooflab-staging-transcriber-00012-qwe` | `prooflab-transcriber:prod-v1.2` | `sha256:357b139960429dca2537172dbfe11b52d11bc7079f03d357d21ebbcf0d87b49a` | Concurrency: 1, Scale: 10 (Target: 15) |
+| transcription-worker | `prooflab-staging-transcription-worker-00025-h4b` | `prooflab-transcription-worker:sg487fb05` | `sha256:a148d99b66cd5f75d3abc7851e88f613a5a8e88ed9b6f611041691852eea8385` | Concurrency: 80, Scale: 10, Stale: 600s, MaxAttempts: 5 |
+| code-runner | `prooflab-code-runner-00007-xop` | `code-runner:b2a079c181` | `sha256:f280b0bdedce2f2a71bf64f6974780ff12e52b2fdfb8b3d8d641ba480cb2b2b1` | Concurrency: 1, Scale: 12 (Target: 20) |
 | web-bff | `prooflab-staging-web-bff-00017-wiw` | `prooflab-web-bff:sg487fb05` | `sha256:b8109d944fb0b719001b6067b5454b6045d9fa9b8cb7980e14d4850cbbd31265` | Concurrency: 80, Scale: 4 |
 
 ## Migrations (82 files under the ledger)

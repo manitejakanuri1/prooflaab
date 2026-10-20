@@ -1,8 +1,23 @@
--- 20261103011700: Voice-Gated Task Completion and State Machine Integrity (Migration 127).
--- See migration/127-voice-gated-task-completion.sql for documentation.
+-- 127: Voice-Gated Task Completion and State Machine Integrity (P1 Blocker Fix).
+--
+-- WHY. Previously, record_task_submission() marked tasks as 'completed' and paid
+-- full XP the moment code or written tests passed. A student who refreshed the page,
+-- closed the tab, or navigated away before recording the mandatory 60s voice explanation
+-- landed back on a dashboard where the task was already 'completed' (Done 100%),
+-- completely bypassing the oral defense requirement while retaining full XP and progress.
+--
+-- NOW.
+-- 1. record_task_submission() transitions passing work to 'pending_voice' instead of
+--    'completed'. completed_at remains null and XP is withheld.
+-- 2. complete_voice_scoring() is now the server-authoritative gate that marks the task
+--    'completed', sets completed_at = now(), awards XP, and logs task_completed activity.
+-- 3. If a student leaves or refreshes, tasks.status remains 'pending_voice', recovering
+--    the voice recording prompt and refusing to show 'completed'.
+-- 4. Historical completed tasks and duplicate submissions remain idempotent and protected.
 
 begin;
 
+-- 1. Update complete_voice_scoring to atomically finalize task and award XP
 create or replace function public.complete_voice_scoring(
   _id uuid, _lease_token uuid, _score integer, _notes text
 )
@@ -78,6 +93,7 @@ end $function$;
 revoke all on function public.complete_voice_scoring(uuid, uuid, integer, text) from public, anon, authenticated;
 grant execute on function public.complete_voice_scoring(uuid, uuid, integer, text) to service_role;
 
+-- 2. Update record_task_submission to set 'pending_voice' instead of 'completed'
 create temp table _127_before on commit drop as
   select p.proowner, p.prosecdef, p.proconfig, p.proacl::text as acl, p.provolatile, p.prorettype
     from pg_proc p
@@ -102,6 +118,7 @@ begin
   execute replace(def, old_complete, new_pending);
 end $$;
 
+-- Self-check
 do $$
 declare
   f constant regprocedure := 'public.record_task_submission(uuid,uuid,uuid,text,text,integer,integer,integer,jsonb,text,integer,uuid,jsonb,text[])'::regprocedure;

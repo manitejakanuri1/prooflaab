@@ -16,11 +16,11 @@
  "prooflab-staging-transcription": {
   "rate": {
    "maxBurstSize": 10,
-   "maxConcurrentDispatches": 2,
-   "maxDispatchesPerSecond": 1.0
+   "maxConcurrentDispatches": 10,
+   "maxDispatchesPerSecond": 5.0
   },
   "retry": {
-   "maxAttempts": 8,
+   "maxAttempts": 5,
    "maxBackoff": "120s",
    "maxDoublings": 16,
    "minBackoff": "10s"

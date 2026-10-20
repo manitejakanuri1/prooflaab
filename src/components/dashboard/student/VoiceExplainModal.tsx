@@ -147,6 +147,10 @@ interface SavedResult {
   segments: TranscriptSegment[];
   score: number | null;
   notes: string | null;
+  demonstrated?: string[];
+  missing?: string[];
+  improvement?: string;
+  summary?: string;
   /** blob: URL of the recording just made in this tab, if any. */
   audioUrl?: string;
   /** the stored file, played through an authenticated download after a refresh. */
@@ -413,7 +417,7 @@ const VoiceExplainModal = ({
       const res = await settleWithin(
         supabase
           .from("voice_explanations")
-          .select("id, student_id, task_id, transcription_idempotency_key, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes, storage_path")
+          .select("id, student_id, task_id, transcription_idempotency_key, transcription_status, transcript, transcript_segments, word_count, transcription_error, status, communication_score, communication_notes, storage_path, evaluation")
           .eq("id", voiceId)
           .maybeSingle()
           .then((r) => r as unknown as { data: (JobRow & OwnerRow) | null; error: unknown }, (e) => ({ data: null, error: e })),
@@ -472,6 +476,10 @@ const VoiceExplainModal = ({
         // Only a server status of 'scored' permits a number (shown and exported).
         score: scoreToShow(row.status, row.communication_score),
         notes: row.communication_notes ?? null,
+        demonstrated: Array.isArray((row as any).evaluation?.demonstrated) ? (row as any).evaluation.demonstrated : undefined,
+        missing: Array.isArray((row as any).evaluation?.missing) ? (row as any).evaluation.missing : undefined,
+        improvement: typeof (row as any).evaluation?.improvement === "string" ? (row as any).evaluation.improvement : undefined,
+        summary: typeof (row as any).evaluation?.summary === "string" ? (row as any).evaluation.summary : undefined,
         audioUrl: prev?.audioUrl,
         storagePath: row.storage_path ?? prev?.storagePath,
       }));
@@ -901,16 +909,29 @@ const VoiceExplainModal = ({
       // anyway — the audio is the evidence, and a human can still listen.
       let score: number | null = null;
       let notes: string | null = null;
+      let evalData: Record<string, any> | null = null;
       if (words >= MIN_WORDS && (await signedInAs()) === rec.ctx.studentId) {
         const { data: scored } = await supabase.functions.invoke("voice-score", { body: { voice_id: row.id } });
         // A number only when the server actually scored it (not pending/failed).
         score = scoreToShow(scored?.success === true ? "scored" : null, scored?.communication_score);
         notes = scored?.notes ?? null;
+        evalData = (scored?.evaluation as Record<string, any> | null) ?? null;
       }
 
       onSavedRef.current?.(); // the row is saved whether or not this dialog is still open
       if (!current()) return; // closed or moved on meanwhile: no blob URL, no screen update
-      setSavedResult({ transcript: spoken.trim(), segments, score, notes, audioUrl: blobOwnerRef.current!.adopt(URL.createObjectURL(blob)), storagePath: rec.path });
+      setSavedResult({
+        transcript: spoken.trim(),
+        segments,
+        score,
+        notes,
+        demonstrated: Array.isArray(evalData?.demonstrated) ? evalData!.demonstrated : undefined,
+        missing: Array.isArray(evalData?.missing) ? evalData!.missing : undefined,
+        improvement: typeof evalData?.improvement === "string" ? evalData!.improvement : undefined,
+        summary: typeof evalData?.summary === "string" ? evalData!.summary : undefined,
+        audioUrl: blobOwnerRef.current!.adopt(URL.createObjectURL(blob)),
+        storagePath: rec.path,
+      });
       setPhase("done");
     } catch (err) {
       if (current()) {
@@ -1552,14 +1573,52 @@ const VoiceExplainModal = ({
                   transcript={savedResult.transcript}
                   segments={savedResult.segments} />
                 {savedResult.score != null && (
-                  <p className="mt-2 text-sm font-medium">Communication score {savedResult.score}/100</p>
+                  <div className="mt-2 space-y-2">
+                    <p className="text-sm font-semibold text-foreground">
+                      Communication score {savedResult.score}/100
+                    </p>
+                    {savedResult.summary && (
+                      <p className="text-xs text-muted-foreground">{savedResult.summary}</p>
+                    )}
+                    {savedResult.notes && !savedResult.summary && (
+                      <p className="text-xs text-muted-foreground">{savedResult.notes}</p>
+                    )}
+                    {savedResult.demonstrated && savedResult.demonstrated.length > 0 && (
+                      <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-2 text-xs">
+                        <p className="font-semibold text-emerald-700 dark:text-emerald-400">What you explained well:</p>
+                        <ul className="mt-1 list-disc pl-4 space-y-0.5 text-muted-foreground">
+                          {savedResult.demonstrated.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {savedResult.missing && savedResult.missing.length > 0 && (
+                      <div className="rounded border border-amber-500/20 bg-amber-500/5 p-2 text-xs">
+                        <p className="font-semibold text-amber-700 dark:text-amber-400">Important elements missing or to cover next time:</p>
+                        <ul className="mt-1 list-disc pl-4 space-y-0.5 text-muted-foreground">
+                          {savedResult.missing.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {savedResult.improvement && (
+                      <div className="rounded border border-blue-500/20 bg-blue-500/5 p-2 text-xs">
+                        <p className="font-semibold text-blue-700 dark:text-blue-400">How to improve:</p>
+                        <p className="mt-0.5 text-muted-foreground">{savedResult.improvement}</p>
+                      </div>
+                    )}
+                  </div>
                 )}
                 {savedResult.score == null && scoringPending && (
                   <p className="mt-2 text-xs text-muted-foreground">
                     Grading your explanation… You can close this; it will be scored either way.
                   </p>
                 )}
-                {savedResult.notes && <p className="text-xs text-muted-foreground mt-1">{savedResult.notes}</p>}
+                {savedResult.score == null && savedResult.notes && (
+                  <p className="text-xs text-muted-foreground mt-1">{savedResult.notes}</p>
+                )}
               </div>
             )}
             {savedResult && (

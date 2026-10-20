@@ -171,11 +171,24 @@ ${task.description ?? ""}`;
       score = maxTotal > 0 ? Math.round((totals[pick] / maxTotal) * 100) : 0;
     }
 
+    const summary = (lower as any).summary ?? (score >= cfg.pass_threshold
+      ? "Great job! Your response demonstrated the required understanding across rubric criteria."
+      : "Your response did not meet the pass threshold. Review the criterion feedback below to see what was missing.");
+    const nextStep = (lower as any).next_step ?? (score >= cfg.pass_threshold
+      ? "Proceed to explain your approach in your own words in the 60-second voice explanation."
+      : "Address the missing requirements highlighted above and submit an updated response.");
+
+    const detailsPayload = {
+      summary,
+      next_step: nextStep,
+      scores: lower,
+    };
+
     const { data: rec, error } = await db.rpc("record_task_submission", {
       _student_id: profile.id, _task_id: task_id, _sandbox_config_id: null,
       _language: null, _code: answer,
       _passed_count: 0, _total_count: 0, _score: score,
-      _details: lower, _runner: "llm", _duration_ms: null,
+      _details: detailsPayload, _runner: "llm", _duration_ms: null,
       _rubric_config_id: cfg.id, _rubric_scores: lower, _flags: flags,
     });
     if (error || !rec?.ok) {
@@ -190,6 +203,12 @@ ${task.description ?? ""}`;
       already_completed: rec.already_completed,
       xp_awarded: rec.xp_awarded,
       scores: lower,
+      feedback: {
+        summary,
+        next_step: nextStep,
+      },
+      summary,
+      next_step: nextStep,
       needs_review: rec.status === "needs_review",
     });
   } catch (e) {

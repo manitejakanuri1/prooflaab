@@ -6,7 +6,7 @@ import { SimpleQuestion } from "./SimpleQuestion";
 import { GivenMaterial } from "./GivenMaterial";
 import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
-import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb } from "lucide-react";
+import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb, HelpCircle, AlertCircle } from "lucide-react";
 
 interface RubricView {
   task_id: string;
@@ -23,6 +23,9 @@ interface CriterionScore {
   criterion_id: string;
   points: number;
   evidence: string;
+  reason?: string;
+  missing?: string;
+  improvement?: string;
 }
 
 interface SubmitResult {
@@ -32,6 +35,12 @@ interface SubmitResult {
   already_completed: boolean;
   xp_awarded: number;
   scores: CriterionScore[];
+  summary?: string;
+  next_step?: string;
+  feedback?: {
+    summary: string;
+    next_step: string;
+  };
   needs_review: boolean;
 }
 
@@ -89,13 +98,55 @@ export default function WrittenTaskPanel({
       // same pattern sandbox_task_view uses for hidden tests.
       const { data } = await supabase.rpc("rubric_task_view" as never, { _task_id: taskId } as never);
       if (cancelled) return;
-      setView(data as unknown as RubricView | null);
+      const rubricView = data as unknown as RubricView | null;
+      setView(rubricView);
       let draft: string | null = null;
       try { draft = localStorage.getItem(draftKey); } catch { /* storage blocked */ }
       if (draft) setAnswer(draft);
+
+      // Check for an existing saved submission for this student and task
+      const { data: latestSub } = await supabase
+        .from("task_submissions")
+        .select("id, status, sandbox_score, rubric_scores, details, code")
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestSub && !cancelled) {
+        if (!draft && latestSub.code) {
+          setAnswer(latestSub.code);
+        }
+        if (latestSub.status) {
+          const details = latestSub.details as Record<string, any> | null;
+          const scoresArr = (Array.isArray(latestSub.rubric_scores)
+            ? latestSub.rubric_scores
+            : Array.isArray(details?.scores)
+            ? details.scores
+            : []) as CriterionScore[];
+
+          const summary = typeof details?.summary === "string" ? details.summary : details?.feedback?.summary;
+          const nextStep = typeof details?.next_step === "string" ? details.next_step : details?.feedback?.next_step;
+
+          setResult({
+            score: latestSub.sandbox_score ?? 0,
+            pass_threshold: rubricView?.pass_threshold ?? 70,
+            status: latestSub.status as "passed" | "failed" | "needs_review",
+            already_completed: latestSub.status === "passed",
+            xp_awarded: 0,
+            scores: scoresArr,
+            summary,
+            next_step: nextStep,
+            needs_review: latestSub.status === "needs_review",
+          });
+          if (latestSub.status === "passed") {
+            onPassedChange?.(true);
+          }
+        }
+      }
     })();
     return () => { cancelled = true; };
-  }, [taskId, draftKey]);
+  }, [taskId, draftKey, onPassedChange]);
 
   const saveDraft = (value: string) => {
     setAnswer(value);
@@ -225,37 +276,127 @@ export default function WrittenTaskPanel({
 
       {result && (
         <div
-          className={`rounded-lg border p-3 ${
+          className={`rounded-lg border p-4 space-y-3 ${
             result.status === "passed"
-              ? "border-emerald-500/50"
+              ? "border-emerald-500/50 bg-emerald-500/5"
               : result.status === "needs_review"
-              ? "border-blue-500/50"
-              : "border-amber-500/50"
+              ? "border-blue-500/50 bg-blue-500/5"
+              : "border-amber-500/50 bg-amber-500/5"
           }`}
         >
           {result.status === "needs_review" ? (
             <p className="flex items-center gap-2 font-semibold">
-              <Clock className="h-4 w-4" /> Sent for review — a reviewer will check this by hand.
+              <Clock className="h-4 w-4 text-blue-500" /> Sent for review — a reviewer will check this by hand.
             </p>
           ) : (
-            <p className="font-semibold">
-              Score {result.score}% {result.status === "passed" ? "· Passed" : `· Needs ${result.pass_threshold}%`}
-              {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
-            </p>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-base">
+                  Score {result.score}% {result.status === "passed" ? "· Passed" : `· Needs ${result.pass_threshold}%`}
+                </span>
+                {result.xp_awarded > 0 && (
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-primary">
+                    +{result.xp_awarded} XP
+                  </span>
+                )}
+              </div>
+            </div>
           )}
-          {result.status !== "needs_review" && (
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              {result.scores.map((s) => {
-                const c = view.criteria.find((x) => x.id === s.criterion_id);
-                return (
-                  <li key={s.criterion_id}>
-                    {c?.name ?? s.criterion_id}: {s.points}/{c?.max_points ?? "?"}
-                    {s.evidence && <span className="italic"> — "{s.evidence}"</span>}
-                  </li>
-                );
-              })}
-            </ul>
+
+          {/* Overall feedback summary & next step */}
+          {result.status !== "needs_review" && (result.summary || result.feedback?.summary) && (
+            <div className="rounded-md border border-primary/20 bg-background/80 p-3 text-xs space-y-1.5">
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Overall Feedback
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                {result.summary ?? result.feedback?.summary}
+              </p>
+              {(result.next_step ?? result.feedback?.next_step) && (
+                <div className="pt-1.5 border-t border-border/40 text-muted-foreground">
+                  <strong className="text-foreground">Next learning goal: </strong>
+                  {result.next_step ?? result.feedback?.next_step}
+                </div>
+              )}
+            </div>
           )}
+
+          {/* Criterion-by-criterion breakdown */}
+          {result.status !== "needs_review" && result.scores.length > 0 && (
+            <div className="space-y-2.5 pt-1">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Criteria Breakdown</p>
+              <div className="space-y-2">
+                {result.scores.map((s) => {
+                  const c = view.criteria.find((x) => x.id === s.criterion_id);
+                  const maxPts = c?.max_points ?? 1;
+                  const isFull = s.points >= maxPts;
+                  const hasDetails = Boolean(s.reason || s.missing || s.improvement);
+
+                  return (
+                    <div key={s.criterion_id} className="rounded-md border bg-background/90 p-3 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-foreground">{c?.name ?? s.criterion_id}</span>
+                        <span className={`rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold ${
+                          isFull
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : s.points > 0
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                            : "bg-muted text-muted-foreground"
+                        }`}>
+                          {s.points} / {maxPts} pts
+                        </span>
+                      </div>
+
+                      {c?.description && (
+                        <p className="text-muted-foreground">{c.description}</p>
+                      )}
+
+                      {/* Explanation for why score was awarded */}
+                      {s.reason && (
+                        <p className="text-muted-foreground">
+                          <strong className="text-foreground">Reason: </strong>
+                          {s.reason}
+                        </p>
+                      )}
+
+                      {/* What was demonstrated well from student's text */}
+                      {s.evidence && (
+                        <p className="rounded bg-muted/40 px-2 py-1 text-muted-foreground italic">
+                          <span className="font-normal not-italic text-foreground">Demonstrated: </span>
+                          &quot;{s.evidence}&quot;
+                        </p>
+                      )}
+
+                      {/* Missing or incomplete elements */}
+                      {s.missing && !isFull && (
+                        <div className="flex items-start gap-1.5 text-amber-700 dark:text-amber-400">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span><strong>Missing: </strong>{s.missing}</span>
+                        </div>
+                      )}
+
+                      {/* Actionable improvement step */}
+                      {s.improvement && !isFull && (
+                        <div className="flex items-start gap-1.5 text-blue-700 dark:text-blue-400">
+                          <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span><strong>Improvement: </strong>{s.improvement}</span>
+                        </div>
+                      )}
+
+                      {/* Legacy backward compatibility fallback */}
+                      {!hasDetails && !s.reason && (
+                        <p className="text-muted-foreground">
+                          {c?.name ?? s.criterion_id}: {s.points}/{maxPts}
+                          {s.evidence && <span className="italic"> — &quot;{s.evidence}&quot;</span>}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {result.status === "passed" && onCompleted && !voice && (
             <Button className="mt-3 w-full" onClick={onCompleted}>Next: explain it in 60 seconds</Button>
           )}

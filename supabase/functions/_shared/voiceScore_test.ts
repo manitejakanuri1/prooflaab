@@ -298,3 +298,52 @@ Deno.test("6f scoring keeps the language metadata the transcriber stored", async
   assertEquals((saved.transcription as Record<string, unknown>).language, 'en');
   assertEquals(saved.evaluator_version, 'voice-eval-3');
 });
+
+
+Deno.test("6g parseAiScore parses actionable feedback fields (demonstrated, missing, improvement, summary)", () => {
+  const raw = JSON.stringify({
+    communication_score: 85,
+    content_match: 92,
+    notes: "Clear and confident explanation of the database transactions.",
+    demonstrated: ["Explained ACID properties", "Walked through rollback on error"],
+    missing: ["Did not mention connection pooling"],
+    improvement: "Explain how database connections are managed under load.",
+    summary: "Strong demonstration of transactional safety.",
+  });
+  const parsed = parseAiScore(raw);
+  assert(parsed !== null);
+  assertEquals(parsed.score, 85);
+  assertEquals(parsed.notes, "Clear and confident explanation of the database transactions.");
+  assertEquals(parsed.demonstrated?.length, 2);
+  assertEquals(parsed.demonstrated?.[0], "Explained ACID properties");
+  assertEquals(parsed.missing?.length, 1);
+  assertEquals(parsed.missing?.[0], "Did not mention connection pooling");
+  assertEquals(parsed.improvement, "Explain how database connections are managed under load.");
+  assertEquals(parsed.summary, "Strong demonstration of transactional safety.");
+});
+
+Deno.test("6h scoreRecording saves structured feedback into evaluation and returns in body", async () => {
+  const db = new FakeDb({ id: ID });
+  const raw = JSON.stringify({
+    communication_score: 88,
+    content_match: 95,
+    notes: "Detailed step-by-step description.",
+    demonstrated: ["Explained route setup", "Described JSON validation"],
+    missing: ["Did not cover rate limits"],
+    improvement: "Mention how spam is mitigated next time.",
+    summary: "Clear ownership and practical reasoning.",
+  });
+  const r = await scoreRecording(db, longRec({ submission_id: 'sub1' }), async () => ({ text: raw }));
+  assertEquals(r.outcome, 'scored');
+  assertEquals(r.status, 200);
+  const bodyEval = (r.body.evaluation as Record<string, unknown>);
+  assert(bodyEval !== undefined);
+  assertEquals((bodyEval.demonstrated as string[]).length, 2);
+  assertEquals((bodyEval.missing as string[])[0], "Did not cover rate limits");
+  assertEquals(bodyEval.improvement, "Mention how spam is mitigated next time.");
+  assertEquals(bodyEval.summary, "Clear ownership and practical reasoning.");
+
+  const savedEval = db.updates[0].evaluation as Record<string, unknown>;
+  assertEquals((savedEval.demonstrated as string[]).length, 2);
+  assertEquals(savedEval.summary, "Clear ownership and practical reasoning.");
+});

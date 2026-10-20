@@ -94,13 +94,22 @@ const dbError = (step: string, voice_id: string, err: unknown): ScoreResult => {
   return { status: 503, outcome: 'error', body: { success: false, error: `database error during ${step}` } };
 };
 
+export interface VoiceScoreParsed {
+  score: number;
+  notes: string | null;
+  demonstrated?: string[];
+  missing?: string[];
+  improvement?: string | null;
+  summary?: string | null;
+}
+
 /**
  * Strict check of the AI's answer. Only a real number from 0 to 100 counts
  * (a numeric string like "72" is accepted, since that is still a number the
  * model meant). Missing, empty, non-numeric, NaN, Infinity or out-of-range is
  * NOT turned into 0 - it is reported as unusable so the failure path runs.
  */
-export function parseAiScore(text: string): { score: number; notes: string | null } | null {
+export function parseAiScore(text: string): VoiceScoreParsed | null {
   let parsed: unknown;
   try {
     const match = text.match(/\{[\s\S]*\}/);
@@ -116,7 +125,28 @@ export function parseAiScore(text: string): { score: number; notes: string | nul
   else return null;
   if (!Number.isFinite(n) || n < 0 || n > 100) return null;
   const notes = (parsed as Record<string, unknown>).notes;
-  return { score: Math.round(n), notes: typeof notes === 'string' ? notes : null };
+
+  const parseStringArray = (val: unknown): string[] => {
+    if (Array.isArray(val)) return val.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map((s) => s.trim());
+    if (typeof val === 'string' && val.trim().length > 0) return [val.trim()];
+    return [];
+  };
+
+  const demonstrated = parseStringArray((parsed as Record<string, unknown>).demonstrated);
+  const missing = parseStringArray((parsed as Record<string, unknown>).missing);
+  const rawImp = (parsed as Record<string, unknown>).improvement;
+  const improvement = typeof rawImp === 'string' && rawImp.trim() ? rawImp.trim() : null;
+  const rawSum = (parsed as Record<string, unknown>).summary;
+  const summary = typeof rawSum === 'string' && rawSum.trim() ? rawSum.trim() : null;
+
+  return {
+    score: Math.round(n),
+    notes: typeof notes === 'string' ? notes : null,
+    demonstrated,
+    missing,
+    improvement,
+    summary,
+  };
 }
 
 export async function scoreRecording(
@@ -247,7 +277,7 @@ Signs they did not:
 - Only general statements, no specifics from this work
 - Confident about everything, uncertain about nothing
 
-Be fair to nervous speakers: hesitation and rambling are NOT evidence of cheating. Fluency is not the thing being measured — ownership is.
+Be fair to nervous speakers: hesitation and rambling are NOT evidence of cheating. Fluency is not the thing being measured — ownership is. Do not infer understanding solely from accent, speaking speed, or confidence.
 
 Also judge content_match 0-100: is the talk about THIS task and THIS submitted work?
 - 80-100: refers to things that are really in the submission (names, steps, choices, the bug they hit).
@@ -255,13 +285,19 @@ Also judge content_match 0-100: is the talk about THIS task and THIS submitted w
 - 0-39: about something else, reads the question back, or says nothing about the work.
 Judge only against the task and the submission shown above. Do not test them on other theory.
 
-Return ONLY JSON:
-{"communication_score": <0-100>, "content_match": <0-100>, "notes": "<two sentences, addressed to the student, plain English>"}`;
+Provide actionable student feedback:
+- demonstrated: list of 1-3 specific concepts, choices, or steps the student explained well.
+- missing: list of 1-3 important concepts or implementation details from their work they omitted or glossed over. If they covered everything thoroughly, leave empty.
+- improvement: 1 concrete suggestion for what to highlight or explain more clearly next time.
+- summary: 1-2 concise sentences summarizing their explanation quality.
 
-  let graded: { score: number; notes: string | null } | null;
+Return ONLY JSON:
+{"communication_score": <0-100>, "content_match": <0-100>, "notes": "<two sentences, addressed to the student, plain English>", "demonstrated": ["<point 1>", ...], "missing": ["<point 1>", ...], "improvement": "<actionable advice>", "summary": "<overall summary>"}`;
+
+  let graded: VoiceScoreParsed | null;
   let contentMatch: number | null = null;
   try {
-    const { text } = await generate(prompt, { temperature: 0.3, maxOutputTokens: 500 },
+    const { text } = await generate(prompt, { temperature: 0.3, maxOutputTokens: 1000 },
       { feature: 'voice-score', studentId: rec.student_id });
     graded = parseAiScore(text);
     contentMatch = parseContentMatch(text);
@@ -278,15 +314,24 @@ Return ONLY JSON:
   // An explanation of something else cannot carry a high score for this work.
   const offTopic = contentMatch !== null && contentMatch < CONTENT_MATCH_FLOOR;
   if (offTopic && graded.score > OFF_TOPIC_CAP) graded = { ...graded, score: OFF_TOPIC_CAP };
+
+  const evalPayload = {
+    // Keeps what the transcriber recorded about the language it heard (migration 69).
+    ...(rec.evaluation && typeof rec.evaluation === 'object' ? rec.evaluation : {}),
+    evaluator_version: EVALUATOR_VERSION,
+    content_match: contentMatch,
+    flags: offTopic ? ['off_topic'] : [],
+    linked_to_submission: Boolean(work),
+    demonstrated: graded.demonstrated ?? [],
+    missing: graded.missing ?? [],
+    improvement: graded.improvement ?? null,
+    summary: graded.summary ?? null,
+  };
+
   // Saved while this call still holds the claim, so a stale claim cannot write it
   // and (migration 61) nothing can change it once the row is scored.
   const { error: evalError } = await supabase.from('voice_explanations')
-    .update({ evaluation: {
-      // Keeps what the transcriber recorded about the language it heard (migration 69).
-      ...(rec.evaluation && typeof rec.evaluation === 'object' ? rec.evaluation : {}),
-      evaluator_version: EVALUATOR_VERSION, content_match: contentMatch,
-      flags: offTopic ? ['off_topic'] : [], linked_to_submission: Boolean(work),
-    } })
+    .update({ evaluation: evalPayload })
     .eq('id', voice_id).eq('scoring_lease_token', leaseToken).select('id').maybeSingle();
   if (evalError) return dbError('save evaluation', voice_id, evalError);
 
@@ -315,5 +360,14 @@ Return ONLY JSON:
   // Speaking about your work is work. The streak counts the day either way.
   await supabase.rpc('touch_streak', { _student_id: rec.student_id });
 
-  return { status: 200, outcome: 'scored', body: { success: true, communication_score: graded.score, notes: graded.notes } };
+  return {
+    status: 200,
+    outcome: 'scored',
+    body: {
+      success: true,
+      communication_score: graded.score,
+      notes: graded.notes,
+      evaluation: evalPayload,
+    },
+  };
 }

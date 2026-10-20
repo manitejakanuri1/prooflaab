@@ -6,7 +6,7 @@ import { SimpleQuestion } from "./SimpleQuestion";
 import { GivenMaterial } from "./GivenMaterial";
 import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
-import { Loader2, Send, Clock, Mic, CheckCircle2, Code } from "lucide-react";
+import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb } from "lucide-react";
 
 interface RubricView {
   task_id: string;
@@ -188,7 +188,7 @@ export default function WrittenTaskPanel({
                 ? `// Example 1:\n// (Write your JavaScript snippet here, e.g. with setTimeout / console.log)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n\n\n// Example 2:\n// (Write your JavaScript snippet here)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n\n\n// Example 3:\n// (Write your JavaScript snippet here)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n`
                 : isGenericCode
                 ? `// Example 1:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n\n\n// Example 2:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n`
-                : `1. Approach & Reasoning:\n// (Write your explanation here)\n\n2. Key Decisions & Tradeoffs:\n// (Write your thoughts here)\n`;
+                : `1. Overview & Steps:\n// (List the specific rounds or steps in your own words)\n\n2. What is Tested:\n// (Explain what each round or step focuses on)\n\n3. Practical Action Plan:\n// (Describe what you will specifically do or study to prepare)\n`;
               saveDraft(template);
             }}
           >
@@ -196,12 +196,18 @@ export default function WrittenTaskPanel({
           </Button>
         )}
       </div>
+      <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+        <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
+        <span>
+          <strong>Tip:</strong> Write in your own words focusing on practical steps and direct explanations. Plain, everyday student language is completely fine and preferred over dictionary definitions.
+        </span>
+      </div>
       <Textarea
         value={answer}
         onChange={(e) => saveDraft(e.target.value)}
         readOnly={done}
         rows={12}
-        placeholder="Write your answer here..."
+        placeholder="Write your answer here in your own words. Focus on practical steps and direct explanations (plain language is preferred)..."
         className="min-h-[240px] font-normal lg:flex-1"
       />
       <p className={`text-xs ${tooShort || tooLong ? "text-amber-600" : "text-muted-foreground"}`}>

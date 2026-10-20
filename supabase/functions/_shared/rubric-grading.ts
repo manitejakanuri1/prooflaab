@@ -76,6 +76,8 @@ ${rubricText}
 ${answer}
 </answer>
 
+Focus on student intent, practical understanding, and substance over formal vocabulary or writing style. Do not penalize simple wording, everyday language, or grammatical imperfections. If the student conveys the required concepts, steps, or explanation in everyday language, award full points for that criterion.
+
 For each rubric criterion, award points from 0 up to its max, and quote the exact short phrase from the answer (8+ characters, copied verbatim) that earned the credit. If nothing in the answer earns credit for a criterion, award 0 and leave evidence empty.
 
 Reply with JSON only, an array with one object per criterion:

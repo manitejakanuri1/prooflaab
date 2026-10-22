@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 7eba1a50c68040db50397916fdbb5320dbabb351   # 2026-10-23: roadmap button words
+      STAGING_RC: f6cc5c8fb85282f9ef065439f8fc6dca771a3ee0   # 2026-10-23: profile + admin fixes
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

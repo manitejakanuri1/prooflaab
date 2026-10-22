@@ -98,6 +98,8 @@ const StudentDailyCard = () => {
   // of content waits while the Lot behind it is written.
   const [preparing, setPreparing] = useState(false);
   const [noContent, setNoContent] = useState(false);
+  // Migration 130: Sunday is the rest day - no Lot, and the streak carries over to Monday.
+  const [restDay, setRestDay] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -137,7 +139,9 @@ const StudentDailyCard = () => {
       const r = made as unknown as
         { task_id: string | null; needs_writer: boolean; reason?: string; source_content_id?: string } | null;
 
-      if (r?.reason === "no content available") {
+      if (r?.reason === "rest day") {
+        setRestDay(true);
+      } else if (r?.reason === "no content available") {
         setNoContent(true);
       } else if (r?.task_id) {
         // The content has never been reached by anyone, so the work behind
@@ -415,6 +419,10 @@ const StudentDailyCard = () => {
                   it is instant for everyone.
                 </p>
               </>
+            ) : restDay ? (
+              <p className="text-sm text-muted-foreground">
+                Sunday is your rest day. No Lot today, and your streak is safe. See you on Monday.
+              </p>
             ) : noContent ? (
               <>
                 <Compass className="mx-auto h-5 w-5 text-muted-foreground" />

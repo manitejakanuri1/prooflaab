@@ -187,7 +187,9 @@ async function sanityCheck(db: any, job: string, data: any) {
       db.from('student_profiles').select('id', { count: 'exact', head: true }).gte('last_active', new Date(Date.now() - 14 * 86400_000).toISOString()),
       db.from('tasks').select('id', { count: 'exact', head: true }).eq('lot_date', today),
     ]);
-    if ((active ?? 0) > 0 && (made ?? 0) === 0) {
+    // Migration 130: Sunday is the rest day, so 0 Lots on a Sunday is the plan, not a failure.
+    const restDay = new Date(`${today}T00:00:00Z`).getUTCDay() === 0;
+    if (!restDay && (active ?? 0) > 0 && (made ?? 0) === 0) {
       console.error(`JOB SANITY: daily-lots ran but ${today} has 0 tasks in total (new or existing), though ${active} students were active in the last 14 days.`);
     }
     // Migration 68: a student whose Lot could not be created no longer stops the others,

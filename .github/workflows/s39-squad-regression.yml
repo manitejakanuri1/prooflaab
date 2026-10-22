@@ -55,6 +55,7 @@ jobs:
       # 19 Oct: owner decision - a task question shows any exact rule the simple version dropped.
       # 22 Oct: owner decision - the coding score shows each question's tests (migration 128), and the
       #         voice recorder's tip says: explain it like you are talking to a friend.
+      # 22 Oct: owner decision - Sunday is the Lot rest day; the daily card says so (migration 130).
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'

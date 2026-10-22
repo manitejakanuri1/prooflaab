@@ -167,6 +167,21 @@ def fetch_github(url: str) -> Fetched | None:
         return None
     api_path, title = target
 
+    # A lesson file or folder comes from raw.githubusercontent.com, which has no robots.txt and is
+    # not counted against the API's 60-an-hour limit for callers without a token. A folder's lesson is
+    # its README.md. Only a repository's front page needs the API (its README name varies).
+    parts = [p for p in urlparse(url).path.split("/") if p]
+    if len(parts) >= 5 and parts[2] in ("tree", "blob"):
+        raw = f"https://raw.githubusercontent.com/{parts[0]}/{parts[1]}/{parts[3]}/{'/'.join(parts[4:])}"
+        if parts[2] == "tree":
+            raw += "/README.md"
+        try:
+            r = httpx.get(raw, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT, follow_redirects=True)
+            if r.status_code == 200 and r.text.strip():
+                return Fetched(r.text, title, "markdown")
+        except httpx.HTTPError:
+            pass
+
     # agent-reach's backend first. gh reads GH_TOKEN; without one it still
     # reads public repositories, at a lower rate limit.
     if shutil.which("gh"):

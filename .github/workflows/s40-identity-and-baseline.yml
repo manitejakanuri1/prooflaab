@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 8d57cc64bbe4336f39b169921fcfb6141fc57582   # 2026-10-19: Daily card done state
+      STAGING_RC: c3a46546cd84d47a197593c2d9427859d9b0c053   # 2026-10-22: onboarding Skip hidden
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

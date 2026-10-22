@@ -252,9 +252,15 @@ const StudentAssignedTasksPage = () => {
               <p className="font-semibold">🏆 You have almost reached Boss level!</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 You finished all {roadmapTasks.length} roadmap tasks inside ProofLab. One last step to become a real Boss:
-                build {bossProject ? <>a small {bossProject} project</> : "one project from your roadmap"} on your own laptop,
-                start to finish, without help. Then add it to your resume and LinkedIn.
+                build {bossProject ? <>a small {bossProject} project</> : "one project from your roadmap"} on your own, start to finish.
               </p>
+              <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-sm text-muted-foreground">
+                <li>Write and test it first in ProofLab's code editor until every part works.</li>
+                <li>Install the same language on your laptop and make a new project folder.</li>
+                <li>Copy your code in, run it, and fix anything that behaves differently.</li>
+                <li>Add one new feature on your own, without help.</li>
+                <li>Put the project on your resume and LinkedIn, and say what you built.</li>
+              </ol>
             </div>
           )}
           {sourceCounts.length > 0 && (

@@ -176,6 +176,12 @@ const StudentAssignedTasksPage = () => {
     }, {}),
   );
 
+  // Owner, 22 Oct 2026: once every roadmap task from the onboarding test is done inside ProofLab,
+  // the next step is to build one on their own - text only, no outside links.
+  const roadmapTasks = assignedTasks.filter((t) => t.source === "From your test");
+  const roadmapDone = roadmapTasks.length > 0 && roadmapTasks.every((t) => t.status === "Completed");
+  const bossProject = roadmapTasks[0]?.title?.replace(/^Roadmap:\s*/, "");
+
   const getSourceBadgeColor = (source: string) => {
     const normalizedSource = source?.toLowerCase() || '';
     if (normalizedSource === 'college') return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400';
@@ -241,6 +247,16 @@ const StudentAssignedTasksPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {roadmapDone && (
+            <div className="rounded-lg border border-amber-400/60 bg-amber-50 p-4 dark:bg-amber-900/20" data-testid="roadmap-boss">
+              <p className="font-semibold">🏆 You have almost reached Boss level!</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You finished all {roadmapTasks.length} roadmap tasks inside ProofLab. One last step to become a real Boss:
+                build {bossProject ? <>a small {bossProject} project</> : "one project from your roadmap"} on your own laptop,
+                start to finish, without help. Then add it to your resume and LinkedIn.
+              </p>
+            </div>
+          )}
           {sourceCounts.length > 0 && (
             <div className="flex flex-wrap gap-2" data-testid="task-sources">
               {sourceCounts.map(([label, n]) => (

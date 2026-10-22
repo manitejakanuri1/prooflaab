@@ -18,6 +18,7 @@ const StudentRoadmapPage = () => {
   const [stages, setStages] = useState<RoadmapStage[] | null>(null);
   const [taskStatusByStage, setTaskStatusByStage] = useState<Record<number, StageTask["status"]>>({});
   const [taskIdByStage, setTaskIdByStage] = useState<Record<number, string>>({});
+  const [codingByStage, setCodingByStage] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     (async () => {
@@ -37,13 +38,15 @@ const StudentRoadmapPage = () => {
 
       const { data: tasks } = await supabase
         .from("tasks")
-        .select("id, roadmap_stage_index, started_at, status, task_submissions(status, created_at)")
+        .select("id, roadmap_stage_index, started_at, status, sandbox_config_id, task_submissions(status, created_at)")
         .eq("roadmap_scorecard_id", scorecard.id);
 
       const statusMap: Record<number, StageTask["status"]> = {};
       const idMap: Record<number, string> = {};
+      const codingMap: Record<number, boolean> = {};
       (tasks || []).forEach((t: any) => {
         idMap[t.roadmap_stage_index] = t.id;
+        codingMap[t.roadmap_stage_index] = Boolean(t.sandbox_config_id);
         // Graded attempts on this stage's task (task_submissions; proof uploads are retired).
         const attempts = Array.isArray(t.task_submissions) ? t.task_submissions : [];
         let status: StageTask["status"] = "Pending";
@@ -58,6 +61,7 @@ const StudentRoadmapPage = () => {
       });
       setTaskStatusByStage(statusMap);
       setTaskIdByStage(idMap);
+      setCodingByStage(codingMap);
     })();
   }, [user]);
 
@@ -71,6 +75,7 @@ const StudentRoadmapPage = () => {
     action: st.action,
     status: taskStatusByStage[i] ?? "Pending",
     taskId: taskIdByStage[i],
+    coding: codingByStage[i],
   })).filter((m) => m.title !== "Clean sweep");
 
   return (

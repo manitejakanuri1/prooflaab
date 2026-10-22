@@ -57,6 +57,8 @@ jobs:
       #         voice recorder's tip says: explain it like you are talking to a friend.
       # 22 Oct: owner decision - Sunday is the Lot rest day; the daily card says so (migration 130).
       # 22 Oct: owner decision - when every roadmap task is done, the task list shows the "Boss level" next step.
+      # 23 Oct: owner decision - roadmap items use the task list's own words (Start Task, Write my answer,
+      #         Solve in editor, View Submission; Not started / In Progress / Completed).
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -66,6 +68,8 @@ jobs:
                    ':(exclude)src/components/dashboard/student/ResumeCheckFlow.tsx'
                    ':(exclude)src/components/dashboard/student/CodingBreakdown.tsx'
                    ':(exclude)src/components/dashboard/student/StudentResumeHistoryPage.tsx'
+                   ':(exclude)src/components/dashboard/student/TestMistakes.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentRoadmapPage.tsx'
                    ':(exclude)src/components/onboarding/IntakeChoice.tsx'
                    ':(exclude)src/hooks/useStudentIntake.tsx'
                    ':(exclude)src/pages/StudentStart.tsx'

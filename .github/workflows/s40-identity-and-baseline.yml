@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: c3a46546cd84d47a197593c2d9427859d9b0c053   # 2026-10-22: onboarding Skip hidden
+      STAGING_RC: 25b9440c92fe4d0158e77b82a152528d92479086   # 2026-10-22: coding breakdown + voice tip
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -59,6 +59,10 @@ jobs:
       # 22 Oct: owner decision - when every roadmap task is done, the task list shows the "Boss level" next step.
       # 23 Oct: owner decision - roadmap items use the task list's own words (Start Task, Write my answer,
       #         Solve in editor, View Submission; Not started / In Progress / Completed).
+      # 23 Oct: owner decision - Share Portfolio works: says when the portfolio is private, shows the link if copy fails.
+      # 23 Oct: owner decision - Badges and quests come from real activity (migration 135); quests show no XP promise.
+      # 23 Oct: owner decision - voice privacy texts match the real rules (mock audio is never shared; task audio
+      #         reaches companies only with the student's audio-sharing switch on).
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -70,6 +74,9 @@ jobs:
                    ':(exclude)src/components/dashboard/student/StudentResumeHistoryPage.tsx'
                    ':(exclude)src/components/dashboard/student/TestMistakes.tsx'
                    ':(exclude)src/components/dashboard/student/StudentRoadmapPage.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentPortfolioPage.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentAchievements.tsx'
+                   ':(exclude)src/components/dashboard/student/MockInterview.tsx'
                    ':(exclude)src/components/onboarding/IntakeChoice.tsx'
                    ':(exclude)src/hooks/useStudentIntake.tsx'
                    ':(exclude)src/pages/StudentStart.tsx'

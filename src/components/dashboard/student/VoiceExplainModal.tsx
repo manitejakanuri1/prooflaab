@@ -1423,8 +1423,8 @@ const VoiceExplainModal = ({
                 </li>
                 <li>
                   The ProofLab team can read the written transcript and score. If you make your
-                  profile public, verified companies can see your score and feedback — never the
-                  audio.
+                  profile public, verified companies can see your score and feedback. They hear the
+                  audio only if you turn on audio sharing in Profile → Privacy (it is off).
                 </li>
                 <li>
                   You can delete any recording at any time, from Profile → Privacy.

@@ -229,7 +229,7 @@ const MockInterview = () => {
                 <ul className="text-sm text-muted-foreground space-y-1.5 list-disc pl-5">
                   <li>Your voice is recorded and stored with your work.</li>
                   <li>It is scored for how you answer — not your accent or your English.</li>
-                  <li>Your college can hear it. Nobody outside your college can.</li>
+                  <li>Only you can play it. Your college sees how many mock interviews you did and your score, not the recording.</li>
                   <li>You can delete any recording at any time, from Profile → Privacy.</li>
                 </ul>
               </div>

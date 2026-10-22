@@ -9,6 +9,7 @@ import { TARGET_ROLES } from "@/lib/targetRoles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import CodingBreakdown from "./CodingBreakdown";
 import type { Json } from "@/integrations/supabase/types";
 import { readFunctionError } from "@/lib/functionError";
 import { useAuth } from "@/contexts/AuthContext";
@@ -131,6 +132,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
   const [generatingAssessment, setGeneratingAssessment] = useState(false);
   const [retesting, setRetesting] = useState(false);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  // The graded assessment behind the scorecard shown; kept apart so it never reopens a test.
+  const [scorecardAssessmentId, setScorecardAssessmentId] = useState<string | null>(null);
   const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [scoreResult, setScoreResult] = useState<ResumeScoreResult | null>(null);
@@ -181,7 +184,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       if (row.status === "confirmed") {
         const { data: scorecard } = await supabase
           .from("resume_scorecards")
-          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, skill_gap, voice_authenticity_score, voice_notes, coding_score, project_proof_score, reasoning_score, interview_readiness_score, created_at")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, skill_gap, voice_authenticity_score, voice_notes, coding_score, project_proof_score, reasoning_score, interview_readiness_score, created_at, assessment_id")
           .eq("resume_claims_id", row.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -201,6 +204,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             interview_readiness_score: scorecard.interview_readiness_score,
           });
           setLastGradedAt(new Date(scorecard.created_at));
+          setScorecardAssessmentId(scorecard.assessment_id);
         }
       }
     }
@@ -885,9 +889,12 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               </div>
             )}
             {scoreResult.coding_score != null && (
-              <div className="border rounded-lg p-3 flex items-center justify-between">
-                <p className="text-sm font-medium">Coding round</p>
-                <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+              <div className="border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Coding round</p>
+                  <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+                </div>
+                <CodingBreakdown assessmentId={scorecardAssessmentId ?? assessmentId} />
               </div>
             )}
             {scoreResult.skill_gap && (

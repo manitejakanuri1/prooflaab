@@ -1443,10 +1443,13 @@ const VoiceExplainModal = ({
 
         {phase === "idle" && consented === true && (
           <div className="space-y-3">
-            <p className="text-sm">
-              Say it in your own words, as if to a teammate. Mention what you tried first
-              and anything you changed your mind about.
-            </p>
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">Explain it like you are talking to a friend.</p>
+              <p className="text-muted-foreground">
+                Say in simple words what you understood and how you did it. Don't read your answer out.
+                This is for your own growth, so just be yourself.
+              </p>
+            </div>
             {otherTabs > 0 && (
               <p className="text-xs text-muted-foreground" data-testid="voice-other-tab">
                 A recording for this work is still being sent from another open tab. Keep that tab open until it finishes.

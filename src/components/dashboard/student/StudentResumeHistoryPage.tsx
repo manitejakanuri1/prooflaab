@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import CodingBreakdown from "./CodingBreakdown";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SkillGap { verified: string[]; needs_improvement: string[]; missing: string[] }
@@ -137,6 +138,9 @@ const StudentResumeHistoryPage = () => {
                     <p className="text-xs text-muted-foreground mt-2">
                       Coding round: {latest.coding_score}/100 (shown separately, not part of readiness).
                     </p>
+                  )}
+                  {latest.coding_score != null && (
+                    <CodingBreakdown assessmentId={latest.assessment_id} />
                   )}
                   {gap && (gap.needs_improvement?.length > 0 || gap.missing?.length > 0) && (
                     <p className="text-xs text-muted-foreground mt-3">

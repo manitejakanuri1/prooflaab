@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle, RotateCcw } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
+import CodingBreakdown from "./CodingBreakdown";
 import { codingErrorMessage, retryAllowance } from "@/lib/codingRoundRetry";
 import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, signatureLine,
@@ -894,6 +895,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 <div className="border rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold">{pendingResult.coding_score ?? "—"}</div>
                   <div className="text-xs text-muted-foreground mt-1">Coding</div>
+                  {pendingResult.coding_score != null && <CodingBreakdown assessmentId={assessmentId} />}
                 </div>
                 <div className="border rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold">{pendingResult.project_proof_score ?? "—"}</div>

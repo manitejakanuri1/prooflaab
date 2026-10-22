@@ -53,6 +53,8 @@ jobs:
       # 19 Oct: owner decision - Squad tabs: section + college rank, role "Member", last season's final
       #         leaderboard (migration 124), season report wording.
       # 19 Oct: owner decision - a task question shows any exact rule the simple version dropped.
+      # 22 Oct: owner decision - the coding score shows each question's tests (migration 128), and the
+      #         voice recorder's tip says: explain it like you are talking to a friend.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -60,6 +62,8 @@ jobs:
                    ':(exclude)src/components/dashboard/student/SandboxTaskPanel.tsx'
                    ':(exclude)src/components/dashboard/student/TimedResumeAssessment.tsx'
                    ':(exclude)src/components/dashboard/student/ResumeCheckFlow.tsx'
+                   ':(exclude)src/components/dashboard/student/CodingBreakdown.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentResumeHistoryPage.tsx'
                    ':(exclude)src/components/onboarding/IntakeChoice.tsx'
                    ':(exclude)src/hooks/useStudentIntake.tsx'
                    ':(exclude)src/pages/StudentStart.tsx'

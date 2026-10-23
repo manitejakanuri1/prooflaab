@@ -1,4 +1,4 @@
-name: Deploy to production
+name: Tests + publish REAL website (blocked until owner approves)
 
 # Publishes the site to Firebase Hosting, in the same Google project as the
 # database, the API, the file service and the 40 functions. It replaces a

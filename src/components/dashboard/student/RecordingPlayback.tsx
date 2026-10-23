@@ -9,6 +9,8 @@ interface RecordingPlaybackProps {
   src?: string;
   /** …the stored file, fetched only when the student presses Play. */
   storagePath?: string;
+  /** The daily job removed this older recording's audio (migration 138); the words stay. */
+  audioRemoved?: boolean;
   transcript?: string | null;
   segments?: TranscriptSegment[] | null;
 }
@@ -17,7 +19,7 @@ interface RecordingPlaybackProps {
  * The recording and what was said, together. Each line carries the moment it
  * was spoken; clicking it jumps the audio there.
  */
-const RecordingPlayback = ({ src, storagePath, transcript, segments }: RecordingPlaybackProps) => {
+const RecordingPlayback = ({ src, storagePath, audioRemoved, transcript, segments }: RecordingPlaybackProps) => {
   // A blob: URL passed in (just recorded) is used as is; otherwise the stored
   // file is downloaded with the student's token when they press Play. Retry,
   // always-ending loading and blob URL clean-up live in useRecordingAudio.
@@ -48,6 +50,8 @@ const RecordingPlayback = ({ src, storagePath, transcript, segments }: Recording
       {url ? (
         <audio ref={audioRef} src={url} controls preload="metadata" className="w-full"
                onLoadedMetadata={fixDuration} />
+      ) : audioRemoved ? (
+        <p className="text-xs text-muted-foreground">Older recording: the audio was removed to save space. The words are below.</p>
       ) : storagePath ? (
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           {loading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}

@@ -14,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Lock, Bell, Eye, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ProfilePhotoModal from "../ProfilePhotoModal";
-import DeleteAccountDialog from "./DeleteAccountDialog";
 import { getInitials } from "@/lib/utils";
 
 interface StudentSettingsPageProps {
@@ -658,22 +657,6 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
                 handleSavePreferences({ ...preferences, showProgressToOthers: checked });
               }}
             />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Account Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-red-600">Danger Zone</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-            <h4 className="font-medium text-red-800 mb-2">Delete Account</h4>
-            <p className="text-sm text-red-600 mb-4">
-              Once you delete your account, there is no going back. Please be certain.
-            </p>
-            {profile?.id && <DeleteAccountDialog studentId={profile.id} />}
           </div>
         </CardContent>
       </Card>

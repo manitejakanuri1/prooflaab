@@ -238,38 +238,15 @@ export const RECIPES = [
       if (r !== 404) throw new Error(`a recording without consent answered HTTP ${r}, expected 404`);
       return "recording without consent refused (404)"; },
     db: (x) => `select 'S32DB ' || count(*) from public.security_events where event_type = 'company_voice_played' and detail->>'voice_id' = '${x.env.E2E_FIXTURE_NO_CONSENT_VOICE_ID}' and created_at > now() - interval '30 minutes';`, expectDb: "0" },
-  // DESTRUCTIVE: deletes a whole account. Only with --allow-destructive AND an owner-approved DISPOSABLE identity
-  // that is not one of the five role accounts (staging shares Identity with production).
-  { id: "student-delete-own-account", role: ["student"], destructive: true,
-    fixtures: ["E2E_DISPOSABLE_STUDENT_EMAIL", "E2E_DISPOSABLE_STUDENT_PASSWORD", "E2E_DISPOSABLE_STUDENT_USER_ID"], matches: /DeleteAccountDialog\.tsx|StudentSettingsPage\.tsx/,
+  // Migration 138 (owner decision 23 Oct 2026): a student can no longer delete their own account. The Settings
+  // page has no Delete Account button; the database refuses the reason 'self' even if the API is called directly.
+  { id: "student-cannot-delete-own-account", role: ["student"], matches: /DeleteAccountDialog\.tsx|StudentSettingsPage\.tsx/,
     async run(p, x) {
-      const e = x.env; x.secrets.push(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD);
-      if (e.E2E_DISPOSABLE_STUDENT_USER_ID === x.userId) throw new Error("the disposable identity must not be the student role account");
-      const s1 = await x.signInFresh(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD, e.E2E_DISPOSABLE_STUDENT_USER_ID, "student");
-      if (!s1.ok) throw new Error(`disposable identity could not sign in (HTTP ${s1.status})`);
-      try {
-        await s1.page.goto(`${x.base}/student/dashboard?tab=profile&view=settings`, { waitUntil: "domcontentloaded" });
-        await s1.page.getByRole("button", { name: /^\s*Delete Account\s*$/ }).first().click();
-        await s1.page.locator("#delete-confirm").fill("DELETE");
-        const w = s1.page.waitForResponse((r) => new URL(r.url()).pathname === "/api/accounts/remove", { timeout: 60000 });
-        await s1.page.getByRole("dialog").getByRole("button", { name: /Delete my account/ }).click();   // DeleteAccountDialog.tsx:55
-        const r = await w; const body = await r.json().catch(() => ({}));
-        if (r.status() !== 200 && /Nothing was changed/.test(String(body.error))) {
-          // Staging's accounts robot has no Identity rights (by design), so the login cannot be disabled and the
-          // service refuses before touching data. Prove that safe failure, then report the real deletion as BLOCKED.
-          await s1.ctx.close().catch(() => {});
-          const again = await x.signInFresh(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD, e.E2E_DISPOSABLE_STUDENT_USER_ID, "student");
-          if (!again.ok) throw new Error("deletion was refused with 'Nothing was changed' but the account can no longer sign in");
-          await again.ctx.close();
-          return `BLOCKED: deletion refused safely (HTTP ${r.status()}, nothing changed, sign-in still works); a real deletion needs an environment whose accounts service may manage logins`;
-        }
-        if (r.status() !== 200 || body.removed !== 1) throw new Error(`accounts/remove answered ${r.status()} removed=${body.removed}`);
-        if (body.login_deleted !== true) throw new Error("account data deleted but the Identity login was NOT deleted (login_deleted=false)");
-      } finally { await s1.ctx.close().catch(() => {}); }
-      const s2 = await x.signInFresh(e.E2E_DISPOSABLE_STUDENT_EMAIL, e.E2E_DISPOSABLE_STUDENT_PASSWORD, e.E2E_DISPOSABLE_STUDENT_USER_ID, "student").catch(() => ({ ok: false }));
-      if (s2.ok) { await s2.ctx.close(); throw new Error("the deleted account can still sign in"); }
-      return "account deleted; Identity login deleted; signing in again is refused"; },
-    db: (x) => `select 'S32DB ' || ((select count(*) from public.removed_students where student_id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}' and reason = 'self') = 1 and (select count(*) from auth.users where id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}') = 0 and (select count(*) from public.removed_students where student_id = '${x.env.E2E_DISPOSABLE_STUDENT_USER_ID}' and reason = 'self' and login_deleted_at is not null) = 1)::text;`, expectDb: "true" },
+      await x.go("/student/dashboard?tab=profile&view=settings");
+      await p.getByText("Settings").first().waitFor({ timeout: 30000 });
+      if (await p.getByRole("button", { name: /Delete Account/i }).count()) throw new Error("the Delete Account button is still shown");
+      return "no Delete Account button on Settings"; },
+    db: () => `select 'S32DB ' || (position('students cannot delete their own account' in pg_get_functiondef('public.remove_students(uuid[],uuid,text)'::regprocedure)) > 0)::text;`, expectDb: "true" },
 ];
 
 /** Notices migration 107 refuses to switch off. */

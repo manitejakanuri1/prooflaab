@@ -223,8 +223,8 @@ const ctxOf = (job: StoredJob): RecordingContext =>
  * count only (tpo_student_profile.voice_recordings); ProofLab admins can read
  * the row (voice_own_read allows is_admin()); verified companies see the score
  * and notes of a discoverable student (recruiter_talent/recruiter_proof_profile),
- * never the audio; the student deletes the row and the file from Profile ->
- * Privacy (voice_own_delete + owner delete).
+ * never the audio. Since migration 138 nobody deletes a recording (no withdraw for students, the files
+ * service refuses DELETE); the daily job keeps the audio of each student's newest 7 and removes the rest.
  */
 
 const VoiceExplainModal = ({
@@ -1427,7 +1427,7 @@ const VoiceExplainModal = ({
                   audio only if you turn on audio sharing in Profile → Privacy (it is off).
                 </li>
                 <li>
-                  You can delete any recording at any time, from Profile → Privacy.
+                  Recordings cannot be deleted. The audio of your newest 7 is kept; older audio is removed to save space, and its words and score stay.
                 </li>
               </ul>
             </div>

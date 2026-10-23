@@ -1,4 +1,4 @@
-import { removeOwnerFiles } from "./owner-files.ts";
+import { removeOwnerFiles, removeVoiceAudio } from "./owner-files.ts";
 
 const assert = (ok: boolean, why: string) => {
   if (!ok) throw new Error(why);
@@ -60,4 +60,24 @@ Deno.test("S36-02: storage that is not mounted is a failure, never 'nothing to d
   // The real check, with no injection: a path that does not exist on this machine.
   const real = await removeOwnerFiles(ID, { private: "/definitely/not/mounted/private", public: "/definitely/not/mounted/public" });
   assert(real.length === 3 && real.every((f) => f.includes("storage not mounted")), real.join(","));
+});
+
+Deno.test("voice audio: deletes exactly the listed files, skips bad paths, a missing file counts as gone", async () => {
+  const seen: string[] = [];
+  const gone = await removeVoiceAudio(
+    [`${ID}/a.webm`, `${ID}/../x.webm`, "../etc/passwd", `${ID}/b.webm`, "notanid/c.webm", `${ID}/err.webm`],
+    "/mnt/private",
+    (path, options) => {
+      assert(options.recursive === false, "never recursive");
+      seen.push(path);
+      if (path.endsWith("b.webm")) return Promise.reject(new Deno.errors.NotFound("gone"));
+      if (path.endsWith("err.webm")) return Promise.reject(new Error("io"));
+      return Promise.resolve();
+    },
+    there,
+  );
+  assert(JSON.stringify(gone) === JSON.stringify([`${ID}/a.webm`, `${ID}/b.webm`]), gone.join(","));
+  assert(seen.length === 3 && seen[0] === `/mnt/private/voice-explanations/${ID}/a.webm`, seen.join(","));
+  const none = await removeVoiceAudio([`${ID}/a.webm`], "/mnt/private", () => Promise.resolve(), () => Promise.resolve(false));
+  assert(none.length === 0, "storage not mounted: nothing counts as gone");
 });

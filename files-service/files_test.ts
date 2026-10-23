@@ -49,6 +49,13 @@ Deno.test('a private file with no token is refused', async () => {
   assertEquals(res.status, 401);
 });
 
+Deno.test('a voice recording cannot be deleted, not even before the token is looked at', async () => {
+  const res = await handler(
+    new Request(`https://x/file/voice-explanations/${ME}/a.webm`, { method: 'DELETE', headers: { Authorization: 'Bearer x' } }),
+  );
+  assertEquals(res.status, 403);
+});
+
 Deno.test('a private file with a forged token is refused', async () => {
   const res = await handler(
     new Request(`https://x/file/resumes/${ME}/cv.pdf`, {

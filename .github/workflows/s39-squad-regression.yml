@@ -63,6 +63,9 @@ jobs:
       # 23 Oct: owner decision - Badges and quests come from real activity (migration 135); quests show no XP promise.
       # 23 Oct: owner decision - voice privacy texts match the real rules (mock audio is never shared; task audio
       #         reaches companies only with the student's audio-sharing switch on).
+      # 23 Oct: owner decision - students cannot delete recordings or their account (migration 138); Privacy has
+      #         no delete button, Settings has no Delete Account box; older audio (beyond the newest 7) shows
+      #         "audio removed to save space" with the words still there.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -92,7 +95,10 @@ jobs:
                    ':(exclude)src/components/dashboard/student/StudentSeasonReport.tsx'
                    ':(exclude)src/components/dashboard/season/SeasonLeaderboards.tsx'
                    ':(exclude)src/components/dashboard/student/SimpleQuestion.tsx'
-                   ':(exclude)src/lib/voiceGateReload.test.ts')
+                   ':(exclude)src/lib/voiceGateReload.test.ts'
+                   ':(exclude)src/components/dashboard/student/StudentPrivacy.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentSettingsPage.tsx'
+                   ':(exclude)src/components/dashboard/student/RecordingPlayback.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

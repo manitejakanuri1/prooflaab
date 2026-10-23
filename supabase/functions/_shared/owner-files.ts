@@ -59,3 +59,30 @@ export async function removeOwnerFiles(
   }
   return failed;
 }
+
+/** "<owner uuid>/<file>" with no climbing out: the shape the file service stores voice audio under. */
+const VOICE_PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/;
+
+/**
+ * Deletes single voice audio files (migration 138: each student keeps the newest 7). Returns the paths that
+ * are gone (a file already missing counts as gone, but only when the storage itself is mounted).
+ */
+export async function removeVoiceAudio(
+  paths: string[],
+  privateMount: string,
+  remove: Remove = Deno.remove,
+  storageIsThere: IsDirectory = isDirectory,
+): Promise<string[]> {
+  if (!privateMount || !(await storageIsThere(privateMount))) return [];
+  const gone: string[] = [];
+  for (const p of paths) {
+    if (!VOICE_PATH.test(p) || p.split("/").includes("..")) continue;
+    try {
+      await remove(`${privateMount}/voice-explanations/${p}`, { recursive: false });
+      gone.push(p);
+    } catch (err) {
+      if (err instanceof Deno.errors.NotFound) gone.push(p);
+    }
+  }
+  return gone;
+}

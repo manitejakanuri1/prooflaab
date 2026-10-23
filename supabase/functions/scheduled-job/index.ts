@@ -1,5 +1,5 @@
 import { serve } from "../_shared/serve.ts";
-import { removeOwnerFiles } from '../_shared/owner-files.ts';
+import { removeOwnerFiles, removeVoiceAudio } from '../_shared/owner-files.ts';
 import { createClient } from "../_shared/backend.ts";
 import { schedulerCaller } from "../_shared/googleIdentity.ts";
 import { pagesNeedingLots, reopenForRewrite, writeLotTemplate } from "../_shared/lot-pipeline.ts";
@@ -113,6 +113,21 @@ serve(async (req) => {
       if (markError) console.error(`scheduled-job prune-events: purge not recorded: ${markError.message}`); else purged++;
     }
     if (gone?.length) console.log(`scheduled-job prune-events: files purged for ${purged} of ${gone.length} deleted account(s)`);
+
+    // Migration 138: each student keeps the audio of their newest 7 recordings; older audio is deleted here.
+    // The row, transcript and score stay. Up to 500 files a night; what is left is picked up the next night.
+    const { data: old, error: oldError } = await db.rpc('voice_audio_to_purge', { _keep: 7, _limit: 500 });
+    if (oldError) console.error(`scheduled-job prune-events: listing old voice audio failed: ${oldError.message}`);
+    const rows = (old ?? []) as { id: string; storage_path: string }[];
+    if (rows.length) {
+      const removed = new Set(await removeVoiceAudio(rows.map((r) => r.storage_path), Deno.env.get('PRIVATE_MOUNT') ?? '/mnt/private'));
+      const ids = rows.filter((r) => removed.has(r.storage_path)).map((r) => r.id);
+      const { data: marked, error: markError } = ids.length
+        ? await db.rpc('mark_voice_audio_purged', { _ids: ids }) : { data: 0, error: null };
+      if (markError) console.error(`scheduled-job prune-events: audio deletion not recorded: ${markError.message}`);
+      if (ids.length < rows.length) console.error(`JOB SANITY: ${rows.length - ids.length} old voice audio file(s) not removed`);
+      console.log(`scheduled-job prune-events: old voice audio removed ${ids.length} of ${rows.length}, recorded ${marked ?? 0}`);
+    }
   }
 
   // A job that ran but failed at its purpose is a failure (migration 75): answer 500 so Cloud

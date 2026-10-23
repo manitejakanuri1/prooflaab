@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 61a7206421b3e2fa6c1f1577c57ca355a976dee4   # 2026-10-23: no student deletes, keep newest 7 voice audio (migration 138)
+      STAGING_RC: 4f57e5a94981cd483632fab4603b45a58abab568   # 2026-10-23: company sees daily Lots only; mock interview fix (migration 139)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

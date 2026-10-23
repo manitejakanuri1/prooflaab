@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: f6cc5c8fb85282f9ef065439f8fc6dca771a3ee0   # 2026-10-23: profile + admin fixes
+      STAGING_RC: 61a7206421b3e2fa6c1f1577c57ca355a976dee4   # 2026-10-23: no student deletes, keep newest 7 voice audio (migration 138)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

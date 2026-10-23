@@ -619,6 +619,26 @@ async function googleIdentityAction(
   );
 }
 
+/*
+ * The website address to put in emailed links. Firebase Hosting rewrites /api/** to this
+ * service, so req.url is the service's own run.app address, which Identity Platform does not
+ * allowlist: sendOobCode answers UNAUTHORIZED_DOMAIN and no email is sent. The browser's Origin
+ * is the website address, and main.ts has already refused any Origin not in BROWSER_ORIGINS.
+ */
+function siteOrigin(req: Request): string {
+  const origin = req.headers.get("Origin");
+
+  if (origin) {
+    try {
+      return new URL(origin).origin;
+    } catch {
+      // Not a URL: fall back to this service's own address.
+    }
+  }
+
+  return new URL(req.url).origin;
+}
+
 async function requestPasswordReset(
   req: Request,
   cfg: ReturnType<typeof config>,
@@ -645,10 +665,10 @@ async function requestPasswordReset(
     );
   }
 
-  const origin = new URL(req.url).origin;
+  const origin = siteOrigin(req);
 
   try {
-    await googleIdentityAction(
+    const sent = await googleIdentityAction(
       "sendOobCode",
       {
         requestType: "PASSWORD_RESET",
@@ -657,6 +677,19 @@ async function requestPasswordReset(
       },
       cfg,
     );
+
+    // The answer to the browser stays the same either way (no account enumeration), but a
+    // refusal must reach the server log: it used to vanish, and the screen still said "sent".
+    if (!sent.ok) {
+      const body = await sent.json().catch(() => ({})) as {
+        error?: { message?: unknown };
+      };
+      console.error(
+        "password reset email not sent:",
+        sent.status,
+        String(body.error?.message ?? "unknown"),
+      );
+    }
   } catch {
     return json(
       { error: "password reset service unavailable" },
@@ -1090,7 +1123,7 @@ async function signup(
     // not a reason to destroy a valid signup.
   }
 
-  const origin = new URL(req.url).origin;
+  const origin = siteOrigin(req);
 
   // Verification mail is best effort, matching
   // the application's existing signup behaviour.
@@ -1533,7 +1566,7 @@ async function resendVerification(
     );
   }
 
-  const origin = new URL(req.url).origin;
+  const origin = siteOrigin(req);
 
   let response: Response;
 

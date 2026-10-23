@@ -119,10 +119,10 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
         </Card>
 
         <Card className='metric-card'>
-          <CardHeader><CardTitle>Daily task history · voice explanations</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Daily Lots and spoken explanations</CardTitle></CardHeader>
           <CardContent className='grid gap-4 md:grid-cols-2'>
             <div className='space-y-2'>
-              <div className='section-label'>daily task history</div>
+              <div className='section-label'>Lots solved</div>
               {candidate.dailyTasks.map((task, i) => (
                 <div key={i} className='flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-3 py-2'>
                   <div>
@@ -130,21 +130,21 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
                     <div className='text-[11px] text-muted-foreground'>{task.date}</div>
                   </div>
                   <div className='text-right text-xs font-mono'>
-                    <div className={task.status === 'completed' ? 'text-emerald-400' : task.status === 'pending' ? 'text-amber-400' : 'text-zinc-500'}>{task.status}</div>
-                    <div className='tabular text-muted-foreground'>{task.score ?? '—'}</div>
+                    <div className={task.status === 'completed' ? 'text-emerald-400' : task.status === 'pending' ? 'text-amber-400' : 'text-zinc-500'}>{task.status === 'completed' ? 'Passed' : task.status}</div>
+                    <div className='tabular text-muted-foreground'>{task.score != null ? `${task.score}/100` : '—'}</div>
                   </div>
                 </div>
               ))}
             </div>
             <div className='space-y-2'>
-              <div className='section-label'>60-second voice explanations</div>
+              <div className='section-label'>60-second explanations</div>
               {candidate.voiceExplanations.map(voice => (
                 <div key={voice.id} className='rounded-lg border border-border bg-secondary/30 p-3'>
                   <div className='flex items-center justify-between gap-3'>
                     <div className='flex items-center gap-3'>{voice.audioShared && <VoicePlayButton voiceId={voice.id} />}<div><div className='text-sm font-medium'>{voice.topic}</div><div className='text-[11px] text-muted-foreground'>{voice.date}</div></div></div>
                     <div className='text-xs font-mono tabular text-muted-foreground'>{voice.duration}</div>
                   </div>
-                  <p className='mt-3 text-xs text-muted-foreground'>{voice.transcript}</p>
+                  <p className='mt-3 text-xs text-muted-foreground'>{voice.transcript ? <><span className='font-medium text-foreground'>Feedback: </span>{voice.transcript}</> : null}</p>
                 </div>
               ))}
             </div>

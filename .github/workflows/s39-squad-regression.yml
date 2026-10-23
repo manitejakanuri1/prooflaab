@@ -66,6 +66,8 @@ jobs:
       # 23 Oct: owner decision - students cannot delete recordings or their account (migration 138); Privacy has
       #         no delete button, Settings has no Delete Account box; older audio (beyond the newest 7) shows
       #         "audio removed to save space" with the words still there.
+      # 23 Oct: owner decision - a company sees daily Lots only (migration 139), worded "Daily Lots and spoken
+      #         explanations" / "Lots solved" / "Passed · 100/100" / "Feedback:".
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -98,7 +100,8 @@ jobs:
                    ':(exclude)src/lib/voiceGateReload.test.ts'
                    ':(exclude)src/components/dashboard/student/StudentPrivacy.tsx'
                    ':(exclude)src/components/dashboard/student/StudentSettingsPage.tsx'
-                   ':(exclude)src/components/dashboard/student/RecordingPlayback.tsx')
+                   ':(exclude)src/components/dashboard/student/RecordingPlayback.tsx'
+                   ':(exclude)src/components/dashboard/recruiter/ProofProfile.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

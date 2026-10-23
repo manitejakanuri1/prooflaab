@@ -3,6 +3,7 @@ import { createClient } from "../_shared/backend.ts";
 import { generateText } from "../_shared/llm.ts";
 import { rateLimitResponse } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
+import { mergeGrades, type Graded } from "../_shared/mock-interview.ts";
 
 /**
  * Grades all four answers together in one call rather than one call per
@@ -82,10 +83,10 @@ Return ONLY JSON:
 {
   "overall_score": <0-100>,
   "overall_feedback": "<3-4 sentences, addressed to the candidate, plain English, one concrete thing to improve>",
-  "per_question": [{"n": 0, "score": <0-100>, "note": "<one sentence>"}, ...]
+  "per_question": [{"q": 1, "score": <0-100>, "note": "<one sentence about A1>"}, ...]   (q = the question number above: 1 for Q1, 2 for Q2, ...)
 }`;
 
-    let parsed: { overall_score?: unknown; overall_feedback?: string; per_question?: { n: number; score: number; note: string }[] } = {};
+    let parsed: { overall_score?: unknown; overall_feedback?: string; per_question?: Graded[] } = {};
     let overallScore = NaN;
     try {
       const { text } = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 900 },
@@ -106,10 +107,7 @@ Return ONLY JSON:
     overallScore = Math.round(overallScore);
     const perQuestion = Array.isArray(parsed.per_question) ? parsed.per_question : [];
 
-    const mergedAnswers = answers.map((a) => {
-      const graded = perQuestion.find((p) => p.n === a.n);
-      return { ...a, score: graded?.score ?? null, feedback: graded?.note ?? null };
-    });
+    const mergedAnswers = mergeGrades(answers, perQuestion);
 
     await supabase.from('mock_interviews').update({
       answers: mergedAnswers,

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 18eb8252f1ef636c15b062c6da815f41475588a7   # 2026-10-24: mock audio in newest-7 rule, clearer recording notices (migration 141)
+      STAGING_RC: 450b4c1cfc5a4654a62bbb6e6a71c9585de3e736   # 2026-10-24: Auto-fix download & continue, score explanations (migration 142)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

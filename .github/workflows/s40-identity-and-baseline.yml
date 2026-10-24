@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 271897c1cb3b7b11a6fa726ff927db0fd5ba023d   # 2026-10-24: marks on top of each resume test question
+      STAGING_RC: 1ca469d91f089048c9dc2d7c068f26484b6910e1   # 2026-10-25: squad swaps (migration 143)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

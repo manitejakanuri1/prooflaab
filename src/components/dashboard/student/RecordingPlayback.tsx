@@ -51,7 +51,7 @@ const RecordingPlayback = ({ src, storagePath, audioRemoved, transcript, segment
         <audio ref={audioRef} src={url} controls preload="metadata" className="w-full"
                onLoadedMetadata={fixDuration} />
       ) : audioRemoved ? (
-        <p className="text-xs text-muted-foreground">Older recording: the audio was removed to save space. The words are below.</p>
+        <p className="text-xs text-muted-foreground">This audio was removed to save space (only your 7 newest recordings keep their audio). Your score and written words are still here.</p>
       ) : storagePath ? (
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           {loading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}

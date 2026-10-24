@@ -243,8 +243,7 @@ const StudentPrivacy = () => {
           )}
 
           <p className="text-xs text-muted-foreground mt-3 max-w-prose">
-            The audio of your newest 7 recordings is kept. Older audio is removed to save space;
-            its words and score stay on your record.
+            Your recordings can't be deleted. We keep the audio of your 7 newest recordings (task and mock interview together). Older audio is removed automatically to save space. Your score, feedback and written words always stay in your history.
           </p>
         </CardContent>
       </Card>

@@ -1427,7 +1427,7 @@ const VoiceExplainModal = ({
                   audio only if you turn on audio sharing in Profile → Privacy (it is off).
                 </li>
                 <li>
-                  Recordings cannot be deleted. The audio of your newest 7 is kept; older audio is removed to save space, and its words and score stay.
+                  Your recordings can't be deleted. We keep the audio of your 7 newest recordings (task and mock interview together). Older audio is removed automatically to save space. Your score, feedback and written words always stay in your history.
                 </li>
               </ul>
             </div>

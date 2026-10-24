@@ -118,15 +118,20 @@ serve(async (req) => {
     // The row, transcript and score stay. Up to 500 files a night; what is left is picked up the next night.
     const { data: old, error: oldError } = await db.rpc('voice_audio_to_purge', { _keep: 7, _limit: 500 });
     if (oldError) console.error(`scheduled-job prune-events: listing old voice audio failed: ${oldError.message}`);
-    const rows = (old ?? []) as { id: string; storage_path: string }[];
+    // Migration 141: mock interview answers ('mock') count toward the newest 7 too.
+    const rows = (old ?? []) as { id: string; storage_path: string; kind?: string }[];
     if (rows.length) {
       const removed = new Set(await removeVoiceAudio(rows.map((r) => r.storage_path), Deno.env.get('PRIVATE_MOUNT') ?? '/mnt/private'));
-      const ids = rows.filter((r) => removed.has(r.storage_path)).map((r) => r.id);
+      const gone = rows.filter((r) => removed.has(r.storage_path));
+      const ids = gone.filter((r) => r.kind !== 'mock').map((r) => r.id);
+      const paths = gone.filter((r) => r.kind === 'mock').map((r) => r.storage_path);
       const { data: marked, error: markError } = ids.length
         ? await db.rpc('mark_voice_audio_purged', { _ids: ids }) : { data: 0, error: null };
-      if (markError) console.error(`scheduled-job prune-events: audio deletion not recorded: ${markError.message}`);
-      if (ids.length < rows.length) console.error(`JOB SANITY: ${rows.length - ids.length} old voice audio file(s) not removed`);
-      console.log(`scheduled-job prune-events: old voice audio removed ${ids.length} of ${rows.length}, recorded ${marked ?? 0}`);
+      const { data: markedMock, error: mockError } = paths.length
+        ? await db.rpc('mark_mock_audio_purged', { _paths: paths }) : { data: 0, error: null };
+      if (markError || mockError) console.error(`scheduled-job prune-events: audio deletion not recorded: ${(markError ?? mockError)!.message}`);
+      if (gone.length < rows.length) console.error(`JOB SANITY: ${rows.length - gone.length} old voice audio file(s) not removed`);
+      console.log(`scheduled-job prune-events: old voice audio removed ${gone.length} of ${rows.length}, recorded ${marked ?? 0} voice + ${markedMock ?? 0} mock`);
     }
   }
 

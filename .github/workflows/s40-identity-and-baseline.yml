@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 450b4c1cfc5a4654a62bbb6e6a71c9585de3e736   # 2026-10-24: Auto-fix download & continue, score explanations (migration 142)
+      STAGING_RC: 271897c1cb3b7b11a6fa726ff927db0fd5ba023d   # 2026-10-24: marks on top of each resume test question
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

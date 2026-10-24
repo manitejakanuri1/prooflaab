@@ -18,7 +18,7 @@ import {
 import { verdictLabel, type Verdict } from "@/lib/codingVerdicts";
 import { useToast } from "@/hooks/use-toast";
 import { RoadmapStages } from "./RoadmapStages";
-import { ScoreExplainer } from "./ScoreExplainer";
+import { QuestionMarks, ScoreExplainer } from "./ScoreExplainer";
 
 // 15s for everything moved the screen on before a student could read the
 // question, let alone type an answer. Must match resume-assessment-submit.
@@ -920,8 +920,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
               {pendingResult.answer_scores && pendingResult.answer_scores.length > 0 && (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   <p className="text-sm font-medium">Question review</p>
-                  {pendingResult.answer_scores.map((s) => (
-                    <div key={s.question_id} className="border rounded-lg p-3 text-sm space-y-1">
+                  {pendingResult.answer_scores.map((s, i) => (
+                    <div key={`${s.question_id}-${i}`} className="border rounded-lg p-3 text-sm space-y-1">
+                      <QuestionMarks a={s} n={i + 1} />
                       <div className="flex items-start gap-2">
                         {s.final_score >= 70 ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />

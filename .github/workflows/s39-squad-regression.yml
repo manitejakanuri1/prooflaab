@@ -73,6 +73,8 @@ jobs:
       # 24 Oct: owner decision - after Auto-fix one button "Download & continue with this resume" switches to the new
       #         resume (migration 142), shows old -> new scores and what the AI changed; every resume score has a
       #         "How is this scored?" panel (ScoreExplainer) with the rules, marks per question and the formula.
+      # 24 Oct: owner decision - each question in the result and history shows its marks on top (QuestionMarks):
+      #         MCQ 100/0 -> Skill proof; written: correct -> Skill/Project proof, clear -> Reasoning.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'

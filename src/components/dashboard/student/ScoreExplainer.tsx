@@ -10,6 +10,23 @@ export interface ExplainedAnswer {
   reasoning_clarity_score?: number;
 }
 
+/** The marks line on top of one question: its mark(s) and the score each one counts toward. */
+export function QuestionMarks({ a, n }: { a: ExplainedAnswer & { question_id?: string }; n: number }) {
+  const label = /^q\d+$/i.test(a.question_id ?? "") ? a.question_id!.toUpperCase() : `Q${n}`;
+  const project = a.category === "project_defense";
+  return (
+    <p className="text-xs font-mono">
+      {label} · {a.question_type === "mcq" ? "Multiple choice" : project ? "Project" : "Written"} ·{" "}
+      {a.question_type === "mcq" ? (
+        <><b>{a.final_score}/100</b> ({a.final_score >= 100 ? "right" : "wrong"}) → Skill proof</>
+      ) : (
+        <>Correct <b>{a.final_score}/100</b> → {project ? "Project proof" : "Skill proof"} · Clear{" "}
+          <b>{a.reasoning_clarity_score != null ? `${a.reasoning_clarity_score}/100` : "—"}</b> → Reasoning</>
+      )}
+    </p>
+  );
+}
+
 interface ScoreExplainerProps {
   quality?: number | null;
   ats?: number | null;

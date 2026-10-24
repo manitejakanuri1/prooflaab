@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { History, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import CodingBreakdown from "./CodingBreakdown";
-import { ScoreExplainer, type ExplainedAnswer } from "./ScoreExplainer";
+import { QuestionMarks, ScoreExplainer, type ExplainedAnswer } from "./ScoreExplainer";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SkillGap { verified: string[]; needs_improvement: string[]; missing: string[] }
@@ -33,6 +33,8 @@ interface AnswerScore {
   correct_answer?: string;
   final_score: number;
   explanation: string;
+  category?: "skill" | "project_defense";
+  reasoning_clarity_score?: number;
 }
 
 const StudentResumeHistoryPage = () => {
@@ -270,8 +272,9 @@ const StudentResumeHistoryPage = () => {
                                 <p className="text-xs text-muted-foreground">No per-question breakdown saved for this attempt.</p>
                               ) : (
                                 <div className="space-y-2">
-                                  {answers.map((a) => (
-                                    <div key={a.question_id} className="border rounded-lg p-2.5 text-sm bg-background">
+                                  {answers.map((a, i) => (
+                                    <div key={`${a.question_id}-${i}`} className="border rounded-lg p-2.5 text-sm bg-background space-y-1">
+                                      <QuestionMarks a={a} n={i + 1} />
                                       <div className="flex items-start gap-2">
                                         {a.final_score >= 70 ? (
                                           <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />

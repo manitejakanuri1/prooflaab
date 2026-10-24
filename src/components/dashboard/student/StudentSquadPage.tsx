@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Trophy, Crown, Medal, Award } from "lucide-react";
 import { format, startOfWeek, addDays, isWithinInterval } from "date-fns";
 import StudentSeasonReport from "./StudentSeasonReport";
+import SquadSwapCard from "./SquadSwapCard";
 
 interface Squad {
   id: string;
@@ -85,6 +86,7 @@ const StudentSquadPage = () => {
       .from("squad_members")
       .select("squad_id")
       .eq("student_id", profile.id)
+      .is("left_at", null)   // a student who moved squads also has their old, closed membership rows
       .maybeSingle();
 
     if (!membership) { setLoading(false); return; }
@@ -239,6 +241,8 @@ const StudentSquadPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      <SquadSwapCard onSwapped={() => void load()} />
 
       <Tabs defaultValue="overview">
         <TabsList className="flex-wrap h-auto">

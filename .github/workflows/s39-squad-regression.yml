@@ -75,6 +75,9 @@ jobs:
       #         "How is this scored?" panel (ScoreExplainer) with the rules, marks per question and the formula.
       # 24 Oct: owner decision - each question in the result and history shows its marks on top (QuestionMarks):
       #         MCQ 100/0 -> Skill proof; written: correct -> Skill/Project proof, clear -> Reasoning.
+      # 25 Oct: owner decision - squad swaps (migration 143): two students in the same section trade squads in the
+      #         first 7 days with each other's squad code; own points move with them. Student Squad page gets the swap
+      #         box (SquadSwapCard), the college Squads page a Swaps tab (SquadSwapsList, shared with the admin).
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -109,7 +112,10 @@ jobs:
                    ':(exclude)src/components/dashboard/student/StudentSettingsPage.tsx'
                    ':(exclude)src/components/dashboard/student/RecordingPlayback.tsx'
                    ':(exclude)src/components/dashboard/recruiter/ProofProfile.tsx'
-                   ':(exclude)src/components/dashboard/student/ScoreExplainer.tsx')
+                   ':(exclude)src/components/dashboard/student/ScoreExplainer.tsx'
+                   ':(exclude)src/components/dashboard/student/SquadSwapCard.tsx'
+                   ':(exclude)src/components/dashboard/season/SquadSwapsList.tsx'
+                   ':(exclude)src/components/dashboard/college/TpoSquads.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

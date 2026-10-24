@@ -22,6 +22,7 @@ import ContentLibrary from "@/components/dashboard/admin/ContentLibrary";
 import StudentTrace from "@/components/dashboard/admin/StudentTrace";
 import BugFinder from "@/components/dashboard/admin/BugFinder";
 import DailyLots from "@/components/dashboard/admin/DailyLots";
+import AdminSquads from "@/components/dashboard/admin/AdminSquads";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groupOf } from "@/components/dashboard/admin/adminNav";
 import AdminOpsHealth from "@/components/dashboard/admin/AdminOpsHealth";
@@ -101,6 +102,8 @@ const AdminDashboard = () => {
         return <StudentTrace />;
       case "bug-finder":
         return <BugFinder />;
+      case "squads":
+        return <AdminSquads />;
       case "daily-lots":
         return <DailyLots />;
       case "ops-jobs":

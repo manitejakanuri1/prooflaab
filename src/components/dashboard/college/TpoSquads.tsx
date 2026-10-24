@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SeasonPhaseBar, { useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
+import SquadSwapsList from "@/components/dashboard/season/SquadSwapsList";
 import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -443,6 +444,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
           <TabsTrigger value="leaderboards">Leaderboards</TabsTrigger>
+          <TabsTrigger value="swaps">Swaps</TabsTrigger>
         </TabsList>
 
         <TabsContent value="standings" className="mt-4">
@@ -1014,6 +1016,10 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </table>
             )}
           </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="swaps" className="mt-4">
+          <Card><CardContent className="pt-5"><SquadSwapsList /></CardContent></Card>
         </TabsContent>
 
         <TabsContent value="leaderboards" className="mt-4">

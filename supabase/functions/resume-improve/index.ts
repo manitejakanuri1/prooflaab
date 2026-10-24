@@ -61,7 +61,7 @@ serve(async (req) => {
 
     const { data: claim, error: claimError } = await supabase
       .from('resume_claims')
-      .select('id, student_id, target_role, skills, certifications, projects, resume_quality_notes, ats_match_notes, ats_match_score, resume_quality_score, resume_text, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at')
+      .select('id, student_id, target_role, skills, certifications, projects, resume_quality_notes, ats_match_notes, ats_match_score, resume_quality_score, resume_text, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at, improve_changes')
       .eq('id', resume_claims_id)
       .maybeSingle();
 
@@ -87,6 +87,7 @@ serve(async (req) => {
       before_ats: c.ats_match_score, after_ats: c.improved_ats_score,
       before_quality: c.resume_quality_score, after_quality: c.improved_quality_score,
       next_steps: c.improve_next_steps ?? [], motivation: c.improve_motivation,
+      changes: c.improve_changes ?? [],
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     if (claim.improved_at) return reply(claim);
@@ -113,7 +114,7 @@ Problems found when it was checked:
 - Writing: ${claim.resume_quality_notes || 'none noted'}
 - ATS match: ${claim.ats_match_notes || 'none noted'}
 
-Do four things and return ONE JSON object:
+Do five things and return ONE JSON object:
 
 1. "resume": rewrite the WHOLE resume as clean, ATS-friendly plain text. Keep the person's name, contact details, education, experience, projects, skills and certifications. Use ONLY facts in the original - never invent skills, employers, projects, numbers or dates. Fix the problems above. Section headers in CAPS (SUMMARY, SKILLS, EXPERIENCE, PROJECTS, EDUCATION, CERTIFICATIONS). No markdown symbols, tables or columns. About one page.
 
@@ -124,11 +125,13 @@ Do four things and return ONE JSON object:
 
 3. "next_steps": 3 to 5 clear, specific things the STUDENT should add or do themselves to raise the score further - things only they can supply (a missing skill the role needs, a number for a project result, a link, a certification). Each one short and concrete, naming the actual skill/section/project. Never generic advice like "improve your resume".
 
-4. "motivation": one warm, genuine sentence (max 25 words) that recognises something real in their resume and encourages them to prove their skills in the assessment next.
+4. "changes": 3 to 6 short lines, each one thing you changed and where, in plain simple words a student understands, e.g. "Added a SUMMARY at the top for the Data Analyst role" or "Rewrote the Library App project to say what it does and the result". Only changes you really made.
 
-Return ONLY: {"resume": "...", "resume_quality_score": 0, "ats_match_score": 0, "next_steps": ["..."], "motivation": "..."}`;
+5. "motivation": one warm, genuine sentence (max 25 words) that recognises something real in their resume and encourages them to prove their skills in the assessment next.
 
-    let fix: { resume?: string; resume_quality_score?: number; ats_match_score?: number; next_steps?: string[]; motivation?: string } = {};
+Return ONLY: {"resume": "...", "resume_quality_score": 0, "ats_match_score": 0, "next_steps": ["..."], "changes": ["..."], "motivation": "..."}`;
+
+    let fix: { resume?: string; resume_quality_score?: number; ats_match_score?: number; next_steps?: string[]; changes?: string[]; motivation?: string } = {};
     try {
       const result = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 3000 },
         { feature: 'resume-improve', userId: callerId, studentId: profile.id });
@@ -157,6 +160,7 @@ Return ONLY: {"resume": "...", "resume_quality_score": 0, "ats_match_score": 0, 
       improved_ats_score: score(fix.ats_match_score),
       improved_quality_score: score(fix.resume_quality_score),
       improve_next_steps: (Array.isArray(fix.next_steps) ? fix.next_steps : []).slice(0, 5).map(String),
+      improve_changes: (Array.isArray(fix.changes) ? fix.changes : []).slice(0, 6).map(String),
       improve_motivation: typeof fix.motivation === 'string' ? fix.motivation.slice(0, 300) : null,
       improved_at: new Date().toISOString(),
     };

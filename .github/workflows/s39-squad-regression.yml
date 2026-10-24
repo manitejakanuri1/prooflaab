@@ -70,6 +70,9 @@ jobs:
       #         explanations" / "Lots solved" / "Passed · 100/100" / "Feedback:".
       # 24 Oct: owner decision - mock interview audio joins the newest-7 rule (migration 141); the recording notices
       #         say so in plain words and that score, feedback and written words always stay in the history.
+      # 24 Oct: owner decision - after Auto-fix one button "Download & continue with this resume" switches to the new
+      #         resume (migration 142), shows old -> new scores and what the AI changed; every resume score has a
+      #         "How is this scored?" panel (ScoreExplainer) with the rules, marks per question and the formula.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -103,7 +106,8 @@ jobs:
                    ':(exclude)src/components/dashboard/student/StudentPrivacy.tsx'
                    ':(exclude)src/components/dashboard/student/StudentSettingsPage.tsx'
                    ':(exclude)src/components/dashboard/student/RecordingPlayback.tsx'
-                   ':(exclude)src/components/dashboard/recruiter/ProofProfile.tsx')
+                   ':(exclude)src/components/dashboard/recruiter/ProofProfile.tsx'
+                   ':(exclude)src/components/dashboard/student/ScoreExplainer.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

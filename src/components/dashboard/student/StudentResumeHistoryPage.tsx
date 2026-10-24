@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { History, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import CodingBreakdown from "./CodingBreakdown";
+import { ScoreExplainer, type ExplainedAnswer } from "./ScoreExplainer";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SkillGap { verified: string[]; needs_improvement: string[]; missing: string[] }
@@ -76,8 +77,15 @@ const StudentResumeHistoryPage = () => {
         .eq("student_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20);
-      setHistory((data as unknown as HistoryEntry[]) || []);
+      const rows = (data as unknown as HistoryEntry[]) || [];
+      setHistory(rows);
       setLoading(false);
+      // The latest test's per-question marks, for "How is this scored?".
+      const latestId = rows[0]?.assessment_id;
+      if (latestId) {
+        const { data: graded } = await supabase.from("resume_assessments").select("answer_scores").eq("id", latestId).maybeSingle();
+        setAnswersByAssessment((prev) => ({ ...prev, [latestId]: (graded?.answer_scores as unknown as AnswerScore[]) || [] }));
+      }
     })();
   }, [user]);
 
@@ -133,6 +141,13 @@ const StudentResumeHistoryPage = () => {
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-3">
+                    <ScoreExplainer quality={latest.resume_quality_score} ats={latest.ats_match_score}
+                                    skill={latest.skill_proof_score} project={latest.project_proof_score}
+                                    reasoning={latest.reasoning_score} readiness={latest.interview_readiness_score}
+                                    coding={latest.coding_score}
+                                    answers={latest.assessment_id ? answersByAssessment[latest.assessment_id] as unknown as ExplainedAnswer[] : undefined} />
                   </div>
                   {latest.coding_score != null && (
                     <p className="text-xs text-muted-foreground mt-2">

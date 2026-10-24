@@ -289,7 +289,9 @@ Return ONLY the JSON array, no additional text.`;
         `What was the toughest challenge you hit building "${p.name}", and how did you solve it?`,
     ];
 
-    let defenceId = mcqCount;
+    // After the AI's own ids: with a written skill question the AI already used q6, and a second q6 made
+    // two answers share one id (seen on TEST, 24 Oct 2026).
+    let defenceId = Math.max(mcqCount, ...questions.map((q: { id?: unknown }) => Number(String(q.id ?? '').replace(/\D/g, '')) || 0));
     defendedProjects.forEach((p, projectIndex) => {
       for (let i = 0; i < QUESTIONS_PER_PROJECT; i++) {
         const ask = DEFENCE_QUESTIONS[(projectIndex * QUESTIONS_PER_PROJECT + i) % DEFENCE_QUESTIONS.length];

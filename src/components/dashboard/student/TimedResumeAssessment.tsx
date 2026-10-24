@@ -18,6 +18,7 @@ import {
 import { verdictLabel, type Verdict } from "@/lib/codingVerdicts";
 import { useToast } from "@/hooks/use-toast";
 import { RoadmapStages } from "./RoadmapStages";
+import { ScoreExplainer } from "./ScoreExplainer";
 
 // 15s for everything moved the screen on before a student could read the
 // question, let alone type an answer. Must match resume-assessment-submit.
@@ -103,6 +104,8 @@ export interface AnswerScore {
   correct_answer?: string;
   confidence?: ConfidenceLevel;
   confidence_flag?: "lucky_guess" | "overconfident" | null;
+  category?: "skill" | "project_defense";
+  reasoning_clarity_score?: number;
 }
 
 export interface ResumeScoreResult {
@@ -910,6 +913,10 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                   <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
                 </div>
               </div>
+              <ScoreExplainer quality={pendingResult.resume_quality_score} ats={pendingResult.ats_match_score}
+                              skill={pendingResult.skill_proof_score} project={pendingResult.project_proof_score ?? null}
+                              reasoning={pendingResult.reasoning_score ?? null} readiness={pendingResult.interview_readiness_score ?? null}
+                              coding={pendingResult.coding_score ?? null} answers={pendingResult.answer_scores} />
               {pendingResult.answer_scores && pendingResult.answer_scores.length > 0 && (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   <p className="text-sm font-medium">Question review</p>

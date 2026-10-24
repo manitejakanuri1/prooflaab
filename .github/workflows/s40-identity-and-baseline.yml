@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 4f57e5a94981cd483632fab4603b45a58abab568   # 2026-10-23: company sees daily Lots only; mock interview fix (migration 139)
+      STAGING_RC: 18eb8252f1ef636c15b062c6da815f41475588a7   # 2026-10-24: mock audio in newest-7 rule, clearer recording notices (migration 141)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

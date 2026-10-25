@@ -214,7 +214,7 @@ const StudentSquadPage = () => {
           ) : squad.qualified !== null && (
             <p className="mt-2 text-sm">
               {squad.qualified ? (
-                <span className="text-emerald-600 font-medium">
+                <span className="text-verified font-medium">
                   Through to the championship{squad.seed ? ` as seed ${squad.seed}` : ""}.
                 </span>
               ) : (
@@ -366,7 +366,7 @@ const StudentSquadPage = () => {
                           </td>
                           <td className="py-2.5 font-mono text-xs">
                             {m.status === "played" && us != null ? (
-                              <span className={drew ? "text-muted-foreground" : won ? "text-emerald-500" : "text-destructive"}>
+                              <span className={drew ? "text-muted-foreground" : won ? "text-verified" : "text-alert"}>
                                 {drew ? "Drew" : won ? "Won" : "Lost"} {us}–{them}
                               </span>
                             ) : (

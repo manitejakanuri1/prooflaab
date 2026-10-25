@@ -26,9 +26,9 @@ interface Report {
 }
 
 const VERDICT_STYLE: Record<string, string> = {
-  strong: "border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
-  steady: "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400",
-  quiet: "border-destructive/40 bg-destructive/5 text-destructive",
+  strong: "border-verified/40 bg-verified/5 text-verified",
+  steady: "border-compete/40 bg-compete/5 text-compete",
+  quiet: "border-destructive/40 bg-destructive/5 text-alert",
 };
 
 const ACTIVITY: Record<string, string> = {
@@ -173,7 +173,7 @@ const StudentSeasonReport = () => {
                   <b className="font-mono">{r.growth.last_avg ?? 0}</b> a week
                 </p>
                 {r.growth.change_pct != null && (
-                  <p className={`mt-1 font-mono text-lg font-semibold ${r.growth.change_pct >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                  <p className={`mt-1 font-mono text-lg font-semibold ${r.growth.change_pct >= 0 ? "text-verified" : "text-alert"}`}>
                     {r.growth.change_pct >= 0 ? "▲" : "▼"} {Math.abs(r.growth.change_pct)}%
                   </p>
                 )}
@@ -183,10 +183,10 @@ const StudentSeasonReport = () => {
               <div data-testid="season-skills">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Skills</span>
                 {r.skill_list.strong.length > 0 && (
-                  <p className="mt-1 text-sm"><span className="text-emerald-600 font-medium">Strong:</span> {r.skill_list.strong.join(", ")}</p>
+                  <p className="mt-1 text-sm"><span className="text-verified font-medium">Strong:</span> {r.skill_list.strong.join(", ")}</p>
                 )}
                 {r.skill_list.needs_work.length > 0 && (
-                  <p className="mt-1 text-sm"><span className="text-amber-600 font-medium">Needs work:</span> {r.skill_list.needs_work.join(", ")}</p>
+                  <p className="mt-1 text-sm"><span className="text-compete font-medium">Needs work:</span> {r.skill_list.needs_work.join(", ")}</p>
                 )}
               </div>
             )}
@@ -231,7 +231,7 @@ const StudentSeasonReport = () => {
             </p>
             {r.podium?.champion && (
               <div className="mt-3 flex items-center gap-2 text-sm">
-                <Trophy className="h-4 w-4 text-amber-500" />
+                <Trophy className="h-4 w-4 text-compete" />
                 <span>
                   <b>{r.podium.champion}</b> took the season
                   {r.podium.runner_up && <>, {r.podium.runner_up} second</>}

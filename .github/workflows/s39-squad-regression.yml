@@ -98,6 +98,8 @@ jobs:
       #   brand colours only (scripts/dev-tools/brand_colours.py). Look only.
       # 25 Oct: owner decision - student dashboard part 3: the Build-log (recent work, progress charts, skills
       #   evidence, history) in brand colours; the open tab is brand blue. Look only.
+      # 25 Oct: owner decision - student dashboard part 4: Squad (overview, season report, swap box) in brand
+      #   colours. Look only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -171,7 +173,9 @@ jobs:
                    ':(exclude)src/components/dashboard/student/TaskDetailsDialog.tsx' ':(exclude)src/components/dashboard/student/WrittenTaskPanel.tsx'
                    ':(exclude)src/components/dashboard/student/VoiceExplainModal.tsx' ':(exclude)src/components/dashboard/student/SimpleQuestion.tsx'
                    ':(exclude)src/components/dashboard/student/BuildLogEntries.tsx' ':(exclude)src/components/dashboard/student/StudentProgressPage.tsx'
-                   ':(exclude)src/components/dashboard/student/StudentSkillsProved.tsx')
+                   ':(exclude)src/components/dashboard/student/StudentSkillsProved.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentSquadPage.tsx' ':(exclude)src/components/dashboard/student/StudentSeasonReport.tsx'
+                   ':(exclude)src/components/dashboard/student/SquadSwapCard.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

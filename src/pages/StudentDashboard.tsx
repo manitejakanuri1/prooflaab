@@ -1,5 +1,5 @@
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import StudentHeader from "@/components/dashboard/student/StudentHeader";
@@ -10,16 +10,7 @@ import { useStudentIntake } from "@/hooks/useStudentIntake";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { Button } from "@/components/ui/button";
-import { BrandScope } from "@/lib/brandScope";
-import "@/components/landing/landing.css";
-
-// Brand look (owner decision 25 Oct 2026): .pl-landing swaps in the brand colours and
-// fonts and follows the light/dark switch; BrandScope gives pop-ups the same look.
-const Brand = ({ children }: { children: ReactNode }) => (
-  <BrandScope.Provider value="pl-landing">
-    <div className="pl-landing relative min-h-screen bg-background text-foreground">{children}</div>
-  </BrandScope.Provider>
-);
+import { BrandPage as Brand } from "@/components/auth/AccessShell";
 
 /**
  * Four destinations: Floor, Build-log, Squad, Profile.
@@ -95,8 +86,6 @@ const StudentDashboard = () => {
 
   return (
     <Brand>
-      <div className="pointer-events-none fixed inset-0 grid-lines opacity-25" />
-      <div className="pointer-events-none fixed -top-48 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
       <StudentHeader 
         studentName={profile?.full_name || "Student"}
         profilePhoto={profile?.profile_photo_url}

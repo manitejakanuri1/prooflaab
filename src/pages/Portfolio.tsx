@@ -17,6 +17,7 @@ import {
   Briefcase
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
+import { BrandPage } from "@/components/auth/AccessShell";
 
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -150,25 +151,28 @@ const Portfolio = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading portfolio...</p>
+      <BrandPage>
+        <div className="relative min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB] mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading portfolio...</p>
+          </div>
         </div>
-      </div>
+      </BrandPage>
     );
   }
 
   if (error || !portfolio) {
     const isInvalidSlug = error === 'Portfolio not found' || !portfolio;
     return (
-      <div className="light min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center">
-        <Card className="max-w-md mx-auto bg-white border-gray-200">
+      <BrandPage>
+      <div className="relative min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto">
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            <h1 className="text-2xl font-bold text-foreground mb-4">
               {isInvalidSlug ? 'Portfolio Not Found' : 'Something Went Wrong'}
             </h1>
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               {isInvalidSlug 
                 ? 'This portfolio link is invalid or has been removed.'
                 : 'We encountered an error loading this portfolio.'
@@ -185,13 +189,14 @@ const Portfolio = () => {
           </CardContent>
         </Card>
       </div>
+      </BrandPage>
     );
   }
 
   const totalXP = portfolio?.student_profiles?.total_xp || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
+    <BrandPage>
       {/* Header */}
       <RecruiterHeader 
         isLoggedIn={!!currentUser} 
@@ -200,7 +205,7 @@ const Portfolio = () => {
       />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="flex gap-8">
           {/* Main Column */}
           <div className="flex-1 min-w-0">
@@ -242,7 +247,7 @@ const Portfolio = () => {
               {/* Stats Row */}
               <div className="flex flex-wrap gap-6 justify-center md:justify-start text-sm mb-6">
                 <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
-                  <Star className="h-5 w-5 text-yellow-500" />
+                  <Star className="h-5 w-5 text-compete" />
                   <span className="font-semibold">{totalXP} XP</span>
                 </div>
                 <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
@@ -310,7 +315,7 @@ const Portfolio = () => {
         </div>
       </main>
 
-    </div>
+    </BrandPage>
   );
 };
 

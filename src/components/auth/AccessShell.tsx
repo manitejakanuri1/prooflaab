@@ -52,6 +52,20 @@ export function BrandFrame({ children, className = "max-w-[460px]", logoHome = t
   );
 }
 
+/** A brand page that follows the light/dark switch (student dashboard, public
+ * portfolio). Pop-ups opened inside it match. */
+export function BrandPage({ children }: { children: ReactNode }) {
+  return (
+    <BrandScope.Provider value="pl-landing">
+      <div className="pl-landing relative min-h-screen bg-background text-foreground">
+        <div className="pointer-events-none fixed inset-0 grid-lines opacity-25" />
+        <div className="pointer-events-none fixed -top-48 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
+        {children}
+      </div>
+    </BrandScope.Provider>
+  );
+}
+
 /** The card with the thin blue line on top. */
 export const brandCard = "relative overflow-hidden rounded-lg border border-border bg-card/80 p-6 shadow-[0_28px_100px_-40px_hsl(var(--primary)/0.45)] backdrop-blur-xl sm:p-9";
 

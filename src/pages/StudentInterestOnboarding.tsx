@@ -9,6 +9,7 @@ import TimedResumeAssessment, { ResumeScoreResult } from "@/components/dashboard
 import { RoadmapStages } from "@/components/dashboard/student/RoadmapStages";
 import { SkillGap } from "@/components/dashboard/student/SkillGap";
 import { Loader2, Sparkles, ArrowRight, ClipboardList } from "lucide-react";
+import { BrandFrame } from "@/components/auth/AccessShell";
 
 interface AssessmentQuestion {
   id: string;
@@ -137,17 +138,19 @@ const StudentInterestOnboarding = () => {
 
   if (profileLoading || checking) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB]" />
-      </div>
+      <BrandFrame className="max-w-2xl" logoHome={false}>
+        <div className="flex justify-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB]" />
+        </div>
+      </BrandFrame>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-background dark:from-orange-950/20 dark:to-background">
-      <div className="max-w-2xl mx-auto px-4 py-10">
+    <BrandFrame className="max-w-2xl" logoHome={false}>
+      <div>
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400 font-semibold text-sm mb-2">
+          <div className="inline-flex items-center gap-2 text-primary font-semibold text-sm mb-2">
             <Sparkles className="h-4 w-4" /> Let's build your proof
           </div>
           <h1 className="text-2xl font-bold">Let's see what you already know</h1>
@@ -252,7 +255,7 @@ const StudentInterestOnboarding = () => {
           />
         )}
       </div>
-    </div>
+    </BrandFrame>
   );
 };
 

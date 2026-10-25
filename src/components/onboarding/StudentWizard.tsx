@@ -12,6 +12,8 @@ import { ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
 
 interface StudentWizardProps {
   onComplete: () => void;
+  /** Inside StudentStart's brand frame: no page wrapper of its own. */
+  framed?: boolean;
 }
 
 interface StudentWizardData {
@@ -45,7 +47,7 @@ const INTEREST_SKILLS: Record<string, string[]> = {
 const ALL_SKILLS_UNSORTED = Object.values(INTEREST_SKILLS).flat();
 const CORE_SKILLS = ["Git & GitHub", "DSA", "Linux Basics"];
 
-export default function StudentWizard({ onComplete }: StudentWizardProps) {
+export default function StudentWizard({ onComplete, framed = false }: StudentWizardProps) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -143,23 +145,23 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+    <div className={framed ? "w-full" : "min-h-screen bg-background flex items-center justify-center p-4"}>
+      <Card className={framed ? "w-full bg-card/80 shadow-[0_28px_100px_-40px_hsl(var(--primary)/0.45)] backdrop-blur-xl" : "w-full max-w-2xl"}>
         <CardHeader>
           <div className="flex items-center justify-between mb-4">
             <div className="flex space-x-2">
-              <div className={`w-3 h-3 rounded-full ${currentStep >= 1 ? 'bg-primary' : 'bg-gray-200'}`} />
-              <div className={`w-3 h-3 rounded-full ${currentStep >= 2 ? 'bg-primary' : 'bg-gray-200'}`} />
+              <div className={`w-3 h-3 rounded-full ${currentStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+              <div className={`w-3 h-3 rounded-full ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
             </div>
             <span className="text-sm text-muted-foreground">Step {currentStep} of 2</span>
           </div>
           
           {currentStep === 1 ? (
-            <CardTitle className="text-center text-2xl font-bold">
+            <CardTitle className="text-center font-display text-2xl font-semibold">
               Your job magnet is ready. Take a second to tell us about you.
             </CardTitle>
           ) : (
-            <CardTitle className="text-center text-2xl font-bold">
+            <CardTitle className="text-center font-display text-2xl font-semibold">
               Almost there! Let's personalise your tasks.
             </CardTitle>
           )}
@@ -170,16 +172,16 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
             <>
               <div className="space-y-3">
                 <Label>Key Interests</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 xs:grid-cols-2">
                   {INTERESTS.map(interest => (
-                    <div key={interest} className="flex items-center space-x-2">
+                    <Label key={interest} htmlFor={interest} className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-surface/50 px-3 py-2.5 transition-colors hover:border-primary/60 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/10">
                       <Checkbox
                         id={interest}
                         checked={formData.keyInterests.includes(interest)}
                         onCheckedChange={() => handleInterestToggle(interest)}
                       />
-                      <Label htmlFor={interest} className="text-sm">{interest}</Label>
-                    </div>
+                      <span className="text-sm font-normal">{interest}</span>
+                    </Label>
                   ))}
                 </div>
               </div>
@@ -197,16 +199,16 @@ export default function StudentWizard({ onComplete }: StudentWizardProps) {
             <>
               <div className="space-y-3">
                 <Label>Preferred Skills</Label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {visibleSkills.map(skill => (
-                    <div key={skill} className="flex items-center space-x-2">
+                    <Label key={skill} htmlFor={skill} className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-surface/50 px-3 py-2.5 transition-colors hover:border-primary/60 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/10">
                       <Checkbox
                         id={skill}
                         checked={formData.preferredSkills.includes(skill)}
                         onCheckedChange={() => handleSkillToggle(skill)}
                       />
-                      <Label htmlFor={skill} className="text-sm">{skill}</Label>
-                    </div>
+                      <span className="text-sm font-normal">{skill}</span>
+                    </Label>
                   ))}
                 </div>
               </div>

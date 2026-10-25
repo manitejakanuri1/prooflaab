@@ -116,10 +116,10 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
 
   if (extracted) {
     return (
-      <div className="w-full max-w-xl">
-        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-4">
+      <div className="w-full">
+        <div className="flex items-center gap-2 text-verified mb-4">
           <CheckCircle2 className="h-5 w-5" />
-          <h2 className="text-xl font-semibold">Got it.</h2>
+          <h2 className="font-display text-xl font-semibold">Got it.</h2>
         </div>
         <p className="text-muted-foreground mb-4">
           {extracted.length > 0
@@ -142,8 +142,8 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
   }
 
   return (
-    <div className="w-full max-w-xl">
-      <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
+    <div className="w-full">
+      <h2 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
         What should we send you?
       </h2>
       <p className="text-muted-foreground mb-8">
@@ -152,7 +152,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
 
       <div className="space-y-4">
         {/* Button 1 */}
-        <div className="border rounded-lg p-5">
+        <div className="rounded-lg border border-dashed border-border bg-surface/50 p-5 transition-colors hover:border-primary/60">
           <input
             type="file"
             accept=".pdf,.docx"
@@ -162,7 +162,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
             disabled={busy}
           />
           <label htmlFor="intake-resume-input">
-            <Button asChild size="lg" className="w-full justify-start" disabled={busy}>
+            <Button asChild size="lg" className="h-[3.25rem] w-full cursor-pointer justify-start font-mono text-[11px] uppercase tracking-[0.14em]" disabled={busy}>
               <span>
                 {uploading ? (
                   <>
@@ -185,11 +185,11 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
         </div>
 
         {/* Button 2 */}
-        {SHOW_SKIP && <div className="border rounded-lg p-5">
+        {SHOW_SKIP && <div className="rounded-lg border border-border bg-surface/50 p-5">
           <Button
             variant="outline"
             size="lg"
-            className="w-full justify-start"
+            className="h-[3.25rem] w-full justify-start font-mono text-[11px] uppercase tracking-[0.14em]"
             onClick={handleSkip}
             disabled={busy}
           >

@@ -8,6 +8,8 @@ import InterestReview from "@/components/onboarding/InterestReview";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureStudentProfile } from "@/lib/ensureStudentProfile";
+import { AnimatePresence, motion } from "motion/react";
+import { BrandFrame, brandCard, panelMotion } from "@/components/auth/AccessShell";
 
 /**
  * A self-signup student gets an auth.users row but no student_profiles row —
@@ -151,39 +153,44 @@ const StudentStart = () => {
     navigate("/student/interest-onboarding", { replace: true });
   };
 
+  // One brand frame for every step (owner decision 25 Oct 2026: the sign-in
+  // page's look); only the panel inside it changes, with the sign-in slide.
+  let step: string;
+  let panel: React.ReactNode;
   if (loading || passThrough || intake?.task_source === "resume") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    step = "loading";
+    panel = (
+      <div className="flex justify-center py-16">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
-  }
-
-  if (!hasSeenWelcome) {
-    return <WelcomeScreen onStart={handleStart} starting={starting} />;
-  }
-
-  if (collectingProfile) {
-    return <StudentWizard onComplete={handleProfileComplete} />;
-  }
-
-  if (reviewingInterests) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-6 py-16">
+  } else if (!hasSeenWelcome) {
+    step = "welcome";
+    panel = <div className={brandCard}><WelcomeScreen onStart={handleStart} starting={starting} /></div>;
+  } else if (collectingProfile) {
+    step = "profile";
+    panel = <StudentWizard framed onComplete={handleProfileComplete} />;
+  } else if (reviewingInterests) {
+    step = "review";
+    panel = (
+      <div className="flex justify-center">
         <InterestReview
           onDone={handleReviewDone}
           onEditChoices={() => { setReviewingInterests(false); setCollectingProfile(true); }}
         />
       </div>
     );
+  } else {
+    step = "choice";
+    panel = <div className={brandCard}><IntakeChoice onDone={handleIntakeDone} /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="min-h-screen flex items-center justify-center px-6 py-16">
-        <IntakeChoice onDone={handleIntakeDone} />
-      </div>
-    </div>
+    <BrandFrame className="max-w-2xl" logoHome={false}>
+      <AnimatePresence mode="wait">
+        <motion.div key={step} {...panelMotion}>{panel}</motion.div>
+      </AnimatePresence>
+    </BrandFrame>
   );
 };
 

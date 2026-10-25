@@ -19,7 +19,15 @@ export function usePageTitle(title: string) {
   }, [title]);
 }
 
-export function AccessShell({ children }: { children: ReactNode }) {
+/** The dark brand page: grid, glow and logo. Shadcn parts inside pick up the
+ * brand colours on their own, since .pl-landing redefines the colour variables. */
+export function BrandFrame({ children, className = "max-w-[460px]", logoHome = true }: { children: ReactNode; className?: string; logoHome?: boolean }) {
+  const logo = (
+    <span className="inline-flex scale-125 items-center gap-1 sm:scale-[1.4]">
+      <Logo className="h-6" alt="" />
+      <Wordmark />
+    </span>
+  );
   return (
     // reducedMotion="user": phones set to "reduce motion" get no animation.
     <MotionConfig reducedMotion="user">
@@ -27,27 +35,37 @@ export function AccessShell({ children }: { children: ReactNode }) {
         <div className="pointer-events-none absolute inset-0 grid-lines opacity-35" />
         <div className="pointer-events-none absolute -top-48 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
         <section className="relative flex min-h-[100svh] items-center justify-center px-4 py-6 sm:px-8 sm:py-10">
-          <div className="w-full max-w-[460px]">
-            <Link to="/" aria-label="Return to Prooflab home" className="mx-auto mb-8 flex w-fit justify-center sm:mb-10">
-              <span className="inline-flex scale-125 items-center gap-1 sm:scale-[1.4]">
-                <Logo className="h-6" alt="" />
-                <Wordmark />
-              </span>
-            </Link>
-            <div className="mb-5 flex items-center justify-between">
-              <span className="mono-label text-primary">PROOFLAB ACCESS</span>
-              <span className="flex items-center gap-2 font-mono text-[9px] uppercase text-verified">
-                <span className="size-1.5 rounded-full bg-verified" /> Secure entry
-              </span>
-            </div>
-            <div className="relative min-h-[430px] overflow-hidden rounded-lg border border-border bg-card/80 p-6 shadow-[0_28px_100px_-40px_hsl(var(--primary)/0.45)] backdrop-blur-xl sm:min-h-[470px] sm:p-9">
-              <div className="absolute left-0 top-0 h-px w-1/3 bg-primary" />
-              {children}
-            </div>
+          <div className={`w-full ${className}`}>
+            {logoHome ? (
+              <Link to="/" aria-label="Return to Prooflab home" className="mx-auto mb-8 flex w-fit justify-center sm:mb-10">{logo}</Link>
+            ) : (
+              <div className="mx-auto mb-8 flex w-fit justify-center sm:mb-10">{logo}</div>
+            )}
+            {children}
           </div>
         </section>
       </main>
     </MotionConfig>
+  );
+}
+
+/** The card with the thin blue line on top. */
+export const brandCard = "relative overflow-hidden rounded-lg border border-border bg-card/80 p-6 shadow-[0_28px_100px_-40px_hsl(var(--primary)/0.45)] backdrop-blur-xl sm:p-9";
+
+export function AccessShell({ children }: { children: ReactNode }) {
+  return (
+    <BrandFrame>
+      <div className="mb-5 flex items-center justify-between">
+        <span className="mono-label text-primary">PROOFLAB ACCESS</span>
+        <span className="flex items-center gap-2 font-mono text-[9px] uppercase text-verified">
+          <span className="size-1.5 rounded-full bg-verified" /> Secure entry
+        </span>
+      </div>
+      <div className={`${brandCard} min-h-[430px] sm:min-h-[470px]`}>
+        <div className="absolute left-0 top-0 h-px w-1/3 bg-primary" />
+        {children}
+      </div>
+    </BrandFrame>
   );
 }
 

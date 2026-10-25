@@ -134,9 +134,9 @@ const InterestReview = ({ onDone, onEditChoices }: InterestReviewProps) => {
   // student fixes their choices or retries.
   if (error) {
     return (
-      <Card className="w-full max-w-xl">
+      <Card className="w-full bg-card/80 shadow-[0_28px_100px_-40px_hsl(var(--primary)/0.45)] backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="text-lg">Please check your choices</CardTitle>
+          <CardTitle className="font-display text-lg font-semibold">Please check your choices</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">{error}</p>
@@ -160,22 +160,22 @@ const InterestReview = ({ onDone, onEditChoices }: InterestReviewProps) => {
 
   return (
     <>
-      <Card className="w-full max-w-xl">
+      <Card className="w-full bg-card/80 shadow-[0_28px_100px_-40px_hsl(var(--primary)/0.45)] backdrop-blur-xl">
         <CardHeader>
           <div className="flex items-center gap-2">
             {analysis.match ? (
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <CheckCircle2 className="h-5 w-5 text-verified" />
             ) : (
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="h-5 w-5 text-amber-400" />
             )}
-            <CardTitle className="text-xl">
+            <CardTitle className="font-display text-xl font-semibold">
               {analysis.match ? "That adds up." : "There's a gap here."}
             </CardTitle>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-5">
-          <div className="space-y-3 pb-4 border-b">
+          <div className="space-y-3 pb-4 border-b border-border">
             <div>
               <p className="text-sm text-muted-foreground mb-2">You picked</p>
               <div className="flex flex-wrap gap-2">
@@ -234,13 +234,13 @@ const InterestReview = ({ onDone, onEditChoices }: InterestReviewProps) => {
             </div>
           )}
 
-          <div className="pt-2 border-t space-y-3">
+          <div className="pt-2 border-t border-border space-y-3">
             <p className="text-sm text-muted-foreground">
               Next: a short quiz and a coding round on what you picked, then your score
               and a roadmap.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={startAssessment} disabled={starting}>
+              <Button onClick={startAssessment} disabled={starting} className="h-[3.25rem] w-full font-mono text-[11px] uppercase tracking-[0.14em] sm:w-auto">
                 {starting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

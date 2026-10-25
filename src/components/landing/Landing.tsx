@@ -4,22 +4,25 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowDown, ArrowRight, Check, Menu, Moon, Sun, X } from "lucide-react";
 import { Button } from "./LandingButton";
 import { cn } from "@/lib/utils";
-import mark from "./prooflab-icon-new.svg";
-import wordmark from "./prooflab-wordmark.svg";
 import "./landing.css";
 
 // The home page: an exact port of prooflab-ai.lovable.app (MinimalLanding + PilotCTA),
 // owner decision 25 Oct 2026. Only the look and the words changed. Every sign-in /
 // get-started button still goes to /auth, the same place the old home page sent people.
 
-// Logos are white-on-transparent; invert to the deep brand blue on light mode.
-const logoTheme = "invert dark:invert-0";
+// Our own brand-kit logo (owner's kit, background removed), served from the public
+// bucket gs://prooflab_logo/brand: white artwork on dark pages, navy on light pages.
+const LOGO = "https://storage.googleapis.com/prooflab_logo/brand";
 
 function BrandLogo() {
   return (
     <span className="inline-flex items-center gap-1">
-      <img src={mark} alt="" aria-hidden="true" className={`h-6 w-auto ${logoTheme}`} width={375} height={375} />
-      <img src={wordmark} alt="ProofLab — Skills That Speak" className={`h-3.5 w-auto ${logoTheme}`} width={276} height={34} />
+      {(["white", "navy"] as const).map((tone) => (
+        <span key={tone} className={cn("inline-flex items-center gap-1", tone === "white" ? "hidden dark:inline-flex" : "dark:hidden")}>
+          <img src={`${LOGO}/prooflab-icon-${tone}.svg`} alt="" aria-hidden="true" className="h-6 w-auto" width={1000} height={1000} />
+          <img src={`${LOGO}/prooflab-wordmark-${tone}.svg`} alt={tone === "white" ? "ProofLab" : ""} className="h-3.5 w-auto" width={900} height={118} />
+        </span>
+      ))}
     </span>
   );
 }

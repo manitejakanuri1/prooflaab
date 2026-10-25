@@ -187,15 +187,17 @@ squad. A Leaderboards tab shows the individual side.
 
 ---
 
+## Added after this document was first written (26 Oct 2026)
+
+- **Per-topic rating.** Quiz results were recorded per topic since stage 68. Migration 146 adds graded daily Lots and shows
+  each student labels ("strong in", "needs work") in Build-log, Skills. It records and displays only; it does not choose Lots.
+- **A college chooses how many squads qualify.** Migration 144: Squads, Manage, "Squads that qualify" (1 to 8 per section;
+  the default stays 2 per section, 4 for a single section). It applies the next time squads are ranked.
+- **Moving a student between sections.** Migration 145: the student's profile has a Section control. A squad plays inside
+  one section, so a seat in a squad of a different section is released and the student waits in the reserve pool.
+
 ## Not built
 
-- **Per-topic Elo rating** replacing the fixed 146-step ladder. This is the
-  Master Specification's own core idea and is a separate piece of work; it is
-  the one change that could break student progression if done carelessly.
-- **Capability balancing on anything but experience.** The snake draft ranks by
-  `total_xp` then `trust_score`. A calibration score would be a better input
-  once one exists for every student.
-- **A TPO control to change how many squads qualify.** Two per cohort (four for
-  a single cohort) is currently fixed in `qualify_squads`.
-- **Moving a student between sections.** A student's cohort comes from the
-  import and can only be changed by re-importing; there is no screen for it.
+- **Capability balancing on anything but experience.** The snake draft ranks by `total_xp` then `trust_score`. A
+  calibration score would be a better input once one exists for every student.
+- **Per-topic rating choosing the daily Lot.** The rating is recorded and shown, but `next_lot_pick` still uses recent Lot results only.

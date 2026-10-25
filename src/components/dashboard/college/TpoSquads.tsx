@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { format } from "date-fns";
 import TpoStudentProfile from "./TpoStudentProfile";
+import QualifierSetting from "./QualifierSetting";
 import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, TrendingUp, TrendingDown, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -710,6 +711,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         </TabsContent>
 
         <TabsContent value="manage" className="mt-4 space-y-4">
+          <QualifierSetting />
           <Card><CardContent className="pt-5">
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

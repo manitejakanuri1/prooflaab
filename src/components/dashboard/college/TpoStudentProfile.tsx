@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Bell, Users } from "lucide-react";
 import { format } from "date-fns";
+import StudentSectionMove from "./StudentSectionMove";
 
 interface Profile {
   id: string;
@@ -192,6 +193,8 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 </div>
               ))}
             </div>
+
+            <StudentSectionMove studentId={data.id} onMoved={() => { void load(); onChanged?.(); }} />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <section>

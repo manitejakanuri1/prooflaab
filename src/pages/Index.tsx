@@ -105,7 +105,6 @@ const Index = () => {
               <button onClick={() => scrollToSection('workflow')} className="text-muted-foreground hover:text-foreground transition-colors">How It Works</button>
               <button onClick={() => scrollToSection('colleges')} className="text-muted-foreground hover:text-foreground transition-colors">For Colleges</button>
               <button onClick={() => scrollToSection('startups')} className="text-muted-foreground hover:text-foreground transition-colors">For Startups</button>
-              <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Try Premium</Link>
             </nav>
 
             {/* Desktop Auth Buttons */}

@@ -48,7 +48,7 @@ function missingRules(original: string | null, shown: string): string[] {
 
 const ExactRules = ({ rules, tone }: { rules: string[]; tone?: "paper" }) =>
   rules.length === 0 ? null : (
-    <div className={`rounded-lg border p-3 ${tone === "paper" ? "border-[#d8d1c1] bg-[#faf7ef]" : "border-amber-500/30 bg-amber-500/5"}`}
+    <div className={`rounded-lg border p-3 ${tone === "paper" ? "border-[#d8d1c1] bg-[#faf7ef]" : "border-compete/30 bg-compete/5"}`}
          data-testid="exact-rules">
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Exact rules from the question</p>
       <ul className="mt-1 space-y-1 text-sm">
@@ -117,7 +117,7 @@ export const SimpleQuestion = ({ taskId, original }: { taskId: string; original:
         </div>
       )}
 
-      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+      <div className="rounded-lg border border-verified/30 bg-verified/5 p-3 text-sm">
         <span className="font-medium">You are done when: </span><InlineText text={brief.done_when} />
       </div>
 

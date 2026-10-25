@@ -37,22 +37,22 @@ const TaskDetailsDialog = ({
 
   const getSourceBadgeColor = (source: string) => {
     const normalizedSource = source?.toLowerCase() || '';
-    if (normalizedSource === 'college') return 'bg-blue-100 text-blue-700 border-blue-200';
-    if (normalizedSource === 'admin') return 'bg-gray-100 text-gray-700 border-gray-200';
-    if (normalizedSource === 'startup') return 'bg-green-100 text-green-700 border-green-200';
+    if (normalizedSource === 'college') return 'bg-primary/10 text-primary border-primary/40';
+    if (normalizedSource === 'admin') return 'bg-muted text-muted-foreground border-border';
+    if (normalizedSource === 'startup') return 'bg-verified/10 text-verified border-verified/40';
     return 'bg-muted text-muted-foreground border-border';
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Applied':
-        return 'bg-orange-100 text-orange-700 border-orange-200';
+        return 'bg-compete/10 text-compete border-compete/40';
       case 'In Progress':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
+        return 'bg-primary/10 text-primary border-primary/40';
       case 'Completed':
-        return 'bg-green-100 text-green-700 border-green-200';
+        return 'bg-verified/10 text-verified border-verified/40';
       case 'Under Review':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
+        return 'bg-compete/10 text-compete border-compete/40';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
@@ -102,10 +102,10 @@ const TaskDetailsDialog = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-orange-600" />
+                <Award className="h-5 w-5 text-compete" />
                 <div>
                   <p className="text-xs text-muted-foreground">XP Reward</p>
-                  <p className="text-sm font-medium text-orange-600">{task.xp_reward || 0} XP</p>
+                  <p className="text-sm font-medium text-compete">{task.xp_reward || 0} XP</p>
                 </div>
               </div>
             </div>
@@ -131,7 +131,7 @@ const TaskDetailsDialog = ({
                   onUploadProof(task.id);
                   onClose();
                 }}
-                className="flex-1 !bg-orange-600 hover:!bg-orange-700 text-white"
+                className="flex-1"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Submit Proof

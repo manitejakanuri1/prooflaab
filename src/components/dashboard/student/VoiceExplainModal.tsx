@@ -1347,7 +1347,7 @@ const VoiceExplainModal = ({
           Recorded {e.job.createdAt ? new Date(e.job.createdAt).toLocaleString() : "earlier"}
           {e.job.durationSeconds ? ` · ${e.job.durationSeconds}s` : ""}
         </p>
-        {state === "saved" && <p className="text-xs text-green-700">It is saved on the server for this work — you'll find it in your build-log.</p>}
+        {state === "saved" && <p className="text-xs text-verified">It is saved on the server for this work — you'll find it in your build-log.</p>}
         {state === "saved-elsewhere" && (
           <p className="text-xs">
             It is saved on the server for a different piece of work (the one it was recorded for), not
@@ -1544,7 +1544,7 @@ const VoiceExplainModal = ({
         {phase === "done" && (
           <div className="space-y-3 py-2">
             <p className="flex items-center gap-2 text-sm">
-              <CheckCircle2 className="h-4 w-4 text-green-600" /> Saved. It will appear in your build-log.
+              <CheckCircle2 className="h-4 w-4 text-verified" /> Saved. It will appear in your build-log.
             </p>
             {savedResult && (
               <div className="rounded-lg border p-3 max-h-72 overflow-y-auto">
@@ -1580,7 +1580,7 @@ const VoiceExplainModal = ({
             {!inline && <Button className="w-full" onClick={() => close(false)}>Done</Button>}
             {inline && onDone && (
               <Button
-                className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                className="w-full mt-3 bg-verified hover:bg-verified/90 text-primary-foreground font-semibold"
                 onClick={onDone}
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" /> All Done — Return to Dashboard

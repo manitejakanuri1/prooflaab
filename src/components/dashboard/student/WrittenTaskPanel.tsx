@@ -196,8 +196,8 @@ export default function WrittenTaskPanel({
           </Button>
         )}
       </div>
-      <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
-        <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
+      <div className="rounded-md border border-compete/20 bg-compete/5 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+        <Lightbulb className="h-4 w-4 text-compete shrink-0" />
         <span>
           <strong>Tip:</strong> Write in your own words focusing on practical steps and direct explanations. Plain, everyday student language is completely fine and preferred over dictionary definitions.
         </span>
@@ -210,7 +210,7 @@ export default function WrittenTaskPanel({
         placeholder="Write your answer here in your own words. Focus on practical steps and direct explanations (plain language is preferred)..."
         className="min-h-[240px] font-normal lg:flex-1"
       />
-      <p className={`text-xs ${tooShort || tooLong ? "text-amber-600" : "text-muted-foreground"}`}>
+      <p className={`text-xs ${tooShort || tooLong ? "text-compete" : "text-muted-foreground"}`}>
         {wordCount} words {tooShort ? `(need ${view.min_words - wordCount} more)` : tooLong ? "(too long)" : ""}
       </p>
 
@@ -227,10 +227,10 @@ export default function WrittenTaskPanel({
         <div
           className={`rounded-lg border p-3 ${
             result.status === "passed"
-              ? "border-emerald-500/50"
+              ? "border-verified/50"
               : result.status === "needs_review"
-              ? "border-blue-500/50"
-              : "border-amber-500/50"
+              ? "border-primary/50"
+              : "border-compete/50"
           }`}
         >
           {result.status === "needs_review" ? (
@@ -276,8 +276,8 @@ export default function WrittenTaskPanel({
           )}
 
           {done && voiceSaved && (
-            <div className="mt-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-center animate-in fade-in">
-              <p className="flex items-center justify-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="mt-4 rounded-xl border border-verified/50 bg-verified/10 p-4 text-center animate-in fade-in">
+              <p className="flex items-center justify-center gap-2 font-semibold text-verified">
                 <CheckCircle2 className="h-5 w-5" /> Task Fully Completed!
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -285,7 +285,7 @@ export default function WrittenTaskPanel({
               </p>
               {onFinish && (
                 <Button
-                  className="mt-3 w-full bg-emerald-600 text-white hover:bg-emerald-700 font-semibold"
+                  className="mt-3 w-full bg-verified text-primary-foreground hover:bg-verified/90 font-semibold"
                   onClick={onFinish}
                 >
                   Complete &amp; Return to Dashboard

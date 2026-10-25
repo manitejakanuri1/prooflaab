@@ -294,7 +294,7 @@ const StudentDailyCard = () => {
         <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs">
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              recency === "active" ? "bg-emerald-500" : recency === "idle" ? "bg-amber-500" : "bg-muted-foreground"
+              recency === "active" ? "bg-verified" : recency === "idle" ? "bg-compete" : "bg-muted-foreground"
             }`}
           />
           recency: {recency}
@@ -335,13 +335,13 @@ const StudentDailyCard = () => {
             )}
             <h2 className="mt-2 text-lg font-semibold leading-snug">{tidyTitle(lot.title)}</h2>
             {lot.status === "completed" && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-600/15 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-verified/15 px-2.5 py-1 text-xs font-semibold text-verified"
                  data-testid="lot-done">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Done{doneScore != null ? ` · ${doneScore}%` : ""}
               </p>
             )}
             {lot.status === "pending_voice" && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
                  data-testid="lot-pending-voice">
                 <Mic className="h-3.5 w-3.5" /> Code passed · Spoken explanation required
               </p>
@@ -449,15 +449,15 @@ const StudentDailyCard = () => {
                 // Filled = the Lot was done; ring = it was given and is still open; grey = no Lot.
                 // Full class names, so Tailwind keeps them in the build.
                 const DOT = {
-                  technical: ["bg-emerald-500", "border-2 border-emerald-500 bg-transparent"],
-                  business: ["bg-amber-500", "border-2 border-amber-500 bg-transparent"],
-                  pitch: ["bg-rose-500", "border-2 border-rose-500 bg-transparent"],
+                  technical: ["bg-verified", "border-2 border-verified bg-transparent"],
+                  business: ["bg-compete", "border-2 border-compete bg-transparent"],
+                  pitch: ["bg-alert", "border-2 border-alert bg-transparent"],
                 } as const;
                 const colour = kind ? DOT[kind][done ? 0 : 1] : "bg-muted";
                 return (
                   <div key={date.toISOString()} className="flex flex-1 flex-col items-center gap-1.5">
                     <span
-                      className={`h-2.5 w-2.5 rounded-full ${colour} ${today ? "ring-4 ring-emerald-500/20" : ""}`}
+                      className={`h-2.5 w-2.5 rounded-full ${colour} ${today ? "ring-4 ring-verified/20" : ""}`}
                     />
                     <span
                       className={`font-mono text-[10px] ${today ? "font-bold text-foreground" : "text-muted-foreground"}`}

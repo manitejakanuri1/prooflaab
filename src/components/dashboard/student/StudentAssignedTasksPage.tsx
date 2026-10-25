@@ -184,23 +184,23 @@ const StudentAssignedTasksPage = () => {
 
   const getSourceBadgeColor = (source: string) => {
     const normalizedSource = source?.toLowerCase() || '';
-    if (normalizedSource === 'college') return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400';
-    if (normalizedSource === 'admin') return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400';
+    if (normalizedSource === 'college') return 'bg-primary/10 text-primary border-primary/40';
+    if (normalizedSource === 'admin') return 'bg-muted text-muted-foreground border-border';
     return 'bg-muted text-muted-foreground border-border';
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Applied':
-        return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400';
+        return 'bg-compete/10 text-compete border-compete/40';
       case 'In Progress':
-        return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-primary/10 text-primary border-primary/40';
       case 'Completed':
-        return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-verified/10 text-verified border-verified/40';
       case 'Under Review':
-        return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400';
+        return 'bg-compete/10 text-compete border-compete/40';
       case 'Overdue':
-        return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-alert/10 text-alert border-alert/40';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
@@ -248,7 +248,7 @@ const StudentAssignedTasksPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {roadmapDone && (
-            <div className="rounded-lg border border-amber-400/60 bg-amber-50 p-4 dark:bg-amber-900/20" data-testid="roadmap-boss">
+            <div className="rounded-lg border border-compete/60 bg-compete/10 p-4" data-testid="roadmap-boss">
               <p className="font-semibold">🏆 You have almost reached Boss level!</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 You finished all {roadmapTasks.length} roadmap tasks inside ProofLab. One last step to become a real Boss:
@@ -361,7 +361,7 @@ const StudentAssignedTasksPage = () => {
                             <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{formatDueDate(task.deadline)}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-orange-600 font-medium">
+                          <div className="flex items-center gap-1.5 text-compete font-medium">
                             <Award className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{task.xp_reward || 0} XP</span>
                           </div>
@@ -374,7 +374,6 @@ const StudentAssignedTasksPage = () => {
                           <Button
                             size="sm"
                             onClick={() => handleStartTask(task.id)}
-                            className="bg-orange-600 hover:bg-orange-700 text-white"
                           >
                             <Play className="h-4 w-4 mr-1" />
                             Start Task
@@ -386,7 +385,6 @@ const StudentAssignedTasksPage = () => {
                               <Button
                                 size="sm"
                                 onClick={() => setCodingTaskId(task.id)}
-                                className="bg-orange-600 hover:bg-orange-700 text-white"
                               >
                                 <Code2 className="h-4 w-4 mr-1" />
                                 Solve in editor
@@ -395,7 +393,6 @@ const StudentAssignedTasksPage = () => {
                               <Button
                                 size="sm"
                                 onClick={() => setWritingTaskId(task.id)}
-                                className="bg-orange-600 hover:bg-orange-700 text-white"
                               >
                                 <PenLine className="h-4 w-4 mr-1" />
                                 Write my answer
@@ -407,7 +404,6 @@ const StudentAssignedTasksPage = () => {
                               <Button
                                 size="sm"
                                 onClick={() => setWritingTaskId(task.id)}
-                                className="bg-orange-600 hover:bg-orange-700 text-white"
                               >
                                 <PenLine className="h-4 w-4 mr-1" />
                                 Write my answer
@@ -431,7 +427,7 @@ const StudentAssignedTasksPage = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => navigate(`/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(task.id)}`)}
-                            className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
+                            className="bg-verified/10 text-verified border-verified/40"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             View Submission
@@ -442,7 +438,7 @@ const StudentAssignedTasksPage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400"
+                              className="bg-compete/10 text-compete border-compete/40"
                               disabled
                             >
                               <Eye className="h-4 w-4 mr-1" />

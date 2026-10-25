@@ -202,7 +202,7 @@ export default function SandboxTaskPanel({
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {result && (
-        <div className={`rounded-lg border p-3 ${result.passed ? "border-emerald-500/50" : "border-amber-500/50"}`}>
+        <div className={`rounded-lg border p-3 ${result.passed ? "border-verified/50" : "border-compete/50"}`}>
           <p className="font-semibold">
             {submitScoreLine(result)}
             {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
@@ -230,8 +230,8 @@ export default function SandboxTaskPanel({
           )}
 
           {done && voiceSaved && (
-            <div className="mt-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-center animate-in fade-in">
-              <p className="flex items-center justify-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="mt-4 rounded-xl border border-verified/50 bg-verified/10 p-4 text-center animate-in fade-in">
+              <p className="flex items-center justify-center gap-2 font-semibold text-verified">
                 <CheckCircle2 className="h-5 w-5" /> Task Fully Completed!
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -239,7 +239,7 @@ export default function SandboxTaskPanel({
               </p>
               {onFinish && (
                 <Button
-                  className="mt-3 w-full bg-emerald-600 text-white hover:bg-emerald-700 font-semibold"
+                  className="mt-3 w-full bg-verified text-primary-foreground hover:bg-verified/90 font-semibold"
                   onClick={onFinish}
                 >
                   Complete &amp; Return to Dashboard
@@ -253,18 +253,18 @@ export default function SandboxTaskPanel({
       {shownResults?.map((t, i) => isHiddenSummary(t) ? (
         <div key={t.id} className="flex items-start gap-2 text-sm">
           {t.passed ? (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-verified" />
           ) : (
-            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-alert" />
           )}
           <p>{hiddenSummaryText(t)}</p>
         </div>
       ) : (
         <div key={t.id} className="flex items-start gap-2 text-sm">
           {t.passed ? (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-verified" />
           ) : (
-            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-alert" />
           )}
           <div className="min-w-0">
             <p>
@@ -282,7 +282,7 @@ export default function SandboxTaskPanel({
       ))}
 
       {view.completed && !result && (
-        <p className="text-sm text-emerald-600">You already completed this task.</p>
+        <p className="text-sm text-verified">You already completed this task.</p>
       )}
       {!busy && !error && !result && !runResults && !view.completed && (
         <p className="text-sm text-muted-foreground">Run your code to see results here.</p>

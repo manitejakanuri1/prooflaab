@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 1ca469d91f089048c9dc2d7c068f26484b6910e1   # 2026-10-25: squad swaps (migration 143)
+      STAGING_RC: 41d4699718034fdb9cad1c26c6d3e489e9293072   # 2026-10-25: Lovable home page
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

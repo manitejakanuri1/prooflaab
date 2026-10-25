@@ -166,7 +166,7 @@ const InterestReview = ({ onDone, onEditChoices }: InterestReviewProps) => {
             {analysis.match ? (
               <CheckCircle2 className="h-5 w-5 text-verified" />
             ) : (
-              <AlertTriangle className="h-5 w-5 text-amber-400" />
+              <AlertTriangle className="h-5 w-5 text-compete" />
             )}
             <CardTitle className="font-display text-xl font-semibold">
               {analysis.match ? "That adds up." : "There's a gap here."}

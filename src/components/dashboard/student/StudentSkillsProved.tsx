@@ -22,7 +22,7 @@ interface Skill {
 const STATUS: Record<string, { label: string; tone: string; says: string }> = {
   proven: {
     label: "Proven",
-    tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    tone: "bg-verified/10 text-verified border-verified/20",
     says: "Evidence exists for this: work submitted and explained out loud.",
   },
   assessed: {
@@ -37,7 +37,7 @@ const STATUS: Record<string, { label: string; tone: string; says: string }> = {
   },
   needs_improvement: {
     label: "Needs work",
-    tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    tone: "bg-compete/10 text-compete border-compete/20",
     says: "The assessment came back short of the bar. Worth another pass.",
   },
 };

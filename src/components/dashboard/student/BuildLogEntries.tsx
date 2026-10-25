@@ -145,7 +145,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
           </p>
         )}
         {v && !busy && !scored && v.communication_notes && (
-          <p className="text-sm text-amber-700 dark:text-amber-400">{v.communication_notes}</p>
+          <p className="text-sm text-compete">{v.communication_notes}</p>
         )}
         {scored && gate && (
           <p className="text-xs text-muted-foreground">Language: {gate === "english" ? "English" : "accepted"}</p>

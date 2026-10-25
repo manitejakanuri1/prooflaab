@@ -11,6 +11,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface WeekPoint { week: number; points: number }
 interface EarnedBadge { name: string; emoji: string }
 
+// Brand colours for the chart pop-up (it is drawn inside the chart, not as a portal).
+const TOOLTIP = { background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--popover-foreground))" };
+
 /**
  * Progress — real numbers only.
  *
@@ -33,6 +36,7 @@ interface EarnedBadge { name: string; emoji: string }
  * honest answer — for a new student, the honest answer is "not much history
  * yet," not a fabricated upward curve.
  */
+
 const StudentProgressPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
 
@@ -82,18 +86,18 @@ const StudentProgressPage = () => {
     : null;
 
   const submissionData = [
-    { name: "Passed", value: submissions.passed, color: "#22c55e" },
-    { name: "Needs review", value: submissions.review, color: "#f59e0b" },
-    { name: "Not passed", value: submissions.total - submissions.passed - submissions.review, color: "#ef4444" },
+    { name: "Passed", value: submissions.passed, color: "hsl(var(--verified))" },
+    { name: "Needs review", value: submissions.review, color: "hsl(var(--compete))" },
+    { name: "Not passed", value: submissions.total - submissions.passed - submissions.review, color: "hsl(var(--alert))" },
   ];
 
   const progressCards = [
     { title: "This Week's Points", value: thisWeek.toString(), icon: Award,
-      color: "text-green-600", bgColor: "bg-green-50", change: weekChange },
+      color: "text-verified", bgColor: "bg-verified/10", change: weekChange },
     { title: "Pass Rate", value: `${passRate}%`, icon: Target,
-      color: "text-blue-600", bgColor: "bg-blue-50", change: null },
+      color: "text-primary", bgColor: "bg-primary/10", change: null },
     { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck,
-      color: "text-orange-600", bgColor: "bg-orange-50", change: null },
+      color: "text-compete", bgColor: "bg-compete/10", change: null },
   ];
 
   return (
@@ -104,14 +108,14 @@ const StudentProgressPage = () => {
           return (
             <Card key={index} className="transition-all hover:shadow-md">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">{card.title}</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{card.title}</CardTitle>
                 <div className={`p-2 rounded-lg ${card.bgColor}`}>
                   <Icon className={`h-4 w-4 ${card.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{card.value}</div>
-                {card.change && <div className="text-sm text-green-600">{card.change}</div>}
+                {card.change && <div className="text-sm text-verified">{card.change}</div>}
               </CardContent>
             </Card>
           );
@@ -127,11 +131,11 @@ const StudentProgressPage = () => {
             {weeklyPoints.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={weeklyPoints}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="week" tickFormatter={(w) => `Wk ${w}`} />
-                  <YAxis />
-                  <Tooltip labelFormatter={(w) => `Week ${w}`} />
-                  <Bar dataKey="points" fill="#ea580c" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="week" tickFormatter={(w) => `Wk ${w}`} stroke="hsl(var(--border))" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis stroke="hsl(var(--border))" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip labelFormatter={(w) => `Week ${w}`} contentStyle={TOOLTIP} cursor={{ fill: "hsl(var(--primary) / 0.08)" }} />
+                  <Bar dataKey="points" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -157,19 +161,19 @@ const StudentProgressPage = () => {
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie data={submissionData} cx="50%" cy="50%" innerRadius={60} outerRadius={100}
-                         paddingAngle={5} dataKey="value">
+                         paddingAngle={5} dataKey="value" stroke="hsl(var(--card))">
                       {submissionData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip contentStyle={TOOLTIP} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap justify-center gap-4 mt-4">
                   {submissionData.map((entry, index) => (
                     <div key={index} className="flex items-center space-x-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                      <span className="text-sm text-gray-600">{entry.name}: {entry.value}</span>
+                      <span className="text-sm text-muted-foreground">{entry.name}: {entry.value}</span>
                     </div>
                   ))}
                 </div>
@@ -200,7 +204,7 @@ const StudentProgressPage = () => {
               {badges && badges.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {badges.map((b, i) => (
-                    <Badge key={i} className="bg-yellow-100 text-yellow-800">{b.emoji} {b.name}</Badge>
+                    <Badge key={i} className="bg-compete/10 text-compete">{b.emoji} {b.name}</Badge>
                   ))}
                 </div>
               ) : (

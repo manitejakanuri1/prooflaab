@@ -11,6 +11,8 @@ export interface TestMistake {
   status: "Pending" | "In Progress" | "Under Review" | "Completed";
   /** The task behind this item, so Start can open exactly it. */
   taskId?: string;
+  /** A coding task: its button says "Solve in editor", as on the task list. */
+  coding?: boolean;
 }
 
 /** Same rule the server uses to match skills: case, spaces, dots, dashes ignored. */
@@ -18,9 +20,9 @@ export const normSkill = (s: string) => s.toLowerCase().replace(/[\s._-]/g, "");
 
 const STATUS_LABEL: Record<TestMistake["status"], string> = {
   Pending: "Not started",
-  "In Progress": "In progress",
-  "Under Review": "Under review",
-  Completed: "Done",
+  "In Progress": "In Progress",
+  "Under Review": "Under Review",
+  Completed: "Completed",
 };
 
 /**
@@ -40,9 +42,12 @@ const TestMistakes = ({ mistakes, onGoToTasks }: { mistakes: TestMistake[]; onGo
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{m.why}</p>
         <p className="mt-0.5 text-xs">Next step: {m.action}</p>
-        {m.status !== "Completed" && onGoToTasks && (
+        {/* The same words as the task's own buttons on the task list (owner, 23 Oct 2026). */}
+        {m.status !== "Under Review" && onGoToTasks && (
           <Button size="sm" variant="ghost" className="mt-1 h-7 px-2 text-xs" onClick={() => onGoToTasks(m.taskId)}>
-            {m.status === "Pending" ? "Start" : "Continue"}
+            {m.status === "Pending" ? "Start Task"
+              : m.status === "Completed" ? "View Submission"
+              : m.coding ? "Solve in editor" : "Write my answer"}
           </Button>
         )}
       </li>

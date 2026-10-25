@@ -33,7 +33,7 @@ const StudentPortfolioPage = () => {
     );
   }
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!portfolio?.slug) {
       toast({
         title: "Portfolio not ready",
@@ -42,13 +42,24 @@ const StudentPortfolioPage = () => {
       });
       return;
     }
-    
+    // A private portfolio's link opens "not found" for everyone else, so say so instead of copying it.
+    if (!portfolio.is_public) {
+      toast({
+        title: "Your portfolio is private",
+        description: "Switch it to Public first (the switch next to Share), then share the link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const portfolioUrl = `${window.location.origin}/portfolio/${portfolio.slug}`;
-    navigator.clipboard.writeText(portfolioUrl);
-    toast({
-      title: "Portfolio link copied!",
-      description: "Share this link to showcase your achievements.",
-    });
+    try {
+      await navigator.clipboard.writeText(portfolioUrl);
+      toast({ title: "Portfolio link copied!", description: portfolioUrl });
+    } catch {
+      // Clipboard blocked (browser setting): show the link so it can be copied by hand.
+      toast({ title: "Your portfolio link", description: portfolioUrl });
+    }
   };
 
   const toggleVisibility = async () => {

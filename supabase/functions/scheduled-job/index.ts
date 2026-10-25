@@ -1,5 +1,5 @@
 import { serve } from "../_shared/serve.ts";
-import { removeOwnerFiles } from '../_shared/owner-files.ts';
+import { removeOwnerFiles, removeVoiceAudio } from '../_shared/owner-files.ts';
 import { createClient } from "../_shared/backend.ts";
 import { schedulerCaller } from "../_shared/googleIdentity.ts";
 import { pagesNeedingLots, reopenForRewrite, writeLotTemplate } from "../_shared/lot-pipeline.ts";
@@ -113,6 +113,26 @@ serve(async (req) => {
       if (markError) console.error(`scheduled-job prune-events: purge not recorded: ${markError.message}`); else purged++;
     }
     if (gone?.length) console.log(`scheduled-job prune-events: files purged for ${purged} of ${gone.length} deleted account(s)`);
+
+    // Migration 138: each student keeps the audio of their newest 7 recordings; older audio is deleted here.
+    // The row, transcript and score stay. Up to 500 files a night; what is left is picked up the next night.
+    const { data: old, error: oldError } = await db.rpc('voice_audio_to_purge', { _keep: 7, _limit: 500 });
+    if (oldError) console.error(`scheduled-job prune-events: listing old voice audio failed: ${oldError.message}`);
+    // Migration 141: mock interview answers ('mock') count toward the newest 7 too.
+    const rows = (old ?? []) as { id: string; storage_path: string; kind?: string }[];
+    if (rows.length) {
+      const removed = new Set(await removeVoiceAudio(rows.map((r) => r.storage_path), Deno.env.get('PRIVATE_MOUNT') ?? '/mnt/private'));
+      const gone = rows.filter((r) => removed.has(r.storage_path));
+      const ids = gone.filter((r) => r.kind !== 'mock').map((r) => r.id);
+      const paths = gone.filter((r) => r.kind === 'mock').map((r) => r.storage_path);
+      const { data: marked, error: markError } = ids.length
+        ? await db.rpc('mark_voice_audio_purged', { _ids: ids }) : { data: 0, error: null };
+      const { data: markedMock, error: mockError } = paths.length
+        ? await db.rpc('mark_mock_audio_purged', { _paths: paths }) : { data: 0, error: null };
+      if (markError || mockError) console.error(`scheduled-job prune-events: audio deletion not recorded: ${(markError ?? mockError)!.message}`);
+      if (gone.length < rows.length) console.error(`JOB SANITY: ${rows.length - gone.length} old voice audio file(s) not removed`);
+      console.log(`scheduled-job prune-events: old voice audio removed ${gone.length} of ${rows.length}, recorded ${marked ?? 0} voice + ${markedMock ?? 0} mock`);
+    }
   }
 
   // A job that ran but failed at its purpose is a failure (migration 75): answer 500 so Cloud
@@ -187,7 +207,9 @@ async function sanityCheck(db: any, job: string, data: any) {
       db.from('student_profiles').select('id', { count: 'exact', head: true }).gte('last_active', new Date(Date.now() - 14 * 86400_000).toISOString()),
       db.from('tasks').select('id', { count: 'exact', head: true }).eq('lot_date', today),
     ]);
-    if ((active ?? 0) > 0 && (made ?? 0) === 0) {
+    // Migration 130: Sunday is the rest day, so 0 Lots on a Sunday is the plan, not a failure.
+    const restDay = new Date(`${today}T00:00:00Z`).getUTCDay() === 0;
+    if (!restDay && (active ?? 0) > 0 && (made ?? 0) === 0) {
       console.error(`JOB SANITY: daily-lots ran but ${today} has 0 tasks in total (new or existing), though ${active} students were active in the last 14 days.`);
     }
     // Migration 68: a student whose Lot could not be created no longer stops the others,

@@ -10,6 +10,8 @@ import { readFunctionError } from "@/lib/functionError";
 /** Spec: PDF or DOCX, under 5 MB. Kept in sync with resume-parser's own check. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = [".pdf", ".docx"];
+/** Owner, 22 Oct 2026: Skip is hidden for now. Set VITE_ONBOARDING_SKIP=true in the .env file to show it again. */
+const SHOW_SKIP = import.meta.env.VITE_ONBOARDING_SKIP === "true";
 
 interface IntakeChoiceProps {
   onDone: (source: TaskSource) => Promise<void> | void;
@@ -145,7 +147,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
         What should we send you?
       </h2>
       <p className="text-muted-foreground mb-8">
-        Pick one. You can change this later.
+        {SHOW_SKIP ? "Pick one. You can change this later." : "Upload your resume to get started."}
       </p>
 
       <div className="space-y-4">
@@ -183,7 +185,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
         </div>
 
         {/* Button 2 */}
-        <div className="border rounded-lg p-5">
+        {SHOW_SKIP && <div className="border rounded-lg p-5">
           <Button
             variant="outline"
             size="lg"
@@ -203,7 +205,7 @@ const IntakeChoice = ({ onDone }: IntakeChoiceProps) => {
               </>
             )}
           </Button>
-        </div>
+        </div>}
       </div>
     </div>
   );

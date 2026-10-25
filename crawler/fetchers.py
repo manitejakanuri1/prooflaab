@@ -137,17 +137,50 @@ def fetch_web_raw(url: str) -> Fetched | None:
 # GitHub
 # ---------------------------------------------------------------------------
 
-def fetch_github(url: str) -> Fetched | None:
-    """A repository's README, through the public API.
+def github_api_path(url: str) -> tuple[str, str] | None:
+    """The API path and a title for a github.com address.
 
-    No token needed for public repositories. GITHUB_PAT is used when present
-    only to lift the hourly rate limit, which matters if the registry ever
-    holds more than a handful of repos.
+    github.com/o/r                      -> the repository README
+    github.com/o/r/tree/<ref>/<dir>     -> that folder's README (one lesson of a course repo)
+    github.com/o/r/blob/<ref>/<file>    -> that one file
     """
     parts = [p for p in urlparse(url).path.split("/") if p]
     if len(parts) < 2:
         return None
     owner, repo = parts[0], parts[1].removesuffix(".git")
+    if len(parts) >= 5 and parts[2] in ("tree", "blob"):
+        ref, path = parts[3], "/".join(parts[4:])
+        kind = "readme" if parts[2] == "tree" else "contents"
+        return f"repos/{owner}/{repo}/{kind}/{path}?ref={ref}", f"{owner}/{repo}/{path}"
+    return f"repos/{owner}/{repo}/readme", f"{owner}/{repo}"
+
+
+def fetch_github(url: str) -> Fetched | None:
+    """A repository's README, or one folder's README / one file, through the public API.
+
+    No token needed for public repositories. GITHUB_PAT is used when present
+    only to lift the hourly rate limit, which matters if the registry ever
+    holds more than a handful of repos.
+    """
+    target = github_api_path(url)
+    if not target:
+        return None
+    api_path, title = target
+
+    # A lesson file or folder comes from raw.githubusercontent.com, which has no robots.txt and is
+    # not counted against the API's 60-an-hour limit for callers without a token. A folder's lesson is
+    # its README.md. Only a repository's front page needs the API (its README name varies).
+    parts = [p for p in urlparse(url).path.split("/") if p]
+    if len(parts) >= 5 and parts[2] in ("tree", "blob"):
+        raw = f"https://raw.githubusercontent.com/{parts[0]}/{parts[1]}/{parts[3]}/{'/'.join(parts[4:])}"
+        if parts[2] == "tree":
+            raw += "/README.md"
+        try:
+            r = httpx.get(raw, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT, follow_redirects=True)
+            if r.status_code == 200 and r.text.strip():
+                return Fetched(r.text, title, "markdown")
+        except httpx.HTTPError:
+            pass
 
     # agent-reach's backend first. gh reads GH_TOKEN; without one it still
     # reads public repositories, at a lower rate limit.
@@ -157,12 +190,12 @@ def fetch_github(url: str) -> Fetched | None:
             env["GH_TOKEN"] = os.environ["GITHUB_PAT"]
         try:
             out = subprocess.run(
-                ["gh", "api", f"repos/{owner}/{repo}/readme",
+                ["gh", "api", api_path,
                  "-H", "Accept: application/vnd.github.raw+json"],
                 capture_output=True, text=True, timeout=TIMEOUT, env=env,
             )
             if out.returncode == 0 and out.stdout.strip():
-                return Fetched(out.stdout, f"{owner}/{repo}", "markdown")
+                return Fetched(out.stdout, title, "markdown")
         except (subprocess.TimeoutExpired, OSError):
             pass
 
@@ -173,7 +206,7 @@ def fetch_github(url: str) -> Fetched | None:
 
     try:
         r = httpx.get(
-            f"https://api.github.com/repos/{owner}/{repo}/readme",
+            f"https://api.github.com/{api_path}",
             headers=headers, timeout=TIMEOUT, follow_redirects=True,
         )
     except httpx.HTTPError:
@@ -181,7 +214,7 @@ def fetch_github(url: str) -> Fetched | None:
     if r.status_code != 200 or not r.text.strip():
         return None
 
-    return Fetched(r.text, f"{owner}/{repo}", "markdown")
+    return Fetched(r.text, title, "markdown")
 
 
 # ---------------------------------------------------------------------------

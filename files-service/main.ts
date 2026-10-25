@@ -260,6 +260,11 @@ async function handler(req: Request): Promise<Response> {
 
   const target = resolve(url.pathname);
   if ('error' in target) return json({ error: target.error }, 400, origin);
+  // Migration 138: a recording is evidence, so no one deletes it through here, not even its owner.
+  // Old audio is removed only by the daily job (keeps each student's newest 7), straight on the bucket.
+  if (req.method === 'DELETE' && target.object.startsWith('voice-explanations/')) {
+    return json({ error: 'recordings cannot be deleted' }, 403, origin);
+  }
 
   // A public photo may be read by anyone; everything else needs a token first.
   const anonymousRead = req.method === 'GET' && target.isPublic;

@@ -16,6 +16,7 @@ export const ADMIN_GROUPS = [
   { id: "people", label: "People", icon: Users, children: [
     { id: "students", label: "Students" },
     { id: "colleges", label: "Colleges" },
+    { id: "squads", label: "Squads" },
     { id: "startups", label: "Companies" },
     { id: "settings", label: "Admins & roles" },
   ] },

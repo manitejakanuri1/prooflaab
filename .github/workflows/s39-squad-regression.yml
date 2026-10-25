@@ -53,6 +53,31 @@ jobs:
       # 19 Oct: owner decision - Squad tabs: section + college rank, role "Member", last season's final
       #         leaderboard (migration 124), season report wording.
       # 19 Oct: owner decision - a task question shows any exact rule the simple version dropped.
+      # 22 Oct: owner decision - the coding score shows each question's tests (migration 128), and the
+      #         voice recorder's tip says: explain it like you are talking to a friend.
+      # 22 Oct: owner decision - Sunday is the Lot rest day; the daily card says so (migration 130).
+      # 22 Oct: owner decision - when every roadmap task is done, the task list shows the "Boss level" next step.
+      # 23 Oct: owner decision - roadmap items use the task list's own words (Start Task, Write my answer,
+      #         Solve in editor, View Submission; Not started / In Progress / Completed).
+      # 23 Oct: owner decision - Share Portfolio works: says when the portfolio is private, shows the link if copy fails.
+      # 23 Oct: owner decision - Badges and quests come from real activity (migration 135); quests show no XP promise.
+      # 23 Oct: owner decision - voice privacy texts match the real rules (mock audio is never shared; task audio
+      #         reaches companies only with the student's audio-sharing switch on).
+      # 23 Oct: owner decision - students cannot delete recordings or their account (migration 138); Privacy has
+      #         no delete button, Settings has no Delete Account box; older audio (beyond the newest 7) shows
+      #         "audio removed to save space" with the words still there.
+      # 23 Oct: owner decision - a company sees daily Lots only (migration 139), worded "Daily Lots and spoken
+      #         explanations" / "Lots solved" / "Passed · 100/100" / "Feedback:".
+      # 24 Oct: owner decision - mock interview audio joins the newest-7 rule (migration 141); the recording notices
+      #         say so in plain words and that score, feedback and written words always stay in the history.
+      # 24 Oct: owner decision - after Auto-fix one button "Download & continue with this resume" switches to the new
+      #         resume (migration 142), shows old -> new scores and what the AI changed; every resume score has a
+      #         "How is this scored?" panel (ScoreExplainer) with the rules, marks per question and the formula.
+      # 24 Oct: owner decision - each question in the result and history shows its marks on top (QuestionMarks):
+      #         MCQ 100/0 -> Skill proof; written: correct -> Skill/Project proof, clear -> Reasoning.
+      # 25 Oct: owner decision - squad swaps (migration 143): two students in the same section trade squads in the
+      #         first 7 days with each other's squad code; own points move with them. Student Squad page gets the swap
+      #         box (SquadSwapCard), the college Squads page a Swaps tab (SquadSwapsList, shared with the admin).
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -60,6 +85,13 @@ jobs:
                    ':(exclude)src/components/dashboard/student/SandboxTaskPanel.tsx'
                    ':(exclude)src/components/dashboard/student/TimedResumeAssessment.tsx'
                    ':(exclude)src/components/dashboard/student/ResumeCheckFlow.tsx'
+                   ':(exclude)src/components/dashboard/student/CodingBreakdown.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentResumeHistoryPage.tsx'
+                   ':(exclude)src/components/dashboard/student/TestMistakes.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentRoadmapPage.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentPortfolioPage.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentAchievements.tsx'
+                   ':(exclude)src/components/dashboard/student/MockInterview.tsx'
                    ':(exclude)src/components/onboarding/IntakeChoice.tsx'
                    ':(exclude)src/hooks/useStudentIntake.tsx'
                    ':(exclude)src/pages/StudentStart.tsx'
@@ -75,7 +107,15 @@ jobs:
                    ':(exclude)src/components/dashboard/student/StudentSeasonReport.tsx'
                    ':(exclude)src/components/dashboard/season/SeasonLeaderboards.tsx'
                    ':(exclude)src/components/dashboard/student/SimpleQuestion.tsx'
-                   ':(exclude)src/lib/voiceGateReload.test.ts')
+                   ':(exclude)src/lib/voiceGateReload.test.ts'
+                   ':(exclude)src/components/dashboard/student/StudentPrivacy.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentSettingsPage.tsx'
+                   ':(exclude)src/components/dashboard/student/RecordingPlayback.tsx'
+                   ':(exclude)src/components/dashboard/recruiter/ProofProfile.tsx'
+                   ':(exclude)src/components/dashboard/student/ScoreExplainer.tsx'
+                   ':(exclude)src/components/dashboard/student/SquadSwapCard.tsx'
+                   ':(exclude)src/components/dashboard/season/SquadSwapsList.tsx'
+                   ':(exclude)src/components/dashboard/college/TpoSquads.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

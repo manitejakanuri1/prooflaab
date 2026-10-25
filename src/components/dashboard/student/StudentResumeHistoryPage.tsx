@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import CodingBreakdown from "./CodingBreakdown";
+import { QuestionMarks, ScoreExplainer, type ExplainedAnswer } from "./ScoreExplainer";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SkillGap { verified: string[]; needs_improvement: string[]; missing: string[] }
@@ -31,6 +33,8 @@ interface AnswerScore {
   correct_answer?: string;
   final_score: number;
   explanation: string;
+  category?: "skill" | "project_defense";
+  reasoning_clarity_score?: number;
 }
 
 const StudentResumeHistoryPage = () => {
@@ -75,8 +79,15 @@ const StudentResumeHistoryPage = () => {
         .eq("student_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20);
-      setHistory((data as unknown as HistoryEntry[]) || []);
+      const rows = (data as unknown as HistoryEntry[]) || [];
+      setHistory(rows);
       setLoading(false);
+      // The latest test's per-question marks, for "How is this scored?".
+      const latestId = rows[0]?.assessment_id;
+      if (latestId) {
+        const { data: graded } = await supabase.from("resume_assessments").select("answer_scores").eq("id", latestId).maybeSingle();
+        setAnswersByAssessment((prev) => ({ ...prev, [latestId]: (graded?.answer_scores as unknown as AnswerScore[]) || [] }));
+      }
     })();
   }, [user]);
 
@@ -133,10 +144,20 @@ const StudentResumeHistoryPage = () => {
                       </div>
                     ))}
                   </div>
+                  <div className="mt-3">
+                    <ScoreExplainer quality={latest.resume_quality_score} ats={latest.ats_match_score}
+                                    skill={latest.skill_proof_score} project={latest.project_proof_score}
+                                    reasoning={latest.reasoning_score} readiness={latest.interview_readiness_score}
+                                    coding={latest.coding_score}
+                                    answers={latest.assessment_id ? answersByAssessment[latest.assessment_id] as unknown as ExplainedAnswer[] : undefined} />
+                  </div>
                   {latest.coding_score != null && (
                     <p className="text-xs text-muted-foreground mt-2">
                       Coding round: {latest.coding_score}/100 (shown separately, not part of readiness).
                     </p>
+                  )}
+                  {latest.coding_score != null && (
+                    <CodingBreakdown assessmentId={latest.assessment_id} />
                   )}
                   {gap && (gap.needs_improvement?.length > 0 || gap.missing?.length > 0) && (
                     <p className="text-xs text-muted-foreground mt-3">
@@ -251,8 +272,9 @@ const StudentResumeHistoryPage = () => {
                                 <p className="text-xs text-muted-foreground">No per-question breakdown saved for this attempt.</p>
                               ) : (
                                 <div className="space-y-2">
-                                  {answers.map((a) => (
-                                    <div key={a.question_id} className="border rounded-lg p-2.5 text-sm bg-background">
+                                  {answers.map((a, i) => (
+                                    <div key={`${a.question_id}-${i}`} className="border rounded-lg p-2.5 text-sm bg-background space-y-1">
+                                      <QuestionMarks a={a} n={i + 1} />
                                       <div className="flex items-start gap-2">
                                         {a.final_score >= 70 ? (
                                           <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />

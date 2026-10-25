@@ -9,6 +9,7 @@ import { TARGET_ROLES } from "@/lib/targetRoles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileCheck2, Upload, X, Plus, CheckCircle2, Loader2, ClipboardList, Sparkles, Download, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import CodingBreakdown from "./CodingBreakdown";
 import type { Json } from "@/integrations/supabase/types";
 import { readFunctionError } from "@/lib/functionError";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +18,7 @@ import TimedResumeAssessment, { ResumeScoreResult } from "./TimedResumeAssessmen
 import { RoadmapStages } from "./RoadmapStages";
 import { SkillGap } from "./SkillGap";
 import { downloadResumeAsPdf } from "@/lib/resumePdf";
+import { ScoreExplainer } from "./ScoreExplainer";
 import { addDays, formatDistanceToNow } from "date-fns";
 
 // Mirrors COOLDOWN_DAYS in supabase/functions/resume-retest-generate — used
@@ -48,6 +50,10 @@ interface ResumeClaimRow {
   improve_next_steps?: string[] | null;
   improve_motivation?: string | null;
   improved_at?: string | null;
+  improve_changes?: string[] | null;
+  original_ats_score?: number | null;
+  original_quality_score?: number | null;
+  improved_applied_at?: string | null;
 }
 
 interface AssessmentQuestion {
@@ -131,6 +137,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
   const [generatingAssessment, setGeneratingAssessment] = useState(false);
   const [retesting, setRetesting] = useState(false);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  // The graded assessment behind the scorecard shown; kept apart so it never reopens a test.
+  const [scorecardAssessmentId, setScorecardAssessmentId] = useState<string | null>(null);
   const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [scoreResult, setScoreResult] = useState<ResumeScoreResult | null>(null);
@@ -160,7 +168,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
     const { data, error } = await supabase
       .from("resume_claims")
       .select(
-        "id, target_role, skills, certifications, projects, status, resume_quality_score, resume_quality_notes, ats_match_score, ats_match_notes, skill_relevance_notes, feedback_acknowledged, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at"
+        "id, target_role, skills, certifications, projects, status, resume_quality_score, resume_quality_notes, ats_match_score, ats_match_notes, skill_relevance_notes, feedback_acknowledged, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at, improve_changes, original_ats_score, original_quality_score, improved_applied_at"
       )
       .eq("student_id", profile.id)
       .order("created_at", { ascending: false })
@@ -181,13 +189,18 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
       if (row.status === "confirmed") {
         const { data: scorecard } = await supabase
           .from("resume_scorecards")
-          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, skill_gap, voice_authenticity_score, voice_notes, coding_score, project_proof_score, reasoning_score, interview_readiness_score, created_at")
+          .select("resume_quality_score, ats_match_score, skill_proof_score, roadmap, skill_gap, voice_authenticity_score, voice_notes, coding_score, project_proof_score, reasoning_score, interview_readiness_score, created_at, assessment_id")
           .eq("resume_claims_id", row.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
         if (scorecard) {
+          // The per-question marks, for "How is this scored?".
+          const { data: graded } = scorecard.assessment_id
+            ? await supabase.from("resume_assessments").select("answer_scores").eq("id", scorecard.assessment_id).maybeSingle()
+            : { data: null };
           setScoreResult({
+            answer_scores: (graded?.answer_scores ?? undefined) as unknown as ResumeScoreResult["answer_scores"],
             resume_quality_score: scorecard.resume_quality_score,
             ats_match_score: scorecard.ats_match_score,
             skill_proof_score: scorecard.skill_proof_score ?? 0,
@@ -201,6 +214,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
             interview_readiness_score: scorecard.interview_readiness_score,
           });
           setLastGradedAt(new Date(scorecard.created_at));
+          setScorecardAssessmentId(scorecard.assessment_id);
         }
       }
     }
@@ -347,7 +361,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
         .eq("id", claim.id);
       if (error) throw error;
 
-      setClaim({ ...claim, status: "confirmed", target_role: targetRole, skills, certifications, projects });
+      setClaim((c) => c ? { ...c, status: "confirmed", target_role: targetRole, skills, certifications, projects } : c);
       setEditingDetails(false);
       toast({ title: "Confirmed", description: "Your resume claims are locked in." });
     } catch (err: any) {
@@ -375,6 +389,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
         improved_quality_score: data.after_quality,
         improve_next_steps: data.next_steps,
         improve_motivation: data.motivation,
+        improve_changes: data.changes,
         improved_at: new Date().toISOString(),
       } : c);
     } catch (err: any) {
@@ -385,9 +400,24 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
     }
   };
 
-  const handleDownloadImproved = () => {
-    if (!improvedResume) return;
-    downloadResumeAsPdf(improvedResume, "improved-resume.pdf");
+  // Owner decision 24 Oct 2026 (migration 142): one button downloads the AI-improved resume AND makes it
+  // the student's resume (text and scores); the confirm step then moves on to the assessment.
+  const [usingImproved, setUsingImproved] = useState(false);
+  const handleUseImproved = async () => {
+    if (!claim || !improvedResume) return;
+    setUsingImproved(true);
+    try {
+      downloadResumeAsPdf(improvedResume, "improved-resume.pdf");
+      const { data, error } = await supabase.rpc("use_improved_resume" as never, { _claim_id: claim.id } as never);
+      if (error) throw error;
+      setClaim((c) => c ? { ...c, ...(data as Partial<ResumeClaimRow>) } : c);
+      await handleConfirm();
+    } catch (err: any) {
+      console.error("Error switching to the improved resume:", err);
+      toast({ title: "Couldn't switch to the new resume", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setUsingImproved(false);
+    }
   };
 
   const handleStartAssessment = async () => {
@@ -543,14 +573,15 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               <div className="border rounded-lg p-3">
                 <div className="text-2xl font-bold">{claim.resume_quality_score ?? "—"}</div>
                 <div className="text-xs text-muted-foreground mt-1 mb-2">Resume Quality</div>
-                <p className="text-sm text-muted-foreground">{claim.resume_quality_notes}</p>
+                {!claim.improved_applied_at && <p className="text-sm text-muted-foreground">{claim.resume_quality_notes}</p>}
               </div>
               <div className="border rounded-lg p-3">
                 <div className="text-2xl font-bold">{claim.ats_match_score ?? "—"}</div>
                 <div className="text-xs text-muted-foreground mt-1 mb-2">ATS Match</div>
-                <p className="text-sm text-muted-foreground">{claim.ats_match_notes}</p>
+                {!claim.improved_applied_at && <p className="text-sm text-muted-foreground">{claim.ats_match_notes}</p>}
               </div>
             </div>
+            <ScoreExplainer quality={claim.resume_quality_score ?? null} ats={claim.ats_match_score ?? null} />
             <p className="text-xs text-muted-foreground">
               {tier === "bad"
                 ? fixed
@@ -561,15 +592,29 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
 
             {fixed && claim && (
               <div className="border rounded-lg p-3 space-y-3">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <p className="text-sm font-medium">AI-improved resume</p>
-                  <span className="font-mono text-sm">
-                    ATS {claim.ats_match_score ?? 0}% → <b className={(claim.improved_ats_score ?? 0) >= ATS_GATE ? "text-emerald-600" : "text-amber-600"}>{claim.improved_ats_score ?? 0}%</b>
-                  </span>
-                  <Button type="button" size="sm" className="ml-auto" onClick={handleDownloadImproved} disabled={!improvedResume}>
-                    <Download className="h-4 w-4 mr-1" /> Download improved resume (PDF)
-                  </Button>
+                <p className="text-sm font-medium">AI-improved resume</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {([
+                    ["ATS match", claim.original_ats_score ?? (claim.improved_applied_at ? null : claim.ats_match_score), claim.improved_ats_score],
+                    ["Resume quality", claim.original_quality_score ?? (claim.improved_applied_at ? null : claim.resume_quality_score), claim.improved_quality_score],
+                  ] as const).map(([label, before, after]) => (
+                    <div key={label} className="rounded-md border p-2">
+                      <div className="text-xs text-muted-foreground">{label}: old resume → new resume</div>
+                      <div className="font-mono">
+                        {before ?? "—"} → <b className={(after ?? 0) >= ATS_GATE ? "text-emerald-600" : "text-amber-600"}>{after ?? "—"}</b>
+                        {before != null && after != null && <span className="text-muted-foreground"> ({after - before >= 0 ? "+" : ""}{after - before})</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
+                {(claim.improve_changes?.length ?? 0) > 0 && (
+                  <div className="rounded-md border p-3">
+                    <p className="text-sm font-medium">What the AI changed</p>
+                    <ul className="mt-1 list-disc pl-5 text-sm space-y-1">
+                      {claim.improve_changes!.map((c, i) => <li key={i}>{c}</li>)}
+                    </ul>
+                  </div>
+                )}
                 {improvedResume && (
                   <pre className="text-xs whitespace-pre-wrap max-h-64 overflow-y-auto rounded bg-muted/40 p-2">{improvedResume}</pre>
                 )}
@@ -584,7 +629,14 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                 {claim.improve_motivation && (
                   <p className="text-sm">{claim.improve_motivation}</p>
                 )}
-                <p className="text-xs text-muted-foreground">You can take the assessment now, below.</p>
+                {claim.improved_applied_at ? (
+                  <p className="text-sm text-emerald-600">This is now your resume. Your scores and the assessment use it.</p>
+                ) : (
+                  <Button type="button" onClick={() => void handleUseImproved()} disabled={!improvedResume || usingImproved}>
+                    {usingImproved ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    Download &amp; continue with this resume
+                  </Button>
+                )}
               </div>
             )}
 
@@ -763,8 +815,11 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               </Button>
             </div>
 
+            {fixed && !claim.improved_applied_at && claim.status !== "confirmed" && (
+              <p className="text-sm text-muted-foreground">Use "Download &amp; continue with this resume" above to go on with your AI-improved resume.</p>
+            )}
             <div className="flex gap-2">
-              <Button onClick={handleConfirm} disabled={saving}>
+              <Button onClick={handleConfirm} disabled={saving || (fixed && !claim.improved_applied_at && claim.status !== "confirmed")}>
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
@@ -875,6 +930,10 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                 <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
               </div>
             </div>
+            <ScoreExplainer quality={scoreResult.resume_quality_score} ats={scoreResult.ats_match_score}
+                            skill={scoreResult.skill_proof_score} project={scoreResult.project_proof_score ?? null}
+                            reasoning={scoreResult.reasoning_score ?? null} readiness={scoreResult.interview_readiness_score ?? null}
+                            coding={scoreResult.coding_score ?? null} answers={scoreResult.answer_scores} />
             {scoreResult.voice_authenticity_score != null && (
               <div className="border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
@@ -885,9 +944,12 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
               </div>
             )}
             {scoreResult.coding_score != null && (
-              <div className="border rounded-lg p-3 flex items-center justify-between">
-                <p className="text-sm font-medium">Coding round</p>
-                <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+              <div className="border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Coding round</p>
+                  <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+                </div>
+                <CodingBreakdown assessmentId={scorecardAssessmentId ?? assessmentId} />
               </div>
             )}
             {scoreResult.skill_gap && (

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, startOfWeek } from "date-fns";
+import { format } from "date-fns";
 
 interface Badge {
   slug: string;
@@ -40,30 +40,21 @@ const StudentAchievements = () => {
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
-    const today = format(new Date(), "yyyy-MM-dd");
-    const monday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-
-    const [badgeRes, earnedRes, questRes, progressRes] = await Promise.all([
+    // Migration 135: badges and quest progress are worked out from the student's real activity.
+    const [badgeRes, questRes, mine] = await Promise.all([
       supabase.from("badges").select("*").order("rule_kind").order("rule_value"),
-      supabase.from("student_badges").select("badge_slug, awarded_at").eq("student_id", profile.id),
       supabase.from("quests").select("*").eq("is_active", true).order("cadence").order("xp_reward"),
-      supabase
-        .from("student_quests")
-        .select("quest_slug, progress, completed_at, period_start")
-        .eq("student_id", profile.id)
-        .in("period_start", [today, monday]),
+      supabase.rpc("my_achievements" as never),
     ]);
+    const m = (mine.data ?? {}) as {
+      earned?: { badge_slug: string; awarded_at: string }[];
+      quests?: { quest_slug: string; progress: number; done: boolean }[];
+    };
 
     setBadges((badgeRes.data ?? []) as Badge[]);
-    setEarned(Object.fromEntries(
-      ((earnedRes.data ?? []) as { badge_slug: string; awarded_at: string }[])
-        .map((b) => [b.badge_slug, b.awarded_at]),
-    ));
+    setEarned(Object.fromEntries((m.earned ?? []).map((b) => [b.badge_slug, b.awarded_at])));
     setQuests((questRes.data ?? []) as Quest[]);
-    setProgress(Object.fromEntries(
-      ((progressRes.data ?? []) as { quest_slug: string; progress: number; completed_at: string | null }[])
-        .map((q) => [q.quest_slug, { progress: q.progress, done: Boolean(q.completed_at) }]),
-    ));
+    setProgress(Object.fromEntries((m.quests ?? []).map((q) => [q.quest_slug, { progress: q.progress, done: q.done }])));
     setLoading(false);
   }, [profile?.id]);
 
@@ -83,7 +74,6 @@ const StudentAchievements = () => {
           <span className={`text-sm font-medium ${p.done ? "text-emerald-500" : ""}`}>
             {p.done && "✓ "}{q.name}
           </span>
-          <span className="ml-auto font-mono text-xs text-primary">+{q.xp_reward} XP</span>
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">{q.description}</p>
         <div className="mt-2 flex items-center gap-2">

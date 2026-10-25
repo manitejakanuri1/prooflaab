@@ -234,6 +234,19 @@ Rules:${avoid ? `\n- It MUST be a different problem from "${avoid}": a different
         });
       }
       if (built.length === 0) {
+        // No fresh problem passed its own tests (seen on staging for 5 of 50 students in one batch).
+        // Serve an already-checked round in the same language instead of failing: every problem in it
+        // passed the same quality gate when it was written, and its hidden tests stay in its config.
+        const { data: stored } = await supabase.from('ai_templates').select('payload')
+          .eq('kind', 'coding_round').filter('payload->0->>language', 'eq', language).limit(10);
+        const usable = (stored ?? []).map((r: any) => r.payload)
+          .filter((p: any) => Array.isArray(p) && p.length > 0 && p.every((q: any) => q?.sandbox_config_id));
+        if (usable.length > 0) {
+          console.log(`coding round: fresh problems failed validation, serving a stored ${language} round`);
+          built.push(...usable[Math.floor(Math.random() * usable.length)]);
+        }
+      }
+      if (built.length === 0) {
         return new Response(
           JSON.stringify({ error: 'Could not prepare coding problems right now. Please try again in a minute.' }),
           { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

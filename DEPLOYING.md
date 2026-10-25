@@ -32,7 +32,7 @@ A push to `main` deploys **only the website**. It never deploys functions or tou
    (`scripts/dev-tools/walk.mjs`).
 
 Rollback: re-run the deploy workflow on the previous good `main` commit
-(Actions -> Deploy to production -> Run workflow), or revert the commit and push.
+(Actions -> "Tests + publish REAL website (blocked until owner approves)" -> Run workflow), or revert the commit and push.
 
 ## 2. Server services (manual, approval needed)
 

@@ -39,16 +39,13 @@ test("every inventory control of the real source is in the plan, none counted as
   assert.ok(rows.length > 400);
   assert.equal(rows.filter((r) => r.status.startsWith("PASS")).length, 0);
   for (const role of ["admin", "tpo", "company", "student", "established"]) assert.ok(rows.some((r) => r.role === role), role);
-  // S34 wired the former dead buttons: the dialog openers are safe, the account deletion is never auto-clicked,
-  // and none of them is still a handler-less (DEAD) control.
-  const del = rows.find((x) => /Delete Account \[student\/DeleteAccountDialog/.test(x.control));
-  assert.ok(del, "student Delete Account row"); assert.equal(del.class, "WRITE", del.control);
+  // S34 wired the former dead buttons: the dialog openers are safe and none is a handler-less (DEAD) control.
+  // Migration 138 took the student's Delete Account button off the Settings page, so it is no longer listed.
+  assert.ok(!rows.some((x) => /Delete Account \[student/.test(x.control)), "student Delete Account is gone");
   for (const re of [/Configure Email Templates/, /Manage Notification Rules/]) {
     const r = rows.find((x) => re.test(x.control)); assert.ok(r, String(re)); assert.equal(r.class, "SAFE", r.control);
   }
-  const confirm = rows.find((x) => /Delete my account.*DeleteAccountDialog/.test(x.control));
-  assert.ok(confirm, "the confirm button"); assert.equal(confirm.class, "WRITE", confirm.control);
-  for (const re of [/Delete Account \[student/, /Configure Email Templates/, /Manage Notification Rules/]) {
+  for (const re of [/Configure Email Templates/, /Manage Notification Rules/]) {
     assert.equal(rows.filter((x) => x.class === "DEAD" && re.test(x.control)).length, 0, `still dead: ${re}`);
   }
 });
@@ -121,12 +118,12 @@ test("S34: an unverified build can never exit OK, even if every row passed", () 
   assert.equal(summarize([{ status: "PASS" }], null).exit, EXIT.INCOMPLETE);
 });
 
-test("S34: twelve recipes; the account deletion is destructive and needs its own disposable identity", () => {
+test("S34: twelve recipes; since migration 138 none is destructive (students cannot delete their account)", () => {
   assert.ok(RECIPES.length >= 14);
-  const del = RECIPES.find((r) => r.id === "student-delete-own-account");
-  assert.equal(del.destructive, true);
-  assert.deepEqual(del.fixtures, ["E2E_DISPOSABLE_STUDENT_EMAIL", "E2E_DISPOSABLE_STUDENT_PASSWORD", "E2E_DISPOSABLE_STUDENT_USER_ID"]);
-  assert.equal(RECIPES.filter((r) => r.destructive).length, 1, "only the deletion is destructive");
+  const del = RECIPES.find((r) => r.id === "student-cannot-delete-own-account");
+  assert.ok(del && !del.destructive && !del.fixtures);
+  assert.match(String(del.run), /still shown/);
+  assert.equal(RECIPES.filter((r) => r.destructive).length, 0);
 });
 
 test("S34: every recipe covers at least one real control of the S34 source", () => {
@@ -148,13 +145,9 @@ test("S36: test-email delivery is PASS only when the provider reports 'delivered
   await assert.rejects(emailDelivery("../x", { E2E_RESEND_READ_KEY: "k" }), /invalid message id/);
 });
 
-test("S36: the recipes cover the protected-notice refusal and the real test email; the deletion checks the S36 answer", () => {
+test("S36: the recipes cover the protected-notice refusal and the real test email", () => {
   assert.ok(RECIPES.find((r) => r.id === "admin-notification-protected-refused"));
   const send = RECIPES.find((r) => r.id === "admin-email-send-test");
   assert.ok(send && !send.destructive);
   assert.deepEqual(PROTECTED_NOTICES, ["review_outcome", "sponsored_task", "college_linked"]);
-  const del = String(RECIPES.find((r) => r.id === "student-delete-own-account").run);
-  assert.match(del, /login_deleted !== true/, "checks the S36 response field, not the old login_failures");
-  assert.match(del, /Nothing was changed/, "reports staging's safe refusal as BLOCKED, not PASS");
-  assert.match(RECIPES.find((r) => r.id === "student-delete-own-account").db({ env: { E2E_DISPOSABLE_STUDENT_USER_ID: "u" } }), /login_deleted_at is not null/);
 });

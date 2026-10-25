@@ -227,8 +227,8 @@ const ctxOf = (job: StoredJob): RecordingContext =>
  * count only (tpo_student_profile.voice_recordings); ProofLab admins can read
  * the row (voice_own_read allows is_admin()); verified companies see the score
  * and notes of a discoverable student (recruiter_talent/recruiter_proof_profile),
- * never the audio; the student deletes the row and the file from Profile ->
- * Privacy (voice_own_delete + owner delete).
+ * never the audio. Since migration 138 nobody deletes a recording (no withdraw for students, the files
+ * service refuses DELETE); the daily job keeps the audio of each student's newest 7 and removes the rest.
  */
 
 const VoiceExplainModal = ({
@@ -1444,11 +1444,11 @@ const VoiceExplainModal = ({
                 </li>
                 <li>
                   The ProofLab team can read the written transcript and score. If you make your
-                  profile public, verified companies can see your score and feedback — never the
-                  audio.
+                  profile public, verified companies can see your score and feedback. They hear the
+                  audio only if you turn on audio sharing in Profile → Privacy (it is off).
                 </li>
                 <li>
-                  You can delete any recording at any time, from Profile → Privacy.
+                  Your recordings can't be deleted. We keep the audio of your 7 newest recordings (task and mock interview together). Older audio is removed automatically to save space. Your score, feedback and written words always stay in your history.
                 </li>
               </ul>
             </div>
@@ -1464,10 +1464,13 @@ const VoiceExplainModal = ({
 
         {phase === "idle" && consented === true && (
           <div className="space-y-3">
-            <p className="text-sm">
-              Say it in your own words, as if to a teammate. Mention what you tried first
-              and anything you changed your mind about.
-            </p>
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">Explain it like you are talking to a friend.</p>
+              <p className="text-muted-foreground">
+                Say in simple words what you understood and how you did it. Don't read your answer out.
+                This is for your own growth, so just be yourself.
+              </p>
+            </div>
             {otherTabs > 0 && (
               <p className="text-xs text-muted-foreground" data-testid="voice-other-tab">
                 A recording for this work is still being sent from another open tab. Keep that tab open until it finishes.

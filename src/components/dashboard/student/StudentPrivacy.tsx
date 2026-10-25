@@ -4,12 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Globe, Lock, School, Mic, Trash2 } from "lucide-react";
+import { Globe, Lock, School, Mic } from "lucide-react";
 
 interface Portfolio { is_public: boolean; slug: string | null }
 interface Recording {
@@ -20,6 +19,7 @@ interface Recording {
   duration_seconds: number | null;
   communication_score: number | null;
   created_at: string;
+  audio_purged_at: string | null;
 }
 
 const VISIBILITY = [
@@ -54,7 +54,7 @@ const StudentPrivacy = () => {
 
     const { data: voice } = await supabase
       .from("voice_explanations")
-      .select("id, storage_path, duration_seconds, communication_score, created_at, transcript, transcript_segments")
+      .select("id, storage_path, duration_seconds, communication_score, created_at, transcript, transcript_segments, audio_purged_at")
       .eq("student_id", profile.id)
       .is("withdrawn_at" as never, null)
       .order("created_at", { ascending: false });
@@ -115,30 +115,6 @@ const StudentPrivacy = () => {
       description: on
         ? "Anyone with the link can see it, including the scorecard on it."
         : "The link no longer opens for anyone but you.",
-    });
-  };
-
-  /**
-   * Deletes the row and the audio file, in that order.
-   *
-   * The row first, because that is the record the platform reads; a file left
-   * behind is waste, but a row pointing at a file that is gone is a broken
-   * screen. Both are removed here — the storage bucket now has a delete policy
-   * for the owner, which it did not before.
-   */
-  const deleteRecording = async (rec: Recording) => {
-    // A recording is evidence, so the row is never deleted: it is withdrawn
-    // (transcript erased, marked withdrawn, no longer shown to anyone).
-    const { error } = await supabase.rpc("withdraw_voice_explanation" as never, { _id: rec.id } as never);
-    if (error) {
-      toast({ title: "Not deleted", description: error.message, variant: "destructive" });
-      return;
-    }
-    await supabase.storage.from("voice-explanations").remove([rec.storage_path]);
-    setRecordings((list) => list.filter((r) => r.id !== rec.id));
-    toast({
-      title: "Recording deleted",
-      description: "The audio and its transcript are gone. Any score it produced stays on your record.",
     });
   };
 
@@ -239,8 +215,7 @@ const StudentPrivacy = () => {
 
           {recordings.length === 0 ? (
             <p className="text-sm text-muted-foreground mt-2 max-w-prose">
-              None yet. When you record a 60-second explanation it appears here, and you can
-              delete it whenever you want.
+              None yet. When you record a 60-second explanation it appears here.
             </p>
           ) : (
             <div className="mt-3">
@@ -257,17 +232,9 @@ const StudentPrivacy = () => {
                       {r.communication_score != null && ` · scored ${r.communication_score}`}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => void deleteRecording(r)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
                 </div>
                 <div className="pl-7">
-                  <RecordingPlayback storagePath={r.storage_path} transcript={r.transcript}
+                  <RecordingPlayback storagePath={r.storage_path} audioRemoved={!!r.audio_purged_at} transcript={r.transcript}
                                      segments={r.transcript_segments} />
                 </div>
                 </div>
@@ -276,8 +243,7 @@ const StudentPrivacy = () => {
           )}
 
           <p className="text-xs text-muted-foreground mt-3 max-w-prose">
-            Recordings are kept for the season and removed afterwards. The score a recording
-            produced stays on your record either way.
+            Your recordings can't be deleted. We keep the audio of your 7 newest recordings (task and mock interview together). Older audio is removed automatically to save space. Your score, feedback and written words always stay in your history.
           </p>
         </CardContent>
       </Card>

@@ -528,6 +528,44 @@ Deno.test("password reset request hides whether the email exists", async () => {
   );
 });
 
+Deno.test("password reset link points at the website, not the gateway's own run.app address", async () => {
+  let sent: Record<string, unknown> = {};
+
+  const fetcher: typeof fetch = async (_input, init) => {
+    sent = JSON.parse(String(init?.body ?? "{}"));
+    return Response.json({ email: "student@example.test" });
+  };
+
+  // Firebase Hosting rewrites /api/** to Cloud Run: req.url is the service address,
+  // the browser's Origin is the website (staging 23 Oct 2026: UNAUTHORIZED_DOMAIN, no email).
+  const req = new Request(
+    "https://prooflab-staging-web-bff-abc-el.a.run.app/api/auth/password-reset/request",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://prooflab-staging.web.app",
+      },
+      body: JSON.stringify({
+        email: "student@example.test",
+      }),
+    },
+  );
+
+  const res = await handleAuthRoute(req, {
+    env: env(),
+    fetcher,
+  });
+
+  assert(res !== null && res.status === 200, "reset request failed");
+
+  assert(
+    sent.continueUrl ===
+      "https://prooflab-staging.web.app/reset-password",
+    "reset link used the gateway address",
+  );
+});
+
 Deno.test("password reset code can be verified without exposing credentials", async () => {
   let sent: Record<string, unknown> = {};
 

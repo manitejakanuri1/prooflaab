@@ -1,4 +1,5 @@
 import { serve } from "../_shared/serve.ts";
+import { inAppAction } from "../_shared/roadmap-action.ts";
 import { createClient } from "../_shared/backend.ts";
 import { generateText } from "../_shared/llm.ts";
 import { classifySkillGap } from "../_shared/role-skills.ts";
@@ -417,7 +418,7 @@ ${skillGapNotes}
 Return a JSON array, ordered from the most foundational/urgent gap first to the most polish-level gap last (a "from scratch to sharp" progression), one object per distinct weak topic (plus one per confidence mismatch, plus one per missing required skill, if any). Each object:
 {"skill": "${ladderSkills.length ? 'EXACTLY one of these ladder skills, copied character for character: ' + ladderSkills.join(' | ') + ' - or "other" if none fits' : 'other'}", "title": "short clear stage name (3-6 words, not the raw question)", "why": "ONE plain sentence on why it matters for the role, no lecture", "action": "ONE concrete next step: a specific thing to practice, build, or re-read inside ProofLab (e.g. 'write 5 small programs that use X', 'rebuild the login part of your project using Y'), not 'study more'"}
 
-Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never be mean, never say "learn everything from scratch," never shame the student. Never name or link any outside website, app or platform (no LeetCode, YouTube, Udemy and so on): the student practises inside ProofLab. Return ONLY the JSON array, no markdown fences, no commentary.`;
+Rules: 3-6 stages max — merge overlapping topics rather than listing everything. Never be mean, never say "learn everything from scratch," never shame the student. Never name or link any outside website, app or platform (no LeetCode, YouTube, Udemy and so on): the student practises inside ProofLab. Every action is done in ProofLab's code editor or as a written answer: never tell the student to run, install, deploy or host anything on their own computer (no "locally", no "on your machine"). Return ONLY the JSON array, no markdown fences, no commentary.`;
 
       try {
         // Tagged, unlike before: this was the whole of the 'unattributed' line in
@@ -437,6 +438,8 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
         ) {
           roadmap = JSON.stringify(parsed.map((st: any) => ({
             ...st,
+            // Never 'run it locally' / 'install on your machine': the work happens in ProofLab.
+            action: inAppAction(st.action),
             skill: ladderSkills.find((k) => normSkill(k) === normSkill(String(st.skill ?? ''))) ?? 'other',
           })));
         }

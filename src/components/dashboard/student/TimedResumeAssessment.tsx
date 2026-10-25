@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle, RotateCcw } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
+import CodingBreakdown from "./CodingBreakdown";
 import { codingErrorMessage, retryAllowance } from "@/lib/codingRoundRetry";
 import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, signatureLine,
@@ -17,6 +18,7 @@ import {
 import { verdictLabel, type Verdict } from "@/lib/codingVerdicts";
 import { useToast } from "@/hooks/use-toast";
 import { RoadmapStages } from "./RoadmapStages";
+import { QuestionMarks, ScoreExplainer } from "./ScoreExplainer";
 
 // 15s for everything moved the screen on before a student could read the
 // question, let alone type an answer. Must match resume-assessment-submit.
@@ -102,6 +104,8 @@ export interface AnswerScore {
   correct_answer?: string;
   confidence?: ConfidenceLevel;
   confidence_flag?: "lucky_guess" | "overconfident" | null;
+  category?: "skill" | "project_defense";
+  reasoning_clarity_score?: number;
 }
 
 export interface ResumeScoreResult {
@@ -894,6 +898,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 <div className="border rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold">{pendingResult.coding_score ?? "—"}</div>
                   <div className="text-xs text-muted-foreground mt-1">Coding</div>
+                  {pendingResult.coding_score != null && <CodingBreakdown assessmentId={assessmentId} />}
                 </div>
                 <div className="border rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold">{pendingResult.project_proof_score ?? "—"}</div>
@@ -908,11 +913,16 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                   <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
                 </div>
               </div>
+              <ScoreExplainer quality={pendingResult.resume_quality_score} ats={pendingResult.ats_match_score}
+                              skill={pendingResult.skill_proof_score} project={pendingResult.project_proof_score ?? null}
+                              reasoning={pendingResult.reasoning_score ?? null} readiness={pendingResult.interview_readiness_score ?? null}
+                              coding={pendingResult.coding_score ?? null} answers={pendingResult.answer_scores} />
               {pendingResult.answer_scores && pendingResult.answer_scores.length > 0 && (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   <p className="text-sm font-medium">Question review</p>
-                  {pendingResult.answer_scores.map((s) => (
-                    <div key={s.question_id} className="border rounded-lg p-3 text-sm space-y-1">
+                  {pendingResult.answer_scores.map((s, i) => (
+                    <div key={`${s.question_id}-${i}`} className="border rounded-lg p-3 text-sm space-y-1">
+                      <QuestionMarks a={s} n={i + 1} />
                       <div className="flex items-start gap-2">
                         {s.final_score >= 70 ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />

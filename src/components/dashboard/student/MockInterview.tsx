@@ -229,8 +229,8 @@ const MockInterview = () => {
                 <ul className="text-sm text-muted-foreground space-y-1.5 list-disc pl-5">
                   <li>Your voice is recorded and stored with your work.</li>
                   <li>It is scored for how you answer — not your accent or your English.</li>
-                  <li>Your college can hear it. Nobody outside your college can.</li>
-                  <li>You can delete any recording at any time, from Profile → Privacy.</li>
+                  <li>Only you can play it. Your college sees how many mock interviews you did and your score, not the recording.</li>
+                  <li>Your answers can't be deleted. We keep the audio of your 7 newest recordings (task and mock interview together). Older audio is removed automatically to save space. Your interview score, feedback and written answers always stay in your history.</li>
                 </ul>
               </div>
               <Button onClick={() => void acceptConsent()}>I understand — continue</Button>

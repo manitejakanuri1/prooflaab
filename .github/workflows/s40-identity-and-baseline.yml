@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 4278d82c897a1b36466ee09c6642854f8ff755cd   # 2026-10-25: brand logo on every page
+      STAGING_RC: 66ac04d5697936c0c42103493b36098f1f4e87cd   # 2026-10-25: Lovable sign-in pages
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

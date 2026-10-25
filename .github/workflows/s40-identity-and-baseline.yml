@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: dc507fca485cd5aa25ce681942896ddfafeb8939   # 2026-10-26: interest review icon
+      STAGING_RC: b3d98c9126687aafb3d1ebe6110ec649a0acb8fe   # 2026-10-26: redesign + squad controls, topic rating, question bank, legal pages
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

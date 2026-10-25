@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 41d4699718034fdb9cad1c26c6d3e489e9293072   # 2026-10-25: Lovable home page
+      STAGING_RC: 13e0389b1cb8eea117fe20b577416208cbae4e39   # 2026-10-25: home page with our brand-kit logo
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

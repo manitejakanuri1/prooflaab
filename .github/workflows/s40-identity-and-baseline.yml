@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 116efe44d53fee4d2a5120c7fff65b01b8022609   # 2026-10-25: email links open our set-password page
+      STAGING_RC: 036f56e0f5f3d075fa7af9e8086faff1fb074c52   # 2026-10-25: own reset email, link to our page
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

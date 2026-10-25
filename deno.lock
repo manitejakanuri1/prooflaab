@@ -377,6 +377,7 @@
         "npm:globals@^15.9.0",
         "npm:jspdf@^4.2.1",
         "npm:lucide-react@0.462",
+        "npm:motion@^12.43.0",
         "npm:next-themes@0.3",
         "npm:pdfjs-dist@^6.2.108",
         "npm:playwright@^1.63.0",

@@ -1,0 +1,75 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600&display=swap");
+
+/* Home page brand (the prooflab-ai.lovable.app design), scoped to .pl-landing so the
+   dashboards keep their own colours. Lovable's oklch tokens converted to the HSL
+   triplets our Tailwind config reads; the translucent border/input tokens are
+   pre-blended onto the background because Tailwind adds its own alpha. */
+.pl-landing {
+  --radius: 0.5rem;
+  --background: 205.4 100% 97.5%;
+  --foreground: 215 85.4% 11.8%;
+  --surface: 208.1 100% 94.6%;
+  --card: 200.1 100% 99.3%;
+  --card-foreground: 215 85.4% 11.8%;
+  --popover: 200.1 100% 99.3%;
+  --popover-foreground: 215 85.4% 11.8%;
+  --primary: 211 93.3% 36.7%;
+  --primary-foreground: 205.4 100% 97.5%;
+  --secondary: 210.4 98.7% 89.7%;
+  --secondary-foreground: 215 85.4% 11.8%;
+  --muted: 209.9 83.3% 91.8%;
+  --muted-foreground: 213.8 26.4% 38.6%;
+  --accent: 210.2 95.7% 65.2%;
+  --accent-foreground: 217.5 90.1% 9.5%;
+  --verified: 193.8 100% 37.1%;
+  --compete: 224.6 66.8% 64.4%;
+  --border: 209.5 31% 85%;
+  --input: 210.2 27.7% 80.3%;
+  --ring: 211 93.3% 36.7%;
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark .pl-landing {
+  --background: 215 85.4% 11.8%;
+  --foreground: 205.4 100% 97.5%;
+  --surface: 214.2 81% 16.6%;
+  --card: 214.3 81.8% 15.1%;
+  --card-foreground: 205.4 100% 97.5%;
+  --popover: 214.3 81.8% 15.1%;
+  --popover-foreground: 205.4 100% 97.5%;
+  --primary: 210.2 95.7% 65.2%;
+  --primary-foreground: 218.6 94% 8.8%;
+  --secondary: 213.2 90.9% 22.2%;
+  --secondary-foreground: 205.4 100% 97.5%;
+  --muted: 214.7 63.3% 19.8%;
+  --muted-foreground: 209.2 37% 70.6%;
+  --accent: 210.2 95.7% 65.2%;
+  --accent-foreground: 218.6 94% 8.8%;
+  --verified: 195.7 85% 63.1%;
+  --compete: 230.3 100% 80%;
+  --border: 213.6 41.9% 24.6%;
+  --input: 213.2 35.9% 28.9%;
+  --ring: 210.2 95.7% 65.2%;
+}
+
+/* :where() keeps this as weak as Lovable's base layer, so tracking-/leading- classes still win. */
+:where(.pl-landing) :where(h1, h2, h3) {
+  font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.pl-landing .font-mono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.pl-landing ::selection {
+  background: hsl(var(--primary) / 0.35);
+}
+
+.pl-landing .grid-lines {
+  background-image:
+    linear-gradient(to right, hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+  background-size: 64px 64px;
+}

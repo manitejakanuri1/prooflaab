@@ -72,6 +72,10 @@ export default {
 					DEFAULT: 'hsl(var(--warning))',
 					foreground: 'hsl(var(--warning-foreground))'
 				},
+				// Home page brand tokens (src/components/landing/landing.css defines them).
+				surface: 'hsl(var(--surface))',
+				verified: 'hsl(var(--verified))',
+				compete: 'hsl(var(--compete))',
 				// Learning-path board. Kept out of the generic scale on purpose:
 				// these read as "earned / not earned", not as decoration.
 				board: {

@@ -78,6 +78,8 @@ jobs:
       # 25 Oct: owner decision - squad swaps (migration 143): two students in the same section trade squads in the
       #         first 7 days with each other's squad code; own points move with them. Student Squad page gets the swap
       #         box (SquadSwapCard), the college Squads page a Swaps tab (SquadSwapsList, shared with the admin).
+      # 25 Oct: owner decision - the home page is the prooflab-ai.lovable.app design (src/components/landing);
+      #   only the look and words changed, every sign-in button still goes to /auth.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -115,7 +117,8 @@ jobs:
                    ':(exclude)src/components/dashboard/student/ScoreExplainer.tsx'
                    ':(exclude)src/components/dashboard/student/SquadSwapCard.tsx'
                    ':(exclude)src/components/dashboard/season/SquadSwapsList.tsx'
-                   ':(exclude)src/components/dashboard/college/TpoSquads.tsx')
+                   ':(exclude)src/components/dashboard/college/TpoSquads.tsx'
+                   ':(exclude)src/pages/Index.tsx' ':(exclude)src/components/landing')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

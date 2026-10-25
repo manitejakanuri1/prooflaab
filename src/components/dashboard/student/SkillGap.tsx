@@ -8,9 +8,9 @@ interface SkillGapData {
 }
 
 const GROUPS: { key: keyof SkillGapData; label: string; icon: typeof CheckCircle2; className: string }[] = [
-  { key: "verified", label: "Verified Skills", icon: CheckCircle2, className: "text-green-600 border-green-600/30 bg-green-600/10" },
-  { key: "needs_improvement", label: "Needs Improvement", icon: AlertTriangle, className: "text-amber-600 border-amber-600/30 bg-amber-600/10" },
-  { key: "missing", label: "Missing Skills", icon: XCircle, className: "text-red-600 border-red-600/30 bg-red-600/10" },
+  { key: "verified", label: "Verified Skills", icon: CheckCircle2, className: "text-green-600 dark:text-green-400 border-green-600/30 bg-green-600/10" },
+  { key: "needs_improvement", label: "Needs Improvement", icon: AlertTriangle, className: "text-amber-600 dark:text-amber-400 border-amber-600/30 bg-amber-600/10" },
+  { key: "missing", label: "Missing Skills", icon: XCircle, className: "text-red-600 dark:text-red-400 border-red-600/30 bg-red-600/10" },
 ];
 
 // Null when the target role isn't in the known role list — nothing to render.

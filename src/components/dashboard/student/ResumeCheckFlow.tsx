@@ -553,8 +553,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           </div>
 
           {claim?.status === "confirmed" && step !== "upload" && (
-            <Alert className="border-green-300 bg-green-50 dark:bg-green-950/30 py-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <Alert className="border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30 py-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
               <AlertDescription className="text-green-800 dark:text-green-300 text-sm">
                 Confirmed. This is what your assessment is based on.
               </AlertDescription>
@@ -601,7 +601,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                     <div key={label} className="rounded-md border p-2">
                       <div className="text-xs text-muted-foreground">{label}: old resume → new resume</div>
                       <div className="font-mono">
-                        {before ?? "—"} → <b className={(after ?? 0) >= ATS_GATE ? "text-emerald-600" : "text-amber-600"}>{after ?? "—"}</b>
+                        {before ?? "—"} → <b className={(after ?? 0) >= ATS_GATE ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>{after ?? "—"}</b>
                         {before != null && after != null && <span className="text-muted-foreground"> ({after - before >= 0 ? "+" : ""}{after - before})</span>}
                       </div>
                     </div>
@@ -630,7 +630,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                   <p className="text-sm">{claim.improve_motivation}</p>
                 )}
                 {claim.improved_applied_at ? (
-                  <p className="text-sm text-emerald-600">This is now your resume. Your scores and the assessment use it.</p>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">This is now your resume. Your scores and the assessment use it.</p>
                 ) : (
                   <Button type="button" onClick={() => void handleUseImproved()} disabled={!improvedResume || usingImproved}>
                     {usingImproved ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}

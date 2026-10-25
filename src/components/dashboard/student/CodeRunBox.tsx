@@ -102,31 +102,31 @@ const CodeRunBox = ({ language, code }: CodeRunBoxProps) => {
       </div>
       {(result || problem) && (
         <div className="border-t bg-[#1e1e1e] p-3 font-mono text-xs leading-relaxed" role="status">
-          {problem && <p className="text-amber-300">{problem}</p>}
+          {problem && <p className="text-compete">{problem}</p>}
           {result?.status === "ok" && (
             <>
-              <p className="mb-1 text-emerald-400">Ran fine.</p>
+              <p className="mb-1 text-verified">Ran fine.</p>
               <pre className="whitespace-pre-wrap text-[#d4d4d4]">{result.stdout.trim() ? result.stdout : "(it printed nothing)"}</pre>
             </>
           )}
           {result?.status === "compile_error" && (
             <>
-              <p className="mb-1 text-red-400">Your code did not compile. {errorLine ? `The red line is line ${errorLine}. ` : ""}Read the message and fix it:</p>
-              <pre className="whitespace-pre-wrap text-red-300">{tidy(result.stderr)}</pre>
+              <p className="mb-1 text-alert">Your code did not compile. {errorLine ? `The red line is line ${errorLine}. ` : ""}Read the message and fix it:</p>
+              <pre className="whitespace-pre-wrap text-alert">{tidy(result.stderr)}</pre>
             </>
           )}
           {result?.status === "runtime_error" && (
             <>
-              <p className="mb-1 text-red-400">Your code stopped with an error{errorLine ? ` on line ${errorLine} (marked red)` : ""}:</p>
+              <p className="mb-1 text-alert">Your code stopped with an error{errorLine ? ` on line ${errorLine} (marked red)` : ""}:</p>
               {result.stdout.trim() && <pre className="whitespace-pre-wrap text-[#d4d4d4]">{result.stdout}</pre>}
-              <pre className="whitespace-pre-wrap text-red-300">{tidy(result.stderr)}</pre>
+              <pre className="whitespace-pre-wrap text-alert">{tidy(result.stderr)}</pre>
             </>
           )}
           {result?.status === "time_limit" && (
-            <p className="text-amber-300">It ran for more than 10 seconds, so it was stopped. Look for a loop that never ends.</p>
+            <p className="text-compete">It ran for more than 10 seconds, so it was stopped. Look for a loop that never ends.</p>
           )}
           {result?.status === "busy" && (
-            <p className="text-amber-300">The code runner is busy right now. This is not a problem with your code. Try again in a few seconds.</p>
+            <p className="text-compete">The code runner is busy right now. This is not a problem with your code. Try again in a few seconds.</p>
           )}
         </div>
       )}

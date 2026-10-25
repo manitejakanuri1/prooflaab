@@ -310,7 +310,7 @@ const MockInterview = () => {
           {phase === "done" && result && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-5 w-5 text-verified" />
                 <span className="text-2xl font-bold tabular-nums">{result.overall_score}</span>
                 <span className="text-sm text-muted-foreground">/ 100</span>
               </div>

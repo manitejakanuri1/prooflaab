@@ -71,7 +71,7 @@ const StudentAchievements = () => {
     return (
       <div key={q.slug} className="py-3 border-b last:border-b-0">
         <div className="flex items-baseline gap-3 flex-wrap">
-          <span className={`text-sm font-medium ${p.done ? "text-emerald-500" : ""}`}>
+          <span className={`text-sm font-medium ${p.done ? "text-verified" : ""}`}>
             {p.done && "✓ "}{q.name}
           </span>
         </div>
@@ -79,7 +79,7 @@ const StudentAchievements = () => {
         <div className="mt-2 flex items-center gap-2">
           <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
             <div
-              className={`h-full ${p.done ? "bg-emerald-500" : "bg-primary"}`}
+              className={`h-full ${p.done ? "bg-verified" : "bg-primary"}`}
               style={{ width: `${pct}%` }}
             />
           </div>

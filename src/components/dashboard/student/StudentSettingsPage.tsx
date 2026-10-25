@@ -144,7 +144,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
         <CardContent>
           <div className="animate-pulse space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-muted rounded"></div>
             ))}
           </div>
         </CardContent>
@@ -364,7 +364,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               onClick={() => setIsPhotoModalOpen(true)}
             >
               <AvatarImage src={currentPhotoUrl || undefined} alt={profile?.full_name} />
-              <AvatarFallback className="bg-orange-100 text-orange-700 text-xl">
+              <AvatarFallback className="bg-compete/10 text-compete text-xl">
                 {getInitials(profile?.full_name || 'Student')}
               </AvatarFallback>
             </Avatar>
@@ -376,7 +376,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               >
                 <span>Change Photo</span>
               </Button>
-              <p className="text-sm text-gray-500 mt-1">JPG, PNG or GIF. Max size 2MB.</p>
+              <p className="text-sm text-muted-foreground mt-1">JPG, PNG or GIF. Max size 2MB.</p>
             </div>
           </div>
 
@@ -397,7 +397,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
                 id="email"
                 value={formData.email}
                 disabled
-                className="bg-gray-50"
+                className="bg-muted"
                 placeholder="Email cannot be changed"
               />
             </div>
@@ -506,7 +506,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           {/* Portfolio Skills */}
           <div>
             <Label>Portfolio Skills</Label>
-            <p className="text-sm text-gray-500 mb-2">These skills will be displayed on your public portfolio</p>
+            <p className="text-sm text-muted-foreground mb-2">These skills will be displayed on your public portfolio</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
               {SKILLS.map(skill => (
                 <div key={skill} className="flex items-center space-x-2">
@@ -527,7 +527,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
             </div>
           </div>
 
-          <Button onClick={handleProfileUpdate} disabled={saving} className="bg-orange-600 hover:bg-orange-700">
+          <Button onClick={handleProfileUpdate} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
@@ -591,7 +591,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Email Notifications</h4>
-              <p className="text-sm text-gray-600">Receive notifications via email</p>
+              <p className="text-sm text-muted-foreground">Receive notifications via email</p>
             </div>
             <Switch
               checked={preferences.emailNotifications}
@@ -607,7 +607,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Push Notifications</h4>
-              <p className="text-sm text-gray-600">Receive push notifications in browser</p>
+              <p className="text-sm text-muted-foreground">Receive push notifications in browser</p>
             </div>
             <Switch
               checked={preferences.pushNotifications}
@@ -632,7 +632,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Public Portfolio</h4>
-              <p className="text-sm text-gray-600">Make your portfolio visible to others</p>
+              <p className="text-sm text-muted-foreground">Make your portfolio visible to others</p>
             </div>
             <Switch
               checked={preferences.portfolioPublic}
@@ -648,7 +648,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Show Progress to Others</h4>
-              <p className="text-sm text-gray-600">Allow others to see your progress and stats</p>
+              <p className="text-sm text-muted-foreground">Allow others to see your progress and stats</p>
             </div>
             <Switch
               checked={preferences.showProgressToOthers}

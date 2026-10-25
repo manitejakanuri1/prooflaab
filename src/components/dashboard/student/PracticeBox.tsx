@@ -80,7 +80,7 @@ const PracticeBox = ({ files }: PracticeBoxProps) => {
       {lines.length > 0 && (
         <pre className="max-h-40 overflow-auto border-t bg-[#1e1e1e] p-3 font-mono text-xs leading-relaxed">
           {lines.map((l, i) => (
-            <div key={i} className={l.level === "error" ? "text-red-400" : l.level === "warn" ? "text-amber-300" : "text-[#d4d4d4]"}>{l.text}</div>
+            <div key={i} className={l.level === "error" ? "text-alert" : l.level === "warn" ? "text-compete" : "text-[#d4d4d4]"}>{l.text}</div>
           ))}
         </pre>
       )}

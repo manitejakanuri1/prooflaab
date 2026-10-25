@@ -95,7 +95,7 @@ const StudentPortfolioPage = () => {
                 <span className="text-xs sm:text-sm">{portfolio?.is_public ? 'Public' : 'Private'}</span>
                 <Switch checked={portfolio?.is_public || false} onCheckedChange={toggleVisibility} />
               </div>
-              <Button onClick={handleShare} className="bg-orange-600 hover:bg-orange-700 w-full xs:w-auto text-xs sm:text-sm" size="sm">
+              <Button onClick={handleShare} className="w-full xs:w-auto text-xs sm:text-sm" size="sm">
                 <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Share Portfolio
               </Button>
@@ -120,7 +120,7 @@ const StudentPortfolioPage = () => {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="text-sm text-muted-foreground">Total XP</div>
-                      <Star className="h-5 w-5 text-orange-500" />
+                      <Star className="h-5 w-5 text-compete" />
                     </div>
                     <div className="text-3xl font-bold text-foreground">{profile?.total_xp || 0}</div>
                   </CardContent>
@@ -130,7 +130,7 @@ const StudentPortfolioPage = () => {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="text-sm text-muted-foreground">Completed Tasks</div>
-                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <CheckCircle className="h-5 w-5 text-verified" />
                     </div>
                     <div className="text-3xl font-bold text-foreground">{provenWork.length}</div>
                   </CardContent>
@@ -140,7 +140,7 @@ const StudentPortfolioPage = () => {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="text-sm text-muted-foreground">Connections</div>
-                      <Users className="h-5 w-5 text-blue-500" />
+                      <Users className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex items-center gap-3 text-lg font-semibold text-foreground">
                     </div>
@@ -156,7 +156,7 @@ const StudentPortfolioPage = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Award className="h-5 w-5 text-orange-600" />
+            <Award className="h-5 w-5 text-compete" />
             <span>Proven work</span>
           </CardTitle>
         </CardHeader>

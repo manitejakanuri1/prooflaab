@@ -73,11 +73,11 @@ interface ResumeSummary {
 const CONFETTI = ["⭐", "🎉", "✨", "🏅", "💫", "🎊"];
 
 const STATE_STYLE: Record<LevelState, { ring: string; line: string }> = {
-  mastered: { ring: "border-amber-400 bg-amber-400/15 text-amber-600", line: "bg-amber-400" },
-  cleared: { ring: "border-emerald-500 bg-emerald-500/15 text-emerald-600", line: "bg-emerald-500" },
+  mastered: { ring: "border-compete bg-compete/15 text-compete", line: "bg-compete" },
+  cleared: { ring: "border-verified bg-verified/15 text-verified", line: "bg-verified" },
   placed: {
-    ring: "border-emerald-500/40 bg-emerald-500/5 text-emerald-600/70",
-    line: "bg-emerald-500/40",
+    ring: "border-verified/40 bg-verified/5 text-verified",
+    line: "bg-verified/40",
   },
   current: {
     ring: "border-primary bg-primary text-primary-foreground animate-level-pulse",
@@ -750,18 +750,18 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
                       {state === "placed" && (
                         <Badge
                           variant="outline"
-                          className="h-5 text-emerald-600/80 border-emerald-500/30"
+                          className="h-5 text-verified border-verified/30"
                         >
                           Assumed from your resume
                         </Badge>
                       )}
                       {shaky && (
-                        <Badge variant="outline" className="h-5 text-amber-600 border-amber-400/50">
+                        <Badge variant="outline" className="h-5 text-compete border-compete/50">
                           Worth a revisit
                         </Badge>
                       )}
                       {state === "mastered" && (
-                        <Badge variant="outline" className="h-5 text-amber-600 border-amber-400/50">
+                        <Badge variant="outline" className="h-5 text-compete border-compete/50">
                           Proved
                         </Badge>
                       )}

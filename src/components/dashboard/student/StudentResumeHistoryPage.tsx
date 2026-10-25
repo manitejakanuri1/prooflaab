@@ -229,7 +229,7 @@ const StudentResumeHistoryPage = () => {
                           </td>
                           <td className="py-2 px-3">
                             {h.is_retest ? (
-                              <Badge variant="outline" className="border-amber-400 text-amber-600">Retest</Badge>
+                              <Badge variant="outline" className="border-compete text-compete">Retest</Badge>
                             ) : (
                               <Badge variant="secondary">Full</Badge>
                             )}
@@ -240,12 +240,12 @@ const StudentResumeHistoryPage = () => {
                             <span className="inline-flex items-center gap-1">
                               {h.skill_proof_score ?? "—"}
                               {delta !== null && delta > 0 && (
-                                <span className="inline-flex items-center text-emerald-600" title={`Up ${delta} vs last attempt`}>
+                                <span className="inline-flex items-center text-verified" title={`Up ${delta} vs last attempt`}>
                                   <TrendingUp className="h-3.5 w-3.5" />
                                 </span>
                               )}
                               {delta !== null && delta < 0 && (
-                                <span className="inline-flex items-center text-red-500" title={`Down ${Math.abs(delta)} vs last attempt`}>
+                                <span className="inline-flex items-center text-alert" title={`Down ${Math.abs(delta)} vs last attempt`}>
                                   <TrendingDown className="h-3.5 w-3.5" />
                                 </span>
                               )}
@@ -277,7 +277,7 @@ const StudentResumeHistoryPage = () => {
                                       <QuestionMarks a={a} n={i + 1} />
                                       <div className="flex items-start gap-2">
                                         {a.final_score >= 70 ? (
-                                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                                          <CheckCircle2 className="h-4 w-4 text-verified shrink-0 mt-0.5" />
                                         ) : (
                                           <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                                         )}

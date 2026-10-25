@@ -32,9 +32,9 @@ const STATUS_LABEL: Record<TestMistake["status"], string> = {
 const TestMistakes = ({ mistakes, onGoToTasks }: { mistakes: TestMistake[]; onGoToTasks?: (taskId?: string) => void }) => (
   <ul className="space-y-2">
     {mistakes.map((m, i) => (
-      <li key={i} className="rounded-md border border-amber-400/40 bg-amber-500/5 px-3 py-2">
+      <li key={i} className="rounded-md border border-compete/40 bg-compete/5 px-3 py-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="h-5 gap-1 border-amber-400/60 text-amber-700 dark:text-amber-400">
+          <Badge variant="outline" className="h-5 gap-1 border-compete/60 text-compete">
             <RotateCcw className="h-3 w-3" /> Revise
           </Badge>
           <span className="text-sm font-medium">{m.title}</span>

@@ -327,7 +327,7 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                   question about it. Saying so out loud is the difference between
                   a map they trust and one that quietly claims things for them. */}
               {data.status === "placed" && (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1">
+                <div className="rounded-lg border border-verified/30 bg-verified/5 p-3 space-y-1">
                   <p className="text-sm">
                     <span className="font-semibold">We ticked this off for you.</span>{" "}
                     {data.evidence ?? `Your resume says you know ${data.level.skill}.`}
@@ -450,15 +450,15 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
               <div
                 className={`rounded-lg border p-4 animate-pop-in ${
                   result.passed
-                    ? "border-emerald-500/40 bg-emerald-500/10"
-                    : "border-amber-500/40 bg-amber-500/10"
+                    ? "border-verified/40 bg-verified/10"
+                    : "border-compete/40 bg-compete/10"
                 }`}
               >
                 <p className="font-semibold flex items-center gap-2">
                   {result.passed ? (
-                    <PartyPopper className="h-5 w-5 text-emerald-600 animate-cheer" />
+                    <PartyPopper className="h-5 w-5 text-verified animate-cheer" />
                   ) : (
-                    <RotateCcw className="h-5 w-5 text-amber-600" />
+                    <RotateCcw className="h-5 w-5 text-compete" />
                   )}
                   {result.score} out of {result.out_of}
                   {result.passed ? " — topic cleared" : " — not quite yet"}
@@ -481,10 +481,10 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                   teaching happens — worth reading whether they passed or not. */}
               <div className="space-y-3">
                 {result.results.map((r, i) => (
-                  <div key={r.question_id} className={`rounded-lg border p-3 shadow-sm ${r.correct ? "border-emerald-500/30" : "border-destructive/30"}`}>
+                  <div key={r.question_id} className={`rounded-lg border p-3 shadow-sm ${r.correct ? "border-verified/30" : "border-destructive/30"}`}>
                     <p className="text-sm font-medium flex items-start gap-2">
                       {r.correct ? (
-                        <Check className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                        <Check className="h-4 w-4 shrink-0 mt-0.5 text-verified" />
                       ) : (
                         <X className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
                       )}

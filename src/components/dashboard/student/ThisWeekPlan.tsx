@@ -19,7 +19,7 @@ interface WeekItem {
 const DONE = new Set(["cleared", "mastered", "placed"]);
 
 const KIND = {
-  retry:  { label: "Finish this", icon: RotateCcw,     tone: "text-amber-500" },
+  retry:  { label: "Finish this", icon: RotateCcw,     tone: "text-compete" },
   revise: { label: "Quick revision", icon: Sparkles,   tone: "text-primary" },
   next:   { label: "Next step", icon: ArrowRight,      tone: "text-muted-foreground" },
   stretch:{ label: "Stretch", icon: ArrowRight,        tone: "text-muted-foreground" },
@@ -87,7 +87,7 @@ const ThisWeekPlan = () => {
                    className="flex items-start gap-3 py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/40">
                 <span className="mt-0.5">
                   {finished
-                    ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    ? <CheckCircle2 className="h-4 w-4 text-verified" />
                     : <Icon className={`h-4 w-4 ${kind.tone}`} />}
                 </span>
                 <div className="min-w-0 flex-1">

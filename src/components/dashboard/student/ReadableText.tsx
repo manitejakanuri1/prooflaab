@@ -193,7 +193,7 @@ export const GoDeeperCard = ({ card }: { card: GoDeeper }) => (
       <p className="text-sm font-semibold">Common mistakes</p>
       <ul className="mt-1 space-y-1 text-sm">
         {card.mistakes.map((m, i) => (
-          <li key={i} className="flex gap-2"><span className="text-amber-600">⚠</span><span><InlineText text={m} /></span></li>
+          <li key={i} className="flex gap-2"><span className="text-compete">⚠</span><span><InlineText text={m} /></span></li>
         ))}
       </ul>
     </div>

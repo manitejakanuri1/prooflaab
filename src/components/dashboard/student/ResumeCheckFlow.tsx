@@ -553,9 +553,9 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
           </div>
 
           {claim?.status === "confirmed" && step !== "upload" && (
-            <Alert className="border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30 py-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertDescription className="text-green-800 dark:text-green-300 text-sm">
+            <Alert className="border-verified/40 bg-verified/10 py-2">
+              <CheckCircle2 className="h-4 w-4 text-verified" />
+              <AlertDescription className="text-verified text-sm">
                 Confirmed. This is what your assessment is based on.
               </AlertDescription>
             </Alert>
@@ -601,7 +601,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                     <div key={label} className="rounded-md border p-2">
                       <div className="text-xs text-muted-foreground">{label}: old resume → new resume</div>
                       <div className="font-mono">
-                        {before ?? "—"} → <b className={(after ?? 0) >= ATS_GATE ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>{after ?? "—"}</b>
+                        {before ?? "—"} → <b className={(after ?? 0) >= ATS_GATE ? "text-verified" : "text-compete"}>{after ?? "—"}</b>
                         {before != null && after != null && <span className="text-muted-foreground"> ({after - before >= 0 ? "+" : ""}{after - before})</span>}
                       </div>
                     </div>
@@ -619,7 +619,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                   <pre className="text-xs whitespace-pre-wrap max-h-64 overflow-y-auto rounded bg-muted/40 p-2">{improvedResume}</pre>
                 )}
                 {(claim.improved_ats_score ?? 0) < ATS_GATE && (claim.improve_next_steps?.length ?? 0) > 0 && (
-                  <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                  <div className="rounded-md border border-compete/40 bg-compete/5 p-3">
                     <p className="text-sm font-medium">To raise it further, add these yourself:</p>
                     <ol className="mt-1 list-decimal pl-5 text-sm space-y-1">
                       {claim.improve_next_steps!.map((step, i) => <li key={i}>{step}</li>)}
@@ -630,7 +630,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                   <p className="text-sm">{claim.improve_motivation}</p>
                 )}
                 {claim.improved_applied_at ? (
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400">This is now your resume. Your scores and the assessment use it.</p>
+                  <p className="text-sm text-verified">This is now your resume. Your scores and the assessment use it.</p>
                 ) : (
                   <Button type="button" onClick={() => void handleUseImproved()} disabled={!improvedResume || usingImproved}>
                     {usingImproved ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
@@ -665,7 +665,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Award className="h-5 w-5 text-amber-500" />
+              <Award className="h-5 w-5 text-compete" />
               Excellent resume
             </CardTitle>
           </CardHeader>
@@ -864,7 +864,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                 questions come from what it claims, so a thin resume produces a
                 thin assessment and a score that means nothing. */}
             {blocked && (
-              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+              <div className="rounded-lg border border-compete/40 bg-compete/10 p-3">
                 <p className="text-sm font-medium">Rebuild your resume first</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   It scores {claim.ats_match_score ?? 0}% against your target role, under the{" "}

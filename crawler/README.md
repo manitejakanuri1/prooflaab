@@ -71,6 +71,20 @@ Outcomes printed per URL:
 Weekly on Sundays via `.github/workflows/crawl.yml`. The only secret it needs is
 `PGRST_JWT_SECRET`; `GITHUB_PAT` is optional and only lifts GitHub's rate limit.
 
+## Question bank (optional, off by default)
+
+After a crawl the pages can be cut into small, skill-tagged practice questions that wait as drafts for an admin
+to approve (Admin > Work > Question bank, migration 147). It changes nothing about how Lots are chosen.
+
+    QUESTION_DECOMPOSE=1              turn it on (anything else, or unset, leaves it off)
+    FUNCTIONS_URL=<functions service address>
+    WEBHOOK_SECRET=<the same secret the Scheduler jobs use>
+    QUESTION_DECOMPOSE_PAGES=3        pages per run, 1 to 5
+
+The crawler asks the `question-decompose` function for the next pages nobody has tried; it prints one line,
+`QUESTION BANK: ...`. A failure there never fails the crawl. The function can also be called by an admin for one
+page. Turn it on only after migration 147 and the function are deployed.
+
 ## Left alone deliberately
 
 `dedupe.py`, robots.txt, the per-source rate limit, the shape of

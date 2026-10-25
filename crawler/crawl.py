@@ -205,10 +205,40 @@ def run() -> int:
         # loud because every single run "succeeds" while the library quietly stops growing.
         print(f"CRAWLER ZERO NEW: no new or changed page in this run, and none stored for "
               f"{'ever' if newest_days is None else str(newest_days) + ' days'} ({tally['urls']} urls checked)", flush=True)
+    decompose_new_pages()
     if tally["urls"] > 0 and tally["failed"] == tally["urls"]:
         print("CRAWLER FAILED: every url failed to fetch or store", flush=True)
         return 1
     return 0
+
+
+def decompose_new_pages() -> None:
+    """Optional: ask the question-decompose function to cut pages nobody has tried yet into bank questions.
+
+    OFF unless QUESTION_DECOMPOSE=1, so nothing changes until the owner turns it on. It needs FUNCTIONS_URL
+    (the functions service address) and WEBHOOK_SECRET. The function picks the pages itself (the next ones with
+    no attempt), so this does not need to know which rows were just stored. Whatever happens here, the crawl
+    itself is never marked failed: the questions are an extra, the pages are the job.
+    """
+    if os.environ.get("QUESTION_DECOMPOSE") != "1":
+        return
+    url = os.environ.get("FUNCTIONS_URL", "").rstrip("/")
+    secret = os.environ.get("WEBHOOK_SECRET", "")
+    if not url or not secret:
+        print("QUESTION BANK skipped: QUESTION_DECOMPOSE=1 but FUNCTIONS_URL or WEBHOOK_SECRET is not set", flush=True)
+        return
+    pages = max(1, min(5, int(os.environ.get("QUESTION_DECOMPOSE_PAGES", "3") or 3)))
+    try:
+        r = httpx.post(f"{url}/functions/v1/question-decompose", json={"limit": pages},
+                       headers={"x-webhook-secret": secret}, timeout=280)
+        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+        if r.status_code >= 400:
+            print(f"QUESTION BANK failed: HTTP {r.status_code} {str(body)[:200]}", flush=True)
+        else:
+            print(f"QUESTION BANK: {body.get('pages', 0)} page(s), {body.get('stored', 0)} question(s) stored as drafts, "
+                  f"{body.get('skipped', 0)} skipped", flush=True)
+    except Exception as err:  # never fail the crawl over the extra step
+        print(f"QUESTION BANK failed: {str(err)[:200]}", flush=True)
 
 
 def report_tools() -> None:

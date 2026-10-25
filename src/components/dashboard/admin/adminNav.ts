@@ -27,6 +27,7 @@ export const ADMIN_GROUPS = [
     { id: "reviewed-submissions", label: "Flags & reviews" },
     { id: "assign-tasks", label: "Assign tasks" },
     { id: "content-library", label: "Content library" },
+    { id: "question-bank", label: "Question bank" },
     { id: "jobs", label: "Job sources" },
     { id: "resources", label: "Resources" },
   ] },

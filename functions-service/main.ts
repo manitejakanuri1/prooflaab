@@ -51,6 +51,7 @@ const SLUGS = [
   "lot-writer",
   "mock-interview-generate",
   "mock-interview-score",
+  "question-decompose",
   "resume-assessment-submit",
   "resume-code-execute",
   "resume-coding-generate",

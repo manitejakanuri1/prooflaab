@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 936069aa1d708ed599524623027c32cfec227cec   # 2026-10-25: blue loading circles + chat button
+      STAGING_RC: efe79cf01403ff6c86eaba124d22ba76380e454c   # 2026-10-25: student dashboard part 1 frame
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

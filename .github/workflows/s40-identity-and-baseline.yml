@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 06732385408275f44ae7f6e797f57df0d7f86b34   # 2026-10-25: onboarding part 3 pop-ups
+      STAGING_RC: 936069aa1d708ed599524623027c32cfec227cec   # 2026-10-25: blue loading circles + chat button
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

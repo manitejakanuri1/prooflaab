@@ -115,6 +115,13 @@ jobs:
                    ':(exclude)src/components/dashboard/student/ScoreExplainer.tsx'
                    ':(exclude)src/components/dashboard/student/SquadSwapCard.tsx'
                    ':(exclude)src/components/dashboard/season/SquadSwapsList.tsx'
+                   ':(exclude)src/App.tsx'
+                   ':(exclude)src/pages/Index.tsx'
+                   ':(exclude)src/pages/Legal.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentSkillsProved.tsx'
+                   ':(exclude)src/components/dashboard/college/QualifierSetting.tsx'
+                   ':(exclude)src/components/dashboard/college/StudentSectionMove.tsx'
+                   ':(exclude)src/components/dashboard/admin/QuestionBank.tsx'
                    ':(exclude)src/components/dashboard/college/TpoSquads.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
@@ -126,7 +133,7 @@ jobs:
       - name: Install PGlite and pg (pinned; not repository dependencies)
         run: npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/t" @electric-sql/pglite@0.2.17 pg@8.13.1
 
-      - name: Migrations 105-109 on PostgreSQL 16 (PGlite)
+      - name: Migrations 105-109 and 144-147 on PostgreSQL 16 (PGlite)
         env:
           PGLITE_MODULE: file://${{ runner.temp }}/t/node_modules/@electric-sql/pglite/dist/index.js
         run: |
@@ -134,6 +141,9 @@ jobs:
             scripts/dev-tools/sidhu_s39_squads.test.mjs \
             scripts/dev-tools/s34_migration_105.test.mjs \
             scripts/dev-tools/sidhu_s34_remove_students.test.mjs \
+            scripts/dev-tools/s44_squad_controls.test.mjs \
+            scripts/dev-tools/s44_topic_rating.test.mjs \
+            scripts/dev-tools/s44_question_bank.test.mjs \
             scripts/dev-tools/sidhu_s36_security.test.mjs | tee "$RUNNER_TEMP/pglite.tap"
           grep -q '^# fail 0$' "$RUNNER_TEMP/pglite.tap"
           grep -q '^# skipped 0$' "$RUNNER_TEMP/pglite.tap" || { echo "::error::tests were skipped: PGlite did not load"; exit 1; }

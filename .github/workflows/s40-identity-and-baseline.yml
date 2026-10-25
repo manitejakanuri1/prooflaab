@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 8f2d47cb7bc2f54076a99ae5f7826c2e166fe6cc   # 2026-10-25: onboarding part 2 brand frame
+      STAGING_RC: 06732385408275f44ae7f6e797f57df0d7f86b34   # 2026-10-25: onboarding part 3 pop-ups
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

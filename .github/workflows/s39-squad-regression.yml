@@ -90,6 +90,8 @@ jobs:
       #   resume check and skill gap only gain dark-mode colour variants. Look only.
       # 25 Oct: owner decision - pop-ups and drop-down lists opened inside the brand frame (the question round,
       #   target role list) take the dark brand look (src/lib/brandScope.ts); everywhere else they are unchanged.
+      # 25 Oct: owner decision - the spinning loading circle (every page) and the chat button in the corner are
+      #   brand blue #51A6FB instead of yellow. Colour only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -152,7 +154,11 @@ jobs:
                    ':(exclude)src/components/onboarding/InterestReview.tsx' ':(exclude)src/pages/StudentResumeOnboarding.tsx'
                    ':(exclude)src/components/dashboard/student/ResumeCheckFlow.tsx' ':(exclude)src/components/dashboard/student/SkillGap.tsx'
                    ':(exclude)src/lib/brandScope.ts' ':(exclude)src/components/ui/dialog.tsx' ':(exclude)src/components/ui/select.tsx'
-                   ':(exclude)src/components/dashboard/student/TimedResumeAssessment.tsx')
+                   ':(exclude)src/components/dashboard/student/TimedResumeAssessment.tsx'
+                   ':(exclude)src/components/AppGuideChatbot.tsx' ':(exclude)src/components/ProtectedRoute.tsx'
+                   ':(exclude)src/components/RoleBasedProtectedRoute.tsx' ':(exclude)src/pages/OnboardingWizard.tsx'
+                   ':(exclude)src/pages/StartupDashboard.tsx' ':(exclude)src/pages/StudentDashboard.tsx'
+                   ':(exclude)src/pages/StudentInterestOnboarding.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

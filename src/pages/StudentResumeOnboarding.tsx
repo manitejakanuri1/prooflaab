@@ -45,7 +45,7 @@ const StudentResumeOnboarding = () => {
     return (
       <BrandFrame className="max-w-2xl" logoHome={false}>
         <div className="flex justify-center py-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB]"></div>
         </div>
       </BrandFrame>
     );

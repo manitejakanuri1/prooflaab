@@ -93,7 +93,7 @@ const AppGuideChatbot = () => {
       )}
       <Button
         size="icon"
-        className="h-12 w-12 rounded-full shadow-lg"
+        className="h-12 w-12 rounded-full bg-[#51A6FB] text-[#041A38] shadow-lg hover:bg-[#51A6FB]/90"
         onClick={() => setOpen((o) => !o)}
       >
         {open ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}

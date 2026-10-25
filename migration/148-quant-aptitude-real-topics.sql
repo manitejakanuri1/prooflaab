@@ -1,4 +1,4 @@
--- 144: Quantitative Aptitude topics 7 and 8 were from a Bayesian statistics book ("The Bayesian State of Mind",
+-- 148: Quantitative Aptitude topics 7 and 8 were from a Bayesian statistics book ("The Bayesian State of Mind",
 -- "Introducing our first hammer: Pyro"), not aptitude. Found 25 Oct 2026 while comparing courses.
 -- They are replaced by two real placement topics, Time and Work and Simple and Compound Interest.
 -- Each new topic is one seed row plus its step list; the lessons are written afterwards by levels-warm,
@@ -27,14 +27,14 @@ do $$
 begin
   if exists (select 1 from public.levels where track_slug = 'quant-aptitude' and level_number in (7, 8)
               and (title ilike '%bayes%' or title ilike '%pyro%' or title ilike '%frequentist%' or title ilike '%lambda%')) then
-    raise exception '144 self-check: a Bayesian topic is still in Quantitative Aptitude';
+    raise exception '148 self-check: a Bayesian topic is still in Quantitative Aptitude';
   end if;
   if (select count(distinct level_number) from public.levels where track_slug = 'quant-aptitude') <> 8 then
-    raise exception '144 self-check: Quantitative Aptitude should have 8 topics';
+    raise exception '148 self-check: Quantitative Aptitude should have 8 topics';
   end if;
   if (select count(*) from public.level_syllabus y join public.levels l on l.id = y.level_id
        where l.track_slug = 'quant-aptitude' and l.level_number in (7, 8)) <> 2 then
-    raise exception '144 self-check: the two new topics need their step lists';
+    raise exception '148 self-check: the two new topics need their step lists';
   end if;
 end $$;
 

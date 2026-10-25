@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 036f56e0f5f3d075fa7af9e8086faff1fb074c52   # 2026-10-25: own reset email, link to our page
+      STAGING_RC: 7aee3113798e7ae472d222eb28f6e595caa0b60e   # 2026-10-25: onboarding part 1 brand frame
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

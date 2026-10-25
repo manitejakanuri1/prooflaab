@@ -667,6 +667,17 @@ async function requestPasswordReset(
 
   const origin = siteOrigin(req);
 
+  // When configured, we mail the link ourselves so it opens our own page: Google's
+  // template link can't be pointed at it (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED).
+  if (cfg.env.get("IDENTITY_PROJECT") && cfg.env.get("RESEND_API_KEY") && cfg.env.get("SITE_URL")) {
+    try {
+      await sendOwnResetEmail(input.email.trim(), cfg);
+    } catch (err) {
+      console.error("password reset email not sent:", err instanceof Error ? err.message : String(err));
+    }
+    return json({ ok: true });
+  }
+
   try {
     const sent = await googleIdentityAction(
       "sendOobCode",
@@ -700,6 +711,72 @@ async function requestPasswordReset(
   // Deliberately return the same response whether the address exists or not.
   // This prevents account enumeration.
   return json({ ok: true });
+}
+
+/** Asks Google for the reset code without mailing it, then mails our own link
+ * (SITE_URL/reset-password, never the request's Origin) through Resend. */
+async function sendOwnResetEmail(
+  email: string,
+  cfg: ReturnType<typeof config>,
+): Promise<void> {
+  const project = cfg.env.get("IDENTITY_PROJECT")!;
+  const tokenRes = await cfg.fetcher(
+    "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+    { headers: { "Metadata-Flavor": "Google" } },
+  );
+  if (!tokenRes.ok) throw new Error(`no service token: ${tokenRes.status}`);
+  const { access_token } = await tokenRes.json() as { access_token?: string };
+
+  const oob = await cfg.fetcher(
+    `${IDENTITY}/projects/${encodeURIComponent(project)}/accounts:sendOobCode`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${access_token}`,
+        "x-goog-user-project": project,
+      },
+      body: JSON.stringify({ requestType: "PASSWORD_RESET", email, returnOobLink: true }),
+    },
+  );
+  const body = await oob.json().catch(() => ({})) as { oobLink?: string; error?: { message?: unknown } };
+  // An unknown email ends here, quietly: the browser hears "ok" either way.
+  if (!oob.ok || !body.oobLink) throw new Error(`${oob.status} ${String(body.error?.message ?? "no link")}`);
+  const code = new URL(body.oobLink).searchParams.get("oobCode");
+  if (!code) throw new Error("link had no code");
+
+  const site = cfg.env.get("SITE_URL")!.replace(/\/+$/, "");
+  const link = `${site}/reset-password?mode=resetPassword&oobCode=${encodeURIComponent(code)}`;
+  const text = [
+    "Hello,",
+    `Someone asked to set a new password for the Prooflab account ${email}.`,
+    `Open this link to choose one: ${link}`,
+    "The link works for one hour. If you did not ask for this, ignore this email: your password stays the same.",
+    "Prooflab",
+  ];
+  const sent = await cfg.fetcher("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${cfg.env.get("RESEND_API_KEY")}`,
+    },
+    body: JSON.stringify({
+      from: cfg.env.get("EMAIL_FROM") || "Prooflab <noreply@notify.prooflab.co.in>",
+      to: [email],
+      subject: "Set a new Prooflab password",
+      text: text.join("\n\n"),
+      html: [
+        `<p>Hello,</p><p>Someone asked to set a new password for the Prooflab account ${escapeHtml(email)}.</p>`,
+        `<p><a href="${link}">Set a new password</a></p>`,
+        `<p>The link works for one hour. If you did not ask for this, ignore this email: your password stays the same.</p><p>Prooflab</p>`,
+      ].join(""),
+    }),
+  });
+  if (!sent.ok) throw new Error(`email service ${sent.status}`);
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 async function verifyPasswordReset(

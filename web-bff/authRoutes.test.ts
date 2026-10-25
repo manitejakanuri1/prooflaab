@@ -1070,3 +1070,40 @@ Deno.test("verification resend uses the server session and returns no token", as
     "refresh token leaked",
   );
 });
+
+Deno.test("own reset email links to SITE_URL, never the request Origin", async () => {
+  const calls: { url: string; body: Record<string, unknown> }[] = [];
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = String(input);
+    calls.push({ url, body: JSON.parse(String(init?.body ?? "{}")) });
+    if (url.includes("metadata.google.internal")) return Response.json({ access_token: "tok" });
+    if (url.includes("accounts:sendOobCode")) {
+      return Response.json({ oobLink: "https://x.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=CODE1&apiKey=k" });
+    }
+    return Response.json({ id: "mail1" });
+  };
+  const values: Record<string, string> = {
+    GOOGLE_API_KEY: "TEST_GOOGLE_KEY",
+    IDENTITY_PROJECT: "stg-identity",
+    RESEND_API_KEY: "re_test",
+    SITE_URL: "https://prooflab-staging.web.app/",
+  };
+  const req = new Request("https://bff.example.test/api/auth/password-reset/request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: "https://evil.example" },
+    body: JSON.stringify({ email: "student@example.test" }),
+  });
+
+  const res = await handleAuthRoute(req, { env: { get: (n: string) => values[n] }, fetcher });
+
+  assert(res !== null && res.status === 200, "reset request failed");
+  const oob = calls.find((c) => c.url.includes("accounts:sendOobCode"))!;
+  assert(oob.url.includes("/projects/stg-identity/"), "wrong identity project");
+  assert(oob.body.returnOobLink === true, "Google would mail its own link too");
+  const mail = calls.find((c) => c.url === "https://api.resend.com/emails")!;
+  assert(String(mail.body.text).includes(
+    "https://prooflab-staging.web.app/reset-password?mode=resetPassword&oobCode=CODE1",
+  ), "link not on our page");
+  assert(!JSON.stringify(mail.body).includes("evil.example"), "link followed the request Origin");
+  assert(!JSON.stringify(await res.json()).includes("CODE1"), "code leaked to the browser");
+});

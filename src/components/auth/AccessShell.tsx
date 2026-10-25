@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/landing/LandingButton";
 import { Logo, Wordmark } from "@/components/Logo";
 import "@/components/landing/landing.css";
+import { BrandScope } from "@/lib/brandScope";
 
 // The frame of the sign-in and set-password pages: prooflab-ai.lovable.app's /login
 // design (owner decision 25 Oct 2026). Always dark, like Lovable's. Only the look is
@@ -31,6 +32,7 @@ export function BrandFrame({ children, className = "max-w-[460px]", logoHome = t
   return (
     // reducedMotion="user": phones set to "reduce motion" get no animation.
     <MotionConfig reducedMotion="user">
+      <BrandScope.Provider value={true}>
       <main className="pl-landing dark relative min-h-[100svh] overflow-x-hidden bg-background text-foreground">
         <div className="pointer-events-none absolute inset-0 grid-lines opacity-35" />
         <div className="pointer-events-none absolute -top-48 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
@@ -45,6 +47,7 @@ export function BrandFrame({ children, className = "max-w-[460px]", logoHome = t
           </div>
         </section>
       </main>
+      </BrandScope.Provider>
     </MotionConfig>
   );
 }

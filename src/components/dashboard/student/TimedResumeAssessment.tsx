@@ -762,7 +762,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
 
               {runnerBusy && (
                 <div className="flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">Your code did not run</p>
                     <p className="text-muted-foreground">{runnerBusy}</p>
@@ -780,7 +780,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                       return (
                         <div key={i} className="flex items-start gap-2 text-xs">
                           {r.passed
-                            ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                            ? <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                             : <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />}
                           <div className="font-medium">{hiddenSummaryText(r)}</div>
                         </div>
@@ -795,7 +795,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                     return (
                       <div key={i} className="flex items-start gap-2 text-xs">
                         {r.passed
-                          ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                          ? <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                           : <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />}
                         <div className="space-y-0.5">
                           <div className="font-medium not-italic">
@@ -925,7 +925,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                       <QuestionMarks a={s} n={i + 1} />
                       <div className="flex items-start gap-2">
                         {s.final_score >= 70 ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                         ) : (
                           <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                         )}
@@ -937,12 +937,12 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                         </p>
                       )}
                       {s.confidence_flag === "lucky_guess" && (
-                        <p className="flex items-center gap-1 text-xs text-amber-600">
+                        <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                           <Dices className="h-3.5 w-3.5" /> Called it a guess... and nailed it. Lucky!
                         </p>
                       )}
                       {s.confidence_flag === "overconfident" && (
-                        <p className="flex items-center gap-1 text-xs text-amber-600">
+                        <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                           <Sparkles className="h-3.5 w-3.5" /> Felt confident, but this one wasn't it — worth a second look.
                         </p>
                       )}

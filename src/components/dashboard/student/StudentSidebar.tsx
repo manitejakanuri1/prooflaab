@@ -107,7 +107,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
               className={cn(
                 "w-full justify-start gap-2 sm:gap-3 h-10 sm:h-12 text-left text-xs sm:text-sm px-2 sm:px-4",
                 hasActiveChild
-                  ? "bg-primary/10 text-primary font-medium border border-primary/20" 
+                  ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-[inset_2px_0_0_hsl(var(--primary))]" 
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
@@ -132,7 +132,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
                   className={cn(
                     "w-full justify-start gap-2 h-9 sm:h-10 text-left text-xs sm:text-sm px-2 sm:px-3",
                     isChildActive
-                      ? "bg-primary/10 text-primary font-medium border border-primary/20" 
+                      ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-[inset_2px_0_0_hsl(var(--primary))]" 
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   )}
                 >
@@ -154,7 +154,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
         className={cn(
           "w-full justify-start gap-2 sm:gap-3 h-10 sm:h-12 text-left text-xs sm:text-sm px-2 sm:px-4",
           isActive 
-            ? "bg-primary/10 text-primary font-medium border border-primary/20" 
+            ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-[inset_2px_0_0_hsl(var(--primary))]" 
             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         )}
       >
@@ -165,7 +165,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
   };
 
   return (
-    <aside className="w-56 sm:w-64 bg-sidebar backdrop-blur-sm border-r border-sidebar-border h-screen overflow-y-auto">
+    <aside className="w-56 sm:w-64 bg-sidebar/85 backdrop-blur-xl border-r border-sidebar-border h-screen overflow-y-auto">
       <nav className="p-2 sm:p-4">
         <div className="space-y-1 sm:space-y-2">
           {menuItems.map(renderMenuItem)}
@@ -175,7 +175,7 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
             <Button
               variant="ghost"
               onClick={handleSignOut}
-              className="w-full justify-start gap-2 sm:gap-3 h-10 sm:h-12 text-left text-xs sm:text-sm px-2 sm:px-4 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300"
+              className="w-full justify-start gap-2 sm:gap-3 h-10 sm:h-12 text-left text-xs sm:text-sm px-2 sm:px-4 text-alert hover:bg-alert/10 hover:text-alert"
             >
               <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm">Sign Out</span>

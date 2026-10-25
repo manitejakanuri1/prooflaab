@@ -1,7 +1,9 @@
 import { createContext, useContext } from "react";
 
-/** True inside BrandFrame. Pop-ups render outside the page (portals), so they
- * add the brand classes themselves to match the dark brand frame. */
-export const BrandScope = createContext(false);
+/** The brand classes of the page around a pop-up. Pop-ups render outside the page
+ * (portals), so they add these classes themselves: "pl-landing dark" inside
+ * BrandFrame (always dark), "pl-landing" in the student dashboard (follows the
+ * light/dark switch). Empty everywhere else. */
+export const BrandScope = createContext("");
 
-export const useBrandScopeClass = () => (useContext(BrandScope) ? "pl-landing dark" : "");
+export const useBrandScopeClass = () => useContext(BrandScope);

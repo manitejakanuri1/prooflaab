@@ -32,7 +32,7 @@ export function BrandFrame({ children, className = "max-w-[460px]", logoHome = t
   return (
     // reducedMotion="user": phones set to "reduce motion" get no animation.
     <MotionConfig reducedMotion="user">
-      <BrandScope.Provider value={true}>
+      <BrandScope.Provider value="pl-landing dark">
       <main className="pl-landing dark relative min-h-[100svh] overflow-x-hidden bg-background text-foreground">
         <div className="pointer-events-none absolute inset-0 grid-lines opacity-35" />
         <div className="pointer-events-none absolute -top-48 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />

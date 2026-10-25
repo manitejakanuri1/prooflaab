@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import StudentHeader from "@/components/dashboard/student/StudentHeader";
@@ -10,6 +10,16 @@ import { useStudentIntake } from "@/hooks/useStudentIntake";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { Button } from "@/components/ui/button";
+import { BrandScope } from "@/lib/brandScope";
+import "@/components/landing/landing.css";
+
+// Brand look (owner decision 25 Oct 2026): .pl-landing swaps in the brand colours and
+// fonts and follows the light/dark switch; BrandScope gives pop-ups the same look.
+const Brand = ({ children }: { children: ReactNode }) => (
+  <BrandScope.Provider value="pl-landing">
+    <div className="pl-landing relative min-h-screen bg-background text-foreground">{children}</div>
+  </BrandScope.Provider>
+);
 
 /**
  * Four destinations: Floor, Build-log, Squad, Profile.
@@ -59,9 +69,11 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB]"></div>
-      </div>
+      <Brand>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB]"></div>
+        </div>
+      </Brand>
     );
   }
 
@@ -70,17 +82,21 @@ const StudentDashboard = () => {
   // and read as "no tasks" or "no squad", which is not what happened.
   if (profileError && !profile) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <div className="max-w-sm text-center space-y-4" role="alert">
-          <p className="text-sm text-destructive">We could not load your profile. Please try again.</p>
-          <Button variant="outline" onClick={refreshProfile}>Try again</Button>
+      <Brand>
+        <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="max-w-sm text-center space-y-4" role="alert">
+            <p className="text-sm text-alert">We could not load your profile. Please try again.</p>
+            <Button variant="outline" onClick={refreshProfile}>Try again</Button>
+          </div>
         </div>
-      </div>
+      </Brand>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <Brand>
+      <div className="pointer-events-none fixed inset-0 grid-lines opacity-25" />
+      <div className="pointer-events-none fixed -top-48 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
       <StudentHeader 
         studentName={profile?.full_name || "Student"}
         profilePhoto={profile?.profile_photo_url}
@@ -114,11 +130,11 @@ const StudentDashboard = () => {
           />
         </div>
         
-        <main className="flex-1 p-3 md:p-6 w-full min-w-0">
+        <main className="relative flex-1 p-3 md:p-6 w-full min-w-0">
           <StudentDashboardContent activeTab={activeTab} refreshProfile={refreshProfile} onTabChange={setActiveTab} />
         </main>
       </div>
-    </div>
+    </Brand>
   );
 };
 

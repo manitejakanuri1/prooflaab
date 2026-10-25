@@ -23,7 +23,10 @@ export async function cookieSignIn(context, base, { email, password }) {
   try {
     await page.goto(`${base}/auth`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.fill('input[type="email"]', email);
-    await page.fill('input[type="password"]', password);
+    // The sign-in page asks for the email first, then the password.
+    const passwordBox = page.locator('input[type="password"]');
+    if (!(await passwordBox.isVisible())) await page.click('button[type="submit"]');
+    await passwordBox.fill(password, { timeout: 30000 });
     await page.click('button[type="submit"]');
     await page.waitForURL((u) => !u.pathname.startsWith("/auth"), { timeout: 30000 }).catch(() => {});
     const cookie = (await context.cookies(base)).find((c) => c.name === "__session");

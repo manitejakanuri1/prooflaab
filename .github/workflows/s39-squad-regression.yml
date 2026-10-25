@@ -92,6 +92,8 @@ jobs:
       #   target role list) take the dark brand look (src/lib/brandScope.ts); everywhere else they are unchanged.
       # 25 Oct: owner decision - the spinning loading circle (every page) and the chat button in the corner are
       #   brand blue #51A6FB instead of yellow. Colour only.
+      # 25 Oct: owner decision - student dashboard part 1: the frame (top bar, left menu, background) takes the
+      #   brand colours and fonts and follows the light/dark switch; its pop-ups match. Look only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -158,7 +160,9 @@ jobs:
                    ':(exclude)src/components/AppGuideChatbot.tsx' ':(exclude)src/components/ProtectedRoute.tsx'
                    ':(exclude)src/components/RoleBasedProtectedRoute.tsx' ':(exclude)src/pages/OnboardingWizard.tsx'
                    ':(exclude)src/pages/StartupDashboard.tsx' ':(exclude)src/pages/StudentDashboard.tsx'
-                   ':(exclude)src/pages/StudentInterestOnboarding.tsx')
+                   ':(exclude)src/pages/StudentInterestOnboarding.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentHeader.tsx' ':(exclude)src/components/dashboard/student/StudentSidebar.tsx'
+                   ':(exclude)src/components/ui/popover.tsx' ':(exclude)src/components/ui/dropdown-menu.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

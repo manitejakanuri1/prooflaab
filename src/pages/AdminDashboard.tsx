@@ -19,6 +19,7 @@ import AdminHeader from "@/components/dashboard/admin/AdminHeader";
 import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
 import AdminSubmissions from "@/components/dashboard/admin/AdminSubmissions";
 import ContentLibrary from "@/components/dashboard/admin/ContentLibrary";
+import QuestionBank from "@/components/dashboard/admin/QuestionBank";
 import StudentTrace from "@/components/dashboard/admin/StudentTrace";
 import BugFinder from "@/components/dashboard/admin/BugFinder";
 import DailyLots from "@/components/dashboard/admin/DailyLots";
@@ -94,6 +95,8 @@ const AdminDashboard = () => {
         return <AdminAnalytics />;
       case "content-library":
         return <ContentLibrary />;
+      case "question-bank":
+        return <QuestionBank />;
       case "token-usage":
         return <TokenUsage />;
       case "security-events":

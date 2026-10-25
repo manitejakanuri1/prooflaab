@@ -42,6 +42,67 @@ const STATUS: Record<string, { label: string; tone: string; says: string }> = {
   },
 };
 
+interface TopicRating {
+  topic: string;
+  label: "strong" | "building" | "needs_work" | "new";
+  accuracy_pct: number | null;
+  attempts: number;
+}
+
+/**
+ * Strong in / Needs work, from the quiz and Lot answers recorded per topic (migration 146).
+ * Labels and accuracy only: the underlying rating stays hidden from students.
+ */
+const TopicStrengths = () => {
+  const [rows, setRows] = useState<TopicRating[] | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const { data, error } = await supabase.rpc("my_topic_ratings" as never);
+      setRows(error ? [] : ((data ?? []) as unknown as TopicRating[]));
+    })();
+  }, []);
+
+  const strong = (rows ?? []).filter((r) => r.label === "strong");
+  const weak = (rows ?? []).filter((r) => r.label === "needs_work");
+  if (strong.length === 0 && weak.length === 0) return null;
+
+  const chips = (list: TopicRating[], tone: string) => (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {list.map((r) => (
+        <Badge key={r.topic} variant="outline" className={`text-xs font-normal ${tone}`}>
+          {r.topic} · {r.accuracy_pct ?? 0}% of {r.attempts}
+        </Badge>
+      ))}
+    </div>
+  );
+
+  return (
+    <Card>
+      <CardContent className="pt-5 space-y-4">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Where you stand, topic by topic
+        </span>
+        {strong.length > 0 && (
+          <div>
+            <p className="text-sm font-medium">Strong in</p>
+            {chips(strong, "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20")}
+          </div>
+        )}
+        {weak.length > 0 && (
+          <div>
+            <p className="text-sm font-medium">Needs work</p>
+            {chips(weak, "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20")}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          From your quiz answers and daily Lots. A topic shows once you have answered at least 3.
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
 /**
  * Skills proved — a skill next to the evidence for it.
  *
@@ -74,6 +135,8 @@ const StudentSkillsProved = () => {
 
   if (skills.length === 0) {
     return (
+      <div className="space-y-4">
+      <TopicStrengths />
       <Card><CardContent className="pt-6">
         <p className="text-sm text-muted-foreground max-w-prose">
           No skills recorded yet. They arrive from your resume when you upload one, and from
@@ -81,6 +144,7 @@ const StudentSkillsProved = () => {
           one of them closer to proven.
         </p>
       </CardContent></Card>
+      </div>
     );
   }
 
@@ -88,6 +152,7 @@ const StudentSkillsProved = () => {
 
   return (
     <div className="space-y-4">
+      <TopicStrengths />
       <Card>
         <CardContent className="pt-5">
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

@@ -1,10 +1,9 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthForm";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Logo, Wordmark } from "@/components/Logo";
+import SignIn from "@/components/auth/SignIn";
+import { AccessShell, usePageTitle } from "@/components/auth/AccessShell";
 import { onboardingRoute } from "@/lib/onboardingRoute";
 
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
@@ -12,6 +11,9 @@ type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 export default function Auth() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  // The set-password page sends people here with a "password set" note.
+  const stateMessage = (useLocation().state as { message?: string } | null)?.message;
+  usePageTitle("Sign in to Prooflab");
 
   useEffect(() => {
     // Check URL for messages (e.g., from email confirmation)
@@ -133,31 +135,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background dark:bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-5">
-          <Link to="/" className="inline-flex items-center justify-center space-x-2">
-            <Logo className="h-12 w-12" />
-            <Wordmark imgClassName="h-5" />
-          </Link>
-        </div>
-
-        {errorMessage && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-        
-        <EnhancedRoleBasedAuthForm onSuccess={handleAuthSuccess} />
-        
-        {/* No "clear session" or "sign out all users" here any more. They were
-            a development escape hatch from stuck sessions, and read to a visitor
-            as either broken or alarming - "sign out all users" sounds like it
-            affects their whole college. The recovery they offered is automatic:
-            a session that fails or takes over three seconds to check is signed
-            out above, and signing in wipes any leftover state first. */}
-      </div>
-    </div>
+    <AccessShell>
+      <SignIn onSuccess={handleAuthSuccess} notice={errorMessage ?? stateMessage ?? ""} />
+    </AccessShell>
   );
 }

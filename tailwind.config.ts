@@ -76,6 +76,7 @@ export default {
 				surface: 'hsl(var(--surface))',
 				verified: 'hsl(var(--verified))',
 				compete: 'hsl(var(--compete))',
+				alert: 'hsl(var(--alert))',
 				// Learning-path board. Kept out of the generic scale on purpose:
 				// these read as "earned / not earned", not as decoration.
 				board: {

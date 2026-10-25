@@ -82,6 +82,8 @@ jobs:
       #   only the look and words changed, every sign-in button still goes to /auth.
       # 25 Oct: owner decision - brand-kit logo (public bucket gs://prooflab_logo/brand) on every page, tab icon and
       #   title, logo on the sign-in and set-password pages; the name "ProofLabAI" is written "ProofLab".
+      # 25 Oct: owner decision - sign-in and set-password pages use Lovable's /login design (always dark) with the
+      #   12 polish items; the sign-in itself is unchanged; no "Request access" link.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -136,7 +138,9 @@ jobs:
                    ':(exclude)src/pages/Auth.tsx'
                    ':(exclude)src/pages/OnboardingStudent.tsx'
                    ':(exclude)src/pages/Portfolio.tsx'
-                   ':(exclude)src/pages/ResetPassword.tsx')
+                   ':(exclude)src/pages/ResetPassword.tsx'
+                   ':(exclude)src/components/auth/AccessShell.tsx' ':(exclude)src/components/auth/SignIn.tsx'
+                   ':(exclude)src/lib/signInProblem.ts' ':(exclude)src/lib/signInProblem.test.ts')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

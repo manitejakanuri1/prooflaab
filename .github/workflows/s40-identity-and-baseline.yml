@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 66ac04d5697936c0c42103493b36098f1f4e87cd   # 2026-10-25: Lovable sign-in pages
+      STAGING_RC: 116efe44d53fee4d2a5120c7fff65b01b8022609   # 2026-10-25: email links open our set-password page
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

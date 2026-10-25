@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 19ff737063e325b91bd232e7349dd49b103440a8   # 2026-10-26: student dashboard part 5 Profile
+      STAGING_RC: e84a5449ab0405b058c5936c356d2e99e8bdedc2   # 2026-10-26: student side finished (portfolio, interest page)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

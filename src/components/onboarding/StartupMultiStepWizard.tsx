@@ -111,7 +111,7 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
 
       if (roleError) throw roleError;
 
-      toast.success("Welcome to ProofLabAI! 🚀");
+      toast.success("Welcome to ProofLab! 🚀");
       onComplete();
     } catch (error) {
       console.error('Error completing wizard:', error);

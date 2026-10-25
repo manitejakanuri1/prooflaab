@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedRoleBasedAuthForm from "@/components/auth/EnhancedRoleBasedAuthForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Logo } from "@/components/Logo";
+import { Logo, Wordmark } from "@/components/Logo";
 import { onboardingRoute } from "@/lib/onboardingRoute";
 
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
@@ -139,7 +139,7 @@ export default function Auth() {
         <div className="text-center mb-5">
           <Link to="/" className="inline-flex items-center justify-center space-x-2">
             <Logo className="h-12 w-12" />
-            <span className="text-2xl font-bold text-foreground">ProofLabAI</span>
+            <Wordmark imgClassName="h-5" />
           </Link>
         </div>
 

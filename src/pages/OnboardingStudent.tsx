@@ -44,7 +44,7 @@ export default function OnboardingStudent() {
         return;
       }
 
-      toast.success('Welcome to ProofLabAI! 🎓');
+      toast.success('Welcome to ProofLab! 🎓');
       navigate('/student/dashboard', { replace: true });
     };
 

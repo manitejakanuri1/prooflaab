@@ -80,6 +80,8 @@ jobs:
       #         box (SquadSwapCard), the college Squads page a Swaps tab (SquadSwapsList, shared with the admin).
       # 25 Oct: owner decision - the home page is the prooflab-ai.lovable.app design (src/components/landing);
       #   only the look and words changed, every sign-in button still goes to /auth.
+      # 25 Oct: owner decision - brand-kit logo (public bucket gs://prooflab_logo/brand) on every page, tab icon and
+      #   title, logo on the sign-in and set-password pages; the name "ProofLabAI" is written "ProofLab".
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -118,7 +120,23 @@ jobs:
                    ':(exclude)src/components/dashboard/student/SquadSwapCard.tsx'
                    ':(exclude)src/components/dashboard/season/SquadSwapsList.tsx'
                    ':(exclude)src/components/dashboard/college/TpoSquads.tsx'
-                   ':(exclude)src/pages/Index.tsx' ':(exclude)src/components/landing')
+                   ':(exclude)src/pages/Index.tsx' ':(exclude)src/components/landing'
+                   ':(exclude)index.html'
+                   ':(exclude)src/components/Logo.tsx'
+                   ':(exclude)src/components/AppGuideChatbot.tsx'
+                   ':(exclude)src/components/OnboardingModal.tsx'
+                   ':(exclude)src/components/dashboard/startup/VerificationBanner.tsx'
+                   ':(exclude)src/components/dashboard/college/CollegeDashboardHeader.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentHeader.tsx'
+                   ':(exclude)src/components/onboarding/CollegeMultiStepWizard.tsx'
+                   ':(exclude)src/components/onboarding/CollegeWizard.tsx'
+                   ':(exclude)src/components/onboarding/StartupMultiStepWizard.tsx'
+                   ':(exclude)src/components/onboarding/StartupWizard.tsx'
+                   ':(exclude)src/components/public/RecruiterHeader.tsx'
+                   ':(exclude)src/pages/Auth.tsx'
+                   ':(exclude)src/pages/OnboardingStudent.tsx'
+                   ':(exclude)src/pages/Portfolio.tsx'
+                   ':(exclude)src/pages/ResetPassword.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

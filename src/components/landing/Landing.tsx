@@ -4,25 +4,19 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowDown, ArrowRight, Check, Menu, Moon, Sun, X } from "lucide-react";
 import { Button } from "./LandingButton";
 import { cn } from "@/lib/utils";
+import { Logo, Wordmark } from "@/components/Logo";
 import "./landing.css";
 
 // The home page: an exact port of prooflab-ai.lovable.app (MinimalLanding + PilotCTA),
 // owner decision 25 Oct 2026. Only the look and the words changed. Every sign-in /
 // get-started button still goes to /auth, the same place the old home page sent people.
 
-// Our own brand-kit logo (owner's kit, background removed), served from the public
-// bucket gs://prooflab_logo/brand: white artwork on dark pages, navy on light pages.
-const LOGO = "https://storage.googleapis.com/prooflab_logo/brand";
-
+// Our brand-kit logo, shared with the rest of the app (src/components/Logo.tsx).
 function BrandLogo() {
   return (
     <span className="inline-flex items-center gap-1">
-      {(["white", "navy"] as const).map((tone) => (
-        <span key={tone} className={cn("inline-flex items-center gap-1", tone === "white" ? "hidden dark:inline-flex" : "dark:hidden")}>
-          <img src={`${LOGO}/prooflab-icon-${tone}.svg`} alt="" aria-hidden="true" className="h-6 w-auto" width={1000} height={1000} />
-          <img src={`${LOGO}/prooflab-wordmark-${tone}.svg`} alt={tone === "white" ? "ProofLab" : ""} className="h-3.5 w-auto" width={900} height={118} />
-        </span>
-      ))}
+      <Logo className="h-6" alt="" />
+      <Wordmark />
     </span>
   );
 }

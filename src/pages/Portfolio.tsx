@@ -59,10 +59,10 @@ const Portfolio = () => {
 
     const studentName = portfolio.student_profiles.full_name || "Student";
     const pageUrl = `${window.location.origin}/portfolio/${slug}`;
-    const title = `${studentName} – ProofLabAI Portfolio`;
+    const title = `${studentName} – ProofLab Portfolio`;
     const description = (
       portfolio.bio?.slice(0, 155) || 
-      `View the work ${studentName} has passed on ProofLabAI.`
+      `View the work ${studentName} has passed on ProofLab.`
     );
     const image = portfolio.student_profiles.profile_photo_url || "https://prooflab.ai/og-default.png";
 
@@ -105,7 +105,7 @@ const Portfolio = () => {
     setMeta("og:type", "profile", true);
     setMeta("og:url", pageUrl, true);
     setMeta("og:image", image, true);
-    setMeta("og:site_name", "ProofLabAI", true);
+    setMeta("og:site_name", "ProofLab", true);
     setMeta("profile:username", studentName, true);
 
     // Twitter Card tags
@@ -126,7 +126,7 @@ const Portfolio = () => {
       knowsAbout: portfolio.skills || [],
       memberOf: {
         "@type": "Organization",
-        name: "ProofLabAI",
+        name: "ProofLab",
         url: "https://prooflab.ai",
       },
     };
@@ -140,7 +140,7 @@ const Portfolio = () => {
     script.textContent = JSON.stringify(jsonLd);
 
     return () => {
-      document.title = "ProofLabAI";
+      document.title = "Prooflab — Build Proof. Show Readiness.";
     };
   }, [portfolio, slug]);
 
@@ -179,7 +179,7 @@ const Portfolio = () => {
                 Try Again
               </Button>
               <Button onClick={() => window.location.href = '/'}>
-                Go to ProofLabAI
+                Go to ProofLab
               </Button>
             </div>
           </CardContent>
@@ -225,7 +225,7 @@ const Portfolio = () => {
               </h1>
               <p className="text-muted-foreground text-lg mb-6 max-w-2xl">
                 {portfolio?.bio ||
-                  "Passionate student building real-world projects through ProofLabAI."}
+                  "Passionate student building real-world projects through ProofLab."}
               </p>
 
               {/* Skills */}

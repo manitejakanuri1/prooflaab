@@ -122,7 +122,7 @@ const OnboardingModal = ({ user, onComplete }: OnboardingModalProps) => {
       case 'student':
         return {
           icon: <GraduationCap className="h-16 w-16 text-primary" />,
-          title: "Welcome to ProofLabAI!",
+          title: "Welcome to ProofLab!",
           subtitle: "Start building your verified portfolio",
           benefits: [
             { icon: <Target className="h-5 w-5 text-primary" />, text: "Get real internship tasks" },

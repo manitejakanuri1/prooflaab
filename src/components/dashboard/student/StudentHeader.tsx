@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Logo } from "@/components/Logo";
+import { Logo, Wordmark } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
 import { getInitials } from "@/lib/utils";
 
@@ -55,7 +55,7 @@ const StudentHeader = ({
           
           <div className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
             <Logo className="h-8 w-8 md:h-12 md:w-12" />
-            <span className="hidden sm:inline">ProofLabAI</span>
+            <Wordmark className="hidden sm:inline-flex" imgClassName="h-3.5 md:h-4" />
           </div>
           
           <h1 className="text-xl font-bold hidden sm:block lg:ml-52">Students Dashboard</h1>

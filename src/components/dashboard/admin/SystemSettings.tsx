@@ -256,7 +256,7 @@ const SystemSettings = () => {
               Create New Admin User
             </DialogTitle>
             <DialogDescription>
-              Add a new administrator to manage the ProofLabAI platform.
+              Add a new administrator to manage the ProofLab platform.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

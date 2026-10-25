@@ -72,7 +72,7 @@ export default function CollegeWizard({ onComplete }: CollegeWizardProps) {
 
       if (roleError) throw roleError;
 
-      toast.success("Welcome to ProofLabAI! 🎓");
+      toast.success("Welcome to ProofLab! 🎓");
       onComplete();
     } catch (error) {
       console.error('Error completing wizard:', error);
@@ -87,7 +87,7 @@ export default function CollegeWizard({ onComplete }: CollegeWizardProps) {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">
-            Bring your students into ProofLabAI with a single step.
+            Bring your students into ProofLab with a single step.
           </CardTitle>
         </CardHeader>
 

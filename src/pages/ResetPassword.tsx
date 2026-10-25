@@ -4,6 +4,7 @@ import React, {
 } from "react";
 
 import {
+  Link,
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
@@ -33,6 +34,7 @@ import {
   Loader2,
 } from "lucide-react";
 
+import { Logo, Wordmark } from "@/components/Logo";
 import PasswordInput, {
   isPasswordValid,
 } from "@/components/auth/PasswordInput";
@@ -209,7 +211,11 @@ export default function ResetPassword() {
     };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+      <Link to="/" className="mb-5 inline-flex items-center gap-2" aria-label="ProofLab home">
+        <Logo className="h-12 w-12" />
+        <Wordmark imgClassName="h-5" />
+      </Link>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">

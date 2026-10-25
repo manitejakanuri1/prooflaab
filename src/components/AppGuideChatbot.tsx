@@ -15,7 +15,7 @@ const AppGuideChatbot = () => {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "guide", text: "Hey! I can walk you through any part of ProofLabAI — what are you trying to find?" },
+    { role: "guide", text: "Hey! I can walk you through any part of ProofLab — what are you trying to find?" },
   ]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);

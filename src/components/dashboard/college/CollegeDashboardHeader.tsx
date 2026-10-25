@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Logo } from "@/components/Logo";
+import { Logo, Wordmark } from "@/components/Logo";
 import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
 
 interface CollegeDashboardHeaderProps {
@@ -67,7 +67,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
           
           <div className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
             <Logo className="h-8 w-8 md:h-12 md:w-12" />
-            <span className="hidden sm:inline">ProofLabAI</span>
+            <Wordmark className="hidden sm:inline-flex" imgClassName="h-3.5 md:h-4" />
           </div>
           
           <h1 className="text-xl font-bold hidden sm:block">College Dashboard</h1>

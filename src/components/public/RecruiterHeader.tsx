@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Logo } from "@/components/Logo";
+import { Logo, Wordmark } from "@/components/Logo";
 import { ArrowLeft, LogIn, Briefcase } from "lucide-react";
 
 interface RecruiterHeaderProps {
@@ -20,7 +20,7 @@ export const RecruiterHeader = ({ isLoggedIn, isStudent, isLoading }: RecruiterH
         {/* Left: Logo */}
         <Link to="/" className="font-bold text-lg flex items-center space-x-3 hover:opacity-80 transition-opacity">
           <Logo />
-          <span className="hidden sm:inline">ProofLabAI</span>
+          <Wordmark className="hidden sm:inline-flex" />
         </Link>
 
         {/* Right: Mode-specific actions */}

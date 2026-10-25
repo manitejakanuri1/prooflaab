@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { LogOut } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { Logo, Wordmark } from "@/components/Logo";
 import { ADMIN_GROUPS, groupOf } from "./adminNav";
 import {
   Sidebar,
@@ -61,11 +61,11 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
         <div className="flex items-center gap-2">
           {open ? (
             <>
-              <Logo className="h-8 w-auto" alt="ProofLab Logo" />
-              <span className="text-lg font-bold">ProofLabAI</span>
+              <Logo className="h-8 w-auto" alt="ProofLab logo" />
+              <Wordmark />
             </>
           ) : (
-            <Logo className="h-8 w-auto" alt="ProofLab Logo" />
+            <Logo className="h-8 w-auto" alt="ProofLab logo" />
           )}
         </div>
       </SidebarHeader>

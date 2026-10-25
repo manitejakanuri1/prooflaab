@@ -52,6 +52,12 @@ export default function ResetPassword() {
 
   useEffect(() => {
     let active = true;
+    // Every email link from the login service opens this page; "confirm your email"
+    // links belong to /auth/callback.
+    if (searchParams.get("mode") === "verifyEmail") {
+      navigate(`/auth/callback?${searchParams}`, { replace: true });
+      return;
+    }
     (async () => {
       if (!code) {
         setChecking(false);

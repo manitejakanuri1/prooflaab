@@ -13,18 +13,18 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
 
   if (verificationStatus === "rejected") {
     return (
-      <Alert className="border-destructive bg-destructive/10 mb-6">
-        <XCircle className="h-5 w-5 text-destructive" />
-        <AlertTitle className="text-destructive font-semibold">
+      <Alert className="border-alert bg-alert/10 mb-6">
+        <XCircle className="h-5 w-5 text-alert" />
+        <AlertTitle className="text-alert font-semibold">
           Account Verification Rejected
         </AlertTitle>
-        <AlertDescription className="text-destructive/90">
+        <AlertDescription className="text-alert/90">
           Your startup account was not approved. Please contact our support team for more information.
           <div className="mt-3">
             <Button 
               variant="outline" 
               size="sm"
-              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              className="border-alert text-alert hover:bg-alert hover:text-background"
               asChild
             >
               <a href="mailto:hello@prooflab.co.in">
@@ -40,18 +40,18 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
 
   // Default: pending status
   return (
-    <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/20 mb-6">
-      <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-      <AlertTitle className="text-amber-900 dark:text-amber-100 font-semibold">
+    <Alert className="border-compete bg-compete/10 mb-6">
+      <AlertTriangle className="h-5 w-5 text-compete" />
+      <AlertTitle className="text-compete font-semibold">
         Account Verification Pending
       </AlertTitle>
-      <AlertDescription className="text-amber-800 dark:text-amber-200">
+      <AlertDescription className="text-compete">
         Your startup account is under review by the ProofLab team. You'll be able to post tasks and access student submissions once verification is complete.
         <div className="mt-3">
           <Button 
             variant="outline" 
             size="sm"
-            className="border-amber-600 text-amber-700 hover:bg-amber-600 hover:text-white dark:border-amber-500 dark:text-amber-400"
+            className="border-compete text-compete hover:bg-compete hover:text-background"
             asChild
           >
             <a href="mailto:support@prooflabai.com">

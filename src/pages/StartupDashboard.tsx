@@ -7,6 +7,8 @@ import { StartupDashboardContent } from "@/components/dashboard/startup/StartupD
 import { VerificationBanner } from "@/components/dashboard/startup/VerificationBanner";
 import { useStartupVerification } from "@/hooks/useStartupVerification";
 import { useUrlTab } from "@/hooks/useUrlTab";
+import { BrandPage } from "@/components/auth/AccessShell";
+import "@/components/landing/landing.css";
 
 const StartupDashboard = () => {
   const { user, loading } = useAuth();
@@ -15,9 +17,11 @@ const StartupDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>
-      </div>
+      <BrandPage>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>
+        </div>
+      </BrandPage>
     );
   }
 
@@ -28,8 +32,9 @@ const StartupDashboard = () => {
   const isVerified = verificationData?.verification_status === "approved";
 
   return (
+    <BrandPage>
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full">
         <StartupSidebar 
           activeTab={activeTab} 
           onTabChange={setActiveTab} 
@@ -42,7 +47,7 @@ const StartupDashboard = () => {
         <div className="flex-1 flex flex-col min-w-0">
           <StartupDashboardHeader onNavigate={setActiveTab} />
           
-          <main className="flex-1 p-6">
+          <main className="relative flex-1 p-6">
             {verificationData?.verification_status && (
               <VerificationBanner verificationStatus={verificationData.verification_status} />
             )}
@@ -55,6 +60,7 @@ const StartupDashboard = () => {
         </div>
       </div>
     </SidebarProvider>
+    </BrandPage>
   );
 };
 

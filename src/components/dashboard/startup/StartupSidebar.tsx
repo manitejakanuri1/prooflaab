@@ -1,5 +1,6 @@
 import { Home, Users, ClipboardList, LogOut, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Logo } from "@/components/Logo";
 import {
   Sidebar,
   SidebarContent,
@@ -48,11 +49,9 @@ export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSi
   return (
     <Sidebar className="w-64">
       <SidebarContent>
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">S</span>
-            </div>
+            <Logo className="h-8" />
             <div>
               <h2 className="font-semibold text-sm">Company</h2>
               <p className="text-xs text-muted-foreground">Find & hire talent</p>
@@ -78,7 +77,7 @@ export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSi
                               disabled={isDisabled}
                               className={`w-full justify-start ${
                                 activeTab === item.id 
-                                  ? "bg-primary/10 text-primary font-medium" 
+                                  ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-[inset_2px_0_0_hsl(var(--primary))]" 
                                   : "hover:bg-muted/50"
                               } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
@@ -100,7 +99,7 @@ export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSi
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={handleLogout}
-                    className="w-full justify-start text-destructive hover:bg-destructive/10"
+                    className="w-full justify-start text-alert hover:bg-alert/10 hover:text-alert"
                   >
                     <LogOut className="h-4 w-4" />
                     <span className="ml-2">Logout</span>

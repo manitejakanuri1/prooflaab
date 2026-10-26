@@ -116,6 +116,8 @@ jobs:
       #   frame (BrandFrame). Look only.
       # 26 Oct: owner decision - the student landing screen is called "ProofLab" instead of "Floor" (menu,
       #   daily card heading, Build-log empty text, welcome screen). Wording only, owner's request.
+      # 26 Oct: owner decision - company (recruiter) dashboard part 1: frame (brand page, header, side menu,
+      #   verification banner) in brand colours. Look only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -207,7 +209,8 @@ jobs:
                    ':(exclude)src/components/dashboard/college/TpoHome.tsx' ':(exclude)src/components/dashboard/college/TpoStudents.tsx'
                    ':(exclude)src/components/dashboard/college/TpoImportStudents.tsx' ':(exclude)src/components/dashboard/college/NotificationsSection.tsx'
                    ':(exclude)src/components/dashboard/college/TpoInsights.tsx' ':(exclude)src/components/dashboard/college/CollegeProfilePage.tsx'
-                   ':(exclude)src/components/dashboard/college/CollegeSettingsPage.tsx')
+                   ':(exclude)src/components/dashboard/college/CollegeSettingsPage.tsx'
+                   ':(exclude)src/components/dashboard/startup/StartupDashboardHeader.tsx' ':(exclude)src/components/dashboard/startup/StartupSidebar.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

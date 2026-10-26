@@ -16,34 +16,34 @@ export function TaskDetailsModal({ task, open, onClose }: TaskDetailsModalProps)
       return {
         icon: <Shield className="h-4 w-4" />,
         label: "Admin",
-        className: "border-orange-500 text-orange-700 dark:text-orange-300"
+        className: "border-compete text-compete"
       };
     }
     if (task.created_by_college_id && task.colleges?.name) {
       return {
         icon: <Building2 className="h-4 w-4" />,
         label: task.colleges.name,
-        className: "border-blue-500 text-blue-700 dark:text-blue-300"
+        className: "border-primary text-primary"
       };
     }
     if (task.created_by_startup_id && task.startups?.name) {
       return {
         icon: <Briefcase className="h-4 w-4" />,
         label: task.startups.name,
-        className: "border-purple-500 text-purple-700 dark:text-purple-300"
+        className: "border-compete text-compete"
       };
     }
     if (task.created_by_student_id && task.student_creator?.full_name) {
       return {
         icon: <User className="h-4 w-4" />,
         label: task.student_creator.full_name,
-        className: "border-green-500 text-green-700 dark:text-green-300"
+        className: "border-verified text-verified"
       };
     }
     return {
       icon: <User className="h-4 w-4" />,
       label: "Unknown",
-      className: "border-gray-500 text-gray-700 dark:text-gray-300"
+      className: "border-border text-muted-foreground"
     };
   };
 

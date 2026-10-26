@@ -57,7 +57,7 @@ const AdminSubmissions = () => {
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> :
-         error ? <p className="text-sm text-destructive">{(error as Error).message}</p> :
+         error ? <p className="text-sm text-alert">{(error as Error).message}</p> :
          data.length === 0 ? <p className="text-sm text-muted-foreground">No submissions.</p> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">

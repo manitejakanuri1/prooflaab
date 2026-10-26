@@ -56,7 +56,7 @@ const ContentLibrary = () => {
   };
 
   if (isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
-  if (error || !data) return <p className="text-sm text-destructive">Could not load the library.</p>;
+  if (error || !data) return <p className="text-sm text-alert">Could not load the library.</p>;
 
   const pages = data.pages.filter((p) => !q || `${p.title} ${p.url} ${p.site}`.toLowerCase().includes(q.toLowerCase()));
   const shown = data.pages.filter((p) => !p.hidden).length;

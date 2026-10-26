@@ -256,7 +256,7 @@ const TaskOversight = () => {
     // Admin created
     if (task.created_by_admin_id) {
       return (
-        <Badge variant="outline" className="gap-1 border-orange-500 text-orange-700 dark:text-orange-300">
+        <Badge variant="outline" className="gap-1 border-compete text-compete">
           <Shield className="h-3 w-3" />
           Admin
         </Badge>
@@ -267,14 +267,14 @@ const TaskOversight = () => {
     if (task.created_by_college_id) {
       if (task.colleges?.name) {
         return (
-          <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
+          <Badge variant="outline" className="gap-1 border-primary text-primary">
             <Building2 className="h-3 w-3" />
             {task.colleges.name}
           </Badge>
         );
       }
       return (
-        <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700 dark:text-blue-300">
+        <Badge variant="outline" className="gap-1 border-primary text-primary">
           <Building2 className="h-3 w-3" />
           College
         </Badge>
@@ -285,14 +285,14 @@ const TaskOversight = () => {
     if (task.created_by_startup_id) {
       if (task.startups?.name) {
         return (
-          <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
+          <Badge variant="outline" className="gap-1 border-compete text-compete">
             <Briefcase className="h-3 w-3" />
             {task.startups.name}
           </Badge>
         );
       }
       return (
-        <Badge variant="outline" className="gap-1 border-purple-500 text-purple-700 dark:text-purple-300">
+        <Badge variant="outline" className="gap-1 border-compete text-compete">
           <Briefcase className="h-3 w-3" />
           Startup
         </Badge>
@@ -303,14 +303,14 @@ const TaskOversight = () => {
     if (task.created_by_type === 'student' || task.created_by_student_id) {
       if (task.student_creator?.full_name) {
         return (
-          <Badge variant="outline" className="gap-1 border-green-500 text-green-700 dark:text-green-300">
+          <Badge variant="outline" className="gap-1 border-verified text-verified">
             <User className="h-3 w-3" />
             {task.student_creator.full_name}
           </Badge>
         );
       }
       return (
-        <Badge variant="outline" className="gap-1 border-green-500 text-green-700 dark:text-green-300">
+        <Badge variant="outline" className="gap-1 border-verified text-verified">
           <User className="h-3 w-3" />
           Student
         </Badge>
@@ -320,7 +320,7 @@ const TaskOversight = () => {
     // Fallback based on source field
     if (task.source === 'admin' || task.created_by_type === 'admin') {
       return (
-        <Badge variant="outline" className="gap-1 border-orange-500 text-orange-700 dark:text-orange-300">
+        <Badge variant="outline" className="gap-1 border-compete text-compete">
           <Shield className="h-3 w-3" />
           Admin
         </Badge>
@@ -350,15 +350,15 @@ const TaskOversight = () => {
     const isOverdue = !!dueDate && new Date(dueDate) < new Date() && key !== 'completed';
     
     if (isOverdue) {
-      return <Badge className="bg-red-500 text-white hover:bg-red-500">Overdue</Badge>;
+      return <Badge className="bg-alert text-primary-foreground hover:bg-alert">Overdue</Badge>;
     }
     
     const statusConfig: Record<string, { className: string, label: string }> = {
-      'completed': { className: 'bg-blue-500 text-white hover:bg-blue-500', label: 'Completed' },
-      'in progress': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
-      'assigned': { className: 'bg-green-500 text-white hover:bg-green-500', label: 'Active' },
-      'pending': { className: 'bg-orange-500 text-white hover:bg-orange-500', label: 'Pending' },
-      'flagged': { className: 'bg-red-500 text-white hover:bg-red-500', label: 'Flagged' }
+      'completed': { className: 'bg-primary text-primary-foreground hover:bg-primary', label: 'Completed' },
+      'in progress': { className: 'bg-verified text-primary-foreground hover:bg-verified', label: 'Active' },
+      'assigned': { className: 'bg-verified text-primary-foreground hover:bg-verified', label: 'Active' },
+      'pending': { className: 'bg-compete text-primary-foreground hover:bg-compete', label: 'Pending' },
+      'flagged': { className: 'bg-alert text-primary-foreground hover:bg-alert', label: 'Flagged' }
     };
     
     const config = statusConfig[key] || statusConfig.pending;
@@ -385,8 +385,8 @@ const TaskOversight = () => {
     return (
       <div className="space-y-4">
         <h2 className="text-3xl font-bold">Task Oversight</h2>
-        <div className="border rounded-lg bg-destructive/10 p-6 text-center">
-          <p className="text-destructive font-semibold">Error loading tasks</p>
+        <div className="border rounded-lg bg-alert/10 p-6 text-center">
+          <p className="text-alert font-semibold">Error loading tasks</p>
           <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
         </div>
       </div>
@@ -558,7 +558,7 @@ const TaskOversight = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => removeTaskMutation.mutate(task.id)}
-                            className="text-destructive"
+                            className="text-alert"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Remove Task
@@ -712,7 +712,7 @@ const TaskOversight = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => removeTaskMutation.mutate(task.id)}
-                            className="text-destructive"
+                            className="text-alert"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Remove

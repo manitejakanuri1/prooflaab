@@ -231,10 +231,10 @@ const ManageResourcesPage = () => {
     return (
       <Badge
         className={
-          status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
-          status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
-          status === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-100' :
-          'bg-gray-100 text-gray-800 hover:bg-gray-100'
+          status === 'approved' ? 'bg-verified/10 text-verified hover:bg-verified/10' :
+          status === 'pending' ? 'bg-compete/10 text-compete hover:bg-compete/10' :
+          status === 'rejected' ? 'bg-alert/10 text-alert hover:bg-alert/10' :
+          'bg-muted text-foreground hover:bg-muted'
         }
       >
         {status === 'approved' ? '✅ Approved' :
@@ -331,7 +331,7 @@ const ManageResourcesPage = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(resource.id)}
-                            className="text-destructive focus:text-destructive"
+                            className="text-alert focus:text-alert"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
@@ -382,7 +382,7 @@ const ManageResourcesPage = () => {
                   </div>
                 ) : (
                   <div className="p-8 bg-muted rounded-lg text-center">
-                    <p className="text-destructive">Invalid YouTube Link</p>
+                    <p className="text-alert">Invalid YouTube Link</p>
                     <a
                       href={safeExternalUrl(previewResource.url) ?? undefined}
                       target="_blank"

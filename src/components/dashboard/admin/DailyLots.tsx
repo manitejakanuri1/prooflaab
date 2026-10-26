@@ -67,7 +67,7 @@ const DailyLots = () => {
       </CardHeader>
       <CardContent className="space-y-3">
         {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-sm text-alert">{error}</p>}
         {!loading && !error && rows.length === 0 && <p className="text-sm text-muted-foreground">No Lots on this day.</p>}
         {rows.map((r) => {
           const s = r.submission;

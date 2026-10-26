@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: e92931a05ed279bdd219176315e83136f19e5277   # 2026-10-26: college dashboard part 5 (sign-up steps)
+      STAGING_RC: 70428cdf72bf7fdf94e1ade989847f81b6266181   # 2026-10-26: Floor renamed to ProofLab
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

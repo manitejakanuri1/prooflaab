@@ -276,7 +276,7 @@ const StudentDailyCard = () => {
       {/* Title line. The second word carries the colour, as in the deck. */}
       <div className="flex items-baseline gap-3 flex-wrap">
         <h1 className="text-3xl font-extrabold tracking-tight">
-          THE <span className="text-primary">FLOOR</span>
+          PROOF<span className="text-primary">LAB</span>
         </h1>
         <span className="ml-auto font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {format(new Date(), "EEE · dd MMM")}

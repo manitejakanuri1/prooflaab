@@ -29,8 +29,8 @@ const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
 const S = "/student/dashboard", C = "/college/dashboard", K = "/company/dashboard", A = "/admin/dashboard";
 const scr = (dashboard, nav, inner, url, roots, note = "") => ({ dashboard, nav, inner, url, roots: roots.map((r) => `${D}/${r}.tsx`), note });
 export const SCREENS = [
-  scr("student", "Floor", "-", `${S}?tab=lab`, ["student/StudentDailyCard", "student/StudentAssignedTasksPage"]),
-  scr("student", "Floor", "assigned tasks (old link)", "/student/tasks/assigned", ["student/StudentDailyCard", "student/StudentAssignedTasksPage"]),
+  scr("student", "ProofLab", "-", `${S}?tab=lab`, ["student/StudentDailyCard", "student/StudentAssignedTasksPage"]),
+  scr("student", "ProofLab", "assigned tasks (old link)", "/student/tasks/assigned", ["student/StudentDailyCard", "student/StudentAssignedTasksPage"]),
   ...[["entries", "Recent work", "BuildLogEntries"], ["progress", "Progress", "StudentProgressPage"], ["skills", "Skills evidence", "StudentSkillsProved"], ["history", "History", "StudentHistory"]]
     .map(([v, l, c]) => scr("student", "Build-log", l, `${S}?tab=log&view=${v}`, [`student/${c}`])),
   ...["overview", "members", "matches", "standings", "achievements", "leaderboards", "season"]

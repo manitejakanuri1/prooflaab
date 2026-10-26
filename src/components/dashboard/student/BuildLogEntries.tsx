@@ -83,7 +83,7 @@ const BuildLogEntries = () => {
       <Card><CardContent className="flex flex-col items-center gap-2 py-10 text-center">
         <NotebookPen className="h-8 w-8 text-muted-foreground" />
         <p className="font-medium">Nothing here yet</p>
-        <p className="text-sm text-muted-foreground">Submit today's Lot from the Floor - every piece of work you submit is recorded here.</p>
+        <p className="text-sm text-muted-foreground">Submit today's Lot from ProofLab - every piece of work you submit is recorded here.</p>
       </CardContent></Card>
     );
   }

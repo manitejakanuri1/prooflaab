@@ -16,7 +16,7 @@ const WelcomeScreen = ({ onStart, starting = false }: WelcomeScreenProps) => {
   return (
     <div className="w-full">
       <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-tight mb-10">
-        You&rsquo;re on the floor.
+        You&rsquo;re on ProofLab.
       </h1>
 
       <div className="space-y-6 text-base sm:text-lg leading-relaxed text-muted-foreground">

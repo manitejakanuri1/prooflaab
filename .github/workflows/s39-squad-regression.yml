@@ -114,6 +114,8 @@ jobs:
       #   colours. Look only.
       # 26 Oct: owner decision - college dashboard part 5: college sign-up steps in the always-dark brand
       #   frame (BrandFrame). Look only.
+      # 26 Oct: owner decision - the student landing screen is called "ProofLab" instead of "Floor" (menu,
+      #   daily card heading, Build-log empty text, welcome screen). Wording only, owner's request.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'

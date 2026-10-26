@@ -65,7 +65,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
       </div>
 
       {error && (
-        <p className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">
+        <p className="rounded-lg border border-alert/40 p-3 text-sm text-alert">
           {(error as Error).message}
         </p>
       )}
@@ -164,7 +164,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                     {s.attempts > 1 ? ` · attempt ${s.attempts}` : ""}
                   </span>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="text-destructive"
+                    <Button variant="outline" size="sm" className="text-alert"
                             onClick={() => { setOpen(s); setDecision("rejected"); }}>
                       <X className="mr-1 h-4 w-4" />Reject
                     </Button>

@@ -19,7 +19,7 @@ function Avatar({ initials, color }: { initials: string; color: string }) {
 
 function ScorePill({ label, score, proof, verified }: { label: string; score: number | null; proof: ProofItem[]; verified?: boolean }) {
   const [open, setOpen] = useState(false)
-  const tone = score == null ? 'text-muted-foreground' : score >= 85 ? 'text-emerald-400' : score >= 75 ? 'text-amber-400' : 'text-zinc-300'
+  const tone = score == null ? 'text-muted-foreground' : score >= 85 ? 'text-verified' : score >= 75 ? 'text-compete' : 'text-muted-foreground'
   return (
     <div>
       <button onClick={() => setOpen(v => !v)} className='rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-left text-xs font-mono hover:border-primary/50'>
@@ -130,7 +130,7 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
                     <div className='text-[11px] text-muted-foreground'>{task.date}</div>
                   </div>
                   <div className='text-right text-xs font-mono'>
-                    <div className={task.status === 'completed' ? 'text-emerald-400' : task.status === 'pending' ? 'text-amber-400' : 'text-zinc-500'}>{task.status === 'completed' ? 'Passed' : task.status}</div>
+                    <div className={task.status === 'completed' ? 'text-verified' : task.status === 'pending' ? 'text-compete' : 'text-muted-foreground'}>{task.status === 'completed' ? 'Passed' : task.status}</div>
                     <div className='tabular text-muted-foreground'>{task.score != null ? `${task.score}/100` : '—'}</div>
                   </div>
                 </div>

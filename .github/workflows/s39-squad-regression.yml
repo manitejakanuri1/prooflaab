@@ -118,6 +118,8 @@ jobs:
       #   daily card heading, Build-log empty text, welcome screen). Wording only, owner's request.
       # 26 Oct: owner decision - company (recruiter) dashboard part 1: frame (brand page, header, side menu,
       #   verification banner) in brand colours. Look only.
+      # 26 Oct: owner decision - company dashboard parts 2-4: Home, Talent, Lots, Hiring, Settings in brand
+      #   colours; company sign-up steps in the always-dark brand frame (BrandFrame). Look only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -210,7 +212,10 @@ jobs:
                    ':(exclude)src/components/dashboard/college/TpoImportStudents.tsx' ':(exclude)src/components/dashboard/college/NotificationsSection.tsx'
                    ':(exclude)src/components/dashboard/college/TpoInsights.tsx' ':(exclude)src/components/dashboard/college/CollegeProfilePage.tsx'
                    ':(exclude)src/components/dashboard/college/CollegeSettingsPage.tsx'
-                   ':(exclude)src/components/dashboard/startup/StartupDashboardHeader.tsx' ':(exclude)src/components/dashboard/startup/StartupSidebar.tsx')
+                   ':(exclude)src/components/dashboard/startup/StartupDashboardHeader.tsx' ':(exclude)src/components/dashboard/startup/StartupSidebar.tsx'
+                   ':(exclude)src/components/dashboard/recruiter/RecruiterDashboardContent.tsx' ':(exclude)src/components/dashboard/recruiter/VoicePlayButton.tsx'
+                   ':(exclude)src/components/dashboard/startup/StartupDashboardContent.tsx' ':(exclude)src/components/dashboard/startup/StartupJobsPage.tsx'
+                   ':(exclude)src/components/dashboard/startup/StartupSettingsPage.tsx' ':(exclude)src/components/dashboard/startup/StartupSubmissionsPage.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

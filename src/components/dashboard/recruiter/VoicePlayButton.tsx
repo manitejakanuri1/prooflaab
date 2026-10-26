@@ -41,7 +41,7 @@ const VoicePlayButton = ({ voiceId }: { voiceId: string }) => {
       >
         {audio.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
       </button>
-      {audio.failed && <span role="alert" className="text-xs text-destructive">Could not play. Try again.</span>}
+      {audio.failed && <span role="alert" className="text-xs text-alert">Could not play. Try again.</span>}
     </div>
   );
 };

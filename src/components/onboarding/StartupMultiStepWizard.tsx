@@ -1,3 +1,4 @@
+import { BrandFrame } from "@/components/auth/AccessShell";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,8 +125,8 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Basic Information</h2>
-        <p className="text-gray-600">Tell us about your startup and contact details</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Basic Information</h2>
+        <p className="text-muted-foreground">Tell us about your startup and contact details</p>
       </div>
 
       <div className="space-y-4">
@@ -147,7 +148,7 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
             onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
             placeholder="Enter website or LinkedIn URL (optional)"
           />
-          <p className="text-sm text-gray-500">Optional but useful for credibility</p>
+          <p className="text-sm text-muted-foreground">Optional but useful for credibility</p>
         </div>
 
         <div className="space-y-2">
@@ -169,7 +170,7 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
             placeholder="Enter official email"
           />
-          <p className="text-sm text-gray-500">From signup, editable if needed</p>
+          <p className="text-sm text-muted-foreground">From signup, editable if needed</p>
         </div>
 
         <div className="space-y-2">
@@ -193,8 +194,8 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Hiring Preferences</h2>
-        <p className="text-gray-600">What type of talent are you looking for?</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Hiring Preferences</h2>
+        <p className="text-muted-foreground">What type of talent are you looking for?</p>
       </div>
 
       <div className="space-y-6">
@@ -235,7 +236,7 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
               </div>
             ))}
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Select all areas where you might need talent
           </p>
         </div>
@@ -255,14 +256,14 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirmation</h2>
-        <p className="text-gray-600">Review your details before submitting</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Confirmation</h2>
+        <p className="text-muted-foreground">Review your details before submitting</p>
       </div>
 
-      <div className="bg-gray-50 p-6 rounded-lg space-y-4">
+      <div className="bg-muted p-6 rounded-lg space-y-4">
         <div>
-          <h3 className="font-semibold text-gray-900">Company Information</h3>
-          <div className="mt-2 space-y-1 text-sm text-gray-600">
+          <h3 className="font-semibold text-foreground">Company Information</h3>
+          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
             <p><span className="font-medium">Name:</span> {formData.companyName}</p>
             {formData.website && <p><span className="font-medium">Website:</span> {formData.website}</p>}
             <p><span className="font-medium">Contact Person:</span> {formData.contactPerson}</p>
@@ -272,13 +273,13 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
         </div>
 
         <div>
-          <h3 className="font-semibold text-gray-900">Hiring Preferences</h3>
-          <div className="mt-2 space-y-1 text-sm text-gray-600">
+          <h3 className="font-semibold text-foreground">Hiring Preferences</h3>
+          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
             <p><span className="font-medium">Looking for:</span> {formData.lookingFor}</p>
             <p><span className="font-medium">Areas of Interest:</span></p>
             <div className="ml-4 mt-1">
               {formData.areasOfInterest.map(area => (
-                <span key={area} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-2 mb-1">
+                <span key={area} className="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded-full mr-2 mb-1">
                   {area}
                 </span>
               ))}
@@ -299,7 +300,7 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 flex items-center justify-center p-4">
+    <BrandFrame className="max-w-2xl" logoHome={false}>
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -311,15 +312,15 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
                     step === currentStep
                       ? 'bg-primary text-primary-foreground'
                       : step < currentStep
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-600'
+                      ? 'bg-verified text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {step}
                 </div>
               ))}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               Step {currentStep} of 3
             </div>
           </div>
@@ -334,6 +335,6 @@ export default function StartupMultiStepWizard({ onComplete }: StartupMultiStepW
           {currentStep === 3 && renderStep3()}
         </CardContent>
       </Card>
-    </div>
+    </BrandFrame>
   );
 }

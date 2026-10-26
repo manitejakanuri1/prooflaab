@@ -328,7 +328,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       </button>
                       <Badge variant="outline" className="text-[10px] font-normal">{s.stage}</Badge>
                       {s.student_response === "accepted" && (
-                        <Badge className="text-[10px] font-normal bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">
+                        <Badge className="text-[10px] font-normal bg-verified/15 text-verified hover:bg-verified/15">
                           accepted
                         </Badge>
                       )}
@@ -395,7 +395,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       <td className="py-2.5 pr-3">
                         {/* recruiter_lots() reads task_submissions since migration 54 (it read the retired upload table, so nothing ever showed). */}
                         {l.submission_id ? (
-                          <span className={l.submission_status === "passed" ? "text-emerald-600" : "text-amber-600"}>
+                          <span className={l.submission_status === "passed" ? "text-verified" : "text-compete"}>
                             {l.submission_status === "passed" ? "Passed" : l.submission_status === "needs_review" ? "Needs review" : "Not passed"}
                             {l.score != null ? ` · ${String(l.score)}/100` : ""}
                             {l.voice_status === "scored" ? " · explained" : ""}
@@ -429,7 +429,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                 <CardContent className="pt-5">
                   {open.contactUnlocked && open.contact ? (
                     <div className="flex items-center gap-3 flex-wrap">
-                      <Mail className="h-4 w-4 text-emerald-600" />
+                      <Mail className="h-4 w-4 text-verified" />
                       <span className="text-sm">{open.contact.email}</span>
                       {open.contact.phone && (
                         <span className="text-sm text-muted-foreground">· {open.contact.phone}</span>

@@ -1,3 +1,4 @@
+import { BrandFrame } from "@/components/auth/AccessShell";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,7 +83,7 @@ export default function StartupWizard({ onComplete }: StartupWizardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-4">
+    <BrandFrame className="max-w-2xl" logoHome={false}>
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">
@@ -136,6 +137,6 @@ export default function StartupWizard({ onComplete }: StartupWizardProps) {
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </BrandFrame>
   );
 }

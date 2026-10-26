@@ -244,10 +244,10 @@ export function StartupJobsPage() {
     return (
       <Badge 
         className={
-          status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
-          status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
-          status === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-100' : 
-          'bg-gray-100 text-gray-800 hover:bg-gray-100'
+          status === 'approved' ? 'bg-verified/10 text-verified hover:bg-verified/10' :
+          status === 'pending' ? 'bg-compete/10 text-compete hover:bg-compete/10' :
+          status === 'rejected' ? 'bg-alert/10 text-alert hover:bg-alert/10' : 
+          'bg-muted text-foreground hover:bg-muted'
         }
       >
         {status === 'approved' ? '🟢 Approved' : 
@@ -272,12 +272,12 @@ export function StartupJobsPage() {
     <div className="space-y-6">
       {/* Verification Warning Banner */}
       {!isVerified && (
-        <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
-          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-          <AlertTitle className="text-amber-900 dark:text-amber-100 font-semibold">
+        <Alert className="border-compete bg-compete/10">
+          <AlertTriangle className="h-5 w-5 text-compete" />
+          <AlertTitle className="text-compete font-semibold">
             Verification Required
           </AlertTitle>
-          <AlertDescription className="text-amber-800 dark:text-amber-200">
+          <AlertDescription className="text-compete">
             Your account is pending verification. Job posting is disabled until admin approval.
           </AlertDescription>
         </Alert>
@@ -349,7 +349,7 @@ export function StartupJobsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDelete(job.id)}
-                            className="text-destructive focus:text-destructive"
+                            className="text-alert focus:text-alert"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete

@@ -49,7 +49,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-sm border-b border-border px-3 md:px-6 py-4 dark:bg-card/90">
+    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border px-3 md:px-6 py-4">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo and Title */}
         <div className="flex items-center space-x-2 md:space-x-6">
@@ -65,12 +65,12 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
             </Button>
           )}
           
-          <div className="text-gray-900 dark:text-white px-3 md:px-6 py-2 md:py-3 rounded-2xl font-bold text-sm md:text-lg flex items-center space-x-2 md:space-x-3">
-            <Logo className="h-8 w-8 md:h-12 md:w-12" />
+          <div className="px-1 md:px-2 py-1 flex items-center gap-1.5">
+            <Logo className="h-7 md:h-8" />
             <Wordmark className="hidden sm:inline-flex" imgClassName="h-3.5 md:h-4" />
           </div>
           
-          <h1 className="text-xl font-bold hidden sm:block">College Dashboard</h1>
+          <h1 className="font-display text-lg font-semibold hidden sm:block">College Dashboard</h1>
         </div>
         
         {/* Profile Actions */}
@@ -98,7 +98,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
               <Button variant="ghost" className="flex items-center space-x-1 md:space-x-2 h-auto p-1 md:p-2">
                 <Avatar className="h-6 w-6 md:h-8 md:w-8">
                   <AvatarImage src={profilePhoto || ""} />
-                  <AvatarFallback className="bg-orange-200 text-orange-800 text-xs md:text-sm">
+                  <AvatarFallback className="bg-primary/15 text-primary text-xs md:text-sm">
                     {collegeName.split(' ').map(word => word[0]).join('').slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>

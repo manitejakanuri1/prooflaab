@@ -50,7 +50,7 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
   };
 
   return (
-    <aside className="sticky top-[64px] w-56 md:w-64 bg-card/80 backdrop-blur-sm border-r border-border h-[calc(100vh-64px)] overflow-y-auto">
+    <aside className="sticky top-[64px] w-56 md:w-64 bg-sidebar/85 backdrop-blur-xl border-r border-sidebar-border h-[calc(100vh-64px)] overflow-y-auto">
       <nav className="p-3 md:p-4">
         <div className="space-y-1 md:space-y-2">
           {menuItems.map((item) => {
@@ -66,7 +66,7 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
                 className={cn(
                   "w-full justify-start space-x-2 md:space-x-3 h-11 md:h-12 text-left text-xs md:text-sm relative",
                   active
-                    ? "bg-primary/10 text-primary font-medium"
+                    ? "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-[inset_2px_0_0_hsl(var(--primary))]"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
@@ -83,7 +83,7 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
             <Button
               variant="ghost"
               onClick={handleSignOut}
-              className="w-full justify-start space-x-2 md:space-x-3 h-10 md:h-12 text-left text-xs md:text-sm text-destructive hover:bg-destructive/10"
+              className="w-full justify-start space-x-2 md:space-x-3 h-10 md:h-12 text-left text-xs md:text-sm text-alert hover:bg-alert/10 hover:text-alert"
             >
               <LogOut className="h-4 w-4 flex-shrink-0" />
               <span className="truncate">Sign Out</span>

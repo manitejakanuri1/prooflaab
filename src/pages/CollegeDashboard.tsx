@@ -5,6 +5,8 @@ import CollegeDashboardSidebar from "@/components/dashboard/college/CollegeDashb
 import CollegeDashboardContent from "@/components/dashboard/college/CollegeDashboardContent";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCollegeProfile } from "@/hooks/useCollegeProfile";
+import { BrandPage } from "@/components/auth/AccessShell";
+import "@/components/landing/landing.css";
 
 const CollegeDashboard = () => {
   const [activeTab, setActiveTab] = useUrlTab("tab", "home");
@@ -20,7 +22,7 @@ const CollegeDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <BrandPage>
       <CollegeDashboardHeader
         collegeName={collegeData.name}
         profilePhoto={collegeData.profilePhoto}
@@ -55,11 +57,11 @@ const CollegeDashboard = () => {
           />
         </div>
         
-        <main className="flex-1 p-2 md:p-3 lg:p-6 w-full min-w-0 overflow-x-hidden">
+        <main className="relative flex-1 p-2 md:p-3 lg:p-6 w-full min-w-0 overflow-x-hidden">
           <CollegeDashboardContent activeTab={activeTab} onTabChange={setActiveTab} />
         </main>
       </div>
-    </div>
+    </BrandPage>
   );
 };
 

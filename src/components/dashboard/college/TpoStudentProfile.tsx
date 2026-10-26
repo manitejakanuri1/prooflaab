@@ -189,7 +189,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                     {c.k}
                   </span>
                   <div className={`font-mono text-lg font-semibold tabular-nums mt-0.5 ${
-                    c.hot ? "text-destructive" : ""}`}>{c.v}</div>
+                    c.hot ? "text-alert" : ""}`}>{c.v}</div>
                 </div>
               ))}
             </div>
@@ -208,7 +208,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                     { step: "First Lot submitted", done: data.onboarding.first_task_completed, at: null, detail: null },
                   ]).map((s) => (
                     <div key={s.step} className="flex items-start gap-2 text-sm" data-testid="onboarding-step">
-                      <span className={s.done ? "text-emerald-500" : "text-muted-foreground"}>
+                      <span className={s.done ? "text-verified" : "text-muted-foreground"}>
                         {s.done ? "✓" : "○"}
                       </span>
                       <span className="min-w-0">
@@ -266,7 +266,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                       key={s.skill}
                       variant={s.status === "proven" ? "default" : "outline"}
                       className={s.status === "needs_improvement"
-                        ? "border-destructive text-destructive" : ""}
+                        ? "border-alert text-alert" : ""}
                     >
                       {s.skill}
                       <span className="ml-1.5 opacity-70 font-normal">

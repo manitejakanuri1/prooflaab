@@ -38,7 +38,7 @@ const NotificationsSection = () => {
           <ul className="divide-y">
             {notifications.map((n) => (
               <li key={n.id} className={`flex items-start gap-3 py-3 ${n.is_read ? "opacity-60" : ""}`}>
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.severity === "high" ? "bg-destructive" : "bg-amber-500"}`} />
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.severity === "high" ? "bg-alert" : "bg-compete"}`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
                     {n.full_name}

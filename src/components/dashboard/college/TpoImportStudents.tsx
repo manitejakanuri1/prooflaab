@@ -445,9 +445,9 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { k: "Rows", v: rows.length, tone: "" },
-                  { k: "Valid", v: counts.valid, tone: "text-emerald-500" },
-                  { k: "Duplicates", v: counts.duplicate, tone: "text-amber-500" },
-                  { k: "Invalid", v: counts.invalid, tone: "text-destructive" },
+                  { k: "Valid", v: counts.valid, tone: "text-verified" },
+                  { k: "Duplicates", v: counts.duplicate, tone: "text-compete" },
+                  { k: "Invalid", v: counts.invalid, tone: "text-alert" },
                 ].map((c) => (
                   <div key={c.k} className="rounded-lg border p-3">
                     <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

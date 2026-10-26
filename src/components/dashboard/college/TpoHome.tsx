@@ -142,8 +142,8 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                   </span>
                 </div>
                 <div className={`font-mono text-3xl font-bold tabular-nums mt-1 ${
-                  c.tone === "hot" && c.value > 0 ? "text-destructive"
-                  : c.tone === "good" ? "text-emerald-500" : ""}`}>
+                  c.tone === "hot" && c.value > 0 ? "text-alert"
+                  : c.tone === "good" ? "text-verified" : ""}`}>
                   {c.value}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{c.note}</p>

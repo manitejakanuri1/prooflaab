@@ -369,17 +369,17 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                       )}
                     </td>
                     <td className={`py-2.5 pr-3 font-mono tabular-nums ${
-                      r.days_quiet >= 7 ? "text-destructive" : "text-muted-foreground"}`}>
+                      r.days_quiet >= 7 ? "text-alert" : "text-muted-foreground"}`}>
                       {recency(r.days_quiet)}
                     </td>
                     <td className="py-2.5 pr-3 font-mono tabular-nums">{r.lots_done}</td>
                     <td className="py-2.5 pr-3">
                       {r.attention === "ok" ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">Active</Badge>
+                        <Badge className="bg-verified/15 text-verified hover:bg-verified/15">Active</Badge>
                       ) : r.attention === "high" ? (
                         <Badge variant="destructive">Needs attention</Badge>
                       ) : (
-                        <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/15">Needs attention</Badge>
+                        <Badge className="bg-compete/15 text-compete hover:bg-compete/15">Needs attention</Badge>
                       )}
                       {r.onboarding_status !== "completed" && (
                         <div className="text-[10px] text-muted-foreground mt-1 font-mono">
@@ -388,7 +388,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                       )}
                     </td>
                     <td className="py-2.5 whitespace-nowrap">
-                      <Button size="sm" variant="ghost" className="h-7 px-2 text-muted-foreground hover:text-destructive"
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-muted-foreground hover:text-alert"
                               disabled={removing} title="Remove student"
                               onClick={(e) => { e.stopPropagation(); void remove([r.student_id], r.full_name); }}>
                         <Trash2 className="h-3.5 w-3.5" />

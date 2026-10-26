@@ -273,29 +273,29 @@ const AdminAnalytics = () => {
                 <LineChart data={studentGrowth}>
                   <CartesianGrid 
                     strokeDasharray="3 3" 
-                    stroke="#9ca3af" 
+                    stroke="hsl(var(--border))" 
                     strokeWidth={1}
                     opacity={1}
                   />
                   <XAxis 
                     dataKey="month" 
-                    stroke="#374151"
+                    stroke="hsl(var(--muted-foreground))"
                     fontSize={12}
-                    axisLine={{ stroke: '#6b7280', strokeWidth: 2 }}
-                    tickLine={{ stroke: '#6b7280', strokeWidth: 1 }}
-                    tick={{ fill: '#374151' }}
+                    axisLine={{ stroke: 'hsl(var(--border))', strokeWidth: 2 }}
+                    tickLine={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <YAxis 
-                    stroke="#374151" 
+                    stroke="hsl(var(--muted-foreground))" 
                     fontSize={12}
-                    axisLine={{ stroke: '#6b7280', strokeWidth: 2 }}
-                    tickLine={{ stroke: '#6b7280', strokeWidth: 1 }}
-                    tick={{ fill: '#374151' }}
+                    axisLine={{ stroke: 'hsl(var(--border))', strokeWidth: 2 }}
+                    tickLine={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <Tooltip 
                     contentStyle={{
-                      backgroundColor: 'white',
-                      border: '2px solid #d1d5db',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '2px solid hsl(var(--border))',
                       borderRadius: '8px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
@@ -303,10 +303,10 @@ const AdminAnalytics = () => {
                   <Line 
                     type="monotone" 
                     dataKey="students" 
-                    stroke="#f59e0b" 
+                    stroke="hsl(var(--primary))" 
                     strokeWidth={3}
-                    dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: "#f59e0b", strokeWidth: 2, fill: "#fbbf24" }}
+                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2, fill: "hsl(var(--primary))" }}
                   />
                 </LineChart>
               </ResponsiveContainer>

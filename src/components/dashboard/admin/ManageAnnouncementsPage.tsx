@@ -187,10 +187,10 @@ const ManageAnnouncementsPage = () => {
     return (
       <Badge 
         className={
-          status === 'published' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
-          status === 'draft' ? 'bg-gray-100 text-gray-800 hover:bg-gray-100' :
-          status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' : 
-          'bg-gray-100 text-gray-800 hover:bg-gray-100'
+          status === 'published' ? 'bg-verified/10 text-verified hover:bg-verified/10' :
+          status === 'draft' ? 'bg-muted text-foreground hover:bg-muted' :
+          status === 'scheduled' ? 'bg-compete/10 text-compete hover:bg-compete/10' : 
+          'bg-muted text-foreground hover:bg-muted'
         }
       >
         {status === 'published' ? '✅ Published' : 
@@ -204,8 +204,8 @@ const ManageAnnouncementsPage = () => {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-32 bg-muted rounded"></div>
         </div>
       </div>
     );
@@ -288,7 +288,7 @@ const ManageAnnouncementsPage = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDelete(announcement.id)}
-                            className="text-destructive focus:text-destructive"
+                            className="text-alert focus:text-alert"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete

@@ -125,35 +125,35 @@ const AdminDashboardOverview = ({
     value: stats?.totalStudents || 0,
     subtitle: `${stats?.activeStudents || 0} active`,
     icon: Users,
-    color: "text-blue-600",
+    color: "text-primary",
     onClick: () => onNavigate?.("students")
   }, {
     title: "Active Colleges",
     value: stats?.activeColleges || 0,
     subtitle: `${stats?.totalColleges || 0} total`,
     icon: Building2,
-    color: "text-green-600",
+    color: "text-verified",
     onClick: () => onNavigate?.("colleges")
   }, {
     title: "Active Startups",
     value: stats?.activeStartups || 0,
     subtitle: `${stats?.totalStartups || 0} total`,
     icon: Rocket,
-    color: "text-purple-600",
+    color: "text-compete",
     onClick: () => onNavigate?.("startups")
   }, {
     title: "Pending Proofs",
     value: stats?.pendingProofs || 0,
     subtitle: `${stats?.totalProofs || 0} total submitted`,
     icon: ClipboardCheck,
-    color: "text-orange-600",
+    color: "text-compete",
     onClick: () => onNavigate?.("proof-submissions")
   }, {
     title: "Active Tasks",
     value: stats?.activeTasks || 0,
     subtitle: `${stats?.totalTasks || 0} total posted`,
     icon: Eye,
-    color: "text-teal-600",
+    color: "text-verified",
     onClick: () => onNavigate?.("task-oversight")
   }];
   if (isLoading) {
@@ -173,9 +173,9 @@ const AdminDashboardOverview = ({
   }
   return <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-100 to-yellow-100 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl border border-orange-200/30 dark:border-gray-600">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Welcome To Admin Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-300">Welcome to the ProofLab administration panel</p>
+      <div className="bg-gradient-to-r from-compete/10 to-compete/10 p-6 rounded-2xl border border-compete/30">
+        <h1 className="text-2xl font-bold text-foreground mb-2">Welcome To Admin Dashboard</h1>
+        <p className="text-muted-foreground">Welcome to the ProofLab administration panel</p>
       </div>
 
       {/* KPI Cards */}

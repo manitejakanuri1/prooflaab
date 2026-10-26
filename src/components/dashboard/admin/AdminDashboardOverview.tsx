@@ -225,7 +225,7 @@ const AdminDashboardOverview = ({
             <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={analyticsData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{
                   fontSize: 12
                 }} />
@@ -252,7 +252,7 @@ const AdminDashboardOverview = ({
             <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analyticsData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{
                   fontSize: 12
                 }} />
@@ -280,7 +280,7 @@ const AdminDashboardOverview = ({
             <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={analyticsData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{
                   fontSize: 12
                 }} />
@@ -288,8 +288,8 @@ const AdminDashboardOverview = ({
                   fontSize: 12
                 }} />
                   <Tooltip />
-                  <Bar dataKey="tasksCreated" fill="hsl(var(--chart-1))" name="Created" radius={4} />
-                  <Bar dataKey="tasksCompleted" fill="hsl(var(--chart-2))" name="Completed" radius={4} />
+                  <Bar dataKey="tasksCreated" fill="hsl(var(--primary))" name="Created" radius={4} />
+                  <Bar dataKey="tasksCompleted" fill="hsl(var(--verified))" name="Completed" radius={4} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

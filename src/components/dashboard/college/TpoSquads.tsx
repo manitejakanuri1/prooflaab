@@ -488,7 +488,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {s.qualified === null
                           ? <span className="text-xs text-muted-foreground">League stage</span>
                           : s.qualified
-                            ? <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">
+                            ? <Badge className="bg-verified/15 text-verified hover:bg-verified/15">
                                 Through{s.seed ? ` · seed ${s.seed}` : ""}
                               </Badge>
                             : <span className="text-xs text-muted-foreground">
@@ -497,8 +497,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       </td>
                       <td className="py-2.5">
                         {healthy
-                          ? <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">Healthy</Badge>
-                          : <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/15">Needs attention</Badge>}
+                          ? <Badge className="bg-verified/15 text-verified hover:bg-verified/15">Healthy</Badge>
+                          : <Badge className="bg-compete/15 text-compete hover:bg-compete/15">Needs attention</Badge>}
                       </td>
                     </tr>
                   );
@@ -549,7 +549,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                   (m) => daysSince(m.student_profiles?.last_active ?? null) >= 7);
                 return quiet.length > 0 ? (
                   <div className="text-sm mt-4 flex items-center gap-2 flex-wrap">
-                    <span className="text-destructive font-medium">{quiet.length} member
+                    <span className="text-alert font-medium">{quiet.length} member
                       {quiet.length > 1 ? "s need" : " needs"} attention</span>
                     {quiet.map((m) => (
                       <Button key={m.student_id} size="sm" variant="outline" className="h-7 text-xs"
@@ -590,7 +590,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <td className="py-2.5 pr-3 font-mono text-xs">{m.student_profiles?.roll_number ?? "—"}</td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{m.membership_type}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{m.contribution}</td>
-                      <td className={`py-2.5 font-mono tabular-nums ${d >= 7 ? "text-destructive" : "text-muted-foreground"}`}>
+                      <td className={`py-2.5 font-mono tabular-nums ${d >= 7 ? "text-alert" : "text-muted-foreground"}`}>
                         {d >= 999 ? "never" : `${d}d`}
                         <ChevronRight className="h-3.5 w-3.5 inline-block ml-2 text-muted-foreground" />
                       </td>
@@ -998,11 +998,11 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {p.change == null ? (
                           <span className="text-muted-foreground">—</span>
                         ) : p.change >= 0 ? (
-                          <span className="text-emerald-500 inline-flex items-center gap-1">
+                          <span className="text-verified inline-flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />+{p.change}
                           </span>
                         ) : (
-                          <span className="text-destructive inline-flex items-center gap-1">
+                          <span className="text-alert inline-flex items-center gap-1">
                             <TrendingDown className="h-3 w-3" />{p.change}
                           </span>
                         )}

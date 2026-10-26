@@ -108,6 +108,8 @@ jobs:
       #   colours. Look only.
       # 26 Oct: owner decision - college dashboard part 2: Home and Students (list, profile, import,
       #   notifications) in brand colours. Look only.
+      # 26 Oct: owner decision - college dashboard part 3: Squads (standings, members, manage) in brand
+      #   colours. Look only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'

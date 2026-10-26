@@ -24,7 +24,7 @@ export default function SquadSwapsList({ collegeId, showCollege = false }: { col
     });
   }, [collegeId]);
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (error) return <p className="text-sm text-alert">{error}</p>;
   if (!rows) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (!rows.length) return <p className="text-sm text-muted-foreground">No squad swaps yet. Students can swap in the first 7 days of a season.</p>;
 

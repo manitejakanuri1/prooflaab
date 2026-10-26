@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: b2dc4bae47fb7b375742ad05cb8dd8563bc3726e   # 2026-10-26: college dashboard part 3 (squads)
+      STAGING_RC: 0f8e7a097cb7bbab4072c796fc1cb0d5c108aa1b   # 2026-10-26: college dashboard part 4 (insights, profile, settings)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

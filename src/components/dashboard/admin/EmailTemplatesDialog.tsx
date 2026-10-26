@@ -95,7 +95,7 @@ const EmailTemplatesDialog = ({ open, onOpenChange }: { open: boolean; onOpenCha
           </DialogDescription>
         </DialogHeader>
         {error ? (
-          <p role="alert" className="text-sm text-red-600">Could not load the templates: {(error as Error).message}</p>
+          <p role="alert" className="text-sm text-alert">Could not load the templates: {(error as Error).message}</p>
         ) : (
           <div className="space-y-3">
             <div>

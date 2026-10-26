@@ -46,7 +46,7 @@ const BugFinder = () => {
         </div>
         <Button variant="outline" onClick={load}>Refresh</Button>
       </div>
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <p className="text-sm text-alert">{err}</p>}
 
       {runs === null ? (
         <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
@@ -63,11 +63,11 @@ const BugFinder = () => {
                   <button key={r.run_id} type="button" onClick={() => openRun(r.run_id)}
                     className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted ${open === r.run_id ? "border-primary bg-muted" : ""}`}>
                     <div className="flex items-center gap-2">
-                      {failed.length === 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-destructive" />}
+                      {failed.length === 0 ? <CheckCircle2 className="h-4 w-4 text-verified" /> : <XCircle className="h-4 w-4 text-alert" />}
                       <span className="font-medium">{format(new Date(r.started_at), "d MMM HH:mm")}</span>
                       <span className="ml-auto font-mono text-xs text-muted-foreground">{r.passed}/{r.total}</span>
                     </div>
-                    {failed.length > 0 && <div className="mt-1 text-xs text-destructive">{failed.join(", ")}</div>}
+                    {failed.length > 0 && <div className="mt-1 text-xs text-alert">{failed.join(", ")}</div>}
                   </button>
                 );
               })}
@@ -81,9 +81,9 @@ const BugFinder = () => {
                   <TableHeader><TableRow><TableHead>Step</TableHead><TableHead>Result</TableHead><TableHead className="text-right">ms</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {steps.map((s, i) => (
-                      <TableRow key={i} className={!s.ok ? "bg-destructive/5" : ""}>
+                      <TableRow key={i} className={!s.ok ? "bg-alert/5" : ""}>
                         <TableCell className="text-sm">{s.step}</TableCell>
-                        <TableCell>{s.ok ? <Badge variant="outline">ok</Badge> : <span className="text-xs text-destructive">{s.reason ?? "failed"}</span>}</TableCell>
+                        <TableCell>{s.ok ? <Badge variant="outline">ok</Badge> : <span className="text-xs text-alert">{s.reason ?? "failed"}</span>}</TableCell>
                         <TableCell className="text-right font-mono text-xs">{s.duration_ms ?? ""}</TableCell>
                       </TableRow>
                     ))}

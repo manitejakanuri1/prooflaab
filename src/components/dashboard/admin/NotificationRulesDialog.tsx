@@ -56,7 +56,7 @@ const NotificationRulesDialog = ({ open, onOpenChange }: { open: boolean; onOpen
           </DialogDescription>
         </DialogHeader>
         {error ? (
-          <p role="alert" className="text-sm text-red-600">Could not load the rules: {(error as Error).message}</p>
+          <p role="alert" className="text-sm text-alert">Could not load the rules: {(error as Error).message}</p>
         ) : isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : !rules?.length ? (

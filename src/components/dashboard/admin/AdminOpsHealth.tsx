@@ -39,7 +39,7 @@ const AdminOpsHealth = () => {
   });
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (error || !data) return <p className="text-sm text-destructive">Could not load: {(error as Error)?.message}</p>;
+  if (error || !data) return <p className="text-sm text-alert">Could not load: {(error as Error)?.message}</p>;
 
   const rows: { area: string; label: string; value: string; bad: boolean; hint: string }[] = [
     { area: "Daily Lots", label: "Lots dated today", value: `${data.lotsToday} for ${data.activeStudents} active students`,
@@ -63,7 +63,7 @@ const AdminOpsHealth = () => {
               <tr key={r.label} className="border-t first:border-t-0">
                 <td className="py-2 pr-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground w-28">{r.area}</td>
                 <td className="py-2 pr-3">{r.label}<p className="text-xs text-muted-foreground">{r.hint}</p></td>
-                <td className={`py-2 text-right font-mono tabular-nums ${r.bad ? "text-destructive font-semibold" : ""}`}>{r.value}</td>
+                <td className={`py-2 text-right font-mono tabular-nums ${r.bad ? "text-alert font-semibold" : ""}`}>{r.value}</td>
               </tr>
             ))}
           </tbody>

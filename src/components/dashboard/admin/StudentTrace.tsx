@@ -56,7 +56,7 @@ const Timeline = () => {
         <Input id="trace-search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void search()} placeholder="Search by name, email or roll number" className="max-w-sm" />
         <Button onClick={() => void search()}>Search</Button>
       </div>
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <p className="text-sm text-alert">{err}</p>}
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <Card>
           <CardHeader><CardTitle className="text-sm">Students</CardTitle></CardHeader>
@@ -87,11 +87,11 @@ const Timeline = () => {
                 <TableHeader><TableRow><TableHead>Time</TableHead><TableHead>What</TableHead><TableHead>Where</TableHead><TableHead>Result</TableHead><TableHead className="text-right">ms</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {events.map((e, i) => (
-                    <TableRow key={i} className={e.status === "error" ? "bg-destructive/5" : ""}>
+                    <TableRow key={i} className={e.status === "error" ? "bg-alert/5" : ""}>
                       <TableCell className="whitespace-nowrap font-mono text-xs">{format(new Date(e.created_at), "d MMM HH:mm:ss")}</TableCell>
                       <TableCell><Badge variant="outline">{KIND_LABEL[e.kind] ?? e.kind}</Badge> <span className="text-sm">{e.action ?? e.target ?? ""}</span></TableCell>
                       <TableCell className="text-xs text-muted-foreground">{e.screen ?? (e.kind === "call" ? e.target : "")}</TableCell>
-                      <TableCell className="text-xs">{e.status === "error" ? <span className="text-destructive">failed{e.detail?.http ? ` (${e.detail.http})` : ""}{e.detail?.message ? `: ${e.detail.message}` : ""}</span> : e.status === "ok" ? "ok" : ""}{e.request_id && <div className="font-mono text-[10px] text-muted-foreground" title="Search this id in Google Cloud Logs Explorer">{e.request_id}</div>}</TableCell>
+                      <TableCell className="text-xs">{e.status === "error" ? <span className="text-alert">failed{e.detail?.http ? ` (${e.detail.http})` : ""}{e.detail?.message ? `: ${e.detail.message}` : ""}</span> : e.status === "ok" ? "ok" : ""}{e.request_id && <div className="font-mono text-[10px] text-muted-foreground" title="Search this id in Google Cloud Logs Explorer">{e.request_id}</div>}</TableCell>
                       <TableCell className="text-right font-mono text-xs">{e.duration_ms ?? ""}</TableCell>
                     </TableRow>
                   ))}
@@ -118,7 +118,7 @@ const Funnels = () => {
   return (
     <div className="space-y-4">
       <div className="flex gap-1">{[1, 7, 30].map((d) => <Button key={d} size="sm" variant={days === d ? "default" : "outline"} onClick={() => setDays(d)}>{d === 1 ? "Today" : `${d} days`}</Button>)}</div>
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <p className="text-sm text-alert">{err}</p>}
       <div className="grid gap-4 md:grid-cols-2">
         {groups.map(([name, steps]) => {
           const top = Math.max(1, steps[0]?.students ?? 0, ...steps.map((s) => s.students));
@@ -154,7 +154,7 @@ const Problems = () => {
   return (
     <div className="space-y-4">
       <div className="flex gap-1">{[1, 7, 30].map((d) => <Button key={d} size="sm" variant={days === d ? "default" : "outline"} onClick={() => setDays(d)}>{d === 1 ? "Today" : `${d} days`}</Button>)}</div>
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <p className="text-sm text-alert">{err}</p>}
       <Card>
         <CardHeader><CardTitle className="text-sm">Top errors</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">

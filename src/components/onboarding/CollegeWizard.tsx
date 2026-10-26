@@ -1,3 +1,4 @@
+import { BrandFrame } from "@/components/auth/AccessShell";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,7 +84,7 @@ export default function CollegeWizard({ onComplete }: CollegeWizardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center p-4">
+    <BrandFrame className="max-w-2xl" logoHome={false}>
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">
@@ -148,6 +149,6 @@ export default function CollegeWizard({ onComplete }: CollegeWizardProps) {
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </BrandFrame>
   );
 }

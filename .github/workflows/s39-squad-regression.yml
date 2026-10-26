@@ -112,6 +112,8 @@ jobs:
       #   colours. Look only.
       # 26 Oct: owner decision - college dashboard part 4: Insights, college profile and settings in brand
       #   colours. Look only.
+      # 26 Oct: owner decision - college dashboard part 5: college sign-up steps in the always-dark brand
+      #   frame (BrandFrame). Look only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'

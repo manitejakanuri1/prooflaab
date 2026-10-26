@@ -1,3 +1,4 @@
+import { BrandFrame } from "@/components/auth/AccessShell";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,8 +87,8 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Basic Information</h2>
-        <p className="text-gray-600">Tell us about your college and contact details</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Basic Information</h2>
+        <p className="text-muted-foreground">Tell us about your college and contact details</p>
       </div>
 
       <div className="space-y-4">
@@ -153,15 +154,15 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Student Data</h2>
-        <p className="text-gray-600">Add students after setup</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Student Data</h2>
+        <p className="text-muted-foreground">Add students after setup</p>
       </div>
 
-      <div className="flex items-start space-x-3 p-4 border rounded-lg bg-gray-50">
-        <Upload className="h-5 w-5 mt-0.5 text-gray-500" />
+      <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted">
+        <Upload className="h-5 w-5 mt-0.5 text-muted-foreground" />
         <div>
           <div className="font-medium">CSV upload from your dashboard</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             Once your dashboard is ready, upload a CSV of students (Email, Name,
             Roll Number, Department) from the overview page.
           </div>
@@ -182,14 +183,14 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirmation</h2>
-        <p className="text-gray-600">Review your details before submitting</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Confirmation</h2>
+        <p className="text-muted-foreground">Review your details before submitting</p>
       </div>
 
-      <div className="bg-gray-50 p-6 rounded-lg space-y-4">
+      <div className="bg-muted p-6 rounded-lg space-y-4">
         <div>
-          <h3 className="font-semibold text-gray-900">College Information</h3>
-          <div className="mt-2 space-y-1 text-sm text-gray-600">
+          <h3 className="font-semibold text-foreground">College Information</h3>
+          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
             <p><span className="font-medium">Name:</span> {formData.collegeName}</p>
             <p><span className="font-medium">Location:</span> {formData.location}</p>
             <p><span className="font-medium">Contact Person:</span> {formData.contactPerson}</p>
@@ -199,8 +200,8 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
         </div>
 
         <div>
-          <h3 className="font-semibold text-gray-900">Student Data</h3>
-          <div className="mt-2 text-sm text-gray-600">
+          <h3 className="font-semibold text-foreground">Student Data</h3>
+          <div className="mt-2 text-sm text-muted-foreground">
             <p>Students can be added from the dashboard after setup</p>
           </div>
         </div>
@@ -218,7 +219,7 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+    <BrandFrame className="max-w-2xl" logoHome={false}>
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -230,15 +231,15 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
                     step === currentStep
                       ? 'bg-primary text-primary-foreground'
                       : step < currentStep
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-600'
+                      ? 'bg-verified text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {step}
                 </div>
               ))}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               Step {currentStep} of 3
             </div>
           </div>
@@ -253,6 +254,6 @@ export default function CollegeMultiStepWizard({ onComplete }: CollegeMultiStepW
           {currentStep === 3 && renderStep3()}
         </CardContent>
       </Card>
-    </div>
+    </BrandFrame>
   );
 }

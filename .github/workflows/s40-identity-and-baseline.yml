@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 00cd71d87e1093350ad9db42da2440bd1ffa8ff2   # 2026-10-26: admin dashboard parts 1-5
+      STAGING_RC: 360590c981619b5d57526aad45a5f64c6ef6efd1   # 2026-10-26: admin dashboard parts 1-5 + chart fix
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

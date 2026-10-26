@@ -66,11 +66,11 @@ const realState = (c: { status?: string; verification_status?: string }) =>
     : c.status === 'active' ? 'live' : 'inactive';
 
 const STATE_BADGE: Record<string, { label: string; className: string }> = {
-  live: { label: '🟢 Live', className: 'bg-green-100 text-green-800 border-green-200' },
-  waiting: { label: '🟡 Waiting for approval', className: 'bg-orange-100 text-orange-800 border-orange-200' },
-  suspended: { label: '🔴 Suspended', className: 'bg-red-100 text-red-800 border-red-200' },
-  rejected: { label: '⛔ Rejected', className: 'bg-red-100 text-red-800 border-red-200' },
-  inactive: { label: '⚪ Approved, not active', className: 'bg-gray-100 text-gray-800 border-gray-200' },
+  live: { label: '🟢 Live', className: 'bg-verified/10 text-verified border-verified/40' },
+  waiting: { label: '🟡 Waiting for approval', className: 'bg-compete/10 text-compete border-compete/40' },
+  suspended: { label: '🔴 Suspended', className: 'bg-alert/10 text-alert border-alert/40' },
+  rejected: { label: '⛔ Rejected', className: 'bg-alert/10 text-alert border-alert/40' },
+  inactive: { label: '⚪ Approved, not active', className: 'bg-muted text-foreground border-border' },
 };
 
 const CollegeOversight = () => {
@@ -475,7 +475,7 @@ const CollegeOversight = () => {
       </div>
 
       {progress && (
-        <div role="status" className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
+        <div role="status" className="rounded-md border border-alert/40 bg-alert/5 px-4 py-3 text-sm">
           Removing students of <b>{progress.name}</b>: {progress.done} of {progress.total}. Keep this page open.
         </div>
       )}
@@ -605,7 +605,7 @@ const CollegeOversight = () => {
                             </DropdownMenuItem>
                           )}
                           {college.verification_status !== 'approved' && college.verification_status !== 'rejected' && (
-                            <DropdownMenuItem onClick={() => handleReject(college)} className="text-destructive">
+                            <DropdownMenuItem onClick={() => handleReject(college)} className="text-alert">
                               <Pause className="h-4 w-4 mr-2" />
                               Reject
                             </DropdownMenuItem>
@@ -617,17 +617,17 @@ const CollegeOversight = () => {
                           {college.status !== 'suspended' && (
                             <DropdownMenuItem
                               onClick={() => handleSuspend(college)}
-                              className="text-orange-600"
+                              className="text-compete"
                             >
                               <Pause className="h-4 w-4 mr-2" />
                               Suspend
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleRemoveAll(college)} className="text-destructive">
+                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleRemoveAll(college)} className="text-alert">
                             <UserMinus className="h-4 w-4 mr-2" />
                             Remove all students
                           </DropdownMenuItem>
-                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleDeleteCollege(college)} className="text-destructive">
+                          <DropdownMenuItem disabled={!!progress} onClick={() => void handleDeleteCollege(college)} className="text-alert">
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete college
                           </DropdownMenuItem>

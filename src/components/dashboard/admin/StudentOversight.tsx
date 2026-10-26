@@ -463,13 +463,13 @@ const StudentOversight = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleSuspend(student)}
-                          className="text-destructive"
+                          className="text-alert"
                         >
                           <Pause className="h-4 w-4 mr-2" />
                           Suspend
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive"
+                          className="text-alert"
                           onClick={async () => {
                             if (!(await ask({ title: `Remove ${student.full_name}?`,
                               points: ["Their work, scores and login are deleted"], action: "Remove" }))) return;

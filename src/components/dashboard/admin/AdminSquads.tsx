@@ -46,7 +46,7 @@ export default function AdminSquads() {
         <h1 className="text-2xl font-bold tracking-tight">Squads</h1>
         <p className="text-sm text-muted-foreground">Every college's squads this season, their secret swap codes, and every squad swap.</p>
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-alert">{error}</p>}
 
       <Card>
         <CardHeader><CardTitle className="text-base">Colleges with a season running</CardTitle></CardHeader>

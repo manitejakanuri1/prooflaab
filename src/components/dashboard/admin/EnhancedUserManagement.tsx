@@ -752,7 +752,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                    {user.status !== 'blocked' && (
                                      <DropdownMenuItem
                                        onClick={() => handleUserAction(user, 'block')}
-                                       className="text-red-600"
+                                       className="text-alert"
                                      >
                                        <Ban className="h-4 w-4 mr-2" />
                                        Block User
@@ -761,7 +761,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                    {user.status === 'blocked' && (
                                      <DropdownMenuItem
                                        onClick={() => handleUserAction(user, 'unblock')}
-                                       className="text-green-600"
+                                       className="text-verified"
                                      >
                                        <UserCheck className="h-4 w-4 mr-2" />
                                        Unblock User
@@ -773,7 +773,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                     {user.verification_status !== 'approved' && (
                                       <DropdownMenuItem
                                         onClick={() => handleUserAction(user, 'approve')}
-                                        className="text-green-600"
+                                        className="text-verified"
                                       >
                                         <CheckCircle className="h-4 w-4 mr-2" />
                                         Approve
@@ -782,7 +782,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                     {user.verification_status !== 'rejected' && (
                                       <DropdownMenuItem
                                         onClick={() => handleUserAction(user, 'reject')}
-                                        className="text-yellow-600"
+                                        className="text-compete"
                                       >
                                         <UserX className="h-4 w-4 mr-2" />
                                         Reject
@@ -790,7 +790,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                     )}
                                     <DropdownMenuItem
                                       onClick={() => handleUserAction(user, 'suspend')}
-                                      className="text-yellow-600"
+                                      className="text-compete"
                                     >
                                       <AlertTriangle className="h-4 w-4 mr-2" />
                                       Suspend
@@ -801,7 +801,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                    {user.verification_status !== 'approved' && (
                                      <DropdownMenuItem
                                        onClick={() => handleUserAction(user, 'approve')}
-                                       className="text-green-600"
+                                       className="text-verified"
                                      >
                                        <CheckCircle className="h-4 w-4 mr-2" />
                                        Approve
@@ -810,7 +810,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                    {user.status !== 'suspended' && (
                                      <DropdownMenuItem
                                        onClick={() => handleUserAction(user, 'suspend')}
-                                       className="text-yellow-600"
+                                       className="text-compete"
                                      >
                                        <AlertTriangle className="h-4 w-4 mr-2" />
                                        Suspend

@@ -93,7 +93,7 @@ const RecruiterOversight = () => {
           )}
 
           {error && (
-            <p className="py-8 text-center text-destructive">
+            <p className="py-8 text-center text-alert">
               Could not load recruiters:{" "}
               {error instanceof Error ? error.message : "unknown error"}
             </p>

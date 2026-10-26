@@ -110,6 +110,8 @@ jobs:
       #   notifications) in brand colours. Look only.
       # 26 Oct: owner decision - college dashboard part 3: Squads (standings, members, manage) in brand
       #   colours. Look only.
+      # 26 Oct: owner decision - college dashboard part 4: Insights, college profile and settings in brand
+      #   colours. Look only.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -199,7 +201,9 @@ jobs:
                    ':(exclude)src/components/dashboard/admin/QuestionBank.tsx'
                    ':(exclude)src/pages/CollegeDashboard.tsx' ':(exclude)src/components/dashboard/college/CollegeDashboardSidebar.tsx'
                    ':(exclude)src/components/dashboard/college/TpoHome.tsx' ':(exclude)src/components/dashboard/college/TpoStudents.tsx'
-                   ':(exclude)src/components/dashboard/college/TpoImportStudents.tsx' ':(exclude)src/components/dashboard/college/NotificationsSection.tsx')
+                   ':(exclude)src/components/dashboard/college/TpoImportStudents.tsx' ':(exclude)src/components/dashboard/college/NotificationsSection.tsx'
+                   ':(exclude)src/components/dashboard/college/TpoInsights.tsx' ':(exclude)src/components/dashboard/college/CollegeProfilePage.tsx'
+                   ':(exclude)src/components/dashboard/college/CollegeSettingsPage.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

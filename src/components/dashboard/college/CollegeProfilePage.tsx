@@ -151,7 +151,7 @@ const CollegeProfilePage = () => {
         <CardContent>
           <div className="animate-pulse space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-muted rounded"></div>
             ))}
           </div>
         </CardContent>
@@ -176,7 +176,7 @@ const CollegeProfilePage = () => {
               onClick={() => setIsPhotoModalOpen(true)}
             >
               <AvatarImage src={currentPhotoUrl || undefined} alt={formData.college_name} />
-              <AvatarFallback className="bg-orange-100 text-orange-700 text-xl">
+              <AvatarFallback className="bg-primary/15 text-primary text-xl">
                 {getInitials(formData.college_name || 'College')}
               </AvatarFallback>
             </Avatar>
@@ -188,7 +188,7 @@ const CollegeProfilePage = () => {
               >
                 <span>Change Logo</span>
               </Button>
-              <p className="text-sm text-gray-500 mt-1">JPG, PNG or GIF. Max size 2MB.</p>
+              <p className="text-sm text-muted-foreground mt-1">JPG, PNG or GIF. Max size 2MB.</p>
             </div>
           </div>
 
@@ -235,10 +235,10 @@ const CollegeProfilePage = () => {
               placeholder="Computer Science, Electrical Engineering, Mechanical Engineering (comma separated)"
               className="min-h-[80px]"
             />
-            <p className="text-sm text-gray-500 mt-1">Separate branches with commas</p>
+            <p className="text-sm text-muted-foreground mt-1">Separate branches with commas</p>
           </div>
 
-          <Button onClick={handleProfileUpdate} disabled={saving} className="bg-orange-600 hover:bg-orange-700">
+          <Button onClick={handleProfileUpdate} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>

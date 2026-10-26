@@ -161,7 +161,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
             <div className="font-mono text-3xl font-bold tabular-nums mt-1">
               {data.participation_this_week}%
             </div>
-            <p className={`text-xs mt-0.5 ${delta < 0 ? "text-destructive" : delta > 0 ? "text-emerald-500" : "text-muted-foreground"}`}>
+            <p className={`text-xs mt-0.5 ${delta < 0 ? "text-alert" : delta > 0 ? "text-verified" : "text-muted-foreground"}`}>
               {delta === 0 ? "unchanged on last week"
                 : `${delta > 0 ? "▲" : "▼"} ${Math.abs(delta)} points on last week`}
             </p>
@@ -177,7 +177,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
               Needs attention
             </span>
             <div className={`font-mono text-3xl font-bold tabular-nums mt-1 ${
-              data.attention_total > 0 ? "text-destructive" : ""}`}>
+              data.attention_total > 0 ? "text-alert" : ""}`}>
               {data.attention_total}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -277,12 +277,12 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                         </span>
                         <span className="ml-auto">
                           {pct >= 70
-                            ? <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">Healthy</Badge>
-                            : <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/15">Needs attention</Badge>}
+                            ? <Badge className="bg-verified/15 text-verified hover:bg-verified/15">Healthy</Badge>
+                            : <Badge className="bg-compete/15 text-compete hover:bg-compete/15">Needs attention</Badge>}
                         </span>
                       </div>
                       <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className={`h-full ${pct >= 70 ? "bg-emerald-500" : "bg-amber-500"}`}
+                        <div className={`h-full ${pct >= 70 ? "bg-verified" : "bg-compete"}`}
                              style={{ width: `${pct}%` }} />
                       </div>
                     </div>
@@ -318,7 +318,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                         </span>
                       </div>
                       <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className={pct >= 70 ? "h-full bg-emerald-500" : "h-full bg-amber-500"}
+                        <div className={pct >= 70 ? "h-full bg-verified" : "h-full bg-compete"}
                              style={{ width: pct + "%" }} />
                       </div>
                     </div>
@@ -355,9 +355,9 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                       {t.change == null ? (
                         <span className="text-muted-foreground">first week</span>
                       ) : t.change >= 0 ? (
-                        <span className="text-emerald-500">+{t.change}</span>
+                        <span className="text-verified">+{t.change}</span>
                       ) : (
-                        <span className="text-destructive">{t.change}</span>
+                        <span className="text-alert">{t.change}</span>
                       )}
                     </span>
                   </div>

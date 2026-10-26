@@ -100,7 +100,7 @@ const ReviewedSubmissions = () => {
             </p>
           ) : (
             rows.map((r) => (
-              <Card key={r.submission_id} className="border-blue-500/30">
+              <Card key={r.submission_id} className="border-primary/30">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
@@ -109,7 +109,7 @@ const ReviewedSubmissions = () => {
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {r.flags.map((f) => (
-                        <Badge key={f} variant="outline" className="border-blue-400/50 text-blue-600">
+                        <Badge key={f} variant="outline" className="border-primary/50 text-primary">
                           {FLAG_LABEL[f] ?? f}
                         </Badge>
                       ))}
@@ -137,7 +137,7 @@ const ReviewedSubmissions = () => {
                       size="sm"
                       disabled={acting === r.submission_id}
                       onClick={() => act(r.submission_id, true)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="bg-verified hover:bg-verified/90 text-primary-foreground"
                     >
                       <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
                     </Button>

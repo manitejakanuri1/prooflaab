@@ -163,7 +163,7 @@ const CollegeSettingsPage = () => {
         <CardContent>
           <div className="animate-pulse space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-muted rounded"></div>
             ))}
           </div>
         </CardContent>
@@ -230,7 +230,7 @@ const CollegeSettingsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Email Notifications</h4>
-              <p className="text-sm text-gray-600">Receive notifications via email</p>
+              <p className="text-sm text-muted-foreground">Receive notifications via email</p>
             </div>
             <Switch
               checked={preferences.emailNotifications}
@@ -246,7 +246,7 @@ const CollegeSettingsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Push Notifications</h4>
-              <p className="text-sm text-gray-600">Receive push notifications in browser</p>
+              <p className="text-sm text-muted-foreground">Receive push notifications in browser</p>
             </div>
             <Switch
               checked={preferences.pushNotifications}
@@ -262,7 +262,7 @@ const CollegeSettingsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Task Reminders</h4>
-              <p className="text-sm text-gray-600">Get reminders about pending tasks</p>
+              <p className="text-sm text-muted-foreground">Get reminders about pending tasks</p>
             </div>
             <Switch
               checked={preferences.taskReminders}
@@ -278,7 +278,7 @@ const CollegeSettingsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Weekly Digest</h4>
-              <p className="text-sm text-gray-600">Receive weekly summary emails</p>
+              <p className="text-sm text-muted-foreground">Receive weekly summary emails</p>
             </div>
             <Switch
               checked={preferences.weeklyDigest}
@@ -300,9 +300,9 @@ const CollegeSettingsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium text-gray-900">Account Management</h4>
-            <p className="text-sm text-gray-600 mt-1">
+          <div className="p-4 bg-muted rounded-lg">
+            <h4 className="font-medium text-foreground">Account Management</h4>
+            <p className="text-sm text-muted-foreground mt-1">
               For advanced account settings like data export or account deletion, 
               please contact our support team.
             </p>

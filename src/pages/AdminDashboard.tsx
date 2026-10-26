@@ -28,6 +28,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groupOf } from "@/components/dashboard/admin/adminNav";
 import AdminOpsHealth from "@/components/dashboard/admin/AdminOpsHealth";
 import { useUrlTab } from "@/hooks/useUrlTab";
+import { BrandPage } from "@/components/auth/AccessShell";
+import "@/components/landing/landing.css";
 import { usePendingReviewCount } from "@/hooks/usePendingReviewCount";
 
 const AdminDashboard = () => {
@@ -119,11 +121,12 @@ const AdminDashboard = () => {
   };
 
   return (
+    <BrandPage>
     <SidebarProvider 
       open={isMobile ? sidebarOpen : desktopOpen}
       onOpenChange={isMobile ? setSidebarOpen : setDesktopOpen}
     >
-      <div className="min-h-screen flex w-full bg-background relative">
+      <div className="min-h-screen flex w-full relative">
         {/* Mobile overlay */}
         {isMobile && sidebarOpen && (
           <div 
@@ -142,7 +145,7 @@ const AdminDashboard = () => {
         
         <div className="flex-1 flex flex-col min-w-0">
           <AdminHeader />
-          <main className="flex-1 overflow-auto">
+          <main className="relative flex-1 overflow-auto">
             <div className="p-3 md:p-4 lg:p-6 space-y-4">
               {/* The pages of the current destination, as tabs. */}
               {(() => {
@@ -156,7 +159,7 @@ const AdminDashboard = () => {
                         <TabsTrigger key={c.id} value={c.id}>
                           {c.label}
                           {c.id === "reviewed-submissions" && pendingReviews > 0 && (
-                            <span className="ml-1.5 rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-destructive-foreground"
+                            <span className="ml-1.5 rounded-full bg-alert px-1.5 text-[10px] font-semibold text-background"
                                   aria-label={`${pendingReviews} waiting for review`}>
                               {pendingReviews}
                             </span>
@@ -173,6 +176,7 @@ const AdminDashboard = () => {
         </div>
       </div>
     </SidebarProvider>
+    </BrandPage>
   );
 };
 

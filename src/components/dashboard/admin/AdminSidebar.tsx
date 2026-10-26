@@ -57,7 +57,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b px-3 py-3">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3">
         <div className="flex items-center gap-2">
           {open ? (
             <>
@@ -83,7 +83,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
                       tooltip={group.label}
                       onClick={() => openGroup(group.children[0].id)}
                       className={cn(
-                        isActive && "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
+                        isActive && "bg-primary/10 text-primary font-semibold border border-primary/30 shadow-[inset_2px_0_0_hsl(var(--primary))] hover:bg-primary/10 hover:text-primary"
                       )}
                     >
                       <group.icon className="h-4 w-4" />
@@ -97,10 +97,10 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-2">
+      <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
+            <SidebarMenuButton onClick={handleSignOut} className="text-alert hover:bg-alert/10 hover:text-alert">
               <LogOut className="h-4 w-4" />
               <span>Sign Out</span>
             </SidebarMenuButton>

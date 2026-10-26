@@ -24,11 +24,11 @@ export default function AdminNotificationsPopover({
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'proof': return <FileCheck className="h-4 w-4 text-blue-600" />;
-      case 'task': return <ListTodo className="h-4 w-4 text-green-600" />;
-      case 'user': return <Users className="h-4 w-4 text-purple-600" />;
-      case 'system': return <AlertCircle className="h-4 w-4 text-orange-600" />;
-      default: return <Bell className="h-4 w-4 text-gray-600" />;
+      case 'proof': return <FileCheck className="h-4 w-4 text-primary" />;
+      case 'task': return <ListTodo className="h-4 w-4 text-verified" />;
+      case 'user': return <Users className="h-4 w-4 text-compete" />;
+      case 'system': return <AlertCircle className="h-4 w-4 text-compete" />;
+      default: return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
   };
 

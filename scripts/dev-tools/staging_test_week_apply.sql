@@ -1,4 +1,4 @@
--- TEST WEBSITE ONLY (owner 27 Oct 2026): PRAGATI season week = 5 minutes. Undo: test_week_rollback.sql
+-- TEST WEBSITE ONLY (owner 27 Oct 2026): PRAGATI season week = 10 minutes, for testing only. Undo after testing: scripts/dev-tools/staging_test_week_rollback.sql
 \set ON_ERROR_STOP on
 do $$ begin if not exists (select 1 from auth.users where email = 'e2e.admin@staging.prooflab.invalid') then raise exception 'Not the TEST database. Refusing.'; end if; end $$;
 begin;
@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION public.season_week(_season_id uuid)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select greatest(1, least(s.planned_weeks,
-           (case when public.test_fast_season(s.id) then floor(extract(epoch from now() - s.created_at) / 300.0) + 1 else floor((current_date - s.starts_on) / 7.0) + 1 end)::int))
+           (case when public.test_fast_season(s.id) then floor(extract(epoch from now() - s.created_at) / 600.0) + 1 else floor((current_date - s.starts_on) / 7.0) + 1 end)::int))
     from public.seasons s where s.id = _season_id;
 $function$;
 
@@ -22,8 +22,8 @@ CREATE OR REPLACE FUNCTION public.season_week_bounds(_season_id uuid, _week inte
  STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select case when public.test_fast_season(s.id) then s.created_at + (_week - 1) * interval '5 minutes' else (s.starts_on + ((_week - 1) * 7))::timestamptz end,
-         case when public.test_fast_season(s.id) then s.created_at + _week * interval '5 minutes' else (s.starts_on + (_week * 7))::timestamptz end
+  select case when public.test_fast_season(s.id) then s.created_at + (_week - 1) * interval '10 minutes' else (s.starts_on + ((_week - 1) * 7))::timestamptz end,
+         case when public.test_fast_season(s.id) then s.created_at + _week * interval '10 minutes' else (s.starts_on + (_week * 7))::timestamptz end
     from public.seasons s where s.id = _season_id;
 $function$;
 
@@ -283,7 +283,7 @@ declare s record; done integer := 0; moved integer := 0; closed integer := 0; wk
 begin
   for s in select * from public.seasons where is_current and status = 'active' loop
     -- The last week is over: score it (this settles the final), then close.
-    if (case when public.test_fast_season(s.id) then now() >= s.created_at + s.planned_weeks * interval '5 minutes' else current_date >= s.starts_on + s.planned_weeks * 7 end) then
+    if (case when public.test_fast_season(s.id) then now() >= s.created_at + s.planned_weeks * interval '10 minutes' else current_date >= s.starts_on + s.planned_weeks * 7 end) then
       perform public.run_squad_week(s.id, s.planned_weeks);
       done := done + 1;
       perform public.close_season(s.id);
@@ -315,7 +315,7 @@ CREATE OR REPLACE FUNCTION public.squad_swap_closes(_squad_id uuid)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select (case when public.test_fast_season(s.id) then s.created_at + interval '5 minutes' else ((s.starts_on + 7)::timestamp at time zone 'Asia/Kolkata') end)
+  select (case when public.test_fast_season(s.id) then s.created_at + interval '10 minutes' else ((s.starts_on + 7)::timestamp at time zone 'Asia/Kolkata') end)
     from public.squads q join public.seasons s on s.id = q.season_id
    where q.id = _squad_id and s.is_current and s.status = 'active' and q.archived_at is null;
 $function$;
@@ -366,7 +366,7 @@ begin
   insert into public.squad_matches
     (season_id, round_number, home_squad, away_squad, scheduled_at, status, stage)
   values (_season_id, wk, a, b,
-          (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '3 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end), 'scheduled', 'final');
+          (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '6 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end), 'scheduled', 'final');
 
   perform public.write_audit('FINAL_GENERATED', 'squad_matches', _season_id, null,
     jsonb_build_object('week', wk), (select college_id from public.seasons where id = _season_id));
@@ -406,8 +406,8 @@ begin
   insert into public.squad_matches
     (season_id, round_number, home_squad, away_squad, scheduled_at, status, stage)
   values
-    (_season_id, wk, s1, s4, (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '3 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end), 'scheduled', 'knockout'),
-    (_season_id, wk, s2, s3, (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '3 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end), 'scheduled', 'knockout');
+    (_season_id, wk, s1, s4, (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '6 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end), 'scheduled', 'knockout'),
+    (_season_id, wk, s2, s3, (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '6 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end), 'scheduled', 'knockout');
   created := 2;
 
   perform public.write_audit('KNOCKOUT_GENERATED', 'squad_matches', _season_id, null,
@@ -483,7 +483,7 @@ begin
           values (_season_id, wk,
                   case when cycle % 2 = 1 then a else b end,
                   case when cycle % 2 = 1 then b else a end,
-                  (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '3 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end),
+                  (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '6 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end),
                   'scheduled');
           created := created + 1;
         end if;
@@ -544,7 +544,7 @@ begin
       values (_season_id, wk,
               case when cycle % 2 = 1 then a else b end,
               case when cycle % 2 = 1 then b else a end,
-              (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '3 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end),
+              (case when public.test_fast_season(_season_id) then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '6 minutes' else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end),
               'scheduled', _stage, _cohort);
       created := created + 1;
     end loop;

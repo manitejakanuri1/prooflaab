@@ -1,5 +1,5 @@
 -- TEST WEBSITE ONLY (owner, 27 Oct 2026): PRAGATI season week = 10 minutes, and PRAGATI Season 1 restarts at week 1.
--- Needs migration 149. Undo: scripts/dev-tools/staging_fast_season_off.sql
+-- Needs scripts/dev-tools/staging_only_season_clock.sql (TEST only). Undo: scripts/dev-tools/staging_fast_season_off.sql
 -- Run: bash scripts/dev-tools/staging_sql.sh scripts/dev-tools/staging_fast_season_on.sql
 \set ON_ERROR_STOP on
 \pset pager off

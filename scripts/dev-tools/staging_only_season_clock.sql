@@ -1,11 +1,13 @@
--- 149: the season clock has one anchor and one length (owner, 27 Oct 2026, for a one-hour QA season on TEST).
+-- TEST WEBSITE ONLY - NOT A MIGRATION, NEVER APPLY TO THE REAL DATABASE (owner, 27 Oct 2026: for QA testing, not a feature).
+-- Applied to TEST on 27 Oct 2026 (recorded there as ledger version 149-season-clock-setting).
+-- The season clock has one anchor and one length, so QA can run a whole season in about two hours.
 -- seasons.started_at (timestamptz) is the anchor for every week calculation: week number, week start/end,
 -- squad week scoring, weekly progress, season end, swap window and match times.
 -- app_settings.season_week_minutes sets the week length. Empty (the default, and the REAL website) = 7 days,
 -- and every result is what it was before: started_at is starts_on at midnight, the old anchor.
 -- app_settings.season_fast_colleges limits the short week to those college ids (comma separated; empty = all).
 -- In normal mode the swap window keeps its India-time end.
--- Turn on for TEST only: scripts/dev-tools/staging_fast_season_on.sql. Rollback: migration/149-rollback-season-clock-setting.sql
+-- Turn on for TEST only: scripts/dev-tools/staging_fast_season_on.sql. Rollback: scripts/dev-tools/staging_only_season_clock_rollback.sql
 begin;
 
 create table if not exists public.app_settings (

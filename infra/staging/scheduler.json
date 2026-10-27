@@ -1,4 +1,52 @@
 {
+ "prooflab-staging-daily-lots": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "schedule": "40 5 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/scheduled-job?job=daily-lots"
+ },
+ "prooflab-staging-extend-fixtures": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "schedule": "* * * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/scheduled-job?job=extend-fixtures"
+ },
+ "prooflab-staging-nightly-squads": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "schedule": "35 5 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/scheduled-job?job=nightly-squads"
+ },
+ "prooflab-staging-prune-events": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "schedule": "10 3 * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/scheduled-job?job=prune-events"
+ },
  "prooflab-staging-transcription-reap": {
   "header_names": [
    "Content-Type",
@@ -11,5 +59,41 @@
   "state": "ENABLED",
   "time_zone": "Asia/Kolkata",
   "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/transcription-reap"
+ },
+ "prooflab-staging-weekly-plan": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "schedule": "0 8 * * 1",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/scheduled-job?job=weekly-plan"
+ },
+ "prooflab-staging-weekly-progress": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "schedule": "45 23 * * 0",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/scheduled-job?job=weekly-progress"
+ },
+ "prooflab-staging-weekly-seasons": {
+  "header_names": [
+   "User-Agent"
+  ],
+  "method": "POST",
+  "oauth_service_account": null,
+  "oidc_service_account": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
+  "schedule": "* * * * *",
+  "state": "ENABLED",
+  "time_zone": "Asia/Kolkata",
+  "uri": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app/scheduled-job?job=weekly-seasons"
  }
 }

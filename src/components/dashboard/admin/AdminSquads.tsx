@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { FAST_WEEK, WHEN_FORMAT } from "@/lib/testClock";
 import SquadSwapsList from "@/components/dashboard/season/SquadSwapsList";
 
 // Admin: every college's current squads (members, points, secret swap codes) and every squad swap
@@ -67,7 +68,7 @@ export default function AdminSquads() {
             <>
               <p className="text-xs text-muted-foreground">
                 {closes && new Date(closes) > new Date()
-                  ? `Swaps are open until the end of ${format(new Date(closes).getTime() - 60000, "d MMM")}.`
+                  ? `Swaps are open until ${FAST_WEEK ? "" : "the end of "}${format(new Date(closes).getTime() - 60000, WHEN_FORMAT)}.`
                   : "Swaps are closed for this season (first 7 days only)."}
               </p>
               <div className="overflow-x-auto">

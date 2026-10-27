@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { format } from "date-fns";
+import { WHEN_FORMAT } from "@/lib/testClock";
 import TpoStudentProfile from "./TpoStudentProfile";
 import QualifierSetting from "./QualifierSetting";
 import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, TrendingUp, TrendingDown, Plus } from "lucide-react";
@@ -636,7 +637,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {m.round_number ?? "—"}
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground font-mono text-xs">
-                        {format(new Date(m.scheduled_at), "d MMM")}
+                        {format(new Date(m.scheduled_at), WHEN_FORMAT)}
                       </td>
                       <td className="py-2.5 font-mono text-xs">
                         {m.status === "played" && m.home_points != null

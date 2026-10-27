@@ -7,7 +7,8 @@ import SeasonPhaseBar, { useSeasonStatus } from "@/components/dashboard/season/S
 import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Trophy, Crown, Medal, Award } from "lucide-react";
-import { format, startOfWeek, addDays, isWithinInterval } from "date-fns";
+import { format, startOfWeek, addDays, addMinutes, isWithinInterval } from "date-fns";
+import { FAST_WEEK, WHEN_FORMAT } from "@/lib/testClock";
 import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
 
@@ -177,7 +178,9 @@ const StudentSquadPage = () => {
   // With an odd number of squads one sits out each round. Their tab used to
   // show nothing at all, which reads as a broken screen rather than a rest.
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const thisWeek = { start: weekStart, end: addDays(weekStart, 7) };
+  const thisWeek = FAST_WEEK
+    ? { start: addMinutes(new Date(), -5), end: addMinutes(new Date(), 5) }
+    : { start: weekStart, end: addDays(weekStart, 7) };
   const restWeek = !matches.some((m) =>
     isWithinInterval(new Date(m.scheduled_at), thisWeek));
 
@@ -362,7 +365,7 @@ const StudentSquadPage = () => {
                             vs {names[home ? m.away_squad : m.home_squad] ?? "?"}
                           </td>
                           <td className="py-2.5 pr-3 text-muted-foreground">
-                            {format(new Date(m.scheduled_at), "d MMM")}
+                            {format(new Date(m.scheduled_at), WHEN_FORMAT)}
                           </td>
                           <td className="py-2.5 font-mono text-xs">
                             {m.status === "played" && us != null ? (

@@ -68,7 +68,6 @@ insert into public.squad_scoring_rules (metric, label, points, description, coll
 select v.metric, v.label, v.points, v.description, '5112c011-0000-4000-9000-000000000001'
   from (values
     ('lot_submitted',      'Lot submitted',        10, 'The daily task, done.'),
-    ('proof_verified',     'Proof verified',       25, 'Work that survived checking.'),
     ('topic_cleared',      'Topic cleared',        12, 'A step of the roadmap finished.'),
     ('voice_recorded',     'Explanation recorded', 8,  'Saying out loud what you built.'),
     ('match_participated', 'Match played',         5,  'Turning up for the squad.'),
@@ -105,11 +104,9 @@ with sq as (
 insert into public.student_activity_events (student_id, college_id, event_type, source_type, occurred_at, metadata)
 select student_id, '5112c011-0000-4000-9000-000000000001', e.t, 'sim12', at + e.off, '{"sim12":true}'::jsonb
   from done
- cross join lateral (values ('lot_submitted', interval '0'), ('voice_recorded', interval '5 minutes'),
-                            ('proof_verified', interval '10 minutes')) e(t, off)
+ cross join lateral (values ('lot_submitted', interval '0'), ('voice_recorded', interval '5 minutes')) e(t, off)
  where e.t = 'lot_submitted'
-    or (e.t = 'voice_recorded' and roll % 2 = 0)
-    or (e.t = 'proof_verified' and roll % 5 = 0);
+    or (e.t = 'voice_recorded' and roll % 2 = 0);
 
 commit;
 

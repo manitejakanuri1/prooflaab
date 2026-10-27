@@ -71,7 +71,6 @@ const EVENT_LABEL: Record<string, string> = {
   voice_recorded: "recorded an explanation",
   topic_cleared: "cleared a topic",
   proof_submitted: "submitted proof",
-  proof_verified: "had proof verified",
   skill_assessed: "was assessed",
   profile_updated: "updated their profile",
   match_participated: "played a match",

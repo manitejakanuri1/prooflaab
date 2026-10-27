@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isSameDay } from "date-fns";
 import {
-  LogIn, PlayCircle, Upload, Mic, CheckCircle2, FileCheck, ShieldCheck,
+  LogIn, PlayCircle, Upload, Mic, CheckCircle2, FileCheck,
   Gauge, UserCog, Swords,
 } from "lucide-react";
 
@@ -26,7 +26,6 @@ const EVENT: Record<string, { label: string; icon: React.ComponentType<{ classNa
   voice_recorded:     { label: "Recorded an explanation",   icon: Mic },
   topic_cleared:      { label: "Cleared a topic",           icon: CheckCircle2 },
   proof_submitted:    { label: "Submitted work",            icon: FileCheck },
-  proof_verified:     { label: "Work verified",             icon: ShieldCheck },
   skill_assessed:     { label: "Skill assessed",            icon: Gauge },
   profile_updated:    { label: "Updated your profile",      icon: UserCog },
   match_participated: { label: "Played a squad match",      icon: Swords },

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 55567a815316bd3cd86edadb5572251f4115c34a   # 2026-10-27: season clock 149, proof scoring 150, squads empty state
+      STAGING_RC: 2e38455f84770ffe80b71f90247383738259fe1a   # 2026-10-27: TEST season week 10 minutes
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -122,6 +122,9 @@ jobs:
       #   colours; company sign-up steps in the always-dark brand frame (BrandFrame). Look only.
       # 27 Oct: owner decision - TEST website 5-minute season week: squad and swap screens show times
       #   (src/lib/testClock.ts, on only when VITE_TEST_FAST_WEEK=true in the TEST build). REAL build unchanged.
+      # 27 Oct: owner decision - dead "proof verified" scoring removed (migration 150): its labels leave the student
+      #   history (StudentHistory), season report and college student profile; the college Squads empty state shows
+      #   Form squads and Create squad (TpoSquads) so a new college can make its first squad.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -183,7 +186,7 @@ jobs:
                    ':(exclude)src/components/onboarding/IntakeChoice.tsx' ':(exclude)src/components/onboarding/StudentWizard.tsx'
                    ':(exclude)src/components/onboarding/InterestReview.tsx' ':(exclude)src/pages/StudentResumeOnboarding.tsx'
                    ':(exclude)src/components/dashboard/student/ResumeCheckFlow.tsx' ':(exclude)src/components/dashboard/student/SkillGap.tsx'
-                   ':(exclude)src/lib/brandScope.ts' ':(exclude)src/lib/testClock.ts' ':(exclude)src/components/ui/dialog.tsx' ':(exclude)src/components/ui/select.tsx'
+                   ':(exclude)src/lib/brandScope.ts' ':(exclude)src/lib/testClock.ts' ':(exclude)src/components/dashboard/student/StudentHistory.tsx' ':(exclude)src/components/ui/dialog.tsx' ':(exclude)src/components/ui/select.tsx'
                    ':(exclude)src/components/dashboard/student/TimedResumeAssessment.tsx'
                    ':(exclude)src/components/AppGuideChatbot.tsx' ':(exclude)src/components/ProtectedRoute.tsx'
                    ':(exclude)src/components/RoleBasedProtectedRoute.tsx' ':(exclude)src/pages/OnboardingWizard.tsx'

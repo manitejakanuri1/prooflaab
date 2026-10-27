@@ -419,6 +419,26 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
           No squads yet. A squad belongs to a season — create one and students can be
           drawn from the reserve pool into it.
         </p>
+        {/* A new college has no squads, so both ways to make one must be here too. */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          <Button disabled={busy} onClick={() => void formSquads()}>
+            <Swords className="h-4 w-4 mr-1.5" />
+            {busy ? "Working…" : "Form squads"}
+          </Button>
+          <Input
+            className="h-9 w-[240px]" placeholder="Squad name"
+            value={newSquadName} onChange={(e) => setNewSquadName(e.target.value)}
+          />
+          <Input
+            className="h-9 w-[150px]" placeholder="Section, e.g. CSE-D"
+            value={newSquadCohort} onChange={(e) => setNewSquadCohort(e.target.value)}
+          />
+          <Button variant="outline" disabled={busy || !newSquadName.trim()}
+                  onClick={() => void createSquad()}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            {busy ? "Working…" : "Create squad"}
+          </Button>
+        </div>
       </CardContent></Card>
     );
   }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { FAST_WEEK, WHEN_FORMAT } from "@/lib/testClock";
+import { FAST_WEEK, FAST_WEEK_MINUTES, WHEN_FORMAT } from "@/lib/testClock";
 
 // Squad swap (migration 143, owner decision 24 Oct 2026): two students in the same section trade squads in the
 // first 7 days of a season. Each must enter the other squad's secret code. The server checks every rule.
@@ -53,7 +53,7 @@ export default function SquadSwapCard({ onSwapped }: { onSwapped: () => void }) 
         <div>
           <h3 className="font-semibold">Swap squads with a friend</h3>
           <p className="text-sm text-muted-foreground">
-            Open only in the first {FAST_WEEK ? "5 minutes" : "7 days"} of the season
+            Open only in the first {FAST_WEEK ? `${FAST_WEEK_MINUTES} minutes` : "7 days"} of the season
             {state.closes_at ? ` (until ${FAST_WEEK ? "" : "the end of "}${format(new Date(state.closes_at).getTime() - 60000, WHEN_FORMAT)})` : ""}. You and your friend
             trade places, so both squads stay the same size. Both of you must be in the same section, and you each
             share your squad code. Your own points move with you. You can swap only once per season.

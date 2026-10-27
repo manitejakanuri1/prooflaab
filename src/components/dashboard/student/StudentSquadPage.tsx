@@ -8,7 +8,7 @@ import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Trophy, Crown, Medal, Award } from "lucide-react";
 import { format, startOfWeek, addDays, addMinutes, isWithinInterval } from "date-fns";
-import { FAST_WEEK, WHEN_FORMAT } from "@/lib/testClock";
+import { FAST_WEEK, FAST_WEEK_MINUTES, WHEN_FORMAT } from "@/lib/testClock";
 import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
 
@@ -179,7 +179,7 @@ const StudentSquadPage = () => {
   // show nothing at all, which reads as a broken screen rather than a rest.
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const thisWeek = FAST_WEEK
-    ? { start: addMinutes(new Date(), -5), end: addMinutes(new Date(), 5) }
+    ? { start: addMinutes(new Date(), -FAST_WEEK_MINUTES), end: addMinutes(new Date(), FAST_WEEK_MINUTES) }
     : { start: weekStart, end: addDays(weekStart, 7) };
   const restWeek = !matches.some((m) =>
     isWithinInterval(new Date(m.scheduled_at), thisWeek));

@@ -153,7 +153,7 @@ version = call("POST", f"sites/{SITE}/versions", {
                         "style-src 'self' 'unsafe-inline' https:; "
                         "img-src 'self' data: blob: https:; "
                         "font-src 'self' data: https:; "
-                        "connect-src 'self' https: wss:; "
+                        "connect-src 'self'; "  # MF-113: the browser talks only to /api/** on this site
                         "media-src 'self' data: blob: https:; "
                         "worker-src 'self' blob:; "
                         "child-src 'self' blob:; "

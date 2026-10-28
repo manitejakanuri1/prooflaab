@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 8c55fb14927d13612b9568bda7783887702b7cfd   # 2026-10-28: skill test reload fixes
+      STAGING_RC: 231405c55c1b4c4c27eddd085a5168121445af71   # 2026-10-28: Next lock
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

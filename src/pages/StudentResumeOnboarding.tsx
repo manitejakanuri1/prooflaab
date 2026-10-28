@@ -59,7 +59,7 @@ const StudentResumeOnboarding = () => {
           </p>
         </div>
 
-        <ResumeCheckFlow onGraded={() => setGraded(true)} />
+        <ResumeCheckFlow onGraded={() => setGraded(true)} allowRetake={false} />
 
         {graded && (
           <div className="mt-8 flex justify-center">

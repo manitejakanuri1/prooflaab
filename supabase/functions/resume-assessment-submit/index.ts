@@ -484,9 +484,15 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       ? Math.round(readinessComponents.reduce((sum, c) => sum + c.score * c.weight, 0) / readinessWeightSum)
       : null;
 
+    // A retake grades the same assessment row again (it is upserted per resume), so its scorecard is
+    // replaced, not added: before, the second insert hit resume_scorecards_assessment_id_key and failed.
+    // created_at is the "last graded" time the retest cooldown counts from; coding_score is filled by the
+    // new coding round.
+    const { data: earlier } = await supabase
+      .from('resume_scorecards').select('id').eq('assessment_id', assessment.id).maybeSingle();
     const { data: scorecard, error: scorecardError } = await supabase
       .from('resume_scorecards')
-      .insert({
+      .upsert({
         student_id: profile.id,
         resume_claims_id: assessment.resume_claims_id,
         student_interest_id: assessment.student_interest_id,
@@ -500,7 +506,9 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
         roadmap,
         skill_gap: skillGap,
         is_retest: assessment.is_retest ?? false,
-      })
+        coding_score: null,
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'assessment_id' })
       .select('id')
       .single();
 
@@ -517,7 +525,8 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
     try {
       const stages = JSON.parse(roadmap) as { title: string; why: string; action: string }[];
       const isFallback = stages.length === 1 && stages[0].title === 'Clean sweep';
-      if (!isFallback) {
+      // A retake keeps the student's existing roadmap tasks and adds none (owner, 28 Oct 2026).
+      if (!isFallback && !earlier) {
         const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
         const taskRows = stages.map((s, i) => ({
           student_id: profile.id,

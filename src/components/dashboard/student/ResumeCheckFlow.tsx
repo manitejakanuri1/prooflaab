@@ -109,12 +109,14 @@ const clearActiveAssessment = (claimId: string) => {
 interface ResumeCheckFlowProps {
   onGraded?: (result: ResumeScoreResult) => void;
   onNavigateTab?: (tab: string) => void;
+  /** "Retake full assessment" button. Off during onboarding (owner, 28 Oct 2026); on in the dashboard Resume tab. */
+  allowRetake?: boolean;
 }
 
 // Single section visible at a time — no stacked cards to scroll through.
 type Step = "upload" | "feedback" | "review" | "prove" | "results";
 
-const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
+const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: ResumeCheckFlowProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -979,15 +981,17 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab }: ResumeCheckFlowProps) => {
                   "Retest weak topics"
                 )}
               </Button>
-              <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment || retesting}>
-                {generatingAssessment ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
-                  </>
-                ) : (
-                  "Retake full assessment"
-                )}
-              </Button>
+              {allowRetake && (
+                <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment || retesting}>
+                  {generatingAssessment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
+                    </>
+                  ) : (
+                    "Retake full assessment"
+                  )}
+                </Button>
+              )}
               <Button variant="ghost" onClick={() => setEditingDetails(true)}>
                 <Pencil className="h-4 w-4 mr-2" /> Edit details
               </Button>

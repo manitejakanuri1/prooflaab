@@ -220,6 +220,9 @@ Return ONLY the JSON array, no additional text.`;
           answer_scores: null,
           status: 'pending',
           is_retest: true,
+          // A new question set is a new attempt: no coding round or coding answers carry over.
+          coding_questions: [],
+          coding_results: null,
           // Fresh clock per attempt; the row is upserted, so created_at still
           // points at the first one.
           started_at: new Date().toISOString(),
@@ -234,6 +237,16 @@ Return ONLY the JSON array, no additional text.`;
       console.error('Error saving retest assessment:', upsertError);
       return new Response(
         JSON.stringify({ error: 'Failed to save retest' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // MF-043: the old attempt's server timers must not carry over to the new questions.
+    const { error: clockError } = await supabase.from('resume_question_clock').delete().eq('assessment_id', newAssessment.id);
+    if (clockError) {
+      console.error('Error clearing the old test timers:', clockError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to save assessment' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

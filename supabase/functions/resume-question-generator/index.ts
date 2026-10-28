@@ -333,6 +333,9 @@ Return ONLY the JSON array, no additional text.`;
           // on the source id, so created_at still holds the first attempt.
           started_at: new Date().toISOString(),
           elapsed_seconds: null,
+          // A new question set is a new attempt: no coding round or coding answers carry over.
+          coding_questions: [],
+          coding_results: null,
         },
         { onConflict: fromResume ? 'resume_claims_id' : 'student_interest_id' }
       )
@@ -341,6 +344,16 @@ Return ONLY the JSON array, no additional text.`;
 
     if (upsertError || !assessment) {
       console.error('Error saving resume assessment:', upsertError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to save assessment' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // MF-043: the old attempt's server timers must not carry over to the new questions.
+    const { error: clockError } = await supabase.from('resume_question_clock').delete().eq('assessment_id', assessment.id);
+    if (clockError) {
+      console.error('Error clearing the old test timers:', clockError);
       return new Response(
         JSON.stringify({ error: 'Failed to save assessment' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

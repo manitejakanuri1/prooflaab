@@ -125,6 +125,9 @@ jobs:
       # 27 Oct: owner decision - dead "proof verified" scoring removed (migration 150): its labels leave the student
       #   history (StudentHistory), season report and college student profile; the college Squads empty state shows
       #   Form squads and Create squad (TpoSquads) so a new college can make its first squad.
+      # 28 Oct: owner decision - season fixes MF-003/008/009: one season status (SeasonPhaseBar: Season complete card
+      #   with champion, podium and next-season line), standings with one rank, a Section column, W-D-L key and
+      #   tie note, "No activity yet" / "won as higher seed" results (TpoHome, TpoSquads, StudentSquadPage).
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -153,6 +156,7 @@ jobs:
                    ':(exclude)src/components/dashboard/student/StudentSquadPage.tsx'
                    ':(exclude)src/components/dashboard/student/StudentSeasonReport.tsx'
                    ':(exclude)src/components/dashboard/season/SeasonLeaderboards.tsx'
+                   ':(exclude)src/components/dashboard/season/SeasonPhaseBar.tsx'
                    ':(exclude)src/components/dashboard/student/SimpleQuestion.tsx'
                    ':(exclude)src/lib/voiceGateReload.test.ts'
                    ':(exclude)src/components/dashboard/student/StudentPrivacy.tsx'

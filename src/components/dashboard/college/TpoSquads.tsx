@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SeasonPhaseBar, { useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
+import SeasonPhaseBar, {
+  StandingsKey, shownSeasonId, tieNote, useSeasonStatus, type SeasonStatus,
+} from "@/components/dashboard/season/SeasonPhaseBar";
 import SquadSwapsList from "@/components/dashboard/season/SquadSwapsList";
 import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import {
@@ -50,6 +52,8 @@ interface Match {
   home_squad: string; away_squad: string;
   home_points: number | null; away_points: number | null;
   stage: string; cohort: string | null; round_number: number | null;
+  /** Saved by settle_round (migration 163): who won and how - score, draw, higher_seed, no_activity. */
+  winner_squad?: string | null; decided_by?: string | null;
 }
 /** A student with no squad. The cohort matters: it says which league they belong in. */
 interface Reserve {
@@ -122,11 +126,14 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     // this college's. squad_matches and squad_members are both readable by any
     // signed-in user, so reading them unfiltered would put another college's
     // fixtures and members in these tables — nothing secret, still wrong.
+    // Only the season on show (MF-009): the running one, or the one that just finished - never every
+    // season mixed together. One overall rank (recount_season), with the section as its own column.
+    const { data: st } = await supabase.rpc("my_season_status");
+    const sid = shownSeasonId((st ?? null) as unknown as SeasonStatus | null);
+    if (!sid) { setSquads([]); return; }
     const { data: sqData } = await supabase
-      .from("squads").select("*").eq("college_id", collegeId)
-      // Cohort first: the league table a TPO reads is their section's table,
-      // and one long list of every section mixed together is not that.
-      .order("cohort", { ascending: true, nullsFirst: false })
+      .from("squads").select("*").eq("college_id", collegeId).eq("season_id", sid)
+      .order("rank", { ascending: true, nullsFirst: false })
       .order("points", { ascending: false });
 
     const list = (sqData ?? []) as unknown as Squad[];
@@ -414,6 +421,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 
   if (squads.length === 0) {
     return (
+      <div className="space-y-4">
+      <SeasonPhaseBar status={season?.state === "complete" ? season : null} />
       <Card><CardContent className="pt-6">
         <p className="text-sm text-muted-foreground max-w-prose">
           No squads yet. A squad belongs to a season — create one and students can be
@@ -440,6 +449,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
           </Button>
         </div>
       </CardContent></Card>
+      </div>
     );
   }
 
@@ -475,8 +485,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               <thead>
                 <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   <th className="pb-2 pr-3">#</th><th className="pb-2 pr-3">Squad</th>
-                  <th className="pb-2 pr-3">Cohort</th>
-                  <th className="pb-2 pr-3">Members</th><th className="pb-2 pr-3">Record</th>
+                  <th className="pb-2 pr-3">Section</th>
+                  <th className="pb-2 pr-3">Members</th><th className="pb-2 pr-3">W-D-L</th>
                   <th className="pb-2 pr-3">Points</th>
                   <th className="pb-2 pr-3">Championship</th><th className="pb-2">Health</th>
                 </tr>
@@ -484,10 +494,13 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               <tbody>
                 {squads.map((s, i) => {
                   const mine = members.filter((m) => m.squad_id === s.id);
-                  // Position is within the cohort, because that is the league
-                  // this squad actually plays in.
-                  const place = squads.filter(
-                    (o) => o.cohort === s.cohort).findIndex((o) => o.id === s.id) + 1;
+                  // One rank across all sections (recount_season); the section is its own column.
+                  const place = s.rank ?? i + 1;
+                  const tied = tieNote(squads, s);
+                  const finalPlace = season?.state === "complete"
+                    ? [season.last_season?.champion, season.last_season?.runner_up, season.last_season?.third]
+                        .indexOf(s.name)
+                    : -1;
                   const active = mine.filter(
                     (m) => daysSince(m.student_profiles?.last_active ?? null) < 7).length;
                   const healthy = mine.length === 0 ? false : active / mine.length >= 0.7;
@@ -498,6 +511,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <td className="py-2.5 pr-3 font-medium">
                         {s.name}
                         <ChevronRight className="h-3.5 w-3.5 inline-block ml-1.5 text-muted-foreground" />
+                        {tied && <span className="block text-[11px] font-normal text-muted-foreground">{tied}</span>}
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{s.cohort ?? "—"}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">
@@ -506,7 +520,13 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.draws ?? 0}–{s.losses}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums font-semibold">{s.points}</td>
                       <td className="py-2.5 pr-3">
-                        {s.qualified === null
+                        {season?.state === "complete"
+                          ? finalPlace >= 0
+                            ? <Badge className="bg-verified/15 text-verified hover:bg-verified/15">
+                                {["Champion", "Runner-up", "Third"][finalPlace]}
+                              </Badge>
+                            : <span className="text-xs text-muted-foreground">Season over</span>
+                          : s.qualified === null
                           ? <span className="text-xs text-muted-foreground">League stage</span>
                           : s.qualified
                             ? <Badge className="bg-verified/15 text-verified hover:bg-verified/15">
@@ -526,6 +546,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 })}
               </tbody>
             </table>
+            <StandingsKey />
 
             <div className="flex items-center gap-3 flex-wrap mt-4 pt-3 border-t">
               <p className="text-xs text-muted-foreground">
@@ -660,9 +681,21 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {format(new Date(m.scheduled_at), WHEN_FORMAT)}
                       </td>
                       <td className="py-2.5 font-mono text-xs">
-                        {m.status === "played" && m.home_points != null
-                          ? `${m.home_points}–${m.away_points}`
-                          : <span className="text-primary">{m.status}</span>}
+                        {m.status === "no_activity"
+                          ? <span className="text-muted-foreground">
+                              No activity yet{m.decided_by === "higher_seed" && m.winner_squad
+                                ? ` · ${names[m.winner_squad] ?? "?"} through as higher seed` : ""}
+                            </span>
+                          : m.status === "played" && m.home_points != null
+                            ? <>
+                                {`${m.home_points}–${m.away_points}`}
+                                {m.decided_by === "higher_seed" && m.winner_squad && (
+                                  <span className="text-muted-foreground">
+                                    {` · drawn, ${names[m.winner_squad] ?? "?"} won as higher seed`}
+                                  </span>
+                                )}
+                              </>
+                            : <span className="text-primary">{m.status}</span>}
                       </td>
                     </tr>
                   ))}

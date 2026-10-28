@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SeasonPhaseBar, { useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
+import SeasonPhaseBar, { StandingsKey, tieNote, useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
 import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Trophy, Crown, Medal, Award } from "lucide-react";
@@ -51,6 +51,9 @@ interface Match {
   away_points: number | null;
   home_squad: string;
   away_squad: string;
+  /** Saved by settle_round (migration 163). */
+  winner_squad?: string | null;
+  decided_by?: string | null;
 }
 
 const ACHIEVEMENT_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -116,9 +119,11 @@ const StudentSquadPage = () => {
 
     const mySquad = squadRes.data as Squad | null;
     const allSquads = (standingRes.data ?? []) as Squad[];
+    // MF-009: this season only, every section, ordered by the one overall rank (recount_season).
     const league = mySquad
-      ? allSquads.filter((s) => s.cohort === mySquad.cohort)
-      : allSquads;
+      ? allSquads.filter((s) => s.season_id === mySquad.season_id)
+          .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.points - a.points)
+      : [];
 
     setSquad(mySquad);
     setMembers(((memberRes.data ?? []) as unknown as (Member & { full_name: string; total_xp: number })[])
@@ -151,6 +156,7 @@ const StudentSquadPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <SeasonPhaseBar status={season?.state === "complete" ? season : null} />
           <p className="text-sm text-muted-foreground max-w-prose">
             You are not in a squad yet. Squads are formed by your college — once you are placed in
             one, this is where you will see your team's rank and points, who is active, your
@@ -368,9 +374,15 @@ const StudentSquadPage = () => {
                             {format(new Date(m.scheduled_at), WHEN_FORMAT)}
                           </td>
                           <td className="py-2.5 font-mono text-xs">
-                            {m.status === "played" && us != null ? (
-                              <span className={drew ? "text-muted-foreground" : won ? "text-verified" : "text-alert"}>
+                            {m.status === "no_activity" ? (
+                              // MF-003: nobody on either side finished a Lot (task + voice) that week.
+                              <span className="text-muted-foreground">No activity yet</span>
+                            ) : m.status === "played" && us != null ? (
+                              <span className={drew && !m.winner_squad ? "text-muted-foreground" : (m.winner_squad ? m.winner_squad === squad.id : won) ? "text-verified" : "text-alert"}>
                                 {drew ? "Drew" : won ? "Won" : "Lost"} {us}–{them}
+                                {drew && m.decided_by === "higher_seed" && m.winner_squad
+                                  ? (m.winner_squad === squad.id ? " – won as higher seed" : " – lost on seed")
+                                  : ""}
                               </span>
                             ) : (
                               <span className="text-primary">{m.status}</span>
@@ -394,6 +406,7 @@ const StudentSquadPage = () => {
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     <th className="pb-2 pr-3">#</th>
                     <th className="pb-2 pr-3">Squad</th>
+                    <th className="pb-2 pr-3">Section</th>
                     <th className="pb-2 pr-3">Points</th>
                     <th className="pb-2 pr-3">W</th>
                     <th className="pb-2 pr-3">D</th>
@@ -403,13 +416,17 @@ const StudentSquadPage = () => {
                 <tbody>
                   {standings.map((s, i) => (
                     <tr key={s.id} className={`border-t ${s.id === squad.id ? "bg-primary/5" : ""}`}>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{i + 1}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.rank ?? i + 1}</td>
                       <td className="py-2.5 pr-3">
                         {s.name}
                         {s.id === squad.id && (
                           <span className="ml-2 font-mono text-[10px] text-muted-foreground">you</span>
                         )}
+                        {tieNote(standings, s) && (
+                          <span className="block text-[11px] text-muted-foreground">{tieNote(standings, s)}</span>
+                        )}
                       </td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">{s.cohort ?? "—"}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.points}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.draws ?? 0}</td>
@@ -418,6 +435,7 @@ const StudentSquadPage = () => {
                   ))}
                 </tbody>
               </table>
+              <StandingsKey />
             </CardContent>
           </Card>
         </TabsContent>

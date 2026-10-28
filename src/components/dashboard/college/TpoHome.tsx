@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Activity, AlertTriangle, Shield, Trophy } from "lucide-react";
 import PostJobDescription from "./PostJobDescription";
+import {
+  SeasonCompleteCard, StandingsKey, shownSeasonId, tieNote, type SeasonStatus,
+} from "@/components/dashboard/season/SeasonPhaseBar";
 import PostSourceMaterial from "./PostSourceMaterial";
 
 interface AttentionLine {
@@ -29,7 +32,8 @@ interface HomeSnapshot {
 }
 
 interface Standing {
-  id: string; name: string; points: number; wins: number; losses: number;
+  id: string; name: string; points: number; wins: number; draws: number; losses: number;
+  rank: number | null; cohort: string | null;
 }
 
 interface Props {
@@ -53,6 +57,7 @@ interface Props {
 const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   const [data, setData] = useState<HomeSnapshot | null>(null);
   const [standings, setStandings] = useState<Standing[]>([]);
+  const [season, setSeason] = useState<SeasonStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -65,14 +70,19 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
     // Standings are read straight from the squads table rather than folded into
     // tpo_home: it is a plain list a rule already permits, and putting it in the
     // snapshot would make one call slower for every screen that does not show it.
-    const cid = await supabase.rpc("my_college_id" as never);
-    const collegeId = cid.data as unknown as string | null;
-    if (collegeId) {
+    // One season status for every screen (MF-008): the running season, or the one that just finished.
+    const { data: st } = await supabase.rpc("my_season_status");
+    const status = (st ?? null) as unknown as SeasonStatus | null;
+    setSeason(status);
+    const sid = shownSeasonId(status);
+    if (sid) {
       const { data: sq } = await supabase
-        .from("squads").select("id, name, points, wins, losses")
-        .eq("college_id", collegeId)
-        .order("points", { ascending: false });
+        .from("squads").select("id, name, points, wins, draws, losses, rank, cohort")
+        .eq("season_id", sid)
+        .order("rank", { ascending: true, nullsFirst: false });
       setStandings((sq ?? []) as unknown as Standing[]);
+    } else {
+      setStandings([]);
     }
   }, []);
 
@@ -228,15 +238,22 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                     Week {data.season.week}
                     <span className="text-muted-foreground font-normal"> of {data.season.planned_weeks}</span>
                   </p>
+                ) : season?.state === "complete" && season.last_season ? (
+                  <p className="text-lg font-semibold mt-0.5">{season.last_season.name} complete</p>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-1">No season running.</p>
                 )}
               </div>
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Leading squad
+                  {season?.state === "complete" ? "Champion" : "Leading squad"}
                 </span>
-                {data.leader ? (
+                {season?.state === "complete" ? (
+                  <p className="text-lg font-semibold mt-0.5 flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    {season.last_season?.champion ?? "No champion"}
+                  </p>
+                ) : data.leader ? (
                   <button
                     type="button"
                     className="text-lg font-semibold mt-0.5 flex items-center gap-2 hover:text-primary transition-colors"
@@ -255,11 +272,13 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
         </div>
       </div>
 
+      <SeasonCompleteCard status={season} />
+
       <Card>
         <CardContent className="pt-5">
           <div className="flex items-baseline">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Weekly squad standings
+              {season?.state === "complete" ? "Final squad standings" : "Weekly squad standings"}
             </span>
             <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs"
                     onClick={() => onNavigate?.("squads")}>
@@ -277,9 +296,10 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
               <table className="w-full text-sm min-w-[380px]">
                 <thead>
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    <th className="pb-2 pr-3">Rank</th>
+                    <th className="pb-2 pr-3">#</th>
                     <th className="pb-2 pr-3">Squad</th>
-                    <th className="pb-2 pr-3">Record</th>
+                    <th className="pb-2 pr-3">Section</th>
+                    <th className="pb-2 pr-3">W-D-L</th>
                     <th className="pb-2">Points</th>
                   </tr>
                 </thead>
@@ -287,9 +307,15 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                   {standings.map((s, i) => (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
                         onClick={() => onOpenSquad?.(s.id)}>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{i + 1}</td>
-                      <td className="py-2.5 pr-3 font-medium">{s.name}</td>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.losses}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.rank ?? i + 1}</td>
+                      <td className="py-2.5 pr-3 font-medium">
+                        {s.name}
+                        {tieNote(standings, s) && (
+                          <span className="block text-[11px] font-normal text-muted-foreground">{tieNote(standings, s)}</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">{s.cohort ?? "—"}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.draws ?? 0}–{s.losses}</td>
                       <td className={`py-2.5 font-mono tabular-nums font-semibold ${i === 0 ? "text-primary" : ""}`}>
                         {s.points}
                       </td>
@@ -299,6 +325,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
               </table>
             </div>
           )}
+          {standings.length > 0 && <StandingsKey />}
         </CardContent>
       </Card>
     </div>

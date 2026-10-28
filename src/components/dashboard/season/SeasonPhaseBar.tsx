@@ -14,6 +14,14 @@ import { cn } from "@/lib/utils";
  */
 
 export interface SeasonStatus {
+  /** One status for every screen (migration 164): a season is running, the last one has finished, or none. */
+  state?: "active" | "complete" | "none";
+  last_season?: {
+    id: string; name: string; completed_at: string | null;
+    champion: string | null; runner_up: string | null; third: string | null;
+  };
+  next_season_name?: string;
+  next_season_at?: string;
   season_id?: string;
   name?: string;
   week?: number;
@@ -52,7 +60,70 @@ export function useSeasonStatus() {
   return { status, loading };
 }
 
+/** The season this screen should show: the running one, or the one that just finished. */
+export const shownSeasonId = (status: SeasonStatus | null) =>
+  status?.season_id ?? status?.last_season?.id ?? null;
+
+/** "Season 1 complete - Champion X", the podium, and when the next season opens (MF-008). */
+export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) => {
+  if (status?.state !== "complete" || !status.last_season) return null;
+  const s = status.last_season;
+  const opens = status.next_season_at
+    ? new Date(status.next_season_at).toLocaleString("en-IN", {
+        day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+      })
+    : null;
+  const podium = [
+    { place: "Champion", name: s.champion },
+    { place: "Runner-up", name: s.runner_up },
+    { place: "Third", name: s.third },
+  ].filter((p) => p.name);
+
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            {s.name} complete
+          </span>
+          <span className="font-semibold">
+            {s.champion ? `Champion: ${s.champion}` : "No champion - no squad played this season"}
+          </span>
+        </div>
+        {podium.length > 0 && (
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {podium.map((p) => (
+              <div key={p.place} className={cn("rounded-md border px-3 py-2", p.place === "Champion" && "border-primary bg-primary/10")}>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{p.place}</div>
+                <div className="font-medium truncate">{p.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {opens && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {status.next_season_name ?? "The next season"} starts on {opens}, when squads are formed again.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+/** One key for every standings table (MF-009). */
+export const StandingsKey = () => (
+  <p className="mt-3 text-xs text-muted-foreground">
+    W-D-L = won, drawn, lost - league matches only. # is one rank across all sections. Squads level on
+    points are ranked by wins, then by their results against each other.
+  </p>
+);
+
+/** "tied - ranked by wins" for a squad that has the same points as another in the table. */
+export const tieNote = (list: { id: string; points: number }[], s: { id: string; points: number }) =>
+  list.some((o) => o.id !== s.id && o.points === s.points) ? "tied - ranked by wins, then head-to-head" : null;
+
 const SeasonPhaseBar = ({ status }: { status: SeasonStatus | null }) => {
+  if (status?.state === "complete") return <SeasonCompleteCard status={status} />;
   if (!status?.season_id) return null;
 
   const week = status.week ?? 1;

@@ -7,23 +7,35 @@
    "ALLOWED_ORIGINS": "http://localhost:5173,https://prooflab-staging.web.app,https://prooflab-staging.firebaseapp.com",
    "APP_JWT_PUBLIC_JWKS": "{\"keys\": [{\"kty\": \"RSA\", \"n\": \"s1xyA4jIItujyce-XMulsMvLn2P7l5iEOqoPd3Tchab36qUdhcYSij-7X-OryISXI5s_ruWldt6emJfwZc2jqbs3c4HYRFVieZY-94sUVebTRkzK1K0awjXKmAgBwm-lhjPbhQxU6_Mm7ug4s23-7XE083I3DIfSkCTrRR88aacvOErcoKFAfJCJVuJ5nFDGQXwvr1LiW2MfQFfQ0vT_uv3MQMboGp3n9v9YCdJI2GMk7NyiMhTyWkXqAaH8j61-z6FnWl7XSh6s6wjr1qlbKQbFgZu5dYguLS3hJczD8H_kwL4e4JTsFjXQTWDKV3vQCUKJlmsFYM29PyEDaSqAIw\", \"e\": \"AQAB\", \"alg\": \"RS256\", \"use\": \"sig\", \"kid\": \"6a7e46dd0d6f1cc4\"}]}",
    "GCP_PROJECT": "prooflab-508214",
+   "IDENTITY_PROJECT": "prooflab-stg-identity-508214",
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "SECRET_ROTATED_AT": "v3-1790357095",
    "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
+   "SITE_URL": "https://prooflab-staging.web.app",
+   "VPC_MOVED_AT": "1793178818",
    "WEBHOOK_SECRET": {
     "secret": "prooflab-staging-webhook-secret",
     "version": "latest"
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-accounts:stab-93675c0",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-accounts@sha256:1aa54eb1456db00c049f161966e0bca7f4132d2cce14be99dac083cf3486d5dd",
   "ingress": "all",
   "max_instances": "2",
   "memory": "512Mi",
   "min_instances": null,
   "service_account": "prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com",
   "timeout_seconds": 300,
-  "volumes": []
+  "volumes": [],
+  "vpc": {
+   "egress": "all-traffic",
+   "network_interfaces": [
+    {
+     "network": "default",
+     "subnetwork": "default"
+    }
+   ]
+  }
  },
  "prooflab-staging-api": {
   "cloudsql": "prooflab-508214:asia-south1:prooflab-staging-db",
@@ -47,7 +59,7 @@
   },
   "execution_environment": null,
   "image": "postgrest/postgrest:v16.3",
-  "ingress": "all",
+  "ingress": "internal",
   "max_instances": "2",
   "memory": "512Mi",
   "min_instances": null,
@@ -66,20 +78,31 @@
     "version": "2"
    },
    "GCP_PROJECT": "prooflab-508214",
+   "IDENTITY_PROJECT": "prooflab-stg-identity-508214",
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "SERVICE_TOKEN_AUDIENCE": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
-   "SERVICE_TOKEN_CALLERS": "prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-transc-wk@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-crawler@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-bugfinder@prooflab-508214.iam.gserviceaccount.com",
-   "TOKEN_TTL": "3600"
+   "SERVICE_TOKEN_CALLERS": "prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-accounts@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-transc-wk@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-crawler@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-bugfinder@prooflab-508214.iam.gserviceaccount.com,prooflab-staging-web-bff@prooflab-508214.iam.gserviceaccount.com",
+   "TOKEN_TTL": "3600",
+   "VPC_MOVED_AT": "1793178985"
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-auth-bridge:stab-93675c0",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-auth-bridge@sha256:f27d7a48ff2bc90ffd52f3ed43a022042e94fc7620605770b9cdfcf74ebcaabf",
   "ingress": "all",
   "max_instances": "2",
   "memory": "256Mi",
   "min_instances": null,
   "service_account": "prooflab-staging-auth-bridge@prooflab-508214.iam.gserviceaccount.com",
   "timeout_seconds": 20,
-  "volumes": []
+  "volumes": [],
+  "vpc": {
+   "egress": "all-traffic",
+   "network_interfaces": [
+    {
+     "network": "default",
+     "subnetwork": "default"
+    }
+   ]
+  }
  },
  "prooflab-staging-code-runner": {
   "cloudsql": null,
@@ -89,7 +112,7 @@
    "RUNNER_ALLOWED_CALLERS": "prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com"
   },
   "execution_environment": "gen2",
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner:stab-93675c0",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-code-runner:b2a-079c181",
   "ingress": "all",
   "max_instances": "6",
   "memory": "2Gi",
@@ -110,12 +133,15 @@
     "version": "latest"
    },
    "GCP_PROJECT": "prooflab-508214",
+   "IDENTITY_PROJECT": "prooflab-stg-identity-508214",
+   "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "PRIVATE_BUCKET": "prooflab-staging-private-508214",
    "PUBLIC_BUCKET": "prooflab-staging-public-508214",
-   "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
+   "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
+   "VPC_MOVED_AT": "1793178655"
   },
   "execution_environment": "gen2",
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-files:stab-93675c0",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-files:stab-61a7206",
   "ingress": "all",
   "max_instances": "2",
   "memory": "512Mi",
@@ -125,7 +151,16 @@
   "volumes": [
    "privatevol",
    "publicvol"
-  ]
+  ],
+  "vpc": {
+   "egress": "all-traffic",
+   "network_interfaces": [
+    {
+     "network": "default",
+     "subnetwork": "default"
+    }
+   ]
+  }
  },
  "prooflab-staging-functions": {
   "cloudsql": null,
@@ -142,7 +177,7 @@
     "secret": "deepseek-api-key",
     "version": "latest"
    },
-   "EMAIL_FROM": "staging-noreply@prooflab.co.in",
+   "EMAIL_FROM": "staging-noreply@notify.prooflab.co.in",
    "ENVIRONMENT": "staging",
    "FILES_URL": "https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app",
    "FILE_GRANT_SECRET": {
@@ -157,30 +192,49 @@
    "PRIVATE_MOUNT": "/mnt/staging-private",
    "PUBLIC_MOUNT": "/mnt/staging-public",
    "PUBLIC_RUNNER_FALLBACK": "deny",
+   "RELEASE_SHA": "3847f3e",
+   "RESEND_API_KEY": {
+    "secret": "resend-api-key",
+    "version": "2"
+   },
    "SCHEDULER_AUDIENCE": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app",
    "SCHEDULER_AUTH": "oidc",
    "SCHEDULER_CALLERS": "prooflab-staging-scheduler@prooflab-508214.iam.gserviceaccount.com",
    "SECRET_ROTATED_AT": "v3-1790357083",
    "SIGNER_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
+   "SITE_URL": "https://prooflab-staging.web.app",
    "STALE_AFTER_SECONDS": "180",
    "TASKS_INVOKER_SA": "prooflab-staging-tasks-invoker@prooflab-508214.iam.gserviceaccount.com",
    "TASKS_LOCATION": "asia-south1",
    "TRANSCRIPTION_QUEUE": "prooflab-staging-transcription",
    "TRANSCRIPTION_WORKER_URL": "https://prooflab-staging-transcription-worker-135298577404.asia-south1.run.app",
+   "VPC_MOVED_AT": "1793179135",
    "WEBHOOK_SECRET": {
     "secret": "prooflab-staging-webhook-secret",
     "version": "latest"
    }
   },
   "execution_environment": null,
-  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-e4e2922",
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-functions:stab-a7a69b17",
   "ingress": "all",
   "max_instances": "2",
   "memory": "1Gi",
   "min_instances": null,
   "service_account": "prooflab-staging-functions@prooflab-508214.iam.gserviceaccount.com",
   "timeout_seconds": 300,
-  "volumes": []
+  "volumes": [
+   "private",
+   "public"
+  ],
+  "vpc": {
+   "egress": "all-traffic",
+   "network_interfaces": [
+    {
+     "network": "default",
+     "subnetwork": "default"
+    }
+   ]
+  }
  },
  "prooflab-staging-tasks-test-worker": {
   "cloudsql": null,
@@ -240,6 +294,62 @@
   "min_instances": null,
   "service_account": "prooflab-staging-transc-wk@prooflab-508214.iam.gserviceaccount.com",
   "timeout_seconds": 300,
-  "volumes": []
+  "volumes": [],
+  "vpc": {
+   "egress": "all-traffic",
+   "network_interfaces": [
+    {
+     "network": "default",
+     "subnetwork": "default"
+    }
+   ]
+  }
+ },
+ "prooflab-staging-web-bff": {
+  "cloudsql": null,
+  "concurrency": 80,
+  "cpu": "1",
+  "env": {
+   "ACCOUNTS_URL": "https://prooflab-staging-accounts-ysn2mpe6sa-el.a.run.app",
+   "AUTH_BRIDGE_URL": "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app",
+   "BFF_RELEASE_READY": "true",
+   "BROWSER_ORIGINS": "https://prooflab-staging.web.app,https://prooflab-staging.firebaseapp.com",
+   "EMAIL_FROM": "Prooflab <staging-noreply@notify.prooflab.co.in>",
+   "ENVIRONMENT": "staging",
+   "FILES_URL": "https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app",
+   "FUNCTIONS_URL": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app",
+   "GOOGLE_API_KEY": "AIzaSyCYxQd8sqXcWOLopev52HO3wpPXuumVQao",
+   "IDENTITY_PROJECT": "prooflab-stg-identity-508214",
+   "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
+   "RESEND_API_KEY": {
+    "secret": "resend-api-key",
+    "version": "latest"
+   },
+   "SESSION_KEY": {
+    "secret": "prooflab-staging-web-bff-session-key",
+    "version": "latest"
+   },
+   "SITE_URL": "https://prooflab-staging.web.app",
+   "TRANSCRIBER_URL": "https://prooflab-staging-transcriber-ysn2mpe6sa-el.a.run.app",
+   "VPC_MOVED_AT": "1793179285"
+  },
+  "execution_environment": null,
+  "image": "asia-south1-docker.pkg.dev/prooflab-508214/cloud-run-source-deploy/prooflab-web-bff:stab-b3d98c9",
+  "ingress": "all",
+  "max_instances": "2",
+  "memory": "512Mi",
+  "min_instances": null,
+  "service_account": "prooflab-staging-web-bff@prooflab-508214.iam.gserviceaccount.com",
+  "timeout_seconds": 60,
+  "volumes": [],
+  "vpc": {
+   "egress": "all-traffic",
+   "network_interfaces": [
+    {
+     "network": "default",
+     "subnetwork": "default"
+    }
+   ]
+  }
  }
 }

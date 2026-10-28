@@ -31,6 +31,12 @@ def env_of(container):
     return dict(sorted(env.items()))
 
 
+def vpc_of(ann):
+    """Direct VPC egress, recorded only when set, so services without it keep their old snapshot."""
+    nets = ann.get("run.googleapis.com/network-interfaces")
+    return {"vpc": {"network_interfaces": json.loads(nets), "egress": ann.get("run.googleapis.com/vpc-access-egress")}} if nets else {}
+
+
 def service(s):
     t = s["spec"]["template"]
     c = t["spec"]["containers"][0]
@@ -49,6 +55,7 @@ def service(s):
         "cloudsql": ann.get("run.googleapis.com/cloudsql-instances"),
         "env": env_of(c),
         "volumes": sorted(v.get("name", "") for v in t["spec"].get("volumes", [])),
+        **vpc_of(ann),
     }
 
 
@@ -58,7 +65,8 @@ def job(j):
     return {"image": c["image"], "service_account": t.get("serviceAccountName"),
             "timeout_seconds": t.get("timeoutSeconds"), "max_retries": t.get("maxRetries"),
             "cpu": c.get("resources", {}).get("limits", {}).get("cpu"),
-            "memory": c.get("resources", {}).get("limits", {}).get("memory"), "env": env_of(c)}
+            "memory": c.get("resources", {}).get("limits", {}).get("memory"), "env": env_of(c),
+            **vpc_of(j["spec"]["template"].get("metadata", {}).get("annotations", {}))}
 
 
 def snapshot():

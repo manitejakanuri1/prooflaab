@@ -157,6 +157,17 @@ Deno.test('a browser preflight is answered, and carries the headers', async () =
   assert(res.body === null, 'a 204 must carry no body - that is what threw');
 });
 
+// MF-017: a site not on ALLOWED_ORIGINS (CI sets it to https://prooflab.co.in) gets no allow-origin header.
+Deno.test('preflight from an unknown site or localhost carries no allow-origin header', async () => {
+  for (const origin of ['https://evil.example', 'http://localhost:5173']) {
+    const res = await handler(new Request('https://bridge.example/token', {
+      method: 'OPTIONS',
+      headers: { Origin: origin, 'Access-Control-Request-Method': 'POST' },
+    }));
+    assert(res.headers.get('Access-Control-Allow-Origin') === null, `${origin} was allowed`);
+  }
+});
+
 // ── F1: the asymmetric signer and service callers ───────────────────────────
 import { makeSigner, verifyServiceCaller } from './signer.ts';
 

@@ -24,28 +24,24 @@
 // Because it is read at runtime, changing it does not need a code change, and
 // every function sees the same value no matter when it was last deployed.
 
-const FALLBACK = 'https://prooflab.co.in';
-
-const ALLOWED: string[] = (
-  Deno.env.get('ALLOWED_ORIGINS') ??
-  Deno.env.get('ALLOWED_ORIGIN') ??   // the older single-value name
-  FALLBACK
-)
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
+// MF-017 (28 Oct 2026): no fallback address and no answer for an unknown site. A missing ALLOWED_ORIGINS used to
+// mean "https://prooflab.co.in", and a site not on the list got our own first address back. Now a missing list
+// means no browser site is allowed, and a site not on the list gets no Access-Control-Allow-Origin at all.
+// Read on every call, so the list is the service's current setting.
+const allowedOrigins = (): string[] =>
+  (Deno.env.get('ALLOWED_ORIGINS') ?? Deno.env.get('ALLOWED_ORIGIN') ?? '')   // ALLOWED_ORIGIN: the older name
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
 // There used to be a wildcard here for *.vercel.app preview builds. Vercel is
 // gone, and anyone can create a *.vercel.app site - including one named
 // prooflaab, now that ours is deleted - so it only ever widened who is trusted.
 
-function pickOrigin(requestOrigin: string | null): string {
-  if (!requestOrigin) return ALLOWED[0] ?? FALLBACK;
-  if (ALLOWED.includes(requestOrigin)) return requestOrigin;
-  // Not permitted: answer with our own origin, which the browser will refuse
-  // to match, so the caller is blocked. Never echo an unknown origin.
-  return ALLOWED[0] ?? FALLBACK;
-}
+const allowOrigin = (requestOrigin: string | null): Record<string, string> =>
+  requestOrigin && allowedOrigins().includes(requestOrigin)
+    ? { 'Access-Control-Allow-Origin': requestOrigin }
+    : {};
 
 /**
  * Headers for this specific request.
@@ -64,7 +60,7 @@ function pickOrigin(requestOrigin: string | null): string {
  */
 export function cors(req: Request): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': pickOrigin(req.headers.get('Origin')),
+    ...allowOrigin(req.headers.get('Origin')),
     // x-webhook-secret is listed for every function, not only the three that
     // read it. Naming a header here merely permits the browser to send it.
     'Access-Control-Allow-Headers':
@@ -75,13 +71,10 @@ export function cors(req: Request): Record<string, string> {
 }
 
 /**
- * Static fallback, for code that runs where no Request is in hand.
- *
- * Correct for the primary origin, wrong for localhost and previews - so prefer
- * `cors(req)` anywhere the request exists.
+ * Static headers, for code that runs where no Request is in hand. They name no site (MF-017), so a browser
+ * reading them is refused - prefer `cors(req)` anywhere the request exists.
  */
 export const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': ALLOWED[0] ?? FALLBACK,
   'Access-Control-Allow-Headers':
     'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-request-id, x-session-id',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',

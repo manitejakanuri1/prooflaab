@@ -36,12 +36,13 @@ const TTL_SECONDS = Number(Deno.env.get('TOKEN_TTL') ?? 3600);
  */
 const POSTGREST_URL = Deno.env.get('POSTGREST_URL') ?? '';
 
-const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://prooflab.co.in')
+// MF-017: no fallback site; a missing ALLOWED_ORIGINS allows no browser site, and a site not on the list gets no
+// Access-Control-Allow-Origin header at all (it used to get our own first address back).
+const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
   .split(',').map((s) => s.trim()).filter(Boolean);
 
-function allowOrigin(origin: string | null): string {
-  if (origin && ALLOWED.includes(origin)) return origin;
-  return ALLOWED[0];
+function allowOrigin(origin: string | null): Record<string, string> {
+  return origin && ALLOWED.includes(origin) ? { 'Access-Control-Allow-Origin': origin } : {};
 }
 
 function json(body: unknown, status: number, origin: string | null): Response {
@@ -49,7 +50,7 @@ function json(body: unknown, status: number, origin: string | null): Response {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': allowOrigin(origin),
+      ...allowOrigin(origin),
       'Access-Control-Allow-Headers': 'authorization, content-type',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Vary': 'Origin',
@@ -244,7 +245,7 @@ async function handler(req: Request): Promise<Response> {
     return new Response(null, {
       status: 204,
       headers: {
-        'Access-Control-Allow-Origin': allowOrigin(origin),
+        ...allowOrigin(origin),
         'Access-Control-Allow-Headers': 'authorization, content-type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Max-Age': '3600',

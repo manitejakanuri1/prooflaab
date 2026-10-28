@@ -78,17 +78,18 @@ const BUCKETS: Record<string, { bucket: string; public: boolean }> = {
   'profile-photos': { bucket: PUBLIC_BUCKET, public: true },
 };
 
-const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://prooflab.co.in')
+// MF-017: no fallback site; a missing ALLOWED_ORIGINS allows no browser site, and a site not on the list gets no
+// Access-Control-Allow-Origin header at all (it used to get our own first address back).
+const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
   .split(',').map((s) => s.trim()).filter(Boolean);
 
-function allowOrigin(origin: string | null): string {
-  if (origin && ALLOWED.includes(origin)) return origin;
-  return ALLOWED[0];
+function allowOrigin(origin: string | null): Record<string, string> {
+  return origin && ALLOWED.includes(origin) ? { 'Access-Control-Allow-Origin': origin } : {};
 }
 
 function headers(origin: string | null, extra: Record<string, string> = {}) {
   return {
-    'Access-Control-Allow-Origin': allowOrigin(origin),
+    ...allowOrigin(origin),
     'Access-Control-Allow-Headers': 'authorization, content-type, x-upsert',
     'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
     'Vary': 'Origin',

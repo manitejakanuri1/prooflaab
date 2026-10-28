@@ -3,6 +3,7 @@
 import { cors, corsHeaders } from './cors.ts';
 
 const FUNCTIONS_DIR = new URL('../', import.meta.url);
+Deno.env.set('ALLOWED_ORIGINS', 'https://prooflab.co.in,https://www.prooflab.co.in');
 
 async function sourceFiles(): Promise<string[]> {
   const out: string[] = [];
@@ -42,13 +43,20 @@ Deno.test('a vercel.app site is no longer trusted', () => {
   }
 });
 
-Deno.test('an unknown site is NOT echoed back', () => {
-  const evil = 'https://evil-site.example';
-  const h = cors(req(evil));
-  assert(
-    h['Access-Control-Allow-Origin'] !== evil,
-    'echoing an arbitrary origin defeats the whole point of CORS',
-  );
+Deno.test('an unknown site gets no allow-origin header at all (MF-017)', () => {
+  for (const o of ['https://evil-site.example', 'http://localhost:5173']) {
+    assert(!('Access-Control-Allow-Origin' in cors(req(o))), `${o} got an allow-origin header`);
+  }
+});
+
+Deno.test('with no ALLOWED_ORIGINS setting, no site is allowed (no fallback, MF-017)', () => {
+  const saved = Deno.env.get('ALLOWED_ORIGINS');
+  Deno.env.delete('ALLOWED_ORIGINS');
+  try {
+    assert(!('Access-Control-Allow-Origin' in cors(req('https://prooflab.co.in'))), 'fell back to a default site');
+  } finally {
+    Deno.env.set('ALLOWED_ORIGINS', saved!);
+  }
 });
 
 Deno.test('a lookalike hostname is refused', () => {
@@ -57,9 +65,8 @@ Deno.test('a lookalike hostname is refused', () => {
   assert(h['Access-Control-Allow-Origin'] !== 'https://notvercel.app', 'lookalike accepted');
 });
 
-Deno.test('a request with no Origin still gets a valid header', () => {
-  const h = cors(req());
-  assert(h['Access-Control-Allow-Origin'].startsWith('http'), 'must not be empty or undefined');
+Deno.test('a request with no Origin (a server, not a browser) gets no allow-origin header', () => {
+  assert(!('Access-Control-Allow-Origin' in cors(req())), 'header without a browser origin');
 });
 
 Deno.test('Vary: Origin is always set', () => {

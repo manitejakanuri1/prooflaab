@@ -96,7 +96,7 @@ jobs:
         run: deno test --no-lock --allow-env --allow-read --allow-import web-bff/
 
       - name: Auth bridge tests (signer, service callers, refusals)
-        run: PGRST_JWT_SECRET=ci-only-not-a-real-secret-0123456789 deno test --no-lock --allow-env --allow-net auth-bridge/
+        run: PGRST_JWT_SECRET=ci-only-not-a-real-secret-0123456789 ALLOWED_ORIGINS=https://prooflab.co.in deno test --no-lock --allow-env --allow-net auth-bridge/
 
       - name: Token module copies are identical
         run: |

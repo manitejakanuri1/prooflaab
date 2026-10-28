@@ -159,6 +159,32 @@ serve(async (req) => {
       );
     }
 
+    // A test that is still open is handed back, not replaced (migration 154). Before, clearing site data
+    // mid-test lost the page's memory of it, and pressing Start again wrote a fresh set of questions.
+    const { data: current } = await supabase
+      .from('resume_assessments')
+      .select('id, questions')
+      .eq(fromResume ? 'resume_claims_id' : 'student_interest_id', fromResume ? resume_claims_id : student_interest_id)
+      .maybeSingle();
+    if (current) {
+      const { data: openPart, error: openError } = await supabase.rpc('resume_test_open_part', { _assessment_id: current.id });
+      if (openError) {
+        console.error('Error checking for an open test:', openError);
+        return new Response(
+          JSON.stringify({ error: 'Could not check your test. Please try again.' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (openPart) {
+        const openQuestions = ((current.questions || []) as any[])
+          .map(({ correct_index: _omit, explanation: _also, ...rest }: any) => rest);
+        return new Response(
+          JSON.stringify({ success: true, assessment_id: current.id, questions: openQuestions, reopened: openPart }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const skills: string[] = source.skills;
     const certifications: string[] = source.certifications;
     const projects: { name: string; description: string; tech_stack: string[] }[] = source.projects;

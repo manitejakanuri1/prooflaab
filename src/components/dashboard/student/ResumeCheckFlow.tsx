@@ -14,7 +14,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { readFunctionError } from "@/lib/functionError";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import TimedResumeAssessment, { ResumeScoreResult } from "./TimedResumeAssessment";
+import TimedResumeAssessment, { ResumeScoreResult, readOpenTest } from "./TimedResumeAssessment";
 import { RoadmapStages } from "./RoadmapStages";
 import { SkillGap } from "./SkillGap";
 import { downloadResumeAsPdf } from "@/lib/resumePdf";
@@ -217,7 +217,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
   }, [loadLatestClaim]);
 
   // Reopen an in-progress assessment after a page reload once the claim it
-  // belongs to has loaded.
+  // belongs to has loaded. With no pointer in this browser (site data cleared,
+  // another device), the server says whether a test is still open.
   useEffect(() => {
     if (!claim || assessmentId) return;
     try {
@@ -228,11 +229,20 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
           setAssessmentId(saved.assessmentId);
           setAssessmentQuestions(saved.questions);
           setModalOpen(true);
+          return;
         }
       }
     } catch {
       // corrupt/old pointer — ignore
     }
+    const claimId = claim.id;
+    readOpenTest({ resume_claims_id: claimId }).then((open) => {
+      if (!open) return;
+      setAssessmentId(open.assessment_id);
+      setAssessmentQuestions(open.questions);
+      setModalOpen(true);
+      saveActiveAssessment(claimId, open.assessment_id, open.questions);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claim?.id]);
 

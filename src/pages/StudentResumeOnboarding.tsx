@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import ResumeCheckFlow from "@/components/dashboard/student/ResumeCheckFlow";
+import { readOpenTest } from "@/components/dashboard/student/TimedResumeAssessment";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { BrandFrame } from "@/components/auth/AccessShell";
@@ -32,8 +33,12 @@ const StudentResumeOnboarding = () => {
         // A result is saved after the quiz, before the coding round. While a test is still open in this browser
         // (ResumeCheckFlow's resume-assessment-active-* marker, cleared when the test is finished), a reload must
         // land back on the same screen, not the dashboard.
+        // With site data cleared the marker is gone; the server still knows (migration 154).
         if (data && !testInProgress()) {
-          navigate("/student/dashboard", { replace: true });
+          readOpenTest().then((open) => {
+            if (open) setCheckingExisting(false);
+            else navigate("/student/dashboard", { replace: true });
+          });
         } else {
           setCheckingExisting(false);
         }

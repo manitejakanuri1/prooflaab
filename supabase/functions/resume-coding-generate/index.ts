@@ -25,6 +25,18 @@ function pickLanguage(skills: string[]): string {
   return 'python';
 }
 
+// Only the visible example is shown; every test stays server-side and is used
+// only by resume-code-execute.
+const publicCodingQuestions = (codingQuestions: any[]) => codingQuestions.map((q: any) => ({
+  id: q.id,
+  language: q.language,
+  prompt: q.prompt,
+  starter_code: q.starter_code,
+  sample_test: q.sample_test
+    ? { stdin: q.sample_test.stdin, expected_output: q.sample_test.expected_output }
+    : null,
+}));
+
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') {
@@ -117,7 +129,7 @@ serve(async (req) => {
 
     const { data: assessment } = await supabase
       .from('resume_assessments')
-      .select('id, student_id')
+      .select('id, student_id, coding_questions')
       .eq(fromResume ? 'resume_claims_id' : 'student_interest_id', fromResume ? resume_claims_id : student_interest_id)
       .maybeSingle();
 
@@ -125,6 +137,22 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Complete the quiz before the coding round' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // A coding round already under way is handed back, not replaced (migration 154).
+    const { data: openPart, error: openError } = await supabase.rpc('resume_test_open_part', { _assessment_id: assessment.id });
+    if (openError) {
+      console.error('Error checking for an open coding round:', openError);
+      return new Response(
+        JSON.stringify({ error: 'Could not check your coding round. Please try again.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (openPart === 'coding') {
+      return new Response(
+        JSON.stringify({ success: true, assessment_id: assessment.id, questions: publicCodingQuestions(assessment.coding_questions || []) }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -277,20 +305,8 @@ Rules:${avoid ? `\n- It MUST be a different problem from "${avoid}": a different
       );
     }
 
-    // Only the visible example is shown; every test stays server-side and is used
-    // only by resume-code-execute.
-    const publicQuestions = codingQuestions.map((q: any) => ({
-      id: q.id,
-      language: q.language,
-      prompt: q.prompt,
-      starter_code: q.starter_code,
-      sample_test: q.sample_test
-        ? { stdin: q.sample_test.stdin, expected_output: q.sample_test.expected_output }
-        : null,
-    }));
-
     return new Response(
-      JSON.stringify({ success: true, assessment_id: assessment.id, questions: publicQuestions }),
+      JSON.stringify({ success: true, assessment_id: assessment.id, questions: publicCodingQuestions(codingQuestions) }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

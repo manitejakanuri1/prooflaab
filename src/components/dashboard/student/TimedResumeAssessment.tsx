@@ -169,6 +169,30 @@ const readClock = async (assessmentId: string, questionId: string | null): Promi
   return null;
 };
 
+/** A test the server says is still open (migration 154), without answers or hidden tests. */
+export interface OpenTest {
+  assessment_id: string;
+  part: "quiz" | "coding";
+  questions: Question[];
+  coding_questions: CodingQuestion[];
+  coding_done: number;
+  result: ResumeScoreResult | null;
+}
+
+/**
+ * The caller's open test for this source (no source: their latest of any), or null. Lets a page that lost
+ * its browser storage reopen the same test instead of offering a fresh one.
+ */
+export const readOpenTest = async (
+  source?: { resume_claims_id: string } | { student_interest_id: string },
+): Promise<OpenTest | null> => {
+  const { data, error } = await supabase.rpc("resume_open_test" as never, {
+    _resume_claims_id: source && "resume_claims_id" in source ? source.resume_claims_id : null,
+    _student_interest_id: source && "student_interest_id" in source ? source.student_interest_id : null,
+  } as never);
+  return error ? null : (data as unknown as OpenTest | null);
+};
+
 /** Saves one quiz answer on the server; false if it could not be saved (it then scores as empty). */
 const saveAnswer = async (assessmentId: string, { question_id, ...answer }: RecordedAnswer): Promise<boolean> => {
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -417,7 +441,16 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
       if (!raw) {
         const server = await readClock(assessmentId, null);
         const saved = new Map((server?.answers ?? []).map((a) => [a.question_id, a]));
-        if (server?.submitted) {
+        const open = server?.submitted ? await readOpenTest(source) : null;
+        if (open?.part === "coding" && open.assessment_id === assessmentId && open.result) {
+          // Quiz handed in, coding round under way: back to the same problem.
+          skipNextScrollRef.current = true;
+          setPendingResult(open.result);
+          setCodingQuestions(open.coding_questions);
+          setCodingIndex(open.coding_done);
+          setCode(open.coding_questions[open.coding_done]?.starter_code || "");
+          setPhase("coding");
+        } else if (server?.submitted) {
           // Handed in already (this page reopened it after a reload): close quietly; the result shows behind it.
           onOpenChange(false);
         } else if (saved.size > 0) {

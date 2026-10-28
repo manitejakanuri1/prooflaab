@@ -33,203 +33,78 @@ CREATE OR REPLACE FUNCTION public.run_squad_week(_season_id uuid, _week integer 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-
 declare
-
   wk integer := coalesce(_week, greatest(1, public.season_week(_season_id) - 1));
-
   ranked integer := 0;
-
   played integer := 0;
-
+  w_start timestamptz; w_end timestamptz; pts integer;
 begin
-
-  -- individual scores for the week
+  select b.starts_at, b.ends_at into w_start, w_end from public.season_week_bounds(_season_id, wk) b;
+  -- 163 (MF-003, owner 28 Oct 2026): a student scores only for a Daily Lot finished in full - the task passed AND
+  -- the voice explanation scored (tasks / task_assignments become 'completed' only then, migration 127). Anything
+  -- less is 0 for that student only; nothing is taken from the squad or the other members.
+  select sr.points into pts from public.squad_scoring_rules sr
+   where sr.metric = 'lot_completed'
+     and (sr.college_id = (select college_id from public.seasons where id = _season_id) or sr.college_id is null)
+   order by sr.college_id nulls last limit 1;
+  pts := coalesce(pts, 20);
 
   insert into public.student_weekly_scores
-
     (season_id, student_id, squad_id, week, points, breakdown)
-
-  select _season_id, m.student_id, m.squad_id, wk,
-
-         coalesce(sum(r.points), 0),
-
-         coalesce(jsonb_object_agg(r.metric, r.n) filter (where r.metric is not null), '{}'::jsonb)
-
+  select _season_id, m.student_id, m.squad_id, wk, d.n * pts,
+         case when d.n > 0 then jsonb_build_object('lot_completed', d.n) else '{}'::jsonb end
     from public.squad_members m
-
     join public.squads q on q.id = m.squad_id and q.season_id = _season_id
-
-    left join lateral (
-
-      select sr.metric, sr.points * count(*) as points, count(*) as n
-
-        from public.student_activity_events e
-
-        join lateral (
-
-          -- college_id already lives on the event row, so this needs no join
-
-          -- back to student_profiles. A college-specific row wins over the
-
-          -- platform default for the same metric.
-
-          select * from public.squad_scoring_rules sr2
-
-           where sr2.metric = e.event_type
-
-             and (sr2.college_id = e.college_id or sr2.college_id is null)
-
-           order by sr2.college_id nulls last
-
-           limit 1
-
-        ) sr on true
-
-       where e.student_id = m.student_id
-
-         and e.occurred_at >= public.season_week_start(_season_id, wk)
-
-         and e.occurred_at <  (select ends_at from public.season_week_bounds(_season_id, wk))
-
-       group by sr.metric, sr.points
-
-      union all
-
-      -- Active day: once per calendar day (India time) with any activity, however
-
-      -- much was done that day. Its rule existed since stage 16, but 'active_day'
-
-      -- is not an event type, so the per-event join above could never match it.
-
-      select ad.metric, ad.points * d.n, d.n
-
-        from (select count(distinct (e.occurred_at at time zone 'Asia/Kolkata')::date)::int as n
-
-                from public.student_activity_events e
-
-               where e.student_id = m.student_id
-
-                 and e.occurred_at >= public.season_week_start(_season_id, wk)
-
-                 and e.occurred_at <  (select ends_at from public.season_week_bounds(_season_id, wk))) d
-
-        join lateral (
-
-          select sr3.metric, sr3.points from public.squad_scoring_rules sr3
-
-           where sr3.metric = 'active_day'
-
-             and (sr3.college_id = q.college_id or sr3.college_id is null)
-
-           order by sr3.college_id nulls last
-
-           limit 1
-
-        ) ad on true
-
-       where d.n > 0
-
-    ) r on true
-
+    cross join lateral (
+      select ((select count(*) from public.tasks t
+                where t.student_id = m.student_id and t.source = 'daily_lot' and t.status = 'completed'
+                  and t.completed_at >= w_start and t.completed_at < w_end)
+            + (select count(*) from public.task_assignments a join public.tasks t on t.id = a.task_id
+                where a.student_id = m.student_id and t.source = 'daily_lot' and a.status = 'completed'
+                  and t.student_id is distinct from m.student_id
+                  and a.completed_at >= w_start and a.completed_at < w_end))::int as n
+    ) d
    where m.left_at is null
-
-   group by m.student_id, m.squad_id
-
   on conflict (season_id, student_id, week)
-
     do update set points = excluded.points, breakdown = excluded.breakdown;
-
-
-
   -- squad totals for the week
-
   insert into public.squad_weekly_scores
-
     (season_id, squad_id, week, points, active_members, total_members)
-
   select _season_id, q.id, wk,
-
          coalesce((select sum(s.points) from public.student_weekly_scores s
-
                     where s.season_id = _season_id and s.squad_id = q.id and s.week = wk), 0),
-
          coalesce((select count(*) from public.student_weekly_scores s
-
                     where s.season_id = _season_id and s.squad_id = q.id and s.week = wk and s.points > 0), 0),
-
          coalesce((select count(*) from public.squad_members m
-
                     where m.squad_id = q.id and m.left_at is null), 0)
-
     from public.squads q
-
    where q.season_id = _season_id
-
   on conflict (season_id, squad_id, week)
-
     do update set points = excluded.points,
-
                   active_members = excluded.active_members,
-
                   total_members = excluded.total_members,
-
                   computed_at = now();
-
-
-
   with r as (
-
     select squad_id, rank() over (order by points desc, squad_id) as pos
-
       from public.squad_weekly_scores
-
      where season_id = _season_id and week = wk
-
   )
-
   update public.squad_weekly_scores w set rank = r.pos
-
     from r where w.squad_id = r.squad_id and w.season_id = _season_id and w.week = wk;
-
-
-
   -- season points are every week so far, not just this one
-
   update public.squads q
-
      set previous_rank = q.rank,
-
          points = coalesce((select sum(points) from public.squad_weekly_scores
-
                              where season_id = _season_id and squad_id = q.id), 0)
-
    where q.season_id = _season_id;
-
-
-
   select count(*) into ranked from public.squads where season_id = _season_id;
-
-
-
   played := public.settle_round(_season_id, wk);
-
   perform public.recount_season(_season_id);
-
-
-
   perform public.write_audit('SQUAD_WEEK_SCORED', 'squad_weekly_scores', _season_id,
-
     null, jsonb_build_object('week', wk, 'squads', ranked, 'matches_settled', played),
-
     (select college_id from public.seasons where id = _season_id));
-
-
-
   return jsonb_build_object('ok', true, 'week', wk, 'squads_scored', ranked,
-
                             'matches_settled', played);
-
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.notify_weekly_progress()
@@ -279,11 +154,18 @@ CREATE OR REPLACE FUNCTION public.run_all_seasons()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare s record; done integer := 0; moved integer := 0; closed integer := 0; wk integer;
+declare s record; done integer := 0; moved integer := 0; closed integer := 0; wk integer; pw integer;
 begin
   for s in select * from public.seasons where is_current and status = 'active' loop
     -- The last week is over: score it (this settles the final), then close.
-    if (case when public.test_fast_season(s.id) then now() >= s.created_at + s.planned_weeks * interval '10 minutes' else current_date >= s.starts_on + s.planned_weeks * 7 end) then
+    if (case when public.test_fast_season(s.id) then now() >= s.created_at + s.planned_weeks * interval '10 minutes' else current_date >= s.starts_on + s.planned_weeks * 7 end)
+    then
+      -- 163 (MF-003): any earlier week that was never scored is scored first.
+      for pw in 1..(s.planned_weeks - 1) loop
+        if not exists (select 1 from public.squad_weekly_scores x where x.season_id = s.id and x.week = pw) then
+          perform public.run_squad_week(s.id, pw);
+        end if;
+      end loop;
       perform public.run_squad_week(s.id, s.planned_weeks);
       done := done + 1;
       perform public.close_season(s.id);
@@ -293,8 +175,13 @@ begin
 
     wk := public.season_week(s.id);
 
+    -- 163 (MF-003): last week is always (re)scored; any earlier week that was never scored is scored too.
+    for pw in 1..(wk - 1) loop
+      if pw = wk - 1 or not exists (select 1 from public.squad_weekly_scores x where x.season_id = s.id and x.week = pw) then
+        perform public.run_squad_week(s.id, pw);
+      end if;
+    end loop;
     if wk > 1 then
-      perform public.run_squad_week(s.id, wk - 1);
       done := done + 1;
     end if;
 
@@ -334,21 +221,21 @@ begin
   select starts_on into starts from public.seasons where id = _season_id;
 
   select count(*) into semis from public.squad_matches
-   where season_id = _season_id and stage = 'knockout' and status = 'played';
+   where season_id = _season_id and stage = 'knockout' and status in ('played', 'no_activity');
 
   if semis = 2 then
     select array_agg(id order by scheduled_at, id) into winners
       from (
-        select case
+        select coalesce(m.winner_squad, case
                  when coalesce(m.home_points,0) > coalesce(m.away_points,0) then m.home_squad
                  when coalesce(m.away_points,0) > coalesce(m.home_points,0) then m.away_squad
                  else (select id from public.squads
                         where id in (m.home_squad, m.away_squad)
                         order by seed nulls last limit 1)
-               end as id,
+               end) as id,
                m.scheduled_at
           from public.squad_matches m
-         where m.season_id = _season_id and m.stage = 'knockout' and m.status = 'played'
+         where m.season_id = _season_id and m.stage = 'knockout' and m.status in ('played', 'no_activity')
       ) w;
     a := winners[1];
     b := winners[2];

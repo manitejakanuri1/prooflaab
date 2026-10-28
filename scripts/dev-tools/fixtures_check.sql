@@ -9,6 +9,7 @@ create temp table r (k text, v bigint);
 create temp table s as select 'b4d7ee5f-a136-40e1-83cb-2923903bf1e8'::uuid as id;
 delete from public.squad_matches where season_id = (select id from s);
 update public.seasons set status = 'active', is_current = true where id = (select id from s);
+update public.squads set archived_at = null where season_id = (select id from s);
 
 -- 1. Week 7 (championship). League weeks 3-6 all played. The nightly job must add no league match.
 update public.seasons set created_at = now() - interval '61 minutes' where id = (select id from s);

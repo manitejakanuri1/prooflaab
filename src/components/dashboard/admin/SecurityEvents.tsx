@@ -26,6 +26,8 @@ const LABEL: Record<string, string> = {
   signup_failed: "Failed signup",
   password_reset_requested: "Password reset requested",
   email_verification_resent: "Verification email resent",
+  login_rate_limited: "Too many sign-in tries",
+  login_refused: "Sign-in refused (account not allowed)",
   rate_limited: "Rate limit hit",
   ai_rate_limited: "AI rate limit hit",
 };
@@ -46,9 +48,22 @@ const SecurityEvents = () => {
   const [rows, setRows] = useState<EventRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  // MF-034: the two counts come from the database for the last 24 hours, not from the rows on screen (which
+  // stop at the newest 200 and were mostly successful sign-ins), and only from server-written events.
+  const [counts, setCounts] = useState<{ failures: number; limited: number } | null>(null);
 
   const load = () => {
     setRows(null);
+    setCounts(null);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const base = () =>
+      supabase.from("security_events").select("id", { count: "exact", head: true }).eq("source", "server").gte("created_at", since);
+    const count = (build: (q: ReturnType<typeof base>) => ReturnType<typeof base>) =>
+      build(base()).then(({ count: n }) => n ?? 0);
+    Promise.all([
+      count((q) => q.eq("event_type", "login_failed")),
+      count((q) => q.like("event_type", "%rate_limited")),
+    ]).then(([failures, limited]) => setCounts({ failures, limited }), () => setCounts({ failures: 0, limited: 0 }));
     supabase
       .from("security_events")
       .select("*")
@@ -69,7 +84,7 @@ const SecurityEvents = () => {
     const since = Date.now() - 24 * 60 * 60 * 1000;
     const counts = new Map<string, number>();
     for (const r of rows) {
-      if (r.event_type !== "login_failed" || !r.email) continue;
+      if (r.event_type !== "login_failed" || r.source !== "server" || !r.email) continue;
       if (new Date(r.created_at).getTime() < since) continue;
       counts.set(r.email, (counts.get(r.email) ?? 0) + 1);
     }
@@ -93,8 +108,8 @@ const SecurityEvents = () => {
     );
   }
 
-  const failures = rows.filter((r) => r.event_type === "login_failed").length;
-  const limited = rows.filter((r) => r.event_type.endsWith("rate_limited")).length;
+  const failures = counts?.failures ?? "…";
+  const limited = counts?.limited ?? "…";
   const shown = filter === "all" ? rows : rows.filter((r) => r.event_type === filter);
   const types = [...new Set(rows.map((r) => r.event_type))];
 
@@ -104,7 +119,7 @@ const SecurityEvents = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <KeyRound className="h-4 w-4" /> Failed sign-ins
+              <KeyRound className="h-4 w-4" /> Failed sign-ins (24 h)
             </div>
             <p className="text-2xl font-bold">{failures}</p>
           </CardContent>
@@ -112,7 +127,7 @@ const SecurityEvents = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Gauge className="h-4 w-4" /> Rate limits hit
+              <Gauge className="h-4 w-4" /> Rate limits hit (24 h)
             </div>
             <p className="text-2xl font-bold">{limited}</p>
           </CardContent>
@@ -201,7 +216,10 @@ const SecurityEvents = () => {
                       <TableCell className="font-medium">{r.email ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{r.ip ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">
-                        {r.detail ? Object.entries(r.detail).map(([k, v]) => `${k}: ${v}`).join(", ") : "—"}
+                        {r.source === "client"
+                          ? "reported by a browser (before 28 Oct)"
+                          : Object.entries(r.detail ?? {}).filter(([k]) => k !== "forwarded")
+                            .map(([k, v]) => `${k}: ${String(v).replace(/_/g, " ")}`).join(", ") || "—"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -211,9 +229,9 @@ const SecurityEvents = () => {
           )}
 
           <p className="text-xs text-muted-foreground mt-4">
-            Sign-in events are reported by the browser, so someone calling the auth API
-            directly will not appear here. Rate limit events are recorded server-side and
-            cannot be suppressed. Showing the most recent {LIMIT}.
+            Sign-in events are written by the login server itself for every try, so they cannot be
+            faked or skipped. Five wrong passwords in 15 minutes lock that email for 15 minutes.
+            Showing the most recent {LIMIT}.
           </p>
         </CardContent>
       </Card>

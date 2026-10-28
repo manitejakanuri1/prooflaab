@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { logAuthEvent, classifyAuthError } from "@/lib/securityLog";
 import { signInProblem } from "@/lib/signInProblem";
 import { Button } from "@/components/landing/LandingButton";
 import {
@@ -60,12 +59,9 @@ export default function SignIn({ onSuccess, notice = "" }: { onSuccess: (role: U
       cleanupAuthState();
       await supabase.auth.signOut({ scope: "global" }).catch(() => {});
       const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) {
-        logAuthEvent("login_failed", email, classifyAuthError(error.message));
-        throw error;
-      }
+      // Every try is counted and logged by the login server itself (MF-006/007), never by this page.
+      if (error) throw error;
       if (!data.user) return;
-      logAuthEvent("login_succeeded", email);
       if (!data.user.email_confirmed_at) {
         await supabase.auth.signOut();
         return setError("Confirm your email first. The link is in your inbox.");
@@ -97,7 +93,6 @@ export default function SignIn({ onSuccess, notice = "" }: { onSuccess: (role: U
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
       if (error) throw error;
-      logAuthEvent("password_reset_requested", email);
       setSent("If this email has a Prooflab account, a reset link is on its way. Check your inbox.");
     } catch (err) {
       console.error("Forgot password error:", err);

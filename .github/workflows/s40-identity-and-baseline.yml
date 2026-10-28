@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 6f9f7539c8d5a72c0eae16fe4c125f6d65facd33   # 2026-10-28: retest removed, test reopens from server
+      STAGING_RC: 152ce2c8e1353411e0bfb6da694e09ab8cd75fed   # 2026-10-28: MF-006/007/034/017/055/022/004/016/009/010 on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

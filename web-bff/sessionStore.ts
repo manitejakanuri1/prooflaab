@@ -301,3 +301,80 @@ export async function revokeSessionRecord(
     throw new Error(`could not revoke browser session: ${response.status}`);
   }
 }
+
+export interface LoginGate {
+  allowed: boolean;
+  reason?: string;
+  retry_after?: number;
+}
+
+/**
+ * Asks the database whether this email and address may try a password now (migration 156).
+ * Throws when the answer cannot be read: the caller refuses the sign-in rather than letting it through.
+ */
+export async function checkLoginGate(
+  email: string,
+  ip: string,
+  depsInput: SessionStoreDeps = {},
+): Promise<LoginGate> {
+  const deps = config(depsInput);
+
+  const response = await deps.fetcher(`${deps.postgrest}/rpc/web_login_gate`, {
+    method: "POST",
+    headers: await headers(deps),
+    body: JSON.stringify({ _email: email, _ip: ip }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`could not check sign-in limits: ${response.status}`);
+  }
+
+  const body = await response.json() as Record<string, unknown> | null;
+
+  if (!body || typeof body.allowed !== "boolean") {
+    throw new Error("invalid sign-in limit answer");
+  }
+
+  return {
+    allowed: body.allowed,
+    reason: typeof body.reason === "string" ? body.reason : undefined,
+    retry_after: typeof body.retry_after === "number" ? body.retry_after : undefined,
+  };
+}
+
+export interface SecurityEvent {
+  event_type: string;
+  severity: "info" | "warning" | "critical";
+  user_id?: string | null;
+  email?: string | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  detail?: Record<string, unknown>;
+}
+
+/** Writes one security event as the server (source 'server'), never on a browser's word. */
+export async function writeSecurityEvent(
+  event: SecurityEvent,
+  depsInput: SessionStoreDeps = {},
+): Promise<void> {
+  const deps = config(depsInput);
+
+  const response = await deps.fetcher(`${deps.postgrest}/rpc/log_security_event`, {
+    method: "POST",
+    headers: await headers(deps),
+    body: JSON.stringify({
+      p_event_type: event.event_type,
+      p_severity: event.severity,
+      p_source: "server",
+      p_user_id: event.user_id ?? null,
+      p_email: event.email ?? null,
+      p_ip: event.ip ?? null,
+      p_user_agent: event.user_agent ?? null,
+      p_detail: event.detail ?? {},
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`could not write security event: ${response.status}`);
+  }
+}

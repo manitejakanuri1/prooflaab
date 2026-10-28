@@ -108,12 +108,10 @@ Deno.test("control: a valid student ticket gets past the ticket check of the stu
   }
 });
 
-Deno.test("security-log (signed-out by design): only the closed list of events is recorded, one row each", async () => {
-  const unknown = await call("security-log", null, JSON.stringify({ event_type: "drop_table_users", detail: "x" }));
-  assert(unknown.writes.length === 0, `an unknown event was written: ${unknown.writes.map((w) => w.url).join(", ")}`);
-  const known = await call("security-log", null, JSON.stringify({ event_type: "login_failed", reason: "invalid_credentials", email: "a@b.test" }));
-  assert(known.status < 300, `login_failed answered ${known.status}`);
-  const logged = known.writes.filter((w) => w.url.endsWith("rpc/log_security_event"));
-  assert(logged.length === 1, `expected one log_security_event, got ${known.writes.map((w) => w.url).join(", ")}`);
-  assert(/"p_event_type":"login_failed"/.test(logged[0].body), "the event name is the one from the closed list");
+Deno.test("security-log is closed (MF-007): a signed-out 'login failed' record is refused and nothing is written", async () => {
+  for (const ticket of [null, studentTicket]) {
+    const r = await call("security-log", ticket, JSON.stringify({ event_type: "login_failed", reason: "invalid_credentials", email: "a@b.test" }));
+    assert(r.status === 404, `answered ${r.status}`);
+    assert(r.writes.length === 0, `wrote ${r.writes.map((w) => w.url).join(", ")}`);
+  }
 });

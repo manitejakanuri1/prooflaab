@@ -11,6 +11,8 @@ const NOW = 1_800_000_000_000;
 // behaviour, so the account is still what it was at login.
 const stillAllowed = async () => ({ allowed: true, role: "student" });
 const SESSION_ID = "A".repeat(43);
+// Sign-in limits (MF-006) are tested in loginLimits.test.ts; here every try is allowed and logging is a no-op.
+const open = { checkLoginGate: async () => ({ allowed: true }), logSecurityEvent: async () => {} };
 const USER_ID = "00000000-0000-0000-0000-000000000001";
 
 function env() {
@@ -99,7 +101,7 @@ Deno.test("login creates server session and returns only opaque cookie", async (
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
     now: () => NOW,
     newSessionId: () => SESSION_ID,
@@ -191,7 +193,7 @@ Deno.test("login refuses an account not provisioned by the platform", async () =
   const res = await handleAuthRoute(
     req,
     {
-      env: env(),
+      env: env(), ...open,
       fetcher,
       loadLoginIdentity: async () => ({
         allowed: false,
@@ -226,7 +228,7 @@ Deno.test("login: a bridge refusal (403) is shown as the managed-account 403, no
       body: JSON.stringify({ email: "orphan@example.test", password: "password" }),
     }),
     {
-      env: env(),
+      env: env(), ...open,
       fetcher: async (input) => {
         const url = String(input);
         if (url.includes("signInWithPassword")) {
@@ -265,7 +267,7 @@ for (const [reason, phrase, via] of [
         body: JSON.stringify({ email: "college@example.test", password: "password" }),
       }),
       {
-        env: env(),
+        env: env(), ...open,
         fetcher: async (input) => {
           const url = String(input);
           if (url.includes("signInWithPassword")) {
@@ -309,7 +311,7 @@ Deno.test("invalid credentials return generic error", async () => {
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
     now: () => NOW,
     createSession: async () => {
@@ -339,7 +341,7 @@ Deno.test("session endpoint exposes identity but never credentials", async () =>
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     now: () => NOW,
     loadSession: async () => stored(),
     loadLoginIdentity: stillAllowed,
@@ -395,7 +397,7 @@ Deno.test("session endpoint refreshes expiring credentials server-side", async (
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
     now: () => NOW,
     loadSession: async () => stored(NOW + 1000),
@@ -422,7 +424,7 @@ Deno.test("missing session cookie means signed out", async () => {
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     now: () => NOW,
   });
 
@@ -448,7 +450,7 @@ Deno.test("logout revokes server session and clears browser cookie", async () =>
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     revokeSession: async (id) => {
       revoked = id;
     },
@@ -500,7 +502,7 @@ Deno.test("password reset request hides whether the email exists", async () => {
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
   });
 
@@ -553,7 +555,7 @@ Deno.test("password reset link points at the website, not the gateway's own run.
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
   });
 
@@ -592,7 +594,7 @@ Deno.test("password reset code can be verified without exposing credentials", as
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
   });
 
@@ -644,7 +646,7 @@ Deno.test("password reset completion sends new password only to Google server-si
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
   });
 
@@ -694,7 +696,7 @@ Deno.test("email verification code is confirmed server-side", async () => {
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher,
   });
 
@@ -736,7 +738,7 @@ Deno.test("public signup is disabled", async () => {
   );
 
   const res = await handleAuthRoute(req, {
-    env: env(),
+    env: env(), ...open,
     fetcher: async () => {
       providerCalled = true;
       throw new Error(
@@ -858,7 +860,7 @@ Deno.test("authenticated password update stays server-side", async () => {
   const res = await handleAuthRoute(
     req,
     {
-      env: env(),
+      env: env(), ...open,
       fetcher,
       now: () => NOW,
       loadSession: async () => stored(),
@@ -932,7 +934,7 @@ Deno.test("login email change is refused before any provider call", async () => 
         body: JSON.stringify(body),
       }),
       {
-        env: env(),
+        env: env(), ...open,
         fetcher: async (input) => {
           outbound.push(String(input));
           throw new Error(`unexpected URL: ${input}`);
@@ -1028,7 +1030,7 @@ Deno.test("verification resend uses the server session and returns no token", as
   const res = await handleAuthRoute(
     req,
     {
-      env: env(),
+      env: env(), ...open,
       fetcher,
       now: () => NOW,
       loadSession: async () => stored(),

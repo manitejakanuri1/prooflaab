@@ -8,12 +8,16 @@ import {
 } from "./session.ts";
 
 import {
+  checkLoginGate,
   createSessionRecord,
   loadManagedLoginIdentity,
   loadSessionRecord,
+  type LoginGate,
   type ManagedLoginIdentity,
   revokeSessionRecord,
+  type SecurityEvent,
   updateSessionRecord,
+  writeSecurityEvent,
 } from "./sessionStore.ts";
 
 const IDENTITY = "https://identitytoolkit.googleapis.com/v1";
@@ -50,6 +54,9 @@ type LoadLoginIdentity = (
   userId: string,
 ) => Promise<ManagedLoginIdentity>;
 
+type CheckLoginGate = (email: string, ip: string) => Promise<LoginGate>;
+type LogSecurityEvent = (event: SecurityEvent) => Promise<void>;
+
 export interface AuthRouteDeps {
   env?: Env;
   fetcher?: typeof fetch;
@@ -61,6 +68,8 @@ export interface AuthRouteDeps {
   updateSession?: UpdateSession;
   revokeSession?: RevokeSession;
   loadLoginIdentity?: LoadLoginIdentity;
+  checkLoginGate?: CheckLoginGate;
+  logSecurityEvent?: LogSecurityEvent;
 }
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -145,6 +154,12 @@ function config(input: AuthRouteDeps) {
 
     loadLoginIdentity: input.loadLoginIdentity ??
       ((userId: string) => loadManagedLoginIdentity(userId, storeDeps)),
+
+    checkLoginGate: input.checkLoginGate ??
+      ((email: string, ip: string) => checkLoginGate(email, ip, storeDeps)),
+
+    logSecurityEvent: input.logSecurityEvent ??
+      ((event: SecurityEvent) => writeSecurityEvent(event, storeDeps)),
   };
 }
 
@@ -231,6 +246,26 @@ async function exchangeAppToken(
   };
 }
 
+/**
+ * The caller's address as Google's front end saw it. X-Forwarded-For is "<anything the caller sent>, <client>,
+ * <proxy>": Firebase Hosting adds the client, Cloud Run's front end adds Hosting. The caller can only add
+ * entries on the left, so the address is read from the right.
+ */
+export function clientAddress(req: Request): string {
+  const hops = (req.headers.get("x-forwarded-for") ?? "").split(",").map((h) => h.trim()).filter(Boolean);
+  return hops.length >= 2 ? hops[hops.length - 2] : hops[0] ?? "unknown";
+}
+
+/** Plain reason codes for the admin Security page (MF-034), from Google's sign-in error. */
+function failureReason(googleMessage: string): string {
+  if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(googleMessage)) {
+    return "wrong_email_or_password";
+  }
+  if (googleMessage.includes("USER_DISABLED")) return "account_disabled";
+  if (googleMessage.includes("TOO_MANY_ATTEMPTS")) return "google_too_many_tries";
+  return "sign_in_error";
+}
+
 async function login(
   req: Request,
   cfg: ReturnType<typeof config>,
@@ -256,6 +291,39 @@ async function login(
     return json({ error: "email and password are required" }, 400);
   }
 
+  // MF-006/007/034: every try is counted and logged here, by the server, before the password goes anywhere.
+  const email = input.email.trim().toLowerCase();
+  const ip = clientAddress(req);
+  const record = (event: Omit<SecurityEvent, "email" | "ip" | "user_agent">) =>
+    cfg.logSecurityEvent({
+      ...event,
+      email,
+      ip,
+      user_agent: req.headers.get("user-agent"),
+      detail: { ...event.detail, forwarded: (req.headers.get("x-forwarded-for") ?? "").slice(0, 200) },
+    }).catch((err) =>
+      console.error("security event not written:", event.event_type, err instanceof Error ? err.message : err)
+    );
+
+  let gate: LoginGate;
+  try {
+    gate = await cfg.checkLoginGate(email, ip);
+  } catch (err) {
+    // Fails closed: without the count, an attacker could guess without limit.
+    console.error("sign-in limit check failed:", err instanceof Error ? err.message : err);
+    return json({ error: "Sign-in is busy right now. Please try again in a moment." }, 503);
+  }
+
+  if (!gate.allowed) {
+    const retryAfter = Math.max(1, gate.retry_after ?? 60);
+    await record({ event_type: "login_rate_limited", severity: "warning", detail: { reason: gate.reason ?? "too_many_tries" } });
+    return json(
+      { error: "Too many tries. Wait a few minutes, then try again.", retry_after_seconds: retryAfter },
+      429,
+      { "Retry-After": String(retryAfter) },
+    );
+  }
+
   const response = await cfg.fetcher(
     `${IDENTITY}/accounts:signInWithPassword?key=${
       encodeURIComponent(cfg.googleApiKey)
@@ -274,6 +342,12 @@ async function login(
   );
 
   if (!response.ok) {
+    const refused = await response.json().catch(() => ({})) as { error?: { message?: unknown } };
+    await record({
+      event_type: "login_failed",
+      severity: "warning",
+      detail: { reason: failureReason(String(refused.error?.message ?? "")) },
+    });
     return json({ error: "Invalid login credentials" }, 401);
   }
 
@@ -297,6 +371,7 @@ async function login(
     exchanged = await exchangeAppToken(identity.idToken, cfg);
   } catch (err) {
     if (err instanceof LoginRefused) {
+      await record({ event_type: "login_refused", severity: "warning", detail: { reason: err.reason || "account_not_allowed" } });
       return json({ error: refusalMessage(err.reason), reason: err.reason || undefined }, 403);
     }
     return json({ error: "Could not start your session" }, 503);
@@ -319,6 +394,11 @@ async function login(
     managedIdentity.allowed !== true ||
     !managedIdentity.role
   ) {
+    await record({
+      event_type: "login_refused",
+      severity: "warning",
+      detail: { reason: managedIdentity.reason ?? "account_not_allowed" },
+    });
     return json({ error: refusalMessage(managedIdentity.reason), reason: managedIdentity.reason }, 403);
   }
 
@@ -368,6 +448,13 @@ async function login(
   } catch {
     return json({ error: "Could not start your session" }, 503);
   }
+
+  await record({
+    event_type: "login_succeeded",
+    severity: "info",
+    user_id: exchanged.subject,
+    detail: { reason: "signed_in", role: managedIdentity.role },
+  });
 
   return json(
     {
@@ -664,6 +751,15 @@ async function requestPasswordReset(
       503,
     );
   }
+
+  await cfg.logSecurityEvent({
+    event_type: "password_reset_requested",
+    severity: "warning",
+    email: input.email.trim().toLowerCase(),
+    ip: clientAddress(req),
+    user_agent: req.headers.get("user-agent"),
+    detail: { reason: "reset_link_asked" },
+  }).catch((err) => console.error("security event not written:", err instanceof Error ? err.message : err));
 
   const origin = siteOrigin(req);
 

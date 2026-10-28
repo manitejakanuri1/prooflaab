@@ -44,6 +44,17 @@ const BOARDS = [
   { key: "skill", label: "Skill", unit: "score" },
 ];
 
+// Every award the season gives. One nobody qualified for (no points, migration 162) shows "Not awarded".
+const AWARDS = [
+  { award: "orange_cap", title: "Orange Cap" },
+  { award: "purple_cap", title: "Purple Cap" },
+  { award: "player_of_the_week", title: "Player of the Week" },
+  { award: "most_improved", title: "Most Improved" },
+  { award: "consistency", title: "Consistency Award" },
+  { award: "squad_mvp", title: "Squad MVP" },
+  { award: "rising_star", title: "Rising Star" },
+];
+
 const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: string }) => {
   const [kind, setKind] = useState("overall");
   const [rows, setRows] = useState<Row[]>([]);
@@ -71,30 +82,39 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
 
   return (
     <div className="space-y-4">
-      {awards.length > 0 && (
+      {status && (
         <Card>
           <CardContent className="pt-5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Individual recognition
             </span>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {awards.map((a) => (
-                <div
-                  key={a.award}
-                  className={cn(
-                    "rounded-lg border px-3 py-2",
-                    a.student_id === highlightStudentId && "border-primary bg-primary/5",
-                  )}
-                >
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    {a.title}
+              {AWARDS.map(({ award, title }) => {
+                const a = awards.find((x) => x.award === award);
+                return (
+                  <div
+                    key={award}
+                    className={cn(
+                      "rounded-lg border px-3 py-2",
+                      a && a.student_id === highlightStudentId && "border-primary bg-primary/5",
+                    )}
+                  >
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {title}
+                    </div>
+                    {a ? (
+                      <>
+                        <div className="font-medium truncate">{a.full_name}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {a.squad_name ?? "no squad"} · {a.detail}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">Not awarded</div>
+                    )}
                   </div>
-                  <div className="font-medium truncate">{a.full_name}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {a.squad_name ?? "no squad"} · {a.detail}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

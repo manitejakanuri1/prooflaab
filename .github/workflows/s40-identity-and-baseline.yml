@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 159c520d3abfc318d39caffde3cf11b6e1044317   # 2026-10-28: retake fixed, hidden in onboarding
+      STAGING_RC: 8c55fb14927d13612b9568bda7783887702b7cfd   # 2026-10-28: skill test reload fixes
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

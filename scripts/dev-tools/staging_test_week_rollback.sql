@@ -413,12 +413,9 @@ begin
   return jsonb_build_object('ok', true, 'week', wk, 'fixtures', created);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.generate_round_robin(_season_id uuid, _force boolean DEFAULT false, _from_round integer DEFAULT 1)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
+create or replace function public.generate_round_robin(
+  _season_id uuid, _force boolean default false, _from_round integer default 1
+) returns jsonb language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare
   ids uuid[]; real_squads integer; already_played integer;
   n integer; rounds integer; created integer := 0;
@@ -426,15 +423,13 @@ declare
   r integer; i integer; wk integer;
   a uuid; b uuid; starts date; rotated uuid[];
 begin
-  -- Only rounds at or after the starting point matter: extending from week 8
-  -- has no opinion about week 3.
   select count(*) into already_played from public.squad_matches
-   where season_id = _season_id and status = 'played'
+   where season_id = _season_id and stage = 'league' and status = 'played'
      and coalesce(round_number, 1) >= _from_round;
 
   if already_played > 0 and not _force then
     raise exception
-      '% fixtures from round % onward have already been played. Regenerating would count them twice - rebuild the season only if you mean to discard those results.',
+      '% league fixtures from round % onward have already been played. Regenerating would count them twice - rebuild the season only if you mean to discard those results.',
       already_played, _from_round;
   end if;
 
@@ -446,10 +441,11 @@ begin
   end if;
 
   real_squads := array_length(ids, 1);
-  select starts_on, planned_weeks into starts, weeks from public.seasons where id = _season_id;
+  select starts_on into starts from public.seasons where id = _season_id;
+  weeks := coalesce(public.season_league_last_week(_season_id), 0);
 
   delete from public.squad_matches
-   where season_id = _season_id
+   where season_id = _season_id and stage = 'league'
      and coalesce(round_number, 1) >= _from_round;
 
   if real_squads % 2 = 1 then ids := ids || array[null::uuid]; end if;
@@ -462,25 +458,23 @@ begin
       wk := (cycle - 1) * rounds + r;
       exit when wk > weeks;
 
-      -- The rotation still has to run from the top so the pairings stay a
-      -- proper round robin; only the writing is skipped for past rounds.
       if r = 1 then rotated := ids;
       else rotated := array[ids[1]] || (rotated[n:n] || rotated[2:n-1]);
       end if;
 
-      continue when wk < _from_round;
+      continue when wk < _from_round or public.season_phase(_season_id, wk) is distinct from 'league';
 
       for i in 1..(n / 2) loop
         a := rotated[i];
         b := rotated[n + 1 - i];
         if a is not null and b is not null then
           insert into public.squad_matches
-            (season_id, round_number, home_squad, away_squad, scheduled_at, status)
+            (season_id, round_number, home_squad, away_squad, scheduled_at, status, stage)
           values (_season_id, wk,
                   case when cycle % 2 = 1 then a else b end,
                   case when cycle % 2 = 1 then b else a end,
                   (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours',
-                  'scheduled');
+                  'scheduled', 'league');
           created := created + 1;
         end if;
       end loop;
@@ -498,7 +492,7 @@ begin
                             'fixtures', created, 'squads', real_squads,
                             'from_round', _from_round,
                             'byes_per_cycle', case when real_squads % 2 = 1 then rounds else 0 end);
-end $function$;
+end $fn$;
 
 CREATE OR REPLACE FUNCTION public.schedule_round_robin(_season_id uuid, _squad_ids uuid[], _first_week integer, _last_week integer, _stage text, _cohort text DEFAULT NULL::text)
  RETURNS integer

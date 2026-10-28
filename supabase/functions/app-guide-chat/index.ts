@@ -1,7 +1,7 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { generateText } from "../_shared/llm.ts";
-import { rateLimitResponse } from '../_shared/rate-limit.ts';
+import { guard, rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
 
 const APP_GUIDE = `You are the in-app guide chatbot for ProofLabAI, a place where engineering students do real work and build proof of their skills. Answer only questions about how to use ProofLabAI - be short, friendly, and use the exact menu names below. If asked something unrelated, bring them back to the app. Never tell anyone to upload a file or a proof: all work is done inside the app.
@@ -47,6 +47,17 @@ serve(async (req) => {
       );
     }
 
+    // MF-055: one student, at most 6 chat messages a minute; blocked too if the count cannot be read.
+    const limited = await guard(req, {
+      bucket: 'app-guide-chat',
+      limit: 6,
+      windowSeconds: 60,
+      userId: claims.claims.sub,
+      corsHeaders,
+      failClosed: true,
+    });
+    if (limited) return limited;
+
     const { message, history } = await req.json();
     if (!message || typeof message !== 'string') {
       return new Response(
@@ -69,7 +80,7 @@ Guide: Reply with plain text only, no JSON, no markdown fences.`;
     // Cached: this answers questions about how the app works, and "where do I
     // upload my resume" has one right answer no matter who asks it. The second
     // student to ask gets the same reply for free.
-    const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 300, json: false, cache: true }, { feature: 'app-guide-chat' });
+    const result = await generateText(prompt, { temperature: 0.4, maxOutputTokens: 300, json: false, cache: true }, { feature: 'app-guide-chat', userId: claims.claims.sub });
 
     return new Response(
       JSON.stringify({ reply: result.text.trim() }),

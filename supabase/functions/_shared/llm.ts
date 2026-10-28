@@ -236,6 +236,9 @@ const RATE_WINDOW_SECONDS = 3600;
  */
 const PER_USER_HOURLY = 60;
 
+/** Burst cap per signed-in caller, per AI call (MF-055). A resume test makes up to about ten in one go. */
+const PER_USER_PER_MINUTE = 20;
+
 /**
  * Ceiling for calls that arrive without a user — cron runs, webhook-authorised
  * internal calls, and any caller that forgot to identify itself. Per feature,
@@ -257,12 +260,16 @@ async function enforceLlmRateLimit(track?: UsageContext): Promise<void> {
   const identity = track?.userId ?? track?.studentId ?? null;
   const feature = track?.feature ?? 'unattributed';
 
-  const [bucket, subject, limit] = identity
-    ? ['llm:user', `user:${identity}`, PER_USER_HOURLY]
-    : ['llm:anon', `feature:${feature}`, ANON_HOURLY[feature] ?? ANON_HOURLY_DEFAULT];
+  // MF-055: both checks fail closed - if the count cannot be read, no AI call is made.
+  // Per signed-in caller: a burst cap per minute (one request can make several AI calls, so it is per call
+  // and generous) on top of the hourly allowance.
+  const checks: [string, string, number, number][] = identity
+    ? [['llm:user-min', `user:${identity}`, PER_USER_PER_MINUTE, 60], ['llm:user', `user:${identity}`, PER_USER_HOURLY, RATE_WINDOW_SECONDS]]
+    : [['llm:anon', `feature:${feature}`, ANON_HOURLY[feature] ?? ANON_HOURLY_DEFAULT, RATE_WINDOW_SECONDS]];
 
-  const decision = await checkRateLimit(bucket, subject, limit, RATE_WINDOW_SECONDS);
-  if (!decision.allowed) {
+  for (const [bucket, subject, limit, windowSeconds] of checks) {
+    const decision = await checkRateLimit(bucket, subject, limit, windowSeconds, { failClosed: true });
+    if (decision.allowed) continue;
     console.warn(`Rate limit hit: ${bucket}/${subject} (${decision.hits}/${limit})`);
     // No Request object reaches this far down, so the IP is not recorded here;
     // the identity that matters for AI spend is the user, and that is.
@@ -270,12 +277,12 @@ async function enforceLlmRateLimit(track?: UsageContext): Promise<void> {
       eventType: 'ai_rate_limited',
       severity: 'warning',
       userId: track?.userId ?? null,
-      detail: { feature, bucket, hits: decision.hits, limit },
+      detail: { feature, bucket, hits: decision.hits, limit, reason: decision.hits ? 'over_limit' : 'limit_check_failed' },
     });
     throw new RateLimitError(
-      identity
+      bucket === 'llm:user'
         ? 'You have used a lot of AI features in the last hour. Please try again shortly.'
-        : 'This feature is busy right now. Please try again shortly.',
+        : 'Please try again in a moment.',
       decision.retry_after,
       limit,
     );

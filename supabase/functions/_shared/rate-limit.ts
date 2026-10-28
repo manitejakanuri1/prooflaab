@@ -40,19 +40,26 @@ const ALLOW_ON_FAILURE: RateLimitDecision = {
   retry_after: 0,
 };
 
+/** MF-055: what a fail-closed check answers when the count cannot be read. */
+const BLOCK_ON_FAILURE: RateLimitDecision = { ...ALLOW_ON_FAILURE, allowed: false, retry_after: 30 };
+
 /**
  * Records one hit and reports whether it is within the allowance.
  *
- * Fails open. If the database is unreachable the request proceeds: a limiter
+ * Fails open by default. If the database is unreachable the request proceeds: a limiter
  * that turns a database blip into a total outage costs more than the abuse it
  * prevents. A failure is reported through telemetryProblem(), which alerts.
+ *
+ * failClosed (MF-055): for calls that cost money (AI), a check that cannot run blocks the call instead.
  */
 export async function checkRateLimit(
   bucket: string,
   subject: string,
   limit: number,
   windowSeconds: number,
+  opts: { failClosed?: boolean } = {},
 ): Promise<RateLimitDecision> {
+  const onFailure = opts.failClosed ? BLOCK_ON_FAILURE : ALLOW_ON_FAILURE;
   try {
     const res = await serviceRest('rpc/check_rate_limit', {
       method: 'POST',
@@ -66,16 +73,16 @@ export async function checkRateLimit(
     });
     if (!res) {
       telemetryProblem('rate-limit', 'no database configured; every request is allowed');
-      return ALLOW_ON_FAILURE;
+      return onFailure;
     }
     if (!res.ok) {
       telemetryProblem('rate-limit', `check_rate_limit answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      return ALLOW_ON_FAILURE;
+      return onFailure;
     }
     return (await res.json()) as RateLimitDecision;
   } catch (err) {
     telemetryProblem('rate-limit', `check_rate_limit errored: ${err instanceof Error ? err.message : err}`);
-    return ALLOW_ON_FAILURE;
+    return onFailure;
   }
 }
 
@@ -101,6 +108,8 @@ export interface GuardOptions {
   userId?: string | null;
   /** Merged into the 429 so the browser is not blocked by CORS on the refusal. */
   corsHeaders?: Record<string, string>;
+  /** Block (429) when the count cannot be read, instead of letting the request through. */
+  failClosed?: boolean;
 }
 
 /**
@@ -109,7 +118,7 @@ export interface GuardOptions {
  */
 export async function guard(req: Request, opts: GuardOptions): Promise<Response | null> {
   const subject = subjectFor(req, opts.userId);
-  const decision = await checkRateLimit(opts.bucket, subject, opts.limit, opts.windowSeconds);
+  const decision = await checkRateLimit(opts.bucket, subject, opts.limit, opts.windowSeconds, { failClosed: opts.failClosed });
   if (decision.allowed) return null;
 
   // Someone hitting a cap is the clearest signal of abuse this system produces,
@@ -123,7 +132,7 @@ export async function guard(req: Request, opts: GuardOptions): Promise<Response 
 
   return new Response(
     JSON.stringify({
-      error: 'Too many requests. Please wait and try again.',
+      error: 'Too many requests. Please try again in a moment.',
       retry_after_seconds: decision.retry_after,
     }),
     {

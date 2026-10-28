@@ -215,6 +215,23 @@ Deno.test("function proxy uses fixed functions service", async () => {
   );
 });
 
+Deno.test("a function's 429 keeps its Retry-After (MF-055)", async () => {
+  const res = await handleProxyRoute(
+    new Request("https://prooflab.co.in/api/functions/app-guide-chat", {
+      method: "POST",
+      headers: { Cookie: cookie(), "Content-Type": "application/json" },
+      body: "{}",
+    }),
+    {
+      env: env(),
+      fetcher: async () => Response.json({ error: "Please try again in a moment." }, { status: 429, headers: { "Retry-After": "42" } }),
+      auth: authDeps(),
+    },
+  );
+  assert(res?.status === 429, `answered ${res?.status}`);
+  assert(res.headers.get("Retry-After") === "42", `Retry-After ${res.headers.get("Retry-After")}`);
+});
+
 Deno.test("proxy refuses unauthenticated browser", async () => {
   let called = false;
 

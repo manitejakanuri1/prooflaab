@@ -79,6 +79,8 @@ function responseHeaders(upstream: Response): Headers {
       "range-unit",
       "location",
       "content-disposition",
+      // MF-055: a 429 tells the browser how long to wait.
+      "retry-after",
     ]
   ) {
     const value = upstream.headers.get(name);

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 2e38455f84770ffe80b71f90247383738259fe1a   # 2026-10-27: TEST season week 10 minutes
+      STAGING_RC: b5cde2b1440f7dc2f44035c0a054559dc8ab2cf9   # 2026-10-28: batch A (MF-005, 021, 043, 113)
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

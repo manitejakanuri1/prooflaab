@@ -58,7 +58,6 @@ const SLUGS = [
   "resume-improve",
   "resume-parser",
   "resume-question-generator",
-  "resume-retest-generate",
   "run-code",
   "run-sandbox",
   "security-log",

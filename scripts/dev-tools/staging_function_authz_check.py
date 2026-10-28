@@ -38,7 +38,6 @@ CASES = [
     ("resume-code-execute", {"assessment_id": ASSESSMENT, "question_id": "q1", "code": "print(1)", "mode": "run"}, INTRUDER, "run on another student's resume round"),
     ("resume-assessment-submit", {"assessment_id": ASSESSMENT, "answers": [{"question_id": "q1", "answer": "a"}]}, INTRUDER, "submit another student's resume test"),
     ("resume-improve", {"resume_claims_id": CLAIMS}, INTRUDER, "read another student's resume"),
-    ("resume-retest-generate", {"resume_claims_id": CLAIMS}, INTRUDER, "retest on another student's resume"),
     ("resume-question-generator", {"resume_claims_id": CLAIMS}, INTRUDER, "questions from another student's resume"),
     ("resume-coding-generate", {"resume_claims_id": CLAIMS}, INTRUDER, "coding round from another student's resume"),
     ("resume-parser", {"storage_path": f"{VICTIM}/resume.pdf"}, INTRUDER, "parse another student's resume file"),

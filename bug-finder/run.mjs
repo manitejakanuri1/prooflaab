@@ -92,8 +92,6 @@ async function db(path, init = {}) {
  * The deep resume+AI journey needs to look "brand new" to the app every run, because:
  *  - /student/resume-onboarding redirects straight past the upload form once ANY resume_scorecards
  *    row exists for the account (by design - a graded student does not need to re-onboard)
- *  - the built-in "Retest weak topics" button, the app's own repeat path, has a 3-day cool-down,
- *    far too slow for a check that runs 3 times a day
  * So this wipes only the DEEP test account's own resume rows before each run. It is a dedicated
  * account used for nothing else, so nothing real is lost - this is not something to do to a real
  * student's data.

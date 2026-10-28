@@ -96,7 +96,7 @@ const StudentResumeHistoryPage = () => {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <History className="h-5 w-5" />
-          Retest history
+          Test history
         </CardTitle>
       </CardHeader>
       <CardContent>

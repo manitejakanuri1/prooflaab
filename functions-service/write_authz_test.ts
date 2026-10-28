@@ -75,7 +75,7 @@ async function call(slug: string, ticket: string | null, body = BODY) {
 const SIGNED_IN_ONLY = ["app-guide-chat", "assign_tasks", "client-log", "company-lot", "company-voice-play", "create-admin-user",
   "create-college-user", "create-company-user", "interests-analyze", "level-quiz-submit", "levels-place", "lot-writer",
   "mock-interview-generate", "mock-interview-score", "resume-assessment-submit", "resume-code-execute", "resume-coding-generate",
-  "resume-improve", "resume-question-generator", "resume-retest-generate", "run-sandbox", "task-explain"];
+  "resume-improve", "resume-question-generator", "run-sandbox", "task-explain"];
 const NOT_FOR_STUDENTS = ["assign_tasks", "company-lot", "create-admin-user", "create-college-user", "create-company-user"];
 
 Deno.test("every function under test is loaded by the service", () => {

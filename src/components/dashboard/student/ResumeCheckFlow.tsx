@@ -19,11 +19,6 @@ import { RoadmapStages } from "./RoadmapStages";
 import { SkillGap } from "./SkillGap";
 import { downloadResumeAsPdf } from "@/lib/resumePdf";
 import { ScoreExplainer } from "./ScoreExplainer";
-import { addDays, formatDistanceToNow } from "date-fns";
-
-// Mirrors COOLDOWN_DAYS in supabase/functions/resume-retest-generate — used
-// only to pre-disable the button before the round trip confirms it server-side.
-const RETEST_COOLDOWN_DAYS = 3;
 
 interface ProjectClaim {
   name: string;
@@ -137,7 +132,6 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
   const [improvedResume, setImprovedResume] = useState<string | null>(null);
 
   const [generatingAssessment, setGeneratingAssessment] = useState(false);
-  const [retesting, setRetesting] = useState(false);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   // The graded assessment behind the scorecard shown; kept apart so it never reopens a test.
   const [scorecardAssessmentId, setScorecardAssessmentId] = useState<string | null>(null);
@@ -145,15 +139,11 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
   const [modalOpen, setModalOpen] = useState(false);
   const [scoreResult, setScoreResult] = useState<ResumeScoreResult | null>(null);
 
-  const [lastGradedAt, setLastGradedAt] = useState<Date | null>(null);
-
   const tier = getTier(claim?.ats_match_score);
   // One Auto-fix per upload, only under 60%. After it, everyone may take the
   // assessment - with clear next steps if the score is still under 60.
   const fixed = Boolean(claim?.improved_at);
   const blocked = tier === "bad" && !fixed;
-  const retestUnlockAt = lastGradedAt ? addDays(lastGradedAt, RETEST_COOLDOWN_DAYS) : null;
-  const retestLocked = !!retestUnlockAt && retestUnlockAt.getTime() > Date.now();
 
   const loadLatestClaim = useCallback(async () => {
     if (!user) return;
@@ -215,7 +205,6 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
             reasoning_score: scorecard.reasoning_score,
             interview_readiness_score: scorecard.interview_readiness_score,
           });
-          setLastGradedAt(new Date(scorecard.created_at));
           setScorecardAssessmentId(scorecard.assessment_id);
         }
       }
@@ -444,37 +433,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
     }
   };
 
-  const handleRetestWeak = async () => {
-    if (!claim) return;
-    setRetesting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-retest-generate", {
-        body: { resume_claims_id: claim.id },
-      });
-      // Carries the function's own message (e.g. the cooldown text).
-      if (error) throw new Error(String((await readFunctionError(error))?.error ?? error.message));
-      if (data?.error) throw new Error(data.error);
-
-      if (data.no_weak_topics) {
-        toast({ title: "Nothing to retest", description: "You scored solid across the board — no weak topics found." });
-        return;
-      }
-
-      setAssessmentId(data.assessment_id);
-      setAssessmentQuestions(data.questions || []);
-      setModalOpen(true);
-      saveActiveAssessment(claim.id, data.assessment_id, data.questions || []);
-    } catch (err: any) {
-      console.error("Error starting retest:", err);
-      toast({ title: "Not ready yet", description: err.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setRetesting(false);
-    }
-  };
-
   const handleGraded = (result: ResumeScoreResult) => {
     setScoreResult(result);
-    setLastGradedAt(new Date());
     onGraded?.(result);
     if (claim) clearActiveAssessment(claim.id);
   };
@@ -965,24 +925,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
               <RoadmapStages roadmap={scoreResult.roadmap} />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={handleRetestWeak}
-                disabled={retesting || generatingAssessment || retestLocked}
-                title={retestLocked && retestUnlockAt ? `Unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}` : undefined}
-              >
-                {retesting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building retest...
-                  </>
-                ) : retestLocked && retestUnlockAt ? (
-                  `Retest unlocks ${formatDistanceToNow(retestUnlockAt, { addSuffix: true })}`
-                ) : (
-                  "Retest weak topics"
-                )}
-              </Button>
               {allowRetake && (
-                <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment || retesting}>
+                <Button variant="outline" onClick={handleStartAssessment} disabled={generatingAssessment}>
                   {generatingAssessment ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Building your questions...
@@ -996,17 +940,11 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
                 <Pencil className="h-4 w-4 mr-2" /> Edit details
               </Button>
             </div>
-            {retestLocked && (
-              <p className="text-xs text-muted-foreground">
-                Use this time to work through your roadmap — instant retesting doesn't build real understanding.
-              </p>
-            )}
-
             {onNavigateTab && (
               <div className="flex flex-wrap gap-2 pt-2 border-t">
                 <Button variant="outline" size="sm" onClick={() => onNavigateTab("resume-jobmatch")}>Match to a Job</Button>
                 <Button variant="outline" size="sm" onClick={() => onNavigateTab("resume-certs")}>Certification Radar</Button>
-                <Button variant="outline" size="sm" onClick={() => onNavigateTab("resume-history")}>Retest History</Button>
+                <Button variant="outline" size="sm" onClick={() => onNavigateTab("resume-history")}>Test History</Button>
               </div>
             )}
           </CardContent>

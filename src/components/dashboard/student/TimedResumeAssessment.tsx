@@ -149,6 +149,37 @@ interface RecordedAnswer {
   confidence?: ConfidenceLevel;
 }
 
+// MF-043: the server keeps each question's deadline and the answers saved so far (migration 153), so a reload,
+// even after clearing site data, continues the same countdown instead of starting a fresh one.
+type SavedAnswer = Omit<RecordedAnswer, "question_id">;
+interface ClockState {
+  submitted?: boolean;
+  seconds_left?: number | null;
+  answers?: { question_id: string; answer: SavedAnswer | null; late: boolean }[];
+}
+
+/** Starts (first call only) and reads one question's server clock; questionId null only reads. Null if unreachable. */
+const readClock = async (assessmentId: string, questionId: string | null): Promise<ClockState | null> => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await supabase.rpc("resume_test_clock" as never,
+      { _assessment_id: assessmentId, _question_id: questionId } as never);
+    if (!error) return data as unknown as ClockState;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return null;
+};
+
+/** Saves one quiz answer on the server; false if it could not be saved (it then scores as empty). */
+const saveAnswer = async (assessmentId: string, { question_id, ...answer }: RecordedAnswer): Promise<boolean> => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await supabase.rpc("resume_test_answer" as never,
+      { _assessment_id: assessmentId, _question_id: question_id, _answer: answer } as never);
+    if (!error) return true;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return false;
+};
+
 const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string }[] = [
   { value: "high", label: "Confident" },
   { value: "medium", label: "Pretty sure" },
@@ -167,6 +198,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   const [answers, setAnswers] = useState<RecordedAnswer[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const advancingRef = useRef(false);
+  // The countdown waits until the server has said how long is left.
+  const [clockReady, setClockReady] = useState(false);
+  const [codingClockReady, setCodingClockReady] = useState(false);
 
   const [phase, setPhase] = useState<Phase>("quiz");
   const [pendingResult, setPendingResult] = useState<ResumeScoreResult | null>(null);
@@ -332,7 +366,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     applyCodingQuestions(questionsBack);
   }, [assessmentId, source, toast, onOpenChange, codingRetries, failCodingGen]);
 
-  const advance = useCallback(() => {
+  const advance = useCallback(async () => {
     if (advancingRef.current || !currentQuestion) return;
     advancingRef.current = true;
 
@@ -346,6 +380,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     };
     const nextAnswers = [...answers, recorded];
     setAnswers(nextAnswers);
+    if (!(await saveAnswer(assessmentId, recorded))) {
+      toast({ title: "Couldn't save that answer", description: "Check your connection. The test goes on.", variant: "destructive" });
+    }
 
     if (isLastQuestion) {
       submitAssessment(nextAnswers);
@@ -358,19 +395,40 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     setConfidence(null);
     setTimeLeft(secondsFor(questions[currentIndex + 1]));
     advancingRef.current = false;
-  }, [answers, confidence, currentIndex, currentQuestion, isLastQuestion, questions, selectedOption, textAnswer, submitAssessment]);
+  }, [answers, assessmentId, confidence, currentIndex, currentQuestion, isLastQuestion, questions, selectedOption, textAnswer, submitAssessment, toast]);
 
   // Reload-resume: this component fully remounts on a page reload, so progress
   // (question index, recorded answers, coding round state) is snapshotted to
-  // localStorage and restored on mount, keyed per-assessment. Timers reset to
-  // full rather than being restored, so a reload never silently burns time.
+  // localStorage and restored on mount, keyed per-assessment. Time left comes
+  // from the server clock (MF-043); with no local snapshot (site data cleared)
+  // the answers saved on the server are restored instead.
   const progressStorageKey = `resume-assessment-progress-${assessmentId}`;
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const hydrate = async () => {
     try {
       const raw = localStorage.getItem(progressStorageKey);
-      if (raw) {
+      if (!raw) {
+        const server = await readClock(assessmentId, null);
+        const saved = new Map((server?.answers ?? []).map((a) => [a.question_id, a]));
+        if (server?.submitted) {
+          toast({ title: "This test was already handed in", description: "Your result is on your dashboard." });
+          onOpenChange(false);
+        } else if (saved.size > 0) {
+          const restored: RecordedAnswer[] = questions
+            .filter((q) => saved.has(q.id))
+            .map((q) => ({ answer_text: "", ...(saved.get(q.id)?.answer ?? {}), question_id: q.id }));
+          setAnswers(restored);
+          if (restored.length >= questions.length) {
+            advancingRef.current = true;
+            submitAssessment(restored);
+          } else {
+            skipNextScrollRef.current = true;
+            setCurrentIndex(restored.length);
+          }
+        }
+      } else {
         const saved = JSON.parse(raw);
         if (saved && saved.phase && saved.phase !== "results") {
           setAnswers(saved.answers || []);
@@ -404,8 +462,42 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
       // corrupt/old snapshot — ignore, start fresh
     }
     setHydrated(true);
+    };
+    void hydrate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Each question's time left comes from the server; the first look starts its clock.
+  useEffect(() => {
+    if (!open || !hydrated || phase !== "quiz" || !currentQuestion) return;
+    let live = true;
+    setClockReady(false);
+    readClock(assessmentId, currentQuestion.id).then((clock) => {
+      if (!live) return;
+      if (clock?.submitted) {
+        toast({ title: "This test was already handed in", description: "Your result is on your dashboard." });
+        onOpenChange(false);
+        return;
+      }
+      if (typeof clock?.seconds_left === "number") setTimeLeft(clock.seconds_left);
+      setClockReady(true);
+    });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, hydrated, phase, currentQuestion?.id, assessmentId]);
+
+  useEffect(() => {
+    if (!open || phase !== "coding" || !currentCodingQuestion) return;
+    let live = true;
+    setCodingClockReady(false);
+    readClock(assessmentId, currentCodingQuestion.id).then((clock) => {
+      if (!live) return;
+      if (typeof clock?.seconds_left === "number") setCodingTimeLeft(clock.seconds_left);
+      setCodingClockReady(true);
+    });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, phase, currentCodingQuestion?.id, assessmentId]);
 
   useEffect(() => {
     if (!hydrated || phase === "results") return;
@@ -424,14 +516,14 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   }, [phase, progressStorageKey]);
 
   useEffect(() => {
-    if (!open || submitting || phase !== "quiz") return;
+    if (!open || submitting || phase !== "quiz" || !clockReady) return;
     if (timeLeft <= 0) {
-      advance();
+      void advance();
       return;
     }
     const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, open, submitting, phase, advance]);
+  }, [timeLeft, open, submitting, phase, advance, clockReady]);
 
   const runSample = async () => {
     if (!currentCodingQuestion) return;
@@ -505,14 +597,14 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   }, [assessmentId, code, codingIndex, codingQuestions, currentCodingQuestion, isLastCodingQuestion, onGraded, pendingResult, toast]);
 
   useEffect(() => {
-    if (!open || phase !== "coding" || submittingCode) return;
+    if (!open || phase !== "coding" || submittingCode || !codingClockReady) return;
     if (codingTimeLeft <= 0) {
       advanceCoding();
       return;
     }
     const timer = setTimeout(() => setCodingTimeLeft((t) => t - 1), 1000);
     return () => clearTimeout(timer);
-  }, [codingTimeLeft, open, phase, submittingCode, advanceCoding]);
+  }, [codingTimeLeft, open, phase, submittingCode, advanceCoding, codingClockReady]);
 
   // New question/coding-problem renders should always start at the top of the
   // dialog — otherwise leftover scroll position from a longer previous question

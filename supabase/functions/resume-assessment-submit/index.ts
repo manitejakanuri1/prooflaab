@@ -160,13 +160,32 @@ serve(async (req) => {
       );
     }
 
+    // MF-043: answers come from the server clock (migration 153), saved as the student moved on. An answer
+    // saved late, or never saved, counts as empty, so clearing browser data and reloading wins no time.
+    // A test with no clock rows was started by a page from before the clock; it keeps the old path unless
+    // RESUME_CLOCK_REQUIRED=1 (set once every page in use starts the clock).
+    const { data: clockRows } = await supabase
+      .from('resume_question_clock')
+      .select('question_id, answer, answered_at, late')
+      .eq('assessment_id', assessment_id);
+    const clock = new Map((clockRows ?? []).map((r: any) => [r.question_id, r]));
+    const useClock = clock.size > 0 || Deno.env.get('RESUME_CLOCK_REQUIRED') === '1';
+    const sourceAnswers: (AnswerInput & { answered_at?: string })[] = useClock
+      ? questions.map((q: any) => {
+        const r: any = clock.get(q.id);
+        return r?.answered_at && !r.late
+          ? { ...(r.answer ?? {}), question_id: q.id, answered_at: r.answered_at }
+          : { question_id: q.id, answer_text: '' };
+      })
+      : answers as AnswerInput[];
+
     const questionsById = new Map(questions.map((q: any) => [q.id, q]));
-    const timestampedAnswers = (answers as AnswerInput[]).map((a) => ({
+    const timestampedAnswers = sourceAnswers.map((a) => ({
       question_id: a.question_id,
-      answer_text: a.answer_text ?? '',
+      answer_text: typeof a.answer_text === 'string' ? a.answer_text : '',
       ...(typeof a.selected_index === 'number' ? { selected_index: a.selected_index } : {}),
       ...(a.confidence ? { confidence: a.confidence } : {}),
-      answered_at: new Date().toISOString(),
+      answered_at: a.answered_at ?? new Date().toISOString(),
     }));
 
     const answerScores: AnswerScore[] = [];

@@ -5,6 +5,9 @@ import { cors } from "../_shared/cors.ts";
 import { gradeSandboxConfig, redact, type SandboxTest } from "../_shared/sandbox.ts";
 import { scoreWithoutFreeTests } from "../_shared/coding-round.ts";
 
+/** How long after a coding problem's server deadline a submit still counts (MF-043). */
+const CODING_LATE_GRACE_MS = 3 * 60 * 1000;
+
 // stage69: the runner (Wandbox -> Godbolt -> Glot chain) moved to
 // _shared/sandbox.ts so run-sandbox and submit-sandbox-task use the exact
 // same code instead of a second copy of this logic. Behaviour here is
@@ -52,7 +55,8 @@ serve(async (req) => {
     }
     const callerId = claims.claims.sub;
 
-    const { assessment_id, question_id, code, mode } = await req.json();
+    const { assessment_id, question_id, code, mode: asked } = await req.json();
+    let mode = asked;
     if (!assessment_id || !question_id || typeof code !== 'string' || !['run', 'submit', 'skip'].includes(mode)) {
       return new Response(
         JSON.stringify({ error: 'assessment_id, question_id, code, and mode ("run"|"submit"|"skip") are required' }),
@@ -144,6 +148,14 @@ serve(async (req) => {
       tests = (question.test_cases || []).map((t: any, i: number) => ({
         id: `t${i + 1}`, stdin: String(t.stdin ?? ''), expected_output: String(t.expected_output ?? ''), visible: i === 0,
       }));
+    }
+
+    // MF-043: a coding problem has a server deadline (resume_test_clock, migration 153). Handed in well after it
+    // (3 minutes covers an auto-submit at zero plus a busy-runner retry), it is recorded as skipped: 0 points.
+    if (mode === 'submit') {
+      const { data: clock } = await supabase.from('resume_question_clock').select('deadline')
+        .eq('assessment_id', assessment_id).eq('question_id', question_id).maybeSingle();
+      if (clock && Date.now() > new Date(clock.deadline).getTime() + CODING_LATE_GRACE_MS) mode = 'skip';
     }
 
     // Run: only the examples the student can see. Submit: every test. Skip: none.

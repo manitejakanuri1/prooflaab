@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: b5cde2b1440f7dc2f44035c0a054559dc8ab2cf9   # 2026-10-28: batch A (MF-005, 021, 043, 113)
+      STAGING_RC: 17e03a8b957df6a6d654b68a3ac694461273c6cf   # 2026-10-28: no Sign out during onboarding
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

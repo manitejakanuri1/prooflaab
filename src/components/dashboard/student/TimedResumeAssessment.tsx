@@ -391,6 +391,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
       return;
     }
 
+    // Locked in the same render that shows the next question, so not even its first frame takes a click.
+    setNextLocked(true);
+    setClockReady(false);
     setCurrentIndex((i) => i + 1);
     setSelectedOption(null);
     setTextAnswer("");

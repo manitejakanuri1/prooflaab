@@ -1,10 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import TrackerBridge from "@/components/TrackerBridge";
 import AppGuideChatbot from "@/components/AppGuideChatbot";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -60,6 +60,23 @@ const queryClient = new QueryClient({
   },
 });
 
+// MF-021: a page the browser restores from its back-forward cache is a frozen copy from before a sign-out.
+// Reload it so the normal sign-in check runs again instead of showing the old dashboard.
+if (typeof window !== "undefined") {
+  window.addEventListener("pageshow", (e) => { if (e.persisted) window.location.reload(); });
+}
+
+// MF-005: /logout and /signout (were 404s) end the session and go to sign in.
+const Logout = () => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    signOut().finally(() => navigate("/auth", { replace: true }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <PageLoader />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -75,6 +92,8 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/logout" element={<Logout />} />
+                <Route path="/signout" element={<Logout />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/onboarding-wizard" element={

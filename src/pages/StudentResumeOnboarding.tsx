@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { BrandFrame } from "@/components/auth/AccessShell";
 
+const testInProgress = () => {
+  try {
+    return Object.keys(localStorage).some((k) => k.startsWith("resume-assessment-active-"));
+  } catch {
+    return false;
+  }
+};
+
 const StudentResumeOnboarding = () => {
   const navigate = useNavigate();
   const { profile, loading: profileLoading } = useStudentProfile();
@@ -21,7 +29,10 @@ const StudentResumeOnboarding = () => {
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) {
+        // A result is saved after the quiz, before the coding round. While a test is still open in this browser
+        // (ResumeCheckFlow's resume-assessment-active-* marker, cleared when the test is finished), a reload must
+        // land back on the same screen, not the dashboard.
+        if (data && !testInProgress()) {
           navigate("/student/dashboard", { replace: true });
         } else {
           setCheckingExisting(false);

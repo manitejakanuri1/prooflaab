@@ -75,7 +75,9 @@ export default function RoleBasedProtectedRoute({
     fetchUserRole();
   }, [user, navigate]);
 
-  if (loading || roleLoading) {
+  // On a reload the role check can finish (no user yet) before the session has loaded; without the last
+  // condition a signed-in student was briefly sent to sign-in and from there to the dashboard.
+  if (loading || roleLoading || (user && userRole === null)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>

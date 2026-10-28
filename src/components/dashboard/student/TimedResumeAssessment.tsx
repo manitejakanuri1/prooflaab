@@ -201,6 +201,8 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   // The countdown waits until the server has said how long is left.
   const [clockReady, setClockReady] = useState(false);
   const [codingClockReady, setCodingClockReady] = useState(false);
+  // A click aimed at the previous question's Next must not answer the one that just appeared.
+  const [nextLocked, setNextLocked] = useState(true);
 
   const [phase, setPhase] = useState<Phase>("quiz");
   const [pendingResult, setPendingResult] = useState<ResumeScoreResult | null>(null);
@@ -413,7 +415,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
         const server = await readClock(assessmentId, null);
         const saved = new Map((server?.answers ?? []).map((a) => [a.question_id, a]));
         if (server?.submitted) {
-          toast({ title: "This test was already handed in", description: "Your result is on your dashboard." });
+          // Handed in already (this page reopened it after a reload): close quietly; the result shows behind it.
           onOpenChange(false);
         } else if (saved.size > 0) {
           const restored: RecordedAnswer[] = questions
@@ -454,6 +456,12 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
             const resumeAt = Math.min(saved.currentIndex ?? 0, Math.max(questions.length - 1, 0));
             setCurrentIndex(resumeAt);
             setTimeLeft(secondsFor(questions[resumeAt]));
+            // The answer picked before the reload is still picked.
+            if (saved.draft && saved.currentIndex === resumeAt) {
+              setSelectedOption(typeof saved.draft.selectedOption === "number" ? saved.draft.selectedOption : null);
+              setTextAnswer(typeof saved.draft.textAnswer === "string" ? saved.draft.textAnswer : "");
+              setConfidence(saved.draft.confidence ?? null);
+            }
             setPhase("quiz");
           }
         }
@@ -471,18 +479,20 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   useEffect(() => {
     if (!open || !hydrated || phase !== "quiz" || !currentQuestion) return;
     let live = true;
+    let unlock: ReturnType<typeof setTimeout> | undefined;
     setClockReady(false);
+    setNextLocked(true);
     readClock(assessmentId, currentQuestion.id).then((clock) => {
       if (!live) return;
       if (clock?.submitted) {
-        toast({ title: "This test was already handed in", description: "Your result is on your dashboard." });
         onOpenChange(false);
         return;
       }
       if (typeof clock?.seconds_left === "number") setTimeLeft(clock.seconds_left);
       setClockReady(true);
+      unlock = setTimeout(() => { if (live) setNextLocked(false); }, 1000);
     });
-    return () => { live = false; };
+    return () => { live = false; clearTimeout(unlock); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, hydrated, phase, currentQuestion?.id, assessmentId]);
 
@@ -501,13 +511,15 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
 
   useEffect(() => {
     if (!hydrated || phase === "results") return;
-    const snapshot = { phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, codingRetries };
+    const snapshot = { phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, codingRetries,
+                       draft: { selectedOption, textAnswer, confidence } };
     try {
       localStorage.setItem(progressStorageKey, JSON.stringify(snapshot));
     } catch {
       // storage full/unavailable — progress just won't resume, not fatal
     }
-  }, [hydrated, phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, codingRetries, progressStorageKey]);
+  }, [hydrated, phase, currentIndex, answers, pendingResult, codingQuestions, codingIndex, code, codingRetries, progressStorageKey,
+      selectedOption, textAnswer, confidence]);
 
   useEffect(() => {
     if (phase === "results") {
@@ -635,8 +647,8 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span>{fromInterests || "student_interest_id" in source ? "Prove your skills" : "Prove your resume"}</span>
-                <span className={`flex items-center gap-1 text-sm font-normal ${timeLeft <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
-                  <Clock className="h-4 w-4" /> {timeLeft}s
+                <span className={`flex items-center gap-1 text-sm font-normal ${clockReady && timeLeft <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
+                  <Clock className="h-4 w-4" /> {clockReady ? `${timeLeft}s` : "…"}
                 </span>
               </DialogTitle>
             </DialogHeader>
@@ -721,7 +733,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 options and the confidence row, the button used to sit below the
                 fold and students did not know there was a Next at all. */}
             <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 border-t bg-background px-6 py-3">
-            <Button onClick={advance} disabled={submitting} className="w-full">
+            <Button onClick={advance} disabled={submitting || nextLocked} className="w-full">
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Grading...
@@ -783,7 +795,9 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                   <Code2 className="h-5 w-5" /> Coding round
                 </span>
                 <span className={`flex items-center gap-1 text-sm font-normal ${codingTimeLeft <= 30 ? "text-destructive" : "text-muted-foreground"}`}>
-                  <Clock className="h-4 w-4" /> {Math.floor(codingTimeLeft / 60)}:{(codingTimeLeft % 60).toString().padStart(2, "0")}
+                  <Clock className="h-4 w-4" /> {codingClockReady
+                    ? `${Math.floor(codingTimeLeft / 60)}:${(codingTimeLeft % 60).toString().padStart(2, "0")}`
+                    : "…"}
                 </span>
               </DialogTitle>
             </DialogHeader>

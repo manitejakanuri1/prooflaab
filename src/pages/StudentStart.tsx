@@ -10,8 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ensureStudentProfile } from "@/lib/ensureStudentProfile";
 import { AnimatePresence, motion } from "motion/react";
 import { BrandFrame, brandCard, panelMotion } from "@/components/auth/AccessShell";
-import { useAuth } from "@/contexts/AuthContext";
-import { LogOut } from "lucide-react";
 
 /**
  * A self-signup student gets an auth.users row but no student_profiles row —
@@ -44,7 +42,6 @@ const createProfileIfMissing = async () => {
 const StudentStart = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signOut } = useAuth();
   const {
     intake,
     loading,
@@ -188,23 +185,8 @@ const StudentStart = () => {
     panel = <div className={brandCard}><IntakeChoice onDone={handleIntakeDone} /></div>;
   }
 
-  // MF-005: every intake step can be left, same button as the resume upload screen.
-  const handleSignOut = async () => {
-    leavingRef.current = true;
-    await signOut();
-    navigate("/auth", { replace: true });
-  };
-
   return (
     <BrandFrame className="max-w-2xl" logoHome={false}>
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={handleSignOut}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-        >
-          <LogOut className="h-3 w-3" /> Sign out
-        </button>
-      </div>
       <AnimatePresence mode="wait">
         <motion.div key={step} {...panelMotion}>{panel}</motion.div>
       </AnimatePresence>

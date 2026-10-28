@@ -65,6 +65,9 @@ jobs:
       - name: Removed-student privacy migration regression
         run: python3 scripts/test_removed_students_privacy_migration.py
 
+      - name: Logged-out callers cannot run database functions (MF-002)
+        run: python3 scripts/test_no_anon_functions.py
+
       - name: Atomic migration wrapper regression
         run: python3 scripts/test_atomic_migration_guard.py
 

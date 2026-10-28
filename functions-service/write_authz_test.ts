@@ -79,7 +79,7 @@ const SIGNED_IN_ONLY = ["app-guide-chat", "assign_tasks", "client-log", "company
 const NOT_FOR_STUDENTS = ["assign_tasks", "company-lot", "create-admin-user", "create-college-user", "create-company-user"];
 
 Deno.test("every function under test is loaded by the service", () => {
-  for (const slug of [...SIGNED_IN_ONLY, "security-log"]) assert(!failed.has(slug), `${slug} failed to load: ${failed.get(slug)}`);
+  for (const slug of SIGNED_IN_ONLY) assert(!failed.has(slug), `${slug} failed to load: ${failed.get(slug)}`);
 });
 
 for (const slug of SIGNED_IN_ONLY) {
@@ -108,7 +108,7 @@ Deno.test("control: a valid student ticket gets past the ticket check of the stu
   }
 });
 
-Deno.test("security-log is closed (MF-007): a signed-out 'login failed' record is refused and nothing is written", async () => {
+Deno.test("security-log is gone (MF-007): a signed-out 'login failed' record gets 404 and nothing is written", async () => {
   for (const ticket of [null, studentTicket]) {
     const r = await call("security-log", ticket, JSON.stringify({ event_type: "login_failed", reason: "invalid_credentials", email: "a@b.test" }));
     assert(r.status === 404, `answered ${r.status}`);

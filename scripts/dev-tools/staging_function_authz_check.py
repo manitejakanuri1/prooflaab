@@ -65,7 +65,7 @@ for fn, body, who, why in CASES:
     results.append(ok)
     print(("PASS" if ok else "FAIL"), f"{fn:28s} {code}  {why}  ->  {json.dumps(out)[:90]}", flush=True)
 
-# With no token at all, every function must answer 401 (security-log is the one public endpoint).
+# With no token at all, every function must answer 401.
 for fn in sorted({c[0].split("?")[0] for c in CASES} | {"app-guide-chat", "run-code", "level-open", "client-log", "interests-analyze"}):
     code, out = st.http(f"{st.FUNCTIONS}/{fn}", {}, {}, "POST")
     ok = code in (401, 403)

@@ -60,7 +60,6 @@ const SLUGS = [
   "resume-question-generator",
   "run-code",
   "run-sandbox",
-  "security-log",
   "scheduled-job",
   "send-onboarding-email",
   "submit-sandbox-task",

@@ -22,10 +22,10 @@ declare
 begin
   select string_agg(b.fn, ', ') into bad
   from ops_backup.mf002_function_acl b join pg_proc p on p.oid = b.fn::regprocedure
-  where array(select a.grantee::text || ':' || a.privilege_type
+  where array(select distinct a.grantee::text || ':' || a.privilege_type
               from aclexplode(coalesce(b.acl, acldefault('f', p.proowner))) a order by 1)
      is distinct from
-        array(select a.grantee::text || ':' || a.privilege_type
+        array(select distinct a.grantee::text || ':' || a.privilege_type
               from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a order by 1);
   if bad is not null then
     raise exception '151 rollback self-check: permissions differ from the saved ones on %', bad;

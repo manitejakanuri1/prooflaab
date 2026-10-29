@@ -143,5 +143,20 @@ insert into r select 'i. daily marks saved for A (want 8.0 7.0 15.0)', concat_ws
 insert into r select 'k. squads with no work in week 3 shown as played 0-0 (want 0)', count(*)::text from public.squad_matches
  where season_id = (select id from s) and round_number = 3 and status = 'played' and coalesce(home_points, 0) = 0 and coalesce(away_points, 0) = 0;
 
+-- As student A, signed in (what the dashboard and squad page call). A Lot checked just now sits in the current week.
+insert into lots select 'm', pg_temp.lot((select a from who), now(), array[8], 10);
+select set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'sub', (select a from who))::text, true);
+insert into r select 'l. my_marks_week as A: the Lot checked just now listed (want true)',
+       ((public.my_marks_week() -> 'days') @> jsonb_build_array(jsonb_build_object('task_id', (select id from lots where k = 'm'))))::text;
+insert into r select 'l. squad_marks_week as A: members listed, A marked as me (want true)',
+       (jsonb_array_length(public.squad_marks_week() -> 'members') > 1
+        and exists (select 1 from jsonb_array_elements(public.squad_marks_week() -> 'members') m
+                     where (m ->> 'is_me')::boolean and m ->> 'student_id' = (select a from who)::text))::text;
+insert into r select 'l. squad_marks_week of another squad as A (want null)',
+       coalesce(public.squad_marks_week((select q.id from public.squads q where q.season_id = (select id from s)
+                                          and q.name <> 'CSE-A Titans 1' limit 1))::text, 'null');
+insert into r select 'l. lot_submit from the browser (want refused)',
+       case when has_function_privilege('authenticated', 'public.lot_submit(uuid,uuid)', 'execute') then 'OPEN' else 'refused' end;
+
 select k as check, v as value from r order by k;
 rollback;

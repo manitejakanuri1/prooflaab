@@ -234,6 +234,12 @@ jobs:
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
 
+      - name: UI re-freeze 29 Oct - graded-marks screens equal commit eb68b3b
+        # Owner opened these for graded daily marks (29 Oct 2026) and asked for them to be frozen again once done.
+        # Any later change needs the owner's OK and a new commit here.
+        run: |
+          git diff --quiet eb68b3bac29ae3346e4313db1760e352553b5dc6 --             src/components/dashboard/college/TpoSquads.tsx             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx             src/components/dashboard/student/VoiceExplainModal.tsx src/components/dashboard/student/WrittenTaskPanel.tsx             src/lib/lotMarks.ts src/lib/lotMarksText.ts src/lib/lotMarks.test.ts             || { echo "::error::a graded-marks screen changed after the 29 Oct re-freeze (eb68b3b)"; exit 1; }
+
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs
 

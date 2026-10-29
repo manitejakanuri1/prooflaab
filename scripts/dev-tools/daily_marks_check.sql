@@ -67,31 +67,31 @@ begin
    where id = v;
 end $f$;
 
--- Week 1 window: two hours ago to one hour ago (already over).
-create temp table w as select now() - interval '2 hours' as f, now() - interval '1 hour' as t;
+-- Week 1 of the season (10-minute weeks on TEST: over by now). Graded marks apply in week 1 only (migration 166).
+create temp table w as select starts_at as f, ends_at as t from public.season_week_bounds((select id from s), 1);
 create temp table lots (k text, id uuid);
 -- a. 8 of 10 tests (5 visible + 5 hidden), voice 70
-insert into lots select 'a', pg_temp.lot((select a from who), (select f from w) + interval '1 minute', array[8], 10);
+insert into lots select 'a', pg_temp.lot((select a from who), (select f from w) + interval '0 minutes', array[8], 10);
 select pg_temp.voice((select id from lots where k = 'a'), 70, null);
 -- b. 9 of 10 (one hidden test fails), voice 60
-insert into lots select 'b', pg_temp.lot((select a from who), (select f from w) + interval '5 minutes', array[9], 10);
+insert into lots select 'b', pg_temp.lot((select a from who), (select f from w) + interval '1 minute', array[9], 10);
 select pg_temp.voice((select id from lots where k = 'b'), 60, null);
 -- c. checks 6, 9, 7 -> best 9, voice 50
-insert into lots select 'c', pg_temp.lot((select a from who), (select f from w) + interval '10 minutes', array[6, 9, 7], 10);
+insert into lots select 'c', pg_temp.lot((select a from who), (select f from w) + interval '2 minutes', array[6, 9, 7], 10);
 select pg_temp.voice((select id from lots where k = 'c'), 50, null);
 -- d. written checks 60 then 80, voice 40
-insert into lots select 'd', pg_temp.lot((select a from who), (select f from w) + interval '15 minutes', array[60, 80], null);
+insert into lots select 'd', pg_temp.lot((select a from who), (select f from w) + interval '3 minutes', array[60, 80], null);
 select pg_temp.voice((select id from lots where k = 'd'), 40, null);
 -- f. off-topic twice -> tried: coding counts, voice 0
-insert into lots select 'f', pg_temp.lot((select a from who), (select f from w) + interval '20 minutes', array[7], 10);
+insert into lots select 'f', pg_temp.lot((select a from who), (select f from w) + interval '4 minutes', array[7], 10);
 select pg_temp.voice((select id from lots where k = 'f'), null, 'off_topic');
 select pg_temp.voice((select id from lots where k = 'f'), null, 'off_topic');
 -- g. three skips: no voice, too short twice, no voice
-insert into lots select 'g1', pg_temp.lot((select a from who), (select f from w) + interval '25 minutes', array[6], 10);
-insert into lots select 'g2', pg_temp.lot((select a from who), (select f from w) + interval '30 minutes', array[5], 10);
+insert into lots select 'g1', pg_temp.lot((select a from who), (select f from w) + interval '5 minutes', array[6], 10);
+insert into lots select 'g2', pg_temp.lot((select a from who), (select f from w) + interval '6 minutes', array[5], 10);
 select pg_temp.voice((select id from lots where k = 'g2'), null, 'too_few_words');
 select pg_temp.voice((select id from lots where k = 'g2'), null, 'silence');
-insert into lots select 'g3', pg_temp.lot((select a from who), (select f from w) + interval '35 minutes', array[10], 10);
+insert into lots select 'g3', pg_temp.lot((select a from who), (select f from w) + interval '7 minutes', array[10], 10);
 
 create temp table m1 as select * from public.lot_marks((select a from who), (select f from w), (select t from w));
 insert into r select 'a. 8/10 + voice 70 (want 8.0 7.0 15.0)', concat_ws(' ', coding_mark, voice_mark, day_total) from m1 where task_id = (select id from lots where k = 'a');
@@ -107,7 +107,7 @@ insert into r select 'g. skip 3 counts 0 (want skip 3 0)', concat_ws(' ', voice_
 insert into r select 'j. week = sum of days (want 15+15+14+12+7+6+5+0 = 74.0)', sum(day_total)::text from m1;
 
 -- e. 0 tests passed, then Submit: voice opens (pending_voice), coding 0
-insert into lots select 'e', pg_temp.lot((select a from who), now() - interval '3 minutes', array[0], 10);
+insert into lots select 'e', pg_temp.lot((select a from who), (select f from w) + interval '8 minutes', array[0], 10);
 insert into r select 'e. 0 passed, checks left (want 2)', public.lot_state((select a from who), (select id from lots where k = 'e')) ->> 'checks_left';
 select public.lot_submit((select a from who), (select id from lots where k = 'e'));
 insert into r select 'e. Submit with 0 passed (want pending_voice 0.0)',
@@ -123,22 +123,51 @@ insert into r select 'voice: closed after two bad (want true tried)',
        concat_ws(' ', public.lot_state((select a from who), (select id from lots where k = 'e')) ->> 'voice_closed',
                       public.lot_state((select a from who), (select id from lots where k = 'e')) ->> 'voice_state');
 
--- h. next week starts fresh: a skip in the following window is skip number 1 again.
-insert into lots select 'h', pg_temp.lot((select a from who), (select t from w) + interval '1 minute', array[4], 10);
-insert into r select 'h. next week skip (want skip 1 4.0)', concat_ws(' ', voice_state, skip_no, day_total)
-  from public.lot_marks((select a from who), (select t from w), (select t from w) + interval '50 minutes') where task_id = (select id from lots where k = 'h');
+-- Week 2 (strict, migration 166): coding counts only a full pass, unlimited checks, no Submit; written one check;
+-- voice any score; two bad recordings = coding + 0; nothing by the next Lot = 0; no weekly skips.
+create temp table w2 as select starts_at as f, ends_at as t from public.season_week_bounds((select id from s), 2);
+insert into lots select 's1', pg_temp.lot((select a from who), (select f from w2), array[4, 7, 10], 10);
+select pg_temp.voice((select id from lots where k = 's1'), 60, null);
+insert into lots select 's2', pg_temp.lot((select a from who), (select f from w2) + interval '4 minutes', array[9], 10);
+insert into lots select 's3', pg_temp.lot((select a from who), (select f from w2) + interval '5 minutes', array[65], null);
+select pg_temp.voice((select id from lots where k = 's3'), 30, null);
+insert into lots select 's4', pg_temp.lot((select a from who), (select f from w2) + interval '6 minutes', array[10], 10);
+insert into lots select 's5', pg_temp.lot((select a from who), (select f from w2) + interval '7 minutes', array[10], 10);
+select pg_temp.voice((select id from lots where k = 's5'), null, 'silence');
+select pg_temp.voice((select id from lots where k = 's5'), null, 'too_few_words');
+create temp table m2 as select * from public.lot_marks((select a from who), (select f from w2), (select t from w2));
+insert into r select 'n. week 1 Lot mode (want graded)', public.lot_state((select a from who), (select id from lots where k = 'a')) ->> 'mode';
+insert into r select 'n. week 2 Lot mode (want strict)', public.lot_state((select a from who), (select id from lots where k = 's1')) ->> 'mode';
+insert into r select 'n. strict: fails 4, 7 then all 10 + voice 60 (want 10.0 6.0 16.0)', concat_ws(' ', coding_mark, voice_mark, day_total) from m2 where task_id = (select id from lots where k = 's1');
+insert into r select 'n. strict: 9/10 never passed (want 0 0)', concat_ws(' ', coding_mark, day_total) from m2 where task_id = (select id from lots where k = 's2');
+insert into r select 'n. strict coding: checks unlimited (want null null)',
+       coalesce(public.lot_state((select a from who), (select id from lots where k = 's2')) ->> 'checks_max', 'null') || ' '
+       || coalesce(public.lot_state((select a from who), (select id from lots where k = 's2')) ->> 'checks_left', 'null');
+insert into r select 'n. strict coding: Submit without a full pass (want refused)',
+       case when (public.lot_submit((select a from who), (select id from lots where k = 's2')) ->> 'ok')::boolean then 'ALLOWED' else 'refused' end;
+insert into r select 'n. strict written: one check (want 1 0)',
+       concat_ws(' ', public.lot_state((select a from who), (select id from lots where k = 's3')) ->> 'checks_max',
+                      public.lot_state((select a from who), (select id from lots where k = 's3')) ->> 'checks_left');
+insert into r select 'n. strict written 65 + voice 30 (want 6.5 3.0 9.5)', concat_ws(' ', coding_mark, voice_mark, day_total) from m2 where task_id = (select id from lots where k = 's3');
+insert into r select 'n. strict: passed, never recorded (want skip 0 -)', concat_ws(' ', voice_state, day_total, coalesce(skip_no::text, '-')) from m2 where task_id = (select id from lots where k = 's4');
+insert into r select 'n. strict: passed, two bad recordings (want skip 10.0)', concat_ws(' ', voice_state, day_total) from m2 where task_id = (select id from lots where k = 's5');
+-- No voice scoring (no AI spend) before the strict coding Lot is passed.
+insert into public.voice_explanations (student_id, task_id, storage_path, transcript_source)
+values ((select a from who), (select id from lots where k = 's2'), 'check/gate-s2', 'server');
+insert into r select 'n. voice gate before a full pass (want false)',
+       public.lot_voice_gate((select id from public.voice_explanations where storage_path = 'check/gate-s2')) ->> 'open';
 
--- i. Squad week: A has marks in week 3, B (same squad) missed every day. Squad points = A's total only.
-insert into lots select 'i', pg_temp.lot((select a from who), (select starts_at from public.season_week_bounds((select id from s), 3)) + interval '1 minute', array[8], 10);
+-- i. Squad week (week 3, strict): A passed fully + voice 70, B (same squad) missed every day. Squad points = A's only.
+insert into lots select 'i', pg_temp.lot((select a from who), (select starts_at from public.season_week_bounds((select id from s), 3)) + interval '1 minute', array[10], 10);
 select pg_temp.voice((select id from lots where k = 'i'), 70, null);
 select public.run_squad_week((select id from s), 3);
-insert into r select 'i. A week-3 points (want 15)', coalesce((select points::text from public.student_weekly_scores
+insert into r select 'i. A week-3 points (want 17)', coalesce((select points::text from public.student_weekly_scores
   where season_id = (select id from s) and week = 3 and student_id = (select a from who)), 'no row');
 insert into r select 'i. B missed (want 0)', coalesce((select points::text from public.student_weekly_scores
   where season_id = (select id from s) and week = 3 and student_id = (select b from who)), 'no row');
-insert into r select 'i. squad week-3 points = A only (want 15)', w3.points::text from public.squad_weekly_scores w3 join public.squads q on q.id = w3.squad_id
+insert into r select 'i. squad week-3 points = A only (want 17)', w3.points::text from public.squad_weekly_scores w3 join public.squads q on q.id = w3.squad_id
  where w3.season_id = (select id from s) and w3.week = 3 and q.name = 'CSE-A Titans 1';
-insert into r select 'i. daily marks saved for A (want 8.0 7.0 15.0)', concat_ws(' ', coding_mark, voice_mark, day_total)
+insert into r select 'i. daily marks saved for A (want 10.0 7.0 17.0)', concat_ws(' ', coding_mark, voice_mark, day_total)
   from public.daily_marks where task_id = (select id from lots where k = 'i');
 insert into r select 'k. squads with no work in week 3 shown as played 0-0 (want 0)', count(*)::text from public.squad_matches
  where season_id = (select id from s) and round_number = 3 and status = 'played' and coalesce(home_points, 0) = 0 and coalesce(away_points, 0) = 0;

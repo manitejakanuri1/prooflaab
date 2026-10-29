@@ -22,7 +22,7 @@ delete from public.squad_weekly_scores where season_id = (select id from s);
 delete from public.squad_matches where season_id = (select id from s);
 select public.generate_cohort_league((select id from s), true);
 
--- Student A: 8 of 10 tests + voice 70 in week 3. Student B (another squad): 10 of 10, no voice (skip 1).
+-- Student A: 8 of 10 (a written Lot: rubric 80) + voice 70 in week 3. Student B (another squad): 10 of 10, no voice (week 3 is strict: 0).
 create temp table who as
 select (select m.student_id from public.squad_members m join public.squads q on q.id = m.squad_id
          where q.season_id = (select id from s) and q.name = 'CSE-A Titans 1'
@@ -61,7 +61,7 @@ select public.run_all_seasons();
 
 insert into r select 'A (8/10 + voice 70) week-3 points (want 15)', coalesce((select points::text from public.student_weekly_scores
   where season_id = (select id from s) and week = 3 and student_id = (select a from who)), 'no row');
-insert into r select 'B (10/10, no voice = skip 1 keeps coding) week-3 points (want 10)', coalesce((select points::text from public.student_weekly_scores
+insert into r select 'B (10/10, no voice; week 3 is strict, migration 166) week-3 points (want 0)', coalesce((select points::text from public.student_weekly_scores
   where season_id = (select id from s) and week = 3 and student_id = (select b from who)), 'no row');
 insert into r select 'other students with week-3 points (want 0)', count(*)::text from public.student_weekly_scores
  where season_id = (select id from s) and week = 3 and points > 0 and student_id not in ((select a from who), (select b from who));

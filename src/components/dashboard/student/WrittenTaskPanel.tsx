@@ -6,7 +6,8 @@ import { SimpleQuestion } from "./SimpleQuestion";
 import { GivenMaterial } from "./GivenMaterial";
 import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
-import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb } from "lucide-react";
+import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb, Play } from "lucide-react";
+import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
 
 interface RubricView {
   task_id: string;
@@ -33,6 +34,9 @@ interface SubmitResult {
   xp_awarded: number;
   scores: CriterionScore[];
   needs_review: boolean;
+  /** Daily Lots (migration 165): this check's mark out of 10 and the Lot's checks left / best mark. */
+  mark?: number;
+  lot?: LotState | null;
 }
 
 async function errorMessage(e: unknown): Promise<string> {
@@ -80,6 +84,9 @@ export default function WrittenTaskPanel({
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A written Daily Lot: 2 checks, the best counts, then "Submit this score" opens the recorder (migration 165).
+  const [lot, setLot] = useState<LotState | null>(null);
+  const daily = !!lot?.daily;
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +100,8 @@ export default function WrittenTaskPanel({
       let draft: string | null = null;
       try { draft = localStorage.getItem(draftKey); } catch { /* storage blocked */ }
       if (draft) setAnswer(draft);
+      const st = await loadLotState(taskId);
+      if (!cancelled) setLot(st);
     })();
     return () => { cancelled = true; };
   }, [taskId, draftKey]);
@@ -112,13 +121,31 @@ export default function WrittenTaskPanel({
       body: writtenSubmitBody(taskId, answer),
     });
     setBusy(false);
-    if (e) return setError(await errorMessage(e));
+    if (e) {
+      setError(await errorMessage(e));
+      if (daily) setLot(await loadLotState(taskId));
+      return;
+    }
     const r = data as SubmitResult;
     setResult(r);
-    if (r.status === "passed") {
+    if (r.lot) setLot(r.lot);
+    if (r.status === "passed" || r.lot?.submitted) {
       onPassedChange?.(true);
       // Not onCompleted() here: that closes the dialog, so a pass flashed its
       // score and vanished. The Done button below closes it once it is read.
+      try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
+    }
+  };
+
+  // "Submit this score": the best check counts, whatever it is, and the recorder opens.
+  const submitBest = async () => {
+    setBusy(true); setError(null);
+    const st = await submitLot(taskId);
+    setBusy(false);
+    if (!st) return setError("Could not submit. Try again.");
+    setLot(st);
+    if (st.submitted) {
+      onPassedChange?.(true);
       try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
     }
   };
@@ -131,7 +158,8 @@ export default function WrittenTaskPanel({
     );
   }
 
-  const done = result?.status === "passed";
+  const done = result?.status === "passed" || (daily && lot?.submitted);
+  const checksLeft = lot?.checks_left ?? 0;
   const scratch = scratchLanguage(view.scratch_language);
 
   // Full-screen split: the question and how it is marked on the left, the
@@ -144,7 +172,7 @@ export default function WrittenTaskPanel({
         <div className="mt-3"><SimpleQuestion taskId={taskId} original={view.prompt_text} /></div>
         <div className="mt-3"><GivenMaterial taskId={taskId} /></div>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          pass mark {view.pass_threshold}% · {view.min_words}–{view.max_words} words
+          {daily ? `${lot?.checks_max ?? 2} checks, your best counts` : `pass mark ${view.pass_threshold}%`} · {view.min_words}–{view.max_words} words
         </p>
       </div>
 
@@ -214,12 +242,35 @@ export default function WrittenTaskPanel({
         {wordCount} words {tooShort ? `(need ${view.min_words - wordCount} more)` : tooLong ? "(too long)" : ""}
       </p>
 
-      <div className="flex justify-end">
-        <Button onClick={submit} disabled={busy || done || tooShort || tooLong || !answer.trim()}>
-          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-          Submit
-        </Button>
+      <div className="flex justify-end gap-2">
+        {daily ? (
+          <>
+            <Button variant="outline" onClick={submitBest} disabled={busy || !!done || !(lot?.checks_used ?? 0)}
+                    data-testid="lot-submit-best">
+              <Send className="mr-2 h-4 w-4" />
+              Submit this score
+            </Button>
+            <Button onClick={submit} disabled={busy || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
+                    data-testid="lot-check">
+              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+              Check ({checksLeft} left)
+            </Button>
+          </>
+        ) : (
+          <Button onClick={submit} disabled={busy || done || tooShort || tooLong || !answer.trim()}>
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            Submit
+          </Button>
+        )}
       </div>
+      {daily && lot?.submitted && !result && (
+        <p className="text-sm text-verified">Submitted. Your mark: {fmtMark(lot.best_mark)} out of 10.</p>
+      )}
+      {daily && !lot?.submitted && !result && (
+        <p className="text-xs text-muted-foreground">
+          Press Check to have your answer marked. You have {checksLeft} {checksLeft === 1 ? "check" : "checks"} - your best one counts.
+        </p>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -239,7 +290,9 @@ export default function WrittenTaskPanel({
             </p>
           ) : (
             <p className="font-semibold">
-              Score {result.score}% {result.status === "passed" ? "· Passed" : `· Needs ${result.pass_threshold}%`}
+              {daily && lot
+                ? `Score ${result.score} of 100 = ${fmtMark(result.mark)} out of 10. ${result.status === "passed" ? "Passed - submitted." : checkLine(result.mark ?? 0, lot)}`
+                : `Score ${result.score}% ${result.status === "passed" ? "· Passed" : `· Needs ${result.pass_threshold}%`}`}
               {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
             </p>
           )}
@@ -267,7 +320,7 @@ export default function WrittenTaskPanel({
                 Step 2 of 2: Record your 60-second explanation now
               </div>
               <p className="mt-1 text-sm font-medium">
-                Your written answer passed! You cannot exit without recording your explanation.
+                {daily ? "Your mark is saved." : "Your written answer passed!"} You cannot exit without recording your explanation.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Look at the panel on the right — click &quot;I understand — continue&quot; and explain your work in your own words.

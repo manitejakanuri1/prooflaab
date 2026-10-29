@@ -11,6 +11,13 @@ import { format, startOfWeek, addDays, addMinutes, isWithinInterval } from "date
 import { FAST_WEEK, FAST_WEEK_MINUTES, WHEN_FORMAT } from "@/lib/testClock";
 import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
+import { fmtMark } from "@/lib/lotMarks";
+
+/** squad_marks_week() (migration 165): each member's Daily Lot marks this week, and the squad total. */
+interface SquadWeekMarks {
+  squad_total: number;
+  members: { student_id: string; full_name: string; week_total: number; lots: number; is_me: boolean }[];
+}
 
 interface Squad {
   id: string;
@@ -82,6 +89,7 @@ const StudentSquadPage = () => {
   const { status: season } = useSeasonStatus();
   // my_season_status answers nothing once a season is over, so read the squad's own season row.
   const [ended, setEnded] = useState<{ champion: string | null } | null>(null);
+  const [weekMarks, setWeekMarks] = useState<SquadWeekMarks | null>(null);
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -116,6 +124,8 @@ const StudentSquadPage = () => {
       // second time where it could drift from them.
       supabase.rpc("my_squad_achievements" as never),
     ]);
+    const { data: wm } = await supabase.rpc("squad_marks_week" as never, { _squad_id: membership.squad_id } as never);
+    setWeekMarks((wm as unknown as SquadWeekMarks | null) ?? null);
 
     const mySquad = squadRes.data as Squad | null;
     const allSquads = (standingRes.data ?? []) as Squad[];
@@ -297,6 +307,47 @@ const StudentSquadPage = () => {
               ) : null}
             </CardContent>
           </Card>
+
+          {weekMarks && (
+            <Card data-testid="squad-week-marks">
+              <CardContent className="pt-5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    This week&apos;s marks
+                  </span>
+                  <span className="text-sm">
+                    Squad total <span className="font-mono font-bold">{fmtMark(weekMarks.squad_total)}</span>
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Each Daily Lot: coding mark + voice mark, out of 20. A missed day only costs that member.
+                </p>
+                <table className="mt-3 w-full text-sm">
+                  <thead>
+                    <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <th className="pb-2 pr-3">#</th>
+                      <th className="pb-2 pr-3">Member</th>
+                      <th className="pb-2 pr-3">Lots</th>
+                      <th className="pb-2">Week total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weekMarks.members.map((m, i) => (
+                      <tr key={m.student_id} className={`border-t ${m.is_me ? "bg-primary/5" : ""}`}>
+                        <td className="py-2 pr-3 font-mono tabular-nums">{i + 1}</td>
+                        <td className="py-2 pr-3">
+                          {m.full_name}
+                          {m.is_me && <span className="ml-2 font-mono text-[10px] text-muted-foreground">you</span>}
+                        </td>
+                        <td className="py-2 pr-3 font-mono tabular-nums">{m.lots}</td>
+                        <td className="py-2 font-mono tabular-nums">{fmtMark(m.week_total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardContent className="pt-5">

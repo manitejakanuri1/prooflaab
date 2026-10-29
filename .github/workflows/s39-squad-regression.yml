@@ -128,6 +128,10 @@ jobs:
       # 28 Oct: owner decision - season fixes MF-003/008/009: one season status (SeasonPhaseBar: Season complete card
       #   with champion, podium and next-season line), standings with one rank, a Section column, W-D-L key and
       #   tie note, "No activity yet" / "won as higher seed" results (TpoHome, TpoSquads, StudentSquadPage).
+      # 29 Oct: owner decision - graded daily marks (migration 165): Check / Submit this score on Daily Lot task
+      #   screens (SandboxTaskPanel, WrittenTaskPanel), voice record-again and skip warning (TaskVoicePanel,
+      #   VoiceExplainModal), today's marks and week total (StudentDailyCard), squad week marks (StudentSquadPage),
+      #   college marks explanation (TpoSquads); new src/lib/lotMarks*.ts. Re-frozen by the step below.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -167,6 +171,7 @@ jobs:
                    ':(exclude)src/components/dashboard/student/SquadSwapCard.tsx'
                    ':(exclude)src/components/dashboard/season/SquadSwapsList.tsx'
                    ':(exclude)src/components/dashboard/college/TpoSquads.tsx'
+                   ':(exclude)src/lib/lotMarks.ts' ':(exclude)src/lib/lotMarksText.ts' ':(exclude)src/lib/lotMarks.test.ts'
                    ':(exclude)src/pages/Index.tsx' ':(exclude)src/components/landing'
                    ':(exclude)index.html'
                    ':(exclude)src/components/Logo.tsx'

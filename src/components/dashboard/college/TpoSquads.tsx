@@ -827,11 +827,21 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               How points are earned
             </span>
+            {scoringRules.length === 0 ? (
+              // Migration 165: graded daily marks are the same for every college, so nothing here is editable.
+              <div className="text-sm text-muted-foreground mt-2 max-w-prose space-y-1" data-testid="marks-explained">
+                <p>Each student&apos;s Daily Lot earns two marks, out of 10 each:</p>
+                <p><span className="font-medium text-foreground">Coding</span> — tests passed ÷ all tests × 10 (best of 3 checks; a written Lot: its score ÷ 10, best of 2).</p>
+                <p><span className="font-medium text-foreground">Voice</span> — the 60-second explanation&apos;s score ÷ 10.</p>
+                <p>A student&apos;s week is the sum of their days; a squad&apos;s week is the sum of its members. Skipping voice: the first two times in a week keep the coding mark, after that coding alone counts 0.</p>
+              </div>
+            ) : (
             <p className="text-sm text-muted-foreground mt-2 max-w-prose">
               Every weekly score and squad ranking is built from these. Change one and it applies
               to your college only, starting with the next week that gets scored — nothing already
               published is recalculated.
             </p>
+            )}
             <div className="mt-3 space-y-2">
               {scoringRules.map((r) => (
                 <div key={r.metric} className="flex items-center gap-3 flex-wrap rounded-lg border p-3">

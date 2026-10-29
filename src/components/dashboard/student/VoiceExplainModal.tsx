@@ -1543,9 +1543,17 @@ const VoiceExplainModal = ({
 
         {phase === "done" && (
           <div className="space-y-3 py-2">
-            <p className="flex items-center gap-2 text-sm">
-              <CheckCircle2 className="h-4 w-4 text-verified" /> Saved. It will appear in your build-log.
-            </p>
+            {savedResult && savedResult.score == null && !scoringPending ? (
+              // The server finished and could not use it (silent, too short, about something else):
+              // the reason is in the notes below, and the student can record again (migration 165).
+              <p className="flex items-center gap-2 text-sm" data-testid="voice-not-used">
+                <AlertTriangle className="h-4 w-4 text-compete" /> We could not use this recording.
+              </p>
+            ) : (
+              <p className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-verified" /> Saved. It will appear in your build-log.
+              </p>
+            )}
             {savedResult && (
               <div className="rounded-lg border p-3 max-h-72 overflow-y-auto">
                 <RecordingPlayback
@@ -1575,6 +1583,14 @@ const VoiceExplainModal = ({
                 }, `explanation-${Date.now()}.pdf`)}
               >
                 <FileDown className="h-4 w-4" /> Download PDF
+              </Button>
+            )}
+            {savedResult && savedResult.score == null && !scoringPending && (
+              <Button
+                className="w-full" data-testid="voice-record-again"
+                onClick={() => { setJobStatus(null); setJobError(null); setSavedResult(null); setPhase("idle"); }}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" /> Record again
               </Button>
             )}
             {!inline && <Button className="w-full" onClick={() => close(false)}>Done</Button>}

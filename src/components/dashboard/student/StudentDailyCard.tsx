@@ -16,6 +16,7 @@ import TaskVoicePanel from "./TaskVoicePanel";
 import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { tidyTitle } from "@/lib/utils";
+import { fmtMark, loadLotState, loadWeekMarks, SKIP_WARNING, type LotState, type WeekMarks } from "@/lib/lotMarks";
 
 interface Lot {
   id: string;
@@ -91,6 +92,9 @@ const StudentDailyCard = () => {
   const [roadmap, setRoadmap] = useState(false);
   const [taskPassed, setTaskPassed] = useState(false);
   const [voiceSaved, setVoiceSaved] = useState(false);
+  // Graded daily marks (migration 165): today's Lot marks and this week's total.
+  const [lotState, setLotState] = useState<LotState | null>(null);
+  const [marks, setMarks] = useState<WeekMarks | null>(null);
   // "Start this stage" inside the roadmap navigates; close the dialog when it does.
   const { pathname } = useLocation();
   useEffect(() => { setRoadmap(false); }, [pathname]);
@@ -161,6 +165,9 @@ const StudentDailyCard = () => {
     }
 
     setLot(today);
+    const [todayState, weekMarks] = await Promise.all([today ? loadLotState(today.id) : Promise.resolve(null), loadWeekMarks()]);
+    setLotState(todayState);
+    setMarks(weekMarks);
     if (today) {
       const { data: subs } = await supabase.from("task_submissions").select("status, sandbox_score")
         .eq("task_id", today.id);
@@ -343,7 +350,7 @@ const StudentDailyCard = () => {
             {lot.status === "pending_voice" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
                  data-testid="lot-pending-voice">
-                <Mic className="h-3.5 w-3.5" /> Code passed · Spoken explanation required
+                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? "Submitted" : "Code passed"} · Spoken explanation required
               </p>
             )}
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}
@@ -369,13 +376,13 @@ const StudentDailyCard = () => {
             <div className="mt-4 flex flex-wrap gap-2">
               {lot.status === "pending_voice" ? (
                 <>
-                  <Button
+                  {!lotState?.voice_closed && <Button
                     onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
                     className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
                     data-testid="lot-action-explain"
                   >
                     <Mic className="mr-2 h-4 w-4" /> Record 60s explain
-                  </Button>
+                  </Button>}
                   <Button
                     variant="outline"
                     onClick={openLot}
@@ -439,6 +446,37 @@ const StudentDailyCard = () => {
         )}
 
         <div className="space-y-4">
+          {lotState?.daily && (
+            <div className="rounded-xl border p-4" data-testid="lot-marks">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Today&apos;s marks</p>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="font-mono text-lg font-bold">{(lotState.checks_used ?? 0) > 0 ? fmtMark(lotState.best_mark) : "–"}</p>
+                  <p className="text-[11px] text-muted-foreground">Coding /10</p>
+                </div>
+                <div>
+                  <p className="font-mono text-lg font-bold">{lotState.voice_state === "scored" ? fmtMark(lotState.voice_mark) : "–"}</p>
+                  <p className="text-[11px] text-muted-foreground">Voice /10</p>
+                </div>
+                <div>
+                  <p className="font-mono text-lg font-bold text-primary">
+                    {fmtMark(marks?.days.find((d) => d.task_id === lot?.id)?.day_total
+                      ?? (Number(lotState.best_mark ?? 0) + Number(lotState.voice_state === "scored" ? lotState.voice_mark ?? 0 : 0)))}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Today /20</p>
+                </div>
+              </div>
+              <p className="mt-3 text-sm">
+                This week: <span className="font-mono font-bold">{fmtMark(marks?.week_total)}</span>
+                <span className="text-muted-foreground"> · {marks?.days.length ?? 0} {marks?.days.length === 1 ? "Lot" : "Lots"}</span>
+              </p>
+              {(lotState.skip_warning || (marks?.skips ?? 0) >= 2) && lotState.voice_state !== "scored" && (
+                <p className="mt-3 rounded-lg border-2 border-compete bg-compete/10 p-3 text-xs font-medium" data-testid="lot-skip-warning">
+                  {SKIP_WARNING}
+                </p>
+              )}
+            </div>
+          )}
           <div className="rounded-xl border p-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               This week <span className="normal-case tracking-normal">· ● done · ○ not done yet</span>

@@ -9,6 +9,7 @@ import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, type HiddenSummary,
 } from "@/lib/functionSignature";
 import { CheckCircle2, Loader2, Play, RotateCcw, Send, XCircle, Mic } from "lucide-react";
+import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
 
 interface SandboxView {
   task_id: string;
@@ -46,6 +47,9 @@ interface SubmitResult {
   failed_tests?: number;
   already_completed: boolean;
   xp_awarded: number;
+  /** Daily Lots (migration 165): this check's mark out of 10 and the Lot's checks left / best mark. */
+  mark?: number;
+  lot?: LotState | null;
   /** Visible tests in detail; hidden tests only as one aggregate row. */
   results: (TestResult | HiddenSummary)[];
 }
@@ -103,6 +107,9 @@ export default function SandboxTaskPanel({
   const [retryNote, setRetryNote] = useState<string | null>(null);
   const [tab, setTab] = useState<"testcase" | "result">("testcase");
   const [caseIndex, setCaseIndex] = useState(0);
+  // A Daily Lot: 3 checks, the best counts, then "Submit this score" opens the recorder (migration 165).
+  const [lot, setLot] = useState<LotState | null>(null);
+  const daily = !!lot?.daily;
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +121,8 @@ export default function SandboxTaskPanel({
       let draft: string | null = null;
       try { draft = localStorage.getItem(draftKey); } catch { /* storage blocked */ }
       setCode(draft ?? v?.starter_code ?? "");
+      const st = await loadLotState(taskId);
+      if (!cancelled) setLot(st);
     })();
     return () => { cancelled = true; };
   }, [taskId, draftKey]);
@@ -143,13 +152,31 @@ export default function SandboxTaskPanel({
       await new Promise((r) => setTimeout(r, 8000 * (attempt + 1)));
     }
     setBusy(null); setRetryNote(null);
-    if (e) return setError(await errorMessage(e));
+    if (e) {
+      setError(await errorMessage(e));
+      if (daily) setLot(await loadLotState(taskId));
+      return;
+    }
     const r = data as SubmitResult;
     setResult(r);
-    if (r.passed) {
+    if (r.lot) setLot(r.lot);
+    if (r.passed || r.lot?.submitted) {
       onPassedChange?.(true);
       // Not onCompleted() here: that closes the dialog, so a pass flashed its
       // score and vanished. The Done button below closes it once it is read.
+      try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
+    }
+  };
+
+  // "Submit this score": the best check counts, whatever it is, and the recorder opens.
+  const submitBest = async () => {
+    setBusy("submit"); setError(null);
+    const st = await submitLot(taskId);
+    setBusy(null);
+    if (!st) return setError("Could not submit. Try again.");
+    setLot(st);
+    if (st.submitted) {
+      onPassedChange?.(true);
       try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
     }
   };
@@ -162,7 +189,9 @@ export default function SandboxTaskPanel({
     );
   }
 
-  const done = view.completed || result?.passed;
+  const done = view.completed || result?.passed || (daily && lot?.submitted);
+  const totalTests = view.visible_tests.length + view.hidden_test_count;
+  const checksLeft = lot?.checks_left ?? 0;
   // Visible rows + one hidden count at most: hidden inputs/outputs/errors/ids are never rendered.
   const shownResults = safeResultRows<TestResult>(result?.results ?? runResults);
   const spec = functionSpecOf(view);
@@ -189,7 +218,7 @@ export default function SandboxTaskPanel({
         </pre>
       )}
       <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-        + {view.hidden_test_count} hidden test{view.hidden_test_count === 1 ? "" : "s"} on Submit
+        + {view.hidden_test_count} hidden test{view.hidden_test_count === 1 ? "" : "s"} on {daily ? "Check" : "Submit"}
       </p>
     </div>
   );
@@ -204,7 +233,11 @@ export default function SandboxTaskPanel({
       {result && (
         <div className={`rounded-lg border p-3 ${result.passed ? "border-verified/50" : "border-compete/50"}`}>
           <p className="font-semibold">
-            {submitScoreLine(result)}
+            {daily && lot
+              ? result.passed
+                ? `All ${totalTests} tests passed. Score 10 - submitted.`
+                : `${totalTests - (result.failed_tests ?? 0)} of ${totalTests} tests passed. ${checkLine(result.mark ?? 0, lot)}`
+              : submitScoreLine(result)}
             {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
           </p>
           {result.already_completed && !result.passed && (
@@ -221,7 +254,7 @@ export default function SandboxTaskPanel({
                 Step 2 of 2: Record your 60-second explanation now
               </div>
               <p className="mt-1 text-sm font-medium">
-                Your code passed all tests! You cannot exit without recording your explanation.
+                {daily ? "Your coding mark is saved." : "Your code passed all tests!"} You cannot exit without recording your explanation.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Look at the panel on the right — click &quot;I understand — continue&quot; and explain your approach in your own words.
@@ -284,8 +317,15 @@ export default function SandboxTaskPanel({
       {view.completed && !result && (
         <p className="text-sm text-verified">You already completed this task.</p>
       )}
-      {!busy && !error && !result && !runResults && !view.completed && (
-        <p className="text-sm text-muted-foreground">Run your code to see results here.</p>
+      {daily && lot?.submitted && !view.completed && !result && (
+        <p className="text-sm text-verified">Submitted. Your coding mark: {fmtMark(lot.best_mark)} out of 10.</p>
+      )}
+      {!busy && !error && !result && !runResults && !view.completed && !(daily && lot?.submitted) && (
+        <p className="text-sm text-muted-foreground">
+          {daily
+            ? `Press Check to test your code against every test. You have ${checksLeft} ${checksLeft === 1 ? "check" : "checks"} - your best one counts.`
+            : "Run your code to see results here."}
+        </p>
       )}
     </div>
   );
@@ -304,7 +344,7 @@ export default function SandboxTaskPanel({
           <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
         )}
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          {view.language} · every test must pass · {view.visible_tests.length} sample
+          {view.language} · {daily ? `${lot?.checks_max ?? 3} checks, your best counts` : "every test must pass"} · {view.visible_tests.length} sample
           {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
           {view.hidden_test_count === 1 ? "" : "s"}
         </p>
@@ -358,6 +398,19 @@ export default function SandboxTaskPanel({
             {tab === "testcase" ? testcaseTab : resultTab}
           </div>
           <div className="flex justify-end gap-2 border-t px-4 py-3">
+            {daily ? (
+              <>
+                <Button variant="outline" onClick={submitBest} disabled={!!busy || !!done || !(lot?.checks_used ?? 0)}
+                        data-testid="lot-submit-best">
+                  <Send className="mr-2 h-4 w-4" />
+                  Submit this score
+                </Button>
+                <Button onClick={submit} disabled={!!busy || !!done || checksLeft < 1} data-testid="lot-check">
+                  {busy === "submit" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                  Check ({checksLeft} left)
+                </Button>
+              </>
+            ) : (<>
             <Button variant="outline" onClick={run} disabled={!!busy || !!done}>
               {busy === "run" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
               Run
@@ -366,6 +419,7 @@ export default function SandboxTaskPanel({
               {busy === "submit" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               Submit
             </Button>
+            </>)}
           </div>
         </div>
       </div>

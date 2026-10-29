@@ -36,6 +36,8 @@ export type ScoreOutcome =
   | 'pending'     // another caller holds a live claim and no score is saved yet
   | 'too_short'   // too little speech; marked failed under this call's claim
   | 'failed'      // AI error or unusable AI answer; marked failed under this call's claim
+  | 'off_topic'   // a Daily Lot recording about something else; marked failed so the student records again (165)
+  | 'closed'      // a Daily Lot whose voice part is closed (already scored, or two bad recordings); no AI call (165)
   | 'lost_race'   // this call's claim went stale and a newer claim owns the result
   | 'not_found'   // the recording no longer exists
   | 'error';      // a database call failed; nothing is claimed to have happened
@@ -49,6 +51,9 @@ export const EVALUATOR_VERSION = 'voice-eval-3';
 /** Below this content match the recording is about something else: the score is capped. */
 export const CONTENT_MATCH_FLOOR = 30;
 export const OFF_TOPIC_CAP = 30;
+/** Daily Lots (migration 165): what the student reads when a recording cannot be used. */
+export const OFF_TOPIC_NOTE = 'This talk was about something else. Explain THIS task: what you did and why. You can record once more.';
+export const CLOSED_NOTE = 'The spoken part of this Lot is closed, so this recording was not scored.';
 
 /**
  * Cheap checks before any AI spend: is there usable speech at all?
@@ -176,10 +181,11 @@ export async function scoreRecording(
   // Releases this call's claim as a failure. Fenced on this lease, so it
   // cannot touch a row a newer claim took over (and, from migration 45 as
   // applied by Step 6DD, never a scored row).
-  const failUnderClaim = async (notes: string, outcome: ScoreOutcome, status: number, body: Record<string, unknown>) => {
-    const { data: released, error: failError } = await supabase.rpc('fail_voice_scoring', {
-      _id: voice_id, _lease_token: leaseToken, _notes: notes,
-    });
+  // With a reason (a recording for a task), the reason is saved too: lot_state counts bad Daily Lot recordings (165).
+  const failUnderClaim = async (notes: string, outcome: ScoreOutcome, status: number, body: Record<string, unknown>, reason?: string) => {
+    const { data: released, error: failError } = reason && rec.task_id
+      ? await supabase.rpc('fail_voice_attempt', { _id: voice_id, _lease_token: leaseToken, _notes: notes, _reason: reason })
+      : await supabase.rpc('fail_voice_scoring', { _id: voice_id, _lease_token: leaseToken, _notes: notes });
     if (failError) return dbError('fail', voice_id, failError);
     if (!released) {
       console.log(`VOICE-SCORE: lost race ${voice_id} - claim went stale before recording the failure`);
@@ -188,13 +194,26 @@ export async function scoreRecording(
     return { status, outcome, body };
   };
 
+  // 165: a Daily Lot's spoken part is scored once and closes after two bad recordings. A closed one is
+  // never graded, so it costs no AI call.
+  let dailyLot = false;
+  if (rec.task_id) {
+    const { data: gate, error: gateError } = await supabase.rpc('lot_voice_gate', { _voice_id: voice_id });
+    if (gateError) return dbError('lot gate', voice_id, gateError);
+    dailyLot = Boolean(gate?.daily);
+    if (dailyLot && !gate.open) {
+      console.log(`VOICE-SCORE: closed ${voice_id} - the Lot's spoken part is closed`);
+      return await failUnderClaim(CLOSED_NOTE, 'closed', 200, { success: false, reason: 'voice closed', closed: true }, 'closed');
+    }
+  }
+
   // Too little speech: decided only now, under this claim, so it can never
   // mark an already-scored recording failed or overwrite another claim's work.
   const quality = transcriptQuality(rec.transcript, rec.word_count);
   if (quality.flags.length) {
     console.log(`VOICE-SCORE: too short ${voice_id} (${quality.flags.join(',')})`);
     return await failUnderClaim(quality.note!, 'too_short', 200,
-      { success: false, reason: 'transcript too short', flags: quality.flags });
+      { success: false, reason: 'transcript too short', flags: quality.flags }, quality.flags[0]);
   }
 
   // What they were asked to explain, so the grader can tell whether the
@@ -289,6 +308,13 @@ Return ONLY JSON:
     } })
     .eq('id', voice_id).eq('scoring_lease_token', leaseToken).select('id').maybeSingle();
   if (evalError) return dbError('save evaluation', voice_id, evalError);
+
+  // 165: on a Daily Lot an off-topic talk is not scored; the student records once more.
+  if (offTopic && dailyLot) {
+    console.log(`VOICE-SCORE: off topic ${voice_id} (content_match ${contentMatch})`);
+    return await failUnderClaim(OFF_TOPIC_NOTE, 'off_topic', 200,
+      { success: false, reason: 'off topic', off_topic: true, notes: OFF_TOPIC_NOTE }, 'off_topic');
+  }
 
   const { data: committed, error: completeError } = await supabase.rpc('complete_voice_scoring', {
     _id: voice_id, _lease_token: leaseToken, _score: graded.score, _notes: graded.notes,

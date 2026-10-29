@@ -4,6 +4,7 @@ import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
 import { submissionPassed, selfAuthoredTask } from "../_shared/submission.ts";
 import { gradeSandboxConfig, redact, type SandboxTest } from "../_shared/sandbox.ts";
+import { afterCheck, checkRefusal, lotState } from "../_shared/lotChecks.ts";
 
 /**
  * Final submit for a sandbox task: grades against EVERY test (visible and
@@ -68,6 +69,10 @@ serve(async (req) => {
       .select("id").eq("task_id", task_id).eq("student_id", profile.id).eq("status", "passed").maybeSingle();
     if (done) return json({ error: "You already completed this task", already_completed: true }, 409);
 
+    // 5b. A Daily Lot has 3 checks and none after Submit (migration 165), refused before the runner is used
+    const refused = checkRefusal(await lotState(db, profile.id, task_id));
+    if (refused) return json({ error: refused, no_checks_left: true }, 409);
+
     // 6. Grade against ALL tests
     const { data: cfg } = await db.from("task_sandbox_config")
       .select("id, kind, language, function_spec, test_cases, pass_threshold, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
@@ -103,7 +108,12 @@ serve(async (req) => {
       return json({ error: "Could not save your submission. Try again." }, 500);
     }
 
+    // The last check submits the best one (Daily Lots only), so the recorder opens.
+    const lot = await afterCheck(db, profile.id, task_id);
+
     return json({
+      lot,
+      mark: graded.results.length ? Math.round((graded.passedCount * 100) / graded.results.length) / 10 : 0,
       score: graded.score,
       pass_threshold: cfg.pass_threshold,
       passed: submissionPassed(rec),

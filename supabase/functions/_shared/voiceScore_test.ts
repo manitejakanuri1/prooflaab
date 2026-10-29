@@ -21,6 +21,8 @@ class FakeDb {
   streaks = 0;
   updates: Record<string, unknown>[] = [];
   submission: Record<string, unknown> | null = null;
+  gate: { daily: boolean; open: boolean } = { daily: false, open: true }; // lot_voice_gate (migration 165)
+  reasons: string[] = [];
   constructor(row: Partial<Row> & { id: string }) {
     this.rows.set(row.id, {
       status: 'recorded', communication_score: null, communication_notes: null,
@@ -51,6 +53,16 @@ class FakeDb {
       if (r && r.scoring_lease_token === a._lease_token && r.status !== 'scored') {
         r.status = 'failed'; r.communication_notes = a._notes ?? r.communication_notes;
         r.scoring_claimed_at = null; r.scoring_lease_token = null;
+        return { data: true, error: null };
+      }
+      return { data: false, error: null };
+    }
+    if (name === 'lot_voice_gate') return { data: this.gate, error: null };
+    if (name === 'fail_voice_attempt') {
+      if (r && r.scoring_lease_token === a._lease_token && r.status !== 'scored') {
+        r.status = 'failed'; r.communication_notes = a._notes ?? r.communication_notes;
+        r.scoring_claimed_at = null; r.scoring_lease_token = null;
+        this.reasons.push(a._reason);
         return { data: true, error: null };
       }
       return { data: false, error: null };
@@ -297,4 +309,48 @@ Deno.test("6f scoring keeps the language metadata the transcriber stored", async
   const saved = db.updates[0].evaluation as Record<string, unknown>;
   assertEquals((saved.transcription as Record<string, unknown>).language, 'en');
   assertEquals(saved.evaluator_version, 'voice-eval-3');
+});
+
+// ---------- 7. Daily Lots (migration 165, owner plan 29 Oct 2026) ----------
+Deno.test("7a Daily Lot off-topic: not scored, marked failed with reason off_topic, the student records again", async () => {
+  const db = new FakeDb({ id: ID });
+  db.gate = { daily: true, open: true };
+  const r = await scoreRecording(db, longRec({ task_id: 't1', submission_id: 'sub1' }),
+    ai('{"communication_score": 88, "content_match": 10, "notes": "about something else"}'));
+  assertEquals(r.outcome, 'off_topic');
+  assertEquals(db.rows.get(ID)!.status, 'failed');
+  assertEquals(db.rows.get(ID)!.communication_score, null);
+  assertEquals(db.reasons, ['off_topic']);
+});
+Deno.test("7b Daily Lot voice closed: no AI call, nothing scored", async () => {
+  const db = new FakeDb({ id: ID });
+  db.gate = { daily: true, open: false };
+  const calls = { n: 0 };
+  const r = await scoreRecording(db, longRec({ task_id: 't1', submission_id: 'sub1' }), ai('{"communication_score": 90}', calls));
+  assertEquals(r.outcome, 'closed');
+  assertEquals(calls.n, 0);
+  assertEquals(db.rows.get(ID)!.status, 'failed');
+  assertEquals(db.reasons, ['closed']);
+});
+Deno.test("7c a too-short recording for a task saves why (counted as a bad try on a Daily Lot)", async () => {
+  const db = new FakeDb({ id: ID });
+  db.gate = { daily: true, open: true };
+  const r = await scoreRecording(db, longRec({ task_id: 't1', transcript: 'too short', word_count: 2 }), ai('{}'));
+  assertEquals(r.outcome, 'too_short');
+  assertEquals(db.reasons, ['too_few_words']);
+});
+Deno.test("7d Daily Lot on-topic: scored as before", async () => {
+  const db = new FakeDb({ id: ID });
+  db.gate = { daily: true, open: true };
+  const r = await scoreRecording(db, longRec({ task_id: 't1', submission_id: 'sub1' }),
+    ai('{"communication_score": 65, "content_match": 80, "notes": "ok"}'));
+  assertEquals(r.outcome, 'scored');
+  assertEquals(db.rows.get(ID)!.communication_score, 65);
+});
+Deno.test("7e not a Daily Lot (assigned task): off-topic keeps the old cap-and-score rule", async () => {
+  const db = new FakeDb({ id: ID });
+  const r = await scoreRecording(db, longRec({ task_id: 't1', submission_id: 'sub1' }),
+    ai('{"communication_score": 88, "content_match": 10, "notes": "x"}'));
+  assertEquals(r.outcome, 'scored');
+  assertEquals(db.rows.get(ID)!.communication_score, 30);
 });

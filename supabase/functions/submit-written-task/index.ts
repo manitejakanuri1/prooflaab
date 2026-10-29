@@ -7,6 +7,7 @@ import {
   gradeOnce, zeroUnquotedCredit, totalOf, wordCount, DISAGREEMENT_THRESHOLD, type Criterion,
 } from "../_shared/rubric-grading.ts";
 import { decidingGrade, needsThirdOpinion, seriousCopy, type SimilarityResult } from "../_shared/review-policy.ts";
+import { afterCheck, checkRefusal, lotState } from "../_shared/lotChecks.ts";
 
 /**
  * Final submit for a rubric-graded (written) task: business/pitch Lots,
@@ -82,6 +83,10 @@ serve(async (req) => {
     const { data: done } = await db.from("task_submissions")
       .select("id").eq("task_id", task_id).eq("student_id", profile.id).eq("status", "passed").maybeSingle();
     if (done) return json({ error: "You already completed this task", already_completed: true }, 409);
+
+    // A written Daily Lot has 2 checks and none after Submit (migration 165), refused before any AI is paid for
+    const refused = checkRefusal(await lotState(db, profile.id, task_id));
+    if (refused) return json({ error: refused, no_checks_left: true }, 409);
 
     const { data: cfg } = await db.from("task_rubric_config")
       .select("id, prompt_text, criteria, min_words, max_words, pass_threshold, reference_answer, is_generic_fallback, origin")
@@ -183,7 +188,12 @@ ${task.description ?? ""}`;
       return json({ error: "Could not save your submission. Try again." }, 500);
     }
 
+    // The last check submits the best one (Daily Lots only), so the recorder opens.
+    const lot = await afterCheck(db, profile.id, task_id);
+
     return json({
+      lot,
+      mark: Math.round(score) / 10,
       score,
       pass_threshold: cfg.pass_threshold,
       status: rec.status,

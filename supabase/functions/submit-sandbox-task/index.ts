@@ -4,7 +4,7 @@ import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
 import { submissionPassed, selfAuthoredTask } from "../_shared/submission.ts";
 import { gradeSandboxConfig, redact, type SandboxTest } from "../_shared/sandbox.ts";
-import { afterCheck, checkRefusal, lotState } from "../_shared/lotChecks.ts";
+import { afterCheck, checkRefusal, hiddenHint, lotState } from "../_shared/lotChecks.ts";
 
 /**
  * Final submit for a sandbox task: grades against EVERY test (visible and
@@ -110,9 +110,13 @@ serve(async (req) => {
 
     // The last check submits the best one (Daily Lots only), so the recorder opens.
     const lot = await afterCheck(db, profile.id, task_id);
+    // Week 2 on (strict): one failed hidden test per failed check from the 2nd, so the student can fix it.
+    // Never stored: the saved details stay redacted.
+    const hint = hiddenHint(graded.results, lot);
 
     return json({
       lot,
+      hidden_hint: hint,
       mark: graded.results.length ? Math.round((graded.passedCount * 100) / graded.results.length) / 10 : 0,
       score: graded.score,
       pass_threshold: cfg.pass_threshold,

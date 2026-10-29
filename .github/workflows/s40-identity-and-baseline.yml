@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: dd137f2d35dda0b7929b18544d555aac293f5261   # 2026-10-29: + MF-003 voice-required scoring, MF-007 stub gone, MF-008/009 screens on TEST
+      STAGING_RC: eb68b3bac29ae3346e4313db1760e352553b5dc6   # 2026-10-29: + graded daily marks (checks, Submit, voice redo, marks boxes) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

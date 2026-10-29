@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: eb68b3bac29ae3346e4313db1760e352553b5dc6   # 2026-10-29: + graded daily marks (checks, Submit, voice redo, marks boxes) on TEST
+      STAGING_RC: d1b0b4ab54317f048a61427365ae66b3b390bae0   # 2026-10-29: + strict Daily Lots after week 1 (unlimited coding checks, hidden test shown, 1 written check) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -18,3 +18,8 @@ test("voice line: last try, closed, scored, not a Daily Lot", () => {
   assert.match(voiceLine({ daily: true, voice_state: "scored", voice_mark: 6.5 }) ?? "", /6\.5/);
   assert.equal(voiceLine({ daily: false }), null);
 });
+test("week 2 on (strict): coding asks to fix and check again; written shows the one score", () => {
+  assert.match(checkLine(9, { daily: true, mode: "strict", kind: "coding", submitted: false, checks_left: null }), /every test passes/);
+  assert.equal(checkLine(6.5, { daily: true, mode: "strict", kind: "written", submitted: true, checks_left: 0, best_mark: 6.5 }),
+    "Your score is 6.5 out of 10.");
+});

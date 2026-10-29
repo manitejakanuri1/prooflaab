@@ -160,6 +160,8 @@ export default function WrittenTaskPanel({
 
   const done = result?.status === "passed" || (daily && lot?.submitted);
   const checksLeft = lot?.checks_left ?? 0;
+  // Week 2 on (migration 166): one check, its score is final and the recorder opens straight after.
+  const strict = daily && lot?.mode === "strict";
   const scratch = scratchLanguage(view.scratch_language);
 
   // Full-screen split: the question and how it is marked on the left, the
@@ -172,7 +174,7 @@ export default function WrittenTaskPanel({
         <div className="mt-3"><SimpleQuestion taskId={taskId} original={view.prompt_text} /></div>
         <div className="mt-3"><GivenMaterial taskId={taskId} /></div>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          {daily ? `${lot?.checks_max ?? 2} checks, your best counts` : `pass mark ${view.pass_threshold}%`} · {view.min_words}–{view.max_words} words
+          {daily ? (strict ? "one check, its score is final" : `${lot?.checks_max ?? 2} checks, your best counts`) : `pass mark ${view.pass_threshold}%`} · {view.min_words}–{view.max_words} words
         </p>
       </div>
 
@@ -245,11 +247,13 @@ export default function WrittenTaskPanel({
       <div className="flex justify-end gap-2">
         {daily ? (
           <>
-            <Button variant="outline" onClick={submitBest} disabled={busy || !!done || !(lot?.checks_used ?? 0)}
-                    data-testid="lot-submit-best">
-              <Send className="mr-2 h-4 w-4" />
-              Submit this score
-            </Button>
+            {!strict && (
+              <Button variant="outline" onClick={submitBest} disabled={busy || !!done || !(lot?.checks_used ?? 0)}
+                      data-testid="lot-submit-best">
+                <Send className="mr-2 h-4 w-4" />
+                Submit this score
+              </Button>
+            )}
             <Button onClick={submit} disabled={busy || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
                     data-testid="lot-check">
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
@@ -268,7 +272,9 @@ export default function WrittenTaskPanel({
       )}
       {daily && !lot?.submitted && !result && (
         <p className="text-xs text-muted-foreground">
-          Press Check to have your answer marked. You have {checksLeft} {checksLeft === 1 ? "check" : "checks"} - your best one counts.
+          {strict
+            ? "Press Check to have your answer marked. You have one check - its score is final, then you explain it out loud."
+            : `Press Check to have your answer marked. You have ${checksLeft} ${checksLeft === 1 ? "check" : "checks"} - your best one counts.`}
         </p>
       )}
 

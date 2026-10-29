@@ -2,13 +2,16 @@
  * Daily Lot marks (migration 165, owner plan 29 Oct 2026). A coding Lot has 3 checks, a written Lot 2;
  * the best check is the coding mark (out of 10). One good recording is the voice mark (out of 10).
  * Not a Daily Lot (assigned task, level proof): { daily: false } and the old screens apply.
+ * Week 2 on (migration 166, mode "strict"): a coding Lot is checked until every test passes (checks_left null),
+ * a written Lot has one check.
  */
 export interface LotState {
   daily: boolean;
   kind?: "coding" | "written";
+  mode?: "graded" | "strict";
   checks_used?: number;
   checks_max?: number;
-  checks_left?: number;
+  checks_left?: number | null;
   best_mark?: number;
   submitted?: boolean;
   voice_mark?: number | null;
@@ -38,6 +41,11 @@ export function fmtMark(n: number | null | undefined): string {
 
 /** What the student reads after a check: submit or try again, or the final best mark. */
 export function checkLine(mark: number, lot: LotState): string {
+  if (lot.mode === "strict") {
+    return lot.kind === "coding" && !lot.submitted
+      ? "Fix the failed tests and check again. The voice part opens when every test passes."
+      : `Your score is ${fmtMark(lot.best_mark)} out of 10.`;
+  }
   const left = lot.checks_left ?? 0;
   if (!lot.submitted && left > 0) {
     return `Score ${fmtMark(mark)}. Submit this score, or try again? (${left} ${left === 1 ? "try" : "tries"} left - your best check counts)`;

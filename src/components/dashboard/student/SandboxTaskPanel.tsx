@@ -50,6 +50,8 @@ interface SubmitResult {
   /** Daily Lots (migration 165): this check's mark out of 10 and the Lot's checks left / best mark. */
   mark?: number;
   lot?: LotState | null;
+  /** Week 2 on (migration 166): one failed hidden test, from the 2nd failed check. */
+  hidden_hint?: { input: string; expected: string; got: string; error: string } | null;
   /** Visible tests in detail; hidden tests only as one aggregate row. */
   results: (TestResult | HiddenSummary)[];
 }
@@ -192,6 +194,8 @@ export default function SandboxTaskPanel({
   const done = view.completed || result?.passed || (daily && lot?.submitted);
   const totalTests = view.visible_tests.length + view.hidden_test_count;
   const checksLeft = lot?.checks_left ?? 0;
+  // Week 2 on: check until every test passes; no Submit this score.
+  const strict = daily && lot?.mode === "strict";
   // Visible rows + one hidden count at most: hidden inputs/outputs/errors/ids are never rendered.
   const shownResults = safeResultRows<TestResult>(result?.results ?? runResults);
   const spec = functionSpecOf(view);
@@ -314,6 +318,23 @@ export default function SandboxTaskPanel({
         </div>
       ))}
 
+      {result?.hidden_hint && (
+        <div className="rounded-lg border border-compete/50 p-3 text-sm" data-testid="lot-hidden-hint">
+          <p className="font-medium">A hidden test your code failed - use it to fix your code:</p>
+          <pre className="mt-1 overflow-x-auto rounded bg-muted p-2 font-mono text-xs">
+            {spec
+              ? `arguments: ${formatArguments(result.hidden_hint.input, spec)}
+expected:  ${formatReturn(result.hidden_hint.expected)}
+returned:  ${result.hidden_hint.got ? formatReturn(result.hidden_hint.got) : "(nothing)"}${result.hidden_hint.error ? `
+${result.hidden_hint.error}` : ""}`
+              : `input:    ${result.hidden_hint.input}
+expected: ${result.hidden_hint.expected}
+got:      ${result.hidden_hint.got}${result.hidden_hint.error ? `
+${result.hidden_hint.error}` : ""}`}
+          </pre>
+        </div>
+      )}
+
       {view.completed && !result && (
         <p className="text-sm text-verified">You already completed this task.</p>
       )}
@@ -322,7 +343,9 @@ export default function SandboxTaskPanel({
       )}
       {!busy && !error && !result && !runResults && !view.completed && !(daily && lot?.submitted) && (
         <p className="text-sm text-muted-foreground">
-          {daily
+          {strict
+            ? "Press Check to test your code against every test. Check as often as you need - the voice part opens when every test passes."
+            : daily
             ? `Press Check to test your code against every test. You have ${checksLeft} ${checksLeft === 1 ? "check" : "checks"} - your best one counts.`
             : "Run your code to see results here."}
         </p>
@@ -344,7 +367,7 @@ export default function SandboxTaskPanel({
           <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
         )}
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          {view.language} · {daily ? `${lot?.checks_max ?? 3} checks, your best counts` : "every test must pass"} · {view.visible_tests.length} sample
+          {view.language} · {daily && !strict ? `${lot?.checks_max ?? 3} checks, your best counts` : "every test must pass"} · {view.visible_tests.length} sample
           {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
           {view.hidden_test_count === 1 ? "" : "s"}
         </p>
@@ -400,14 +423,16 @@ export default function SandboxTaskPanel({
           <div className="flex justify-end gap-2 border-t px-4 py-3">
             {daily ? (
               <>
-                <Button variant="outline" onClick={submitBest} disabled={!!busy || !!done || !(lot?.checks_used ?? 0)}
-                        data-testid="lot-submit-best">
-                  <Send className="mr-2 h-4 w-4" />
-                  Submit this score
-                </Button>
-                <Button onClick={submit} disabled={!!busy || !!done || checksLeft < 1} data-testid="lot-check">
+                {!strict && (
+                  <Button variant="outline" onClick={submitBest} disabled={!!busy || !!done || !(lot?.checks_used ?? 0)}
+                          data-testid="lot-submit-best">
+                    <Send className="mr-2 h-4 w-4" />
+                    Submit this score
+                  </Button>
+                )}
+                <Button onClick={submit} disabled={!!busy || !!done || (!strict && checksLeft < 1)} data-testid="lot-check">
                   {busy === "submit" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                  Check ({checksLeft} left)
+                  {strict ? "Check" : `Check (${checksLeft} left)`}
                 </Button>
               </>
             ) : (<>

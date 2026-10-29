@@ -37,32 +37,33 @@ declare
   wk integer := coalesce(_week, greatest(1, public.season_week(_season_id) - 1));
   ranked integer := 0;
   played integer := 0;
-  w_start timestamptz; w_end timestamptz; pts integer;
+  w_start timestamptz; w_end timestamptz;
 begin
   select b.starts_at, b.ends_at into w_start, w_end from public.season_week_bounds(_season_id, wk) b;
-  -- 163 (MF-003, owner 28 Oct 2026): a student scores only for a Daily Lot finished in full - the task passed AND
-  -- the voice explanation scored (tasks / task_assignments become 'completed' only then, migration 127). Anything
-  -- less is 0 for that student only; nothing is taken from the squad or the other members.
-  select sr.points into pts from public.squad_scoring_rules sr
-   where sr.metric = 'lot_completed'
-     and (sr.college_id = (select college_id from public.seasons where id = _season_id) or sr.college_id is null)
-   order by sr.college_id nulls last limit 1;
-  pts := coalesce(pts, 20);
+  -- 165 (owner 29 Oct 2026): graded daily marks. Each Daily Lot = coding mark + voice mark (lot_marks);
+  -- the week is their sum, rounded to a whole number. A missed day adds nothing and takes nothing from anyone.
+  insert into public.daily_marks
+    (task_id, student_id, season_id, week, lot_at, coding_mark, voice_mark, voice_state, skip_no, day_total, computed_at)
+  select lm.task_id, m.student_id, _season_id, wk, lm.lot_at, lm.coding_mark, lm.voice_mark, lm.voice_state,
+         lm.skip_no, lm.day_total, now()
+    from public.squad_members m
+    join public.squads q on q.id = m.squad_id and q.season_id = _season_id
+    cross join lateral public.lot_marks(m.student_id, w_start, w_end) lm
+   where m.left_at is null
+  on conflict (task_id) do update set
+    season_id = excluded.season_id, week = excluded.week, lot_at = excluded.lot_at,
+    coding_mark = excluded.coding_mark, voice_mark = excluded.voice_mark, voice_state = excluded.voice_state,
+    skip_no = excluded.skip_no, day_total = excluded.day_total, computed_at = now();
 
   insert into public.student_weekly_scores
     (season_id, student_id, squad_id, week, points, breakdown)
-  select _season_id, m.student_id, m.squad_id, wk, d.n * pts,
-         case when d.n > 0 then jsonb_build_object('lot_completed', d.n) else '{}'::jsonb end
+  select _season_id, m.student_id, m.squad_id, wk, round(d.total)::int,
+         case when d.n > 0 then jsonb_build_object('lots', d.n, 'marks', d.total) else '{}'::jsonb end
     from public.squad_members m
     join public.squads q on q.id = m.squad_id and q.season_id = _season_id
     cross join lateral (
-      select ((select count(*) from public.tasks t
-                where t.student_id = m.student_id and t.source = 'daily_lot' and t.status = 'completed'
-                  and t.completed_at >= w_start and t.completed_at < w_end)
-            + (select count(*) from public.task_assignments a join public.tasks t on t.id = a.task_id
-                where a.student_id = m.student_id and t.source = 'daily_lot' and a.status = 'completed'
-                  and t.student_id is distinct from m.student_id
-                  and a.completed_at >= w_start and a.completed_at < w_end))::int as n
+      select coalesce(sum(lm.day_total), 0) as total, count(*)::int as n
+        from public.lot_marks(m.student_id, w_start, w_end) lm
     ) d
    where m.left_at is null
   on conflict (season_id, student_id, week)

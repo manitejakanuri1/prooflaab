@@ -102,7 +102,7 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
         )}
         {opens && (
           <p className="mt-3 text-xs text-muted-foreground">
-            {status.next_season_name ?? "The next season"} starts on {opens}, when squads are formed again.
+            {status.next_season_name ?? "The next season"} starts on {opens}. Squads stay the same all school year; points start again from 0.
           </p>
         )}
       </CardContent>

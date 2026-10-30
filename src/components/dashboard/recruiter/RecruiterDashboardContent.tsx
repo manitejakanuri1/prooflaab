@@ -277,7 +277,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       <th className="pb-2 pr-3">Role</th>
                       <th className="pb-2 pr-3">Skills proven</th>
                       <th className="pb-2 pr-3">Verified work</th>
-                      <th className="pb-2 pr-3">Comms</th>
+                      <th className="pb-2 pr-3" title="Average score of their spoken explanations, out of 100">Speaking (of 100)</th>
                       <th className="pb-2">Last active</th>
                     </tr>
                   </thead>
@@ -324,7 +324,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <button className="text-sm font-medium hover:underline"
                               onClick={() => void openProfile(s.student_id)}>
-                        Open candidate
+                        {/* MF-026: the student's name (from Talent); a student no longer listed stays "Open candidate" */}
+                        {talent.find((c) => c.id === s.student_id)?.name ?? "Open candidate"}
                       </button>
                       <Badge variant="outline" className="text-[10px] font-normal">{s.stage}</Badge>
                       {s.student_response === "accepted" && (

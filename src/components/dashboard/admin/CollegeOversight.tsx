@@ -33,6 +33,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
@@ -394,6 +396,13 @@ const CollegeOversight = () => {
         points: ["Its squads, seasons and imports are deleted too", "Its admin can no longer sign in"],
         action: "Delete",
       }))) return;
+      // MF-089: type the name to be sure it is the right college.
+      const typed = window.prompt(`Type the college name to delete it:
+${college.name}`);
+      if ((typed ?? "").trim() !== String(college.name).trim()) {
+        if (typed !== null) toast({ title: "Not deleted", description: "The name did not match." });
+        return;
+      }
       // Server side (delete-college): the college, then its admin's role and login, so the email can be reused.
       const { data, error } = await supabase.functions.invoke('delete-college', { body: { college_id: college.id } });
       if (error) throw new Error(String((await readFunctionError(error))?.error ?? error.message));
@@ -623,6 +632,9 @@ const CollegeOversight = () => {
                               Suspend
                             </DropdownMenuItem>
                           )}
+                          {/* MF-089: the actions that remove things sit apart from Edit / Suspend. */}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-alert">Danger area</DropdownMenuLabel>
                           <DropdownMenuItem disabled={!!progress} onClick={() => void handleRemoveAll(college)} className="text-alert">
                             <UserMinus className="h-4 w-4 mr-2" />
                             Remove all students

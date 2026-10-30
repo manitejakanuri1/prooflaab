@@ -15,8 +15,8 @@ import { Upload, Download } from "lucide-react";
 
 const SAMPLE_CSV = "data:text/csv;charset=utf-8," + encodeURIComponent(
   "name,email,roll_number,section,batch,phone\n" +
-  "Asha Rao,asha.rao@yourcollege.edu.in,21CS001,A,2026,9876543210\n" +
-  "Ravi Kumar,ravi.kumar@yourcollege.edu.in,21CS002,B,2026,9876543211\n",
+  "Asha Rao,asha.rao@yourcollege.edu.in,21CS001,A,2nd year,9876543210\n" +
+  "Ravi Kumar,ravi.kumar@yourcollege.edu.in,21CS002,B,2nd year,9876543211\n",
 );
 
 /** One parsed line, before anything has been created. */

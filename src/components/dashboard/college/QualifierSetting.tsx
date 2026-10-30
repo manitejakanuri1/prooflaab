@@ -50,7 +50,10 @@ const QualifierSetting = () => {
       </span>
       <p className="text-sm text-muted-foreground mt-2 max-w-prose">
         When the league ends, this many of the best squads in each section go through to the championship.
-        The default is {setting.default_per_cohort} {setting.cohorts <= 1 ? "(you have one section, so the top four go through)" : "per section"}.
+        The default is {setting.default_per_cohort}{" "}
+        {setting.cohorts <= 1
+          ? `(you have one section, so the top ${setting.default_per_cohort} go through)`
+          : `per section (you have ${setting.cohorts} sections)`}.
         A change applies the next time squads are ranked; squads already marked as qualified are not changed.
       </p>
       <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -58,7 +61,8 @@ const QualifierSetting = () => {
           <SelectTrigger className="h-9 w-[220px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value={DEFAULT}>Default ({setting.default_per_cohort})</SelectItem>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            {/* MF-050: the default's own number is not offered twice */}
+            {[1, 2, 3, 4, 5, 6, 7, 8].filter((n) => n !== setting.default_per_cohort).map((n) => (
               <SelectItem key={n} value={String(n)}>{n} per section</SelectItem>
             ))}
           </SelectContent>

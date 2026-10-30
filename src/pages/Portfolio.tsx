@@ -21,6 +21,7 @@ import { BrandPage } from "@/components/auth/AccessShell";
 
 const Portfolio = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [copied, setCopied] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -264,8 +265,15 @@ const Portfolio = () => {
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium"
                 >
                   <Mail className="h-4 w-4" />
-                  <span>{isRecruiterMode ? "Contact Student" : "Contact Me"}</span>
+                  {/* MF-079: the message goes to ProofLab, which passes it on; the student's own email is never shown here. */}
+                  <span>Contact via ProofLab</span>
                 </a>
+                <Button variant="outline" className="rounded-xl px-6 py-3 h-auto"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(window.location.href).then(() => setCopied(true), () => setCopied(false));
+                  }}>
+                  {copied ? "Link copied" : "Copy link"}
+                </Button>
               </div>
             </div>
           </div>

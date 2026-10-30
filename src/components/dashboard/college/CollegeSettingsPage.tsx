@@ -303,8 +303,9 @@ const CollegeSettingsPage = () => {
           <div className="p-4 bg-muted rounded-lg">
             <h4 className="font-medium text-foreground">Account Management</h4>
             <p className="text-sm text-muted-foreground mt-1">
-              For advanced account settings like data export or account deletion, 
-              please contact our support team.
+              For advanced account settings like data export or account deletion,
+              write to us at{" "}
+              <a className="underline" href="mailto:hello@prooflab.co.in">hello@prooflab.co.in</a>.
             </p>
           </div>
         </CardContent>

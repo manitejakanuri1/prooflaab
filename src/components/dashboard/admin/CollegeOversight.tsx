@@ -133,6 +133,10 @@ const CollegeOversight = () => {
             .select('id', { count: 'exact', head: true }).eq('college_id', college.id)),
           tasks_assigned: counted(await supabase.from('tasks')
             .select('id', { count: 'exact', head: true }).eq('created_by_college_id', college.id)),
+          // MF-089: a college is as active as its most recently active student.
+          last_active: (await supabase.from('student_profiles').select('last_active')
+            .eq('college_id', college.id).not('last_active', 'is', null)
+            .order('last_active', { ascending: false }).limit(1)).data?.[0]?.last_active ?? null,
         })));
 
         // Sort data

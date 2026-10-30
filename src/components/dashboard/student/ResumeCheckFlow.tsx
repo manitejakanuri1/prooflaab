@@ -28,6 +28,8 @@ interface ProjectClaim {
 
 interface ResumeClaimRow {
   id: string;
+  /** MF-072: where the uploaded file lives, so the student can open it again. */
+  storage_path?: string | null;
   target_role: string | null;
   skills: string[];
   certifications: string[];
@@ -160,7 +162,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
     const { data, error } = await supabase
       .from("resume_claims")
       .select(
-        "id, target_role, skills, certifications, projects, status, resume_quality_score, resume_quality_notes, ats_match_score, ats_match_notes, skill_relevance_notes, feedback_acknowledged, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at, improve_changes, original_ats_score, original_quality_score, improved_applied_at"
+        "id, storage_path, target_role, skills, certifications, projects, status, resume_quality_score, resume_quality_notes, ats_match_score, ats_match_notes, skill_relevance_notes, feedback_acknowledged, ai_improved_resume, improved_ats_score, improved_quality_score, improve_next_steps, improve_motivation, improved_at, improve_changes, original_ats_score, original_quality_score, improved_applied_at"
       )
       .eq("student_id", profile.id)
       .order("created_at", { ascending: false })
@@ -291,6 +293,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
       setScoreResult(null);
       setEditingDetails(false);
       setClaim({
+        storage_path: storagePath,
         id: data.resume_claim_id,
         target_role: data.target_role,
         skills: data.skills,
@@ -523,6 +526,17 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
               </label>
             )}
           </div>
+
+          {claim?.storage_path && step !== "upload" && !uploading && (
+            <div className="flex items-center gap-3 flex-wrap text-sm" data-testid="my-resume-file">
+              <span className="text-muted-foreground">Your resume:</span>
+              <span className="font-medium truncate max-w-[260px]">{resumeFileName(claim.storage_path)}</span>
+              <Button size="sm" variant="outline" onClick={() => void viewResume(claim.storage_path!)}>View</Button>
+              <label htmlFor="resume-file-input">
+                <Button size="sm" variant="ghost" asChild><span>Replace</span></Button>
+              </label>
+            </div>
+          )}
 
           {claim?.status === "confirmed" && step !== "upload" && (
             <Alert className="border-verified/40 bg-verified/10 py-2">
@@ -976,3 +990,15 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
 };
 
 export default ResumeCheckFlow;
+
+/** "1730000000000-My_Resume.pdf" -> "My_Resume.pdf" (the upload adds a time stamp in front). */
+const resumeFileName = (path: string) => path.split("/").pop()!.replace(/^\d+-/, "");
+
+/** Opens the student's own uploaded resume in a new tab (MF-072). */
+async function viewResume(path: string) {
+  const tab = window.open("", "_blank");
+  const { data, error } = await supabase.storage.from("resumes").download(path);
+  if (error || !data) { tab?.close(); return; }
+  const url = URL.createObjectURL(data as Blob);
+  if (tab) tab.location.href = url; else window.open(url, "_blank");
+}

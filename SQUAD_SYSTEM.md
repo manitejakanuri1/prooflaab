@@ -105,6 +105,20 @@ their squad has no opponent that week.
 
 ---
 
+## Joining and the school year (owner rules, 30 Oct 2026)
+
+- **A new student gets a squad seat only in week 1 of a season** (migration 179). From week 2 they wait in
+  Reserve; Daily Lots, the roadmap and their own points carry on. A season with no squads yet still forms its
+  first ones. The college's manual Assign is not limited.
+- **The same squads all school year** (migration 182). When a new season opens, the last finished season's
+  squads come back with the same name, section and members; points start from 0. Past seasons keep their own
+  squad rows, so history and awards stay. A student who left, is blocked or moved section is not carried and
+  joins in week 1.
+- **A new school year (1 June) starts fresh**: nothing carries when the last season began in an earlier school
+  year (`public.school_year`).
+
+---
+
 ## Qualification, and the rule that matters most
 
 Top **two squads per cohort** go through. A college running a single cohort

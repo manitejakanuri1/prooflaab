@@ -93,12 +93,18 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
    * officer read cannot disagree.
    */
   const exportWeekly = async () => {
-    const { data: students } = await supabase.rpc("tpo_students" as never);
-    const list = (students ?? []) as unknown as Array<Record<string, unknown>>;
+    // MF-118: tpo_students answers 50 rows by default; page through until every student is in the file.
+    const list: Array<Record<string, unknown>> = [];
+    for (;;) {
+      const { data: page } = await supabase.rpc("tpo_students" as never, { _limit: 100, _offset: list.length } as never);
+      const rows = (page ?? []) as unknown as Array<Record<string, unknown>>;
+      list.push(...rows);
+      if (rows.length === 0 || list.length >= Number(rows[0]?.total_count ?? 0)) break;
+    }
     const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
     const lines: string[] = [];
-    lines.push(`ProofLab weekly report,${new Date().toLocaleDateString()}`);
+    lines.push(`ProofLab weekly report,${new Date().toLocaleDateString("en-GB")}`); // MF-065: day-month, the same for every browser
     lines.push("");
     lines.push("Summary");
     lines.push(`Students,${data.students}`);
@@ -120,7 +126,8 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
     list.forEach((r) => lines.push([
       esc(r.full_name), esc(r.roll_number), esc(r.branch),
       esc(r.is_reserve ? "Reserve" : r.squad_name),
-      r.days_quiet, r.lots_done, esc(r.attention),
+      // MF-065: never active is a blank cell, not 999
+      r.days_quiet == null || Number(r.days_quiet) >= 999 ? "" : r.days_quiet, r.lots_done, esc(r.attention),
     ].join(",")));
 
     const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 69dc03fa29f32accec99d383fda40c6ce645f5de   # 2026-10-31: + one season per year group, section championships (migrations 184-185) on TEST
+      STAGING_RC: fd54ddaeef38f73641913075738526ae1f9fc6bc   # 2026-11-01: + night batch MF-031/036/039/025/044/061/063/072/073/082/109/015 (migrations 186-190) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -21,3 +21,9 @@ Deno.test("roadmap action: an in-app action is left exactly as it was", () => {
   const ok = "In ProofLab, design the schema for Expense Splitter: tables for users, groups, expenses.";
   assertEquals(inAppAction(ok), ok);
 });
+
+Deno.test("roadmap action: the code editor becomes the answer box (MF-109)", () => {
+  assertEquals(inAppAction("In ProofLab's code editor, write 5 small C++ programs."), "In the answer box, write 5 small C++ programs.");
+  assertEquals(inAppAction("Practise the merge flow in the code editor: switch to main."), "Practise the merge flow in the answer box: switch to main.");
+  assertEquals(inAppAction("Build one protected endpoint in the ProofLab code editor."), "Build one protected endpoint in the answer box.");
+});

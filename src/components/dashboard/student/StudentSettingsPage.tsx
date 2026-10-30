@@ -104,6 +104,18 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
     loadData();
   }, [profile?.id]);
 
+  // MF-082: the skill lists start from the student's own resume, not only a fixed list.
+  const [resumeSkills, setResumeSkills] = useState<string[]>([]);
+  useEffect(() => {
+    if (!profile?.id) return;
+    supabase.from("resume_claims").select("skills").eq("student_id", profile.id)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle()
+      .then(({ data }) => setResumeSkills(((data?.skills as string[] | null) ?? []).filter(Boolean)), () => {});
+  }, [profile?.id]);
+  const skillOptions = [...new Set([...resumeSkills, ...formData.preferred_skills, ...formData.skills, ...SKILLS])];
+  // The college's branch (for example "CSE") is shown even when it is not one of the fixed names.
+  const branchOptions = [...new Set([formData.branch, ...BRANCHES].filter(Boolean))];
+
   // Update form data when profile changes
   useEffect(() => {
     if (profile) {
@@ -387,7 +399,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
                   <SelectValue placeholder="Select your branch" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BRANCHES.map(branch => (
+                  {branchOptions.map(branch => (
                     <SelectItem key={branch} value={branch}>{branch}</SelectItem>
                   ))}
                 </SelectContent>
@@ -435,7 +447,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           <div>
             <Label>Preferred Skills</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-              {SKILLS.map(skill => (
+              {skillOptions.map(skill => (
                 <div key={skill} className="flex items-center space-x-2">
                   <Checkbox
                     id={skill}
@@ -483,7 +495,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
             <Label>Portfolio Skills</Label>
             <p className="text-sm text-muted-foreground mb-2">These skills will be displayed on your public portfolio</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-              {SKILLS.map(skill => (
+              {skillOptions.map(skill => (
                 <div key={skill} className="flex items-center space-x-2">
                   <Checkbox
                     id={`portfolio-${skill}`}

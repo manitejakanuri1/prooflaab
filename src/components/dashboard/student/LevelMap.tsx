@@ -536,7 +536,7 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
           <p className="text-sm text-muted-foreground">
             {doneCount === levels.length && levels.length > 0
               ? "Every level done. Now go prove the ones you skipped."
-              : `Level ${Math.min(activeTrack.unlocked_through, totalLevels)} of ${totalLevels} — on the way to ${activeTrack.role}.`}
+              : `Level ${Math.min(activeTrack.unlocked_through, totalLevels)} of ${totalLevels}${activeTrack.role?.trim() ? ` — on the way to ${activeTrack.role}` : ""}.` /* MF-075: no 'on the way to .' without a role */}
           </p>
           <div className="pt-2 space-y-1.5">
             <Progress

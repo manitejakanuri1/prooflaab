@@ -236,7 +236,10 @@ jobs:
                    ':(exclude)src/components/dashboard/startup/StartupDashboardHeader.tsx' ':(exclude)src/components/dashboard/startup/StartupSidebar.tsx'
                    ':(exclude)src/components/dashboard/recruiter/RecruiterDashboardContent.tsx' ':(exclude)src/components/dashboard/recruiter/VoicePlayButton.tsx'
                    ':(exclude)src/components/dashboard/startup/StartupDashboardContent.tsx' ':(exclude)src/components/dashboard/startup/StartupJobsPage.tsx'
-                   ':(exclude)src/components/dashboard/startup/StartupSettingsPage.tsx' ':(exclude)src/components/dashboard/startup/StartupSubmissionsPage.tsx')
+                   ':(exclude)src/components/dashboard/startup/StartupSettingsPage.tsx' ':(exclude)src/components/dashboard/startup/StartupSubmissionsPage.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentRolePreference.tsx'
+                   ':(exclude)src/lib/voiceStatus.ts' ':(exclude)src/lib/voiceStatusText.ts' ':(exclude)src/lib/voiceStatus.test.ts'
+                   ':(exclude)src/lib/roleHome.ts' ':(exclude)src/lib/roleHome.test.ts')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }

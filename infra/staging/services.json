@@ -318,7 +318,10 @@
    "ENVIRONMENT": "staging",
    "FILES_URL": "https://prooflab-staging-files-ysn2mpe6sa-el.a.run.app",
    "FUNCTIONS_URL": "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app",
-   "GOOGLE_API_KEY": "AIzaSyCYxQd8sqXcWOLopev52HO3wpPXuumVQao",
+   "GOOGLE_API_KEY": {
+    "secret": "prooflab-staging-identity-api-key",
+    "version": "latest"
+   },
    "IDENTITY_PROJECT": "prooflab-stg-identity-508214",
    "POSTGREST_URL": "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app",
    "RESEND_API_KEY": {

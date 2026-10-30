@@ -302,7 +302,16 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       toast({ title: "No squads formed", description: error.message, variant: "destructive" });
       return;
     }
-    const r = data as unknown as { squads_created: number; students_placed: number; reserve: number };
+    const r = data as unknown as { squads_created: number; students_placed: number; reserve: number; league_over?: boolean };
+    // 179: squads take new students only in week 1 of a season.
+    if (r.league_over) {
+      toast({
+        title: "Squads are set for this season",
+        description: `New students join a squad in week 1 of the next season. Until then they keep doing Daily Lots and the roadmap. ${r.reserve} waiting.`,
+      });
+      void load();
+      return;
+    }
     toast({
       title: r.squads_created === 0
         ? "Not enough students for a squad"

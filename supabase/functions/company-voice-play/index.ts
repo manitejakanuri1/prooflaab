@@ -16,6 +16,13 @@ import { guard } from "../_shared/rate-limit.ts";
  *
  * POST { voice_id: uuid } -> the audio bytes, or 404 for every kind of refusal.
  */
+/** MF-024: the stored type when it is audio, else a guess from the file name (webm is what browsers record). */
+export function audioType(stored: string | undefined, path: string): string {
+  if (stored && stored.startsWith("audio/")) return stored;
+  const ext = path.split(".").pop()?.toLowerCase();
+  return ext === "mp4" || ext === "m4a" ? "audio/mp4" : ext === "ogg" ? "audio/ogg" : ext === "wav" ? "audio/wav" : "audio/webm";
+}
+
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -45,8 +52,12 @@ serve(async (req) => {
     if (!audio) return json({ error: "Recording not available." }, 404);
 
     // octet-stream so the browser client hands the page a Blob; never cached, never a link.
+    // MF-024: the real audio type rides in X-Audio-Type, so the player is told what it is playing.
     return new Response(audio, {
-      headers: { ...corsHeaders, "Content-Type": "application/octet-stream", "Cache-Control": "no-store" },
+      headers: {
+        ...corsHeaders, "Content-Type": "application/octet-stream", "Cache-Control": "no-store",
+        "X-Audio-Type": audioType(audio.type, path), "Access-Control-Expose-Headers": "X-Audio-Type",
+      },
     });
   } catch (err) {
     console.error("company-voice-play failed:", err instanceof Error ? err.message : String(err));

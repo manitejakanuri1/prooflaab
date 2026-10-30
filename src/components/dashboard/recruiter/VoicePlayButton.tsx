@@ -17,8 +17,10 @@ const VoicePlayButton = ({ voiceId }: { voiceId: string }) => {
   useEffect(() => {
     loader.current = createAudioLoader({
       download: async (id) => {
-        const { data, error } = await supabase.functions.invoke("company-voice-play", { body: { voice_id: id } });
-        return { data: data instanceof Blob ? data : null, error };
+        const { data, error, response } = await supabase.functions.invoke("company-voice-play", { body: { voice_id: id } });
+        // MF-024: label the audio with its real type, so every browser knows how to play it.
+        const type = response?.headers.get("x-audio-type") ?? "audio/webm";
+        return { data: data instanceof Blob ? new Blob([data], { type }) : null, error };
       },
       createUrl: (blob) => URL.createObjectURL(blob),
       revoke: (url) => URL.revokeObjectURL(url),

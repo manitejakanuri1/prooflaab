@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +71,7 @@ const StudentAssignedTasksPage = () => {
   }, [allTasks]);
 
 
+  const firstOrder = useRef(new Map<string, number>());
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {
     let filtered = assignedTasks;
@@ -88,8 +89,12 @@ const StudentAssignedTasksPage = () => {
       filtered = filtered.filter(task => task.status === statusFilter);
     }
 
-    // Apply sorting
-    const sortedTasks = [...filtered].sort((a, b) => {
+    // MF-093: remember the order each task was first shown in. Starting a task re-fetches the list and the
+    // rows can come back in a different order; ties are broken by that first order, so nothing jumps.
+    const seen = firstOrder.current;
+    for (const t of assignedTasks) if (!seen.has(t.id)) seen.set(t.id, seen.size);
+    const sortedTasks = [...filtered].sort((a, b) => (byChoice(a, b) || seen.get(a.id)! - seen.get(b.id)!));
+    function byChoice(a: typeof filtered[number], b: typeof filtered[number]) {
       switch (sortBy) {
         case "Due Date (ASC)": {
           const aDate = a.deadline ? new Date(a.deadline) : new Date("9999-12-31");
@@ -112,7 +117,7 @@ const StudentAssignedTasksPage = () => {
         default:
           return 0;
       }
-    });
+    }
 
     return sortedTasks;
   }, [assignedTasks, searchQuery, statusFilter, sortBy]);

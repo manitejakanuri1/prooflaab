@@ -437,7 +437,7 @@ const StudentSquadPage = () => {
                               <span className={drew && !m.winner_squad ? "text-muted-foreground" : (m.winner_squad ? m.winner_squad === squad.id : won) ? "text-verified" : "text-alert"}>
                                 {drew ? "Drew" : won ? "Won" : "Lost"} {us}–{them}
                                 {drew && m.decided_by === "higher_seed" && m.winner_squad
-                                  ? (m.winner_squad === squad.id ? " – won as higher seed" : " – lost on seed")
+                                  ? (m.winner_squad === squad.id ? " – went through: finished higher in the table" : " – out: the other squad finished higher in the table")
                                   : ""}
                               </span>
                             ) : (

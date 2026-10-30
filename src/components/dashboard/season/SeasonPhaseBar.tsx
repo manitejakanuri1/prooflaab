@@ -113,14 +113,24 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
 /** One key for every standings table (MF-009). */
 export const StandingsKey = () => (
   <p className="mt-3 text-xs text-muted-foreground">
-    W-D-L = won, drawn, lost - league matches only. # is one rank across all sections. Squads level on
-    points are ranked by wins, then by their results against each other.
+    W-D-L = won, drawn, lost - league matches only. # is one rank across all sections.
+    Same points? The squad with more wins goes higher. Same wins too? The squad that scored more in
+    their matches against each other goes higher. A drawn knockout or final goes to the squad that
+    finished higher in the table.
   </p>
 );
 
-/** "tied - ranked by wins" for a squad that has the same points as another in the table. */
-export const tieNote = (list: { id: string; points: number }[], s: { id: string; points: number }) =>
-  list.some((o) => o.id !== s.id && o.points === s.points) ? "tied - ranked by wins, then head-to-head" : null;
+/** Says in plain words why a squad level on points with another sits where it does. */
+export const tieNote = (
+  list: { id: string; points: number; wins?: number | null }[],
+  s: { id: string; points: number; wins?: number | null },
+) => {
+  const level = list.filter((o) => o.id !== s.id && o.points === s.points);
+  if (level.length === 0) return null;
+  return level.some((o) => (o.wins ?? 0) !== (s.wins ?? 0))
+    ? "Same points - placed by number of wins"
+    : "Same points and wins - placed by their matches against each other";
+};
 
 const SeasonPhaseBar = ({ status }: { status: SeasonStatus | null }) => {
   if (status?.state === "complete") return <SeasonCompleteCard status={status} />;

@@ -694,14 +694,14 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {m.status === "no_activity"
                           ? <span className="text-muted-foreground">
                               No activity yet{m.decided_by === "higher_seed" && m.winner_squad
-                                ? ` · ${names[m.winner_squad] ?? "?"} through as higher seed` : ""}
+                                ? ` · ${names[m.winner_squad] ?? "?"} went through (finished higher in the table)` : ""}
                             </span>
                           : m.status === "played" && m.home_points != null
                             ? <>
                                 {`${m.home_points}–${m.away_points}`}
                                 {m.decided_by === "higher_seed" && m.winner_squad && (
                                   <span className="text-muted-foreground">
-                                    {` · drawn, ${names[m.winner_squad] ?? "?"} won as higher seed`}
+                                    {` · drawn, ${names[m.winner_squad] ?? "?"} went through (finished higher in the table)`}
                                   </span>
                                 )}
                               </>

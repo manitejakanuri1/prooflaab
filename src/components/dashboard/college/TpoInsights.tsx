@@ -9,7 +9,7 @@ import { Download } from "lucide-react";
 
 interface SkillGap { skill: string; students: number }
 interface SquadHealth {
-  id: string; name: string; points: number; wins: number; losses: number;
+  id: string; name: string; points: number; wins: number; draws?: number; losses: number;
   members: number; active_members: number;
 }
 interface Branch { branch: string; students: number; active_week: number; in_squads: number }
@@ -117,14 +117,14 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
     data.skill_gaps.forEach((g) => lines.push(`${esc(g.skill)},${g.students}`));
     lines.push("");
     lines.push("Squad health");
-    lines.push("Squad,Members,Active members,Points,Won,Lost");
+    lines.push("Squad,Members,Active members,Points,Won,Drawn,Lost");
     data.squad_health.forEach((h) =>
-      lines.push([esc(h.name), h.members, h.active_members, h.points, h.wins, h.losses].join(",")));
+      lines.push([esc(h.name), h.members, h.active_members, h.points, h.wins, h.draws ?? 0, h.losses].join(",")));
     lines.push("");
     lines.push("Students");
-    lines.push("Name,Roll number,Branch,Squad,Days since active,Lots completed,Status");
+    lines.push("Name,Roll number,Branch,Section,Squad,Days since active,Lots completed,Status");
     list.forEach((r) => lines.push([
-      esc(r.full_name), esc(r.roll_number), esc(r.branch),
+      esc(r.full_name), esc(r.roll_number), esc(r.branch), esc(r.cohort),
       esc(r.is_reserve ? "Reserve" : r.squad_name),
       // MF-065: never active is a blank cell, not 999
       r.days_quiet == null || Number(r.days_quiet) >= 999 ? "" : r.days_quiet, r.lots_done, esc(r.attention),

@@ -34,6 +34,8 @@ interface Row {
   squad_id: string | null;
   squad_name: string | null;
   is_reserve: boolean;
+  cohort?: string | null;
+  cohort_waiting?: number | null;
   days_quiet: number;
   total_xp: number | null;
   onboarding_status: string;
@@ -58,6 +60,15 @@ interface Props {
   /** Jump to a squad, on its Members tab. */
   onOpenSquad?: (squadId: string) => void;
 }
+
+/** MF-121: one line on why a student is in Reserve. A squad is 11 students of one section. */
+const reserveReason = (cohort?: string | null, waiting?: number | null) => {
+  if (!cohort) return "No section yet";
+  const n = waiting ?? 0;
+  return n < 11
+    ? `Section ${cohort}: ${n} of 11 waiting for a squad`
+    : `Section ${cohort}: joins a squad at the next season start`;
+};
 
 const recency = (d: number) => (d >= 999 ? "never" : `${d}d`);
 
@@ -357,10 +368,11 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                     <td className="py-2.5 pr-3 text-muted-foreground">{r.branch ?? "—"}</td>
                     <td className="py-2.5 pr-3">
                       {r.is_reserve ? (
-                        <Badge variant="outline" className="font-normal"
-                          title="Not in a squad yet: the student has no section, or their section has fewer than 11 students. Squads form when the section fills.">
-                          Reserve
-                        </Badge>
+                        <span className="inline-flex flex-col items-start gap-0.5">
+                          <Badge variant="outline" className="font-normal">Reserve</Badge>
+                          {/* MF-121: why this student is not in a squad (migration 180 sends section + waiting count). */}
+                          <span className="text-[11px] text-muted-foreground">{reserveReason(r.cohort, r.cohort_waiting)}</span>
+                        </span>
                       ) : (
                         <button
                           type="button"

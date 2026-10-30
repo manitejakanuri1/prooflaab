@@ -23,6 +23,7 @@ import QualifierSetting from "./QualifierSetting";
 import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, TrendingUp, TrendingDown, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { squadsForStudent } from "@/lib/squadSection";
 
 interface Squad {
   id: string; name: string; points: number; wins: number; draws: number; losses: number;
@@ -717,7 +718,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
             </p>
 
             <div className="flex flex-wrap gap-2 mt-4">
-              <Select value={pickStudent} onValueChange={setPickStudent}>
+              <Select value={pickStudent} onValueChange={(v) => { setPickStudent(v); setPickSquad(""); }}>
                 <SelectTrigger className="w-[260px]"><SelectValue placeholder="Choose a reserve student" /></SelectTrigger>
                 <SelectContent>
                   {reserves.map((s) => (
@@ -729,10 +730,13 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 </SelectContent>
               </Select>
 
-              <Select value={pickSquad} onValueChange={setPickSquad}>
-                <SelectTrigger className="w-[190px]"><SelectValue placeholder="Into which squad" /></SelectTrigger>
+              {/* MF-011: only squads of the chosen student's own section (the database refuses any other). */}
+              <Select value={pickSquad} onValueChange={setPickSquad} disabled={!pickStudent}>
+                <SelectTrigger className="w-[190px]" data-testid="assign-squad">
+                  <SelectValue placeholder={pickStudent ? "Into which squad" : "Choose a student first"} />
+                </SelectTrigger>
                 <SelectContent>
-                  {squads.map((s) => {
+                  {squadsForStudent(squads, reserves.find((r) => r.student_id === pickStudent)?.cohort).map((s) => {
                     const n = members.filter((m) => m.squad_id === s.id).length;
                     return (
                       <SelectItem key={s.id} value={s.id} disabled={n >= s.max_members}>

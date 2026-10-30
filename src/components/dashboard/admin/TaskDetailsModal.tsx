@@ -96,7 +96,7 @@ export function TaskDetailsModal({ task, open, onClose }: TaskDetailsModalProps)
                 <Star className="h-4 w-4 text-primary fill-primary" />
                 <span className="text-sm font-medium">XP Reward</span>
               </div>
-              <p className="text-sm font-semibold">{task.xp_reward || task.xp || 0} XP</p>
+              <p className="text-sm font-semibold">{task.lot_date ? "Daily Lot - given marks, not XP" : `${task.xp_reward || task.xp || 0} XP`}</p>
             </div>
 
             <div className="border rounded-lg p-4">

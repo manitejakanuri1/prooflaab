@@ -513,18 +513,24 @@ const TaskOversight = () => {
                       onClick={() => setDetailsTask(task)}
                     >
                       {task.title}
+                      {/* MF-091: a Lot can repeat a title on another day; the date tells the rows apart. */}
+                      {task.lot_date && (
+                        <span className="block text-[11px] font-normal text-muted-foreground">
+                          Daily Lot · {new Date(task.lot_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>{getCreatorBadge(task)}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{task.category || 'General'}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {new Date(task.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-primary text-primary" />
-                        <span>{task.xp_reward || task.xp || 0}</span>
+                        <span>{task.lot_date ? "Marked" : task.xp_reward || task.xp || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(task.status, task.due_date)}</TableCell>
@@ -649,11 +655,11 @@ const TaskOversight = () => {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        <span>{new Date(task.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-primary text-primary" />
-                        <span className="font-medium text-foreground">{task.xp_reward || task.xp || 0} XP</span>
+                        <span className="font-medium text-foreground">{task.lot_date ? "Marked" : `${task.xp_reward || task.xp || 0} XP`}</span>
                       </div>
                     </div>
 

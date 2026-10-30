@@ -260,7 +260,7 @@ const Portfolio = () => {
               <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                 {/* Contact Button - Show for recruiters with different label */}
                 <a
-                  href={`mailto:contact@prooflab.ai?subject=Interest in ${portfolio?.student_profiles?.full_name || "Student"}'s Profile`}
+                  href={`mailto:hello@prooflab.co.in?subject=Interest in ${portfolio?.student_profiles?.full_name || "Student"}'s Profile`}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium"
                 >
                   <Mail className="h-4 w-4" />

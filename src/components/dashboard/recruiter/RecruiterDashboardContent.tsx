@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Mail, Lock, Search } from "lucide-react";
 import ProofProfile from "./ProofProfile";
 import type { Candidate } from "@/recruiter/types";
@@ -131,6 +132,14 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
     } catch (e) {
       toast({ title: "Not changed", description: (e as Error).message, variant: "destructive" });
     }
+  };
+
+  // MF-086: take someone off the shortlist (the company's own row; RLS allows only that).
+  const removeFromShortlist = async (id: string) => {
+    if (!window.confirm("Remove this candidate from your shortlist?")) return;
+    const { error } = await supabase.from("recruiter_shortlists").delete().eq("id", id);
+    if (error) toast({ title: "Not removed", description: error.message, variant: "destructive" });
+    else { toast({ title: "Removed from shortlist" }); await refresh(); }
   };
 
   if (!home) return <Skeleton className="h-96 w-full rounded-xl" />;
@@ -352,6 +361,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       <Button size="sm" variant="outline" className="h-8"
                               onClick={() => setSponsorFor({ id: s.student_id, name: "this candidate" })}>
                         Sponsor a task
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-muted-foreground"
+                              onClick={() => void removeFromShortlist(s.id)}>
+                        Remove
                       </Button>
                     </div>
                   </div>

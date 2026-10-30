@@ -338,7 +338,7 @@ Return ONLY JSON:
   }
   console.log(`VOICE-SCORE: scored ${voice_id} = ${graded.score}`);
 
-  // Speaking about your work is work. The streak counts the day either way.
+  // touch_streak counts the day only once that day's Daily Lot is completed (migration 170).
   await supabase.rpc('touch_streak', { _student_id: rec.student_id });
 
   return { status: 200, outcome: 'scored', body: { success: true, communication_score: graded.score, notes: graded.notes } };

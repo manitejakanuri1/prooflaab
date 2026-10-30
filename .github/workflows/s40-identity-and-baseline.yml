@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: b65207645066d76875e3c669faa4922c93a4de1e   # 2026-10-30: + week-1 joining, tie wording, 11 partial fixes finished (migrations 179-181) on TEST
+      STAGING_RC: 429830225036fec8b523236027a3813312b88bf7   # 2026-10-31: + same squads all school year (migration 182) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

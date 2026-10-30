@@ -10,6 +10,7 @@ import {
 import { chooseSandboxKind, resolveDifficulty, rubricFallbackAllowed, TEST_COUNT_RANGE, type Difficulty, type SandboxKind } from "./coding-mode.ts";
 import { evaluateFunctionDraft, FUNCTION_SCHEMA, sandboxConfigRow, type FunctionAttempt, type FunctionValidators } from "./function-generation.ts";
 import { gradeOnce, zeroUnquotedCredit, totalOf, type Criterion } from "./rubric-grading.ts";
+import { missingGuideValues } from "./lot-wording.ts";
 
 /**
  * One place that turns a topic/task spec into a LIVE, VALIDATED grading
@@ -407,6 +408,15 @@ async function tryGenerateRubric(
     // response (that's the whole point of the combined call) — read it back
     // out for grading rather than requiring it up front.
     const promptText = promptTextFor(content, parsed);
+    // MF-015: the guide may only mark figures the student can see (task text or its code).
+    const missing = content.kind === "scenario"
+      ? missingGuideValues(`${promptText}\n${String(parsed.code_sample ?? "")}`, fields.criteria)
+      : [];
+    if (missing.length) {
+      console.warn(`LOT GUIDE VALUES MISSING (${feature}): ${missing.join(", ")}`);
+      retryNote = `\n\nYour marking criteria check these values, but the task text never gives them: ${missing.join(", ")}. Put every value the criteria check into the task text (or drop it from the criteria).`;
+      continue;
+    }
     const graded = await gradeOnce(promptText, fields.criteria, fields.reference_answer, usageCtx.userId ?? "system");
     if (!graded) {
       retryNote = "\n\nGrading was unavailable last time — return valid JSON in exactly the shape asked.";

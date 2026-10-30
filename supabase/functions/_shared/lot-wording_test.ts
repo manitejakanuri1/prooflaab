@@ -44,3 +44,20 @@ Deno.test('coding Lots need Input/Output/Example/Why; "code below" needs the cod
   const q = lotWordingProblems({ title: 'Fix it', scenario: 'Your task: fix the function below so it works for negative numbers and prints the right total every time it runs.', code_sample: 'def f(x):\n  return x' }, 'sandbox');
   assert(!has(q, 'not included'), '"below" flagged even though code_sample is present');
 });
+
+Deno.test('missingGuideValues: every figure the guide checks is in the task (MF-015)', async () => {
+  const { missingGuideValues } = await import('./lot-wording.ts');
+  const guide = [{ name: 'Total', description: 'States the monthly total of Rs 4,500 and the 12.5% discount.' },
+                 { name: 'Reasons', description: 'Gives 2 reasons.' }];
+  const full = 'A shop sells 3 items for Rs 4500 a month and offers a 12.5% discount. Your task: work out the bill.';
+  if (missingGuideValues(full, guide).length !== 0) throw new Error('full task flagged');
+  const cut = 'A shop sells 3 items for Rs 4500 a month. Your task: work out the bill.';
+  const got = missingGuideValues(cut, guide);
+  if (got.join() !== '12.5') throw new Error('expected 12.5 missing, got ' + got.join());
+});
+
+Deno.test('missingGuideValues: answer lengths and marks are not task values (MF-015)', async () => {
+  const { missingGuideValues } = await import('./lot-wording.ts');
+  const got = missingGuideValues('Your task: plan the move.', [{ description: 'Answer is 150-200 words and earns 20 points.' }]);
+  if (got.length !== 0) throw new Error('flagged ' + got.join());
+});

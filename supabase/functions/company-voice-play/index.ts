@@ -4,12 +4,13 @@ import { cors } from "../_shared/cors.ts";
 import { guard } from "../_shared/rate-limit.ts";
 
 /**
- * A company plays one voice explanation (migration 105).
+ * Someone other than the student plays one voice explanation (migrations 105, 168).
  *
  * The audio is private and lives in the student's own folder, so the file
- * service refuses everyone but the student. This function is the one door for a
- * company: company_voice_recording() decides (verified company, discoverable
- * student who switched audio sharing on, recording scored and not withdrawn),
+ * service refuses everyone but the student. This function is the one door for
+ * admin, the student's own college and companies: company_voice_recording()
+ * decides (admin / own college always; a verified company only when the student's
+ * one switch is on and the recording is scored and not withdrawn),
  * writes who listened to what, and answers the path. The bytes are read here
  * and sent back; the browser never learns the path and gets no link to share.
  *

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: ecdfe0b3894201b063e0f119bdbdb8643129762e   # 2026-10-30: + MF-011 Assign by section (migration 167) on TEST
+      STAGING_RC: 0078455598ffacc10fb38009646664e2636aa922   # 2026-10-30: + MF-020 saved answer on a finished task on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

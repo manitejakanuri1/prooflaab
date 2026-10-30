@@ -75,6 +75,13 @@ async function errorMessage(e: unknown): Promise<string> {
 export const TASK_SCREEN_CLASS =
   "left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden p-0 sm:rounded-none data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-top-0";
 
+const CHECK_TIMEOUT_MS = 60_000;
+const RUNNER_BUSY = [502, 503];
+const isTimeout = (e: unknown) => {
+  const cause = (e as { context?: unknown }).context;
+  return cause instanceof DOMException && (cause.name === "AbortError" || cause.name === "TimeoutError");
+};
+
 interface SandboxTaskPanelProps {
   taskId: string;
   onCompleted?: () => void;
@@ -146,26 +153,39 @@ export default function SandboxTaskPanel({
     try { localStorage.setItem(draftKey, value); } catch { /* storage blocked */ }
   };
 
+  // MF-045/046: a busy runner (502 or 503) is tried again for the student; no check waits more than a minute.
+  const callRunner = async (name: "run-sandbox" | "submit-sandbox-task") => {
+    let data: unknown, e: unknown;
+    for (let attempt = 0; ; attempt++) {
+      ({ data, error: e } = await supabase.functions.invoke(name, { body: { task_id: taskId, code }, timeout: CHECK_TIMEOUT_MS }));
+      if (!e || !RUNNER_BUSY.includes((e as { context?: Response }).context?.status ?? 0) || attempt >= 3) break;
+      setRetryNote(`The code runner is busy. Your code is safe - trying again (${attempt + 1} of 3)...`);
+      await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
+    }
+    setRetryNote(null);
+    return { data, e, timedOut: !!e && isTimeout(e) };
+  };
+
   const run = async () => {
     setBusy("run"); setError(null); setTab("result");
-    const { data, error: e } = await supabase.functions.invoke("run-sandbox", { body: { task_id: taskId, code } });
+    const { data, e, timedOut } = await callRunner("run-sandbox");
     setBusy(null);
+    if (timedOut) return setError("Running your code took more than a minute, so it was stopped. Check for an endless loop, then press Run again.");
     if (e) return setError(await errorMessage(e));
     setRunResults((data as { results: TestResult[] }).results);
   };
 
   const submit = async () => {
     setBusy("submit"); setError(null); setTab("result");
-    // A busy runner answers 503 BEFORE anything is stored, so sending the same code again
-    // cannot duplicate or lose a submission. Retry for the student instead of asking them to.
-    let data: unknown, e: unknown;
-    for (let attempt = 0; ; attempt++) {
-      ({ data, error: e } = await supabase.functions.invoke("submit-sandbox-task", { body: { task_id: taskId, code } }));
-      if (!e || (e as { context?: Response }).context?.status !== 503 || attempt >= 3) break;
-      setRetryNote(`The code runner is busy. Your code is safe - checking again (${attempt + 1} of 3)...`);
-      await new Promise((r) => setTimeout(r, 8000 * (attempt + 1)));
+    // A busy runner answers 502/503 before anything is stored, so sending the same code again
+    // cannot lose a submission. Retry for the student instead of asking them to.
+    const { data, e, timedOut } = await callRunner("submit-sandbox-task");
+    setBusy(null);
+    if (timedOut) {
+      setError("The check took more than a minute, so we stopped waiting. Your code is saved. Open this task again in a minute to see the result.");
+      if (daily) setLot(await loadLotState(taskId));
+      return;
     }
-    setBusy(null); setRetryNote(null);
     if (e) {
       setError(await errorMessage(e));
       if (daily) setLot(await loadLotState(taskId));

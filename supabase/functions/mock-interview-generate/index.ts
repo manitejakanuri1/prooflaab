@@ -10,6 +10,12 @@ import { cors } from "../_shared/cors.ts";
  * what they claim to know, so the questions can be specific instead of generic.
  */
 
+/** "web-development" -> "Web Development"; the interview is for that kind of work. */
+export function roleFromTrack(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 serve(async (req) => {
   const corsHeaders = cors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -45,7 +51,12 @@ serve(async (req) => {
       .maybeSingle();
     if (!profile) return json({ error: 'Student profile not found' }, 404);
 
-    const role = profile.target_role || profile.branch || 'Software Engineer';
+    // MF-081: never interview for a branch ("CSE" got operating-system questions). No role set: the student's
+    // main learning path, else a general software role.
+    const { data: track } = profile.target_role ? { data: null } : await supabase
+      .from('student_tracks').select('track_slug').eq('student_id', profile.id)
+      .order('is_primary', { ascending: false }).limit(1).maybeSingle();
+    const role = profile.target_role || roleFromTrack(track?.track_slug) || 'Software Engineer';
 
     const { data: skillRows } = await supabase
       .from('student_skills')

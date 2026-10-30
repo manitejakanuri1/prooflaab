@@ -10,6 +10,7 @@ import { Mic, Clock, Loader2, Compass, Code2, PenLine, Map as MapIcon, CheckCirc
 import StudentRoadmapPage from "./StudentRoadmapPage";
 import VoiceExplainModal from "./VoiceExplainModal";
 import { explainIfSubmitted } from "@/lib/explainGate";
+import { latestVoiceStatus, type VoiceStatus } from "@/lib/voiceStatus";
 import SandboxTaskPanel, { TASK_SCREEN_CLASS } from "./SandboxTaskPanel";
 import WrittenTaskPanel from "./WrittenTaskPanel";
 import TaskVoicePanel from "./TaskVoicePanel";
@@ -91,7 +92,10 @@ const StudentDailyCard = () => {
   const [explaining, setExplaining] = useState(false);
   const [roadmap, setRoadmap] = useState(false);
   const [taskPassed, setTaskPassed] = useState(false);
-  const [voiceSaved, setVoiceSaved] = useState(false);
+  // MF-114: the voice counts only once the server has scored it. "checking" = saved, score not back yet
+  // (the student may leave); "failed" = silent / too short / off topic, so they must record again.
+  const [voiceStatus, setVoiceStatus] = useState<VoiceStatus | null>(null);
+  const voiceSaved = voiceStatus === "checking" || voiceStatus === "scored";
   // Graded daily marks (migration 165): today's Lot marks and this week's total.
   const [lotState, setLotState] = useState<LotState | null>(null);
   const [marks, setMarks] = useState<WeekMarks | null>(null);
@@ -214,14 +218,14 @@ const StudentDailyCard = () => {
   const openLot = () => {
     if (!lot) return;
     setTaskPassed(false);
-    setVoiceSaved(false);
+    setVoiceStatus(null);
     if (lot.sandbox_config_id) setCoding(true);
     else setWriting(true); // no uploads: every other Lot is a written answer
   };
 
   const handleTaskFinish = () => {
     setTaskPassed(false);
-    setVoiceSaved(false);
+    setVoiceStatus(null);
     setWriting(false);
     setCoding(false);
     void load();
@@ -239,7 +243,7 @@ const StudentDailyCard = () => {
     setWriting(open);
     if (!open) {
       setTaskPassed(false);
-      setVoiceSaved(false);
+      setVoiceStatus(null);
       void load();
     }
   };
@@ -256,7 +260,7 @@ const StudentDailyCard = () => {
     setCoding(open);
     if (!open) {
       setTaskPassed(false);
-      setVoiceSaved(false);
+      setVoiceStatus(null);
       void load();
     }
   };
@@ -270,7 +274,8 @@ const StudentDailyCard = () => {
           taskId={lot.id}
           title={tidyTitle(lot.title)}
           onSaved={() => {
-            setVoiceSaved(true);
+            setVoiceStatus("checking");
+            void latestVoiceStatus(profile.id, lot.id).then(setVoiceStatus);
             void load();
           }}
           onDone={onDone ?? handleTaskFinish}
@@ -571,6 +576,7 @@ const StudentDailyCard = () => {
               voice={voice}
               onPassedChange={setTaskPassed}
               voiceSaved={voiceSaved}
+              voiceStatus={voiceStatus}
               onFinish={handleTaskFinish}
               onCompleted={() => { setCoding(false); setExplaining(true); void load(); }}
             />
@@ -603,6 +609,7 @@ const StudentDailyCard = () => {
               voice={voice}
               onPassedChange={setTaskPassed}
               voiceSaved={voiceSaved}
+              voiceStatus={voiceStatus}
               onFinish={handleTaskFinish}
               onCompleted={() => { setWriting(false); setExplaining(true); void load(); }}
             />

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import type { VoiceStatus } from "@/lib/voiceStatusText";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,8 @@ interface SandboxTaskPanelProps {
   voice?: (unlocked: boolean, onDone?: () => void) => ReactNode;
   onPassedChange?: (passed: boolean) => void;
   voiceSaved?: boolean;
+  /** MF-114: the server's verdict on the recording; "Fully Completed" only when scored. */
+  voiceStatus?: VoiceStatus | null;
   onFinish?: () => void;
 }
 
@@ -99,6 +102,7 @@ export default function SandboxTaskPanel({
   voice,
   onPassedChange,
   voiceSaved,
+  voiceStatus,
   onFinish,
 }: SandboxTaskPanelProps) {
   const draftKey = `sandbox-draft:${taskId}`;
@@ -265,6 +269,11 @@ export default function SandboxTaskPanel({
                 <Mic className="h-5 w-5 animate-pulse" />
                 Step 2 of 2: Record your 60-second explanation now
               </div>
+              {voiceStatus === "failed" && (
+                <p className="mt-1 text-sm font-semibold text-destructive" data-testid="voice-not-counted">
+                  Your last recording was not counted: it was too short, silent or not about this task. Please record again.
+                </p>
+              )}
               <p className="mt-1 text-sm font-medium">
                 {daily ? "Your coding mark is saved." : "Your code passed all tests!"} You cannot exit without recording your explanation.
               </p>
@@ -274,7 +283,19 @@ export default function SandboxTaskPanel({
             </div>
           )}
 
-          {done && voiceSaved && (
+          {done && voiceSaved && voiceStatus !== "scored" && (
+            <div className="mt-4 rounded-xl border p-4 text-center animate-in fade-in" data-testid="voice-checking">
+              <p className="font-semibold">Recording saved. We are checking it now.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The task counts as done once your explanation is scored. Your marks appear on the Daily Card.
+              </p>
+              {onFinish && (
+                <Button className="mt-3 w-full" variant="outline" onClick={onFinish}>Return to Dashboard</Button>
+              )}
+            </div>
+          )}
+
+          {done && voiceSaved && voiceStatus === "scored" && (
             <div className="mt-4 rounded-xl border border-verified/50 bg-verified/10 p-4 text-center animate-in fade-in">
               <p className="flex items-center justify-center gap-2 font-semibold text-verified">
                 <CheckCircle2 className="h-5 w-5" /> Task Fully Completed!

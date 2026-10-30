@@ -63,6 +63,8 @@ export function StartupJobsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobOpportunity | null>(null);
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
+  // MF-087: each field says what is wrong, under the field, instead of the browser's popup.
+  const [errors, setErrors] = useState<Partial<Record<"role" | "location" | "apply_link" | "deadline", string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const [confirmBox, ask] = useConfirm(); // MF-087: in-app confirm, not the browser popup
@@ -103,6 +105,14 @@ export function StartupJobsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const found: typeof errors = {};
+    if (!formData.role.trim()) found.role = "Add the job title.";
+    if (!formData.location.trim()) found.location = "Add where the job is, or 'Remote'.";
+    if (!/^https?:\/\/\S+\.\S+/.test(formData.apply_link.trim())) found.apply_link = "Add a full link that starts with https://";
+    if (!formData.deadline) found.deadline = "Pick the last day to apply.";
+    else if (formData.deadline < new Date(new Date().toDateString())) found.deadline = "The last day to apply can't be in the past.";
+    setErrors(found);
+    if (Object.keys(found).length) return;
     
     if (!isVerified) {
       toast({
@@ -332,7 +342,7 @@ export function StartupJobsPage() {
                     <TableCell>{job.location}</TableCell>
                     <TableCell>{getStatusBadge(job.status || 'pending')}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(job.created_at).toLocaleDateString()}
+                      {new Date(job.created_at).toLocaleDateString("en-GB")}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -376,7 +386,7 @@ export function StartupJobsPage() {
               💼 {editingJob ? "Edit Job Opportunity" : "Create New Job"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6 p-6">
+          <form noValidate onSubmit={handleSubmit} className="space-y-6 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="role" className="text-sm font-medium text-foreground">Job Title</Label>
@@ -388,6 +398,7 @@ export function StartupJobsPage() {
                   className="rounded-lg border-border/50 focus:border-primary transition-colors"
                   required
                 />
+                {errors.role && <p className="text-xs text-alert">{errors.role}</p>}
               </div>
               
               <div className="space-y-2">
@@ -410,6 +421,7 @@ export function StartupJobsPage() {
                   className="rounded-lg border-border/50 focus:border-primary transition-colors"
                   required
                 />
+                {errors.location && <p className="text-xs text-alert">{errors.location}</p>}
               </div>
               
               <div className="space-y-2">
@@ -440,6 +452,7 @@ export function StartupJobsPage() {
                 className="rounded-lg border-border/50 focus:border-primary transition-colors"
                 required
               />
+                {errors.apply_link && <p className="text-xs text-alert">{errors.apply_link}</p>}
             </div>
             
             <div className="space-y-2">
@@ -454,7 +467,7 @@ export function StartupJobsPage() {
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {formData.deadline ? format(formData.deadline, "PPP") : "Pick a deadline"}
+                    {formData.deadline ? format(formData.deadline, "d MMM yyyy") : "Pick a deadline"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-lg shadow-lg" align="start">
@@ -468,6 +481,7 @@ export function StartupJobsPage() {
                   />
                 </PopoverContent>
               </Popover>
+                {errors.deadline && <p className="text-xs text-alert">{errors.deadline}</p>}
             </div>
 
             <div className="space-y-2">

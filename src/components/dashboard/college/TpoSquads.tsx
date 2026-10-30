@@ -25,6 +25,7 @@ import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, T
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { squadsForStudent } from "@/lib/squadSection";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Squad {
   id: string; name: string; points: number; wins: number; draws: number; losses: number;
@@ -183,6 +184,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   }, [focusSquad, focusKey]);
 
   const { status: season } = useSeasonStatus();
+  const [confirmBox, ask] = useConfirm();
 
   const names = useMemo(
     () => Object.fromEntries((squads ?? []).map((s) => [s.id, s.name])), [squads]);
@@ -350,6 +352,17 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   };
 
   const rebalance = async () => {
+    // MF-063: a finished season is history - nothing moves; and a move is confirmed first.
+    if (season?.state !== "active") {
+      toast({ title: "No season is running", description: "Rebalance works only while a season is running." });
+      return;
+    }
+    if (!(await ask({
+      title: "Rebalance the reserve pool?",
+      points: ["Students waiting in Reserve are placed into free seats of squads in their own section.",
+               "Locked squads are not touched."],
+      action: "Rebalance",
+    }))) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("tpo_rebalance_squads" as never, {} as never);
     setBusy(false);
@@ -471,6 +484,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 
   return (
     <div className="space-y-4">
+      {confirmBox}
       <div className="flex items-baseline gap-3 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">Squads</h1>
         <p className="text-sm text-muted-foreground">
@@ -568,7 +582,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 
             <div className="flex items-center gap-3 flex-wrap mt-4 pt-3 border-t">
               <p className="text-xs text-muted-foreground">
-                Scored automatically every Monday from what each member did that week.
+                Scored automatically at the end of each season week from what each member did that week.
                 The match schedule — who plays whom, and in which week — is drawn as
                 soon as a season has two squads.
               </p>
@@ -810,7 +824,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 <Swords className="h-4 w-4 mr-1.5" />
                 {busy ? "Working…" : "Form squads"}
               </Button>
-              <Button variant="outline" disabled={busy} onClick={() => void rebalance()}>
+              <Button variant="outline" disabled={busy || season?.state !== "active"} onClick={() => void rebalance()}>
                 <Shuffle className="h-4 w-4 mr-1.5" />
                 {busy ? "Working…" : "Rebalance the reserve pool"}
               </Button>
@@ -1059,7 +1073,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
           <Card><CardContent className="pt-5 overflow-x-auto">
             {performance.length === 0 ? (
               <p className="text-sm text-muted-foreground max-w-prose">
-                No weeks scored yet. Scoring runs every Monday, and Standings has a button to run
+                No weeks scored yet. Scoring runs at the end of each season week, and Standings has a button to run
                 it now — after the first week this fills with points, participation and the change
                 on the week before.
               </p>

@@ -44,8 +44,14 @@ export default function SquadSwapCard({ onSwapped }: { onSwapped: () => void }) 
 
   if (!state?.in_squad) return null;
   const incoming = state.incoming ?? [];
-  // Nothing to show once the 7 days are over and nothing is waiting.
-  if (!state.open && incoming.length === 0 && !state.outgoing) return null;
+  // MF-029: once the swap window is over and nothing is waiting, one quiet line says so (the card used to vanish).
+  if (!state.open && incoming.length === 0 && !state.outgoing) {
+    return (
+      <p className="text-sm text-muted-foreground" data-testid="squad-swap-closed">
+        Squad swaps closed{state.closes_at ? ` on ${format(new Date(state.closes_at).getTime() - 60000, WHEN_FORMAT)}` : ""}.
+      </p>
+    );
+  }
 
   return (
     <Card data-testid="squad-swap">

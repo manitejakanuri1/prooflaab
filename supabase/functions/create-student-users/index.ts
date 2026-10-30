@@ -166,7 +166,7 @@ serve(async (req) => {
         if (existingAuthUser) {
           const { data: theirProfile } = await supabaseAdmin
             .from('student_profiles')
-            .select('id, college_id, full_name, roll_number, branch, batch')
+            .select('id, college_id, full_name, roll_number, branch, batch, cohort')
             .eq('user_id', existingAuthUser.id)
             .maybeSingle()
 
@@ -194,6 +194,29 @@ serve(async (req) => {
           }
 
           if (theirProfile.college_id === college_id) {
+            // MF-119: a new section in the CSV moves the student (same rule as the college's "Move section":
+            // a seat in a squad of another section is released, so the next formation seats them in the new one).
+            const newCohort = cohortByEmail.get(String(email).trim().toLowerCase())
+            if (newCohort && newCohort.toLowerCase() !== String(theirProfile.cohort ?? '').toLowerCase()) {
+              await supabaseAdmin.from('student_profiles').update({ cohort: newCohort }).eq('id', theirProfile.id)
+              const { data: seats } = await supabaseAdmin
+                .from('squad_members').select('id, squads!inner(cohort, archived_at)')
+                .eq('student_id', theirProfile.id).is('left_at', null)
+              const other = (seats ?? []).filter((m: any) =>
+                !m.squads?.archived_at && String(m.squads?.cohort ?? 'GENERAL').toLowerCase() !== newCohort.toLowerCase())
+              if (other.length) {
+                await supabaseAdmin.from('squad_members').update({ left_at: new Date().toISOString() })
+                  .in('id', other.map((m: any) => m.id))
+              }
+              results.push({
+                email,
+                status: 'already_yours',
+                userId: theirProfile.id,
+                sectionChanged: true,
+                message: `Already in your college - section changed from ${theirProfile.cohort ?? 'none'} to ${newCohort}`
+              })
+              continue
+            }
             results.push({
               email,
               status: 'already_yours',
@@ -422,7 +445,7 @@ serve(async (req) => {
     // afterwards (or at 05:35 the next morning), so a student added any other
     // way sat in reserve with eleven others (18 Sep). Never fails the import.
     let squads: unknown = null
-    const added = results.filter((r: any) => r.status === 'success' || r.status === 'linked')
+    const added = results.filter((r: any) => r.status === 'success' || r.status === 'linked' || r.sectionChanged)
     if (added.length > 0) {
       try {
         for (const r of added) {

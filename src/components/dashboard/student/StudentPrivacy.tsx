@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Globe, Lock, School, Mic } from "lucide-react";
+import { Mic } from "lucide-react";
 
 interface Portfolio { is_public: boolean; slug: string | null }
 interface Recording {
@@ -22,25 +22,17 @@ interface Recording {
   audio_purged_at: string | null;
 }
 
-const VISIBILITY = [
-  { value: "public",  label: "Anyone with the link", icon: Globe,
-    says: "Recruiters can find and open your profile." },
-  { value: "college", label: "Your college only",    icon: School,
-    says: "Your placement office sees it. Nobody outside does." },
-  { value: "private", label: "Only you",             icon: Lock,
-    says: "Nothing is shared. Your college still sees your activity for placements." },
-] as const;
-
 /**
  * Privacy — who can see what.
  *
- * Three separate decisions, because they really are separate: whether your
- * profile is findable, whether your portfolio page is live, and which individual
- * pieces of work are public. Each control writes the row it describes and says
- * in plain words what changes.
+ * One switch since migration 168: "Companies can see my profile and all my work"
+ * (student_portfolios.is_public). On, companies see the profile, every finished
+ * task with its answer, the voice words and the recordings, and the portfolio
+ * link opens. Off (the default), no company sees anything. Weak areas are never
+ * shown to a company. The college and the ProofLab team always see the work.
  */
 const StudentPrivacy = () => {
-  const { profile, refreshProfile } = useStudentProfile();
+  const { profile } = useStudentProfile();
   const { toast } = useToast();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -63,39 +55,6 @@ const StudentPrivacy = () => {
 
   useEffect(() => { void load(); }, [load]);
 
-  const setVisibility = async (value: string) => {
-    if (!profile?.id) return;
-    setBusy(true);
-    const { error } = await supabase
-      .from("student_profiles")
-      .update({ profile_visibility: value } as never)
-      .eq("id", profile.id);
-    setBusy(false);
-    if (error) {
-      toast({ title: "Not changed", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Visibility updated", description: VISIBILITY.find((v) => v.value === value)?.says });
-    refreshProfile?.();
-  };
-
-  const setShareVoiceAudio = async (on: boolean) => {
-    setBusy(true);
-    const { error } = await supabase.rpc("set_share_voice_audio" as never, { _on: on } as never);
-    setBusy(false);
-    if (error) {
-      toast({ title: "Not changed", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({
-      title: on ? "Companies can listen" : "Companies can no longer listen",
-      description: on
-        ? "Approved companies that can see your profile can play your scored recordings."
-        : "Your recordings cannot be played by any company.",
-    });
-    refreshProfile?.();
-  };
-
   const setPortfolioPublic = async (on: boolean) => {
     if (!profile?.id) return;
     setBusy(true);
@@ -111,92 +70,42 @@ const StudentPrivacy = () => {
     }
     setPortfolio((p) => ({ is_public: on, slug: p?.slug ?? null }));
     toast({
-      title: on ? "Your portfolio is live" : "Your portfolio is private",
+      title: on ? "Companies can see your work" : "Companies cannot see your work",
       description: on
-        ? "Anyone with the link can see it, including the scorecard on it."
-        : "The link no longer opens for anyone but you.",
+        ? "Approved companies can open your profile, your answers and your recordings. Your portfolio link opens."
+        : "No company can find or open your profile. Your portfolio link is closed.",
     });
   };
 
   if (!profile) return <Skeleton className="h-64 w-full rounded-xl" />;
 
-  const current = (profile as unknown as { profile_visibility?: string }).profile_visibility ?? "public";
-  const shareAudio = (profile as unknown as { share_voice_audio?: boolean }).share_voice_audio === true;
 
   return (
     <div className="space-y-4">
       <Card>
         <CardContent className="pt-5">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Who can see your profile
-          </span>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {VISIBILITY.map((v) => {
-              const Icon = v.icon;
-              const on = current === v.value;
-              return (
-                <button
-                  key={v.value}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void setVisibility(v.value)}
-                  className={`rounded-lg border p-3 text-left transition-colors ${
-                    on ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${on ? "text-primary" : "text-muted-foreground"}`} />
-                  <p className="text-sm font-medium mt-2">{v.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{v.says}</p>
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-5">
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
-              <Label htmlFor="portfolio-public" className="text-sm font-medium">
-                Portfolio page
+              <Label htmlFor="companies-see-work" className="text-sm font-medium">
+                Companies can see my profile and all my work
               </Label>
               <p className="text-xs text-muted-foreground mt-1 max-w-prose">
-                A single page holding the Lots you passed, your skills and your scorecard, at a link you can
-                paste into an application. Off by default.
+                Off by default. When on, approved companies can find you and see every lot you finished: your code
+                or written answer, your voice words and your recordings. Each listen is recorded. Your portfolio
+                link also opens. Companies never see your next-to-strengthen areas.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2 max-w-prose">
+                Your college and the ProofLab team always see your work and recordings, with the switch on or off.
               </p>
               {portfolio?.is_public && portfolio.slug && (
                 <p className="font-mono text-xs text-primary mt-2 break-all">{`${window.location.origin}/portfolio/${portfolio.slug}`}</p>
               )}
             </div>
             <Switch
-              id="portfolio-public"
+              id="companies-see-work"
               checked={portfolio?.is_public ?? false}
               disabled={busy}
               onCheckedChange={(on) => void setPortfolioPublic(on)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-5">
-          <div className="flex items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <Label htmlFor="share-voice-audio" className="text-sm font-medium">
-                Let companies listen to your recordings
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1 max-w-prose">
-                Off by default. When on, an approved company that can see your profile can play your scored
-                60-second explanations. Each listen is recorded. Switch it off, or delete a recording below,
-                and it can no longer be played.
-              </p>
-            </div>
-            <Switch
-              id="share-voice-audio"
-              checked={shareAudio}
-              disabled={busy}
-              onCheckedChange={(on) => void setShareVoiceAudio(on)}
             />
           </div>
         </CardContent>

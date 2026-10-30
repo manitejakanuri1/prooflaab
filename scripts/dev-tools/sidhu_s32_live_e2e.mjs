@@ -153,20 +153,10 @@ export const RECIPES = [
       return `review_task_submission HTTP ${r}`; },
     db: (x) => `select 'S32DB ' || status from public.task_submissions where id = '${x.env.E2E_FIXTURE_REVIEW_SUBMISSION_ID}';`, expectDb: "passed" },
   // ---- S34 additions ------------------------------------------------------------------------------------------
-  { id: "student-voice-consent-on-off", role: ["student", "established"], fixtures: [], matches: /StudentPrivacy\.tsx/,
-    async run(p, x) { await x.go("/student/dashboard?tab=profile&view=privacy");
-      const sw = p.locator("#share-voice-audio"); await sw.waitFor({ timeout: 15000 });
-      const was = (await sw.getAttribute("aria-checked")) === "true";
-      await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/set_share_voice_audio/, "POST");
-      await x.expectCall(() => sw.click(), /\/api\/db\/rpc\/set_share_voice_audio/, "POST");
-      await p.reload(); await sw.waitFor({ timeout: 15000 });
-      const now = (await sw.getAttribute("aria-checked")) === "true";
-      if (now !== was) throw new Error(`consent switch did not return to ${was} after refresh`);
-      x.voiceConsentWas = was; return `consent switched and restored to ${was}; persisted across refresh`; },
-    db: (x) => `select 'S32DB ' || count(*) from public.security_events where event_type = 'voice_audio_sharing_changed' and user_id = '${x.userId}' and created_at > now() - interval '30 minutes';`, expectDb: ">=2" },
+  // student-voice-consent-on-off retired by migration 168: the one Privacy switch below covers audio too.
   { id: "student-portfolio-visibility-on-off", role: ["student", "established"], fixtures: [], matches: /StudentPrivacy\.tsx/,
     async run(p, x) { await x.go("/student/dashboard?tab=profile&view=privacy");
-      const sw = p.locator("#portfolio-public"); await sw.waitFor({ timeout: 15000 });
+      const sw = p.locator("#companies-see-work"); await sw.waitFor({ timeout: 15000 });
       const was = (await sw.getAttribute("aria-checked")) === "true";
       const write = () => p.waitForResponse((r) => /\/api\/db\/student_portfolios/.test(new URL(r.url()).pathname) && ["POST", "PATCH", "PUT"].includes(r.request().method()), { timeout: 30000 });
       for (let i = 0; i < 2; i++) { const w = write(); await sw.click(); const r = await w; if (r.status() >= 400) throw new Error(`portfolio save answered ${r.status()}`); }

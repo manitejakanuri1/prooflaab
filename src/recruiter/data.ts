@@ -167,7 +167,7 @@ interface ProfileWork { submitted_at?: string | null; title?: string | null; sta
 interface ProfileExplanation {
   id: string; about?: string | null; duration_seconds?: number | null;
   created_at?: string | null; communication_notes?: string | null;
-  /** The student switched audio sharing on and the recording is still there (migration 105). */
+  /** The recording is still there (migration 105; since 168 the one switch covers audio too). */
   audio_shared?: boolean | null;
 }
 interface ProofProfilePayload {
@@ -175,6 +175,7 @@ interface ProofProfilePayload {
   year_of_study?: number | null; target_role?: string | null; secondary_roles?: string[] | null;
   skills?: ProfileSkill[] | null; certifications?: ProfileCert[] | null; work?: ProfileWork[] | null;
   explanations?: ProfileExplanation[] | null;
+  answers?: Candidate["answers"] | null;
   scorecard?: Partial<Record<"skill_proof" | "project_proof" | "reasoning" | "coding" | "interview_readiness"
     | "resume_quality" | "ats_match", number | null>> & { at?: string | null } | null;
   consistency?: { current_streak?: number | null; active_weeks?: number | null } | null;
@@ -252,6 +253,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
       status: /verified/i.test(w.status ?? "") ? "completed" as const : "pending" as const,
       score: w.ai_score ?? undefined,
     })),
+    answers: p.answers ?? [],
     voiceExplanations: (p.explanations ?? []).map((v) => ({
       id: v.id,
       topic: v.about ?? "Explanation",

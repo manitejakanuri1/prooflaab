@@ -15,6 +15,7 @@ import { User, Lock, Bell, Eye, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ProfilePhotoModal from "../ProfilePhotoModal";
 import { getInitials } from "@/lib/utils";
+import { useUrlTab } from "@/hooks/useUrlTab";
 
 interface StudentSettingsPageProps {
   refreshProfile?: () => void;
@@ -42,6 +43,7 @@ const SKILLS = [
 const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
   const { profile, loading } = useStudentProfile();
   const { toast } = useToast();
+  const [, setView] = useUrlTab("view", "");
   
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || '',
@@ -313,33 +315,6 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
       console.error('Error saving preferences:', error);
       toast({
         title: "Error saving preferences",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSavePortfolioPrivacy = async (isPublic: boolean) => {
-    try {
-      // upsert, not update: a student who never opened the portfolio has no row,
-      // and update() on zero rows succeeds silently - the toggle said "public"
-      // while recruiters still could not find them (student_is_discoverable
-      // requires this row).
-      const { error } = await supabase
-        .from('student_portfolios')
-        .upsert({ student_id: profile?.id, is_public: isPublic } as never, { onConflict: 'student_id' });
-
-      if (error) throw error;
-
-      // Save to user preferences as well
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await handleSavePreferences({ ...preferences, portfolioPublic: isPublic });
-      }
-    } catch (error) {
-      console.error('Error updating portfolio privacy:', error);
-      toast({
-        title: "Error updating privacy settings",
         description: "Please try again later.",
         variant: "destructive",
       });
@@ -629,19 +604,10 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Public Portfolio</h4>
-              <p className="text-sm text-muted-foreground">Make your portfolio visible to others</p>
-            </div>
-            <Switch
-              checked={preferences.portfolioPublic}
-              onCheckedChange={(checked) => {
-                setPreferences({ ...preferences, portfolioPublic: checked });
-                handleSavePortfolioPrivacy(checked);
-              }}
-            />
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Who can see your work?{" "}
+            <button type="button" className="text-primary underline" onClick={() => setView("privacy")}>Go to Privacy</button>
+          </p>
           
           <Separator />
           

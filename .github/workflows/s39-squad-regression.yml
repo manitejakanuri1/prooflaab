@@ -178,6 +178,7 @@ jobs:
                    ':(exclude)src/lib/lotMarks.ts' ':(exclude)src/lib/lotMarksText.ts' ':(exclude)src/lib/lotMarks.test.ts'
                    ':(exclude)src/lib/squadSection.ts' ':(exclude)src/lib/squadSection.test.ts'
                    ':(exclude)src/lib/savedAnswer.ts' ':(exclude)src/lib/savedAnswer.test.ts' ':(exclude)src/lib/savedAnswerLoad.ts'
+                   ':(exclude)src/components/dashboard/FinishedWork.tsx' ':(exclude)src/recruiter/data.ts' ':(exclude)src/recruiter/types.ts'
                    ':(exclude)src/pages/Index.tsx' ':(exclude)src/components/landing'
                    ':(exclude)index.html'
                    ':(exclude)src/components/Logo.tsx'

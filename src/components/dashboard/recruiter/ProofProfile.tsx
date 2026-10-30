@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { Candidate, ProofItem } from "@/recruiter/types";
 import VoicePlayButton from "./VoicePlayButton";
+import FinishedWork from "../FinishedWork";
 
 /**
  * The Proof Profile, as delivered — screens built against mock data, now fed
@@ -150,6 +151,13 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
             </div>
           </CardContent>
         </Card>
+
+        {candidate.answers && (
+          <Card className='metric-card'>
+            <CardHeader><CardTitle>All finished work</CardTitle></CardHeader>
+            <CardContent><FinishedWork work={candidate.answers} /></CardContent>
+          </Card>
+        )}
       </div>
 
       <div className='space-y-4'>

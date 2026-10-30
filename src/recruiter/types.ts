@@ -10,6 +10,13 @@
 export interface ProofItem { type: 'assessment' | 'project' | 'task' | 'voice' | 'cert'; title: string; detail: string; date: string; score?: number; url?: string }
 /** score: the skill's own assessed score; null when nothing has tested it (never borrowed from another score). */
 export interface SkillScore { name: string; score: number | null; verified: boolean; assessments: number; proof: ProofItem[] }
+/** One finished task with its answer and voice (student_work, migration 168). Never weak areas. */
+export interface FinishedWorkItem {
+  task_id: string; title: string | null; kind: 'code' | 'written'; language: string | null; answer: string | null
+  passed_count: number | null; total_count: number | null; score: number | null; status: string
+  submitted_at: string | null; attempts: number
+  voice: { id: string; score: number | null; words: string | null; has_audio: boolean } | null
+}
 export interface Candidate {
   id: string
   name: string
@@ -23,6 +30,8 @@ export interface Candidate {
   skills: SkillScore[]
   assessmentScores: { category: string; score: number; proof: ProofItem[] }[]
   dailyTasks: { date: string; task: string; status: 'completed' | 'pending' | 'missed'; score?: number }[]
+  /** Every finished task with the answer, only on the full profile (migration 168). */
+  answers?: FinishedWorkItem[]
   voiceExplanations: { id: string; topic: string; duration: string; date: string; transcript: string; audioShared: boolean }[]
   streak: number
   consistency: number

@@ -1,21 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { Award, Eye, EyeOff, Share, Star, CheckCircle, Users } from "lucide-react";
+import { Award, Share, Star, CheckCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProvenWork, { useProvenWork } from "@/components/portfolio/ProvenWork";
 import { getInitials } from "@/lib/utils";
+import { useUrlTab } from "@/hooks/useUrlTab";
 
 const StudentPortfolioPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
   // What this student has passed (task_submissions) - the retired proof uploads are not read.
   const { data: provenWork = [] } = useProvenWork(profile?.id);
-  const { portfolio, loading: portfolioLoading, updatePortfolioVisibility } = usePortfolio();
+  const { portfolio, loading: portfolioLoading } = usePortfolio();
   const { toast } = useToast();
+  const [, setView] = useUrlTab("view", "");
   if (profileLoading || portfolioLoading) {
     return (
       <Card>
@@ -45,8 +46,8 @@ const StudentPortfolioPage = () => {
     // A private portfolio's link opens "not found" for everyone else, so say so instead of copying it.
     if (!portfolio.is_public) {
       toast({
-        title: "Your portfolio is private",
-        description: "Switch it to Public first (the switch next to Share), then share the link.",
+        title: "Your portfolio link is closed",
+        description: "Turn on \"Companies can see my profile and all my work\" in Privacy, then share the link.",
         variant: "destructive",
       });
       return;
@@ -62,26 +63,6 @@ const StudentPortfolioPage = () => {
     }
   };
 
-  const toggleVisibility = async () => {
-    if (!portfolio) return;
-    
-    try {
-      await updatePortfolioVisibility(!portfolio.is_public);
-      toast({
-        title: portfolio.is_public ? "Portfolio made private" : "Portfolio made public",
-        description: portfolio.is_public 
-          ? "Your portfolio is now hidden from public view." 
-          : "Your portfolio is now visible to everyone.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update portfolio visibility",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Profile Header */}
@@ -90,11 +71,10 @@ const StudentPortfolioPage = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0 sm:justify-between">
             <CardTitle className="text-lg sm:text-xl font-semibold">My Portfolio</CardTitle>
             <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4">
-              <div className="flex items-center gap-2">
-                {portfolio?.is_public ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                <span className="text-xs sm:text-sm">{portfolio?.is_public ? 'Public' : 'Private'}</span>
-                <Switch checked={portfolio?.is_public || false} onCheckedChange={toggleVisibility} />
-              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Who can see this?{" "}
+                <button type="button" className="text-primary underline" onClick={() => setView("privacy")}>Change it in Privacy</button>
+              </p>
               <Button onClick={handleShare} className="w-full xs:w-auto text-xs sm:text-sm" size="sm">
                 <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Share Portfolio

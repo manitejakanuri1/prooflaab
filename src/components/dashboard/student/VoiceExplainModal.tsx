@@ -218,12 +218,12 @@ const ctxOf = (job: StoredJob): RecordingContext =>
  * a judgement about how clearly they explain things. Storing that without ever
  * asking, and with no way to take it back, is the kind of thing nobody notices
  * until a parent or a college's legal team asks about it. The wording below
- * must match what the app actually allows (checked 2026-09-29): the audio file
- * is readable only by its owner (files-service owner check); the college sees a
- * count only (tpo_student_profile.voice_recordings); ProofLab admins can read
- * the row (voice_own_read allows is_admin()); verified companies see the score
- * and notes of a discoverable student (recruiter_talent/recruiter_proof_profile),
- * never the audio. Since migration 138 nobody deletes a recording (no withdraw for students, the files
+ * must match what the app actually allows (checked 2026-10-30, migration 168):
+ * ProofLab admins and the student's own college see every finished task with the
+ * voice words and can play the recording (tpo_student_work, company-voice-play);
+ * a verified company sees the same, never weak areas, only while the student's
+ * one switch "Companies can see my profile and all my work" is on
+ * (student_is_discoverable). Since migration 138 nobody deletes a recording (no withdraw for students, the files
  * service refuses DELETE); the daily job keeps the audio of each student's newest 7 and removes the rest.
  */
 
@@ -1418,13 +1418,12 @@ const VoiceExplainModal = ({
                   your English.
                 </li>
                 <li>
-                  Only you can play the recording. Your college sees how many recordings you
-                  have made, not the recordings themselves.
+                  Your college and the ProofLab team can always see your work, read your words
+                  and play your recordings.
                 </li>
                 <li>
-                  The ProofLab team can read the written transcript and score. If you make your
-                  profile public, verified companies can see your score and feedback. They hear the
-                  audio only if you turn on audio sharing in Profile → Privacy (it is off).
+                  Companies see them only if you turn on "Companies can see my profile and all my
+                  work" in Profile → Privacy (it is off).
                 </li>
                 <li>
                   Your recordings can't be deleted. We keep the audio of your 7 newest recordings (task and mock interview together). Older audio is removed automatically to save space. Your score, feedback and written words always stay in your history.

@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, Users } from "lucide-react";
 import { format } from "date-fns";
 import StudentSectionMove from "./StudentSectionMove";
+import FinishedWork from "../FinishedWork";
+import type { FinishedWorkItem } from "@/recruiter/types";
 
 interface Profile {
   id: string;
@@ -92,12 +94,13 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
   const { toast } = useToast();
   const [data, setData] = useState<Profile | null>(null);
   const [paths, setPaths] = useState<LearningPath[]>([]);
+  const [work, setWork] = useState<FinishedWorkItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     if (!studentId) return;
-    setData(null); setError(null); setPaths([]);
+    setData(null); setError(null); setPaths([]); setWork(null);
     const { data: res, error: err } = await supabase.rpc(
       "tpo_student_profile" as never, { _student_id: studentId } as never);
     if (err) { setError(err.message); return; }
@@ -106,6 +109,10 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     setData(p);
     const { data: lp } = await supabase.rpc("tpo_student_learning" as never, { _student_id: studentId } as never);
     setPaths(Array.isArray(lp) ? (lp as unknown as LearningPath[]) : []);
+    // Admin and the own college see every finished task: answer, voice words, recording (migration 168).
+    const { data: fw } = await supabase.rpc("tpo_student_work" as never, { _student_id: studentId } as never);
+    const list = (fw as { work?: FinishedWorkItem[] } | null)?.work;
+    setWork(Array.isArray(list) ? list : []);
   }, [studentId]);
 
   useEffect(() => { void load(); }, [load]);
@@ -332,6 +339,13 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                   ))}
                 </div>
               )}
+            </section>
+
+            <section>
+              <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                All finished work
+              </h4>
+              {work === null ? <Skeleton className="h-10 w-full" /> : <FinishedWork work={work} />}
             </section>
 
             {data.interventions.length > 0 && (

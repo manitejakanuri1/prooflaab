@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStartupProfile } from "@/hooks/useStartupProfile";
@@ -64,6 +65,7 @@ export function StartupJobsPage() {
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
+  const [confirmBox, ask] = useConfirm(); // MF-087: in-app confirm, not the browser popup
   const { user } = useAuth();
   const { data: startupProfile } = useStartupProfile();
   const { data: verificationData } = useStartupVerification();
@@ -156,7 +158,7 @@ export function StartupJobsPage() {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Job updated successfully! Awaiting admin approval.",
+          description: "Job post updated. An admin checks every job post before students see it.", // MF-028
         });
       } else {
         const { error } = await supabase
@@ -166,7 +168,7 @@ export function StartupJobsPage() {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Job posted successfully! Awaiting admin approval.",
+          description: "Job post saved. An admin checks every job post before students see it.", // MF-028
         });
       }
 
@@ -187,7 +189,7 @@ export function StartupJobsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this job opportunity?")) return;
+    if (!(await ask({ title: "Delete this job post?", points: ["Students will no longer see it.", "This cannot be undone."], action: "Delete" }))) return;
 
     try {
       const { error } = await supabase
@@ -270,6 +272,7 @@ export function StartupJobsPage() {
 
   return (
     <div className="space-y-6">
+      {confirmBox}
       {/* Verification Warning Banner */}
       {!isVerified && (
         <Alert className="border-compete bg-compete/10">

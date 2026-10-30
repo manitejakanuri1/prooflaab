@@ -105,17 +105,42 @@ their squad has no opponent that week.
 
 ---
 
-## Joining and the school year (owner rules, 30 Oct 2026)
+## One season per year group (owner rules, 31 Oct 2026 - replaces "Joining and the school year")
 
-- **A new student gets a squad seat only in week 1 of a season** (migration 179). From week 2 they wait in
-  Reserve; Daily Lots, the roadmap and their own points carry on. A season with no squads yet still forms its
-  first ones. The college's manual Assign is not limited.
-- **The same squads all school year** (migration 182). When a new season opens, the last finished season's
-  squads come back with the same name, section and members; points start from 0. Past seasons keep their own
-  squad rows, so history and awards stay. A student who left, is blocked or moved section is not carried and
-  joins in week 1.
-- **A new school year (1 June) starts fresh**: nothing carries when the last season began in an earlier school
-  year (`public.school_year`).
+- **Year group.** A student's batch ("2nd year", "2023-2027", "2027") becomes `student_profiles.passing_out_year`
+  (migration 183). Screens show it as "2nd year" (`year_group_label`). Only 4-year (B.Tech) courses for now.
+- **One season per year group, side by side** (migration 184). `seasons.year_group` = passing-out year;
+  `ensure_season(college, year_group)`; at most one running season per year group (index from 185).
+- **Squads form on any day.** Any import or the nightly job seats waiting students at once
+  (`form_squads` -> `form_squads_in(season)`). A late student takes a free seat in a squad of their own
+  section, else waits in Reserve; 11 waiting make a new squad. A late section joins the running season and
+  gets fixtures for the league weeks left (`extend_fixtures`).
+- **Season shape (plan_version 2, 12 weeks):** league weeks 1-10 inside each section (odd count: one squad
+  rests each week), semi-finals week 11, final week 12. Old seasons keep plan_version 1 and the old shape.
+- **A champion in every section** (`generate_section_knockout`, `generate_section_finals`, `season_champions`):
+
+  | Squads in the section | What happens |
+  |---|---|
+  | 1 | No champion |
+  | 2 | Final: seed 1 v seed 2 |
+  | 3 | Seed 1 waits in the final; semi-final 2 v 3 |
+  | 4 or more | Semi-finals 1 v 4 and 2 v 3, then the final (only the top 4 go through) |
+
+  Seeds = league rank (points, wins, head-to-head). A drawn semi-final or final goes to the higher seed.
+  No champion in a section that never played a league match.
+- **Pooled sections (optional).** The college ticks sections (`seasons.cross_sections`, `tpo_season_options`);
+  the best 4 of the pool play one semi-final round and final ("Cross-section" champion) instead of their own.
+  Can be changed only before week 11.
+- **Back to back, with 3 days off.** When a season closes, its year group has 3 days off (`season_gap`;
+  5 minutes in PRAGATI's fast test season): no Daily Lot (`create_lot_for` answers "between seasons"),
+  roadmap only. Then the next season opens (nightly job or any import) with the same squads, points from 0
+  (`carry_over_squads`, same year group). There is no 1 June reset.
+- **Make fresh squads.** The college can ask for new squads next season (`seasons.fresh_squads_next`,
+  undoable until the next season opens); the next season then deals everyone again.
+- **College screens follow a picked year group** (`colleges.viewing_year_group`, `tpo_pick_year_group`,
+  `tpo_year_groups`, `my_year_group`); every function that uses `my_season_id()` follows it. Students always
+  see their own year group.
+- Check: `scripts/dev-tools/season_year_group_check.sql` (23 checks, rolls back).
 
 ---
 

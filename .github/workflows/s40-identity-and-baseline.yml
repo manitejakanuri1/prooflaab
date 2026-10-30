@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 429830225036fec8b523236027a3813312b88bf7   # 2026-10-31: + same squads all school year (migration 182) on TEST
+      STAGING_RC: 69dc03fa29f32accec99d383fda40c6ce645f5de   # 2026-10-31: + one season per year group, section championships (migrations 184-185) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -17,7 +17,23 @@ const count = async (table: string, build: (q: any) => any = (q) => q) => {
  * It does not show Cloud Scheduler or queue internals - the browser has no access
  * to those. A job that did not run shows up here as a zero where a number should be.
  */
+interface JobRow { job: string; what: string; schedule: string; next_run: string; last_run: string | null; proof: string }
+
+const when = (iso: string | null) => iso
+  ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })
+  : "—";
+
 const AdminOpsHealth = () => {
+  // MF-036 (migration 188): each scheduled job with its last and next run.
+  const { data: jobs } = useQuery({
+    queryKey: ["admin-job-status"],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_job_status" as never);
+      if (error) throw error;
+      return (data ?? []) as unknown as JobRow[];
+    },
+  });
   const today = new Date().toISOString().slice(0, 10);
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-ops-health"],
@@ -68,6 +84,26 @@ const AdminOpsHealth = () => {
             ))}
           </tbody>
         </table>
+        {!!jobs?.length && (
+          <table className="w-full text-sm mt-5">
+            <thead>
+              <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <th className="pb-2 pr-3">Job</th><th className="pb-2 pr-3">When</th>
+                <th className="pb-2 pr-3">Last run</th><th className="pb-2">Next run</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((j) => (
+                <tr key={j.job} className="border-t">
+                  <td className="py-2 pr-3">{j.job}<p className="text-xs text-muted-foreground">{j.what}</p></td>
+                  <td className="py-2 pr-3 text-xs">{j.schedule} IST</td>
+                  <td className="py-2 pr-3 text-xs">{when(j.last_run)}<p className="text-muted-foreground">{j.proof}</p></td>
+                  <td className="py-2 text-xs">{when(j.next_run)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
         <p className="mt-3 text-xs text-muted-foreground">
           Read from the rows the jobs write. Scheduler and queue internals are in the cloud console; alerts cover them.
         </p>

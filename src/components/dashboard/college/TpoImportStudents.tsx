@@ -13,6 +13,15 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Download } from "lucide-react";
 
+const SAMPLE_CSV = "data:text/csv;charset=utf-8," + encodeURIComponent(
+  "name,email,roll_number,section,batch,phone
+" +
+  "Asha Rao,asha.rao@yourcollege.edu.in,21CS001,A,2026,9876543210
+" +
+  "Ravi Kumar,ravi.kumar@yourcollege.edu.in,21CS002,B,2026,9876543211
+",
+);
+
 /** One parsed line, before anything has been created. */
 interface ParsedRow {
   row_number: number;
@@ -418,6 +427,12 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         >
           <Upload className="h-3.5 w-3.5 mr-1.5" />
           {busy ? "Reading…" : "Import students"}
+        </Button>
+        {/* MF-064: a sample file with the columns the import reads. */}
+        <Button size="sm" variant="ghost" asChild>
+          <a href={SAMPLE_CSV} download="prooflab-students-sample.csv">
+            <Download className="h-3.5 w-3.5 mr-1.5" /> Sample file
+          </a>
         </Button>
       </div>
       {!effectiveBranch ? (

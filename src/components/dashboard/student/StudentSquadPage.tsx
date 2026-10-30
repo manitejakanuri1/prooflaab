@@ -359,7 +359,9 @@ const StudentSquadPage = () => {
               </span>
               <p className="text-sm mt-2">
                 {members.filter((m) => m.contribution > 0).length} of {members.length} members have
-                contributed. {members.filter((m) => m.contribution === 0).length} need a nudge.
+                contributed.
+                {/* MF-059: no nudging once the season is over. */}
+                {!ended && ` ${members.filter((m) => m.contribution === 0).length} need a nudge.`}
               </p>
             </CardContent>
           </Card>

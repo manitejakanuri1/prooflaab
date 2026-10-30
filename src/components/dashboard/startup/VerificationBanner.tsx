@@ -54,7 +54,7 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
             className="border-compete text-compete hover:bg-compete hover:text-background"
             asChild
           >
-            <a href="mailto:support@prooflabai.com">
+            <a href="mailto:hello@prooflab.co.in">{/* MF-127: the real support address */}
               <Mail className="h-4 w-4 mr-2" />
               Contact Support
             </a>

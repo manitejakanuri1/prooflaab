@@ -2,7 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, Check } from "lucide-react";
+import { useState } from "react";
 import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
+import TpoStudentProfile from "./TpoStudentProfile";
 
 /**
  * College > Notifications: students who need attention right now, from
@@ -11,6 +13,7 @@ import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
  */
 const NotificationsSection = () => {
   const { notifications, unreadCount, isLoading, markAsViewed, markAllAsViewed } = useCollegeNotifications();
+  const [openStudent, setOpenStudent] = useState<string | null>(null);   // MF-066: each alert opens its student
 
   return (
     <Card>
@@ -41,7 +44,10 @@ const NotificationsSection = () => {
                 <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.severity === "high" ? "bg-alert" : "bg-compete"}`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
-                    {n.full_name}
+                    <button type="button" className="hover:text-primary hover:underline"
+                      onClick={() => { setOpenStudent(n.student_id); if (!n.is_read) markAsViewed([n.id]); }}>
+                      {n.full_name}
+                    </button>
                     <span className="ml-2 font-normal text-muted-foreground">
                       {[n.roll_number, n.branch].filter(Boolean).join(" · ")}
                     </span>
@@ -56,6 +62,7 @@ const NotificationsSection = () => {
           </ul>
         )}
       </CardContent>
+      <TpoStudentProfile studentId={openStudent} onClose={() => setOpenStudent(null)} />
     </Card>
   );
 };

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SeasonPhaseBar, { StandingsKey, tieNote, useSeasonStatus } from "@/components/dashboard/season/SeasonPhaseBar";
@@ -154,6 +155,8 @@ const StudentSquadPage = () => {
   }, [profile?.id]);
 
   useEffect(() => { void load(); }, [load]);
+  // MF-051: points and matches move during the day; refresh while the page is open (paused in a hidden tab).
+  useLiveRefresh(load, 30_000);
 
   if (loading) return <Skeleton className="h-72 w-full rounded-xl" />;
 

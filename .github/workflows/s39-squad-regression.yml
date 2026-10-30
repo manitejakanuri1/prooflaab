@@ -244,15 +244,16 @@ jobs:
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
 
-      - name: UI re-freeze 30 Oct - graded marks, Assign by section, saved answers, work visibility, go-live batch - screens equal commit f51c9c2
+      - name: UI re-freeze 30 Oct - graded marks, Assign by section, saved answers, work visibility, go-live batch, season rules - screens equal commit 09d64fa
         # Owner opened these for graded daily marks (29 Oct 2026) and asked for them to be frozen again once done.
         # 30 Oct 2026: owner OK'd TpoSquads.tsx for MF-011 (Assign by section), frozen again here.
         # 30 Oct 2026: owner OK'd SandboxTaskPanel / WrittenTaskPanel for MF-020 (saved answer on a finished task).
         # 30 Oct 2026: owner OK'd the college student page, Privacy, Portfolio, Settings and the voice sentence for MF-023.
         # 30 Oct 2026: owner OK'd the go-live batch (MF-114/115/045/046/051/116/029/059/107, fix_all_prompt.md).
         # Any later change needs the owner's OK and a new commit here.
+        # 30 Oct 2026: owner OK'd TpoSquads / StudentSquadPage for week-1 joining and plain tie wording, frozen again here.
         run: |
-          git diff --quiet f51c9c22a22e8c14eca535aa55ca27755fa5780b -- \
+          git diff --quiet 09d64fad6d089e6ccbbf11b44294b5303d031b4a -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -264,7 +265,7 @@ jobs:
             src/components/dashboard/student/StudentPrivacy.tsx src/components/dashboard/student/StudentPortfolioPage.tsx \
             src/components/dashboard/student/StudentSettingsPage.tsx src/components/dashboard/recruiter/ProofProfile.tsx \
             src/recruiter/data.ts src/recruiter/types.ts \
-            || { echo "::error::a graded-marks screen changed after the 30 Oct re-freeze (f51c9c2)"; exit 1; }
+            || { echo "::error::a graded-marks screen changed after the 30 Oct re-freeze (09d64fa)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

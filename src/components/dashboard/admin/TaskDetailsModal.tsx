@@ -40,9 +40,10 @@ export function TaskDetailsModal({ task, open, onClose }: TaskDetailsModalProps)
         className: "border-verified text-verified"
       };
     }
+    // MF-091: Lots written by the AI or the system have no human creator.
     return {
       icon: <User className="h-4 w-4" />,
-      label: "Unknown",
+      label: task.is_ai_generated || task.lot_date ? "ProofLab (AI)" : "ProofLab",
       className: "border-border text-muted-foreground"
     };
   };

@@ -364,7 +364,7 @@ const StudentDailyCard = () => {
             {lot.status === "pending_voice" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
                  data-testid="lot-pending-voice">
-                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? "Submitted" : "Code passed"} · Spoken explanation required
+                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? "Submitted" : lot?.sandbox_config_id ? "Code passed" : "Answer passed"} · Spoken explanation required
               </p>
             )}
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}

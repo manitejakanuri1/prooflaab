@@ -74,8 +74,24 @@ const norm = (s: string) => s.toLowerCase().replace(/[\s._-]/g, '');
  */
 const COVER_MIN = 2;
 
+/**
+ * MF-074: a library is proof of its language. Someone who lists Pandas writes Python,
+ * so "Python" must not show up as a gap. Keys and values are compared normalised.
+ */
+const IMPLIES: Record<string, string[]> = {
+  pandas: ['Python'], numpy: ['Python'], scikitlearn: ['Python'], pytorch: ['Python'], tensorflow: ['Python'],
+  matplotlib: ['Python'], seaborn: ['Python'], fastapi: ['Python'], django: ['Python'], flask: ['Python'],
+  jupyter: ['Python'], opencv: ['Python'],
+  react: ['JavaScript'], nodejs: ['JavaScript'], express: ['JavaScript'], nextjs: ['JavaScript', 'React'],
+  vuejs: ['JavaScript'], angular: ['JavaScript', 'TypeScript'], reactnative: ['JavaScript', 'React'],
+  typescript: ['JavaScript'], ethersjs: ['JavaScript'], viem: ['JavaScript'],
+  jetpackcompose: ['Kotlin'], swiftui: ['Swift'], flutter: ['Dart'], unity: ['C#'], unreal: ['C++'],
+  postgresql: ['SQL'], sqlite: ['SQL'], hardhat: ['Solidity'], foundry: ['Solidity'],
+};
+
 export function matchSkills(interests: string[], skills: string[]): MatchResult {
   const have = new Set(skills.map(norm));
+  for (const s of [...have]) for (const lang of IMPLIES[s] ?? []) have.add(norm(lang));
   const perInterest: InterestVerdict[] = [];
   const allMatched = new Set<string>();
   const allMissing = new Set<string>();

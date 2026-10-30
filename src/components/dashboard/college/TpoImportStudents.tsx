@@ -121,6 +121,16 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         .from("student_contact").select("email");
       const known = new Set((existing ?? []).map((r) => (r.email ?? "").toLowerCase()));
       const seen = new Set<string>();
+      // MF-119: this college's own students and their current section, so the preview can say who moves.
+      const mySection = new Map<string, string>();
+      if (iSection !== -1) {
+        for (;;) {
+          const { data: page } = await supabase.rpc("tpo_students" as never, { _limit: 200, _offset: mySection.size } as never);
+          const got = (page ?? []) as unknown as { email: string | null; cohort: string | null; total_count: number }[];
+          got.forEach((r, k) => mySection.set((r.email ?? `#${mySection.size + k}`).toLowerCase(), r.cohort ?? ""));
+          if (got.length === 0 || mySection.size >= Number(got[0]?.total_count ?? 0)) break;
+        }
+      }
 
       const parsed: ParsedRow[] = table.slice(1).map((cells, i) => {
         const raw = Object.fromEntries(headers.map((h, j) => [h, cells[j] ?? ""]));
@@ -167,6 +177,14 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
           validation_status: status, error_message: err, raw,
         };
       });
+
+      // MF-119: an existing student whose section changes is moved on import; say so in the preview.
+      for (const r of parsed) {
+        const now = mySection.get(r.email);
+        if (r.validation_status === "duplicate" && now !== undefined && r.cohort && now !== r.cohort) {
+          r.error_message = `Already yours - moves from ${now || "no section"} to ${r.cohort}`;
+        }
+      }
 
       const counts = tally(parsed);
 

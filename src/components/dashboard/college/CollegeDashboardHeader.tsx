@@ -117,7 +117,7 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -191,14 +191,7 @@ const StudentProgressPage = () => {
             <CardTitle className="text-base sm:text-lg font-semibold">Progress Indicators</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Pass Rate</span>
-                <span className="text-sm font-bold">{passRate}%</span>
-              </div>
-              <Progress value={passRate} className="h-2" />
-            </div>
-
+            {/* MF-077: Pass Rate is already a card above; it is not shown twice. */}
             <div className="pt-4">
               <h4 className="text-sm font-medium mb-3">Most Recent Badges</h4>
               {badges && badges.length > 0 ? (

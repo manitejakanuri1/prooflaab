@@ -24,3 +24,24 @@ Deno.test("tests the starter passes are not scored", () => {
   assertEquals(scoreWithoutFreeTests(results, 5, null), { pass_count: 2, total: 5, free: 0 });
   assertEquals(scoreWithoutFreeTests(results, 5, new Set()), { pass_count: 2, total: 5, free: 0 });
 });
+
+Deno.test('brokenProblem: a full statement naming the function passes', async () => {
+  const { brokenProblem } = await import('./coding-round.ts');
+  const ok = { prompt: 'Write count_vowels(s) that returns how many vowels s has. Example: count_vowels("apple") returns 2.',
+               starter_code: 'def count_vowels(s):\n    return 0', kind: 'function', function_spec: { function_name: 'count_vowels' } };
+  if (brokenProblem(ok) !== null) throw new Error('good problem flagged: ' + brokenProblem(ok));
+});
+
+Deno.test('brokenProblem: empty, no starter, function not named', async () => {
+  const { brokenProblem } = await import('./coding-round.ts');
+  const base = { starter_code: 'def f(x):\n    return 0', kind: 'function', function_spec: { function_name: 'f_total' } };
+  const cases: [Record<string, unknown>, string][] = [
+    [{ ...base, prompt: 'Sum' }, 'statement too short'],
+    [{ ...base, prompt: 'Write f_total(nums) that returns the sum of all numbers in the list nums.', starter_code: '' }, 'no starter code'],
+    [{ ...base, prompt: 'Write a function that returns the sum of all numbers in the given list.' }, 'statement does not name the function'],
+  ];
+  for (const [q, want] of cases) {
+    const got = brokenProblem(q);
+    if (got !== want) throw new Error(`expected ${want}, got ${got}`);
+  }
+});

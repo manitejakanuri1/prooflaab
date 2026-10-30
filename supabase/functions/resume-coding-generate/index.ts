@@ -4,7 +4,7 @@ import { rateLimitResponse } from '../_shared/rate-limit.ts';
 import { cors } from "../_shared/cors.ts";
 import { tryGenerateSandbox } from "../_shared/auto-config.ts";
 import { sandboxConfigRow } from "../_shared/function-generation.ts";
-import { sameProblem } from "../_shared/coding-round.ts";
+import { brokenProblem, sameProblem } from "../_shared/coding-round.ts";
 
 /** A stored round question, in the shape sameProblem compares. */
 const asProblem = (q: any) => ({ prompt: q?.prompt, function_name: q?.function_spec?.function_name });
@@ -195,7 +195,9 @@ Rules:${avoid ? `\n- It MUST be a different problem from "${avoid}": a different
         .from('ai_templates').select('payload').eq('template_key', cacheKey).maybeSingle();
       // A cached round holding the same problem twice is not served; it is rebuilt and overwritten below.
       if (Array.isArray(cached?.payload) && cached.payload.every((q: any) => q?.sandbox_config_id)
-          && !(cached.payload.length === 2 && sameProblem(asProblem(cached.payload[0]), asProblem(cached.payload[1])))) {
+          && !(cached.payload.length === 2 && sameProblem(asProblem(cached.payload[0]), asProblem(cached.payload[1])))
+          // MF-044: a cached round holding a broken problem is rebuilt, not served
+          && cached.payload.every((q: any) => !brokenProblem(q))) {
         console.log('coding round served from template cache:', cacheKey);
         codingQuestions = cached.payload as any[];
         await supabase.rpc('touch_template', { _key: cacheKey });
@@ -261,6 +263,11 @@ Rules:${avoid ? `\n- It MUST be a different problem from "${avoid}": a different
           })(),
         });
       }
+      // MF-044: check each problem's text before anyone sees it; a broken one is dropped.
+      for (let i = built.length - 1; i >= 0; i--) {
+        const why = brokenProblem(built[i]);
+        if (why) { console.log(`coding round: dropped a problem (${why})`); built.splice(i, 1); }
+      }
       if (built.length === 0) {
         // No fresh problem passed its own tests (seen on staging for 5 of 50 students in one batch).
         // Serve an already-checked round in the same language instead of failing: every problem in it
@@ -268,7 +275,7 @@ Rules:${avoid ? `\n- It MUST be a different problem from "${avoid}": a different
         const { data: stored } = await supabase.from('ai_templates').select('payload')
           .eq('kind', 'coding_round').filter('payload->0->>language', 'eq', language).limit(10);
         const usable = (stored ?? []).map((r: any) => r.payload)
-          .filter((p: any) => Array.isArray(p) && p.length > 0 && p.every((q: any) => q?.sandbox_config_id));
+          .filter((p: any) => Array.isArray(p) && p.length > 0 && p.every((q: any) => q?.sandbox_config_id && !brokenProblem(q)));
         if (usable.length > 0) {
           console.log(`coding round: fresh problems failed validation, serving a stored ${language} round`);
           built.push(...usable[Math.floor(Math.random() * usable.length)]);

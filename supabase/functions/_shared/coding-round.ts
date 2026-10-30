@@ -38,3 +38,19 @@ export function scoreWithoutFreeTests(
     free: starterPassed.size,
   };
 }
+
+/**
+ * MF-044: a problem is checked before a student sees it. Broken = no real statement (empty or a bare title),
+ * no starter code, or a function problem whose statement never names the function.
+ * A broken problem is not served: fresh ones are dropped and a cached round holding one is rebuilt.
+ */
+export function brokenProblem(q: {
+  prompt?: unknown; starter_code?: unknown; kind?: unknown; function_spec?: { function_name?: unknown } | null;
+}): string | null {
+  const prompt = String(q?.prompt ?? '').trim();
+  if (prompt.length < 40) return 'statement too short';
+  if (!String(q?.starter_code ?? '').trim()) return 'no starter code';
+  const fn = String(q?.function_spec?.function_name ?? '').trim();
+  if (q?.kind === 'function' && fn && !prompt.includes(fn)) return 'statement does not name the function';
+  return null;
+}

@@ -50,7 +50,7 @@ const StudentRolePreference = () => {
       .maybeSingle();
     setPrefs((data ?? {
       target_role: null, secondary_roles: [], work_preference: "either",
-      preferred_locations: [], open_to_relocate: true,
+      preferred_locations: [], open_to_relocate: false, // MF-080: nobody is "open to relocate" until they say so
     }) as unknown as Prefs);
   }, [profile?.id]);
 

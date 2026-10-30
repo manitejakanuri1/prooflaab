@@ -120,8 +120,8 @@ const App = () => (
                 <Route path="/pricing" element={<Navigate to="/" replace />} />
                 {/* MF-068: addresses people type or bookmark land somewhere real, not on Home. */}
                 <Route path="/login" element={<Navigate to="/auth" replace />} />
-                <Route path="/settings" element={<Navigate to="/student/dashboard?tab=settings" replace />} />
-                <Route path="/student/settings" element={<Navigate to="/student/dashboard?tab=settings" replace />} />
+                <Route path="/settings" element={<Navigate to="/student/dashboard?tab=profile&view=settings" replace />} />
+                <Route path="/student/settings" element={<Navigate to="/student/dashboard?tab=profile&view=settings" replace />} />
                 <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
                 <Route path="/portfolio/:slug" element={<Portfolio />} />
                 

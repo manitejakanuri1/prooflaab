@@ -132,6 +132,8 @@ jobs:
       #   screens (SandboxTaskPanel, WrittenTaskPanel), voice record-again and skip warning (TaskVoicePanel,
       #   VoiceExplainModal), today's marks and week total (StudentDailyCard), squad week marks (StudentSquadPage),
       #   college marks explanation (TpoSquads); new src/lib/lotMarks*.ts. Re-frozen by the step below.
+      # 30 Oct: owner decision - MF-011, Assign lists only the student's own section (TpoSquads); new
+      #   src/lib/squadSection*.ts. Re-frozen by the step below.
       - name: UI freeze - no student/college screen file changed since S38 74c3a12 (admin panel excepted)
         run: |
           ALLOWED=(':(exclude)src/components/dashboard/admin' ':(exclude)src/pages/AdminDashboard.tsx'
@@ -172,6 +174,7 @@ jobs:
                    ':(exclude)src/components/dashboard/season/SquadSwapsList.tsx'
                    ':(exclude)src/components/dashboard/college/TpoSquads.tsx'
                    ':(exclude)src/lib/lotMarks.ts' ':(exclude)src/lib/lotMarksText.ts' ':(exclude)src/lib/lotMarks.test.ts'
+                   ':(exclude)src/lib/squadSection.ts' ':(exclude)src/lib/squadSection.test.ts'
                    ':(exclude)src/pages/Index.tsx' ':(exclude)src/components/landing'
                    ':(exclude)index.html'
                    ':(exclude)src/components/Logo.tsx'
@@ -234,17 +237,19 @@ jobs:
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
 
-      - name: UI re-freeze 29 Oct - graded-marks screens equal commit 065779e (strict after week 1)
+      - name: UI re-freeze 30 Oct - graded-marks + section-filtered Assign screens equal commit 2a5962f
         # Owner opened these for graded daily marks (29 Oct 2026) and asked for them to be frozen again once done.
+        # 30 Oct 2026: owner OK'd TpoSquads.tsx for MF-011 (Assign by section), frozen again here.
         # Any later change needs the owner's OK and a new commit here.
         run: |
-          git diff --quiet 065779ee95ee49291f538aef7c44f980a8870c3f -- \
+          git diff --quiet 2a5962fd1032783373a09e8d4ad628caf9581b07 -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
             src/components/dashboard/student/VoiceExplainModal.tsx src/components/dashboard/student/WrittenTaskPanel.tsx \
             src/lib/lotMarks.ts src/lib/lotMarksText.ts src/lib/lotMarks.test.ts \
-            || { echo "::error::a graded-marks screen changed after the 29 Oct re-freeze (065779e)"; exit 1; }
+            src/lib/squadSection.ts src/lib/squadSection.test.ts \
+            || { echo "::error::a graded-marks screen changed after the 30 Oct re-freeze (2a5962f)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

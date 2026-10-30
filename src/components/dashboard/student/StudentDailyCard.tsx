@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -201,6 +202,14 @@ const StudentDailyCard = () => {
   }, [profile?.id]);
 
   useEffect(() => { void load(); }, [load]);
+  // MF-116: while a recording is being checked, look again every 15 s so the card shows the result
+  // even when the popup was closed during the upload.
+  useLiveRefresh(async () => {
+    if (voiceStatus !== "checking" || !lot || !profile?.id) return;
+    const st = await latestVoiceStatus(profile.id, lot.id);
+    setVoiceStatus(st);
+    if (st !== "checking") await load();
+  }, 15_000);
 
   const recency = lastActive
     ? isSameDay(new Date(lastActive), new Date()) ? "active" : "idle"

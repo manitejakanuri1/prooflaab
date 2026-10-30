@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { removalSummary, removeStudents } from "@/lib/removeStudents";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -439,7 +439,7 @@ const StudentOversight = () => {
                   <TableCell>{getStatusBadge(student.status)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {(student as any).tasks?.length || 0}
+                      {(student as any).tasks?.[0]?.count ?? 0 /* MF-057: tasks(count) answers [{ count }] */}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -595,6 +595,7 @@ const StudentOversight = () => {
                 placeholder="Student batch/year"
               />
             </div>
+            {viewMode === 'view' && selectedStudent && <AdminReadiness student={selectedStudent} />}
             {viewMode !== 'view' && (
               <div>
                 <label className="text-sm font-medium mb-2 block">Status</label>
@@ -636,3 +637,25 @@ const StudentOversight = () => {
 };
 
 export default StudentOversight;
+/** MF-057: onboarding, latest resume score and interview readiness, read-only. */
+function AdminReadiness({ student }: { student: { id: string; onboarding_status?: string | null } }) {
+  const [card, setCard] = useState<{ resume_quality_score: number | null; interview_readiness_score: number | null; created_at: string } | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    void supabase.from('resume_scorecards')
+      .select('resume_quality_score, interview_readiness_score, created_at')
+      .eq('student_id', student.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      .then(({ data }) => { if (live) setCard((data as typeof card) ?? null); });
+    return () => { live = false; };
+  }, [student.id]);
+  const n = (v: number | null | undefined) => (v == null ? '-' : Math.round(v));
+  return (
+    <div className="rounded-md border p-3 text-sm space-y-1" data-testid="admin-readiness">
+      <p>Onboarding: <b>{student.onboarding_status ?? '-'}</b></p>
+      {card === undefined ? <p className="text-muted-foreground">Loading scores...</p>
+        : card === null ? <p className="text-muted-foreground">No resume check yet.</p>
+        : <p>Resume score <b>{n(card.resume_quality_score)}</b> · Interview readiness <b>{n(card.interview_readiness_score)}</b>
+            <span className="text-muted-foreground"> ({new Date(card.created_at).toLocaleDateString('en-GB')})</span></p>}
+    </div>
+  );
+}

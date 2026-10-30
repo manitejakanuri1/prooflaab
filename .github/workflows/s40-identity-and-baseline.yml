@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 0078455598ffacc10fb38009646664e2636aa922   # 2026-10-30: + MF-020 saved answer on a finished task on TEST
+      STAGING_RC: 6a6930ed2dbf40d87d96068e45c493dc3114a584   # 2026-10-30: + MF-023 work visibility (college/admin see all, one company switch) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate, useNavigate } from "react-router-dom";
+import { roleHome } from "@/lib/roleHome";
 
 interface RoleBasedProtectedRouteProps {
   children: React.ReactNode;
@@ -89,8 +90,13 @@ export default function RoleBasedProtectedRoute({
     return <Navigate to={fallbackRoute} replace />;
   }
 
-  if (!userRole || !allowedRoles.includes(userRole)) {
+  if (!userRole) {
     return <Navigate to={fallbackRoute} replace />;
+  }
+
+  // MF-048: a signed-in user on another role's page goes to their own dashboard, not back to sign-in.
+  if (!allowedRoles.includes(userRole)) {
+    return <Navigate to={roleHome(userRole)} replace />;
   }
 
   return <>{children}</>;

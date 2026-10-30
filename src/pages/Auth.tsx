@@ -71,7 +71,9 @@ export default function Auth() {
           timeout
         ]);
       } catch (error) {
-        // If session check fails or times out, clear it
+        // MF-048: a slow check is not a broken session - never sign anyone out for being slow.
+        if (error instanceof Error && error.message === 'Session check timeout') return;
+        // A session check that really failed: clear it.
         await supabase.auth.signOut().catch(() => {});
       }
     };

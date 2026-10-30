@@ -76,6 +76,7 @@ serve(async (req) => {
       skills: string[];
       certifications: string[];
       projects: { name: string; description: string; tech_stack: string[] }[];
+      internships: { company: string; role: string; description: string }[];
     } | null = null;
 
     if (fromResume) {
@@ -101,6 +102,9 @@ serve(async (req) => {
           skills: row.skills || [],
           certifications: row.certifications || [],
           projects: row.projects || [],
+          // MF-073: internships come from the resume reader (older claims have none).
+          internships: (Array.isArray((row.raw_extraction as any)?.internships) ? (row.raw_extraction as any).internships : [])
+            .filter((x: any) => x && (x.company || x.role)).slice(0, 3),
         };
       }
     } else {
@@ -120,6 +124,7 @@ serve(async (req) => {
           skills: [...(row.skills || []), ...(row.interests || [])],
           certifications: [],
           projects: [],
+          internships: [],
         };
       }
     }
@@ -188,6 +193,7 @@ serve(async (req) => {
     const skills: string[] = source.skills;
     const certifications: string[] = source.certifications;
     const projects: { name: string; description: string; tech_stack: string[] }[] = source.projects;
+    const internships = source.internships;
     const targetRole = source.target_role || 'the role they are targeting';
 
     // Project defence used to put all five of its questions on the single
@@ -218,6 +224,8 @@ Skills claimed: ${skills.join(', ') || 'none listed'}
 Certifications claimed: ${certifications.join(', ') || 'none listed'}
 Projects claimed:
 ${projects.map((p, i) => `${i + 1}. ${p.name} — ${p.description} (tech: ${(p.tech_stack || []).join(', ')})`).join('\n') || 'none listed'}
+Internships claimed:
+${internships.map((x, i) => `${i + 1}. ${x.role} at ${x.company}: ${x.description}`).join('\n') || 'none listed'}
 
 Generate exactly ${mcqCount} multiple-choice questions${fallbackShortAnswerCount > 0 ? ` and exactly ${fallbackShortAnswerCount} short-answer questions` : ''}. Each question will be shown one at a time with a 15-second timer, so keep every question short enough to read and answer that fast.
 
@@ -228,7 +236,7 @@ Rules for ALL questions:
 
 MCQ rules:
 - SPREAD THE COVERAGE. Do not ask two questions about the same skill, certification or project. Work across the whole list above so as much of the resume as possible is examined, rather than going deep on one item.
-- Mix skill-based, certification-based, project-based, and role-based questions.
+- Mix skill-based, certification-based, ${projects.length ? 'project-based, ' : ''}${internships.length ? 'internship-based, ' : ''}and role-based questions.${projects.length ? '' : '\n- No projects are listed: do NOT ask any question about a project.'}
 - If a claimed skill is a programming language or framework, at least 1-2 of the MCQs should be code-reading style: show a short (1-3 line) code snippet using that language/framework in the prompt text and ask what it does or what's wrong with it.
 - Exactly 4 options, exactly one correct answer, wrong options plausible.
 - Vary difficulty (mix of easy and medium).

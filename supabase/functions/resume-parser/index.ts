@@ -195,6 +195,8 @@ If it is a resume, extract exactly what they claim about themselves — no more,
 
 Read the resume and return ONLY the skills, certifications, projects, and target role that are actually written in it. Do not invent, assume, or add anything not present in the document.
 
+Also capture the student's CGPA or percentage exactly as written (for example "8.4/10" or "78%"; empty string if not written), and each internship or job listed with its company, role and a one-sentence description of the work. A project done during an internship belongs under that internship, not under projects. Never invent an internship or a CGPA.
+
 For each project listed, capture its name, a one-sentence description of what it does (from the resume text), and the tech stack/tools mentioned for it.
 
 If a target job role/title is not explicitly stated, infer the single most likely one from the resume's overall content (most recent role sought, objective line, or dominant skill area) rather than leaving it empty.
@@ -214,6 +216,10 @@ Return a JSON object with this exact structure:
   "certifications": ["cert1", "cert2"],
   "projects": [
     { "name": "string", "description": "string", "tech_stack": ["tech1", "tech2"] }
+  ],
+  "cgpa": "",
+  "internships": [
+    { "company": "string", "role": "string", "description": "string" }
   ],
   "resume_quality_score": 0,
   "resume_quality_notes": "one or two sentences on what to improve",
@@ -257,6 +263,8 @@ Return ONLY the JSON object, no additional text, no markdown code fences.`;
       skills?: string[];
       certifications?: string[];
       projects?: { name: string; description: string; tech_stack: string[] }[];
+      cgpa?: string;
+      internships?: { company: string; role: string; description: string }[];
       resume_quality_score?: number;
       resume_quality_notes?: string;
       ats_match_score?: number;

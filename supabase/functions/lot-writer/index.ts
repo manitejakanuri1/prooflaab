@@ -53,7 +53,7 @@ serve(async (req) => {
     // this one account could walk the whole pool and spend the model budget
     // on content nobody has reached.
     if (!isAdmin) {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // MF-124: India date
       const { data: mine } = await supabase
         .from('tasks')
         .select('id')

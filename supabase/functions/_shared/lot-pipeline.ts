@@ -220,7 +220,7 @@ export async function writeLotTemplate(supabase: any, sourceContentId: string, a
     }
 
     // Rewrite today's cards still on the old version; only ones nobody has started.
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // MF-124: India date
     const { data: updated } = await supabase.from("tasks").update({
       title: row.title, description: row.scenario, code_sample: row.code_sample, source_jd: row.source_jd,
       difficulty: row.difficulty, estimate_minutes: row.estimate_minutes, lot_category: row.lot_category,

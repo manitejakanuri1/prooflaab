@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: 6a6930ed2dbf40d87d96068e45c493dc3114a584   # 2026-10-30: + MF-023 work visibility (college/admin see all, one company switch) on TEST
+      STAGING_RC: ffb10cc518214bca314844d90fbc52f25d21e15f   # 2026-10-30: + go-live batch (MF fixes, migrations 170-178) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

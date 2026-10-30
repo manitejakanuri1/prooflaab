@@ -12,6 +12,8 @@ interface Report {
   season?: { name: string; weeks: number; status: string; ends_on: string };
   weekly?: { week: number; points: number }[];
   totals?: { points: number; best_week: number; weeks_active: number; weeks_total: number };
+  /** MF-031 (migration 186): the running week so far, before it is scored. */
+  this_week?: { week: number; points: number; lots: number } | null;
   by_activity?: Record<string, number>;
   squad?: { name: string; rank: number; points: number; record: string; my_contribution: number };
   podium?: { champion: string | null; runner_up: string | null; third: string | null };
@@ -123,6 +125,7 @@ const StudentSeasonReport = () => {
             {[
               ...(r.rank ? [{ k: "Your place", v: `#${r.rank.place} of ${r.rank.of}` }] : []),
               { k: "Points", v: r.totals?.points ?? 0 },
+              ...(r.this_week ? [{ k: `Week ${r.this_week.week} so far`, v: `${r.this_week.points} (${r.this_week.lots} Lots)` }] : []),
               { k: "Best week", v: r.totals?.best_week ?? 0 },
               { k: "Weeks active", v: `${r.totals?.weeks_active ?? 0}/${r.totals?.weeks_total || r.season?.weeks || 0}` },
               { k: "Topics cleared", v: r.ladder?.cleared ?? 0 },

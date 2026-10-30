@@ -65,6 +65,21 @@ const CollegeProfilePage = () => {
             college_name: collegeData.name
           }));
         }
+
+        // MF-067: empty count / branches are filled from the students actually imported (still editable).
+        if (!collegeProfile?.student_strength || !collegeProfile?.branches_offered?.length) {
+          const [{ data: ins }, { data: filters }] = await Promise.all([
+            supabase.rpc("tpo_insights" as never),
+            supabase.rpc("tpo_student_filters" as never),
+          ]);
+          const students = (ins as { students?: number } | null)?.students;
+          const branches = (filters as { branches?: string[] } | null)?.branches ?? [];
+          setFormData(prev => ({
+            ...prev,
+            student_strength: prev.student_strength || (students ? String(students) : ''),
+            branches_offered: prev.branches_offered.length ? prev.branches_offered : branches,
+          }));
+        }
       } catch (error) {
         console.error('Error loading college profile:', error);
         toast({

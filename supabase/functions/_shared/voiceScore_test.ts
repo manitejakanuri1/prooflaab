@@ -98,6 +98,15 @@ const shortRec = () => longRec({ transcript: 'too short', word_count: 2 });
 const ai = (text: string, calls: { n: number } = { n: 0 }, delay = 0) =>
   async () => { calls.n++; if (delay) await new Promise((r) => setTimeout(r, delay)); return { text }; };
 
+Deno.test("1e MF-115: a 4-second clip with enough words is refused, no AI call", async () => {
+  const db = new FakeDb({ id: ID });
+  const calls = { n: 0 };
+  const r = await scoreRecording(db, longRec({ duration_seconds: 4 }), ai('{}', calls));
+  assertEquals(r.outcome, 'too_short');
+  assertEquals(calls.n, 0);
+  assertEquals(db.rows.get(ID)!.status, 'failed');
+});
+
 // ---------- 1. too-short decision is protected by the claim ----------
 Deno.test("1a too-short never touches an already-scored recording", async () => {
   const db = new FakeDb({ id: ID, status: 'scored', communication_score: 70, communication_notes: 'good' });

@@ -42,6 +42,9 @@ export type ScoreOutcome =
   | 'not_found'   // the recording no longer exists
   | 'error';      // a database call failed; nothing is claimed to have happened
 
+
+/** MF-115: shortest recording that is scored at all. */
+export const MIN_VOICE_SECONDS = 20;
 export type ScoreResult = { status: number; outcome: ScoreOutcome; body: Record<string, unknown> };
 
 /** Minimum words before a transcript is worth grading (unchanged). */
@@ -205,6 +208,14 @@ export async function scoreRecording(
       console.log(`VOICE-SCORE: closed ${voice_id} - the Lot's spoken part is closed`);
       return await failUnderClaim(CLOSED_NOTE, 'closed', 200, { success: false, reason: 'voice closed', closed: true }, 'closed');
     }
+  }
+
+  // MF-115: a recording under 20 seconds is refused whatever its words (the browser refuses it too).
+  if (rec.duration_seconds != null && rec.duration_seconds < MIN_VOICE_SECONDS) {
+    console.log(`VOICE-SCORE: too short ${voice_id} (${rec.duration_seconds}s)`);
+    return await failUnderClaim(
+      `This recording is only ${Math.round(rec.duration_seconds)} seconds. Please explain for at least ${MIN_VOICE_SECONDS} seconds and record again.`,
+      'too_short', 200, { success: false, reason: 'recording too short', seconds: rec.duration_seconds }, 'too_short');
   }
 
   // Too little speech: decided only now, under this claim, so it can never

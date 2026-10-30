@@ -23,6 +23,8 @@ import {
 } from "@/lib/voiceJob";
 
 const MAX_SECONDS = 60;
+// MF-115: a clip shorter than this is not an explanation; it is refused before upload (the server refuses it too).
+const MIN_SECONDS = 20;
 
 /**
  * Minimum words before the recording is worth scoring (synchronous path).
@@ -1068,6 +1070,15 @@ const VoiceExplainModal = ({
         giveUp();
         if (isCurrent()) {
           setError("This recording ran past 60 seconds while the page was in the background, so it was not saved. Please record again.");
+          setPhase("error");
+        }
+        return;
+      }
+
+      if (seconds < MIN_SECONDS) {
+        giveUp();
+        if (isCurrent()) {
+          setError(`Your recording was only ${Math.round(seconds)} seconds. Please explain for at least ${MIN_SECONDS} seconds and record again.`);
           setPhase("error");
         }
         return;

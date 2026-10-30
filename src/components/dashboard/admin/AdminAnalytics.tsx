@@ -172,7 +172,10 @@ const AdminAnalytics = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Proofs Uploaded</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {/* MF-090/106: this counts only the chosen period, unlike Overview's all-time total; say so. */}
+                  Work submitted, last {dateRange === "weekly" ? "7 days" : dateRange === "monthly" ? "month" : "12 months"}
+                </p>
                 <p className="text-3xl font-bold text-primary">{kpiStats?.totalProofs || 0}</p>
               </div>
               <div className="p-3 rounded-full bg-primary/10">

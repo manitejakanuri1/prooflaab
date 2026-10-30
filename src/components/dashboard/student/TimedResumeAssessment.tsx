@@ -392,9 +392,15 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     applyCodingQuestions(questionsBack);
   }, [assessmentId, source, toast, onOpenChange, codingRetries, failCodingGen]);
 
-  const advance = useCallback(async () => {
+  const advance = useCallback(async (timedOut = false) => {
     if (advancingRef.current || !currentQuestion) return;
     advancingRef.current = true;
+    // MF-108: say why the question moved on, and that a blank answer scores 0.
+    if (timedOut) {
+      toast({ title: "Time is up", description: hasAnswer ? "Your answer was saved." : "No answer was given, so this question scores 0." });
+    } else if (!hasAnswer) {
+      toast({ title: "No answer given", description: "This question scores 0." });
+    }
 
     const recorded: RecordedAnswer = {
       question_id: currentQuestion.id,
@@ -424,7 +430,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
     setConfidence(null);
     setTimeLeft(secondsFor(questions[currentIndex + 1]));
     advancingRef.current = false;
-  }, [answers, assessmentId, confidence, currentIndex, currentQuestion, isLastQuestion, questions, selectedOption, textAnswer, submitAssessment, toast]);
+  }, [answers, assessmentId, confidence, currentIndex, currentQuestion, hasAnswer, isLastQuestion, questions, selectedOption, textAnswer, submitAssessment, toast]);
 
   // Reload-resume: this component fully remounts on a page reload, so progress
   // (question index, recorded answers, coding round state) is snapshotted to
@@ -566,7 +572,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
   useEffect(() => {
     if (!open || submitting || phase !== "quiz" || !clockReady) return;
     if (timeLeft <= 0) {
-      void advance();
+      void advance(true);
       return;
     }
     const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
@@ -769,7 +775,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                 options and the confidence row, the button used to sit below the
                 fold and students did not know there was a Next at all. */}
             <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 border-t bg-background px-6 py-3">
-            <Button onClick={advance} disabled={submitting || nextLocked} className="w-full">
+            <Button onClick={() => void advance()} disabled={submitting || nextLocked} className="w-full">
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Grading...

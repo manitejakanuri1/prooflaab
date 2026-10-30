@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useSeasonStatus } from "./SeasonPhaseBar";
@@ -61,15 +62,18 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
   const { status } = useSeasonStatus();
   const [awards, setAwards] = useState<Award[]>([]);
   const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState(25);   // MF-083: "Show more" adds 25 at a time
+
+  useEffect(() => setLimit(25), [kind]);
 
   useEffect(() => {
     void (async () => {
       setLoading(true);
-      const { data } = await supabase.rpc("season_leaderboard", { _kind: kind, _limit: 25 });
+      const { data } = await supabase.rpc("season_leaderboard", { _kind: kind, _limit: limit });
       setRows((data ?? []) as unknown as Row[]);
       setLoading(false);
     })();
-  }, [kind]);
+  }, [kind, limit]);
 
   useEffect(() => {
     void (async () => {
@@ -178,6 +182,11 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
                   ))}
                 </tbody>
               </table>
+            )}
+            {!loading && rows.length >= limit && (
+              <div className="pt-3 text-center">
+                <Button variant="outline" size="sm" onClick={() => setLimit((n) => n + 25)}>Show more</Button>
+              </div>
             )}
           </div>
         </CardContent>

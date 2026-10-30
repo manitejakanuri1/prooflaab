@@ -34,6 +34,8 @@ interface Squad {
   season_id: string | null;
   /** Null while the league is still running. */
   qualified: boolean | null;
+  /** Migration 184: the section (or pooled sections) this squad plays its championship in. */
+  bracket?: string | null;
   seed: number | null;
 }
 
@@ -89,7 +91,7 @@ const StudentSquadPage = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const { status: season } = useSeasonStatus();
   // my_season_status answers nothing once a season is over, so read the squad's own season row.
-  const [ended, setEnded] = useState<{ champion: string | null } | null>(null);
+  const [ended, setEnded] = useState<{ champion: string | null; champions: { bracket: string; champion: string }[] } | null>(null);
   const [weekMarks, setWeekMarks] = useState<SquadWeekMarks | null>(null);
 
   const load = useCallback(async () => {
@@ -149,7 +151,13 @@ const StudentSquadPage = () => {
       const { data: s } = await supabase.from("seasons")
         .select("status, champion_squad_id").eq("id", mySquad.season_id).maybeSingle();
       const champ = s?.champion_squad_id ? (allSquads.find((q) => q.id === s.champion_squad_id)?.name ?? null) : null;
-      setEnded(s?.status === "complete" ? { champion: champ } : null);
+      // 184: a champion in every section
+      const { data: champs } = s?.status === "complete"
+        ? await supabase.from("season_champions" as never).select("bracket, champion_squad_id").eq("season_id", mySquad.season_id)
+        : { data: null };
+      const champions = ((champs ?? []) as unknown as { bracket: string; champion_squad_id: string }[])
+        .map((c) => ({ bracket: c.bracket, champion: allSquads.find((q) => q.id === c.champion_squad_id)?.name ?? "" }));
+      setEnded(s?.status === "complete" ? { champion: champ, champions } : null);
     }
     setLoading(false);
   }, [profile?.id]);
@@ -229,7 +237,9 @@ const StudentSquadPage = () => {
             <p className="mt-2 text-sm" data-testid="season-over">
               <span className="font-medium">Season over.</span>{" "}
               <span className="text-muted-foreground">
-                {ended.champion ? `Champion: ${ended.champion}. ` : ""}
+                {ended.champions.length > 0
+                  ? ended.champions.map((c) => `${c.bracket} Champion: ${c.champion}. `).join("")
+                  : ended.champion ? `Champion: ${ended.champion}. ` : ""}
                 {squad.rank ? `${squad.name} finished #${squad.rank} in the college.` : ""}
               </span>
             </p>
@@ -237,7 +247,7 @@ const StudentSquadPage = () => {
             <p className="mt-2 text-sm">
               {squad.qualified ? (
                 <span className="text-verified font-medium">
-                  Through to the championship{squad.seed ? ` as seed ${squad.seed}` : ""}.
+                  Through to the {squad.bracket ? `${squad.bracket} ` : ""}championship{squad.seed ? ` as seed ${squad.seed}` : ""}.
                 </span>
               ) : (
                 <span className="text-muted-foreground">

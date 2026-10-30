@@ -109,6 +109,8 @@ const StudentDailyCard = () => {
   const [noContent, setNoContent] = useState(false);
   // Migration 130: Sunday is the rest day - no Lot, and the streak carries over to Monday.
   const [restDay, setRestDay] = useState(false);
+  // Migration 184: the days off between two seasons - no Lot, the roadmap stays open.
+  const [nextSeasonAt, setNextSeasonAt] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -146,10 +148,12 @@ const StudentDailyCard = () => {
     if (!today) {
       const { data: made } = await supabase.rpc("create_my_lot" as never);
       const r = made as unknown as
-        { task_id: string | null; needs_writer: boolean; reason?: string; source_content_id?: string } | null;
+        { task_id: string | null; needs_writer: boolean; reason?: string; source_content_id?: string; next_season_at?: string } | null;
 
       if (r?.reason === "rest day") {
         setRestDay(true);
+      } else if (r?.reason === "between seasons") {
+        setNextSeasonAt(r.next_season_at ?? "");
       } else if (r?.reason === "no content available") {
         setNoContent(true);
       } else if (r?.task_id) {
@@ -443,6 +447,11 @@ const StudentDailyCard = () => {
             ) : restDay ? (
               <p className="text-sm text-muted-foreground">
                 Sunday is your rest day. No Lot today, and your streak is safe. See you on Monday.
+              </p>
+            ) : nextSeasonAt !== null ? (
+              <p className="text-sm text-muted-foreground">
+                The season is over. No Daily Lot until the next season starts
+                {nextSeasonAt ? ` (${format(new Date(nextSeasonAt), "d MMM")})` : ""}. Keep going on your roadmap.
               </p>
             ) : noContent ? (
               <>

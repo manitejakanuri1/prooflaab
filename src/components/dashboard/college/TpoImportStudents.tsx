@@ -347,10 +347,10 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       const { data: sq, error: sqErr } = serverSquads && !serverSquads.error
         ? { data: serverSquads, error: null }
         : await supabase.rpc("tpo_form_squads" as never, {} as never);
-      const r = sq as unknown as { squads_created: number; students_placed: number; league_over?: boolean } | null;
+      const r = sq as unknown as { squads_created: number; students_placed: number; between_seasons?: number } | null;
       if (sqErr) squadLine = `squads not formed — ${sqErr.message}`;
-      // 179: new students get a squad only in week 1; until the next season they do Daily Lots and the roadmap.
-      else if (r?.league_over) squadLine = "new students join a squad in week 1 of the next season";
+      // 184: in the days off between two seasons, they get their squad when the next season starts.
+      else if (r && r.students_placed === 0 && (r.between_seasons ?? 0) > 0) squadLine = "they get their squad when the next season starts";
       else if (r && r.squads_created > 0) {
         squadLine = `${r.squads_created} squad${r.squads_created === 1 ? "" : "s"} formed, ${r.students_placed} placed`;
       }

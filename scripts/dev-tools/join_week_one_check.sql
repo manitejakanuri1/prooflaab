@@ -1,4 +1,5 @@
 -- Week-1 joining check (TEST only, migration 179): a new student gets a squad seat only in week 1. ROLLS BACK.
+-- REPLACED by migration 184 (31 Oct 2026): squads now form on any day and carry over per year group with no school-year reset. Kept for history; it now fails by design. Current check: scripts/dev-tools/season_year_group_check.sql
 -- Run: bash scripts/dev-tools/staging_sql.sh scripts/dev-tools/join_week_one_check.sql
 \set ON_ERROR_STOP on
 \pset pager off

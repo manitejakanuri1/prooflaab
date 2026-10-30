@@ -10,6 +10,7 @@ import SeasonPhaseBar, {
   StandingsKey, shownSeasonId, tieNote, useSeasonStatus, type SeasonStatus,
 } from "@/components/dashboard/season/SeasonPhaseBar";
 import SquadSwapsList from "@/components/dashboard/season/SquadSwapsList";
+import YearGroupBar from "@/components/dashboard/season/YearGroupBar";
 import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -302,12 +303,16 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       toast({ title: "No squads formed", description: error.message, variant: "destructive" });
       return;
     }
-    const r = data as unknown as { squads_created: number; students_placed: number; reserve: number; league_over?: boolean };
-    // 179: squads take new students only in week 1 of a season.
-    if (r.league_over) {
+    const r = data as unknown as {
+      squads_created: number; students_placed: number; reserve: number;
+      between_seasons?: number; next_season_at?: string | null;
+    };
+    // 184: in the days off between two seasons nobody is seated; the next season seats them.
+    if (r.squads_created === 0 && r.students_placed === 0 && (r.between_seasons ?? 0) > 0) {
       toast({
-        title: "Squads are set for this season",
-        description: `New students join a squad in week 1 of the next season. Until then they keep doing Daily Lots and the roadmap. ${r.reserve} waiting.`,
+        title: "Between seasons",
+        description: `${r.between_seasons} students get their squad when the next season starts${r.next_season_at
+          ? ` (${format(new Date(r.next_season_at), "d MMM")})` : ""}.`,
       });
       void load();
       return;
@@ -432,6 +437,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   if (squads.length === 0) {
     return (
       <div className="space-y-4">
+      <YearGroupBar status={season} sections={[]} />
       <SeasonPhaseBar status={season?.state === "complete" ? season : null} />
       <Card><CardContent className="pt-6">
         <p className="text-sm text-muted-foreground max-w-prose">
@@ -473,6 +479,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 
       </div>
 
+      <YearGroupBar status={season}
+                    sections={[...new Set(squads.map((s) => s.cohort ?? "GENERAL"))].sort()} />
       <SeasonPhaseBar status={season} />
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -778,7 +786,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         </TabsContent>
 
         <TabsContent value="manage" className="mt-4 space-y-4">
-          <QualifierSetting />
+          {season?.plan_version !== 2 && <QualifierSetting />}
           <Card><CardContent className="pt-5">
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

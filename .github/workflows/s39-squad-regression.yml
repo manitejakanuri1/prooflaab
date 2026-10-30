@@ -254,8 +254,9 @@ jobs:
         # Any later change needs the owner's OK and a new commit here.
         # 30 Oct 2026: owner OK'd TpoSquads / StudentSquadPage for week-1 joining and plain tie wording, frozen again here.
         # 31 Oct 2026: owner OK'd TpoSquads / StudentSquadPage / StudentDailyCard for one season per year group (184), frozen again here at d0cd4ca.
+        # 1 Nov 2026: owner's overnight go: TpoSquads (MF-061/063 season-week wording, Rebalance asks first) and StudentSettingsPage (MF-082 skill lists from resume), frozen again here at f2a7604.
         run: |
-          git diff --quiet d0cd4ca30372c5b655f2479c4f9e7242fd0f4524 -- \
+          git diff --quiet f2a76047703635be9275e8e07ad1e46452414df1 -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -267,7 +268,7 @@ jobs:
             src/components/dashboard/student/StudentPrivacy.tsx src/components/dashboard/student/StudentPortfolioPage.tsx \
             src/components/dashboard/student/StudentSettingsPage.tsx src/components/dashboard/recruiter/ProofProfile.tsx \
             src/recruiter/data.ts src/recruiter/types.ts \
-            || { echo "::error::a graded-marks screen changed after the 31 Oct re-freeze (d0cd4ca)"; exit 1; }
+            || { echo "::error::a graded-marks screen changed after the 1 Nov re-freeze (f2a7604)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

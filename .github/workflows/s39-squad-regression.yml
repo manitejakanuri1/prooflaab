@@ -240,13 +240,13 @@ jobs:
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
 
-      - name: UI re-freeze 30 Oct - graded marks, Assign by section, saved answers - screens equal commit 39eacbb
+      - name: UI re-freeze 30 Oct - graded marks, Assign by section, saved answers - screens equal commit dbeb6a9
         # Owner opened these for graded daily marks (29 Oct 2026) and asked for them to be frozen again once done.
         # 30 Oct 2026: owner OK'd TpoSquads.tsx for MF-011 (Assign by section), frozen again here.
         # 30 Oct 2026: owner OK'd SandboxTaskPanel / WrittenTaskPanel for MF-020 (saved answer on a finished task).
         # Any later change needs the owner's OK and a new commit here.
         run: |
-          git diff --quiet 39eacbb4e907d30bc0ac99b464ac231b6c2143ed -- \
+          git diff --quiet dbeb6a905294c5c35aa93db623a1ae29c86845c1 -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -254,7 +254,7 @@ jobs:
             src/lib/lotMarks.ts src/lib/lotMarksText.ts src/lib/lotMarks.test.ts \
             src/lib/squadSection.ts src/lib/squadSection.test.ts \
             src/lib/savedAnswer.ts src/lib/savedAnswer.test.ts src/lib/savedAnswerLoad.ts \
-            || { echo "::error::a graded-marks screen changed after the 30 Oct re-freeze (39eacbb)"; exit 1; }
+            || { echo "::error::a graded-marks screen changed after the 30 Oct re-freeze (dbeb6a9)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

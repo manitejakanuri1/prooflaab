@@ -357,7 +357,10 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                     <td className="py-2.5 pr-3 text-muted-foreground">{r.branch ?? "—"}</td>
                     <td className="py-2.5 pr-3">
                       {r.is_reserve ? (
-                        <Badge variant="outline" className="font-normal">Reserve</Badge>
+                        <Badge variant="outline" className="font-normal"
+                          title="Not in a squad yet: the student has no section, or their section has fewer than 11 students. Squads form when the section fills.">
+                          Reserve
+                        </Badge>
                       ) : (
                         <button
                           type="button"

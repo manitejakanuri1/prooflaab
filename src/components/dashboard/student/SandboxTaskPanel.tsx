@@ -131,7 +131,7 @@ export default function SandboxTaskPanel({
       if (!cancelled) setLot(st);
       if (v?.completed || st?.submitted) {
         const s = await loadSavedAnswer(taskId);
-        if (!cancelled && s) { setSaved(s); if (s.row.code) setCode(s.row.code); }
+        if (!cancelled && s) { setSaved(s); setTab("result"); if (s.row.code) setCode(s.row.code); }
       }
     })();
     return () => { cancelled = true; };

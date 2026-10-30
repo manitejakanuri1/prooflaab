@@ -10,6 +10,8 @@ import {
 } from "@/lib/functionSignature";
 import { CheckCircle2, Loader2, Play, RotateCcw, Send, XCircle, Mic } from "lucide-react";
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
+import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
+import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
 
 interface SandboxView {
   task_id: string;
@@ -101,6 +103,8 @@ export default function SandboxTaskPanel({
 }: SandboxTaskPanelProps) {
   const draftKey = `sandbox-draft:${taskId}`;
   const [view, setView] = useState<SandboxView | null>(null);
+  // MF-020: a finished task shows the saved answer and result from the server, not an empty draft.
+  const [saved, setSaved] = useState<{ row: SavedRow; voice: number | null } | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState<"run" | "submit" | null>(null);
   const [runResults, setRunResults] = useState<TestResult[] | null>(null);
@@ -125,6 +129,10 @@ export default function SandboxTaskPanel({
       setCode(draft ?? v?.starter_code ?? "");
       const st = await loadLotState(taskId);
       if (!cancelled) setLot(st);
+      if (v?.completed || st?.submitted) {
+        const s = await loadSavedAnswer(taskId);
+        if (!cancelled && s) { setSaved(s); if (s.row.code) setCode(s.row.code); }
+      }
     })();
     return () => { cancelled = true; };
   }, [taskId, draftKey]);
@@ -335,10 +343,13 @@ ${result.hidden_hint.error}` : ""}`}
         </div>
       )}
 
-      {view.completed && !result && (
+      {saved && !result && (
+        <p className="text-sm text-verified" data-testid="saved-answer">{savedResultLine(saved.row, "coding", saved.voice)}</p>
+      )}
+      {view.completed && !result && !saved && (
         <p className="text-sm text-verified">You already completed this task.</p>
       )}
-      {daily && lot?.submitted && !view.completed && !result && (
+      {daily && lot?.submitted && !view.completed && !result && !saved && (
         <p className="text-sm text-verified">Submitted. Your coding mark: {fmtMark(lot.best_mark)} out of 10.</p>
       )}
       {!busy && !error && !result && !runResults && !view.completed && !(daily && lot?.submitted) && (

@@ -8,6 +8,8 @@ import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
 import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb, Play } from "lucide-react";
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
+import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
+import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
 
 interface RubricView {
   task_id: string;
@@ -83,6 +85,8 @@ export default function WrittenTaskPanel({
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
+  // MF-020: a finished task shows the saved answer and result from the server, not an empty box.
+  const [saved, setSaved] = useState<{ row: SavedRow; voice: number | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // A written Daily Lot: 2 checks, the best counts, then "Submit this score" opens the recorder (migration 165).
   const [lot, setLot] = useState<LotState | null>(null);
@@ -102,6 +106,11 @@ export default function WrittenTaskPanel({
       if (draft) setAnswer(draft);
       const st = await loadLotState(taskId);
       if (!cancelled) setLot(st);
+      const s = await loadSavedAnswer(taskId);
+      if (!cancelled && s && (s.row.status === "passed" || st?.submitted)) {
+        setSaved(s);
+        if (s.row.code) setAnswer(s.row.code);
+      }
     })();
     return () => { cancelled = true; };
   }, [taskId, draftKey]);
@@ -158,7 +167,7 @@ export default function WrittenTaskPanel({
     );
   }
 
-  const done = result?.status === "passed" || (daily && lot?.submitted);
+  const done = result?.status === "passed" || (daily && lot?.submitted) || !!saved;
   const checksLeft = lot?.checks_left ?? 0;
   // Week 2 on (migration 166): one check, its score is final and the recorder opens straight after.
   const strict = daily && lot?.mode === "strict";
@@ -267,7 +276,10 @@ export default function WrittenTaskPanel({
           </Button>
         )}
       </div>
-      {daily && lot?.submitted && !result && (
+      {saved && !result && (
+        <p className="text-sm text-verified" data-testid="saved-answer">{savedResultLine(saved.row, "written", saved.voice)}</p>
+      )}
+      {daily && lot?.submitted && !result && !saved && (
         <p className="text-sm text-verified">Submitted. Your mark: {fmtMark(lot.best_mark)} out of 10.</p>
       )}
       {daily && !lot?.submitted && !result && (

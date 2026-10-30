@@ -40,6 +40,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const { toast } = useToast();
   const [home, setHome] = useState<Record<string, any> | null>(null);
   const [talent, setTalent] = useState<Candidate[] | null>(null);
+  const [sortBy, setSortBy] = useState<"skills" | "work" | "speaking" | null>(null);
   const [filters, setFilters] = useState<Record<string, any> | null>(null);
   const [saved, setSaved] = useState<Record<string, any>[]>([]);
   const [lots, setLots] = useState<Record<string, any>[]>([]);
@@ -161,6 +162,18 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const visible = (talent ?? []).filter((c) =>
     !search || c.name.toLowerCase().includes(search.toLowerCase())
     || c.roleFit.join(" ").toLowerCase().includes(search.toLowerCase()));
+  // MF-085: click a number column to sort by it, highest first.
+  const sortValue = (c: Candidate) =>
+    sortBy === "skills" ? c.skillsProven ?? 0 : sortBy === "work" ? c.proofsVerified ?? 0 : c.communicationScore ?? -1;
+  if (sortBy) visible.sort((a, b) => sortValue(b) - sortValue(a));
+  const sortHead = (key: "skills" | "work" | "speaking", label: string, title?: string) => (
+    <th className="pb-2 pr-3" title={title}>
+      <button type="button" className={`uppercase tracking-widest hover:text-foreground ${sortBy === key ? "text-foreground" : ""}`}
+        onClick={(e) => { e.stopPropagation(); setSortBy(sortBy === key ? null : key); }}>
+        {label}{sortBy === key ? " ↓" : ""}
+      </button>
+    </th>
+  );
 
   return (
     <div className="space-y-4">
@@ -284,9 +297,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                     <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                       <th className="pb-2 pr-3">Candidate</th>
                       <th className="pb-2 pr-3">Role</th>
-                      <th className="pb-2 pr-3">Skills proven</th>
-                      <th className="pb-2 pr-3">Verified work</th>
-                      <th className="pb-2 pr-3" title="Average score of their spoken explanations, out of 100">Speaking (of 100)</th>
+                      {sortHead("skills", "Skills proven")}
+                      {sortHead("work", "Verified work")}
+                      {sortHead("speaking", "Speaking (of 100)", "Average score of their spoken explanations, out of 100")}
                       <th className="pb-2">Last active</th>
                     </tr>
                   </thead>

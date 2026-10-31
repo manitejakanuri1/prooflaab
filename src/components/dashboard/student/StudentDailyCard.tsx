@@ -193,7 +193,13 @@ const StudentDailyCard = () => {
 
     const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean }>();
     for (const row of (weekRes.data ?? []) as { lot_date: string; lot_category: string | null; status: string | null }[]) {
-      byDay.set(row.lot_date, { kind: (row.lot_category as DayMark["kind"]) ?? "technical", done: row.status === "completed" });
+      // MF-076: a day can hold two Lots (a company Lot and the daily one); a later open row must not
+      // un-fill a day whose Lot is done.
+      const prev = byDay.get(row.lot_date);
+      byDay.set(row.lot_date, {
+        kind: prev?.kind ?? (row.lot_category as DayMark["kind"]) ?? "technical",
+        done: (prev?.done ?? false) || row.status === "completed",
+      });
     }
     setWeek(
       Array.from({ length: 7 }, (_, i) => {

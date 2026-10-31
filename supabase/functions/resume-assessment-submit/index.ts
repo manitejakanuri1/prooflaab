@@ -527,12 +527,12 @@ Rules: 3-6 stages max — merge overlapping topics rather than listing everythin
       const isFallback = stages.length === 1 && stages[0].title === 'Clean sweep';
       // A retake keeps the student's existing roadmap tasks and adds none (owner, 28 Oct 2026).
       if (!isFallback && !earlier) {
-        const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
         const taskRows = stages.map((s, i) => ({
           student_id: profile.id,
           title: `Roadmap: ${s.title}`,
           description: `${s.why}\n\nAction: ${s.action}`,
-          due_date: dueDate,
+          // MF-076: one stage a week, not every stage on the same day.
+          due_date: new Date(Date.now() + (i + 1) * 7 * 24 * 60 * 60 * 1000).toISOString(),
           xp_reward: 30,
           roadmap_scorecard_id: scorecard.id,
           roadmap_stage_index: i,

@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      STAGING_RC: fd54ddaeef38f73641913075738526ae1f9fc6bc   # 2026-11-01: + night batch MF-031/036/039/025/044/061/063/072/073/082/109/015 (migrations 186-190) on TEST
+      STAGING_RC: 782d656a2e21663708cf291bf234647bdee203af   # 2026-11-01 day: + MF-015 AI check, MF-035/062/070/076/078/088/094/126 (migrations 191-194) on TEST
     outputs:
       entry: ${{ steps.build.outputs.entry }}
       live: ${{ steps.build.outputs.live }}

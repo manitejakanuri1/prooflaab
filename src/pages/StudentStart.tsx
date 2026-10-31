@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useStudentIntake, type TaskSource } from "@/hooks/useStudentIntake";
 import WelcomeScreen from "@/components/onboarding/WelcomeScreen";
 import IntakeChoice from "@/components/onboarding/IntakeChoice";
@@ -52,10 +52,14 @@ const StudentStart = () => {
     completeIntake,
   } = useStudentIntake();
   const [starting, setStarting] = useState(false);
+  // MF-070: the Skip path's steps live in the address (?step=profile, then ?step=review), so Back
+  // returns to the previous step and a reload keeps the step instead of leaving the app.
+  const [params, setParams] = useSearchParams();
   // Set when the student picks Skip: collect branch/year/interests before going in.
-  const [collectingProfile, setCollectingProfile] = useState(false);
+  const collectingProfile = params.get("step") === "profile";
   // After the pickers: show the skills-vs-interests judgement, then the assessment.
-  const [reviewingInterests, setReviewingInterests] = useState(false);
+  const reviewingInterests = params.get("step") === "review";
+  const goStep = (step: "profile" | "review") => setParams({ step });
 
   // `degraded` means the intake row could not be read at all. Showing a blocking
   // welcome we cannot dismiss would strand the student, so pass them through.
@@ -106,7 +110,7 @@ const StudentStart = () => {
     // No resume means no skills to match tasks against, so ask for the profile
     // details instead. Intake is only marked complete once that form is done.
     if (source === "general") {
-      setCollectingProfile(true);
+      goStep("profile");
       return;
     }
     // Claimed before completeIntake, so the redirect effect cannot fire on the
@@ -126,10 +130,7 @@ const StudentStart = () => {
   // Pickers done -> move to the review screen. Intake is NOT completed here:
   // the student still has the assessment ahead, and marking it done early would
   // let the dashboard gate wave them straight past it.
-  const handleProfileComplete = () => {
-    setCollectingProfile(false);
-    setReviewingInterests(true);
-  };
+  const handleProfileComplete = () => goStep("review");
 
   const handleReviewDone = async () => {
     // Claimed before completeIntake for the same reason the resume path does it:
@@ -176,7 +177,7 @@ const StudentStart = () => {
       <div className="flex justify-center">
         <InterestReview
           onDone={handleReviewDone}
-          onEditChoices={() => { setReviewingInterests(false); setCollectingProfile(true); }}
+          onEditChoices={() => goStep("profile")}
         />
       </div>
     );

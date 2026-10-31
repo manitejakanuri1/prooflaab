@@ -125,7 +125,7 @@ const StudentResumeHistoryPage = () => {
               return (
                 <div className="mb-4 rounded-lg border p-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-sm font-medium">Company readiness</span>
+                    <span className="text-sm font-medium">Interview Readiness</span>
                     {readiness != null && (
                       <Badge variant={readiness >= 70 ? "default" : readiness >= 45 ? "secondary" : "outline"}>
                         {readiness}/100

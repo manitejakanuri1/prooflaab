@@ -218,7 +218,8 @@ def decompose_new_pages(since: str | None = None) -> None:
     """Ask the question-decompose function to cut the pages this crawl brought in into bank questions.
 
     Owner 31 Oct 2026 (migration 200): the crawler writes the questions itself, and they go live straight away.
-    ON when QUESTION_DECOMPOSE=1. It needs FUNCTIONS_URL (the functions service address) and WEBHOOK_SECRET.
+    ON when QUESTION_DECOMPOSE=1. It needs FUNCTIONS_URL (the functions service address) and WEBHOOK_SECRET
+    (REAL) or the job's own Google identity (TEST).
     since = this run's start time, so only new or changed pages are cut, never the whole old library.
     At most QUESTION_DECOMPOSE_MAX pages per run (default 20) keeps the AI cost bounded: each page is one AI call,
     and each question it gives becomes one Lot the pregenerate job writes once.
@@ -228,8 +229,18 @@ def decompose_new_pages(since: str | None = None) -> None:
         return
     url = os.environ.get("FUNCTIONS_URL", "").rstrip("/")
     secret = os.environ.get("WEBHOOK_SECRET", "")
-    if not url or not secret:
-        print("QUESTION BANK skipped: QUESTION_DECOMPOSE=1 but FUNCTIONS_URL or WEBHOOK_SECRET is not set", flush=True)
+    headers = {"x-webhook-secret": secret} if secret else {}
+    # On Cloud Run the job's own Google identity is used too (TEST accepts only that: SCHEDULER_AUTH=oidc and the
+    # crawler robot listed in SCHEDULER_CALLERS). The audience is FUNCTIONS_URL, which must equal SCHEDULER_AUDIENCE.
+    try:
+        meta = httpx.get("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity",
+                         params={"audience": url}, headers={"Metadata-Flavor": "Google"}, timeout=5)
+        if meta.status_code == 200:
+            headers["Authorization"] = f"Bearer {meta.text.strip()}"
+    except Exception:  # not on Google Cloud (a laptop run): the secret alone
+        pass
+    if not url or not headers:
+        print("QUESTION BANK skipped: QUESTION_DECOMPOSE=1 but FUNCTIONS_URL or a caller identity is missing", flush=True)
         return
     budget = max(0, min(200, int(os.environ.get("QUESTION_DECOMPOSE_MAX", "20") or 20)))
     done = stored = skipped = 0
@@ -239,7 +250,7 @@ def decompose_new_pages(since: str | None = None) -> None:
             if since:
                 body_in["since"] = since
             r = httpx.post(f"{url}/functions/v1/question-decompose", json=body_in,
-                           headers={"x-webhook-secret": secret}, timeout=280)
+                           headers=headers, timeout=280)
             body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
             if r.status_code >= 400:
                 print(f"QUESTION BANK failed: HTTP {r.status_code} {str(body)[:200]}", flush=True)

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, Users } from "lucide-react";
 import { format } from "date-fns";
 import StudentSectionMove from "./StudentSectionMove";
+import ResendInviteButton from "./ResendInviteButton";
 import FinishedWork from "../FinishedWork";
 import type { FinishedWorkItem } from "@/recruiter/types";
 
@@ -170,6 +171,14 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
             <p className="text-sm text-muted-foreground -mt-2">
               {[data.branch, data.batch, data.email, data.phone].filter(Boolean).join(" · ")}
             </p>
+
+            {/* MF-126: never signed in, so the 1-hour set-password link may have expired. */}
+            {data.email && !data.onboarding?.onboarded_at && data.days_quiet >= 999 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Has not signed in yet.</span>
+                <ResendInviteButton email={data.email} />
+              </div>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[

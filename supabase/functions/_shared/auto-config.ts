@@ -408,14 +408,12 @@ async function tryGenerateRubric(
     // response (that's the whole point of the combined call) — read it back
     // out for grading rather than requiring it up front.
     const promptText = promptTextFor(content, parsed);
-    // MF-015: the guide may only mark figures the student can see (task text or its code).
-    const missing = content.kind === "scenario"
-      ? missingGuideValues(`${promptText}\n${String(parsed.code_sample ?? "")}`, fields.criteria)
-      : [];
-    if (missing.length) {
-      console.warn(`LOT GUIDE VALUES MISSING (${feature}): ${missing.join(", ")}`);
-      retryNote = `\n\nYour marking criteria check these values, but the task text never gives them: ${missing.join(", ")}. Put every value the criteria check into the task text (or drop it from the criteria).`;
-      continue;
+    // MF-015: log figures the guide checks that the task text never shows. Log only, never a rewrite:
+    // on TEST (1 Nov 2026) all 4 of 79 written Lots it flagged were the guide's own ANSWER (e.g. "24 years"),
+    // which belongs in the guide and not in the question. Refusing them would throw away good Lots.
+    if (content.kind === "scenario") {
+      const missing = missingGuideValues(`${promptText}\n${String(parsed.code_sample ?? "")}`, fields.criteria);
+      if (missing.length) console.warn(`LOT GUIDE VALUES MISSING (${feature}): ${missing.join(", ")}`);
     }
     const graded = await gradeOnce(promptText, fields.criteria, fields.reference_answer, usageCtx.userId ?? "system");
     if (!graded) {

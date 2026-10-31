@@ -51,7 +51,7 @@ export function lotWordingProblems(lot: { title?: unknown; scenario?: unknown; c
 }
 
 /**
- * MF-015: a value the marking guide checks (a figure such as 4500, 12.5 or 2026 in a criterion) must be in
+ * MF-015 (log only, see auto-config.ts): a value the marking guide checks (a figure such as 4500, 12.5) should be in
  * the task text or its code, or the student cannot know it: a long task cut short lost exactly these.
  * Returns the missing values; [] means the task carries everything the guide marks. Single-digit numbers
  * are left out: guides use them for counts ("2 reasons"), not as data from the task.

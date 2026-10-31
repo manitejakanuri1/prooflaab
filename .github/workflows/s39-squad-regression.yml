@@ -242,7 +242,12 @@ jobs:
                    ':(exclude)src/components/dashboard/startup/StartupSettingsPage.tsx' ':(exclude)src/components/dashboard/startup/StartupSubmissionsPage.tsx'
                    ':(exclude)src/components/dashboard/student/StudentRolePreference.tsx'
                    ':(exclude)src/lib/voiceStatus.ts' ':(exclude)src/lib/voiceStatusText.ts' ':(exclude)src/lib/voiceStatus.test.ts'
-                   ':(exclude)src/lib/roleHome.ts' ':(exclude)src/lib/roleHome.test.ts')
+                   ':(exclude)src/lib/roleHome.ts' ':(exclude)src/lib/roleHome.test.ts'
+                   ':(exclude)src/components/StickyCtaBar.tsx' ':(exclude)src/components/auth/EnhancedRoleBasedAuthForm.tsx'
+                   ':(exclude)src/components/dashboard/student/DeleteAccountDialog.tsx'
+                   ':(exclude)src/components/dashboard/AnnouncementBanner.tsx' ':(exclude)src/components/dashboard/student/CompanyInvites.tsx'
+                   ':(exclude)src/components/dashboard/student/StudentDashboardContent.tsx'
+                   ':(exclude)src/lib/passedNote.ts' ':(exclude)src/lib/passedNote.test.ts')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
@@ -258,8 +263,11 @@ jobs:
         # 31 Oct 2026: owner OK'd TpoSquads / StudentSquadPage / StudentDailyCard for one season per year group (184), frozen again here at d0cd4ca.
         # 1 Nov 2026: owner's overnight go: TpoSquads (MF-061/063 season-week wording, Rebalance asks first) and StudentSettingsPage (MF-082 skill lists from resume), frozen again here at f2a7604.
         # 1 Nov 2026 (day): owner's go for the rest of the audit: StudentDailyCard (MF-076 week dot) and TpoStudentProfile (MF-126 Resend invite), frozen again here at 955c9c8.
+        # 31 Oct 2026 (evening): owner's decisions 1-13 (MF-027/033/047/101-106/120/128): squads of 11 with the 5 rule,
+        #   student Accept / Decline card, announcements banner, plain wording, Passed note, 3 unused files deleted.
+        #   Frozen again here at 1a6f652.
         run: |
-          git diff --quiet 955c9c800097576ad29f07aef5b411be53ef50f6 -- \
+          git diff --quiet 1a6f65272bf7fdb4dcfb8376a65b6899d80a9e79 -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -271,7 +279,7 @@ jobs:
             src/components/dashboard/student/StudentPrivacy.tsx src/components/dashboard/student/StudentPortfolioPage.tsx \
             src/components/dashboard/student/StudentSettingsPage.tsx src/components/dashboard/recruiter/ProofProfile.tsx \
             src/recruiter/data.ts src/recruiter/types.ts \
-            || { echo "::error::a graded-marks screen changed after the 1 Nov day re-freeze (955c9c8)"; exit 1; }
+            || { echo "::error::a graded-marks screen changed after the 31 Oct evening re-freeze (1a6f652)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

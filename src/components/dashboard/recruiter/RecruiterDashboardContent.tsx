@@ -44,6 +44,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const [filters, setFilters] = useState<Record<string, any> | null>(null);
   const [saved, setSaved] = useState<Record<string, any>[]>([]);
   const [lots, setLots] = useState<Record<string, any>[]>([]);
+  // MF-094: Saved and Lots said "nothing yet" while still loading.
+  const [listsReady, setListsReady] = useState(false);
 
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("all");
@@ -72,6 +74,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
     } else {
       setTalent([]);
     }
+    setListsReady(true);
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -334,7 +337,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
       {activeTab === "shortlist" && (
         <Card>
           <CardContent className="pt-5">
-            {saved.length === 0 ? (
+            {!listsReady ? (
+              <Skeleton className="h-24 w-full rounded-lg" />
+            ) : saved.length === 0 ? (
               <p className="text-sm text-muted-foreground max-w-prose">
                 Nobody saved yet. Open a candidate from Talent and shortlist them — they are
                 told, and choose whether to share their contact details.
@@ -392,7 +397,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
       {activeTab === "lots" && (
         <Card>
           <CardContent className="pt-5 overflow-x-auto">
-            {lots.length === 0 ? (
+            {!listsReady ? (
+              <Skeleton className="h-24 w-full rounded-lg" />
+            ) : lots.length === 0 ? (
               <p className="text-sm text-muted-foreground max-w-prose">
                 No sponsored work yet. Shortlist a candidate first, then set them a task — it
                 lands on their Daily Card like any other piece of work.

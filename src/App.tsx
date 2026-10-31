@@ -38,9 +38,11 @@ const PrivacyPolicy = lazy(() => import("./pages/Legal").then((m) => ({ default:
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 const RoleBasedProtectedRoute = lazy(() => import("./components/RoleBasedProtectedRoute"));
 
-// Lightweight loading fallback - no spinner, just reserve space
+// MF-069: a spinner while a page loads, so a slow load never looks like a blank page.
 const PageLoader = () => (
-  <div className="min-h-screen bg-background" aria-busy="true" aria-live="polite" />
+  <div className="min-h-screen bg-background flex items-center justify-center" aria-busy="true" aria-live="polite">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>
+  </div>
 );
 
 const queryClient = new QueryClient({

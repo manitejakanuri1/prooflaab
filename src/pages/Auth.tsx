@@ -10,6 +10,8 @@ type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
 
 export default function Auth() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // MF-069: a signed-in visitor sees a loader, not the sign-in form, while their session is checked.
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
   // The set-password page sends people here with a "password set" note.
   const stateMessage = (useLocation().state as { message?: string } | null)?.message;
@@ -29,6 +31,7 @@ export default function Auth() {
       supabase.auth.signOut();
       // Remove the clear parameter from URL
       window.history.replaceState({}, document.title, '/auth');
+      setChecking(false);
       return;
     }
 
@@ -75,6 +78,8 @@ export default function Auth() {
         if (error instanceof Error && error.message === 'Session check timeout') return;
         // A session check that really failed: clear it.
         await supabase.auth.signOut().catch(() => {});
+      } finally {
+        setChecking(false);
       }
     };
     
@@ -135,6 +140,14 @@ export default function Auth() {
       navigate(role === 'student' ? '/student/start' : onboardingRoute(role), { replace: true });
     }
   };
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" aria-busy="true">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>
+      </div>
+    );
+  }
 
   return (
     <AccessShell>

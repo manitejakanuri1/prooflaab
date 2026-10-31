@@ -71,7 +71,7 @@ export function transcriptQuality(transcript: string | null, wordCount: number |
   // MF-019: Whisper can invent words for a near-silent recording. The transcriber's voice detector
   // measured the real speech; under MIN_SPEECH_SECONDS of it, any transcript is not the student talking.
   if (n === 0 || (speechSeconds != null && speechSeconds < MIN_SPEECH_SECONDS)) return { flags: ['silence'], note: 'We could not hear any speech. Check your microphone and record again.' };
-  if (n < MIN_WORDS || (wordCount ?? n) < MIN_WORDS) return { flags: ['too_few_words'], note: 'Too little speech to score.' };
+  if (n < MIN_WORDS || (wordCount ?? n) < MIN_WORDS) return { flags: ['too_few_words'], note: 'Too short. Please explain your work for longer and record again.' };
   if (new Set(words).size / n < 0.3) {
     return { flags: ['repetitive'], note: 'The recording repeats the same few words. Explain what you did, in your own words.' };
   }

@@ -1604,14 +1604,19 @@ const VoiceExplainModal = ({
               </Button>
             )}
             {!inline && <Button className="w-full" onClick={() => close(false)}>Done</Button>}
-            {inline && onDone && (
+            {/* MF-041: "All Done" only for a recording that is scored or still being checked. */}
+            {inline && onDone && (savedResult && savedResult.score == null && !scoringPending ? (
+              <Button variant="outline" className="w-full" onClick={onDone}>
+                Return to Dashboard — record later
+              </Button>
+            ) : (
               <Button
                 className="w-full mt-3 bg-verified hover:bg-verified/90 text-primary-foreground font-semibold"
                 onClick={onDone}
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" /> All Done — Return to Dashboard
               </Button>
-            )}
+            ))}
           </div>
         )}
 

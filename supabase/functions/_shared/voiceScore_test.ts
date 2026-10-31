@@ -142,7 +142,7 @@ Deno.test("1c too-short, unclaimed row: marked failed under this call's claim, n
   assertEquals(r.outcome, 'too_short');
   assertEquals(calls.n, 0);
   assertEquals(db.rows.get(ID)!.status, 'failed');
-  assertEquals(db.rows.get(ID)!.communication_notes, 'Too little speech to score.');
+  assertEquals(db.rows.get(ID)!.communication_notes, 'Too short. Please explain your work for longer and record again.');
   assertEquals(db.rows.get(ID)!.scoring_lease_token, null);
 });
 Deno.test("1d too-short, 10 concurrent calls: exactly one writes, the rest do not", async () => {

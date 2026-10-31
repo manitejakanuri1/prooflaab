@@ -123,11 +123,17 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       const seen = new Set<string>();
       // MF-119: this college's own students and their current section, so the preview can say who moves.
       const mySection = new Map<string, string>();
-      if (iSection !== -1) {
+      // MF-123: a roll number is one student per college; whose it already is, by roll.
+      const normRoll = (v: string) => v.replace(/\s/g, "").toUpperCase();
+      const rollOwner = new Map<string, string>();
+      if (iSection !== -1 || iRoll !== -1) {
         for (;;) {
           const { data: page } = await supabase.rpc("tpo_students" as never, { _limit: 200, _offset: mySection.size } as never);
-          const got = (page ?? []) as unknown as { email: string | null; cohort: string | null; total_count: number }[];
-          got.forEach((r, k) => mySection.set((r.email ?? `#${mySection.size + k}`).toLowerCase(), r.cohort ?? ""));
+          const got = (page ?? []) as unknown as { email: string | null; full_name: string | null; roll_number: string | null; cohort: string | null; total_count: number }[];
+          got.forEach((r, k) => {
+            mySection.set((r.email ?? `#${mySection.size + k}`).toLowerCase(), r.cohort ?? "");
+            if (r.roll_number) rollOwner.set(normRoll(r.roll_number), r.email ?? r.full_name ?? "another student");
+          });
           if (got.length === 0 || mySection.size >= Number(got[0]?.total_count ?? 0)) break;
         }
       }
@@ -158,7 +164,14 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
           err = `Phone "${phoneRaw.trim()}" is not 10 digits — imported without it`;
         }
 
-        if (status === "valid") seen.add(email);
+        // MF-123: the same roll number under a second email is not a second student.
+        const rollKey = normRoll(roll);
+        const rollTaken = rollKey ? rollOwner.get(rollKey) : undefined;
+        if (status === "valid" && rollTaken && rollTaken !== email) {
+          status = "invalid"; err = `Roll number ${roll.trim()} already belongs to ${rollTaken}`;
+        }
+
+        if (status === "valid") { seen.add(email); if (rollKey) rollOwner.set(rollKey, email); }
 
         const rowBranch = effectiveBranch || (iBranch === -1 ? "" : cells[iBranch] ?? "");
         const section = (iSection === -1 ? "" : cells[iSection] ?? "").trim().toUpperCase();

@@ -50,23 +50,3 @@ export function lotWordingProblems(lot: { title?: unknown; scenario?: unknown; c
   return problems;
 }
 
-/**
- * MF-015 (log only, see auto-config.ts): a value the marking guide checks (a figure such as 4500, 12.5) should be in
- * the task text or its code, or the student cannot know it: a long task cut short lost exactly these.
- * Returns the missing values; [] means the task carries everything the guide marks. Single-digit numbers
- * are left out: guides use them for counts ("2 reasons"), not as data from the task.
- */
-export function missingGuideValues(taskText: string, criteria: { description?: unknown; name?: unknown }[]): string[] {
-  const norm = (s: string) => s.replace(/(\d),(?=\d)/g, '$1');
-  const have = new Set(norm(taskText).match(/\d+(\.\d+)?/g) ?? []);
-  const missing = new Set<string>();
-  for (const c of criteria) {
-    const guide = norm(`${c?.name ?? ''} ${c?.description ?? ''}`);
-    // A length or mark ("150 words", "20 points") is about the answer, not data the task must give.
-    for (const m of guide.matchAll(/(?<![\d.])(\d+(\.\d+)?)(?![\d.])(?!\s*(-\s*\d+\s*)?(words?|sentences?|lines?|points?|marks?|characters?|steps?|paragraphs?|bullets?)\b)/gi)) {
-      const v = m[1];
-      if (v.length > 1 && !have.has(v)) missing.add(v);
-    }
-  }
-  return [...missing];
-}

@@ -10,7 +10,7 @@ import {
 import { chooseSandboxKind, resolveDifficulty, rubricFallbackAllowed, TEST_COUNT_RANGE, type Difficulty, type SandboxKind } from "./coding-mode.ts";
 import { evaluateFunctionDraft, FUNCTION_SCHEMA, sandboxConfigRow, type FunctionAttempt, type FunctionValidators } from "./function-generation.ts";
 import { gradeOnce, zeroUnquotedCredit, totalOf, type Criterion } from "./rubric-grading.ts";
-import { missingGuideValues } from "./lot-wording.ts";
+import { guideGaps } from "./guide-gaps.ts";
 
 /**
  * One place that turns a topic/task spec into a LIVE, VALIDATED grading
@@ -408,12 +408,14 @@ async function tryGenerateRubric(
     // response (that's the whole point of the combined call) — read it back
     // out for grading rather than requiring it up front.
     const promptText = promptTextFor(content, parsed);
-    // MF-015: log figures the guide checks that the task text never shows. Log only, never a rewrite:
-    // on TEST (1 Nov 2026) all 4 of 79 written Lots it flagged were the guide's own ANSWER (e.g. "24 years"),
-    // which belongs in the guide and not in the question. Refusing them would throw away good Lots.
+    // MF-015: refuse a task whose guide expects facts the task never gives (guide-gaps.ts).
     if (content.kind === "scenario") {
-      const missing = missingGuideValues(`${promptText}\n${String(parsed.code_sample ?? "")}`, fields.criteria);
-      if (missing.length) console.warn(`LOT GUIDE VALUES MISSING (${feature}): ${missing.join(", ")}`);
+      const missing = await guideGaps(`${promptText}\n${String(parsed.code_sample ?? "")}`, fields.criteria, feature, usageCtx);
+      if (missing.length) {
+        console.warn(`LOT GUIDE GAPS (${feature}): ${missing.join(" | ")}`);
+        retryNote = `\n\nYour marking criteria expect facts the task text never gives the student:\n- ${missing.join("\n- ")}\n\nPut every such fact into the task text, or drop it from the criteria.`;
+        continue;
+      }
     }
     const graded = await gradeOnce(promptText, fields.criteria, fields.reference_answer, usageCtx.userId ?? "system");
     if (!graded) {

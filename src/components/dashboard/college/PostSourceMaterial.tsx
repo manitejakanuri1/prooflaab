@@ -37,27 +37,18 @@ const PostSourceMaterial = () => {
     }
 
     setSubmitting(true);
-    const { data: pageId, error } = await supabase.rpc("college_submit_source_content", {
+    const { error } = await supabase.rpc("college_submit_source_content", {
       _title: title.trim(),
       _content: content.trim(),
     });
+    setSubmitting(false);
 
     if (error) {
-      setSubmitting(false);
       toast({ title: "Not submitted", description: error.message, variant: "destructive" });
       return;
     }
 
-    // Part A (migration 200): questions are written from it straight away and go live for your students only.
-    const { data: cut } = await supabase.functions.invoke("question-decompose", { body: { source_content_id: pageId } });
-    setSubmitting(false);
-    const stored = Number((cut as { stored?: number } | null)?.stored ?? 0);
-    toast({
-      title: "Material submitted",
-      description: stored > 0
-        ? `${stored} question${stored === 1 ? "" : "s"} written from it. Your students get them as Daily Lots.`
-        : "Your students get Daily Lots from it. Questions are written from it tonight.",
-    });
+    toast({ title: "Material submitted", description: "Now real source material for daily tasks on matching topics." });
     reset();
     setOpen(false);
   };

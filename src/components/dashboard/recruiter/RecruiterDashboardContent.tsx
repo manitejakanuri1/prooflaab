@@ -35,6 +35,8 @@ interface Props {
 const OUTCOMES = [
   "saved", "contacted", "sponsored", "interviewing", "offered", "hired", "passed",
 ] as const;
+// MF-047 (migration 198): these need the student to press Accept first.
+const NEEDS_YES: readonly string[] = ["interviewing", "offered", "hired"];
 
 const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const { toast } = useToast();
@@ -364,7 +366,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                         <Badge variant="outline" className="text-[10px] font-normal">declined</Badge>
                       )}
                       {!s.student_response && (
-                        <span className="text-xs text-muted-foreground">awaiting their answer</span>
+                        <span className="text-xs text-muted-foreground">Waiting for student to accept</span>
                       )}
                     </div>
                     {s.note && <p className="text-sm text-muted-foreground mt-1">{s.note}</p>}
@@ -373,7 +375,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       <Select value={s.stage} onValueChange={(v) => void setStage(s.student_id, v)}>
                         <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {OUTCOMES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          {OUTCOMES.map((o) => (
+                            <SelectItem key={o} value={o}
+                                        disabled={s.student_response !== "accepted" && NEEDS_YES.includes(o)}>{o}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <Button size="sm" variant="outline" className="h-8"

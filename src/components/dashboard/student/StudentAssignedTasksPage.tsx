@@ -171,6 +171,7 @@ const StudentAssignedTasksPage = () => {
     "College": "From your college",
     "Admin": "From ProofLab admin",
     "Company": "From a company",
+    "Company Lot": "Set by a company",
   };
   const sourceLabel = (source: string) => SOURCE_LABEL[source] ?? (source || "Task");
   const sourceCounts = Object.entries(

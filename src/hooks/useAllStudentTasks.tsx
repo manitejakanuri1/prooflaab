@@ -85,6 +85,7 @@ export const useAllStudentTasks = () => {
           rubric_config_id,
           is_sandbox_task,
           lot_date,
+          sponsored_by,
           roadmap_scorecard_id,
           level_id
         `)
@@ -113,7 +114,10 @@ export const useAllStudentTasks = () => {
         // "Admin", so the student's own roadmap and today's Lot looked like
         // work an administrator had handed out.
         let taskSource = 'Task';
-        if (task.lot_date) taskSource = "Daily Lot";
+        // MF-013: a company's Lot is on the Daily Card only on its own day; any other day it is listed here.
+        if (task.lot_date && task.sponsored_by
+            && task.lot_date !== new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })) taskSource = "Company Lot";
+        else if (task.lot_date) taskSource = "Daily Lot";
         else if (task.roadmap_scorecard_id) taskSource = 'From your test';
         else if (task.level_id) taskSource = 'Track proof';
         else if (task.created_by_startup_id) taskSource = 'Company';

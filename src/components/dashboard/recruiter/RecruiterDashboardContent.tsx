@@ -121,7 +121,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
     try {
       const made = await sponsorLot(sponsorFor.id, title, brief, criteria, lotMode);
       toast({ title: `Lot sent to ${sponsorFor.name}`,
-              description: `"${made.title}" is on their Daily Card, checked by ${made.grading === "tests" ? "real tests" : "a marking rubric"}. You will see the submission under Submissions.` });
+              description: `"${made.title}" goes on their Daily Card on their next free day (one Lot a day), checked by ${made.grading === "tests" ? "real tests" : "a marking rubric"}. You will see the submission under Submissions.` });
       setSponsorFor(null); setTitle(""); setBrief(""); setCriteria("");
       await refresh();
     } catch (e) {

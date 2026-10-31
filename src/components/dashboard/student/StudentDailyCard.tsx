@@ -320,7 +320,7 @@ const StudentDailyCard = () => {
 
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted-foreground">
-          Streak <span className="font-mono text-lg font-bold text-primary">{streak}</span> days
+          Streak <span className="font-mono text-lg font-bold text-primary">{streak}</span> {streak === 1 ? "day" : "days"}
         </span>
         <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs">
           <span

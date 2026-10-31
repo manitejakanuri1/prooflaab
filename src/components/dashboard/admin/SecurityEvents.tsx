@@ -135,7 +135,7 @@ const SecurityEvents = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <ShieldAlert className="h-4 w-4" /> Addresses under repeated attempts
+              <ShieldAlert className="h-4 w-4" /> Addresses with repeated failed sign-ins
             </div>
             <p className="text-2xl font-bold">{repeatedFailures.length}</p>
           </CardContent>

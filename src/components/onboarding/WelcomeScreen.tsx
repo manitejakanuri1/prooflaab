@@ -28,11 +28,11 @@ const WelcomeScreen = ({ onStart, starting = false }: WelcomeScreenProps) => {
           Every day you get one real task, built from a real job posting or interview page.
           The source is shown on the task. You solve it,
           you explain it out loud for sixty seconds, and it goes into your build-log
-          &mdash; a permanent public record of what you can actually do.
+          &mdash; a record you control of what you can actually do.
         </p>
 
         <p className="text-foreground font-medium">
-          Recruiters read the build-log. Nobody reads a certificate.
+          Recruiters read proof of your work in your build-log.
         </p>
 
         <p>

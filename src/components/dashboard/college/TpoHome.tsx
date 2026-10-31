@@ -123,7 +123,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
       <div className="flex items-baseline gap-3 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">Home</h1>
         <p className="text-sm text-muted-foreground">
-          Pilot health and what needs your attention.
+          How your students are doing, and who needs help.
         </p>
         <div className="ml-auto flex gap-2">
           <PostSourceMaterial />
@@ -241,7 +241,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                 ) : season?.state === "complete" && season.last_season ? (
                   <p className="text-lg font-semibold mt-0.5">{season.last_season.name} complete</p>
                 ) : (
-                  <p className="text-sm text-muted-foreground mt-1">No season running.</p>
+                  <p className="text-sm text-muted-foreground mt-1">No season has started yet.</p>
                 )}
               </div>
               <div>

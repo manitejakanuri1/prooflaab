@@ -425,7 +425,7 @@ export function StartupJobsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="job_type" className="text-sm font-medium text-foreground">Role Type</Label>
+                <Label htmlFor="job_type" className="text-sm font-medium text-foreground">Job type</Label>
                 <Select value={formData.job_type} onValueChange={(value) => setFormData({ ...formData, job_type: value })}>
                   <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
                     <SelectValue placeholder="Select job type" />
@@ -442,7 +442,7 @@ export function StartupJobsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="apply_link" className="text-sm font-medium text-foreground">Apply Link</Label>
+              <Label htmlFor="apply_link" className="text-sm font-medium text-foreground">Where to apply</Label>
               <Input
                 id="apply_link"
                 type="url"

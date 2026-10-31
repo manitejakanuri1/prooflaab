@@ -135,7 +135,7 @@ const AdminDashboardOverview = ({
     color: "text-verified",
     onClick: () => onNavigate?.("colleges")
   }, {
-    title: "Active Startups",
+    title: "Active companies",
     value: stats?.activeStartups || 0,
     subtitle: `${stats?.totalStartups || 0} total`,
     icon: Rocket,
@@ -174,7 +174,7 @@ const AdminDashboardOverview = ({
   return <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-compete/10 to-compete/10 p-6 rounded-2xl border border-compete/30">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Welcome To Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Welcome to the admin dashboard</h1>
         <p className="text-muted-foreground">Welcome to the ProofLab administration panel</p>
       </div>
 

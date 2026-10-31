@@ -176,7 +176,7 @@ export function StartupSettingsPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Settings</h2>
-        <p className="text-muted-foreground">Manage your startup account and preferences</p>
+        <p className="text-muted-foreground">Manage your company account and preferences</p>
       </div>
 
       {/* Company Profile */}

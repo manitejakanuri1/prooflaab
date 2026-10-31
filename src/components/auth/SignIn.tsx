@@ -112,7 +112,7 @@ export default function SignIn({ onSuccess, notice = "" }: { onSuccess: (role: U
   if (view === "email") {
     panel = (
       <motion.div key="email" {...panelMotion}>
-        <AccessHeading title="Sign in to Prooflab" description="Enter your workspace email to begin." />
+        <AccessHeading title="Sign in to Prooflab" description="Enter your email to begin." />
         {notice && <NoticeMessage message={notice} />}
         <form onSubmit={goToPassword} className="mt-10" noValidate>
           <FieldLabel htmlFor="login-email">Email</FieldLabel>
@@ -161,7 +161,7 @@ export default function SignIn({ onSuccess, notice = "" }: { onSuccess: (role: U
     panel = (
       <motion.div key="reset" {...panelMotion}>
         <BackButton onClick={() => changeView("password")} />
-        <AccessHeading title="Reset your access." description="We’ll prepare a secure reset link for your workspace email." />
+        <AccessHeading title="Reset your access." description="We’ll prepare a secure reset link for your email." />
         <form onSubmit={sendReset} className="mt-9" noValidate>
           <FieldLabel htmlFor="reset-email">Email</FieldLabel>
           <input id="reset-email" name="username" type="email" inputMode="email" autoComplete="username" autoCapitalize="none"
@@ -188,7 +188,7 @@ export default function SignIn({ onSuccess, notice = "" }: { onSuccess: (role: U
         </span>
       </motion.div>
       <p className="mono-label mt-8 text-verified">ACCESS VERIFIED</p>
-      <h2 className="mt-4 font-display text-2xl font-semibold tracking-normal">Opening your workspace...</h2>
+      <h2 className="mt-4 font-display text-2xl font-semibold tracking-normal">Taking you in…</h2>
       <div className="mt-8 h-px w-40 overflow-hidden bg-border">
         <motion.div className="h-full bg-primary" initial={{ x: "-100%" }} animate={{ x: "100%" }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />

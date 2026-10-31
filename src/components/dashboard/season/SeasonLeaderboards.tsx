@@ -92,6 +92,9 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Individual recognition
             </span>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Orange Cap: most points. Purple Cap: best in a skill.
+            </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {AWARDS.map(({ award, title }) => {
                 const a = awards.find((x) => x.award === award);

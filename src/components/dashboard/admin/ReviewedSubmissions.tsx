@@ -76,7 +76,7 @@ const ReviewedSubmissions = () => {
       <div>
         <h2 className="text-2xl font-bold mb-2">Flagged Submissions</h2>
         <p className="text-muted-foreground">
-          Written tasks (stage70) the AI grader could not clear on its own — a close match to another
+          Written tasks the AI grader could not clear on its own — a close match to another
           student, a disagreement between the two graders, or a possible AI-authorship flag.
         </p>
       </div>

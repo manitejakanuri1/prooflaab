@@ -206,7 +206,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
           <Card>
             <CardContent className="pt-5">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Recommended — strongest evidence, not yet saved
+                Students we suggest
               </span>
               {(home.recommended ?? []).length === 0 ? (
                 <p className="text-sm text-muted-foreground mt-2">
@@ -378,7 +378,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       </Select>
                       <Button size="sm" variant="outline" className="h-8"
                               onClick={() => setSponsorFor({ id: s.student_id, name: "this candidate" })}>
-                        Sponsor a task
+                        Send a task
                       </Button>
                       <Button size="sm" variant="ghost" className="h-8 text-muted-foreground"
                               onClick={() => void removeFromShortlist(s.id)}>
@@ -498,7 +498,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
               {open.shortlisted && (
                 <Button variant="outline"
                         onClick={() => setSponsorFor({ id: open.id, name: open.name })}>
-                  Sponsor a task for {open.name}
+                  Send a task to {open.name}
                 </Button>
               )}
             </div>
@@ -509,7 +509,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
       {/* ── sponsoring ───────────────────────────────────────── */}
       <Dialog open={Boolean(sponsorFor)} onOpenChange={(v) => !v && setSponsorFor(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Set a task for {sponsorFor?.name}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Send a task to {sponsorFor?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <Input value={title} onChange={(e) => setTitle(e.target.value)}
                    placeholder="Title — what the work is" />

@@ -70,7 +70,7 @@ const reserveReason = (cohort?: string | null, waiting?: number | null) => {
     : `Section ${cohort}: joins a squad at the next season start`;
 };
 
-const recency = (d: number) => (d >= 999 ? "never" : `${d}d`);
+const recency = (d: number) => (d >= 999 ? "Not yet" : d === 0 ? "Today" : `${d}d ago`);
 
 interface FilterOptions {
   branches?: string[]; batches?: string[]; squads?: string[]; skills?: string[];
@@ -341,7 +341,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                   <th className="pb-2 pr-3">Roll no.</th>
                   <th className="pb-2 pr-3">Branch</th>
                   <th className="pb-2 pr-3">Squad</th>
-                  <th className="pb-2 pr-3">Recency</th>
+                  <th className="pb-2 pr-3">Last active</th>
                   <th className="pb-2 pr-3">Lots</th>
                   <th className="pb-2 pr-3">Status</th>
                   <th className="pb-2"></th>

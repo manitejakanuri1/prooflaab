@@ -358,7 +358,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       return;
     }
     if (!(await ask({
-      title: "Rebalance the reserve pool?",
+      title: "Place waiting students?",
       points: ["Students waiting in Reserve are placed into free seats of squads in their own section.",
                "Locked squads are not touched."],
       action: "Rebalance",
@@ -588,14 +588,14 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </p>
               <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs"
                       disabled={busy} onClick={() => void runWeek()}>
-                {busy ? "Working…" : "Recalculate now"}
+                {busy ? "Working…" : "Update scores"}
               </Button>
               {/* A squad added after the draw has no fixtures, and the nightly
                   job only draws for a season that has none at all — so redrawing
                   stays reachable, and refuses rather than discarding results. */}
               <Button size="sm" variant="ghost" className="h-7 text-xs"
                       disabled={busy} onClick={() => void fixtures()}>
-                Redo match schedule
+                Redraw fixtures
               </Button>
             </div>
           </CardContent></Card>
@@ -650,7 +650,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   <th className="pb-2 pr-3">Student</th><th className="pb-2 pr-3">Roll no.</th>
                   <th className="pb-2 pr-3">Role</th><th className="pb-2 pr-3">Contribution</th>
-                  <th className="pb-2">Recency</th>
+                  <th className="pb-2">Last active</th>
                 </tr>
               </thead>
               <tbody>
@@ -665,7 +665,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <td className="py-2.5 pr-3 text-muted-foreground">{m.membership_type}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{m.contribution}</td>
                       <td className={`py-2.5 font-mono tabular-nums ${d >= 7 ? "text-alert" : "text-muted-foreground"}`}>
-                        {d >= 999 ? "never" : `${d}d`}
+                        {d >= 999 ? "Not yet" : d === 0 ? "Today" : `${d}d ago`}
                         <ChevronRight className="h-3.5 w-3.5 inline-block ml-2 text-muted-foreground" />
                       </td>
                     </tr>
@@ -780,8 +780,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               <Select value={when} onValueChange={setWhen}>
                 <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="now">Immediately</SelectItem>
-                  <SelectItem value="monday">Next Monday</SelectItem>
+                  <SelectItem value="now">Now</SelectItem>
+                  <SelectItem value="monday">From next week</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -815,7 +815,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               strongest. Five or more left over make one more, smaller squad; fewer than five stay
               here and are yours to place. Rebalancing does not draw
               anything: it drops unplaced students into the emptiest squad of their own section
-              that still has room, skipping locked and archived ones, so freeze a squad first if
+              that still has room, skipping locked and archived ones, so lock a squad first if
               it should be left alone.
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
@@ -825,7 +825,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </Button>
               <Button variant="outline" disabled={busy || season?.state !== "active"} onClick={() => void rebalance()}>
                 <Shuffle className="h-4 w-4 mr-1.5" />
-                {busy ? "Working…" : "Rebalance the reserve pool"}
+                {busy ? "Working…" : "Place waiting students"}
               </Button>
             </div>
 

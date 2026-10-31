@@ -50,7 +50,7 @@ const ExactRules = ({ rules, tone }: { rules: string[]; tone?: "paper" }) =>
   rules.length === 0 ? null : (
     <div className={`rounded-lg border p-3 ${tone === "paper" ? "border-[#d8d1c1] bg-[#faf7ef]" : "border-compete/30 bg-compete/5"}`}
          data-testid="exact-rules">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Exact rules from the question</p>
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">What you must do</p>
       <ul className="mt-1 space-y-1 text-sm">
         {rules.map((r) => <li key={r}><InlineText text={r} /></li>)}
       </ul>

@@ -98,7 +98,7 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground max-w-prose">
                 A Lot is set for a candidate you have shortlisted. Choose one below and press
-                "Set a task": a coding Lot gets real tests, a written Lot gets its own checklist.
+                "Send a task": a coding Lot gets real tests, a written Lot gets its own checklist.
               </p>
               <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} />
             </div>

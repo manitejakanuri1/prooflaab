@@ -6,7 +6,7 @@
 // Without PGlite the database tests are SKIPPED, never passed. The CI workflow s38-security-regression.yml refuses skips.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -94,10 +94,11 @@ test("S38: the daily job marks files_purged_at only after removeOwnerFiles repor
 });
 
 // ------------------------------------------------------------------ the student is not told more than is true
-test("S38: the deletion screen does not say uploaded files are already deleted (the daily job removes them)", () => {
-  const dialog = read("src/components/dashboard/student/DeleteAccountDialog.tsx");
-  assert.doesNotMatch(dialog, /recordings are deleted/i, "files are removed by the daily job, not at once");
-  assert.match(dialog, /daily clean-up/, "says when the files go");
+test("S38: no student screen offers self-deletion (the unused DeleteAccountDialog was removed, MF-102)", () => {
+  assert.equal(existsSync(join(ROOT, "src/components/dashboard/student/DeleteAccountDialog.tsx")), false,
+    "the self-delete dialog is gone; students cannot delete their own account (migration 138)");
+  assert.doesNotMatch(read("src/components/dashboard/student/StudentSettingsPage.tsx"), /DeleteAccountDialog/,
+    "Settings does not bring it back");
 });
 
 test("S38: the protected notices are locked in the admin window (S36-07), using the same list as 107", () => {

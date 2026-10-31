@@ -13,7 +13,7 @@ on:
       - "functions-service/Dockerfile"
       - "supabase/functions/_shared/owner-files*.ts"
       - "supabase/functions/scheduled-job/**"
-      - "src/components/dashboard/student/DeleteAccountDialog.tsx"
+      - "src/components/dashboard/student/StudentSettingsPage.tsx"
       - "src/components/dashboard/admin/NotificationRulesDialog.tsx"
       - "scripts/dev-tools/s34_migration_105.test.mjs"
       - "scripts/dev-tools/sidhu_s3[4-8]_*"

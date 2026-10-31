@@ -38,10 +38,17 @@ Deno.test('brokenProblem: empty, no starter, function not named', async () => {
   const cases: [Record<string, unknown>, string][] = [
     [{ ...base, prompt: 'Sum' }, 'statement too short'],
     [{ ...base, prompt: 'Write f_total(nums) that returns the sum of all numbers in the list nums.', starter_code: '' }, 'no starter code'],
-    [{ ...base, prompt: 'Write a function that returns the sum of all numbers in the given list.' }, 'statement does not name the function'],
+    [{ ...base, prompt: 'Write a function that returns the sum of all numbers in the given list.' }, 'function name not shown'],
   ];
   for (const [q, want] of cases) {
     const got = brokenProblem(q);
     if (got !== want) throw new Error(`expected ${want}, got ${got}`);
   }
+});
+
+Deno.test('brokenProblem: the function name shown only in the starter code is fine', async () => {
+  const { brokenProblem } = await import('./coding-round.ts');
+  const q = { prompt: 'Given a string s, return the number of vowels in s. Input: "Hello". Output: 2.',
+              starter_code: 'def count_vowels(s):\n    return 0', kind: 'function', function_spec: { function_name: 'count_vowels' } };
+  if (brokenProblem(q) !== null) throw new Error('flagged: ' + brokenProblem(q));
 });

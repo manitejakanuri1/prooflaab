@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { format } from "date-fns";
 import { WHEN_FORMAT } from "@/lib/testClock";
+import { matchScore, matchStatus, SEED_WIN } from "@/lib/matchStatus";
 import TpoStudentProfile from "./TpoStudentProfile";
 import QualifierSetting from "./QualifierSetting";
 import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, TrendingUp, TrendingDown, Plus } from "lucide-react";
@@ -152,7 +153,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         .is("left_at", null),
       supabase.from("squad_matches").select("*")
         .or(`home_squad.in.(${ids.join(",")}),away_squad.in.(${ids.join(",")})`)
-        .order("scheduled_at", { ascending: false }).limit(20),
+        .order("scheduled_at", { ascending: false }).limit(200),
       supabase.rpc("tpo_squad_performance" as never, { _weeks: 8 } as never),
       supabase.rpc("tpo_squad_achievements" as never),
       supabase.rpc("tpo_scoring_rules" as never),
@@ -685,12 +686,13 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
             {matches.length === 0 ? (
               <p className="text-sm text-muted-foreground">No matches scheduled yet.</p>
             ) : (
-              <table className="w-full text-sm min-w-[460px]">
+              <table className="w-full text-sm min-w-[560px]">
                 <thead>
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     <th className="pb-2 pr-3">Match</th><th className="pb-2 pr-3">Stage</th>
                     <th className="pb-2 pr-3">Week</th>
-                    <th className="pb-2 pr-3">When</th><th className="pb-2">Result</th>
+                    <th className="pb-2 pr-3">When</th><th className="pb-2 pr-3">Status</th>
+                    <th className="pb-2">Result (week points)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -712,22 +714,11 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <td className="py-2.5 pr-3 text-muted-foreground font-mono text-xs">
                         {format(new Date(m.scheduled_at), WHEN_FORMAT)}
                       </td>
+                      <td className="py-2.5 pr-3 text-xs">{matchStatus(m)}</td>
                       <td className="py-2.5 font-mono text-xs">
-                        {m.status === "no_activity"
-                          ? <span className="text-muted-foreground">
-                              No activity yet{m.decided_by === "higher_seed" && m.winner_squad
-                                ? ` · ${names[m.winner_squad] ?? "?"} went through (finished higher in the table)` : ""}
-                            </span>
-                          : m.status === "played" && m.home_points != null
-                            ? <>
-                                {`${m.home_points}–${m.away_points}`}
-                                {m.decided_by === "higher_seed" && m.winner_squad && (
-                                  <span className="text-muted-foreground">
-                                    {` · drawn, ${names[m.winner_squad] ?? "?"} went through (finished higher in the table)`}
-                                  </span>
-                                )}
-                              </>
-                            : <span className="text-primary">{m.status}</span>}
+                        {m.decided_by === "higher_seed" && m.winner_squad
+                          ? <>Drawn {matchScore(m)} <span className="text-muted-foreground">– {names[m.winner_squad] ?? "?"} {SEED_WIN}</span></>
+                          : matchScore(m)}
                       </td>
                     </tr>
                   ))}

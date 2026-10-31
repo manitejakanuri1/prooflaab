@@ -13,6 +13,7 @@ import { FAST_WEEK, FAST_WEEK_MINUTES, WHEN_FORMAT } from "@/lib/testClock";
 import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
 import { fmtMark } from "@/lib/lotMarks";
+import { matchScore, matchStatus, SEED_WIN } from "@/lib/matchStatus";
 
 /** Why a student has no squad yet (migration 195: 5 waiting students of a section make a new squad). */
 function ReserveReason() {
@@ -77,6 +78,7 @@ interface Match {
   away_points: number | null;
   home_squad: string;
   away_squad: string;
+  round_number?: number | null;
   /** Saved by settle_round (migration 163). */
   winner_squad?: string | null;
   decided_by?: string | null;
@@ -133,7 +135,7 @@ const StudentSquadPage = () => {
         .select("*")
         .or(`home_squad.eq.${membership.squad_id},away_squad.eq.${membership.squad_id}`)
         .order("scheduled_at", { ascending: false })
-        .limit(10),
+        .limit(20),
       // The league this squad actually plays in, which is its cohort's, not
       // the whole college's. A table full of sections you never meet is not a
       // standing.
@@ -432,12 +434,13 @@ const StudentSquadPage = () => {
               {matches.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No matches yet.</p>
               ) : (
-                <table className="w-full text-sm min-w-[400px]">
+                <table className="w-full text-sm min-w-[520px]">
                   <thead>
                     <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                       <th className="pb-2 pr-3">Match</th>
                       <th className="pb-2 pr-3">When</th>
-                      <th className="pb-2">Result</th>
+                      <th className="pb-2 pr-3">Status</th>
+                      <th className="pb-2">Result (week points)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -453,21 +456,21 @@ const StudentSquadPage = () => {
                             vs {names[home ? m.away_squad : m.home_squad] ?? "?"}
                           </td>
                           <td className="py-2.5 pr-3 text-muted-foreground">
-                            {format(new Date(m.scheduled_at), WHEN_FORMAT)}
+                            {m.round_number ? `Week ${m.round_number} · ` : ""}{format(new Date(m.scheduled_at), WHEN_FORMAT)}
                           </td>
+                          <td className="py-2.5 pr-3 text-xs">{matchStatus(m)}</td>
                           <td className="py-2.5 font-mono text-xs">
-                            {m.status === "no_activity" ? (
-                              // MF-003: nobody on either side finished a Lot (task + voice) that week.
-                              <span className="text-muted-foreground">No activity yet</span>
+                            {m.decided_by === "higher_seed" && m.winner_squad ? (
+                              // MF-097: a drawn semi-final / final (0-0 included) goes to the higher seed
+                              <span className={m.winner_squad === squad.id ? "text-verified" : "text-alert"}>
+                                Drawn {us ?? 0}–{them ?? 0} – {m.winner_squad === squad.id ? SEED_WIN : "out: the other squad was the higher seed"}
+                              </span>
                             ) : m.status === "played" && us != null ? (
                               <span className={drew && !m.winner_squad ? "text-muted-foreground" : (m.winner_squad ? m.winner_squad === squad.id : won) ? "text-verified" : "text-alert"}>
                                 {drew ? "Drew" : won ? "Won" : "Lost"} {us}–{them}
-                                {drew && m.decided_by === "higher_seed" && m.winner_squad
-                                  ? (m.winner_squad === squad.id ? " – went through: finished higher in the table" : " – out: the other squad finished higher in the table")
-                                  : ""}
                               </span>
                             ) : (
-                              <span className="text-primary">{m.status}</span>
+                              <span className="text-muted-foreground">{matchScore(m)}</span>
                             )}
                           </td>
                         </tr>

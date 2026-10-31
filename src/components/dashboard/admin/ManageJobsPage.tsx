@@ -254,7 +254,7 @@ const ManageJobsPage = () => {
           {jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="text-6xl mb-4">💼</div>
-              <p className="text-muted-foreground text-lg">No jobs posted yet. Encourage startups to add opportunities.</p>
+              <p className="text-muted-foreground text-lg">No job posts yet. Add one here, or a college or company can post one.</p>
             </div>
           ) : (
             <Table>

@@ -96,7 +96,7 @@ const ReviewedSubmissions = () => {
             </div>
           ) : !rows || rows.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
-              Nothing waiting. Flagged submissions will show up here.
+              Nothing to review. Answers the AI was not sure about appear here.
             </p>
           ) : (
             rows.map((r) => (

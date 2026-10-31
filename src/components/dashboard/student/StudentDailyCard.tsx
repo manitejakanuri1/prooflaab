@@ -83,6 +83,8 @@ const StudentDailyCard = () => {
   // Best passing score on today's Lot once it is done, and whether anything was submitted on it.
   const [doneScore, setDoneScore] = useState<number | null>(null);
   const [triedLot, setTriedLot] = useState(false);
+  // MF-117: the scored spoken explanation (0-100), shown on the card, not only in the popup.
+  const [voiceScore, setVoiceScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [lastActive, setLastActive] = useState<string | null>(null);
@@ -184,6 +186,10 @@ const StudentDailyCard = () => {
       setTriedLot(rows.length > 0);
       const passed = rows.filter((x) => x.status === "passed").map((x) => x.sandbox_score ?? 0);
       setDoneScore(passed.length ? Math.max(...passed) : null);
+      const { data: v } = await supabase.from("voice_explanations").select("communication_score")
+        .eq("student_id", profile.id).eq("task_id", today.id).eq("status", "scored").is("withdrawn_at", null)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      setVoiceScore((v as { communication_score: number | null } | null)?.communication_score ?? null);
     }
     setStreak(streakRes.data?.current_days ?? 0);
     setLastActive(streakRes.data?.last_active_on ?? null);
@@ -367,6 +373,7 @@ const StudentDailyCard = () => {
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-verified/15 px-2.5 py-1 text-xs font-semibold text-verified"
                  data-testid="lot-done">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Done{doneScore != null ? ` · ${doneScore}%` : ""}
+                {voiceScore != null ? ` · Voice ${voiceScore}/100` : ""}
               </p>
             )}
             {lot.status === "pending_voice" && (

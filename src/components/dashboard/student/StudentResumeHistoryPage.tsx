@@ -44,6 +44,8 @@ const StudentResumeHistoryPage = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [answersByAssessment, setAnswersByAssessment] = useState<Record<string, AnswerScore[]>>({});
   const [answersLoading, setAnswersLoading] = useState<string | null>(null);
+  // MF-117: the newest scored spoken explanation of a task (Daily Lot), 0-100.
+  const [lotVoice, setLotVoice] = useState<number | null>(null);
 
   const toggleExpand = async (entry: HistoryEntry) => {
     if (expandedId === entry.id) {
@@ -79,6 +81,10 @@ const StudentResumeHistoryPage = () => {
         .eq("student_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20);
+      const { data: v } = await supabase.from("voice_explanations").select("communication_score")
+        .eq("student_id", profile.id).eq("status", "scored").not("task_id", "is", null)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      setLotVoice((v as { communication_score: number | null } | null)?.communication_score ?? null);
       const rows = (data as unknown as HistoryEntry[]) || [];
       setHistory(rows);
       setLoading(false);
@@ -154,6 +160,11 @@ const StudentResumeHistoryPage = () => {
                   {latest.coding_score != null && (
                     <p className="text-xs text-muted-foreground mt-2">
                       Coding round: {latest.coding_score}/100 (shown separately, not part of readiness).
+                    </p>
+                  )}
+                  {lotVoice != null && (
+                    <p className="text-xs text-muted-foreground mt-2" data-testid="readiness-lot-voice">
+                      Voice (your latest spoken explanation of a task): {lotVoice}/100.
                     </p>
                   )}
                   {latest.coding_score != null && (

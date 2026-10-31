@@ -36,6 +36,12 @@ const DailyLots = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  // MF-092: how many active students there are, so a short day is explained, not just counted.
+  const [active, setActive] = useState<number | null>(null);
+  useEffect(() => {
+    supabase.from("student_profiles").select("id", { count: "exact", head: true }).eq("status", "active")
+      .then(({ count }) => setActive(count ?? null), () => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,8 +68,16 @@ const DailyLots = () => {
         <div className="flex flex-wrap gap-2">
           <Input type="date" value={date} onChange={(e) => { setDate(e.target.value); setPage(0); }} className="w-44" />
           <Input placeholder="Student or Lot title" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} className="w-64" />
-          <span className="self-center text-sm text-muted-foreground">{total} Lots on this day</span>
+          <span className="self-center text-sm text-muted-foreground">
+            {total} Lots on this day{active != null && !q ? ` · ${active} active students now` : ""}
+          </span>
         </div>
+        {active != null && !q && !loading && total < active && (
+          <p className="text-xs text-muted-foreground max-w-prose">
+            {active - total} active students have no Lot on this day. A Lot is made at 05:40 or when a student opens
+            their dashboard. None is made on Sunday (rest day), between two seasons, or when no task fits the student yet.
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {loading && <p className="text-sm text-muted-foreground">Loading…</p>}

@@ -255,15 +255,15 @@ const StudentDailyCard = () => {
     void load();
   };
 
+  // MF-042: the student may always close the task screen. The answer is saved and the card keeps
+  // "Record 60s explain" until the voice is scored, so they can record later.
+  const remindVoiceLater = () => toast({
+    title: "Your answer is saved",
+    description: "Record your 60-second explanation later with \"Record 60s explain\" on this card. The task counts as done after that.",
+  });
+
   const handleWritingOpenChange = (open: boolean) => {
-    if (!open && taskPassed && !voiceSaved) {
-      toast({
-        title: "Voice explanation required",
-        description: "Please record and save your 60-second voice explanation before leaving. Your written answer is saved.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!open && taskPassed && !voiceSaved) remindVoiceLater();
     setWriting(open);
     if (!open) {
       setTaskPassed(false);
@@ -273,14 +273,7 @@ const StudentDailyCard = () => {
   };
 
   const handleCodingOpenChange = (open: boolean) => {
-    if (!open && taskPassed && !voiceSaved) {
-      toast({
-        title: "Voice explanation required",
-        description: "Please record and save your 60-second voice explanation before leaving. Your code submission is saved.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!open && taskPassed && !voiceSaved) remindVoiceLater();
     setCoding(open);
     if (!open) {
       setTaskPassed(false);
@@ -582,24 +575,7 @@ const StudentDailyCard = () => {
 
       {lot && lot.sandbox_config_id && (
         <Dialog open={coding} onOpenChange={handleCodingOpenChange}>
-          <DialogContent
-            className={TASK_SCREEN_CLASS}
-            onEscapeKeyDown={(e) => {
-              if (taskPassed && !voiceSaved) {
-                e.preventDefault();
-                toast({
-                  title: "Voice explanation required",
-                  description: "Please record and save your 60-second voice explanation before leaving.",
-                  variant: "destructive",
-                });
-              }
-            }}
-            onPointerDownOutside={(e) => {
-              if (taskPassed && !voiceSaved) {
-                e.preventDefault();
-              }
-            }}
-          >
+          <DialogContent className={TASK_SCREEN_CLASS}>
             <SandboxTaskPanel
               taskId={lot.id}
               voice={voice}
@@ -615,24 +591,7 @@ const StudentDailyCard = () => {
 
       {lot && !lot.sandbox_config_id && (
         <Dialog open={writing} onOpenChange={handleWritingOpenChange}>
-          <DialogContent
-            className={TASK_SCREEN_CLASS}
-            onEscapeKeyDown={(e) => {
-              if (taskPassed && !voiceSaved) {
-                e.preventDefault();
-                toast({
-                  title: "Voice explanation required",
-                  description: "Please record and save your 60-second voice explanation before leaving.",
-                  variant: "destructive",
-                });
-              }
-            }}
-            onPointerDownOutside={(e) => {
-              if (taskPassed && !voiceSaved) {
-                e.preventDefault();
-              }
-            }}
-          >
+          <DialogContent className={TASK_SCREEN_CLASS}>
             <WrittenTaskPanel
               taskId={lot.id}
               voice={voice}

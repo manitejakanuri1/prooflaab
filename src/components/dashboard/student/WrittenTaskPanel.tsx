@@ -347,7 +347,7 @@ export default function WrittenTaskPanel({
                 </p>
               )}
               <p className="mt-1 text-sm font-medium">
-                {daily ? "Your mark is saved." : "Your written answer passed!"} You cannot exit without recording your explanation.
+                {daily ? "Your mark is saved." : "Your written answer passed!"} Record now, or close this and record later from the Daily Card.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Look at the panel on the right — click &quot;I understand — continue&quot; and explain your work in your own words.

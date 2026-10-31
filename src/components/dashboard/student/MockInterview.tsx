@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudio, type TranscribeProgress } from "@/lib/transcribeAudio";
 import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
+import { micErrorText } from "@/lib/voiceStatusText";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 
 const MAX_SECONDS = 90;
@@ -159,8 +160,8 @@ const MockInterview = () => {
     let stream: MediaStream;
     try {
       stream = await openMic();
-    } catch {
-      setError("Microphone blocked. Allow it in your browser and try again.");
+    } catch (e) {
+      setError(micErrorText(e, false));
       setPhase("error");
       return;
     }

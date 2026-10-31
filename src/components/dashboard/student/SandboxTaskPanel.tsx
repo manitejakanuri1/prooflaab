@@ -295,7 +295,7 @@ export default function SandboxTaskPanel({
                 </p>
               )}
               <p className="mt-1 text-sm font-medium">
-                {daily ? "Your coding mark is saved." : "Your code passed all tests!"} You cannot exit without recording your explanation.
+                {daily ? "Your coding mark is saved." : "Your code passed all tests!"} Record now, or close this and record later from the Daily Card.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Look at the panel on the right — click &quot;I understand — continue&quot; and explain your approach in your own words.

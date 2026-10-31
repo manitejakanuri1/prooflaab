@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeWithTimestamps, type TranscribeProgress, type TranscriptSegment } from "@/lib/transcribeAudio";
 import { openMic, makeRecorder, recordingFormat } from "@/lib/recordAudio";
+import { micErrorText } from "@/lib/voiceStatusText";
 import RecordingPlayback from "./RecordingPlayback";
 import { exportTranscriptPdf } from "@/lib/exportTranscriptPdf";
 import { createBlobUrlOwner, withoutLocalAudio } from "@/lib/blobUrlOwner";
@@ -982,10 +983,10 @@ const VoiceExplainModal = ({
     let stream: MediaStream;
     try {
       stream = await openMic();
-    } catch {
+    } catch (e) {
       abandonStart();
       if (isCurrent()) {
-        setError("Microphone blocked. Allow it in your browser and try again.");
+        setError(micErrorText(e));
         setPhase("error");
       }
       return;

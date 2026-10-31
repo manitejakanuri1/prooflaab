@@ -324,7 +324,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         ? "Not enough students for a squad"
         : `${r.squads_created} squad${r.squads_created === 1 ? "" : "s"} formed`,
       description: r.squads_created === 0
-        ? "A squad needs eleven students in one branch. Everyone stays in reserve until then."
+        ? "A new squad needs at least five waiting students in one section. Everyone stays in reserve until then."
         : `${r.students_placed} students placed · ${r.reserve} left in reserve.`,
     });
     void load();
@@ -741,9 +741,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
           <Card><CardContent className="pt-5">
             <p className="text-sm text-muted-foreground max-w-prose">
               {reserves.length} {reserves.length === 1 ? "student is" : "students are"} waiting to
-              be placed. Squads are drawn as elevens, so whatever a section does not divide into
-              elevens is left here for you rather than spread around to make uneven squads. Every
-              squad has a twelfth seat free for exactly this. Put a student wherever you judge is
+              be placed. Squads are drawn as elevens; five or more left over make one more squad, and
+              fewer than five wait here for you. Every squad has a twelfth seat free for exactly this. Put a student wherever you judge is
               right — moving them closes any previous membership rather than deleting it, and the
               change is recorded.
             </p>
@@ -813,8 +812,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
             <p className="text-sm text-muted-foreground mt-2 max-w-prose">
               Forming draws squads of exactly eleven, one section at a time, ranking students by
               what they have done and dealing them out in a snake so no squad collects all the
-              strongest. Whatever does not divide into eleven stays here and is yours to place —
-              a section of fewer than eleven makes no squad at all. Rebalancing does not draw
+              strongest. Five or more left over make one more, smaller squad; fewer than five stay
+              here and are yours to place. Rebalancing does not draw
               anything: it drops unplaced students into the emptiest squad of their own section
               that still has room, skipping locked and archived ones, so freeze a squad first if
               it should be left alone.

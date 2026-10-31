@@ -260,7 +260,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         title: setError ? "Sections not saved" : `Sections saved for ${moved} students`,
         description: setError
           ? setError.message
-          : formed > 0 ? `${formed} squads formed` : "No section has eleven students yet, so no squads were formed",
+          : formed > 0 ? `${formed} squads formed` : "No section has five waiting students yet, so no squads were formed",
         variant: setError ? "destructive" : undefined,
       });
       setOpen(false);

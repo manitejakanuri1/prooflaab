@@ -34,7 +34,7 @@ cohorts, and one of them wins the season.
 
 - Students are grouped by `student_profiles.cohort`, which falls back to
   `branch` when a college supplies no sections.
-- **A squad is eleven students.** The count is `students / 11`, rounded down.
+- **A squad is eleven students.** The count is `students / 11`, rounded down, plus one more squad when 5 or more are left over (migration 195; before, fewer than eleven left over waited in Reserve).
 - **Whatever is left over is not placed.** It waits in the reserve pool for the
   college to decide. The platform does not spread a remainder around to make
   uneven squads, and it does not invent a short squad.
@@ -113,7 +113,7 @@ their squad has no opponent that week.
   `ensure_season(college, year_group)`; at most one running season per year group (index from 185).
 - **Squads form on any day.** Any import or the nightly job seats waiting students at once
   (`form_squads` -> `form_squads_in(season)`). A late student takes a free seat in a squad of their own
-  section, else waits in Reserve; 11 waiting make a new squad. A late section joins the running season and
+  section, else waits in Reserve; 5 waiting make a new squad (migration 195; was 11). A late section joins the running season and
   gets fixtures for the league weeks left (`extend_fixtures`).
 - **Season shape (plan_version 2, 12 weeks):** league weeks 1-10 inside each section (odd count: one squad
   rests each week), semi-finals week 11, final week 12. Old seasons keep plan_version 1 and the old shape.

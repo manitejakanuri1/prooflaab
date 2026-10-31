@@ -14,6 +14,22 @@ import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
 import { fmtMark } from "@/lib/lotMarks";
 
+/** Why a student has no squad yet (migration 195: 5 waiting students of a section make a new squad). */
+function ReserveReason() {
+  const [r, setR] = useState<{ section: string; waiting: number; needed: number } | null>(null);
+  useEffect(() => {
+    supabase.rpc("my_reserve_status" as never).then(({ data }) => setR((data as typeof r) ?? null), () => {});
+  }, []);
+  if (!r) return null;
+  return (
+    <p className="text-sm max-w-prose">
+      {r.waiting >= r.needed
+        ? `You join a squad of section ${r.section} when the next season starts.`
+        : `All squads in your section (${r.section}) are full. You join a new squad when ${r.needed} students are waiting (${r.waiting} so far). Your college can also place you in a squad.`}
+    </p>
+  );
+}
+
 /** squad_marks_week() (migration 165): each member's Daily Lot marks this week, and the squad total. */
 interface SquadWeekMarks {
   squad_total: number;
@@ -178,10 +194,10 @@ const StudentSquadPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <SeasonPhaseBar status={season?.state === "complete" ? season : null} />
+          <ReserveReason />
           <p className="text-sm text-muted-foreground max-w-prose">
-            You are not in a squad yet. Squads are formed by your college — once you are placed in
-            one, this is where you will see your team's rank and points, who is active, your
-            upcoming matches and the full standings.
+            Once you are placed in a squad, this is where you will see your team's rank and points,
+            who is active, your upcoming matches and the full standings.
           </p>
           <div className="grid gap-2 sm:grid-cols-5">
             {["Overview", "Members", "Matches", "Standings", "Achievements"].map((v) => (

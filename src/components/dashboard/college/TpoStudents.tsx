@@ -61,12 +61,12 @@ interface Props {
   onOpenSquad?: (squadId: string) => void;
 }
 
-/** MF-121: one line on why a student is in Reserve. A squad is 11 students of one section. */
+/** MF-121: one line on why a student is in Reserve. 5 waiting students of one section make a new squad (migration 195). */
 const reserveReason = (cohort?: string | null, waiting?: number | null) => {
   if (!cohort) return "No section yet";
   const n = waiting ?? 0;
-  return n < 11
-    ? `Section ${cohort}: ${n} of 11 waiting for a squad`
+  return n < 5
+    ? `Section ${cohort}: all squads full; ${n} of 5 waiting for a new squad`
     : `Section ${cohort}: joins a squad at the next season start`;
 };
 

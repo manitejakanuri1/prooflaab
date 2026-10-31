@@ -82,7 +82,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
             <SelectTrigger className="w-[170px]"><SelectValue placeholder="Review" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="unreviewed">Not reviewed yet</SelectItem>
+              <SelectItem value="unreviewed">To review</SelectItem>
               <SelectItem value="accepted">Accepted</SelectItem>
               <SelectItem value="needs_work">Needs work</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>

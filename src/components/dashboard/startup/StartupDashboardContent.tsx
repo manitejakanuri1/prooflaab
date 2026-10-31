@@ -30,7 +30,7 @@ const RestrictedAccessMessage = () => (
 /**
  * The Company dashboard: four destinations - Home, Talent, Lots, Hiring.
  *
- *   Lots    My Lots · Create a Lot · Submissions · Reviews
+ *   Lots    My Lots · Create a Lot · Submissions (its filter has "To review"; the old Reviews tab, MF-027)
  *   Hiring  Shortlist (the candidate pipeline) · Job posts
  *
  * Every Lot is graded like any other student work; results are read from
@@ -50,7 +50,7 @@ export const COMPANY_REDIRECTS: Record<string, [string, string]> = {
 };
 
 const NEEDS_VERIFICATION = new Set(["lots", "hiring"]);
-const LOT_VIEWS = [["active", "My Lots"], ["create", "Create a Lot"], ["submissions", "Submissions"], ["reviews", "Reviews"]];
+const LOT_VIEWS = [["active", "My Lots"], ["create", "Create a Lot"], ["submissions", "Submissions"]];
 const HIRING_VIEWS = [["shortlist", "Shortlist"], ["jobs", "Job posts"]];
 
 export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: StartupDashboardContentProps) {
@@ -92,7 +92,7 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
       const v = LOT_VIEWS.some(([id]) => id === view) ? view : "active";
       return (
         <div>
-          {inner(LOT_VIEWS, v)}
+          {inner(LOT_VIEWS, v === "reviews" ? "submissions" : v)}
           {v === "active" && <RecruiterDashboardContent activeTab="lots" onTabChange={go} />}
           {v === "create" && (
             <div className="space-y-3">
@@ -104,6 +104,7 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
             </div>
           )}
           {v === "submissions" && <StartupSubmissionsPage />}
+          {/* An old "reviews" link opens Submissions already filtered to "To review". */}
           {v === "reviews" && <StartupSubmissionsPage initialFilter="unreviewed" />}
         </div>
       );

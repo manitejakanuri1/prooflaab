@@ -1,9 +1,10 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CompanyBell } from "./CompanyBell";
 
-// No bell: startups have no notifications screen, so it was a button that did
-// nothing. Settings opens from the avatar instead of a sidebar entry.
+// The bell lists what companies are told (MF-088: a student finished their Lot).
+// Settings opens from the avatar instead of a sidebar entry.
 export function StartupDashboardHeader({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const { data: profile } = useStartupProfile();
   return (
@@ -21,6 +22,7 @@ export function StartupDashboardHeader({ onNavigate }: { onNavigate?: (tab: stri
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
+          <CompanyBell onOpenLots={() => onNavigate?.("lots")} />
           <button type="button" onClick={() => onNavigate?.("settings")} title="Settings"
                   className="flex items-center gap-2 rounded-md p-1 text-left hover:bg-muted">
             <div className="w-8 h-8 bg-primary/15 rounded-full flex items-center justify-center">

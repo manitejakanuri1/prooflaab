@@ -167,6 +167,7 @@ jobs:
                    ':(exclude)src/components/dashboard/season/SeasonPhaseBar.tsx'
                    ':(exclude)src/components/dashboard/season/YearGroupBar.tsx'
                    ':(exclude)src/components/dashboard/college/ResendInviteButton.tsx'
+                   ':(exclude)src/components/dashboard/startup/CompanyBell.tsx'
                    ':(exclude)src/components/dashboard/student/SimpleQuestion.tsx'
                    ':(exclude)src/lib/voiceGateReload.test.ts'
                    ':(exclude)src/components/dashboard/student/StudentPrivacy.tsx'

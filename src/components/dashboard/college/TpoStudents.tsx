@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
-import { confirmRemoval, removeStudents } from "@/lib/removeStudents";
+import { removeStudents } from "@/lib/removeStudents";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,7 @@ interface FilterOptions {
  */
 const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Props) => {
   const { toast } = useToast();
+  const [confirmBox, ask] = useConfirm();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -154,7 +156,13 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   });
   const remove = async (ids: string[], label: string) => {
     if (!ids.length) return;
-    if (!confirmRemoval(label)) return;
+    // MF-111: an in-app "are you sure?" box (useConfirm), not a typed prompt.
+    if (!(await ask({
+      title: `Remove ${label}?`,
+      points: ["Their login and all their work on ProofLab are deleted.",
+               "To stop someone using ProofLab for now, use Suspend instead."],
+      action: "Remove",
+    }))) return;
     setRemoving(true);
     try {
       const r = await removeStudents(ids);
@@ -229,6 +237,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
 
   return (
     <div className="space-y-4">
+      {confirmBox}
       <div className="flex items-baseline gap-3 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">Students</h1>
         <p className="text-sm text-muted-foreground">
@@ -403,11 +412,6 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                       )}
                     </td>
                     <td className="py-2.5 whitespace-nowrap">
-                      <Button size="sm" variant="ghost" className="h-7 px-2 text-muted-foreground hover:text-alert"
-                              disabled={removing} title="Remove student"
-                              onClick={(e) => { e.stopPropagation(); void remove([r.student_id], r.full_name); }}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
                       {r.attention !== "ok" && (
                         <Button
                           size="sm" variant="outline"
@@ -420,6 +424,13 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                           {sending === r.student_id ? "Sending…" : "Remind"}
                         </Button>
                       )}
+                      {/* MF-111: Remove sits apart from Remind, behind a divider, and asks first. */}
+                      <span className="inline-block h-5 border-l mx-3 align-middle" />
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-muted-foreground hover:text-alert"
+                              disabled={removing} title="Remove student" aria-label={`Remove ${r.full_name}`}
+                              onClick={(e) => { e.stopPropagation(); void remove([r.student_id], r.full_name); }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                       <ChevronRight className="h-4 w-4 inline-block ml-2 text-muted-foreground" />
                     </td>
                   </tr>

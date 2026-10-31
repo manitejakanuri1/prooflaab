@@ -3,16 +3,8 @@
  * the student's work away. remove_students() keeps a record (profile, contact,
  * tasks, submissions, voice, tracks, levels, scorecards, squad) but there is no
  * restore tool, and XP history, badges, weekly scores, resume claims, interventions
- * and shortlists are not in it. So the person types the word REMOVE, not just OK.
+ * and shortlists are not in it. So the screen asks first (useConfirm, MF-111).
  */
-export function confirmRemoval(label: string): boolean {
-  const typed = window.prompt(
-    `Remove ${label}?\n\nThis CANNOT be undone: their login and all their work on ProofLab are deleted. ` +
-    `Only a partial record is kept for audit; it cannot be restored from the app. ` +
-    `To stop someone using ProofLab for now, use Suspend instead.\n\nType REMOVE to confirm.`,
-  );
-  return typed?.trim() === "REMOVE";
-}
 
 /**
  * Removes students completely: their ProofLab data and their Google login,

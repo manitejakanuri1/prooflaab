@@ -9,10 +9,11 @@ import SquadSwapsList from "@/components/dashboard/season/SquadSwapsList";
 // Admin: every college's current squads (members, points, secret swap codes) and every squad swap
 // (migration 143, owner decision 24 Oct 2026).
 
-// Migration 184: one row per running season - a college runs one season per year group.
+// Migration 184: one row per season - a college runs one season per year group.
+// Migration 193 (MF-035): the latest season per year group, so a college between seasons still shows.
 interface CollegeRow {
   college_id: string; college: string; season_starts: string; squads: number; swaps: number;
-  season?: string; year_group_label?: string; week?: number; phase?: string;
+  season?: string; year_group_label?: string; week?: number; phase?: string; status?: string;
 }
 interface SquadRow {
   id: string; name: string; cohort: string | null; points: number; rank: number | null; max_members: number;
@@ -55,7 +56,7 @@ export default function AdminSquads() {
       {error && <p className="text-sm text-alert">{error}</p>}
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Colleges with a season running</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Colleges and their latest season</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <select className="border rounded-md px-3 py-2 text-sm bg-background w-full max-w-md" aria-label="College"
             value={collegeId} onChange={(e) => setCollegeId(e.target.value)}>
@@ -71,6 +72,7 @@ export default function AdminSquads() {
               {colleges.map((c, i) => (
                 <li key={i}>
                   {c.college} · {c.year_group_label ?? "—"} · {c.season ?? "Season"} · week {c.week ?? "?"} ({c.phase ?? "—"})
+                  {c.status && c.status !== "running" ? " · finished, next season after the days off" : ""}
                   {" "}· {c.squads} squads · {c.swaps} swaps · from {c.season_starts}
                 </li>
               ))}

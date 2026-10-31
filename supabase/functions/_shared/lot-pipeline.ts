@@ -242,7 +242,9 @@ export async function writeLotTemplate(supabase: any, sourceContentId: string, a
  */
 // deno-lint-ignore no-explicit-any
 export async function pagesNeedingLots(supabase: any, limit: number): Promise<string[]> {
-  const { data: pages } = await supabase.from("source_content").select("id").is("hidden_at", null).order("fetched_at", { ascending: true });
+  // Migration 207 (owner option B): bank-question pages are written on first use (lot-writer), never in advance.
+  const { data: pages } = await supabase.from("source_content").select("id").is("hidden_at", null)
+    .is("bank_question_id", null).order("fetched_at", { ascending: true });
   const { data: templates } = await supabase.from("lot_templates")
     .select("source_content_id, origin, title, scenario, code_sample, sandbox_config_id").not("source_content_id", "is", null);
   const byPage = new Map<string, any>((templates ?? []).map((t: any) => [t.source_content_id, t]));

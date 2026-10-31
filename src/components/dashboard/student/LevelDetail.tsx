@@ -294,14 +294,15 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
               </div>
               <div className="flex flex-col gap-2">
                 {onOpenCourse && (
-                  <Button onClick={() => { onOpenChange(false); onOpenCourse(courseLink.course_slug); }}>
+                  <Button disabled={advancing} onClick={() => { onOpenChange(false); onOpenCourse(courseLink.course_slug); }}>
                     Open the full {courseLink.course_name} course
                   </Button>
                 )}
+                {/* MF-032: the short version can take ~20 s to write; show the loader at once so the click visibly works. */}
                 <Button variant="outline" onClick={async () => { setAdvancing(true); await fetchStep(false, false, "skip"); setAdvancing(false); }} disabled={advancing}>
-                  I already know {courseLink.course_name}: skip (I will revise later)
+                  {advancing ? "Skipping…" : `I already know ${courseLink.course_name}: skip (I will revise later)`}
                 </Button>
-                <Button variant="ghost" onClick={async () => { setAdvancing(true); await fetchStep(false, false, "short"); setAdvancing(false); }} disabled={advancing}>
+                <Button variant="ghost" onClick={async () => { setAdvancing(true); setPhase("loading"); await fetchStep(false, false, "short"); setAdvancing(false); }} disabled={advancing}>
                   Just read the short version here
                 </Button>
               </div>

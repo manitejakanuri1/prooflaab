@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, NotebookPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBuildLog";
+import { passedNote } from "@/lib/passedNote";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -137,6 +138,11 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
                  sub={!v ? "Not recorded yet" : busy ? undefined : scored ? undefined : "Not scored"} />
           {scored && match != null && <Score label="Matches your work" value={`${match}/100`} />}
         </div>
+        {e.status === "passed" && scored && passedNote(v!.communication_score, match) && (
+          <p className="text-sm rounded-md border border-compete/30 bg-compete/5 p-3" data-testid="passed-note">
+            {passedNote(v!.communication_score, match)}
+          </p>
+        )}
 
         {busy && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">

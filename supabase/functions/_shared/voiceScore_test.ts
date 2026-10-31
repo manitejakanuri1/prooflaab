@@ -107,6 +107,19 @@ Deno.test("1e MF-115: a 4-second clip with enough words is refused, no AI call",
   assertEquals(db.rows.get(ID)!.status, 'failed');
 });
 
+Deno.test("1f MF-019: invented words on a near-silent recording are 'no speech', no AI call", async () => {
+  const db = new FakeDb({ id: ID });
+  const calls = { n: 0 };
+  const r = await scoreRecording(db, longRec({ duration_seconds: 25, evaluation: { transcription: { speech_seconds: 0.8 } } }), ai('{}', calls));
+  assertEquals(r.outcome, 'too_short');
+  assertEquals((r.body as { flags: string[] }).flags, ['silence']);
+  assertEquals(calls.n, 0);
+  assertEquals(db.rows.get(ID)!.status, 'failed');
+  // Real speech, or a failed detection, is graded as before.
+  assertEquals(transcriptQuality('one two three four five six seven eight nine ten eleven twelve', 12, 9).flags, []);
+  assertEquals(transcriptQuality('one two three four five six seven eight nine ten eleven twelve', 12, null).flags, []);
+});
+
 // ---------- 1. too-short decision is protected by the claim ----------
 Deno.test("1a too-short never touches an already-scored recording", async () => {
   const db = new FakeDb({ id: ID, status: 'scored', communication_score: 70, communication_notes: 'good' });

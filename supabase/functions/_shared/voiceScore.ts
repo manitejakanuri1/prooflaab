@@ -47,6 +47,8 @@ export type ScoreOutcome =
 export const MIN_VOICE_SECONDS = 20;
 export type ScoreResult = { status: number; outcome: ScoreOutcome; body: Record<string, unknown> };
 
+/** MF-019: less real speech than this (the transcriber's voice detector, language_gate.py) counts as silence. */
+export const MIN_SPEECH_SECONDS = 3;
 /** Minimum words before a transcript is worth grading (unchanged). */
 export const MIN_WORDS = 12;
 /** Recorded on every graded row, so a score can be traced to the rules that made it. */
@@ -63,10 +65,12 @@ export const CLOSED_NOTE = 'The spoken part of this Lot is closed, so this recor
  * Not a length rule - a short, specific answer passes; silence, a single word
  * or one phrase repeated does not.
  */
-export function transcriptQuality(transcript: string | null, wordCount: number | null): { flags: string[]; note: string | null } {
+export function transcriptQuality(transcript: string | null, wordCount: number | null, speechSeconds?: number | null): { flags: string[]; note: string | null } {
   const words = (transcript ?? '').toLowerCase().match(/[a-z0-9']+/g) ?? [];
   const n = Math.max(words.length, 0);
-  if (n === 0) return { flags: ['silence'], note: 'We could not hear any speech. Check your microphone and record again.' };
+  // MF-019: Whisper can invent words for a near-silent recording. The transcriber's voice detector
+  // measured the real speech; under MIN_SPEECH_SECONDS of it, any transcript is not the student talking.
+  if (n === 0 || (speechSeconds != null && speechSeconds < MIN_SPEECH_SECONDS)) return { flags: ['silence'], note: 'We could not hear any speech. Check your microphone and record again.' };
   if (n < MIN_WORDS || (wordCount ?? n) < MIN_WORDS) return { flags: ['too_few_words'], note: 'Too little speech to score.' };
   if (new Set(words).size / n < 0.3) {
     return { flags: ['repetitive'], note: 'The recording repeats the same few words. Explain what you did, in your own words.' };
@@ -220,7 +224,10 @@ export async function scoreRecording(
 
   // Too little speech: decided only now, under this claim, so it can never
   // mark an already-scored recording failed or overwrite another claim's work.
-  const quality = transcriptQuality(rec.transcript, rec.word_count);
+  // speech_seconds is what the voice detector heard (migration 69); skipped when detection itself failed.
+  const heard = rec.evaluation?.transcription as { speech_seconds?: unknown; detection_error?: unknown } | undefined;
+  const quality = transcriptQuality(rec.transcript, rec.word_count,
+    typeof heard?.speech_seconds === 'number' && !heard.detection_error ? heard.speech_seconds : null);
   if (quality.flags.length) {
     console.log(`VOICE-SCORE: too short ${voice_id} (${quality.flags.join(',')})`);
     return await failUnderClaim(quality.note!, 'too_short', 200,

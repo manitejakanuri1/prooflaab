@@ -214,11 +214,16 @@ const StudentDailyCard = () => {
   useEffect(() => { void load(); }, [load]);
   // MF-116: while a recording is being checked, look again every 15 s so the card shows the result
   // even when the popup was closed during the upload.
+  // MF-040: the card itself also waits for the score while the Lot says "Spoken explanation required"
+  // (recorded from the card's own popup, or the task screen was closed), so it turns Done by itself.
   useLiveRefresh(async () => {
-    if (voiceStatus !== "checking" || !lot || !profile?.id) return;
+    if (!lot || !profile?.id) return;
+    if (voiceStatus !== "checking" && lot.status !== "pending_voice") return;
     const st = await latestVoiceStatus(profile.id, lot.id);
-    setVoiceStatus(st);
-    if (st !== "checking") await load();
+    if (voiceStatus === "checking") {
+      setVoiceStatus(st);
+      if (st !== "checking") await load();
+    } else if (st === "scored") await load();
   }, 15_000);
 
   const recency = lastActive

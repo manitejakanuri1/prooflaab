@@ -24,12 +24,12 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KEY="${VITE_GOOGLE_API_KEY:-$(sed -n 's/^VITE_GOOGLE_API_KEY=//p' "$REPO_ROOT/.env.production" | head -n 1)}"
+KEY="${VITE_GOOGLE_API_KEY:-$(gcloud secrets versions access latest --secret=prooflab-identity-api-key --project=prooflab-508214 2>/dev/null)}"
 BRIDGE="${VITE_AUTH_BRIDGE_URL:-https://prooflab-auth-bridge-ysn2mpe6sa-el.a.run.app}"
 API="${VITE_POSTGREST_URL:-https://prooflab-api-ysn2mpe6sa-el.a.run.app}"
 
 if [ -z "$KEY" ]; then
-  echo "Google API key is missing; set VITE_GOOGLE_API_KEY or configure it in .env.production." >&2
+  echo "Google API key is missing; set VITE_GOOGLE_API_KEY or allow gcloud to read secret prooflab-identity-api-key." >&2
   exit 2
 fi
 

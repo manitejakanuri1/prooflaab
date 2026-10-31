@@ -2,9 +2,9 @@ import { assertEquals, assert } from "https://deno.land/std@0.224.0/assert/mod.t
 import { scrub, cleanRequestId, subjectOf, hashUser } from "./log.ts";
 
 Deno.test("scrub removes emails, tokens and keys", () => {
-  const s = scrub("mail a.b@x.co with Bearer abc.def.ghi and AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw and sk-abcdefghijklmnop1234");
+  const s = scrub("mail a.b@x.co with Bearer abc.def.ghi and " + "AIza" + "x".repeat(35) + " and sk-abcdefghijklmnop1234");
   assert(!s.includes("a.b@x.co"));
-  assert(!s.includes("AIzaSy"));
+  assert(!s.includes("AIzax"));
   assert(!s.includes("sk-abc"));
   assert(s.includes("[email]"));
 });

@@ -150,7 +150,10 @@
     "secret": "github-pat",
     "version": "latest"
    },
-   "GOOGLE_API_KEY": "AIzaSyCNv0YWVP5QTDRb4WPVccmosCMC8cH7nnw",
+   "GOOGLE_API_KEY": {
+    "secret": "prooflab-identity-api-key",
+    "version": "latest"
+   },
    "PGRST_JWT_SECRET": {
     "secret": "prooflab-jwt-secret",
     "version": "latest"

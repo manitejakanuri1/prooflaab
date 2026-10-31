@@ -22,7 +22,7 @@ sys.path.insert(
 )
 from google_api_key import google_api_key  # noqa: E402
 
-API_KEY = google_api_key(".env.staging")
+API_KEY = google_api_key()
 BRIDGE = "https://prooflab-staging-auth-bridge-ysn2mpe6sa-el.a.run.app"
 API = "https://prooflab-staging-api-ysn2mpe6sa-el.a.run.app"
 FN = "https://prooflab-staging-functions-ysn2mpe6sa-el.a.run.app"

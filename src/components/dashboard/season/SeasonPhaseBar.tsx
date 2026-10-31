@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { SEED_WIN } from "@/lib/matchStatus";
 
 /**
  * Where the season is, in one line, for the student and the TPO alike.
@@ -20,7 +21,9 @@ export interface SeasonStatus {
     id: string; name: string; completed_at: string | null;
     champion: string | null; runner_up: string | null; third: string | null;
     /** Migration 184: one champion per section (or per pooled group of sections). */
-    champions?: { bracket: string; champion: string }[];
+    champions?: { bracket: string; champion: string; decided_by?: string | null }[];
+    /** Migration 203 (MF-097): 'higher_seed' when the final was drawn and the higher seed won. */
+    final_decided_by?: string | null;
   };
   /** Migration 184: each year group runs its own season. */
   year_group?: number;
@@ -105,6 +108,9 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
           {champions.length <= 1 && (
             <span className="font-semibold">
               {s.champion ? `Champion: ${s.champion}` : "No champion - no squad played this season"}
+              {s.champion && s.final_decided_by === "higher_seed" && (
+                <span className="font-normal text-muted-foreground"> – drawn final, {SEED_WIN}</span>
+              )}
             </span>
           )}
         </div>
@@ -114,6 +120,9 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
               <div key={c.bracket} className="rounded-md border border-primary bg-primary/10 px-3 py-2">
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{c.bracket} Champion</div>
                 <div className="font-medium truncate">{c.champion}</div>
+                {c.decided_by === "higher_seed" && (
+                  <div className="text-[11px] text-muted-foreground">Drawn final – {SEED_WIN}</div>
+                )}
               </div>
             ))}
           </div>

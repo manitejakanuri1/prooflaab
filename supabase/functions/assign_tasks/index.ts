@@ -197,7 +197,6 @@ serve(async (req) => {
           created_at: currentTime,
           updated_at: currentTime,
           duration_days: 7,
-          upload_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           created_by_college_id,
           created_by_admin_id,
           created_by_startup_id,

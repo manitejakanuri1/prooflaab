@@ -508,7 +508,7 @@ resources — 2 to 4 places to go and learn this topic properly before the quiz.
 
 quiz — exactly ${QUIZ_POOL_SIZE} questions covering the WHOLE topic (draw from across every step, not just the last one), answerable by someone who went through all the steps. This is a POOL: each attempt only shows the student ${QUIZ_LENGTH} of these at random, so the ${QUIZ_POOL_SIZE} must be genuinely different questions, not near-duplicates reworded — vary which step, which term, which "what happens if" each one targets. Test understanding and real terminology, not trivia. At least 3 of them should be a realistic "what happens if" or "why did this break" rather than a definition lookup. Exactly 4 options, one correct, wrong ones genuinely tempting (a common misconception or an almost-right term). Vary which index is correct. Each explanation is one short sentence in the same voice.
 
-proof — a real thing finishable in 30-90 minutes that ends in an artefact (repo, link, screenshot, recording), and that needs what MULTIPLE steps taught, not just one. proof_brief is 2-3 sentences: what to build and what counts as done. Specific and checkable.
+proof — a real thing finishable in 30-90 minutes, done entirely inside the app: code written in the in-app code editor, or a written answer typed in the answer box. It needs what MULTIPLE steps taught, not just one. proof_brief is 2-3 sentences: what to build or write and what counts as done. Specific and checkable. Never ask for a file, upload, attachment, link, repo or recording.
 
 Return ONLY the JSON.`;
 }

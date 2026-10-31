@@ -3794,7 +3794,6 @@ export type Database = {
           suggested_xp: number | null
           title: string
           updated_at: string
-          upload_deadline: string | null
           visibility: string
           xp: number
           xp_reward: number
@@ -3840,7 +3839,6 @@ export type Database = {
           suggested_xp?: number | null
           title: string
           updated_at?: string
-          upload_deadline?: string | null
           visibility?: string
           xp?: number
           xp_reward?: number
@@ -3886,7 +3884,6 @@ export type Database = {
           suggested_xp?: number | null
           title?: string
           updated_at?: string
-          upload_deadline?: string | null
           visibility?: string
           xp?: number
           xp_reward?: number

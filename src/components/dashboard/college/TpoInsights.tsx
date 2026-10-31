@@ -25,7 +25,19 @@ interface Season {
   id: string; name: string; status: string; is_current: boolean;
   starts_on: string; ends_on: string; completed_at: string | null;
   champion: string | null; runner_up: string | null; third: string | null; squads: number;
+  // MF-062 (migration 194): the year group and one podium per section since migration 184.
+  year_group_label?: string;
+  champions?: { bracket: string; champion: string | null; runner_up: string | null; third: string | null }[];
 }
+interface AtRisk {
+  student_id: string; full_name: string; attention: string; cohort: string | null;
+  days_quiet: number; onboarding_status: string;
+}
+// Same wording as the reminder on Students.
+const riskReason = (r: AtRisk) =>
+  r.days_quiet >= 999 ? "Never active"
+    : r.days_quiet >= 7 ? `No activity for ${r.days_quiet} days`
+    : r.onboarding_status !== "completed" ? "Onboarding not finished" : "Falling behind";
 interface Report { branches: Branch[]; squad_trends: Trend[]; seasons: Season[]; error?: string }
 
 interface Insights {
@@ -59,19 +71,23 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
   const [data, setData] = useState<Insights | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
+  const [atRisk, setAtRisk] = useState<AtRisk[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     // Three functions rather than one: tpo_insights answers "where do I step
     // in", the report answers "how is the college doing", and placement
     // answers "did any of this lead anywhere" — three different rhythms.
-    const [{ data: res, error: err }, { data: rep }, { data: plc }] = await Promise.all([
+    const [{ data: res, error: err }, { data: rep }, { data: plc }, { data: risk }] = await Promise.all([
       supabase.rpc("tpo_insights" as never),
       supabase.rpc("tpo_college_report" as never),
       supabase.rpc("tpo_placement_report" as never),
+      // MF-062: the at-risk students themselves, not only their count (same filter as Students > Needs attention).
+      supabase.rpc("tpo_students" as never, { _status: "attention", _limit: 8, _offset: 0 } as never),
     ]);
     if (err) { setError(err.message); return; }
     setReport(rep as unknown as Report);
+    setAtRisk(((risk ?? []) as unknown as AtRisk[]).filter((r) => r.attention && r.attention !== "ok"));
     setPlacement(plc as unknown as Placement);
     const d = res as unknown as Insights;
     if (d?.error) { setError(d.error); return; }
@@ -142,6 +158,8 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
   const trends = report?.squad_trends ?? [];
   const seasons = report?.seasons ?? [];
   const delta = data.participation_this_week - data.participation_last_week;
+  // MF-062: between seasons the squad numbers are last season's leftovers, so they are not shown.
+  const seasonRunning = seasons.some((s) => s.is_current);
   const healthy = data.squad_health.filter(
     (s) => s.members > 0 && s.active_members / s.members >= 0.7).length;
 
@@ -169,8 +187,8 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
               {data.participation_this_week}%
             </div>
             <p className={`text-xs mt-0.5 ${delta < 0 ? "text-alert" : delta > 0 ? "text-verified" : "text-muted-foreground"}`}>
-              {delta === 0 ? "unchanged on last week"
-                : `${delta > 0 ? "▲" : "▼"} ${Math.abs(delta)} points on last week`}
+              {delta === 0 ? "same as last week"
+                : `${delta > 0 ? "▲ up" : "▼ down"} from ${data.participation_last_week}% last week`}
             </p>
           </CardContent>
         </Card>
@@ -200,10 +218,10 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
               Squads healthy
             </span>
             <div className="font-mono text-3xl font-bold tabular-nums mt-1">
-              {healthy}/{data.squad_health.length}
+              {seasonRunning ? `${healthy}/${data.squad_health.length}` : "—"}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              70% of members active counts as healthy
+              {seasonRunning ? "70% of members active counts as healthy" : "between seasons"}
             </p>
           </CardContent>
         </Card>
@@ -221,6 +239,32 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
           </CardContent>
         </Card>
       </div>
+
+      {/* MF-062: who is at risk, by name, with the reason (the first 8; Students has the full list). */}
+      {atRisk.length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                At-risk students
+              </span>
+              <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs"
+                      onClick={() => onFilterStudents?.("all")}>
+                See all {data.attention_total}
+              </Button>
+            </div>
+            <div className="mt-1">
+              {atRisk.map((r) => (
+                <div key={r.student_id} className="flex items-baseline gap-3 py-2 border-b last:border-b-0">
+                  <span className="text-sm font-medium">{r.full_name}</span>
+                  {r.cohort && <span className="text-xs text-muted-foreground">{r.cohort}</span>}
+                  <span className={`ml-auto text-xs ${r.attention === "high" ? "text-alert" : "text-compete"}`}>{riskReason(r)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -341,7 +385,11 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Squad trends
             </span>
-            {trends.length === 0 ? (
+            {!seasonRunning ? (
+              <p className="text-sm text-muted-foreground mt-3 max-w-prose">
+                Between seasons. Trends start again once the next season has two scored weeks.
+              </p>
+            ) : trends.length === 0 ? (
               <p className="text-sm text-muted-foreground mt-3 max-w-prose">
                 Nothing to compare yet. A trend needs two scored weeks — after the second Monday
                 this shows which squads are climbing and which are falling away.
@@ -391,8 +439,11 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                 <div key={s.id} className="py-3 border-b last:border-b-0">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-sm font-medium">{s.name}</span>
+                    {s.year_group_label && (
+                      <span className="text-xs text-muted-foreground">{s.year_group_label}</span>
+                    )}
                     <Badge variant="outline" className="text-[10px] font-normal">
-                      {s.is_current ? "Running" : s.status}
+                      {s.is_current ? "Running" : s.status === "complete" ? "Finished" : s.status}
                     </Badge>
                     <span className="font-mono text-xs text-muted-foreground">
                       {s.squads} squads
@@ -401,7 +452,18 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                       {s.starts_on} → {s.ends_on}
                     </span>
                   </div>
-                  {s.champion ? (
+                  {s.champions && s.champions.length > 0 ? (
+                    <div className="mt-2 space-y-1">
+                      {s.champions.map((c) => (
+                        <p key={c.bracket} className="text-sm">
+                          <span className="font-medium">{c.bracket}:</span>{" "}
+                          Champion {c.champion ?? "—"}
+                          {c.runner_up ? ` · Runner-up ${c.runner_up}` : ""}
+                          {c.third ? ` · Third ${c.third}` : ""}
+                        </p>
+                      ))}
+                    </div>
+                  ) : s.champion ? (
                     <div className="mt-2 grid gap-2 sm:grid-cols-3">
                       {[
                         { k: "Champion", v: s.champion },
@@ -418,7 +480,9 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Still running. The podium is filled in when the season closes.
+                      {s.is_current
+                        ? "Still running. The podium is filled in when the season closes."
+                        : "Finished with no champion: no squad played in the league."}
                     </p>
                   )}
                 </div>

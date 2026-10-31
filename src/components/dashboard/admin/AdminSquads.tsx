@@ -5,6 +5,29 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { FAST_WEEK, WHEN_FORMAT } from "@/lib/testClock";
 import SquadSwapsList from "@/components/dashboard/season/SquadSwapsList";
+import { Button } from "@/components/ui/button";
+
+// TEST website only (migration 208): move every open PRAGATI season forward one fast week (20 minutes).
+function TestSeasonForward() {
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("admin_test_advance_season" as never, { _weeks: 1 } as never);
+    setBusy(false);
+    const seasons = ((data as { seasons?: { week_before: number; week_now: number }[] } | null)?.seasons ?? []);
+    setMsg(error ? `Not moved: ${error.message}`
+      : seasons.length ? seasons.map((s) => `Week ${s.week_before} -> ${s.week_now}`).join(", ") : "No open PRAGATI season.");
+  };
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center gap-3 pt-5">
+        <Button size="sm" disabled={busy} onClick={() => void go()}>TEST: move PRAGATI season forward 1 week</Button>
+        <span className="text-sm text-muted-foreground">{busy ? "Moving..." : msg || "Each week is 20 minutes on TEST; this skips to the next one now."}</span>
+      </CardContent>
+    </Card>
+  );
+}
 
 // Admin: every college's current squads (members, points, secret swap codes) and every squad swap
 // (migration 143, owner decision 24 Oct 2026).
@@ -53,6 +76,7 @@ export default function AdminSquads() {
         <h1 className="text-2xl font-bold tracking-tight">Squads</h1>
         <p className="text-sm text-muted-foreground">Every college's squads this season, their secret swap codes, and every squad swap.</p>
       </div>
+      {FAST_WEEK && <TestSeasonForward />}
       {error && <p className="text-sm text-alert">{error}</p>}
 
       <Card>

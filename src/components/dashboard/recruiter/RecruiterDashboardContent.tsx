@@ -406,8 +406,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
               <Skeleton className="h-24 w-full rounded-lg" />
             ) : lots.length === 0 ? (
               <p className="text-sm text-muted-foreground max-w-prose">
-                No sponsored work yet. Shortlist a candidate first, then set them a task — it
-                lands on their Daily Card like any other piece of work.
+                No sponsored work yet. You can only send a task to a student on your shortlist.
+                This keeps students safe from unwanted work: only companies that picked them can
+                set them a task. Shortlist a candidate in Talent, then press "Send a task" in
+                Hiring, Shortlist — it lands on their Daily Card on their next free day.
               </p>
             ) : (
               <table className="w-full text-sm min-w-[620px]">

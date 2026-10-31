@@ -10,6 +10,7 @@ import {
   SeasonCompleteCard, StandingsKey, shownSeasonId, tieNote, type SeasonStatus,
 } from "@/components/dashboard/season/SeasonPhaseBar";
 import PostSourceMaterial from "./PostSourceMaterial";
+import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 
 interface AttentionLine {
   reason_code: string;
@@ -120,6 +121,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
 
   return (
     <div className="space-y-4">
+      <AnnouncementBanner />
       <div className="flex items-baseline gap-3 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">Home</h1>
         <p className="text-sm text-muted-foreground">

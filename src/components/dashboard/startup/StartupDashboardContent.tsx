@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useUrlTab } from "@/hooks/useUrlTab";
+import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 
 interface StartupDashboardContentProps {
   activeTab: string;
@@ -125,6 +126,11 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
       return <StartupSettingsPage />;
 
     default:
-      return <RecruiterDashboardContent activeTab="home" onTabChange={go} />;
+      return (
+        <div className="space-y-4">
+          <AnnouncementBanner />
+          <RecruiterDashboardContent activeTab="home" onTabChange={go} />
+        </div>
+      );
   }
 }

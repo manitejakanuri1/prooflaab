@@ -21,6 +21,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// MF-033 (migration 199): who sees it. Publishing sends each of them one bell notice and shows it on their dashboard.
+const AUDIENCES = { all: "Everyone", students: "Students", colleges: "Colleges", companies: "Companies" } as const;
+type Audience = keyof typeof AUDIENCES;
 
 interface Announcement {
   id: string;
@@ -29,12 +34,15 @@ interface Announcement {
   status: 'draft' | 'published' | 'scheduled';
   created_at: string;
   created_by_admin: string;
+  audience: Audience;
+  expiry_date: string | null;
 }
 
 interface AnnouncementFormData {
   title: string;
   description: string;
   status: 'draft' | 'published' | 'scheduled';
+  audience: Audience;
   expiry_date?: Date;
 }
 
@@ -42,6 +50,7 @@ const initialFormData: AnnouncementFormData = {
   title: "",
   description: "",
   status: 'draft',
+  audience: 'all',
   expiry_date: undefined,
 };
 
@@ -68,12 +77,7 @@ const ManageAnnouncementsPage = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      const announcementsWithStatus = (data || []).map(item => ({
-        ...item,
-        status: 'published' as const // Default status since announcements table doesn't have status column
-      }));
-      
-      setAnnouncements(announcementsWithStatus);
+      setAnnouncements((data || []) as unknown as Announcement[]);
     } catch (error) {
       console.error("Error fetching announcements:", error);
       toast({
@@ -91,19 +95,19 @@ const ManageAnnouncementsPage = () => {
     setSubmitting(true);
 
     try {
-      const submitData = {
+      const fields = {
         title: formData.title,
         description: formData.description,
-        created_by_admin: (await supabase.auth.getUser()).data.user?.id,
+        status: formData.status,
+        audience: formData.audience,
+        expiry_date: formData.expiry_date ? formData.expiry_date.toISOString() : null,
       };
+      const submitData = { ...fields, created_by_admin: (await supabase.auth.getUser()).data.user?.id };
 
       if (editingAnnouncement) {
         const { error } = await supabase
           .from("announcements")
-          .update({
-            title: formData.title,
-            description: formData.description
-          })
+          .update(fields as never)
           .eq("id", editingAnnouncement.id);
 
         if (error) throw error;
@@ -114,7 +118,7 @@ const ManageAnnouncementsPage = () => {
       } else {
         const { error } = await supabase
           .from("announcements")
-          .insert([submitData]);
+          .insert([submitData] as never);
 
         if (error) throw error;
         toast({
@@ -171,8 +175,9 @@ const ManageAnnouncementsPage = () => {
     setFormData({
       title: announcement.title,
       description: announcement.description || "",
-      status: 'published', // Default since no status in DB
-      expiry_date: (announcement as any).expiry_date ? new Date((announcement as any).expiry_date) : undefined,
+      status: announcement.status,
+      audience: announcement.audience ?? 'all',
+      expiry_date: announcement.expiry_date ? new Date(announcement.expiry_date) : undefined,
     });
     setIsDialogOpen(true);
   };
@@ -266,7 +271,10 @@ const ManageAnnouncementsPage = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge(announcement.status)}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(announcement.status)}
+                      <div className="text-xs text-muted-foreground mt-1">{AUDIENCES[announcement.audience] ?? "Everyone"}</div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {new Date(announcement.created_at).toLocaleDateString()}
                     </TableCell>
@@ -349,6 +357,29 @@ const ManageAnnouncementsPage = () => {
                 rows={5}
                 required
               />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Who sees it</Label>
+                <Select value={formData.audience} onValueChange={(v) => setFormData({ ...formData, audience: v as Audience })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(AUDIENCES).map(([k, label]) => <SelectItem key={k} value={k}>{label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Status</Label>
+                <Select value={formData.status === "published" ? "published" : "draft"}
+                        onValueChange={(v) => setFormData({ ...formData, status: v as "draft" | "published" })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft (nobody sees it)</SelectItem>
+                    <SelectItem value="published">Published (sent now)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">

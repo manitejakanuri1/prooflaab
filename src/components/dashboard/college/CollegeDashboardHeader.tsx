@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Logo, Wordmark } from "@/components/Logo";
 import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface CollegeDashboardHeaderProps {
   collegeName: string;
@@ -27,7 +28,9 @@ interface CollegeDashboardHeaderProps {
 const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMenuButton, onNotificationsClick, onNavigate }: CollegeDashboardHeaderProps) => {
   const { signOut } = useAuth();
   const { toast } = useToast();
-  const { unreadCount } = useCollegeNotifications();
+  const { unreadCount: attentionUnread } = useCollegeNotifications();
+  const { unreadCount: noticeUnread } = useNotifications();   // MF-033: admin announcements
+  const unreadCount = attentionUnread + noticeUnread;
 
   const handleSignOut = async () => {
     try {

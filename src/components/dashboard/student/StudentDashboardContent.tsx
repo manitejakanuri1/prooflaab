@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentDailyCard from "./StudentDailyCard";
 import CompanyInvites from "./CompanyInvites";
+import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 import StudentAssignedTasksPage from "./StudentAssignedTasksPage";
 import BuildLogEntries from "./BuildLogEntries";
 import StudentPortfolioPage from "./StudentPortfolioPage";
@@ -89,6 +90,7 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
           The full task list sits underneath it for anything still open. */}
       {destination === "lab" && (
         <div className="space-y-8">
+          <AnnouncementBanner />
           <CompanyInvites />
           <StudentDailyCard />
           <StudentAssignedTasksPage />

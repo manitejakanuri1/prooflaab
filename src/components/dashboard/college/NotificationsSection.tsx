@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Check } from "lucide-react";
 import { useState } from "react";
 import { useCollegeNotifications } from "@/hooks/useCollegeNotifications";
+import { useNotifications } from "@/hooks/useNotifications";
 import TpoStudentProfile from "./TpoStudentProfile";
 
 /**
@@ -14,6 +15,7 @@ import TpoStudentProfile from "./TpoStudentProfile";
 const NotificationsSection = () => {
   const { notifications, unreadCount, isLoading, markAsViewed, markAllAsViewed } = useCollegeNotifications();
   const [openStudent, setOpenStudent] = useState<string | null>(null);   // MF-066: each alert opens its student
+  const notices = useNotifications();   // MF-033: admin announcements sent to colleges
 
   return (
     <Card>
@@ -30,6 +32,22 @@ const NotificationsSection = () => {
         )}
       </CardHeader>
       <CardContent>
+        {notices.notifications.length > 0 && (
+          <ul className="divide-y mb-4 border-b">
+            {notices.notifications.map((n) => (
+              <li key={n.id} className={`flex items-start gap-3 py-3 ${n.is_read ? "opacity-60" : ""}`}>
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{n.title}</p>
+                  {n.message && <p className="text-sm text-muted-foreground whitespace-pre-line">{n.message}</p>}
+                </div>
+                {!n.is_read && (
+                  <Button variant="ghost" size="sm" onClick={() => notices.markAsRead(n.id)}>Mark read</Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : notifications.length === 0 ? (

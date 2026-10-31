@@ -1,20 +1,22 @@
 import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
-import { generateText } from "../_shared/llm.ts";
 import { guard, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { schedulerCaller } from "../_shared/googleIdentity.ts";
 import { cors } from "../_shared/cors.ts";
-import { buildPrompt, MIN_PAGE_CHARS, parseQuestions } from "../_shared/question-decompose.ts";
+import { decomposePages } from "../_shared/question-decompose-run.ts";
 
 /**
  * Cuts crawled pages into small, tagged practice questions and files them in the question bank (migration 147).
  *
- * Step one only: the questions wait as 'draft' until an admin approves them (Admin > Work > Question bank).
- * Nothing here changes how a student's Lot is chosen.
+ * Questions go live straight away (migration 200, owner 31 Oct 2026): each one becomes its own page, the Lot
+ * writer turns it into a checked Daily Lot, and from week 2 the picker prefers these bank Lots. An admin can
+ * hide a question (Admin > Work > Question bank).
  *
- * Who may call it: the crawler or Cloud Scheduler (Google identity or the webhook secret), or a signed-in admin.
+ * Who may call it: the crawler or Cloud Scheduler (Google identity or the webhook secret), a signed-in admin, or a
+ * college for its own material it just submitted (one page, once).
  *   POST {}                              -> the next pages nobody has tried yet (limit 1-5, default 3)
  *   POST {"limit": 5}
+ *   POST {"limit": 5, "since": "<ISO time>"}  -> only pages fetched from that time (the crawler's own run)
  *   POST {"source_content_id": "<id>"}   -> one specific page, even if it was tried before (admin re-run)
  *
  * It never stores a guess: an AI failure or an unreadable reply stores nothing, and the page is tried again on
@@ -50,7 +52,19 @@ serve(async (req) => {
       if (claimsError || !claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
       adminId = claims.claims.sub as string;
       const { data: roles } = await db.from("user_roles").select("role").eq("user_id", adminId);
-      if (!(roles ?? []).some((r: { role: string }) => r.role === "admin")) return json({ error: "Forbidden" }, 403);
+      if (!(roles ?? []).some((r: { role: string }) => r.role === "admin")) {
+        // A college may ask for its OWN just-submitted material, once (owner 31 Oct 2026: no waiting, no approval).
+        const peek = await req.clone().json().catch(() => ({}));
+        const pageId = typeof peek?.source_content_id === "string" && UUID.test(peek.source_content_id) ? peek.source_content_id : null;
+        const { data: college } = await db.from("colleges").select("id").eq("user_id", adminId).maybeSingle();
+        const { data: own } = pageId && college
+          ? await db.from("source_content").select("id").eq("id", pageId).eq("submitted_by_college_id", college.id).maybeSingle()
+          : { data: null };
+        const { data: tried } = own
+          ? await db.from("question_bank_attempts").select("source_content_id").eq("source_content_id", pageId).maybeSingle()
+          : { data: null };
+        if (!own || tried) return json({ error: "Forbidden" }, 403);
+      }
     }
 
     // 2. Spam cap. The crawler shares one address, so its allowance is larger.
@@ -69,7 +83,8 @@ serve(async (req) => {
       ids = [body.source_content_id];
     } else {
       const limit = Number.isInteger(body?.limit) ? Math.min(MAX_LIMIT, Math.max(1, body.limit)) : DEFAULT_LIMIT;
-      const { data, error } = await db.rpc("question_bank_pending", { _limit: limit });
+      const since = typeof body?.since === "string" && !Number.isNaN(Date.parse(body.since)) ? body.since : null;
+      const { data, error } = await db.rpc("question_bank_pending", { _limit: limit, _since: since });
       if (error) {
         console.error("question-decompose: could not list pending pages:", error.message);
         return json({ error: "Could not list pages" }, 500);
@@ -78,58 +93,12 @@ serve(async (req) => {
     }
 
     // 4. One page at a time: each is one AI call, and a page that fails must not stop the others.
-    const results: Record<string, unknown>[] = [];
-    let stored = 0;
-    let skipped = 0;
-    for (const id of ids) {
-      const { data: page } = await db.from("source_content")
-        .select("id, title, markdown, hidden_at").eq("id", id).maybeSingle();
-      if (!page) { results.push({ id, error: "page not found" }); continue; }
-      if (page.hidden_at || (page.markdown ?? "").length < MIN_PAGE_CHARS) {
-        results.push({ id, skipped: "page is hidden or too short" });
-        continue;
-      }
-
-      let text: string;
-      let model = "";
-      try {
-        const out = await generateText(
-          buildPrompt(page.title, page.markdown),
-          { temperature: 0.3, maxOutputTokens: 3000, skipRateLimit: Boolean(service) },
-          { feature: "question-decompose", userId: adminId },
-        );
-        text = out.text;
-        model = `${out.provider}/${out.model}`;
-      } catch (e) {
-        const limitedByAi = rateLimitResponse(e, corsHeaders);
-        if (limitedByAi) return limitedByAi;
-        console.error(`question-decompose: AI failed for ${id}:`, e);
-        results.push({ id, error: "the AI could not be reached; nothing stored" });
-        continue;
-      }
-
-      const parsed = parseQuestions(text);
-      if (!parsed.ok) {
-        console.error(`question-decompose: unreadable reply for ${id}: ${text.slice(0, 200)}`);
-        results.push({ id, error: "the AI reply could not be read; nothing stored" });
-        continue;
-      }
-
-      const { data: added, error: addError } = await db.rpc("question_bank_add", {
-        _source_content_id: id,
-        _items: parsed.items,
-        _provenance: { by: "question-decompose", model, rejected_before_save: parsed.rejected.length },
-      });
-      if (addError) {
-        console.error(`question-decompose: could not save for ${id}:`, addError.message);
-        results.push({ id, error: "could not save the questions" });
-        continue;
-      }
-      const r = (added ?? {}) as { stored?: number; skipped?: number };
-      stored += r.stored ?? 0;
-      skipped += (r.skipped ?? 0) + parsed.rejected.length;
-      results.push({ id, stored: r.stored ?? 0, skipped: (r.skipped ?? 0) + parsed.rejected.length, model });
+    const out = await decomposePages(db, ids, { service: Boolean(service), adminId });
+    if (out.limited) {
+      const limitedByAi = rateLimitResponse(out.limited, corsHeaders);
+      if (limitedByAi) return limitedByAi;
     }
+    const { results, stored, skipped } = out;
 
     console.log(`question-decompose: ${ids.length} page(s), ${stored} stored, ${skipped} skipped`);
     return json({ ok: true, pages: ids.length, stored, skipped, results });

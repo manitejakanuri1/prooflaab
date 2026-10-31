@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Check, EyeOff, Undo2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 type Status = "draft" | "approved" | "hidden";
 
@@ -21,20 +21,20 @@ interface Bank {
 }
 
 const TABS: { id: Status; label: string }[] = [
-  { id: "draft", label: "To review" },
-  { id: "approved", label: "Approved" },
+  { id: "approved", label: "Live" },
   { id: "hidden", label: "Hidden" },
 ];
 
 /**
- * Admin > Work > Question bank: the small questions the crawler's pages were cut into (migration 147).
- * They arrive as drafts. Approving one only marks it good: nothing picks Lots from the bank yet.
- * The skill tag is set by the database from the fixed skill list; "no skill" means no listed skill matched.
+ * Admin > Work > Question bank: the questions the crawler, admin material and college material were cut into.
+ * Owner 31 Oct 2026 (migration 200): they go live straight away and become Daily Lots (week 2 onwards, picked
+ * for the student's weak skills). Hiding one takes it out of the picker. The skill tag is set by the database
+ * from the fixed skill list; "no skill" means no listed skill matched.
  */
 const QuestionBank = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [status, setStatus] = useState<Status>("draft");
+  const [status, setStatus] = useState<Status>("approved");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-question-bank", status],
@@ -48,7 +48,7 @@ const QuestionBank = () => {
   const move = async (item: BankItem, to: Status) => {
     const { error } = await supabase.rpc("admin_set_question_status" as never, { _id: item.id, _status: to } as never);
     if (error) return toast({ title: "Not changed", description: error.message, variant: "destructive" });
-    toast({ title: to === "approved" ? "Approved" : to === "hidden" ? "Hidden" : "Back to review" });
+    toast({ title: to === "approved" ? "Live again" : "Hidden: no student gets it from now on" });
     void qc.invalidateQueries({ queryKey: ["admin-question-bank"] });
   };
 
@@ -60,7 +60,8 @@ const QuestionBank = () => {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Question bank</h1>
         <p className="text-sm text-muted-foreground">
-          Small questions cut from crawled pages. Review them here; approving does not change which Lot a student gets.
+          Questions written from crawled pages and from added material. They are live straight away and become
+          Daily Lots from a student's second week, picked for their weak skills. Hide any you do not want used.
           {data.counts.untagged > 0 && ` ${data.counts.untagged} match no listed skill.`}
         </p>
       </div>
@@ -76,9 +77,9 @@ const QuestionBank = () => {
 
       {data.items.length === 0 ? (
         <Card><CardContent className="p-6 text-sm text-muted-foreground">
-          {status === "draft"
-            ? "Nothing to review. Questions appear here after the crawler runs with the question bank switched on."
-            : "Nothing here yet."}
+          {status === "approved"
+            ? "No questions yet. They appear here after the Sunday crawl, or straight away when material is added in Resources."
+            : "Nothing hidden."}
         </CardContent></Card>
       ) : (
         <div className="space-y-3">
@@ -101,13 +102,10 @@ const QuestionBank = () => {
                   </span>
                   <div className="flex gap-2">
                     {q.status !== "approved" && (
-                      <Button size="sm" onClick={() => void move(q, "approved")}><Check className="h-4 w-4 mr-1" />Approve</Button>
+                      <Button size="sm" onClick={() => void move(q, "approved")}><Eye className="h-4 w-4 mr-1" />Make live</Button>
                     )}
                     {q.status !== "hidden" && (
                       <Button size="sm" variant="outline" onClick={() => void move(q, "hidden")}><EyeOff className="h-4 w-4 mr-1" />Hide</Button>
-                    )}
-                    {q.status !== "draft" && (
-                      <Button size="sm" variant="ghost" onClick={() => void move(q, "draft")}><Undo2 className="h-4 w-4 mr-1" />Back to review</Button>
                     )}
                   </div>
                 </div>

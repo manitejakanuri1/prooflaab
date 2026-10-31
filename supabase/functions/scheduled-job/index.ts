@@ -3,6 +3,7 @@ import { removeOwnerFiles, removeVoiceAudio } from '../_shared/owner-files.ts';
 import { createClient } from "../_shared/backend.ts";
 import { schedulerCaller } from "../_shared/googleIdentity.ts";
 import { pagesNeedingLots, reopenForRewrite, writeLotTemplate } from "../_shared/lot-pipeline.ts";
+import { decomposePages } from "../_shared/question-decompose-run.ts";
 
 /**
  * The timed jobs, triggered by Google Cloud Scheduler.
@@ -47,6 +48,22 @@ serve(async (req) => {
   if (job === 'pregenerate-lots') {
     const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
     const limit = Math.min(3, Math.max(1, Number(new URL(req.url).searchParams.get('limit') ?? 3) || 3));
+    // Part A (migration 200): college and admin material added since 31 Oct 2026 that nobody has cut into bank
+    // questions yet (the screen asks straight away; this catches a call that failed). Two pages per run at most.
+    const { data: manual } = await db.from('source_content').select('id')
+      .eq('fetch_method', 'manual').is('bank_question_id', null).is('hidden_at', null)
+      .gte('fetched_at', '2026-10-31').order('fetched_at', { ascending: false }).limit(20);
+    const manualIds = ((manual ?? []) as { id: string }[]).map((r) => r.id);
+    const { data: tried } = manualIds.length
+      ? await db.from('question_bank_attempts').select('source_content_id').in('source_content_id', manualIds)
+      : { data: [] };
+    const done = new Set(((tried ?? []) as { source_content_id: string }[]).map((r) => r.source_content_id));
+    const toCut = manualIds.filter((id) => !done.has(id)).slice(0, 2);
+    if (toCut.length) {
+      const cut = await decomposePages(db, toCut, { service: true, adminId: null });
+      console.log(`scheduled-job pregenerate-lots: bank questions from ${toCut.length} material page(s): ${cut.stored} stored`);
+    }
+
     const pages = await pagesNeedingLots(db, limit);
     const started = Date.now();
     const results = await Promise.all(pages.map(async (id) => {

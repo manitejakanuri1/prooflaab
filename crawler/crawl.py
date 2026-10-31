@@ -161,6 +161,8 @@ def process_url(source: dict, url: str, existing: list[dict]) -> str:
 def run() -> int:
     """Crawls every approved source. Returns the process exit code: non-zero when the run
     did nothing useful, so the job is recorded as failed and its alert fires."""
+    # Pages this run inserts get fetched_at = now() (database default): only those get bank questions.
+    run_started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 60))
     print(f"writing to {db.describe()}")
     sources = db.active_sources()
     print(f"{len(sources)} active source(s) in source_registry")
@@ -205,20 +207,22 @@ def run() -> int:
         # loud because every single run "succeeds" while the library quietly stops growing.
         print(f"CRAWLER ZERO NEW: no new or changed page in this run, and none stored for "
               f"{'ever' if newest_days is None else str(newest_days) + ' days'} ({tally['urls']} urls checked)", flush=True)
-    decompose_new_pages()
+    decompose_new_pages(run_started)
     if tally["urls"] > 0 and tally["failed"] == tally["urls"]:
         print("CRAWLER FAILED: every url failed to fetch or store", flush=True)
         return 1
     return 0
 
 
-def decompose_new_pages() -> None:
-    """Optional: ask the question-decompose function to cut pages nobody has tried yet into bank questions.
+def decompose_new_pages(since: str | None = None) -> None:
+    """Ask the question-decompose function to cut the pages this crawl brought in into bank questions.
 
-    OFF unless QUESTION_DECOMPOSE=1, so nothing changes until the owner turns it on. It needs FUNCTIONS_URL
-    (the functions service address) and WEBHOOK_SECRET. The function picks the pages itself (the next ones with
-    no attempt), so this does not need to know which rows were just stored. Whatever happens here, the crawl
-    itself is never marked failed: the questions are an extra, the pages are the job.
+    Owner 31 Oct 2026 (migration 200): the crawler writes the questions itself, and they go live straight away.
+    ON when QUESTION_DECOMPOSE=1. It needs FUNCTIONS_URL (the functions service address) and WEBHOOK_SECRET.
+    since = this run's start time, so only new or changed pages are cut, never the whole old library.
+    At most QUESTION_DECOMPOSE_MAX pages per run (default 20) keeps the AI cost bounded: each page is one AI call,
+    and each question it gives becomes one Lot the pregenerate job writes once.
+    Whatever happens here, the crawl itself is never marked failed: the questions are an extra, the pages are the job.
     """
     if os.environ.get("QUESTION_DECOMPOSE") != "1":
         return
@@ -227,18 +231,29 @@ def decompose_new_pages() -> None:
     if not url or not secret:
         print("QUESTION BANK skipped: QUESTION_DECOMPOSE=1 but FUNCTIONS_URL or WEBHOOK_SECRET is not set", flush=True)
         return
-    pages = max(1, min(5, int(os.environ.get("QUESTION_DECOMPOSE_PAGES", "3") or 3)))
-    try:
-        r = httpx.post(f"{url}/functions/v1/question-decompose", json={"limit": pages},
-                       headers={"x-webhook-secret": secret}, timeout=280)
-        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-        if r.status_code >= 400:
-            print(f"QUESTION BANK failed: HTTP {r.status_code} {str(body)[:200]}", flush=True)
-        else:
-            print(f"QUESTION BANK: {body.get('pages', 0)} page(s), {body.get('stored', 0)} question(s) stored as drafts, "
-                  f"{body.get('skipped', 0)} skipped", flush=True)
-    except Exception as err:  # never fail the crawl over the extra step
-        print(f"QUESTION BANK failed: {str(err)[:200]}", flush=True)
+    budget = max(0, min(200, int(os.environ.get("QUESTION_DECOMPOSE_MAX", "20") or 20)))
+    done = stored = skipped = 0
+    while done < budget:
+        try:
+            body_in = {"limit": min(5, budget - done)}
+            if since:
+                body_in["since"] = since
+            r = httpx.post(f"{url}/functions/v1/question-decompose", json=body_in,
+                           headers={"x-webhook-secret": secret}, timeout=280)
+            body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+            if r.status_code >= 400:
+                print(f"QUESTION BANK failed: HTTP {r.status_code} {str(body)[:200]}", flush=True)
+                break
+        except Exception as err:  # never fail the crawl over the extra step
+            print(f"QUESTION BANK failed: {str(err)[:200]}", flush=True)
+            break
+        pages = int(body.get("pages", 0) or 0)
+        done += pages
+        stored += int(body.get("stored", 0) or 0)
+        skipped += int(body.get("skipped", 0) or 0)
+        if pages == 0:
+            break
+    print(f"QUESTION BANK: {done} page(s), {stored} question(s) stored live, {skipped} skipped", flush=True)
 
 
 def report_tools() -> None:

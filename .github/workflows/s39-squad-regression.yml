@@ -249,7 +249,13 @@ jobs:
                    ':(exclude)src/components/dashboard/student/StudentDashboardContent.tsx'
                    ':(exclude)src/lib/passedNote.ts' ':(exclude)src/lib/passedNote.test.ts'
                    ':(exclude)src/hooks/useAllStudentTasks.tsx' ':(exclude)src/integrations/supabase/types.ts'
-                   ':(exclude)src/lib/matchStatus.ts' ':(exclude)src/lib/matchStatus.test.ts')
+                   ':(exclude)src/lib/matchStatus.ts' ':(exclude)src/lib/matchStatus.test.ts'
+                   ':(exclude)src/components/dashboard/college/PostJobDescription.tsx'
+                   ':(exclude)src/components/dashboard/college/PostSourceMaterial.tsx'
+                   ':(exclude)src/components/dashboard/student/CodeEditor.tsx'
+                   ':(exclude)src/components/dashboard/student/CodeSnapshot.tsx'
+                   ':(exclude)src/integrations/google/bffSession.ts'
+                   ':(exclude)src/main.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
@@ -270,8 +276,9 @@ jobs:
         #   Frozen again here at 1a6f652.
         # 31 Oct 2026 (night): owner's go to change student + college screens for the open audit items
         #   (MF-040/041/042/117 voice, MF-060/097 matches, MF-013 company Lot, MF-111 delete confirm). Frozen again here at 7ef026e.
+        # 1 Nov 2026: owner's go for Grok's end-to-end fixes on student + college screens (E2E-1..33). Frozen again here at ca5cbfb.
         run: |
-          git diff --quiet 7ef026ef3b2013557d2ccc007ff15b288a38467b -- \
+          git diff --quiet ca5cbfbd92847905889ee838c190c843096e1d9e -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -283,7 +290,7 @@ jobs:
             src/components/dashboard/student/StudentPrivacy.tsx src/components/dashboard/student/StudentPortfolioPage.tsx \
             src/components/dashboard/student/StudentSettingsPage.tsx src/components/dashboard/recruiter/ProofProfile.tsx \
             src/recruiter/data.ts src/recruiter/types.ts \
-            || { echo "::error::a graded-marks screen changed after the 31 Oct evening re-freeze (7ef026e)"; exit 1; }
+            || { echo "::error::a graded-marks screen changed after the 1 Nov e2e re-freeze (ca5cbfb)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs
